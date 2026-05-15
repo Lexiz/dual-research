@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.22.0] — 2026-05-16
+
+### Added
+
+- **Compact run-detail header, "How it works" page, and release notes** ([spec 0023](specs/0023-header-howitworks-notes.md)) — three bundled UX changes. The run-detail header drops from four vertical rows to two: one primary row with back chip, merged dual-research/run-id pill, single-line topic, phase progress dots, phase label, cost, status, and a compact errors badge; one subtle mono meta row with started/drafter/elapsed/outcome (and in-flight round when applicable). Recovers about one timeline-card height. New "How it works" link in the chrome bar (right of the connection pill) opens a static page at `#/how-it-works` that walks through the protocol end-to-end: brief ingestion, the five phases with parallelism hints, hand-rolled inline SVGs of the phase flow and a single negotiation round, an FAQ covering "who goes first" (no-one — both agents fire via `asyncio.gather`), "fresh chats or one long chat" (fresh per turn; CACHE_BREAKPOINT is prefix caching, not a session), the tiebreak cascade, soft/hard cap behaviour, repair semantics. Release notes embedded as a `VERSION_NOTES` array seeded with v0.18 → v0.22 entries; CONTRIBUTING.md asks future user-visible specs to append a new entry there. New `Icon.Help` glyph. Static-only frontend work; no backend changes.
+
 ## [0.21.0] — 2026-05-15
 
 ### Added
