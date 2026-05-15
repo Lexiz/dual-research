@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.17.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/18"
 ---
 
 # Spec 0018 — Hosted deployment kickoff handoff package
