@@ -324,6 +324,13 @@ Bullet list of sections the final document should contain. Incorporate {other_na
 Numbered list. Use stable D-N IDs assigned in round 1 (or introduced in this round if genuinely new). For each entry with status `open`:
 - (a) D-N ID and short title, (b) your position, (c) {other_name}'s position, (d) why you are not yet conceding (cite specific evidence or argument), (e) materiality — one sentence on how this disagreement would change the final document. If you cannot state (e), drop the item as immaterial.
 
+The anchor line for each entry MUST follow one of these two exact shapes (with a leading "-" list marker — not a numbered list, not a heading):
+
+- Open form (verbatim): ``- D-N: <short label> — status: open``
+- Terminal form (verbatim): ``- **D-N (<short label>):** `<terminal-state>` — <one-line note>``
+
+(Terminal-state is one of: resolved, non_blocking_limitation, conceded, accepted.) The (a)–(e) sub-items hang off the open-form anchor line as `- (a) ...` bullets.
+
 For entries with status `final_surfaced`: list them here and also in the ## Final-surfaced disagreements section below.
 
 ## Final-surfaced disagreements

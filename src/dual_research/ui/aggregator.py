@@ -62,6 +62,13 @@ def load_run_snapshot(session_dir: Path) -> Run:
     hard_cap_hit = any(e.get("event") == "hard_cap_hit" for e in transcript)
     run.disagreements = mark_deadlocked_open(p2 + p4, hard_cap_hit=hard_cap_hit)
 
+    # When the parser found nothing, scan the round files for raw `D-<digit>`
+    # anchors. If any are present, the agents *did* emit disagreements that we
+    # failed to recognise — the UI surfaces a one-line footer in that case so
+    # the empty explorer doesn't masquerade as "no disagreements at all".
+    if not run.disagreements:
+        run.disagreements_parse_suspected_miss = _scan_disagreement_anchors(session_dir)
+
     run.errors = derive_errors(
         transcript=transcript, run_id=run.id, display_id=run.display_id
     )
@@ -580,3 +587,31 @@ def _set_body_if_present(
     except OSError:
         return
     run.agents[ui_ag].current_turn = Turn(kind=kind, index=index, body=body)
+
+
+_DASH_DIGIT_RE = re.compile(r"\bD-\d+\b")
+
+
+def _scan_disagreement_anchors(session_dir: Path) -> bool:
+    """Cheap probe: does any Phase 2/4 round file contain a literal ``D-<digit>``?
+
+    Used to distinguish "parser missed everything" from "agents had nothing to
+    disagree about". Reads at most ~12 files, opens them once, short-circuits
+    on first hit.
+    """
+    for phase in (2, 4):
+        phase_dir = session_dir / f"phase{phase}"
+        if not phase_dir.exists():
+            continue
+        for entry in phase_dir.iterdir():
+            if not entry.is_file() or not entry.name.endswith(".md"):
+                continue
+            if ".malformed" in entry.name:
+                continue
+            try:
+                text = entry.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if _DASH_DIGIT_RE.search(text):
+                return True
+    return False

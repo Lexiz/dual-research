@@ -389,3 +389,50 @@ class TestLoadSyntheticSession:
         assert row.cost == 0.42
         # Phase 2 row has rounds string.
         assert row.rounds is not None
+
+
+class TestDisagreementsParseSuspectedMiss:
+    """Spec 0016 I5: when round files contain D-N anchors that the parser
+    fails to recognise, the aggregator surfaces a flag so the UI can show a
+    one-line footer instead of pretending the run had no disagreements."""
+
+    def test_flag_unset_when_no_files(self, tmp_path):
+        session = _write_session_skeleton(tmp_path)
+        r = load_run_snapshot(session)
+        assert r.disagreements == []
+        assert r.disagreements_parse_suspected_miss is False
+
+    def test_flag_set_when_anchors_present_but_unparsed(self, tmp_path):
+        session = _write_session_skeleton(tmp_path)
+        # Phase 2 round file with a D-N anchor in a *non-canonical* section
+        # that the parser does not read. ("Random unrelated section".)
+        p2 = session / "phase2"
+        p2.mkdir(exist_ok=True)
+        (p2 / "round-01-claude.md").write_text(
+            "## Random unrelated section\n\nWe mentioned D-1 here but it isn't in the canonical sections.\n",
+            encoding="utf-8",
+        )
+        r = load_run_snapshot(session)
+        assert r.disagreements == []
+        assert r.disagreements_parse_suspected_miss is True
+
+    def test_flag_unset_when_parser_recovers(self, tmp_path):
+        # If the parser DOES extract entries (any number > 0), the flag stays
+        # False — we only want it for the silent-failure case.
+        session = _write_session_skeleton(tmp_path)
+        p2 = session / "phase2"
+        p2.mkdir(exist_ok=True)
+        (p2 / "round-01-claude.md").write_text(
+            dedent(
+                """\
+                ## Substantive disagreements I'm holding
+
+                - D-1: A scope question — status: open
+                  - (a) D-1: "what counts as scope"
+                """
+            ),
+            encoding="utf-8",
+        )
+        r = load_run_snapshot(session)
+        assert len(r.disagreements) >= 1
+        assert r.disagreements_parse_suspected_miss is False

@@ -36,22 +36,33 @@ from dual_research.ui.models import Disagreement, ProgressionStep
 
 # ─── Regexes ──────────────────────────────────────────────────────────────────
 
-# Top-level disagreement line. Tolerates both:
+# Top-level disagreement line. Tolerates all of:
 #   - D-3: Compiler performance (tsc-go) — status: open
 #   - **D-1 (adoption percentages):** `resolved` — Conceded...
-# Captures: (1) digit, (2) optional parenthetical-label before the colon,
-# (3) the tail after the colon.
+#   - ### D-1: SQLite in production (categorical vs. conditional)
+#   - 1) D-1: Scope of acceptable production use — open
+#   - 4. D-1: Operational cost — non_blocking_limitation.
+#
+# The leading anchor is one of: a list-marker dash, an H3/H4 heading, or a
+# numbered list (digit + `.` or `)`). The separator between the D-N and the
+# label is either `:` or ` —`. Captures: (1) digit, (2) optional parenthetical
+# label before the separator, (3) the tail after the separator.
 _D_LINE_RE = re.compile(
     r"""
-    ^\s*-\s*               # list marker
-    (?:\*\*)?              # optional bold-open
-    D-(\d+)                # group 1: digit
+    ^                              # line start
+    (?:                            # ─ anchor: one of three forms ─
+        \s*-\s*                    #   list-marker dash
+      | \s*\#{3,4}\s+              #   H3/H4 heading
+      | \s*\d+[.\)]\s+             #   numbered list (1. or 1))
+    )
+    (?:\*\*)?                      # optional bold-open
+    D-(\d+)                        # group 1: digit
     \s*
-    (?:\(([^)]*)\)\s*)?    # group 2: optional parenthetical before the colon
-    :                      # required colon
-    (?:\*\*)?              # optional bold-close
-    \s*
-    (.*?)\s*$              # group 3: tail
+    (?:\(([^)]*)\)\s*)?            # group 2: optional parenthetical
+    [:\s]?\s*                      # tolerant separator (`:` optional)
+    (?:\*\*)?                      # optional bold-close
+    \s*(?:[—–-]\s*)?               # may begin with em/en/hyphen dash
+    (.*?)\s*$                      # group 3: tail
     """,
     re.MULTILINE | re.VERBOSE,
 )
@@ -68,11 +79,27 @@ _RESOLVED_TAIL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Bare-tail form (OpenAI's negotiation output): "<label> — <state>"
+# with no "status:" keyword. The state token is whitelisted (open or one of
+# the terminal states) so this doesn't swallow free-text tails.
+_BARE_TAIL_RE = re.compile(
+    r"^(.*?)\s*[—–\-]\s*`?(open|"
+    + "|".join(_TERMINAL_STATES)
+    + r")`?\b(.*)$",
+    re.IGNORECASE,
+)
+
 # Sub-item lines inside an open-form block. Captured: letter, body.
 _SUB_RE = re.compile(r"^\s*-\s*\(([a-e])\)\s*(.+?)\s*$", re.MULTILINE)
 
-# Section heading we read.
+# Section headings we read. Agents emit D-N entries in one of three sections
+# depending on the entry's lifecycle stage. We pull from all three and let the
+# cross-round merge deduplicate by id.
 _DISAGREEMENT_SECTION_NAME = "Substantive disagreements I'm holding"
+_SIBLING_SECTION_NAMES = (
+    "Final-surfaced disagreements",
+    "Resolved or non-blocking differences",
+)
 
 # Phase 2/4 round file pattern: "round-NN-{agent}.md" (no .malformed)
 _ROUND_FILE_RE = re.compile(r"^round-(\d+)-(claude|openai)\.md$")
@@ -127,8 +154,19 @@ def _parse_one(
             resolution_note = resolved_m.group(2).strip()
             label = ""
         else:
-            # Fallback: take the whole tail as the label, status unknown.
-            label = tail.strip().strip("`").strip()
+            # Bare-tail form: "<label> — <state>" without the "status:" keyword
+            # (the form OpenAI emits in negotiation rounds).
+            bare_m = _BARE_TAIL_RE.match(tail)
+            if bare_m:
+                label = bare_m.group(1).strip().strip("`").strip()
+                status = bare_m.group(2).strip().lower()
+                rest = bare_m.group(3).strip()
+                if rest and status != "open":
+                    # Treat trailing prose as the resolution note when terminal.
+                    resolution_note = rest.lstrip(".").lstrip("—–-").strip() or None
+            else:
+                # Fallback: take the whole tail as the label, status unknown.
+                label = tail.strip().strip("`").strip()
 
     # When the line had a "**D-N (parenthetical):**" pattern, the parenthetical
     # is the human-readable label (the tail is just the status + note).
@@ -175,14 +213,48 @@ def _parse_one(
 
 
 def _read_round_file(path: Path) -> list[dict]:
-    """Read one round file and return its parsed D-N entries."""
+    """Read one round file and return its parsed D-N entries.
+
+    Pulls from the canonical ``## Substantive disagreements I'm holding``
+    section AND from two sibling sections where agents migrate terminal-state
+    entries (``## Final-surfaced disagreements``, ``## Resolved or
+    non-blocking differences``). Duplicate ids are merged keeping the
+    longest-information record.
+    """
     if not path.exists():
         return []
     text = path.read_text(encoding="utf-8")
-    section = extract_fenced_section(text, _DISAGREEMENT_SECTION_NAME)
-    if not section:
-        return []
-    return _parse_section(section)
+
+    collected: dict[str, dict] = {}
+    for name in (_DISAGREEMENT_SECTION_NAME, *_SIBLING_SECTION_NAMES):
+        section = extract_fenced_section(text, name)
+        if not section:
+            continue
+        for entry in _parse_section(section):
+            d_id = entry["id"]
+            prev = collected.get(d_id)
+            if prev is None:
+                collected[d_id] = entry
+                continue
+            # Same id seen across sections — pick the better record.
+            collected[d_id] = _merge_entries(prev, entry)
+    return list(collected.values())
+
+
+def _merge_entries(a: dict, b: dict) -> dict:
+    """Combine two raw entry dicts for the same ``D-N`` id."""
+    out = dict(a)
+    for key, value in b.items():
+        if key == "status":
+            # Prefer terminal status over "open"/"unknown" once we have one.
+            if value and value != "open" and (not out.get("status") or out["status"] == "open"):
+                out["status"] = value
+            continue
+        if not out.get(key) and value:
+            out[key] = value
+        elif isinstance(value, str) and isinstance(out.get(key), str) and len(value) > len(out[key]):
+            out[key] = value
+    return out
 
 
 # ─── Reconstruction across rounds and agents ──────────────────────────────────

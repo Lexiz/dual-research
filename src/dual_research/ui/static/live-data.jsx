@@ -257,10 +257,14 @@ function buildLiveTimeline(run) {
 
   if (ph >= 2) {
     const cur = run.round?.current ?? 0;
+    // Phase 2 round count: while ph === 2, `cur` is the current phase's
+    // counter (authoritative). Once the run advances, `cur` is overwritten by
+    // Phase 4's round, so we derive the count from phaseStats keys instead.
+    const p2Rounds = ph === 2 ? cur : Object.keys(run.phaseStats?.phase2 || {}).length;
     items.push({
       id: 'phase-2', kind: 'phase-divider', phaseId: 2,
       duration: run.phaseTimings?.['2'],
-      extra: `${cur} round${cur === 1 ? '' : 's'}`,
+      extra: `${p2Rounds} round${p2Rounds === 1 ? '' : 's'}`,
     });
     if (ph === 2 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
       const completedThrough = Math.max(0, cur - 1);
@@ -287,9 +291,9 @@ function buildLiveTimeline(run) {
         });
       }
     } else if (ph >= 3 || st === 'completed' || st === 'deadlocked') {
-      // Run moved past P2 — enumerate all completed rounds from disk.
-      const maxRound = cur;
-      for (let r = 1; r <= maxRound; r++) {
+      // Run moved past P2 — enumerate all completed rounds. `run.round.current`
+      // has been overwritten by the next phase, so use the per-phase count.
+      for (let r = 1; r <= p2Rounds; r++) {
         items.push({ id: `p2-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
                      filePath: fileForRound(2, r, 'claude') });
         items.push({ id: `p2-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: r,
@@ -318,10 +322,14 @@ function buildLiveTimeline(run) {
 
   if (ph >= 4 && st !== 'errored' && st !== 'deadlocked') {
     const cur = run.round?.current ?? 0;
+    // While ph === 4 we trust `cur`; afterwards we'd be reading whatever
+    // phase reset it. (At present nothing comes after Phase 4 but we treat
+    // the past-phase branch symmetrically with Phase 2 for future-proofing.)
+    const p4Rounds = ph === 4 ? cur : Object.keys(run.phaseStats?.phase4 || {}).length;
     items.push({
       id: 'phase-4', kind: 'phase-divider', phaseId: 4,
       duration: run.phaseTimings?.['4'],
-      extra: `${cur} review round${cur === 1 ? '' : 's'}`,
+      extra: `${p4Rounds} review round${p4Rounds === 1 ? '' : 's'}`,
     });
     if (ph === 4) {
       const completedThrough = Math.max(0, cur - 1);
@@ -348,8 +356,7 @@ function buildLiveTimeline(run) {
         });
       }
     } else if (ph === 5 || st === 'completed') {
-      const maxRound = cur;
-      for (let r = 1; r <= maxRound; r++) {
+      for (let r = 1; r <= p4Rounds; r++) {
         items.push({ id: `p4-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: `rev-${r}`,
                      filePath: fileForRound(4, r, 'claude') });
         items.push({ id: `p4-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: `rev-${r}`,
@@ -385,17 +392,19 @@ function attachItemStats(items, run) {
   for (const item of items) {
     if (item.kind === 'phase-divider' || item.kind === 'error' || item.kind === 'deadlock') continue;
     if (item.kind === 'input') {
-      // Phase 0 preflight is keyed per agent, but the input card is shared;
-      // surface a "needs input" chip if either agent flagged brief issues.
+      // Phase 0 preflight is keyed per agent, but the input card is shared.
+      // Use max(claude, gpt) rather than the sum — the two agents critique
+      // the same brief and their issue lists overlap heavily, so the sum is
+      // misleading. The larger of the two is the better single proxy.
       const p0 = ps.phase0 || {};
       const cIssues = p0.claude?.briefIssues ?? 0;
       const gIssues = p0.gpt?.briefIssues ?? 0;
-      const total = cIssues + gIssues;
+      const count = Math.max(cIssues, gIssues);
       const bothOk = p0.claude?.status === 'BRIEF_OK' && p0.gpt?.status === 'BRIEF_OK';
       item.stats = bothOk
         ? { kind: 'preflight', state: 'ok' }
-        : total > 0
-          ? { kind: 'preflight', state: 'issues', count: total }
+        : count > 0
+          ? { kind: 'preflight', state: 'issues', count }
           : null;
       continue;
     }
