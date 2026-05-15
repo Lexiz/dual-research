@@ -5,107 +5,62 @@
 //   ├─ left: artifact cards (collapsible)   │  right: disagreements by phase (tabbed)
 //   └─ footer
 
-// ─────────────────── Compact run-detail header (spec 0023) ───────────────────
+// ─────────────────── Compact run-detail header (spec 0024 pass 3) ────────────
+// Back action now lives in the chrome bar's "All runs" tab (icon swaps to a
+// back-arrow on detail views), so the header has neither a back chip nor a
+// TOPIC tag — just topic + right-side badges.
 function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
-  const ctx = React.useContext(window.RunContext) || {};
-  const onBack = () => ctx.navigate ? ctx.navigate('list') : (window.location.hash = '#/');
   const total = run.agents.claude.cost + run.agents.gpt.cost;
   const idParts = window.splitRunId(run.id);
   const startedClock = idParts.time || '—';
   const elapsedTotal = Object.values(run.phaseTimings || {}).filter(Boolean).reduce((a, b) => a + b, 0);
   const elapsedLabel = elapsedTotal > 0 ? fmt.duration(elapsedTotal) : '—';
   const drafterLabel = run.drafter ? (AGENT_META[run.drafter]?.name || run.drafter) : '—';
-  const phaseLabel = PHASES[run.phase]?.label || 'Done';
-
-  let outcome = null;
-  if (run.status === 'completed') outcome = `converged in ${fmt.duration(elapsedTotal)}`;
-  else if (run.status === 'deadlocked') outcome = `hard cap · ${run.round?.current}/${run.round?.hard}`;
-  else if (run.status === 'errored') outcome = `halted · ${run.error?.code || 'errored'}`;
+  const totalTokens =
+    (run.agents.claude.tokens?.in || 0) + (run.agents.claude.tokens?.out || 0) +
+    (run.agents.gpt.tokens?.in || 0) + (run.agents.gpt.tokens?.out || 0);
 
   return (
     <header style={{
       display: 'flex', flexDirection: 'column',
-      padding: '8px 24px 10px',
+      padding: '8px 20px',
       borderBottom: '1px solid var(--border-1)',
       background: 'var(--bg-0)',
       flexShrink: 0,
       gap: 4,
     }}>
-      {/* Primary row */}
+      {/* Row 1: topic + cost + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-        <BackChip onClick={onBack} />
-        <BrandIdPill runId={run.id} displayId={run.displayId} />
         <Topic text={run.topic} />
-        <PhaseProgressGroup run={run} phaseLabel={phaseLabel} />
-        <span className="mono num"
-              style={{ fontSize: 12.5, color: 'var(--fg-1)', whiteSpace: 'nowrap' }}
-              title="Total cost so far">
-          {fmt.cost(total)}
-        </span>
-        <StatusBadge status={run.status} />
-        <ErrorsBadge count={errorCount} active={showErrors} onClick={onToggleErrors} />
+        <CostBadge cost={total} tokens={totalTokens} />
+        <StatusErrorsBadge
+          status={run.status}
+          errorCount={errorCount}
+          showErrors={showErrors}
+          onToggleErrors={onToggleErrors}
+        />
       </div>
-      {/* Meta row */}
-      <div className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-3)', paddingLeft: 92,
-        display: 'flex', flexWrap: 'wrap', gap: 0,
+      {/* Row 2: meta line on left, phase dots on right */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <span>started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span></span>
-        <span>&nbsp;·&nbsp;drafter <span style={{ color: 'var(--fg-1)' }}>{drafterLabel}</span></span>
-        <span>&nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed</span>
-        {outcome && (
-          <span>&nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{outcome}</span></span>
-        )}
-        {run.status === 'running' && (run.phase === 2 || run.phase === 4) && run.round && (
-          <span>&nbsp;·&nbsp;round&nbsp;
-            <span style={{ color: 'var(--fg-1)' }}>{run.round.current}/{run.round.soft}</span>
-            <span style={{ color: 'var(--fg-3)' }}>&nbsp;(hard {run.round.hard})</span>
-          </span>
-        )}
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--fg-3)',
+          display: 'flex', flexWrap: 'wrap', flex: 1, minWidth: 0,
+        }}>
+          <span>started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span></span>
+          <span>&nbsp;·&nbsp;drafter <span style={{ color: 'var(--fg-1)' }}>{drafterLabel}</span></span>
+          <span>&nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed</span>
+          {run.status === 'running' && (run.phase === 2 || run.phase === 4) && run.round && (
+            <span>&nbsp;·&nbsp;round&nbsp;
+              <span style={{ color: 'var(--fg-1)' }}>{run.round.current}/{run.round.soft}</span>
+              <span style={{ color: 'var(--fg-3)' }}>&nbsp;(hard {run.round.hard})</span>
+            </span>
+          )}
+        </div>
+        <PhaseDots run={run} />
       </div>
     </header>
-  );
-}
-
-function BrandIdPill({ runId, displayId }) {
-  const [hover, setHover] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
-  const onClick = async () => {
-    try {
-      await navigator.clipboard?.writeText(runId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch (e) { /* clipboard blocked — silent */ }
-  };
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title={copied ? 'Copied!' : `${runId} — click to copy`}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        height: 28, padding: '0 12px',
-        background: hover ? 'var(--bg-3)' : 'var(--bg-2)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 999,
-        color: 'var(--fg-1)',
-        cursor: 'pointer',
-        transition: 'background 120ms',
-        flexShrink: 0,
-      }}>
-      <span style={{
-        width: 12, height: 12, borderRadius: 3,
-        background: 'linear-gradient(135deg, var(--agent-a) 0 50%, var(--agent-b) 50% 100%)',
-      }} />
-      <span style={{ fontSize: 12.5 }}>dual&#8209;research</span>
-      <span style={{
-        fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--fg-2)',
-        letterSpacing: '0.04em', borderLeft: '1px solid var(--border-2)',
-        paddingLeft: 8, marginLeft: 2,
-      }}>{displayId || runId.slice(0, 4)}</span>
-      {copied && <span style={{ fontSize: 10, color: 'var(--ok)' }}>copied</span>}
-    </button>
   );
 }
 
@@ -113,7 +68,7 @@ function Topic({ text }) {
   return (
     <div title={text}
          style={{
-           color: 'var(--fg-0)', fontSize: 14, lineHeight: 1.35,
+           color: 'var(--fg-0)', fontSize: 14, lineHeight: 1.35, fontWeight: 500,
            flex: 1, minWidth: 0,
            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
          }}>
@@ -122,193 +77,124 @@ function Topic({ text }) {
   );
 }
 
-function PhaseProgressGroup({ run, phaseLabel }) {
+function CostBadge({ cost, tokens }) {
+  return (
+    <span title={`${cost.toFixed(4)} USD · ${tokens.toLocaleString()} tokens`}
+          className="mono"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '3px 9px', borderRadius: 999,
+            background: 'var(--bg-2)', border: '1px solid var(--border-1)',
+            fontSize: 11, color: 'var(--fg-1)', flexShrink: 0,
+            whiteSpace: 'nowrap',
+          }}>
+      <span className="num">{fmt.cost(cost)}</span>
+      <span style={{ color: 'var(--fg-3)' }}>·</span>
+      <span className="num" style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokens)}t</span>
+    </span>
+  );
+}
+
+function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
+  const map = {
+    running:    { label: 'running',    color: COLORS.info, pulse: 'pulse-a' },
+    completed:  { label: 'completed',  color: COLORS.ok,   pulse: null },
+    deadlocked: { label: 'deadlocked', color: COLORS.warn, pulse: 'pulse-warn' },
+    errored:    { label: 'errored',    color: COLORS.err,  pulse: 'pulse-err' },
+  };
+  const m = map[status] || { label: status || 'idle', color: COLORS.idle, pulse: null };
+  const hasErrors = errorCount > 0;
+
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      borderRadius: 999, overflow: 'hidden',
+      border: '1px solid var(--border-1)',
+      background: 'var(--bg-2)',
+      flexShrink: 0,
+      fontFamily: 'var(--mono)',
+    }}>
+      {/* Status half */}
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '3px 10px 3px 9px',
+        fontSize: 11, color: 'var(--fg-1)', letterSpacing: '0.01em',
+      }}>
+        <Dot color={m.color} pulse={m.pulse} size={6} />
+        {m.label}
+      </span>
+
+      {/* Errors half (only when count > 0). Toggle on click. */}
+      {hasErrors && (
+        <button
+          onClick={onToggleErrors}
+          title={showErrors ? 'Back to timeline' : `View ${errorCount} error${errorCount === 1 ? '' : 's'}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '3px 10px',
+            background: showErrors ? COLORS.err + '20' : 'transparent',
+            border: 'none', borderLeft: '1px solid var(--border-1)',
+            color: COLORS.err, fontSize: 11, cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+          onMouseEnter={e => { if (!showErrors) e.currentTarget.style.background = COLORS.err + '14'; }}
+          onMouseLeave={e => { if (!showErrors) e.currentTarget.style.background = 'transparent'; }}>
+          <Icon.Warn />
+          <span className="num">{errorCount}</span>
+          <span style={{ color: COLORS.err, opacity: 0.85 }}>error{errorCount === 1 ? '' : 's'}</span>
+          {showErrors && (
+            <span style={{ marginLeft: 4, transform: 'rotate(180deg)', display: 'inline-block', color: 'var(--fg-1)' }}>
+              <Icon.Arrow />
+            </span>
+          )}
+        </button>
+      )}
+    </span>
+  );
+}
+
+function PhaseDots({ run }) {
   const { phase, status } = run;
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap',
-      flexShrink: 0,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {PHASES.map((p, i) => {
-          const completed = p.id < phase || (status === 'completed' && p.id <= 5);
-          const current = p.id === phase && status !== 'completed';
-          const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
-          const color = failed
-            ? (status === 'errored' ? COLORS.err : COLORS.warn)
-            : current ? COLORS.info
-            : completed ? COLORS.ok
-            : 'var(--border-3)';
-          const isLast = i === PHASES.length - 1;
-          return (
-            <React.Fragment key={p.id}>
+    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+      {PHASES.map((p, i) => {
+        const completed = p.id < phase || (status === 'completed' && p.id <= 5);
+        const current = p.id === phase && status !== 'completed';
+        const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
+        const color = failed
+          ? (status === 'errored' ? COLORS.err : COLORS.warn)
+          : current ? COLORS.info
+          : completed ? COLORS.ok
+          : 'var(--border-3)';
+        const isLast = i === PHASES.length - 1;
+        return (
+          <React.Fragment key={p.id}>
+            <span style={{
+              position: 'relative',
+              width: 6, height: 6, borderRadius: '50%',
+              background: completed || current || failed ? color : 'transparent',
+              border: completed || current || failed ? 'none' : `1px solid ${color}`,
+              flexShrink: 0,
+            }}>
+              {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
+            </span>
+            {!isLast && (
               <span style={{
-                position: 'relative',
-                width: 7, height: 7, borderRadius: '50%',
-                background: completed || current || failed ? color : 'transparent',
-                border: completed || current || failed ? 'none' : `1px solid ${color}`,
-                flexShrink: 0,
-              }}>
-                {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
-              </span>
-              {!isLast && (
-                <span style={{
-                  width: 14, height: 1,
-                  background: completed ? COLORS.ok : 'var(--border-2)',
-                  opacity: completed ? 0.5 : 1,
-                }} />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </div>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.04em' }}>
-        PHASE&nbsp;{phase}
-      </span>
-      <span style={{ fontSize: 12.5, color: 'var(--fg-1)', fontWeight: 500 }}>{phaseLabel}</span>
+                width: 12, height: 1,
+                background: completed ? COLORS.ok : 'var(--border-2)',
+                opacity: completed ? 0.5 : 1,
+              }} />
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }
 
-function ErrorsBadge({ count, active, onClick }) {
-  const [hover, setHover] = React.useState(false);
-  const hasErrors = count > 0;
-  const color = hasErrors ? COLORS.err : 'var(--fg-3)';
-  if (active) {
-    return (
-      <button
-        onClick={onClick}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        title="Back to timeline"
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          height: 22, padding: '0 8px',
-          background: hover ? 'var(--bg-3)' : 'var(--bg-2)',
-          border: '1px solid var(--border-3)',
-          borderRadius: 999,
-          color: 'var(--fg-1)', fontSize: 11.5,
-          flexShrink: 0,
-        }}>
-        <span style={{ display: 'inline-block', transform: 'rotate(180deg)' }}>
-          <Icon.Arrow />
-        </span>
-        <span>timeline</span>
-      </button>
-    );
-  }
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title={hasErrors ? `${count} error${count === 1 ? '' : 's'} — click to view` : 'No errors logged'}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
-        height: 22, padding: '0 8px',
-        background: hasErrors ? color + '14' : (hover ? 'var(--bg-2)' : 'var(--bg-1)'),
-        border: `1px solid ${hasErrors ? color + '55' : 'var(--border-1)'}`,
-        borderRadius: 999,
-        color: hasErrors ? color : 'var(--fg-2)',
-        fontSize: 11, cursor: 'pointer', flexShrink: 0,
-      }}>
-      <Icon.Warn />
-      <span className="mono num">{count}</span>
-    </button>
-  );
-}
-
-function BackChip({ onClick }) {
-  const [hover, setHover] = React.useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title="Back to All runs"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        height: 26, padding: '0 10px',
-        background: hover ? 'var(--bg-2)' : 'var(--bg-1)',
-        border: '1px solid var(--border-2)',
-        borderRadius: 'var(--r-2)',
-        color: 'var(--fg-1)',
-        fontSize: 11.5,
-        cursor: 'pointer',
-        transition: 'background 120ms',
-      }}>
-      <span style={{ fontSize: 12, lineHeight: 1 }}>←</span>
-      <span>All runs</span>
-    </button>
-  );
-}
-
-function RunIdChip({ runId, displayId }) {
-  const [hover, setHover] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
-  const onClick = async () => {
-    try {
-      await navigator.clipboard?.writeText(runId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch (e) { /* clipboard blocked — silent */ }
-  };
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title={copied ? 'Copied!' : `Click to copy ${runId}`}
-      className="mono"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '3px 12px',
-        background: hover ? 'var(--bg-3)' : 'var(--bg-2)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 999,
-        color: 'var(--fg-1)',
-        fontSize: 11.5,
-        fontWeight: 500,
-        letterSpacing: '0.04em',
-        cursor: 'pointer',
-        transition: 'background 120ms',
-      }}>
-      <span>{displayId || runId.slice(0, 4)}</span>
-      {copied && <span style={{ fontSize: 9.5, color: 'var(--ok)' }}>copied</span>}
-    </button>
-  );
-}
-
-// PhaseStrip and ErrorsToggleButton (spec 0017) removed in spec 0023; their
-// behaviour folded into RunDetailHeader above.
-
-function RoundIndicator({ round }) {
-  const pct = (round.current / round.hard) * 100;
-  const softPct = (round.soft / round.hard) * 100;
-  const overSoft = round.current >= round.soft;
-  const overHard = round.current >= round.hard;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>round</span>
-      <span className="mono num" style={{ fontSize: 13, color: 'var(--fg-0)' }}>
-        {round.current}<span style={{ color: 'var(--fg-3)' }}>&nbsp;/&nbsp;{round.soft}</span>
-      </span>
-      <div style={{ position: 'relative', width: 100, height: 3, background: 'var(--bg-3)', borderRadius: 999 }}>
-        <div style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0,
-          width: `${pct}%`,
-          background: overHard ? COLORS.err : overSoft ? COLORS.warn : COLORS.info,
-          borderRadius: 999,
-          transition: 'width 300ms ease',
-        }} />
-        <span style={{ position: 'absolute', top: -2, bottom: -2, left: `${softPct}%`, width: 1, background: 'var(--border-3)' }} />
-      </div>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-        hard&nbsp;{round.hard}
-      </span>
-    </div>
-  );
-}
+// BackChip / RunIdChip removed in spec 0024; replaced by BackArrow + topic.
+// PhaseStrip / ErrorsToggleButton / RoundIndicator (spec 0017) folded into
+// RunDetailHeader above in spec 0023; RoundIndicator removed entirely in 0024.
 
 // ─────────────────── Timeline ───────────────────
 function Timeline({ run }) {

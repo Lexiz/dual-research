@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.22.1] — 2026-05-16
+
+### Changed
+
+- **Run-detail header pass 2 + compact theme toggle** ([spec 0024](specs/0024-header-pass-2-theme-toggle.md)) — strip the redundant back-chip text (icon-only back arrow now), the dual-research brand pill, the gradient icon, and the copy-id chip. Topic gets a "TOPIC" caps tag. Cost merges with total tokens into one badge (`$0.4228 · 392Kt`). Status badge composes with the errors count when present (`completed | ⚠ 3 errors`, right half clickable to open the errors view). Phase progress dots move to row 2, right-aligned under the status. "PHASE N Label" and "converged in …" text removed (duplicated meta row). Header is now ~2 rows × ~28px, recovering another half-card of timeline space relative to spec 0023. The chrome bar's segmented light/dark toggle becomes a single compact pill with two icon buttons inside; same affordance, ~half the horizontal space. 277 tests still green.
+
 ## [0.22.0] — 2026-05-16
 
 ### Added

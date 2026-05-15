@@ -123,7 +123,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
     }}>
       <ChromeTab
         label="All runs"
-        icon={Icon.List}
+        icon={route.view === 'detail' ? Icon.ArrowLeft : Icon.List}
         active={onList}
         onClick={() => navigate('list')}
       />
@@ -175,7 +175,7 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
       <ConnectionPill />
       <HowItWorksLink onClick={() => navigate('how-it-works')}
                       active={route.view === 'how-it-works'} />
-      <ThemeSegmentedToggle theme={theme} onToggle={onToggleTheme} />
+      <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       {session
         ? <AvatarMenu navigate={navigate} route={route}
                       client={client} session={session} me={me} />
@@ -361,62 +361,77 @@ function ConnectionPill() {
   );
 }
 
-function ThemeSegmentedToggle({ theme, onToggle }) {
+// Compact single-pill theme toggle (spec 0024). One container, two icon
+// buttons side by side; the active one is highlighted, clicking the inactive
+// one flips the theme. Half the horizontal space of the previous segmented
+// toggle.
+function ThemeToggle({ theme, onToggle }) {
   const isDark = theme === 'dark';
+  const goLight = () => { if (isDark) onToggle(); };
+  const goDark  = () => { if (!isDark) onToggle(); };
   return (
     <div style={{
       display: 'flex', alignItems: 'center',
       borderLeft: '1px solid var(--border-1)',
-      padding: '0 12px',
+      padding: '0 10px',
     }}>
       <div role="group" aria-label="Theme"
            style={{
-        display: 'inline-flex',
-        background: 'var(--bg-2)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 999,
-        padding: 2,
-        height: 28,
-      }}>
-        <ThemeSeg active={!isDark} onClick={() => isDark && onToggle()} label="light"
-                  icon={
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                         stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="8" cy="8" r="2.8"/>
-                      <path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/>
-                    </svg>
-                  } />
-        <ThemeSeg active={isDark} onClick={() => !isDark && onToggle()} label="dark"
-                  icon={
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
-                         stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M13.5 9.5A6 6 0 1 1 6.5 2.5 5 5 0 0 0 13.5 9.5Z"/>
-                    </svg>
-                  } />
+             display: 'inline-flex', alignItems: 'center',
+             background: 'var(--bg-2)',
+             border: '1px solid var(--border-1)',
+             borderRadius: 999,
+             padding: 2,
+             height: 26,
+           }}>
+        <ThemeIconBtn active={!isDark} onClick={goLight} label="Switch to light theme">
+          <SunIcon />
+        </ThemeIconBtn>
+        <ThemeIconBtn active={isDark} onClick={goDark} label="Switch to dark theme">
+          <MoonIcon />
+        </ThemeIconBtn>
       </div>
     </div>
   );
 }
 
-function ThemeSeg({ active, onClick, icon, label }) {
+function ThemeIconBtn({ active, onClick, label, children }) {
   return (
     <button
       onClick={onClick}
       aria-pressed={active}
       title={label}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '0 10px',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 24, height: 22,
         background: active ? 'var(--bg-0)' : 'transparent',
         color: active ? 'var(--fg-0)' : 'var(--fg-3)',
         border: active ? '1px solid var(--border-1)' : '1px solid transparent',
         borderRadius: 999,
         cursor: active ? 'default' : 'pointer',
-        height: 22,
+        padding: 0, fontFamily: 'inherit',
       }}>
-      {icon}
-      <span className="mono" style={{ fontSize: 10.5 }}>{label}</span>
+      {children}
     </button>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+         stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="2.8"/>
+      <path d="M8 1.5v1.4M8 13.1v1.4M1.5 8h1.4M13.1 8h1.4M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/>
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+         stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M13.5 9.5A6 6 0 1 1 6.5 2.5 5 5 0 0 0 13.5 9.5Z"/>
+    </svg>
   );
 }
 
