@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.4.0] — 2026-05-15
+
+### Added
+
+- **Phase 2 — plan negotiation with caps, repair, and drafter tiebreak** ([spec 0003](specs/0003-phase2-negotiation.md)) — turn-based negotiation loop with parallel agent calls per round, written to `phase2/round-NN-{agent}.md`. Convergence detection via `is_plan_agreed` (hash-matched AGREED_PLAN). Drafter tiebreak invocation when substantive gates pass but DRAFTER differs (domain-fit → plan-alignment → hash-of-brief chain). Repair-turn flow with budget=1 per agent per phase + consecutive-failure tracking; second consecutive failure exits 52. Round-1 lenient validation (`assert_well_formed_round1_turn`). Soft cap = logged warning + continue (autonomous mode). Hard cap = `phase2-deadlock.md` emitted, exit 51. Five new event types (`Phase2RoundComplete`, `RepairInvoked`, `SoftCapHit`, `HardCapHit`, `DrafterTiebreakResolved`, `Phase2Complete`). Verified E2E on synthetic brief (4 rounds, genuine convergence after soft-cap warning, $0.29 total, drafter=openai via matching recommendations). 9 new pytest cases; total suite: 58 green.
+
 ## [0.3.0] — 2026-05-15
 
 ### Added
