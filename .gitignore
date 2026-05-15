@@ -19,3 +19,6 @@ runs/
 .env.local
 *.log
 .DS_Store
+
+# Per-developer harness config (Claude Code preview launch settings)
+.claude/
