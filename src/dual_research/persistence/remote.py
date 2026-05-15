@@ -27,8 +27,7 @@ FILE_BATCH_SIZE = 50
 SESSION_FILE_GLOBS = ("*.md", "*.json", "*.jsonl")
 
 _SESSION_ID_RE = re.compile(r"^(\d{8})-(\d{6})-(.+)$")
-_CONFIDENCE_RE = re.compile(r"^-\s*Confidence:\s*(HIGH|MODERATE|LOW)\b", re.MULTILINE)
-_MODEL_TIER_RE = re.compile(r"^-\s*Models:\s*(\w+)\s*\((.+?),\s*(.+?)\)", re.MULTILINE)
+_CONFIDENCE_RE = re.compile(r"\*\*(HIGH|MODERATE|LOW)\s+confidence\*\*", re.IGNORECASE)
 
 
 class _Table(Protocol):
@@ -86,17 +85,20 @@ class RemoteSession:
         final_path = session_dir / "final.md"
         final_md = final_path.read_text(encoding="utf-8") if final_path.exists() else ""
 
-        run_row = _build_run_row(run_id, state, metrics, final_md)
+        transcript_path = session_dir / "transcript.jsonl"
+        event_rows, run_started, run_completed = _read_transcript(run_id, transcript_path)
+
+        run_row = _build_run_row(
+            run_id, state, metrics, final_md, run_started, run_completed
+        )
         self._client.table("runs").upsert([run_row], on_conflict="id").execute()
 
         events_count = 0
-        transcript_path = session_dir / "transcript.jsonl"
-        if transcript_path.exists():
-            for batch in _batch(_iter_event_rows(run_id, transcript_path), EVENT_BATCH_SIZE):
-                self._client.table("events").upsert(
-                    batch, on_conflict="run_id,seq"
-                ).execute()
-                events_count += len(batch)
+        for batch in _batch(iter(event_rows), EVENT_BATCH_SIZE):
+            self._client.table("events").upsert(
+                batch, on_conflict="run_id,seq"
+            ).execute()
+            events_count += len(batch)
 
         files_count = 0
         for batch in _batch(_iter_file_rows(run_id, session_dir), FILE_BATCH_SIZE):
@@ -120,12 +122,34 @@ def _build_run_row(
     state: dict[str, Any],
     metrics: dict[str, Any] | None,
     final_md: str,
+    run_started: dict[str, Any] | None,
+    run_completed: dict[str, Any] | None,
 ) -> dict[str, Any]:
     created_at = _parse_session_dir_timestamp(run_id)
     slug = _slug_from_session_dir(run_id)
-    duration_ms = _metrics_duration_ms(metrics) if metrics else None
-    total_cost = float(metrics["total_cost_usd"]) if metrics and "total_cost_usd" in metrics else None
-    confidence, model_tier, claude_model, openai_model = _parse_final_header(final_md)
+
+    # Prefer run_completed values (canonical end-of-run truth); fall back to
+    # state / metrics derivation when the transcript is incomplete.
+    phase_reached = (
+        (run_completed and run_completed.get("phase_reached"))
+        or state.get("phase")
+    )
+    exit_code = run_completed.get("exit_code") if run_completed else None
+    duration_ms = (
+        (run_completed and run_completed.get("duration_ms"))
+        or (_metrics_duration_ms(metrics) if metrics else None)
+    )
+    total_cost = (
+        (run_completed and run_completed.get("total_cost_usd"))
+        or (float(metrics["total_cost_usd"]) if metrics and "total_cost_usd" in metrics else None)
+    )
+
+    model_tier = run_started.get("model_tier") if run_started else None
+    claude_model = run_started.get("claude_model") if run_started else None
+    openai_model = run_started.get("openai_model") if run_started else None
+
+    confidence_match = _CONFIDENCE_RE.search(final_md)
+    confidence = confidence_match.group(1).upper() if confidence_match else None
 
     return {
         "id": run_id,
@@ -134,8 +158,8 @@ def _build_run_row(
         "model_tier": model_tier,
         "claude_model": claude_model,
         "openai_model": openai_model,
-        "phase_reached": state.get("phase"),
-        "exit_code": None,  # not currently emitted to state.json; reserved
+        "phase_reached": phase_reached,
+        "exit_code": exit_code,
         "duration_ms": duration_ms,
         "total_cost_usd": total_cost,
         "confidence": confidence,
@@ -167,24 +191,20 @@ def _metrics_duration_ms(metrics: dict[str, Any]) -> int | None:
     return int((ended - started).total_seconds() * 1000)
 
 
-def _parse_final_header(final_md: str) -> tuple[str | None, str | None, str | None, str | None]:
-    if not final_md:
-        return None, None, None, None
-    confidence_match = _CONFIDENCE_RE.search(final_md)
-    confidence = confidence_match.group(1) if confidence_match else None
-    tier_match = _MODEL_TIER_RE.search(final_md)
-    if tier_match:
-        model_tier = tier_match.group(1)
-        claude_model = tier_match.group(2).strip()
-        openai_model = tier_match.group(3).strip()
-    else:
-        model_tier = claude_model = openai_model = None
-    return confidence, model_tier, claude_model, openai_model
+def _read_transcript(
+    run_id: str,
+    transcript_path: Path,
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None, dict[str, Any] | None]:
+    """One-pass scan: build event rows; capture run_started / run_completed payloads."""
+    rows: list[dict[str, Any]] = []
+    run_started: dict[str, Any] | None = None
+    run_completed: dict[str, Any] | None = None
 
+    if not transcript_path.exists():
+        return rows, run_started, run_completed
 
-def _iter_event_rows(run_id: str, transcript_path: Path) -> Iterator[dict[str, Any]]:
-    seq = 0
     with transcript_path.open("r", encoding="utf-8") as f:
+        seq = 0
         for line in f:
             line = line.strip()
             if not line:
@@ -192,14 +212,22 @@ def _iter_event_rows(run_id: str, transcript_path: Path) -> Iterator[dict[str, A
             record = json.loads(line)
             ts = record.pop("ts", None)
             kind = record.pop("event", "unknown")
-            yield {
-                "run_id": run_id,
-                "seq": seq,
-                "ts": ts,
-                "kind": kind,
-                "payload": record,
-            }
+            if kind == "run_started" and run_started is None:
+                run_started = dict(record)
+            elif kind == "run_completed":
+                run_completed = dict(record)
+            rows.append(
+                {
+                    "run_id": run_id,
+                    "seq": seq,
+                    "ts": ts,
+                    "kind": kind,
+                    "payload": record,
+                }
+            )
             seq += 1
+
+    return rows, run_started, run_completed
 
 
 def _iter_file_rows(run_id: str, session_dir: Path) -> Iterator[dict[str, Any]]:

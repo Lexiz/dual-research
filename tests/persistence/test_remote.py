@@ -103,9 +103,27 @@ def _make_session_dir(
     (sd / "brief.md").write_text("# Brief\n\nCompare X to Y.")
     if with_transcript:
         lines = [
-            json.dumps({"ts": "2026-05-15T16:31:05+00:00", "event": "RunStarted", "session_dir": str(sd)}),
-            json.dumps({"ts": "2026-05-15T16:31:06+00:00", "event": "PhaseEntered", "phase": "phase0"}),
-            json.dumps({"ts": "2026-05-15T16:31:42+00:00", "event": "TurnEnded", "agent": "claude", "cost_usd": 0.012}),
+            json.dumps({
+                "ts": "2026-05-15T16:31:05+00:00",
+                "event": "run_started",
+                "session_dir": str(sd),
+                "slug": "live-integration-test",
+                "model_tier": "test",
+                "claude_model": "claude-haiku-4-5",
+                "openai_model": "gpt-5-mini",
+                "soft_cap": 3,
+                "hard_cap": 5,
+            }),
+            json.dumps({"ts": "2026-05-15T16:31:06+00:00", "event": "phase_entered", "phase": "phase0"}),
+            json.dumps({"ts": "2026-05-15T16:31:42+00:00", "event": "turn_ended", "agent": "claude", "cost_usd": 0.012}),
+            json.dumps({
+                "ts": "2026-05-15T16:44:48+00:00",
+                "event": "run_completed",
+                "phase_reached": "done",
+                "exit_code": 0,
+                "total_cost_usd": 0.4228,
+                "duration_ms": 772800,
+            }),
         ]
         (sd / "transcript.jsonl").write_text("\n".join(lines) + "\n")
     phase2 = sd / "phase2"
@@ -114,9 +132,11 @@ def _make_session_dir(
     (phase2 / "round-01-openai.md").write_text("# Round 1\n\nOpenAI content.")
     if with_final:
         (sd / "final.md").write_text(
-            "# Final document\n\n"
-            "- Confidence: MODERATE\n"
-            "- Models: test (claude-haiku-4-5, gpt-5-mini)\n"
+            "> ## How this document was produced\n"
+            ">\n"
+            "> Two agents (`claude-haiku-4-5` and `gpt-5-mini`) co-authored this.\n"
+            ">\n"
+            "> Read with **MODERATE confidence**.\n"
             "\n# Body\n\nConverged content here.\n"
         )
     return sd
@@ -128,7 +148,7 @@ def test_push_inserts_run_event_and_file_rows(tmp_path: Path) -> None:
     summary = RemoteSession(fake).push_session_dir(sd)
 
     assert summary.runs_upserted == 1
-    assert summary.events_upserted == 3
+    assert summary.events_upserted == 4
     assert summary.files_upserted >= 5
 
     runs = fake.rows("runs")
@@ -136,17 +156,25 @@ def test_push_inserts_run_event_and_file_rows(tmp_path: Path) -> None:
     run = runs[0]
     assert run["id"] == "20260515-163105-live-integration-test"
     assert run["slug"] == "live-integration-test"
-    assert run["phase_reached"] == "final"
+    # phase_reached comes from run_completed (canonical), not state.phase.
+    assert run["phase_reached"] == "done"
+    assert run["exit_code"] == 0
     assert run["confidence"] == "MODERATE"
     assert run["model_tier"] == "test"
     assert run["claude_model"] == "claude-haiku-4-5"
     assert run["openai_model"] == "gpt-5-mini"
     assert run["total_cost_usd"] == 0.4228
-    assert run["duration_ms"] == 823_000  # 16:44:48 - 16:31:05 = 13m 43s
+    # run_completed.duration_ms wins over metrics-derived duration when present.
+    assert run["duration_ms"] == 772_800
 
     events = fake.rows("events")
-    assert [e["seq"] for e in events] == [0, 1, 2]
-    assert [e["kind"] for e in events] == ["RunStarted", "PhaseEntered", "TurnEnded"]
+    assert [e["seq"] for e in events] == [0, 1, 2, 3]
+    assert [e["kind"] for e in events] == [
+        "run_started",
+        "phase_entered",
+        "turn_ended",
+        "run_completed",
+    ]
     assert events[2]["payload"]["agent"] == "claude"
     assert "ts" not in events[2]["payload"]  # ts is hoisted to a top-level column
     assert "event" not in events[2]["payload"]  # kind hoisted too
@@ -200,11 +228,11 @@ def test_empty_transcript_lines_are_skipped(tmp_path: Path) -> None:
     transcript.write_text(transcript.read_text() + "\n\n   \n")
     fake = FakeSupabaseClient()
     summary = RemoteSession(fake).push_session_dir(sd)
-    assert summary.events_upserted == 3  # blank lines ignored
+    assert summary.events_upserted == 4  # 4 real events, blank lines ignored
 
 
-def test_duration_ms_is_null_when_endedat_missing(tmp_path: Path) -> None:
-    sd = _make_session_dir(tmp_path)
+def test_duration_ms_is_null_when_no_source_provides_it(tmp_path: Path) -> None:
+    sd = _make_session_dir(tmp_path, with_transcript=False)
     (sd / "metrics.json").write_text(
         json.dumps({"started_at": "2026-05-15T16:31:05+00:00", "ended_at": None, "calls": []})
     )
@@ -219,19 +247,34 @@ def test_no_metrics_file_still_pushes(tmp_path: Path) -> None:
     RemoteSession(fake).push_session_dir(sd)
     run = fake.rows("runs")[0]
     assert run["metrics"] is None
-    assert run["duration_ms"] is None
-    assert run["total_cost_usd"] is None
+    # duration_ms and total_cost_usd still come from run_completed in the transcript.
+    assert run["duration_ms"] == 772_800
+    assert run["total_cost_usd"] == 0.4228
 
 
-def test_no_final_md_means_null_confidence_and_models(tmp_path: Path) -> None:
+def test_no_final_md_means_null_confidence(tmp_path: Path) -> None:
     sd = _make_session_dir(tmp_path, with_final=False)
     fake = FakeSupabaseClient()
     RemoteSession(fake).push_session_dir(sd)
     run = fake.rows("runs")[0]
+    # Confidence comes from final.md prose — null without it.
     assert run["confidence"] is None
+    # Models still resolved from the run_started transcript event.
+    assert run["model_tier"] == "test"
+    assert run["claude_model"] == "claude-haiku-4-5"
+    assert run["openai_model"] == "gpt-5-mini"
+
+
+def test_no_transcript_clears_model_fields_and_exit_code(tmp_path: Path) -> None:
+    sd = _make_session_dir(tmp_path, with_transcript=False, with_final=False)
+    fake = FakeSupabaseClient()
+    RemoteSession(fake).push_session_dir(sd)
+    run = fake.rows("runs")[0]
     assert run["model_tier"] is None
     assert run["claude_model"] is None
     assert run["openai_model"] is None
+    assert run["exit_code"] is None
+    assert run["confidence"] is None
 
 
 def test_hidden_atomic_tempfiles_are_skipped(tmp_path: Path) -> None:
@@ -259,9 +302,9 @@ def test_event_batching_respects_batch_size(tmp_path: Path, monkeypatch: pytest.
     sd = _make_session_dir(tmp_path)
     fake = FakeSupabaseClient()
     RemoteSession(fake).push_session_dir(sd)
-    # 3 events with batch size 2 → 2 upsert calls (sizes 2 + 1).
+    # 4 events with batch size 2 → 2 upsert calls (sizes 2 + 2).
     events_table = fake.table("events")
-    assert events_table.calls == [(2, "run_id,seq"), (1, "run_id,seq")]
+    assert events_table.calls == [(2, "run_id,seq"), (2, "run_id,seq")]
 
 
 # --- Supabase credential loader ---------------------------------------------
