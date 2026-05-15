@@ -3,10 +3,10 @@ spec: 0006
 title: Prompt caching to unblock prod-tier rate limit and cut multi-round cost
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.7.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/6"
 ---
 
 # Spec 0006 — Prompt caching
