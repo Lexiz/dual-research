@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.3.0] — 2026-05-15
+
+### Added
+
+- **Orchestrator scaffold + Phase 0/1 end-to-end** ([spec 0002](specs/0002-orchestrator-phase01.md)) — session directory layout (`runs/<id>/` with `state.json` + `transcript.jsonl` + `metrics.json` + phase subdirs), atomic state writes, append-only transcript, per-agent cost rollup. Async event bus (`EventBus` with publish/subscribe and failure-isolated delivery). Orchestrator wired to run Phase 0 (preflight, parallel) and Phase 1 (research, parallel) with live cost ticker on stdout. CLI now runs Phases 0 + 1 by default (use `--ingest-only` to stop after brief ingest). Verified end-to-end on a synthetic brief (test tier, $0.03, 68s, two 12K-char Phase 1 drafts produced).
+
 ## [0.2.0] — 2026-05-15
 
 ### Added
