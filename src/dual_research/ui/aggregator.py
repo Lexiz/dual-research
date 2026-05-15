@@ -136,6 +136,10 @@ def summarize_run(session_dir: Path) -> RunListRow:
     )
 
     cost = float(metrics.get("total_cost_usd", 0.0)) if metrics else 0.0
+    if cost == 0.0:
+        # metrics.json may reflect only a resume window with no new calls;
+        # fall back to scanning the transcript for turn_ended cost_usd.
+        cost = _sum_transcript_cost(session_dir / "transcript.jsonl")
 
     # Round counter for Phase 2/4 rows. Soft cap isn't in state.json; we
     # default to 6 (the CLI default). A Phase 2/4 row with no round files yet
@@ -421,6 +425,27 @@ def _duration_seconds(transcript_path: Path) -> int:
         return max(0, int((b - a).total_seconds()))
     except ValueError:
         return 0
+
+
+def _sum_transcript_cost(transcript_path: Path) -> float:
+    """Sum ``cost_usd`` across all ``turn_ended`` events in the transcript."""
+    if not transcript_path.exists():
+        return 0.0
+    total = 0.0
+    try:
+        for line in transcript_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("event") == "turn_ended":
+                total += float(event.get("cost_usd", 0.0))
+    except OSError:
+        return 0.0
+    return total
 
 
 def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool]:

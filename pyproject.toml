@@ -1,6 +1,6 @@
 [project]
 name = "dual-research"
-version = "0.10.0"
+version = "0.11.0"
 description = "Two-agent (Claude + GPT) research convergence orchestrator with real-time monitoring UI."
 readme = "README.md"
 authors = [
@@ -9,8 +9,12 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "anthropic>=0.102.0",
+    "fastapi>=0.115",
     "httpx>=0.28.1",
     "openai>=2.36.0",
+    "sse-starlette>=2.1",
+    "uvicorn[standard]>=0.32",
+    "watchfiles>=0.24",
 ]
 
 [project.scripts]
