@@ -3,10 +3,10 @@ spec: 0002
 title: Orchestrator scaffold + Phase 0/1 end-to-end
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.3.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/2"
 ---
 
 # Spec 0002 — Orchestrator scaffold + Phase 0/1 end-to-end
