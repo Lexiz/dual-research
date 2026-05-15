@@ -62,6 +62,14 @@ Return ONLY the content of your turn — the markdown sections specified above, 
 """
 
 
+# Sentinel that marks the boundary between the stable prefix (cacheable)
+# and the dynamic per-call suffix (uncached) in a prompt. The Anthropic
+# agent detects this marker and applies `cache_control` to the prefix.
+# OpenAI's Responses API caches automatically and ignores this marker
+# (it's stripped before the prompt is sent to either provider).
+CACHE_BREAKPOINT = "<<<CACHE_BREAKPOINT>>>"
+
+
 # ---------- Helpers for inlining content ----------
 
 
@@ -108,6 +116,7 @@ You are agent "{agent_name}". You will read the research brief and produce a sho
 
 """
         + _inline_section("Brief", brief_content)
+        + CACHE_BREAKPOINT
         + f"""
 ## Task
 Produce a single short markdown response with these sections (headings verbatim):
@@ -152,6 +161,7 @@ You are agent "{agent_name}". Another agent from a different model family is res
 
 """
         + _inline_section("Brief", brief_content)
+        + CACHE_BREAKPOINT
         + """
 ## Task
 Produce your best, complete answer to the brief. Use web search aggressively for any factual claim. Required structure (use these headings verbatim):
@@ -198,6 +208,7 @@ You should use web search this round. Without new research, this round is a wast
         + _inline_section("Brief", brief_content)
         + _inline_section(f"Your Phase 1 draft ({agent_name})", own_draft)
         + _inline_section(f"{other_name}'s Phase 1 draft", other_draft)
+        + CACHE_BREAKPOINT
         + f"""
 ## Task
 Produce your round-1 turn with these sections (headings verbatim):
@@ -254,7 +265,7 @@ def negotiation_turn_prompt(
     return (
         COMMON_PREAMBLE
         + f"""
-# Phase 2 round {round}: plan negotiation (soft cap {soft_cap}, hard cap {hard_cap})
+# Phase 2: plan negotiation
 
 You are agent "{agent_name}". The other agent is "{other_name}". You are negotiating two things: (a) the plan for the unified final document, (b) which of you drafts it. The loop ends when both of you emit `STATUS: AGREED`, with matching `DRAFTER:`, an `AGREED_PLAN` block whose normalized hash matches {other_name}'s, `OPEN_QUESTIONS: 0`, `BLOCKING_DISAGREEMENTS: 0`, and matching `FINAL_SURFACED_DISAGREEMENTS: <N>` in the same round.
 
@@ -272,6 +283,11 @@ Anti-sycophancy procedure (apply before every turn; recommended structural mitig
         + _inline_section("Brief", brief_content)
         + _inline_section(f"Your Phase 1 draft ({agent_name})", own_draft)
         + _inline_section(f"{other_name}'s Phase 1 draft", other_draft)
+        + CACHE_BREAKPOINT
+        + f"""
+This is **round {round}** of Phase 2 (soft cap {soft_cap}, hard cap {hard_cap}).
+
+"""
         + _inline_prior_turns(prior_turns, "Prior Phase 2 conversation turns (in order)")
         + f"""
 ## Task
@@ -454,6 +470,7 @@ You are agent "{agent_name}". You and "{other_name}" agreed in Phase 2 that you 
         + _inline_section(f"{other_name}'s Phase 1 draft", other_draft)
         + plan_block_section
         + fsd_section
+        + CACHE_BREAKPOINT
         + _inline_prior_turns(prior_turns, "Full Phase 2 conversation")
         + """
 ## Task
@@ -501,7 +518,7 @@ def review_turn_prompt(
     return (
         COMMON_PREAMBLE
         + f"""
-# Phase 4 round {round}: review (soft cap {soft_cap}, hard cap {hard_cap})
+# Phase 4: review
 
 You are agent "{agent_name}", in your role as {role} (drafter or reviewer). The drafter ({drafter_name}) wrote the current draft. You and "{other_name}" are converging on a final version. The loop ends when both of you emit `STATUS: APPROVED` with `OPEN_ISSUES: 0` in the same round.
 
@@ -518,6 +535,11 @@ Anti-sycophancy procedure (apply before every turn; recommended structural mitig
 """
         + _inline_section("Brief", brief_content)
         + _inline_section("Current draft", draft_content)
+        + CACHE_BREAKPOINT
+        + f"""
+This is **round {round}** of Phase 4 (soft cap {soft_cap}, hard cap {hard_cap}).
+
+"""
         + _inline_prior_turns(prior_turns, "Prior Phase 4 review turns (in order)")
         + f"""
 ## Task

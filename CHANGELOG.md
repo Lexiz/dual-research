@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.7.0] — 2026-05-15
+
+### Added
+
+- **Anthropic prompt caching** ([spec 0006](specs/0006-prompt-caching.md)) — every phase prompt (except `repair_prompt`) now includes a `CACHE_BREAKPOINT` sentinel at the boundary between the stable prefix and the dynamic per-call suffix. `ClaudeAgent` detects the marker, splits the content into two text blocks, attaches `cache_control: {"type": "ephemeral", "ttl": "1h"}` to the prefix, and adds the `extended-cache-ttl-2025-04-11` beta header for 1-hour cache lifetime. `GptAgent` strips the marker (OpenAI Responses API caches prefixes automatically). `DUAL_RESEARCH_NO_CACHE=1` disables caching on both providers. Cost ticker now shows `cache:r/w` when nonzero. Verified live: single-call A/B showed **76.6% savings** on the second identical call (5,550 tokens cache-written then cache-read at $0.10/M vs $1/M input). 12 new pytest cases; total: 93 green.
+
+### Fixed
+
+- **Cross-round cache invalidation in Phase 2 / Phase 4 prompts.** The round-specific header (`# Phase 2 round {round}...`) used to sit BEFORE the cache breakpoint inside `negotiation_turn_prompt` / `review_turn_prompt`, which changed the cached prefix hash on every round → no cross-round cache hits, only within-round. Restructured both builders so the round number is referenced AFTER the breakpoint. Verified by full Phase 0→4 E2E on test tier: agents converged to APPROVED in Phase 4 round 3, 23 model calls, $0.79 total, cache reads visible across rounds.
+
+### Known limitations
+
+- **Anthropic 30K-tokens/min rate limit still bites prod-tier multi-round Phase 2 around round 6.** Caching halved per-call input cost but cache _writes_ (the dynamic suffix that grows each round) still count against the per-minute input quota. Spec 0007 will add rate-limit-aware backoff + resume-from-prior-session so partial runs are recoverable. Test-tier runs are unaffected.
+
 ## [0.6.0] — 2026-05-15
 
 ### Added

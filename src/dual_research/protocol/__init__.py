@@ -24,6 +24,7 @@ from dual_research.protocol.parse import (
     parse_turn,
 )
 from dual_research.protocol.prompts import (
+    CACHE_BREAKPOINT,
     PriorTurn,
     drafting_prompt,
     negotiation_round1_prompt,
@@ -36,6 +37,7 @@ from dual_research.protocol.prompts import (
 from dual_research.protocol.tiebreak import DrafterChoice, pick_drafter
 
 __all__ = [
+    "CACHE_BREAKPOINT",
     "DrafterChoice",
     "FsdItem",
     "ParsedPreflightTurn",
