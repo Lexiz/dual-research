@@ -3,10 +3,10 @@ spec: 0020
 title: Fly.io deployment of the UI server with Supabase-backed aggregator
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.19.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/20"
 ---
 
 # Spec 0020 — Fly.io deployment + Supabase-backed UI
