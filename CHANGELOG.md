@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.16.0] — 2026-05-15
+
+### Added
+
+- **Integration kickoff handoff package** ([spec 0015](specs/0015-integration-kickoff-handoff.md)) — two new documents under `handoffs/`. `handoffs/frontend-state.md` is a comprehensive snapshot of what was built in specs 0009–0014 (modules, endpoints, Run wire shape, chip data flow, disagreement reconstruction, error taxonomy, known limitations). `handoffs/integration-kickoff.md` is a paste-ready prompt for a fresh Claude Code session whose goal is wiring the live data path end-to-end (concurrent `dual-research --prompt ...` + UI server, watching SSE deltas land in the browser). No code changes; backend and UI unchanged at v0.15.0 behaviour. 214 tests still green.
+
 ## [0.15.0] — 2026-05-15
 
 ### Added
