@@ -3,10 +3,10 @@ spec: 0003
 title: Phase 2 — plan negotiation with caps, repair, and drafter tiebreak
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.4.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/3"
 ---
 
 # Spec 0003 — Phase 2: plan negotiation
