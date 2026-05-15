@@ -59,12 +59,13 @@ PR title = the spec title. PR body uses `.github/PULL_REQUEST_TEMPLATE.md` and l
 
 Fill the spec's `pr:` front-matter field with the PR URL.
 
-### 5. Version + CHANGELOG
+### 5. Version + CHANGELOG + in-app release notes
 
 In the same PR:
 
 - Bump version in `pyproject.toml` and `__init__.py` per the table below.
 - Move the `[Unreleased]` CHANGELOG entry to a versioned heading: `## [X.Y.Z] — YYYY-MM-DD`. Add the new `[Unreleased]` placeholder back at the top.
+- If the spec changes **user-visible** protocol behaviour (parallelism, phase semantics, caps, tiebreak, retry rules) or ships a visible UI feature, append a new entry to the `VERSION_NOTES` array at the top of [`src/dual_research/ui/static/how-it-works.jsx`](src/dual_research/ui/static/how-it-works.jsx). Newest entry first; format mirrors existing entries. Specs that only touch internal plumbing can skip — `VERSION_NOTES` is the user-facing "what changed in the protocol or UI" log, not a duplicate of the CHANGELOG.
 
 | Spec label    | Version bump | Example                |
 | ------------- | ------------ | ---------------------- |

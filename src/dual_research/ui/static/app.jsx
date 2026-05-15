@@ -54,10 +54,11 @@ function App() {
                  client={client} session={session} me={me} />
 
       <div style={{ height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
-        {route.view === 'detail'   && <DetailScreen runId={route.runId} navigate={navigate} />}
-        {route.view === 'list'     && <ListScreen navigate={navigate} />}
-        {route.view === 'language' && <DesignLanguageView />}
-        {route.view === 'settings' && <SettingsScreen me={me} />}
+        {route.view === 'detail'        && <DetailScreen runId={route.runId} navigate={navigate} />}
+        {route.view === 'list'          && <ListScreen navigate={navigate} />}
+        {route.view === 'language'      && <DesignLanguageView />}
+        {route.view === 'settings'      && <SettingsScreen me={me} />}
+        {route.view === 'how-it-works'  && <HowItWorks />}
       </div>
     </div>
   );
@@ -172,6 +173,8 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
   return (
     <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <ConnectionPill />
+      <HowItWorksLink onClick={() => navigate('how-it-works')}
+                      active={route.view === 'how-it-works'} />
       <ThemeSegmentedToggle theme={theme} onToggle={onToggleTheme} />
       {session
         ? <AvatarMenu navigate={navigate} route={route}
@@ -179,6 +182,30 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
         : <DesignLanguageButton onClick={() => navigate('language')}
                                 active={route.view === 'language'} />}
     </div>
+  );
+}
+
+function HowItWorksLink({ onClick, active }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title="How dual-research works"
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        padding: '0 14px',
+        borderLeft: '1px solid var(--border-1)',
+        background: active ? 'var(--bg-1)' : (hover ? 'var(--bg-2)' : 'transparent'),
+        color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+        fontSize: 12, cursor: 'pointer',
+        fontFamily: 'inherit', border: 'none',
+        borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: 'var(--border-1)',
+      }}>
+      <Icon.Help style={{ color: active ? 'var(--fg-1)' : 'var(--fg-3)' }} />
+      <span>How it works</span>
+    </button>
   );
 }
 

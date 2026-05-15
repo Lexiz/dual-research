@@ -4,6 +4,7 @@
 //   #/runs/<run_id>      → run detail
 //   #/language           → design language
 //   #/settings           → admin allowlist (spec 0022)
+//   #/how-it-works       → protocol explanation + release notes (spec 0023)
 //
 // Empty hash defaults to the list. `navigate(path)` writes the hash; the
 // `useRoute` hook listens for `hashchange` and re-renders.
@@ -14,6 +15,7 @@ function parseHash(hash) {
   if (h === '' || h === '/') return { view: 'list' };
   if (h === '/language') return { view: 'language' };
   if (h === '/settings') return { view: 'settings' };
+  if (h === '/how-it-works') return { view: 'how-it-works' };
   const m = h.match(/^\/runs\/([^/?#]+)/);
   if (m) return { view: 'detail', runId: decodeURIComponent(m[1]) };
   // Unknown hash — fall back to list.
@@ -26,6 +28,7 @@ function buildHash(route) {
   }
   if (route.view === 'language') return '#/language';
   if (route.view === 'settings') return '#/settings';
+  if (route.view === 'how-it-works') return '#/how-it-works';
   return '#/';
 }
 
