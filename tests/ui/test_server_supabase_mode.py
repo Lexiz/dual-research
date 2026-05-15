@@ -105,8 +105,16 @@ def _seed(client: FakeSupabaseClient) -> None:
 def client_and_fake():
     fake = FakeSupabaseClient()
     _seed(fake)
-    app = _make_supabase_app(fake)
-    with TestClient(app) as c:
+    # Auth (spec 0021): seed an approved token so every test passes the gate
+    # by default. Individual auth-specific tests live in test_supabase_auth.py.
+    fake.auth.users_by_token["test-token"] = "alex.lisitzky@gmail.com"
+    fake.approved_emails.append({"email": "alex.lisitzky@gmail.com", "is_admin": True})
+    app = _make_supabase_app(
+        fake,
+        supabase_url="https://x.supabase.co",
+        supabase_anon_key="sb_publishable_test",
+    )
+    with TestClient(app, headers={"Authorization": "Bearer test-token"}) as c:
         yield c, fake
 
 

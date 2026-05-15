@@ -42,53 +42,52 @@ function getActiveRunId() { return __activeRunId; }
 
 // ─────────────────── useLiveRun ───────────────────
 
-// Initial REST fetch + live SSE stream. Snapshot frames overwrite the run
-// state wholesale (the aggregator emits full snapshots — see spec 0010).
+// REST fetch + repeated polling at DETAIL_POLL_MS. Snapshot replies overwrite
+// the run wholesale (same shape as the spec-0010 SSE frames). Auth tokens
+// (when hosted-mode is on) are injected by `authedFetch`. SSE is gone in
+// favour of polling: EventSource can't send Authorization headers and the
+// hosted polled-SSE adapter (spec 0020) makes this is a clean win.
+const DETAIL_POLL_MS = 5000;
+const CONNECTED_WINDOW_MS = 7000;
+
 function useLiveRun(runId) {
   const [run, setRun] = React.useState(null);
-  const [connected, setConnected] = React.useState(false);
   const [error, setError] = React.useState(null);
+  const [lastOk, setLastOk] = React.useState(0);
 
   React.useEffect(() => {
     if (!runId) return;
     setRun(null);
     setError(null);
-    setConnected(false);
+    setLastOk(0);
 
     let cancelled = false;
-    let es = null;
-
-    // Initial REST fetch — populates the view before the first SSE frame.
-    fetch(`/api/runs/${encodeURIComponent(runId)}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => { if (!cancelled) setRun(data); })
-      .catch(e => { if (!cancelled) setError(String(e)); });
-
-    // Live SSE — replaces the run on every snapshot frame.
-    try {
-      es = new EventSource(`/api/runs/${encodeURIComponent(runId)}/stream`);
-      es.addEventListener('snapshot', (ev) => {
-        if (cancelled) return;
-        try {
-          const data = JSON.parse(ev.data);
+    const tick = () => {
+      authedFetch(`/api/runs/${encodeURIComponent(runId)}`)
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(data => {
+          if (cancelled) return;
           setRun(data);
-          setConnected(true);
-        } catch (e) { /* drop malformed frame */ }
-      });
-      es.addEventListener('open', () => setConnected(true));
-      es.addEventListener('error', () => setConnected(false));
-    } catch (e) {
-      setError(String(e));
-    }
-
-    return () => {
-      cancelled = true;
-      if (es) es.close();
+          setLastOk(Date.now());
+          setError(null);
+        })
+        .catch(e => { if (!cancelled) setError(String(e)); });
     };
+    tick();
+    const id = setInterval(tick, DETAIL_POLL_MS);
+    return () => { cancelled = true; clearInterval(id); };
   }, [runId]);
+
+  const [connected, setConnected] = React.useState(false);
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setConnected(Date.now() - lastOk < CONNECTED_WINDOW_MS);
+    }, 500);
+    return () => clearInterval(id);
+  }, [lastOk]);
 
   return { run, connected, error };
 }
@@ -104,7 +103,7 @@ function useRunList() {
   React.useEffect(() => {
     let cancelled = false;
     const tick = () => {
-      fetch('/api/runs')
+      authedFetch('/api/runs')
         .then(r => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json();
@@ -149,7 +148,7 @@ function useFileBody(filePath) {
     let cancelled = false;
     setLoading(true);
     setBody('');
-    fetch(`/api/runs/${encodeURIComponent(runId)}/files/${filePath}`)
+    authedFetch(`/api/runs/${encodeURIComponent(runId)}/files/${filePath}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();

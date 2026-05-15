@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.20.0] — 2026-05-15
+
+### Added
+
+- **Google OAuth + email allowlist via Supabase Auth** ([spec 0021](specs/0021-google-oauth.md)) — the hosted UI now authenticates users via Google OAuth (mediated by Supabase Auth) and gates every `/api/*` request through an `approved_emails` allowlist. The HTTP Basic auth stopgap from spec 0020 is removed. New `supabase/migrations/0002_approved_emails.sql` defines the allowlist table and seeds the project owner as the first admin. New `SupabaseAuthMiddleware` validates Bearer tokens via `client.auth.get_user(token)` and checks the email against the allowlist, with a 60s in-memory cache keyed on token hash. `/api/health` and a new `/api/config` (returns `supabaseUrl` + `supabaseAnonKey` for the browser bootstrap) bypass the gate. Frontend gains `auth.jsx` (Supabase JS SDK bootstrap, `useSession` hook, sign-in screen, not-approved screen, top-level `authedFetch`). `live-data.jsx` switches from EventSource to `setInterval` polling (EventSource can't send `Authorization` headers; the kickoff doc preferred polling for hosted anyway) and uses `authedFetch` for every API call. Local `dual-research serve` (RUNS_BACKEND=fs) is never auth-gated. 10 new unit tests; 7 basic-auth tests removed. Total: 264.
+
 ## [0.19.0] — 2026-05-15
 
 ### Added

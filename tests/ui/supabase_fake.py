@@ -104,10 +104,44 @@ class FakeBuilder:
 
 
 @dataclass
+class _FakeUser:
+    email: str
+
+
+@dataclass
+class _FakeUserResult:
+    user: _FakeUser | None
+
+
+@dataclass
+class FakeAuth:
+    """A stand-in for supabase-py's `client.auth` namespace.
+
+    Tests seed `users_by_token` with `token → email`; `get_user(token)` returns
+    a result object whose `.user.email` matches what the real SDK returns.
+    Every call is recorded in `calls` so tests can assert on caching.
+    """
+    users_by_token: dict[str, str] = field(default_factory=dict)
+    raise_on: set[str] = field(default_factory=set)
+    calls: list[str] = field(default_factory=list)
+
+    def get_user(self, token: str) -> _FakeUserResult:
+        self.calls.append(token)
+        if token in self.raise_on:
+            raise RuntimeError("simulated invalid token")
+        email = self.users_by_token.get(token)
+        if not email:
+            return _FakeUserResult(user=None)
+        return _FakeUserResult(user=_FakeUser(email=email))
+
+
+@dataclass
 class FakeSupabaseClient:
     runs: list[dict[str, Any]] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
     session_files: list[dict[str, Any]] = field(default_factory=list)
+    approved_emails: list[dict[str, Any]] = field(default_factory=list)
+    auth: FakeAuth = field(default_factory=FakeAuth)
 
     def table(self, name: str) -> FakeBuilder:
         bucket = getattr(self, name)
