@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+import time
+from typing import TextIO
+
+import anthropic
+from anthropic import AsyncAnthropic
+
+from dual_research.agents.base import AgentError, AgentResult, TokenUsage
+from dual_research.agents.pricing import compute_cost
+from dual_research.config import ModelSpec
+
+
+class ClaudeAgent:
+    provider = "anthropic"
+    label = "claude"
+
+    def __init__(self, *, api_key: str, spec: ModelSpec):
+        if spec.provider != "anthropic":
+            raise ValueError(f"ClaudeAgent requires an anthropic ModelSpec, got provider={spec.provider!r}")
+        self._spec = spec
+        headers = dict(spec.extra_headers) if spec.extra_headers else {}
+        self._client = AsyncAnthropic(
+            api_key=api_key,
+            default_headers=headers,
+            max_retries=3,
+            timeout=600.0,
+        )
+
+    @property
+    def model_id(self) -> str:
+        return self._spec.model_id
+
+    async def run(
+        self,
+        prompt: str,
+        *,
+        max_output_tokens: int = 8192,
+        stream_to: TextIO | None = None,
+        stream_prefix: str = "",
+    ) -> AgentResult:
+        start = time.perf_counter()
+        text_parts: list[str] = []
+        first_token = True
+        try:
+            async with self._client.messages.stream(
+                model=self._spec.model_id,
+                max_tokens=max_output_tokens,
+                messages=[{"role": "user", "content": prompt}],
+            ) as stream:
+                async for delta in stream.text_stream:
+                    text_parts.append(delta)
+                    if stream_to is not None:
+                        if first_token and stream_prefix:
+                            stream_to.write(stream_prefix)
+                            first_token = False
+                        stream_to.write(delta)
+                        stream_to.flush()
+                final_msg = await stream.get_final_message()
+        except anthropic.APIError as e:
+            raise AgentError(f"Anthropic API error ({type(e).__name__}): {e}") from e
+
+        if stream_to is not None and not first_token:
+            stream_to.write("\n")
+            stream_to.flush()
+
+        u = final_msg.usage
+        usage = TokenUsage(
+            input_tokens=getattr(u, "input_tokens", 0) or 0,
+            output_tokens=getattr(u, "output_tokens", 0) or 0,
+            cache_read_tokens=getattr(u, "cache_read_input_tokens", 0) or 0,
+            cache_write_tokens=getattr(u, "cache_creation_input_tokens", 0) or 0,
+        )
+        text = "".join(text_parts)
+        cost = compute_cost(self._spec.model_id, usage)
+        duration_ms = int((time.perf_counter() - start) * 1000)
+
+        return AgentResult(
+            text=text,
+            usage=usage,
+            cost_usd=cost,
+            duration_ms=duration_ms,
+            model_id=final_msg.model or self._spec.model_id,
+            provider=self.provider,
+            label=self.label,
+            extras={"stop_reason": getattr(final_msg, "stop_reason", None)},
+        )
