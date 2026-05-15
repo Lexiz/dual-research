@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import time
-from typing import TextIO
+from typing import Any, TextIO
 
 import openai
 from openai import AsyncOpenAI
 
-from dual_research.agents.base import AgentError, AgentResult, TokenUsage
+from dual_research.agents.base import AgentError, AgentResult, TokenUsage, web_search_enabled
 from dual_research.agents.pricing import compute_cost
 from dual_research.config import ModelSpec
+
+
+WEB_SEARCH_TOOL = {"type": "web_search"}
 
 
 class GptAgent:
@@ -37,24 +40,35 @@ class GptAgent:
         stream_to: TextIO | None = None,
         stream_prefix: str = "",
     ) -> AgentResult:
+        """Use the Responses API with optional web_search tool.
+
+        Chat Completions doesn't expose web_search; the Responses API does.
+        Streaming events of interest:
+          - response.output_text.delta : incremental text
+          - response.completed         : final response object with usage
+        """
         start = time.perf_counter()
         text_parts: list[str] = []
         first_token = True
         final_usage = None
         final_model = self._spec.model_id
+        searches = 0
+
+        kwargs: dict[str, Any] = {
+            "model": self._spec.model_id,
+            "input": prompt,
+            "stream": True,
+            "max_output_tokens": max_output_tokens,
+        }
+        if web_search_enabled():
+            kwargs["tools"] = [WEB_SEARCH_TOOL]
 
         try:
-            stream = await self._client.chat.completions.create(
-                model=self._spec.model_id,
-                messages=[{"role": "user", "content": prompt}],
-                max_completion_tokens=max_output_tokens,
-                stream=True,
-                stream_options={"include_usage": True},
-            )
-            async for chunk in stream:
-                if chunk.choices:
-                    delta_obj = chunk.choices[0].delta
-                    delta = getattr(delta_obj, "content", None)
+            stream = await self._client.responses.create(**kwargs)
+            async for event in stream:
+                et = getattr(event, "type", "")
+                if et == "response.output_text.delta":
+                    delta = getattr(event, "delta", "") or ""
                     if delta:
                         text_parts.append(delta)
                         if stream_to is not None:
@@ -63,10 +77,15 @@ class GptAgent:
                                 first_token = False
                             stream_to.write(delta)
                             stream_to.flush()
-                if chunk.usage is not None:
-                    final_usage = chunk.usage
-                if chunk.model:
-                    final_model = chunk.model
+                elif et == "response.output_item.added":
+                    item = getattr(event, "item", None)
+                    if item is not None and getattr(item, "type", None) == "web_search_call":
+                        searches += 1
+                elif et in ("response.completed", "response.incomplete", "response.failed"):
+                    resp = getattr(event, "response", None)
+                    if resp is not None:
+                        final_usage = getattr(resp, "usage", None) or final_usage
+                        final_model = getattr(resp, "model", None) or final_model
         except openai.APIError as e:
             raise AgentError(f"OpenAI API error ({type(e).__name__}): {e}") from e
 
@@ -75,16 +94,18 @@ class GptAgent:
             stream_to.flush()
 
         if final_usage is None:
-            raise AgentError("OpenAI stream ended without usage payload — set stream_options include_usage")
+            raise AgentError("OpenAI stream ended without usage payload")
 
+        input_tokens_total = getattr(final_usage, "input_tokens", 0) or 0
+        output_tokens = getattr(final_usage, "output_tokens", 0) or 0
         cached = 0
-        details = getattr(final_usage, "prompt_tokens_details", None)
+        details = getattr(final_usage, "input_tokens_details", None)
         if details is not None:
             cached = getattr(details, "cached_tokens", 0) or 0
 
         usage = TokenUsage(
-            input_tokens=(final_usage.prompt_tokens or 0) - cached,
-            output_tokens=final_usage.completion_tokens or 0,
+            input_tokens=max(0, input_tokens_total - cached),
+            output_tokens=output_tokens,
             cache_read_tokens=cached,
             cache_write_tokens=0,
         )
@@ -100,5 +121,5 @@ class GptAgent:
             model_id=final_model,
             provider=self.provider,
             label=self.label,
-            extras={"finish_reason": (chunk.choices[0].finish_reason if chunk.choices else None)},
+            extras={"searches": searches},
         )

@@ -6,9 +6,16 @@ from typing import TextIO
 import anthropic
 from anthropic import AsyncAnthropic
 
-from dual_research.agents.base import AgentError, AgentResult, TokenUsage
+from dual_research.agents.base import AgentError, AgentResult, TokenUsage, web_search_enabled
 from dual_research.agents.pricing import compute_cost
 from dual_research.config import ModelSpec
+
+
+WEB_SEARCH_TOOL = {
+    "type": "web_search_20250305",
+    "name": "web_search",
+    "max_uses": 10,
+}
 
 
 class ClaudeAgent:
@@ -42,12 +49,16 @@ class ClaudeAgent:
         start = time.perf_counter()
         text_parts: list[str] = []
         first_token = True
+        kwargs: dict = {
+            "model": self._spec.model_id,
+            "max_tokens": max_output_tokens,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if web_search_enabled():
+            kwargs["tools"] = [WEB_SEARCH_TOOL]
+
         try:
-            async with self._client.messages.stream(
-                model=self._spec.model_id,
-                max_tokens=max_output_tokens,
-                messages=[{"role": "user", "content": prompt}],
-            ) as stream:
+            async with self._client.messages.stream(**kwargs) as stream:
                 async for delta in stream.text_stream:
                     text_parts.append(delta)
                     if stream_to is not None:
@@ -71,6 +82,7 @@ class ClaudeAgent:
             cache_read_tokens=getattr(u, "cache_read_input_tokens", 0) or 0,
             cache_write_tokens=getattr(u, "cache_creation_input_tokens", 0) or 0,
         )
+        searches = _count_web_searches(final_msg)
         text = "".join(text_parts)
         cost = compute_cost(self._spec.model_id, usage)
         duration_ms = int((time.perf_counter() - start) * 1000)
@@ -83,5 +95,18 @@ class ClaudeAgent:
             model_id=final_msg.model or self._spec.model_id,
             provider=self.provider,
             label=self.label,
-            extras={"stop_reason": getattr(final_msg, "stop_reason", None)},
+            extras={
+                "stop_reason": getattr(final_msg, "stop_reason", None),
+                "searches": searches,
+            },
         )
+
+
+def _count_web_searches(message) -> int:
+    """Count `server_tool_use` web_search blocks in the final message content."""
+    n = 0
+    for block in getattr(message, "content", []) or []:
+        btype = getattr(block, "type", None)
+        if btype == "server_tool_use" and getattr(block, "name", None) == "web_search":
+            n += 1
+    return n

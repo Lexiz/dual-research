@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any, Protocol, TextIO, runtime_checkable
 
 
 class AgentError(RuntimeError):
     pass
+
+
+def web_search_enabled() -> bool:
+    """Web search is on by default. Set DUAL_RESEARCH_NO_WEB_SEARCH=1 to disable."""
+    return os.environ.get("DUAL_RESEARCH_NO_WEB_SEARCH", "").strip().lower() not in ("1", "true", "yes")
 
 
 @dataclass(frozen=True)
