@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.13.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/12"
 ---
 
 # Spec 0012 — UI polish and navigation
