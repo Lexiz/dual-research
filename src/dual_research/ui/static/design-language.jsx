@@ -76,6 +76,17 @@ function DesignLanguageView() {
           </Note>
         </Section>
 
+        {/* Brand marks */}
+        <Section title="01.5 — Brand marks" subtitle="The two agents are identified by their official brand glyphs everywhere they appear — agent labels, timeline cards, error rows, the disagreement explorer.">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+            <BrandCard agent="claude" name="Claude" sourceNote="Official Anthropic brand mark (simple-icons.org, CC0)." />
+            <BrandCard agent="gpt"    name="OpenAI" sourceNote="Official OpenAI logomark (public brand kit)." />
+          </div>
+          <Note>
+            <b>Sourcing.</b> The Claude mark is the canonical Anthropic sunburst from simple-icons; the OpenAI mark is the well-known hexagonal logomark from OpenAI's brand kit. Both are trademarks of their respective owners — appropriate for an internal monitoring tool, would need licensing review for public redistribution.
+          </Note>
+        </Section>
+
         {/* Typography */}
         <Section title="02 — Typography" subtitle="One sans for UI chrome, one mono for everything an agent produced or anything that's a number.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
@@ -89,8 +100,8 @@ function DesignLanguageView() {
             />
             <FontCard
               kind="Monospace"
-              face="Geist Mono"
-              fallback='ui-monospace, "JetBrains Mono", "SF Mono", Menlo'
+              face="JetBrains Mono"
+              fallback='ui-monospace, "SF Mono", Menlo'
               role="Agent output, all numbers, run ids, phase ids, status pills, code-shaped labels. Same family as the sans means metrics line up cleanly."
               sampleFamily="var(--mono)"
               weights={[400, 500]}
@@ -381,6 +392,44 @@ function SwatchGrid({ title, items, cols }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function BrandCard({ agent, name, sourceNote }) {
+  const meta = AGENT_META[agent];
+  return (
+    <div style={{
+      background: 'var(--bg-1)',
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-3)',
+      padding: 18,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+        <span className="uppercase-label">{name}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: meta.color }}>{meta.color}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 16 }}>
+        <BrandSwatch agent={agent} size={48} variant="solid"  caption="solid 48" />
+        <BrandSwatch agent={agent} size={32} variant="solid"  caption="solid 32" />
+        <BrandSwatch agent={agent} size={24} variant="solid"  caption="solid 24" />
+        <BrandSwatch agent={agent} size={16} variant="solid"  caption="solid 16" />
+        <BrandSwatch agent={agent} size={16} variant="ghost"  caption="ghost 16" />
+        <BrandSwatch agent={agent} size={12} variant="ghost"  caption="ghost 12" />
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 8 }}>
+        Used everywhere the {name} agent is identified — list rows, run-detail headers, timeline cards, error rows, and the disagreement explorer.
+      </div>
+      <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{sourceNote}</div>
+    </div>
+  );
+}
+
+function BrandSwatch({ agent, size, variant, caption }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+      <AgentIcon agent={agent} size={size} variant={variant} />
+      <span className="mono" style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>{caption}</span>
     </div>
   );
 }
