@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.17.0] — 2026-05-15
+
+### Added
+
+- **Hosted deployment kickoff handoff package** ([spec 0018](specs/0018-hosted-deployment-kickoff.md)) — new document `handoffs/hosted-deployment-kickoff.md` bootstrapping a multi-session track that takes dual-research from a local tool to a publicly accessible, Google-auth-gated, DB-backed hosted UI. Locks in architectural decisions (Fly.io for hosting, Supabase for Postgres + Google OAuth + email allowlist, orchestrator stays local and pushes session data via a new CLI subcommand), spells out why Fly was chosen over Vercel (incompatibility between Vercel's serverless model and the current `watchfiles` + SSE backend; future kickoff-from-UI's 8–15-minute compute), enumerates the spec roadmap (0019 DB schema + push CLI, 0020 Fly deploy, 0021 Google OAuth + allowlist, 0022 admin route, 0023 later kickoff-from-UI), lists pre-work the user must do (Supabase project + credentials, Fly CLI install), surfaces open design questions for spec 0019, and ships a paste-ready prompt for a fresh Claude Code session to start the new track. Documentation only; backend and UI unchanged at v0.16.2 behaviour. 223 tests still green.
+
 ## [0.16.2] — 2026-05-15
 
 ### Fixed
