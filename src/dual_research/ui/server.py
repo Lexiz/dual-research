@@ -35,8 +35,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator
 
+import base64
+import mimetypes
+
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
 
@@ -116,6 +119,29 @@ def _make_app(runs_dir: Path) -> FastAPI:
         session = _resolve_session(runs_dir, run_id)
         body = _read_scoped_file(session, path)
         return PlainTextResponse(body, media_type="text/plain; charset=utf-8")
+
+    @app.get("/api/runs/{run_id}/attachments")
+    async def list_attachments(run_id: str) -> JSONResponse:
+        session = _resolve_session(runs_dir, run_id)
+        return JSONResponse(_read_attachments_index(session))
+
+    @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
+    async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
+        session = _resolve_session(runs_dir, run_id)
+        if not _safe_attachment_path(rel_path):
+            raise HTTPException(status_code=404, detail="not found")
+        target = (session / rel_path).resolve()
+        base = session.resolve()
+        if not str(target).startswith(str(base) + os.sep):
+            raise HTTPException(status_code=404, detail="not found")
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail="not found")
+        mime, _ = mimetypes.guess_type(target.name)
+        try:
+            data = target.read_bytes()
+        except OSError:
+            raise HTTPException(status_code=404, detail="not found")
+        return Response(content=data, media_type=mime or "application/octet-stream")
 
     # ─── Static UI ────────────────────────────────────────────────────────────
 
@@ -280,6 +306,49 @@ def _make_supabase_app(
             raise HTTPException(status_code=404, detail="not found")
         return PlainTextResponse(rows[0]["content"], media_type="text/plain; charset=utf-8")
 
+    @app.get("/api/runs/{run_id}/attachments")
+    async def list_attachments(run_id: str) -> JSONResponse:
+        _require_run_exists(client, run_id)
+        res = (
+            client.table("session_files")
+            .select("content")
+            .eq("run_id", run_id)
+            .eq("path", "attachments.json")
+            .limit(1)
+            .execute()
+        )
+        rows = res.data or []
+        if not rows:
+            return JSONResponse({"attachments": []})
+        try:
+            data = json.loads(rows[0]["content"])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return JSONResponse({"attachments": []})
+        return JSONResponse(data)
+
+    @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
+    async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
+        _require_run_exists(client, run_id)
+        if not _safe_attachment_path(rel_path):
+            raise HTTPException(status_code=404, detail="not found")
+        res = (
+            client.table("attachment_blobs")
+            .select("mime,content_b64")
+            .eq("run_id", run_id)
+            .eq("rel_path", rel_path)
+            .limit(1)
+            .execute()
+        )
+        rows = res.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="not found")
+        row = rows[0]
+        try:
+            payload = base64.b64decode(row["content_b64"])
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=404, detail="not found")
+        return Response(content=payload, media_type=row.get("mime") or "application/octet-stream")
+
     # Static UI bundle — same as fs mode.
     static_dir = Path(__file__).resolve().parent / "static"
     static_dir.mkdir(exist_ok=True)
@@ -433,6 +502,27 @@ def _safe_rel_path(path: str) -> bool:
     if not path or path.startswith("/") or ".." in path.split("/"):
         return False
     return True
+
+
+def _safe_attachment_path(rel_path: str) -> bool:
+    """Attachment paths must live under `attachments/` and not traverse out."""
+    if not rel_path or rel_path.startswith("/") or "\\" in rel_path:
+        return False
+    parts = rel_path.split("/")
+    if ".." in parts or "" in parts:
+        return False
+    return parts[0] == "attachments" and len(parts) >= 2
+
+
+def _read_attachments_index(session: Path) -> dict[str, Any]:
+    """Return the parsed attachments.json body or an empty bundle."""
+    path = session / "attachments.json"
+    if not path.is_file():
+        return {"attachments": []}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"attachments": []}
 
 
 async def _supabase_event_stream(

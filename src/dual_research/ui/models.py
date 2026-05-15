@@ -256,6 +256,14 @@ class Run:
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)
+    # ─── Summary cards (spec 0025) ────────────────────────────────────────────
+    # `brief_summary` is a heuristic TL;DR of brief.md (synthesised, not LLM).
+    # `phase_summaries` is keyed by `phase{N}_<agent>` or
+    # `phase2_round{R}_<agent>` / `phase4_round{R}_<agent>`. Value is the
+    # body under each turn's `## Summary` section. Missing keys mean the
+    # agent didn't write one — the UI renders the card without a TL;DR.
+    brief_summary: str | None = None
+    phase_summaries: dict[str, str] = field(default_factory=dict)
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────

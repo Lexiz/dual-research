@@ -18,6 +18,7 @@ manager; exiting the `with` block deletes the tmp dir.
 
 from __future__ import annotations
 
+import base64
 import json
 import tempfile
 from contextlib import contextmanager
@@ -27,6 +28,7 @@ from typing import Any, Iterator, Protocol
 
 SESSION_FILE_PAGE_SIZE = 200
 EVENT_PAGE_SIZE = 1000
+BLOB_PAGE_SIZE = 50
 
 
 class _Builder(Protocol):
@@ -66,6 +68,7 @@ class SupabaseSessionData:
             dest = Path(tmp.name)
             self._write_files(dest)
             self._write_transcript(dest)
+            self._write_blobs(dest)
             yield dest
         finally:
             tmp.cleanup()
@@ -89,6 +92,37 @@ class SupabaseSessionData:
             if len(rows) < SESSION_FILE_PAGE_SIZE:
                 break
             offset += SESSION_FILE_PAGE_SIZE
+
+    def _write_blobs(self, dest: Path) -> None:
+        """Restore binary attachment blobs under <dest>/attachments/.
+
+        Spec 0025. The `attachment_blobs` table stores each file as
+        base64-encoded TEXT; this method base64-decodes and writes the
+        file with its original name back into the tmp dir so the rest
+        of the aggregator + serve path is unchanged.
+        """
+        offset = 0
+        while True:
+            res = (
+                self._client.table("attachment_blobs")
+                .select("rel_path,content_b64")
+                .eq("run_id", self._run_id)
+                .order("rel_path")
+                .range(offset, offset + BLOB_PAGE_SIZE - 1)
+                .execute()
+            )
+            rows = res.data or []
+            for row in rows:
+                target = dest / row["rel_path"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    payload = base64.b64decode(row["content_b64"])
+                except (TypeError, ValueError):
+                    continue
+                target.write_bytes(payload)
+            if len(rows) < BLOB_PAGE_SIZE:
+                break
+            offset += BLOB_PAGE_SIZE
 
     def _write_transcript(self, dest: Path) -> None:
         """Reconstruct transcript.jsonl from the events table.

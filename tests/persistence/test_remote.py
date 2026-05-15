@@ -294,6 +294,51 @@ def test_malformed_session_dir_name_raises(tmp_path: Path) -> None:
         RemoteSession(fake).push_session_dir(sd)
 
 
+def test_attachments_json_and_blobs_are_pushed(tmp_path: Path) -> None:
+    """Spec 0025 — `attachments.json` flows through session_files (as a
+    `.json` artifact) and binary files under `<session>/attachments/`
+    are upserted into the `attachment_blobs` table base64-encoded.
+    """
+    import base64
+
+    sd = _make_session_dir(tmp_path)
+    # Write the metadata index — picked up by SESSION_FILE_GLOBS automatically.
+    (sd / "attachments.json").write_text(
+        json.dumps({"attachments": [{"kind": "image", "source": "cli:foo.png",
+                                      "rel_path": "attachments/abc-foo.png"}]}),
+        encoding="utf-8",
+    )
+    att_dir = sd / "attachments"
+    att_dir.mkdir()
+    (att_dir / "abc-foo.png").write_bytes(b"\x89PNG-binary-data")
+    (att_dir / "xyz-bar.pdf").write_bytes(b"%PDF-1.4")
+
+    fake = FakeSupabaseClient()
+    summary = RemoteSession(fake).push_session_dir(sd)
+
+    assert summary.blobs_upserted == 2
+    files = {f["path"] for f in fake.rows("session_files")}
+    assert "attachments.json" in files
+    # Binary blobs land in attachment_blobs, not session_files.
+    blob_paths = {b["rel_path"] for b in fake.rows("attachment_blobs")}
+    assert blob_paths == {"attachments/abc-foo.png", "attachments/xyz-bar.pdf"}
+    png_row = next(b for b in fake.rows("attachment_blobs")
+                   if b["rel_path"] == "attachments/abc-foo.png")
+    assert png_row["mime"] == "image/png"
+    assert png_row["size_bytes"] == len(b"\x89PNG-binary-data")
+    assert base64.b64decode(png_row["content_b64"]) == b"\x89PNG-binary-data"
+
+
+def test_attachments_directory_missing_pushes_zero_blobs(tmp_path: Path) -> None:
+    """A run without any attachments still pushes cleanly — no rows in
+    attachment_blobs, no errors."""
+    sd = _make_session_dir(tmp_path)
+    fake = FakeSupabaseClient()
+    summary = RemoteSession(fake).push_session_dir(sd)
+    assert summary.blobs_upserted == 0
+    assert fake.rows("attachment_blobs") == []
+
+
 def test_event_batching_respects_batch_size(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Force a tiny batch to verify chunking without writing 500+ events.
     from dual_research.persistence import remote

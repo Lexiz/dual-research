@@ -162,6 +162,7 @@ class FakeSupabaseClient:
     runs: list[dict[str, Any]] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
     session_files: list[dict[str, Any]] = field(default_factory=list)
+    attachment_blobs: list[dict[str, Any]] = field(default_factory=list)
     approved_emails: list[dict[str, Any]] = field(default_factory=list)
     auth: FakeAuth = field(default_factory=FakeAuth)
 

@@ -198,3 +198,80 @@ def test_get_file_path_traversal_returns_404(client_and_fake) -> None:
     # Starlette normalizes the path before routing, so traversal collapses
     # to a non-matching path → 404 either way.
     assert r.status_code in (400, 404)
+
+
+# ─── attachments + attachment-blobs (spec 0025) ──────────────────────────────
+
+
+def test_attachments_returns_empty_when_no_index(client_and_fake) -> None:
+    c, _ = client_and_fake
+    r = c.get("/api/runs/20260515-163105-live-integration-test/attachments")
+    assert r.status_code == 200
+    assert r.json() == {"attachments": []}
+
+
+def test_attachments_returns_parsed_index(client_and_fake) -> None:
+    c, fake = client_and_fake
+    fake.session_files.append(
+        {
+            "run_id": "20260515-163105-live-integration-test",
+            "path": "attachments.json",
+            "content": json.dumps(
+                {
+                    "attachments": [
+                        {
+                            "kind": "image",
+                            "source": "cli:foo.png",
+                            "rel_path": "attachments/abc-foo.png",
+                            "mime": "image/png",
+                            "size_bytes": 100,
+                            "title": "foo.png",
+                        }
+                    ]
+                }
+            ),
+        }
+    )
+    r = c.get("/api/runs/20260515-163105-live-integration-test/attachments")
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["attachments"]) == 1
+    assert data["attachments"][0]["kind"] == "image"
+
+
+def test_attachment_blob_round_trips(client_and_fake) -> None:
+    import base64
+
+    c, fake = client_and_fake
+    raw = b"\x89PNG-fake-binary"
+    fake.attachment_blobs.append(
+        {
+            "run_id": "20260515-163105-live-integration-test",
+            "rel_path": "attachments/abc-foo.png",
+            "mime": "image/png",
+            "size_bytes": len(raw),
+            "content_b64": base64.b64encode(raw).decode("ascii"),
+        }
+    )
+    r = c.get(
+        "/api/runs/20260515-163105-live-integration-test/attachment-blobs/attachments/abc-foo.png"
+    )
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("image/")
+    assert r.content == raw
+
+
+def test_attachment_blob_404_when_missing(client_and_fake) -> None:
+    c, _ = client_and_fake
+    r = c.get(
+        "/api/runs/20260515-163105-live-integration-test/attachment-blobs/attachments/missing.png"
+    )
+    assert r.status_code == 404
+
+
+def test_attachment_blob_404_when_not_under_attachments(client_and_fake) -> None:
+    c, _ = client_and_fake
+    r = c.get(
+        "/api/runs/20260515-163105-live-integration-test/attachment-blobs/brief.md"
+    )
+    assert r.status_code == 404

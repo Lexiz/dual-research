@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.23.0] — 2026-05-16
+
+### Added
+
+- **Visualisation foundations — modal pattern, summary cards, preflight tabs, attachment ingest** ([spec 0025](specs/0025-visualisation-foundations.md)) — first of three specs building toward a Google-Docs-/GitHub-PR-style review experience across the run timeline. Replaces the inline expand-in-place behaviour on every timeline card with a **summary card** that shows a TL;DR + the same stats row, plus a "View full" button that opens a **big centred modal with a dimmed overlay**. The TL;DR comes from each agent's existing `## Summary` (or `## Summary of position`) section that the protocol already requires; no prompt changes. The aggregator now extracts these into `Run.phaseSummaries` keyed by `phase{N}_<agent>` / `phase{N}_round{R}_<agent>`, plus a `briefSummary` heuristic from `brief.md` for the preflight card. The preflight modal is **tabbed** (Content / Sources / Files). Attachments are now first-class in ingest: a new `Attachment` dataclass + `attachments.py` module captures images, PDFs, files, and links from markdown, Notion blocks (image / pdf / file / bookmark / embed / link_preview / rich-text hrefs), and a new repeatable `--attach VALUE` CLI flag (local path or URL). Local files are hashed and copied into `<session>/attachments/<sha8>-<basename>`; the index lives in `<session>/attachments.json`. Hosted runs get a new `supabase/migrations/0003_attachment_blobs.sql` table that stores base64-encoded binary blobs; `--push` upserts both the JSON index (via `session_files`) and the blobs; the supabase datasource restores binaries byte-for-byte on materialise. Two new server endpoints: `GET /api/runs/{id}/attachments` (parsed JSON index) and `GET /api/runs/{id}/attachment-blobs/{rel_path}` (serves binary with the recorded MIME, path-traversal-guarded). Markdown rendering gets **hash-stable block ids** on every paragraph / heading / list item / blockquote / code — same text → same `id="b-<hash>"` across re-renders, ready for spec 0026's inline-comments anchoring. New `Modal` component in `shared.jsx` (overlay + Esc + tab strip), and the front-end's `Markdown` component runs every parse through `_injectBlockIds`. Side-by-side inline comments for phase 2 / 3 / 4 are out of scope here and land in 0026 + 0027.
+
 ## [0.22.1] — 2026-05-16
 
 ### Changed

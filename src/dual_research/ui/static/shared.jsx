@@ -183,11 +183,53 @@ function PanelHeader({ icon, agent, title, status, right }) {
 // ───────────────────────── markdown ─────────────────────────
 // Render markdown content with consistent typography. Falls back to plain
 // pre-wrap text if `marked` isn't loaded for any reason.
+//
+// Spec 0025 layers stable block ids on every paragraph / heading / list
+// item / blockquote / pre. The id is FNV-1a 32-bit of the block's
+// textContent, formatted as base-36 — `id="b-1abc23de"`. Same text →
+// same id across re-renders, which lets future specs anchor inline
+// comments to specific blocks without fighting `marked`'s internals.
+function _hashBlock(s) {
+  // FNV-1a 32-bit. Imul for proper 32-bit arithmetic in JS.
+  let h = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return ('0000000' + (h >>> 0).toString(36)).slice(-7);
+}
+
+function _injectBlockIds(html) {
+  if (typeof document === 'undefined') return html;
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const blocks = container.querySelectorAll(
+    'p, li, h1, h2, h3, h4, h5, h6, blockquote, pre'
+  );
+  const used = new Set();
+  blocks.forEach((el) => {
+    if (el.id) return;
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    let id = `b-${_hashBlock(text)}`;
+    // Disambiguate collisions within the same render so jump-to-id stays
+    // deterministic if the same paragraph appears twice.
+    let i = 1;
+    while (used.has(id)) {
+      id = `b-${_hashBlock(text)}-${i++}`;
+    }
+    used.add(id);
+    el.id = id;
+  });
+  return container.innerHTML;
+}
+
 function Markdown({ text, className, style }) {
   const html = React.useMemo(() => {
     if (typeof window === 'undefined' || typeof window.marked === 'undefined') return null;
     try {
-      return window.marked.parse(text || '', { gfm: true, breaks: false });
+      const raw = window.marked.parse(text || '', { gfm: true, breaks: false });
+      return _injectBlockIds(raw);
     } catch (e) {
       return null;
     }
@@ -203,6 +245,162 @@ function Markdown({ text, className, style }) {
   return (
     <div className={`md ${className || ''}`} style={style}
          dangerouslySetInnerHTML={{ __html: html }} />
+  );
+}
+
+// ───────────────────────── modal ─────────────────────────
+// Big centred surface over a dimmed overlay. Spec 0025.
+//
+// Props:
+//   open      bool     — render or not.
+//   onClose   fn       — called on overlay click, X button, or Esc.
+//   title     node     — header content (left-aligned).
+//   subtitle  node     — optional small text under the title.
+//   tabs      [{id,label,content,count?}]  — optional tab strip. When
+//              provided the surface body renders only the active tab's
+//              `content`; the `children` prop is ignored.
+//   accent    color    — left-rail color (defaults to var(--info)).
+//   width     px       — max surface width (default 1100).
+function Modal({ open, onClose, title, subtitle, tabs, accent, children, width = 1100 }) {
+  const [activeId, setActiveId] = React.useState(null);
+  // Re-seed active tab when tabs change.
+  React.useEffect(() => {
+    if (tabs && tabs.length) setActiveId(tabs[0].id);
+  }, [tabs ? tabs.map((t) => t.id).join('|') : null]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose && onClose(); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const activeTab = tabs && tabs.find ? tabs.find((t) => t.id === activeId) : null;
+  const body = tabs ? (activeTab ? activeTab.content : null) : children;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.55)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+        animation: 'dr-modal-in 120ms ease-out',
+      }}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-1)',
+          border: '1px solid var(--border-2)',
+          borderLeft: `3px solid ${accent || COLORS.info}`,
+          borderRadius: 'var(--r-3)',
+          width: '100%', maxWidth: width,
+          maxHeight: '92vh',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35)',
+          overflow: 'hidden',
+        }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-1)',
+          background: 'var(--bg-0)',
+          flexShrink: 0,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontSize: 14, color: 'var(--fg-0)', fontWeight: 600,
+              letterSpacing: '-0.005em',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>{title}</div>
+            {subtitle && (
+              <div className="mono" style={{
+                fontSize: 11, color: 'var(--fg-3)', marginTop: 2,
+              }}>{subtitle}</div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            title="Close (Esc)"
+            aria-label="Close"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 28, height: 28,
+              background: 'transparent', border: '1px solid var(--border-1)',
+              borderRadius: 'var(--r-2)',
+              color: 'var(--fg-2)',
+              cursor: 'pointer',
+            }}>
+            <Icon.X />
+          </button>
+        </div>
+
+        {/* Tab strip */}
+        {tabs && tabs.length > 0 && (
+          <div role="tablist" style={{
+            display: 'flex', alignItems: 'stretch',
+            padding: '0 16px',
+            borderBottom: '1px solid var(--border-1)',
+            background: 'var(--bg-0)',
+            gap: 0,
+            flexShrink: 0,
+          }}>
+            {tabs.map((t) => {
+              const active = t.id === activeId;
+              return (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveId(t.id)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '10px 14px',
+                    background: 'transparent', border: 'none',
+                    color: active ? 'var(--fg-0)' : 'var(--fg-3)',
+                    fontWeight: active ? 600 : 500,
+                    fontSize: 12.5,
+                    cursor: 'pointer',
+                    borderBottom: `2px solid ${active ? (accent || COLORS.info) : 'transparent'}`,
+                    marginBottom: -1,
+                  }}>
+                  <span>{t.label}</span>
+                  {t.count != null && (
+                    <span className="mono" style={{
+                      fontSize: 10.5,
+                      padding: '1px 6px',
+                      background: active ? (accent || COLORS.info) + '20' : 'var(--bg-2)',
+                      color: active ? (accent || COLORS.info) : 'var(--fg-3)',
+                      borderRadius: 999,
+                    }}>{t.count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Body */}
+        <div style={{
+          flex: 1, minHeight: 0, overflow: 'auto',
+          padding: '18px 22px 22px',
+          background: 'var(--bg-1)',
+        }}>
+          {body}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -279,5 +477,5 @@ const fmt = {
 // ───────────────────────── share to window for other Babel files ─────────────────────────
 Object.assign(window, {
   COLORS, AGENT_META,
-  Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Icon, fmt,
+  Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
 });

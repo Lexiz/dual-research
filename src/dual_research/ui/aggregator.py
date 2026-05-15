@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dual_research.persistence.state import SessionState
+from dual_research.protocol.parse import extract_summary, synthesise_brief_tldr
 from dual_research.ui.disagreements import mark_deadlocked_open, reconstruct
 from dual_research.ui.errors import derive_errors
 from dual_research.ui.labels import (
@@ -74,6 +75,11 @@ def load_run_snapshot(session_dir: Path) -> Run:
     )
 
     run.phase_stats = build_phase_stats(session_dir)
+
+    # Summary cards (spec 0025): heuristic TL;DR of brief.md + extracted
+    # `## Summary` sections from every completed turn file.
+    run.brief_summary = _read_brief_summary(session_dir)
+    run.phase_summaries = _read_phase_summaries(session_dir)
 
     # started_at_ago is "now" relative to the earliest event.
     run.started_at_ago = _seconds_since(run.started_at)
@@ -590,6 +596,94 @@ def _set_body_if_present(
 
 
 _DASH_DIGIT_RE = re.compile(r"\bD-\d+\b")
+_ROUND_FILE_RE = re.compile(r"^round-(\d+)-(claude|openai)\.md$")
+
+
+def _read_brief_summary(session_dir: Path) -> str | None:
+    """Heuristic TL;DR for brief.md — spec 0025."""
+    brief_path = session_dir / "brief.md"
+    if not brief_path.exists():
+        return None
+    try:
+        text = brief_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    # If the brief itself has an explicit `## Summary` heading, prefer that.
+    explicit = extract_summary(text)
+    if explicit:
+        return explicit
+    return synthesise_brief_tldr(text)
+
+
+def _read_phase_summaries(session_dir: Path) -> dict[str, str]:
+    """Walk every turn file and pull each agent's `## Summary` section.
+
+    Keys are stable for the UI to look up:
+        phase0_<agent>            (preflight critique)
+        phase1_<agent>            (research draft)
+        phase2_round{R}_<agent>   (negotiate turns)
+        phase3                    (converged draft — no agent split)
+        phase4_round{R}_<agent>   (review turns)
+    """
+    out: dict[str, str] = {}
+
+    # Phase 0 — preflight critiques (one per agent).
+    for agent in ("claude", "openai"):
+        path = session_dir / "phase0" / f"preflight-{agent}.md"
+        _maybe_set_summary(out, f"phase0_{_ui_agent(agent)}", path)
+
+    # Phase 1 — research drafts.
+    for agent in ("claude", "openai"):
+        path = session_dir / "phase1" / f"draft-{agent}.md"
+        _maybe_set_summary(out, f"phase1_{_ui_agent(agent)}", path)
+
+    # Phase 2 and 4 — turn-based; enumerate every round file on disk.
+    for phase in (2, 4):
+        phase_dir = session_dir / f"phase{phase}"
+        if not phase_dir.exists():
+            continue
+        for entry in sorted(phase_dir.iterdir()):
+            if not entry.is_file() or not entry.name.endswith(".md"):
+                continue
+            if ".malformed" in entry.name:
+                continue
+            m = _ROUND_FILE_RE.match(entry.name)
+            if not m:
+                continue
+            round_n = int(m.group(1))
+            agent = m.group(2)
+            key = f"phase{phase}_round{round_n}_{_ui_agent(agent)}"
+            _maybe_set_summary(out, key, entry)
+
+    # Phase 3 — single converged draft. No agent split; the summary if
+    # any is the drafter's.
+    p3 = session_dir / "phase3" / "draft-v1.md"
+    _maybe_set_summary(out, "phase3", p3)
+
+    # Final.md — synthesise via the same `## Summary` extractor; if the
+    # final doc carries one (e.g. an executive summary section), the
+    # final card gets a TL;DR for free.
+    final_path = session_dir / "final.md"
+    _maybe_set_summary(out, "final", final_path)
+
+    return out
+
+
+def _maybe_set_summary(target: dict[str, str], key: str, path: Path) -> None:
+    if not path.exists():
+        return
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    summary = extract_summary(text)
+    if summary:
+        target[key] = summary
+
+
+def _ui_agent(backend_agent: str) -> str:
+    """Backend writes `claude` / `openai`; UI vocabulary is `claude` / `gpt`."""
+    return "gpt" if backend_agent == "openai" else backend_agent
 
 
 def _scan_disagreement_anchors(session_dir: Path) -> bool:
