@@ -3,10 +3,10 @@ spec: 0001
 title: Engineering workflow — specs, branches, PRs, semver
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.2.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/1"
 ---
 
 # Spec 0001 — Engineering workflow
