@@ -1,10 +1,33 @@
 // how-it-works.jsx — user-facing explanation of the dual-research protocol
-// plus release notes (spec 0023). Static content, no API calls. The release
-// notes block lives in VERSION_NOTES at the bottom; CONTRIBUTING.md asks
-// that future specs touching user-visible behaviour append a new entry here.
+// plus release notes (specs 0023 + 0026).
+//
+// Spec 0026 restructured this page around a chat-lifecycle section that
+// answers "when do we create new chats?", a context-growth visual, phase
+// accordions, and a v3.5 protocol overview fold-out (cream-and-indigo
+// reference diagram authored via the diagram skill). The original page is
+// preserved in spirit — same facts, same data — but split into denser,
+// more navigable cards. Inline visuals use the existing theme tokens; the
+// fold-out reference map is a separate static look.
+//
+// VERSION_NOTES at the top is the in-app changelog; CONTRIBUTING.md asks
+// that future specs touching user-visible behaviour append a new entry.
 
 (function () {
   const VERSION_NOTES = [
+    {
+      version: '0.24.0',
+      date: '2026-05-16',
+      summary: 'How-it-works restructure — chat-lifecycle diagram, phase accordions, v3.5 process map.',
+      items: [
+        'New "Chat lifecycle" section answers when fresh API calls happen across phases — every phase, every round, every agent, with the exact context bundle inlined into each call shown as colour-coded chips.',
+        '"Context grows, but the prefix is cached" stacked-bar visual makes the CACHE_BREAKPOINT story concrete — shows P0/P1, P2 r1/r3/r6, and P3 with the cache split point marked.',
+        'Phase walkthrough converted to expandable accordions; each phase carries an Inputs / Chats / Output / Gate / Caps meta block.',
+        'FAQ entries collapsed into accordions — one tap to expand the answer.',
+        'TL;DR strip of four cards at the top (models · transport · timing · exit) so the protocol read in one screen.',
+        'New "View full process map" fold-out under the phase strip — embeds the v3.5 protocol landscape (Phase 0 → Phase 4 → Final Document) with source-verification, repair, and exit-code callouts. Authored via the diagram skill, cream-and-indigo, locked alongside the page as a static SVG asset.',
+        'Stateless-vs-persistent comparison panel calls out what dual-research does NOT do (no thread_id, no Assistants API) versus what it actually does (re-inlining via filesystem state).',
+      ],
+    },
     {
       version: '0.23.0',
       date: '2026-05-16',
@@ -126,433 +149,1264 @@
     );
   }
 
-  // ─── Diagram: 5-phase flow at a glance ────────────────────────────────
+  // ─── Phase strip (kept, theme-coloured) ───────────────────────────────
 
-  function PhaseFlowDiagram() {
-    const phases = [
-      { id: 0, label: 'P0',  hint: 'parallel',     desc: 'preflight' },
-      { id: 1, label: 'P1',  hint: 'parallel',     desc: 'research' },
-      { id: 2, label: 'P2',  hint: 'turn-based',   desc: 'negotiate' },
-      { id: 3, label: 'P3',  hint: 'single-shot',  desc: 'draft' },
-      { id: 4, label: 'P4',  hint: 'turn-based',   desc: 'review' },
-      { id: 'F', label: '✓', hint: 'output',       desc: 'final.md' },
+  function PhaseStrip() {
+    const cells = [
+      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P0 · Preflight',  sub: 'brief critique' },
+      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P1 · Research',   sub: 'independent drafts' },
+      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'plan convergence' },
+      { tag: 'single-shot', color: 'var(--fg-2)',    label: 'P3 · Draft',      sub: 'drafter writes doc' },
+      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P4 · Review',     sub: 'cross-review + revise' },
+      { tag: 'output',      color: 'var(--ok)',      label: '✓ final.md',       sub: 'single document' },
     ];
     return (
-      <svg viewBox="0 0 720 130" style={{ display: 'block', width: '100%', maxWidth: 720 }}>
-        <ArrowDefs />
-        {phases.map((p, i) => {
-          const x = 50 + i * 130;
-          const isFinal = p.id === 'F';
-          return (
-            <g key={p.id}>
-              <rect x={x - 36} y={42} width={72} height={44} rx={10}
-                    fill="var(--bg-1)" stroke="var(--border-2)" />
-              <text x={x} y={62} textAnchor="middle"
-                    fontFamily="Geist, system-ui, sans-serif" fontWeight={600}
-                    fontSize={isFinal ? 18 : 13} fill="var(--fg-0)">{p.label}</text>
-              <text x={x} y={78} textAnchor="middle"
-                    fontFamily="JetBrains Mono, monospace" fontSize={9}
-                    fill="var(--fg-2)">{p.desc}</text>
-              <text x={x} y={32} textAnchor="middle"
-                    fontFamily="JetBrains Mono, monospace" fontSize={9}
-                    fill={p.hint === 'parallel' ? 'var(--agent-b)'
-                          : p.hint === 'turn-based' ? 'var(--agent-a)'
-                          : p.hint === 'single-shot' ? 'var(--fg-2)'
-                          : 'var(--ok)'}>
-                {p.hint}
-              </text>
-              {i < phases.length - 1 && <Arrow x1={x + 36} y1={64} x2={x + 130 - 36} y2={64} />}
-            </g>
-          );
-        })}
-      </svg>
+      <div style={{
+        display: 'flex', gap: 6, padding: '14px 16px',
+        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        borderRadius: 8,
+      }}>
+        {cells.map((c, i) => (
+          <div key={c.label} style={{
+            flex: 1, minWidth: 0, position: 'relative',
+            padding: '8px 10px', background: 'var(--bg-2)',
+            border: '1px solid var(--border-2)', borderRadius: 6,
+          }}>
+            <div className="mono" style={{
+              fontSize: 9.5, color: c.color, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}>{c.tag}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)', marginTop: 4 }}>
+              {c.label}
+            </div>
+            <div className="mono" style={{ fontSize: 9.5, color: 'var(--fg-3)', marginTop: 2 }}>{c.sub}</div>
+            {i < cells.length - 1 && (
+              <span style={{
+                position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--border-3)', fontFamily: 'JetBrains Mono, monospace',
+                fontSize: 14, zIndex: 1,
+              }}>▶</span>
+            )}
+          </div>
+        ))}
+      </div>
     );
   }
 
-  // ─── Diagram: parallel-fire pattern (used by P0/P1/P2/P4) ─────────────
-
-  function ParallelDiagram({ inputLabel = 'brief', leftOut = 'draft-claude.md', rightOut = 'draft-openai.md' }) {
-    return (
-      <svg viewBox="0 0 480 220" style={{ display: 'block', width: '100%', maxWidth: 480 }}>
-        <ArrowDefs />
-        {/* input */}
-        <rect x={180} y={10} width={120} height={30} rx={6}
-              fill="var(--bg-1)" stroke="var(--border-2)" />
-        <text x={240} y={29} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={11}
-              fill="var(--fg-1)">{inputLabel}</text>
-        {/* arrows to agents */}
-        <Arrow x1={210} y1={40} x2={120} y2={95} />
-        <Arrow x1={270} y1={40} x2={360} y2={95} />
-        {/* agents */}
-        <ClaudeDisc cx={120} cy={120} r={28} />
-        <GptDisc cx={360} cy={120} r={28} />
-        <text x={120} y={170} textAnchor="middle"
-              fontSize={11} fill="var(--fg-2)" fontFamily="JetBrains Mono, monospace">claude</text>
-        <text x={360} y={170} textAnchor="middle"
-              fontSize={11} fill="var(--fg-2)" fontFamily="JetBrains Mono, monospace">openai</text>
-        {/* asyncio.gather hint */}
-        <text x={240} y={120} textAnchor="middle"
-              fontSize={10} fill="var(--fg-3)" fontFamily="JetBrains Mono, monospace">
-          asyncio.gather
-        </text>
-        <text x={240} y={134} textAnchor="middle"
-              fontSize={9} fill="var(--fg-3)" fontFamily="JetBrains Mono, monospace">
-          (both fire at once)
-        </text>
-        {/* outputs */}
-        <Arrow x1={120} y1={148} x2={120} y2={188} />
-        <Arrow x1={360} y1={148} x2={360} y2={188} />
-        <rect x={20} y={188} width={200} height={26} rx={5}
-              fill="var(--agent-a-bg)" stroke="var(--agent-a-border)" />
-        <text x={120} y={206} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
-              fill="var(--agent-a)">{leftOut}</text>
-        <rect x={260} y={188} width={200} height={26} rx={5}
-              fill="var(--agent-b-bg)" stroke="var(--agent-b-border)" />
-        <text x={360} y={206} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
-              fill="var(--agent-b)">{rightOut}</text>
-      </svg>
-    );
-  }
-
-  // ─── Diagram: one Phase 2 round ───────────────────────────────────────
+  // ─── Diagram: one Phase 2 round (kept from spec 0023) ────────────────
 
   function NegotiationRoundDiagram() {
     return (
-      <svg viewBox="0 0 600 280" style={{ display: 'block', width: '100%', maxWidth: 600 }}>
+      <svg viewBox="0 0 720 320" style={{ display: 'block', width: '100%', maxWidth: 720, margin: '0 auto' }}>
         <ArrowDefs />
-        {/* prior turns */}
-        <rect x={20} y={20} width={160} height={56} rx={6}
-              fill="var(--bg-1)" stroke="var(--border-2)" />
-        <text x={100} y={40} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
-              fill="var(--fg-2)">prior turns inlined</text>
-        <text x={100} y={56} textAnchor="middle"
+        <rect x={30} y={20} width={200} height={80} rx={8}
+              fill="var(--bg-2)" stroke="var(--border-2)" />
+        <text x={130} y={44} textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace" fontSize={11}
+              fill="var(--fg-1)">disk: prior turns inlined</text>
+        <text x={130} y={62} textAnchor="middle"
               fontFamily="JetBrains Mono, monospace" fontSize={9.5}
               fill="var(--fg-3)">round 1..N-1, both agents</text>
-        <text x={100} y={70} textAnchor="middle"
+        <text x={130} y={76} textAnchor="middle"
               fontFamily="JetBrains Mono, monospace" fontSize={9.5}
               fill="var(--fg-3)">+ brief + phase-1 drafts</text>
+        <text x={130} y={92} textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace" fontSize={9.5}
+              fill="var(--fg-3)">+ CACHE_BREAKPOINT</text>
 
-        {/* fresh prompt assembly note */}
-        <text x={300} y={50} textAnchor="middle"
+        <text x={370} y={50} textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace" fontSize={11}
+              fill="var(--fg-1)">orchestrator assembles</text>
+        <text x={370} y={66} textAnchor="middle"
               fontFamily="JetBrains Mono, monospace" fontSize={10}
-              fill="var(--fg-2)">
-          orchestrator builds a fresh prompt
-        </text>
-        <text x={300} y={64} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={9}
-              fill="var(--fg-3)">
-          (no persistent chat — see § Fresh chats)
-        </text>
+              fill="var(--fg-3)">a fresh prompt</text>
 
-        <Arrow x1={180} y1={48} x2={420} y2={48} />
+        <Arrow x1={230} y1={60} x2={510} y2={60} />
 
-        {/* parallel call */}
-        <rect x={420} y={20} width={160} height={56} rx={6}
-              fill="var(--bg-1)" stroke="var(--border-2)" />
-        <text x={500} y={40} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
-              fill="var(--fg-2)">round N prompt</text>
-        <text x={500} y={56} textAnchor="middle"
+        <rect x={510} y={20} width={180} height={80} rx={8}
+              fill="var(--bg-2)" stroke="var(--border-2)" />
+        <text x={600} y={44} textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace" fontSize={11}
+              fill="var(--fg-1)">round N prompt</text>
+        <text x={600} y={62} textAnchor="middle"
               fontFamily="JetBrains Mono, monospace" fontSize={9.5}
               fill="var(--fg-3)">identical to both, except</text>
-        <text x={500} y={70} textAnchor="middle"
+        <text x={600} y={78} textAnchor="middle"
               fontFamily="JetBrains Mono, monospace" fontSize={9.5}
               fill="var(--fg-3)">agent_name substitution</text>
 
-        {/* agents */}
-        <Arrow x1={460} y1={84} x2={180} y2={140} />
-        <Arrow x1={540} y1={84} x2={420} y2={140} />
-        <ClaudeDisc cx={150} cy={160} r={26} />
-        <GptDisc cx={450} cy={160} r={26} />
+        <Arrow x1={560} y1={108} x2={180} y2={170} />
+        <Arrow x1={640} y1={108} x2={550} y2={170} />
 
-        {/* parallel hint */}
-        <text x={300} y={160} textAnchor="middle"
-              fontSize={10.5} fill="var(--fg-3)" fontFamily="JetBrains Mono, monospace">
+        <ClaudeDisc cx={150} cy={195} r={30} />
+        <GptDisc    cx={580} cy={195} r={30} />
+
+        <text x={365} y={200} textAnchor="middle"
+              fontSize={11} fill="var(--fg-3)" fontFamily="JetBrains Mono, monospace">
           asyncio.gather
         </text>
 
-        {/* outputs */}
-        <Arrow x1={150} y1={186} x2={150} y2={218} />
-        <Arrow x1={450} y1={186} x2={450} y2={218} />
-        <rect x={50} y={218} width={200} height={26} rx={5}
+        <Arrow x1={150} y1={225} x2={150} y2={258} />
+        <Arrow x1={580} y1={225} x2={580} y2={258} />
+
+        <rect x={50} y={258} width={200} height={28} rx={6}
               fill="var(--agent-a-bg)" stroke="var(--agent-a-border)" />
-        <text x={150} y={236} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10}
+        <text x={150} y={276} textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
               fill="var(--agent-a)">phase2/round-NN-claude.md</text>
-        <rect x={350} y={218} width={200} height={26} rx={5}
+
+        <rect x={480} y={258} width={200} height={28} rx={6}
               fill="var(--agent-b-bg)" stroke="var(--agent-b-border)" />
-        <text x={450} y={236} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10}
+        <text x={580} y={276} textAnchor="middle"
+              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
               fill="var(--agent-b)">phase2/round-NN-openai.md</text>
 
-        {/* check */}
-        <rect x={200} y={252} width={200} height={22} rx={6}
-              fill="var(--bg-2)" stroke="var(--border-2)" />
-        <text x={300} y={267} textAnchor="middle"
+        <rect x={260} y={294} width={200} height={22} rx={6}
+              fill="var(--bg-1)" stroke="var(--border-2)" />
+        <text x={360} y={309} textAnchor="middle"
               fontFamily="JetBrains Mono, monospace" fontSize={10}
               fill="var(--fg-1)">both AGREED + plan-hash match?</text>
       </svg>
     );
   }
 
-  // ─── Page primitives ──────────────────────────────────────────────────
+  // ─── TL;DR strip ──────────────────────────────────────────────────────
 
-  function Section({ title, children }) {
+  function TldrCards() {
+    const cards = [
+      { kicker: '01 / MODELS',   head: 'Two agents, one doc',     body: 'Claude Sonnet 4.6 + GPT-5.5 race the same brief and converge on one final.md.' },
+      { kicker: '02 / TRANSPORT', head: 'Stateless per call',     body: 'Every API call is a fresh prompt with full prior history re-inlined. No session IDs.' },
+      { kicker: '03 / TIMING',   head: 'Parallel where possible', body: 'P0, P1, P2, P4 fire both agents at once via asyncio.gather — no "speaker order".' },
+      { kicker: '04 / EXIT',     head: 'Mechanical convergence',  body: 'SHA-256 plan-hash match + zero blocking disagreements ⇒ advance phase.' },
+    ];
     return (
-      <section style={{ marginBottom: 36 }}>
-        <h2 style={{
-          fontSize: 16, fontWeight: 600, color: 'var(--fg-0)',
-          margin: '0 0 12px 0', letterSpacing: '-0.005em',
-        }}>{title}</h2>
-        <div style={{ fontSize: 13.5, color: 'var(--fg-1)', lineHeight: 1.65 }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
+        margin: '18px 0 36px',
+      }}>
+        {cards.map(c => (
+          <div key={c.kicker} style={{
+            padding: '14px 14px 12px', background: 'var(--bg-1)',
+            border: '1px solid var(--border-1)', borderRadius: 8,
+          }}>
+            <div className="mono" style={{
+              fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.08em',
+            }}>{c.kicker}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)', margin: '6px 0 2px' }}>
+              {c.head}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.45 }}>{c.body}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ─── Chat lifecycle grid (the new main visual) ────────────────────────
+
+  function Tk({ kind, children }) {
+    const styles = {
+      brief: { bg: 'rgba(107,156,240,0.12)', border: 'rgba(107,156,240,0.32)', fg: '#9ab6e8' },
+      d1:    { bg: 'var(--agent-a-bg-strong)', border: 'var(--agent-a-border)', fg: 'var(--agent-a)' },
+      d2:    { bg: 'var(--agent-b-bg-strong)', border: 'var(--agent-b-border)', fg: 'var(--agent-b)' },
+      hist:  { bg: 'rgba(212,160,86,0.12)', border: 'rgba(212,160,86,0.32)', fg: 'var(--warn)' },
+      plan:  { bg: 'rgba(111,179,128,0.12)', border: 'rgba(111,179,128,0.32)', fg: 'var(--ok)' },
+      draft: { bg: 'rgba(217,106,106,0.10)', border: 'rgba(217,106,106,0.28)', fg: 'var(--err)' },
+      histp: { bg: 'rgba(212,160,86,0.06)', border: 'rgba(212,160,86,0.20)', fg: 'var(--warn)' },
+    };
+    const s = styles[kind] || styles.brief;
+    return (
+      <span className="mono" style={{
+        display: 'inline-block', padding: '0 5px', borderRadius: 3,
+        fontSize: 10, border: `1px solid ${s.border}`,
+        background: s.bg, color: s.fg,
+      }}>{children}</span>
+    );
+  }
+
+  function CallBox({ agent, fresh = true, lines, out, silent, noteIf }) {
+    if (silent) {
+      return (
+        <div style={{
+          padding: '10px 12px', borderRadius: 6, border: '1px dashed var(--border-2)',
+          color: 'var(--fg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontStyle: 'italic', fontSize: 11.5, minHeight: 86,
+        }}>silent — other agent does not fire</div>
+      );
+    }
+    const isClaude = agent === 'claude';
+    const bg = isClaude ? 'var(--agent-a-bg)' : 'var(--agent-b-bg)';
+    const border = isClaude ? 'var(--agent-a-border)' : 'var(--agent-b-border)';
+    const letter = isClaude ? 'C' : 'G';
+    const letterColor = isClaude ? 'var(--agent-a)' : 'var(--agent-b)';
+    return (
+      <div style={{
+        padding: '10px 12px', borderRadius: 6,
+        background: bg, border: `1px solid ${border}`,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)' }}>
+            <span className="mono" style={{ color: letterColor, marginRight: 4 }}>{letter}</span>
+            new chat
+            {noteIf && (
+              <em style={{ fontStyle: 'normal', color: 'var(--fg-3)', fontSize: 10.5, marginLeft: 4 }}>
+                ({noteIf})
+              </em>
+            )}
+          </span>
+          {fresh && (
+            <span className="mono" style={{
+              fontSize: 9.5, padding: '1px 6px', background: 'var(--bg-3)',
+              border: '1px solid var(--border-2)', borderRadius: 999,
+              color: 'var(--fg-2)',
+            }}>fresh prompt</span>
+          )}
+        </div>
+        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+          {lines.map((line, i) => <li key={i} style={{ listStyle: 'disc' }}>{line}</li>)}
+        </ul>
+        {out && (
+          <div className="mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--fg-2)' }}>
+            <span style={{ color: 'var(--fg-3)' }}>→ </span>{out}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function LifecycleRow({ phase, tag, claude, openai, gather }) {
+    return (
+      <React.Fragment>
+        <div style={{
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: '12px 10px', background: 'var(--bg-2)',
+          border: '1px solid var(--border-2)', borderRadius: 6,
+        }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>{phase}</div>
+          <div className="mono" style={{
+            fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
+            textTransform: 'uppercase', marginTop: 3,
+          }}>{tag}</div>
+        </div>
+        {claude}
+        {openai}
+        {gather && (
+          <div className="mono" style={{
+            gridColumn: '2 / 4', textAlign: 'center', fontSize: 10,
+            color: 'var(--fg-3)', padding: '2px 0', letterSpacing: '0.04em',
+          }}>{gather}</div>
+        )}
+      </React.Fragment>
+    );
+  }
+
+  function ChatLifecycle() {
+    const claudeCall = (lines, out, noteIf) => <CallBox agent="claude" lines={lines} out={out} noteIf={noteIf} />;
+    const openaiCall = (lines, out, noteIf) => <CallBox agent="openai" lines={lines} out={out} noteIf={noteIf} />;
+    const silent     = <CallBox silent />;
+    const tkBrief  = <Tk kind="brief">brief</Tk>;
+    const tkD1     = <Tk kind="d1">P1 draft-claude</Tk>;
+    const tkD2     = <Tk kind="d2">P1 draft-openai</Tk>;
+    const tkHist   = <Tk kind="hist">all prior P2 turns</Tk>;
+    const tkPlan   = <Tk kind="plan">agreed plan</Tk>;
+    const tkDraft  = <Tk kind="draft">current draft-vK.md</Tk>;
+    const tkHistP  = <Tk kind="histp">all prior P4 turns</Tk>;
+
+    return (
+      <div style={{
+        display: 'grid', gridTemplateColumns: '110px 1fr 1fr', gap: 10,
+        padding: 14, background: 'var(--bg-1)',
+        border: '1px solid var(--border-1)', borderRadius: 8,
+      }}>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'transparent', letterSpacing: '0.08em',
+          textTransform: 'uppercase', padding: '6px 0',
+        }}>phase</div>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--agent-a)', letterSpacing: '0.08em',
+          textTransform: 'uppercase', padding: '6px 0',
+        }}>Claude lane</div>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--agent-b)', letterSpacing: '0.08em',
+          textTransform: 'uppercase', padding: '6px 0',
+        }}>OpenAI lane</div>
+
+        <LifecycleRow
+          phase="P0 Preflight" tag="1 call / agent"
+          claude={claudeCall([tkBrief], 'preflight-claude.md')}
+          openai={openaiCall([tkBrief], 'preflight-openai.md')}
+          gather="⎯⎯  asyncio.gather  · both fire at once  ⎯⎯"
+        />
+
+        <LifecycleRow
+          phase="P1 Research" tag="1 call / agent"
+          claude={claudeCall([tkBrief], 'phase1/draft-claude.md')}
+          openai={openaiCall([tkBrief], 'phase1/draft-openai.md')}
+          gather="⎯⎯  asyncio.gather  ⎯⎯"
+        />
+
+        <LifecycleRow
+          phase="P2 Negotiate" tag="Round 1"
+          claude={claudeCall([tkBrief, <span key="d">{tkD1} · {tkD2}</span>], 'phase2/round-01-claude.md')}
+          openai={openaiCall([tkBrief, <span key="d">{tkD1} · {tkD2}</span>], 'phase2/round-01-openai.md')}
+          gather="⎯⎯  asyncio.gather  ⎯⎯"
+        />
+
+        <LifecycleRow
+          phase="P2 Negotiate" tag="Round 2..N"
+          claude={claudeCall([
+            tkBrief,
+            <span key="d">{tkD1} · {tkD2}</span>,
+            <span key="h">{tkHist} (both agents, every round)</span>,
+          ], 'phase2/round-NN-claude.md')}
+          openai={openaiCall([
+            tkBrief,
+            <span key="d">{tkD1} · {tkD2}</span>,
+            <span key="h">{tkHist} (both agents, every round)</span>,
+          ], 'phase2/round-NN-openai.md')}
+          gather="⎯⎯  asyncio.gather · loop until convergence or hard-cap  ⎯⎯"
+        />
+
+        <LifecycleRow
+          phase="P3 Drafting" tag="drafter only"
+          claude={claudeCall([
+            tkBrief,
+            <span key="d">{tkD1} · {tkD2}</span>,
+            <span key="p">{tkPlan} (hash-verified)</span>,
+            <span key="h">{tkHist} as context</span>,
+          ], 'phase3/draft-v1.md', 'if drafter')}
+          openai={silent}
+          gather="⎯⎯  single call · drafter chosen by tiebreak.pick_drafter  ⎯⎯"
+        />
+
+        <LifecycleRow
+          phase="P4 Review" tag="Round 1..N"
+          claude={claudeCall([tkBrief, tkDraft, tkHistP], 'phase4/round-NN-claude.md')}
+          openai={openaiCall([tkBrief, tkDraft, tkHistP], 'phase4/round-NN-openai.md')}
+          gather='⎯⎯  asyncio.gather · drafter may emit a "## Revised draft" → draft-vK+1.md  ⎯⎯'
+        />
+      </div>
+    );
+  }
+
+  function Legend() {
+    const items = [
+      { kind: 'brief', label: 'brief',           hint: 'the ingested brief.md, identical for both agents' },
+      { kind: 'd1',    label: 'P1 draft-claude', hint: "Claude's Phase 1 research" },
+      { kind: 'd2',    label: 'P1 draft-openai', hint: "OpenAI's Phase 1 research" },
+      { kind: 'hist',  label: 'P2 turns',        hint: 'every prior negotiation turn, both sides' },
+      { kind: 'plan',  label: 'agreed plan',     hint: 'the SHA-256-matched canonical plan from P2' },
+      { kind: 'draft', label: 'current draft',   hint: 'the latest P3/P4 doc version' },
+      { kind: 'histp', label: 'P4 turns',        hint: 'every prior review turn' },
+    ];
+    return (
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: '8px 14px',
+        marginTop: 14, padding: '12px 14px', background: 'var(--bg-2)',
+        border: '1px solid var(--border-1)', borderRadius: 6,
+      }}>
+        {items.map(i => (
+          <div key={i.kind} style={{
+            display: 'flex', gap: 6, alignItems: 'center', fontSize: 11.5, color: 'var(--fg-1)',
+          }}>
+            <Tk kind={i.kind}>{i.label}</Tk>
+            <span>{i.hint}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function ComparePanel() {
+    return (
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 18,
+      }}>
+        <div style={{
+          padding: '14px 16px', borderRadius: 8,
+          background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        }}>
+          <h3 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8,
+                       fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+            What we don't do
+            <span className="mono" style={{
+              fontSize: 10, padding: '1px 7px', borderRadius: 999,
+              background: 'rgba(217,106,106,0.15)', color: 'var(--err)',
+              border: '1px solid rgba(217,106,106,0.32)',
+            }}>×</span>
+          </h3>
+          <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
+            A long-running ChatGPT-style thread per agent where each round appends a message.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+            <li>No <code style={codeS}>thread_id</code> or <code style={codeS}>conversation_id</code>.</li>
+            <li>No OpenAI Assistants API. No Anthropic stateful messages.</li>
+            <li>The provider holds no state for us between calls.</li>
+          </ul>
+        </div>
+        <div style={{
+          padding: '14px 16px', borderRadius: 8,
+          background: 'var(--bg-1)', border: '1px solid var(--agent-b-border)',
+          boxShadow: 'inset 0 0 0 1px var(--agent-b-border)',
+        }}>
+          <h3 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8,
+                       fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+            What we actually do
+            <span className="mono" style={{
+              fontSize: 10, padding: '1px 7px', borderRadius: 999,
+              background: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)',
+              border: '1px solid var(--agent-b-border)',
+            }}>✓</span>
+          </h3>
+          <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
+            Stateless re-inlining. Each turn rebuilds the entire prompt from disk + run state.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+            <li>Every call sends a single <code style={codeS}>user</code> message with the whole context.</li>
+            <li>The orchestrator owns truth on the filesystem (and in Supabase).</li>
+            <li>Anthropic prompt caching makes the repeated prefix cheap — see below.</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Context-growth stacked bars ──────────────────────────────────────
+
+  const codeS = {
+    fontFamily: 'JetBrains Mono, monospace', fontSize: '0.88em',
+    padding: '1px 5px', background: 'var(--bg-2)',
+    border: '1px solid var(--border-1)', borderRadius: 4, color: 'var(--fg-0)',
+  };
+
+  function ContextGrowthBars() {
+    const rows = [
+      { label: 'P0 / P1',     segs: [{ kind: 'brief', w: 16 }],                                                                              total: '~1× brief' },
+      { label: 'P2 r1',       segs: [{ kind: 'brief', w: 16 }, { kind: 'd1', w: 12 }, { kind: 'd2', w: 12 }],                                  total: '+ 2 drafts' },
+      { label: 'P2 r3',       segs: [{ kind: 'brief', w: 16 }, { kind: 'd1', w: 12 }, { kind: 'd2', w: 12 }, { kind: 'hist', w: 20 }],         total: '+ 4 P2 turns' },
+      { label: 'P2 r6',       segs: [{ kind: 'brief', w: 16 }, { kind: 'd1', w: 12 }, { kind: 'd2', w: 12 }, { kind: 'hist', w: 46 }],         total: '+ 10 P2 turns' },
+      { label: 'P3 drafter',  segs: [{ kind: 'brief', w: 16 }, { kind: 'd1', w: 12 }, { kind: 'd2', w: 12 }, { kind: 'hist', w: 46 }],         total: 'full P2 history' },
+    ];
+    const colors = {
+      brief: 'rgba(107,156,240,0.55)',
+      d1:    'rgba(212,165,116,0.6)',
+      d2:    'rgba(124,196,184,0.6)',
+      hist:  'rgba(212,160,86,0.55)',
+    };
+    return (
+      <div style={{
+        padding: '16px 18px', background: 'var(--bg-1)',
+        border: '1px solid var(--border-1)', borderRadius: 8,
+      }}>
+        {rows.map(r => (
+          <div key={r.label} style={{
+            display: 'grid', gridTemplateColumns: '90px 1fr 100px', gap: 10,
+            alignItems: 'center', marginBottom: 6,
+          }}>
+            <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>{r.label}</div>
+            <div style={{
+              display: 'flex', height: 16, borderRadius: 3, overflow: 'hidden', background: 'var(--bg-2)',
+            }}>
+              {r.segs.map((s, i) => (
+                <span key={i} style={{ display: 'block', height: '100%', width: `${s.w}%`, background: colors[s.kind] }} />
+              ))}
+            </div>
+            <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', textAlign: 'right' }}>{r.total}</div>
+          </div>
+        ))}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '90px 1fr 100px', gap: 10, marginTop: 10,
+        }}>
+          <div />
+          <div style={{ position: 'relative', height: 8, borderTop: '1px solid var(--border-2)' }}>
+            <span className="mono" style={tickS(0)}>0</span>
+            <span className="mono" style={tickS(16)}>brief</span>
+            <span className="mono" style={tickS(40)}>+drafts</span>
+            <span className="mono" style={tickS(86)}>+history</span>
+            <span className="mono" style={tickS(100)}>CACHE_BREAKPOINT ▏</span>
+          </div>
+          <div />
+        </div>
+        <div style={{
+          marginTop: 14, padding: '10px 12px', background: 'var(--bg-2)',
+          borderLeft: '2px solid var(--agent-b)', borderRadius: '0 6px 6px 0',
+          fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55,
+        }}>
+          Anthropic cache hits return at ~25% of base cost; the volatile tail after the
+          marker (round instructions, output schema) is the only piece billed at full rate every round.
+        </div>
+      </div>
+    );
+  }
+  const tickS = leftPct => ({
+    position: 'absolute', top: 0, left: `${leftPct}%`, transform: 'translateX(-50%)',
+    paddingTop: 4, fontSize: 9.5, color: 'var(--fg-3)',
+  });
+
+  // ─── Phase deep-dive accordions ───────────────────────────────────────
+
+  function PhaseMeta({ rows }) {
+    return (
+      <dl style={{
+        display: 'grid', gridTemplateColumns: '110px 1fr', gap: '4px 14px',
+        fontSize: 11.5, padding: '10px 12px', background: 'var(--bg-2)',
+        border: '1px solid var(--border-1)', borderRadius: 6, margin: '8px 0',
+      }}>
+        {rows.map(([k, v]) => (
+          <React.Fragment key={k}>
+            <dt className="mono" style={{
+              color: 'var(--fg-3)', fontSize: 10.5, letterSpacing: '0.06em',
+              textTransform: 'uppercase', paddingTop: 2,
+            }}>{k}</dt>
+            <dd style={{ margin: 0, color: 'var(--fg-1)' }}>{v}</dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    );
+  }
+
+  function PhaseAccordion({ ph, name, tag, defaultOpen, children }) {
+    const tagBg = tag === 'parallel'    ? { bg: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)', border: 'var(--agent-b-border)' }
+                : tag === 'turn-based'  ? { bg: 'var(--agent-a-bg-strong)', color: 'var(--agent-a)', border: 'var(--agent-a-border)' }
+                : { bg: 'var(--bg-3)', color: 'var(--fg-1)', border: 'var(--border-2)' };
+    return (
+      <details open={defaultOpen} style={{
+        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        borderRadius: 8, marginBottom: 10, overflow: 'hidden',
+      }}>
+        <summary style={{
+          listStyle: 'none', cursor: 'pointer', padding: '14px 18px',
+          display: 'flex', alignItems: 'center', gap: 14, userSelect: 'none',
+        }}>
+          <span className="mono" style={{
+            fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.08em', minWidth: 50,
+          }}>PHASE {ph}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>{name}</span>
+          <span className="mono" style={{
+            fontSize: 10, padding: '2px 8px', borderRadius: 999,
+            background: tagBg.bg, color: tagBg.color, border: `1px solid ${tagBg.border}`,
+            marginLeft: 'auto',
+          }}>{tag}</span>
+          <span className="mono" style={{
+            color: 'var(--fg-3)', fontSize: 12,
+          }}>▶</span>
+        </summary>
+        <div style={{
+          padding: '4px 18px 18px', borderTop: '1px solid var(--border-1)',
+          fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.65,
+        }}>
           {children}
         </div>
+      </details>
+    );
+  }
+
+  // ─── FAQ accordion ────────────────────────────────────────────────────
+
+  function Faq({ q, children }) {
+    return (
+      <details style={{
+        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        borderRadius: 6, marginBottom: 6,
+      }}>
+        <summary style={{
+          listStyle: 'none', cursor: 'pointer', padding: '10px 14px',
+          fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+        }}>
+          <span>{q}</span>
+          <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 11 }}>▶</span>
+        </summary>
+        <div style={{
+          padding: '0 14px 12px', fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6,
+        }}>{children}</div>
+      </details>
+    );
+  }
+
+  // ─── Section primitive ────────────────────────────────────────────────
+
+  function Section({ kicker, title, lede, mutedLede, children }) {
+    return (
+      <section style={{ marginBottom: 44 }}>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.08em',
+          textTransform: 'uppercase', marginBottom: 6,
+        }}>{kicker}</div>
+        <h2 style={{
+          fontSize: 17, fontWeight: 600, color: 'var(--fg-0)',
+          margin: '0 0 14px', letterSpacing: '-0.005em',
+        }}>{title}</h2>
+        {lede && (
+          <p style={{ fontSize: 13.5, color: 'var(--fg-1)', lineHeight: 1.65, margin: '0 0 12px' }}>{lede}</p>
+        )}
+        {mutedLede && (
+          <p style={{ fontSize: 13.5, color: 'var(--fg-2)', lineHeight: 1.65, margin: '0 0 12px' }}>{mutedLede}</p>
+        )}
+        {children}
       </section>
     );
   }
 
-  function FAQ({ q, children }) {
+  // ─── Full v3.5 protocol overview (cream-and-indigo reference) ─────────
+  // Authored via the diagram skill (spec 0026). Inlined as JSX so it
+  // doesn't depend on a static-asset fetch — the same file ships as
+  // protocol-overview.svg in this directory for download.
+
+  function ProtocolOverviewMap() {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 880"
+           fontFamily="Inter, system-ui, -apple-system, sans-serif"
+           style={{ display: 'block', width: '100%', height: 'auto' }}
+           role="img"
+           aria-label="Dual Research Protocol v3.5 — full landscape process map showing all five phases, agent cards, convergence and approval gates, source verification, repair mechanism, and exit codes.">
+        <defs>
+          <filter id="mapCardShadow" x="-4%" y="-4%" width="108%" height="116%">
+            <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#1a1a18" floodOpacity="0.10" />
+          </filter>
+          <filter id="mapCardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+            <feDropShadow dx="0" dy="3" stdDeviation="8" floodColor="#1a1a18" floodOpacity="0.22" />
+          </filter>
+          <linearGradient id="mapBgGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#f5f1ea" />
+            <stop offset="100%" stopColor="#ece8e0" />
+          </linearGradient>
+          <linearGradient id="mapSurfacePrimary" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#6573c9" />
+            <stop offset="100%" stopColor="#3a4a8a" />
+          </linearGradient>
+          <linearGradient id="mapSurfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#252521" />
+            <stop offset="100%" stopColor="#1a1a18" />
+          </linearGradient>
+          <linearGradient id="mapSurfaceSlate" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#4a5568" />
+            <stop offset="100%" stopColor="#2d3748" />
+          </linearGradient>
+          <linearGradient id="mapSurfaceSecure" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#2a5e40" />
+            <stop offset="100%" stopColor="#1e4530" />
+          </linearGradient>
+          <linearGradient id="mapSurfaceStore" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%"   stopColor="#5e3f1c" />
+            <stop offset="100%" stopColor="#3f2810" />
+          </linearGradient>
+          <marker id="mapArrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8" />
+          </marker>
+          <marker id="mapArrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#4f5fb8" />
+          </marker>
+          <marker id="mapArrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#3d7f5b" />
+          </marker>
+        </defs>
+
+        <rect width="1660" height="880" fill="url(#mapBgGrad)" />
+
+        <text x="830" y="58" textAnchor="middle" fontSize="24" fontWeight="600" fill="#1a1a18" letterSpacing="-0.3">Dual Research Protocol v3.5</text>
+        <text x="830" y="82" textAnchor="middle" fontSize="13" fill="#706e67">Two models research independently, negotiate a shared plan, one drafts, both review, single approved document.</text>
+
+        <rect x="1346" y="42" width="138" height="24" rx="6" fill="url(#mapSurfacePrimary)" />
+        <text x="1415" y="58" textAnchor="middle" fontSize="10" fontWeight="600" fill="white" letterSpacing="0.4">Claude Sonnet 4.6</text>
+        <rect x="1494" y="42" width="110" height="24" rx="6" fill="url(#mapSurfaceSlate)" />
+        <text x="1549" y="58" textAnchor="middle" fontSize="10" fontWeight="600" fill="white" letterSpacing="0.4">GPT-5.5</text>
+
+        <text x="151"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 0</text>
+        <text x="151"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Brief &amp; Preflight</text>
+        <text x="381"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 1</text>
+        <text x="381"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Independent Research</text>
+        <text x="641"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 2</text>
+        <text x="641"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Plan Negotiation</text>
+        <text x="911"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 3</text>
+        <text x="911"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Drafting</text>
+        <text x="1181" y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 4</text>
+        <text x="1181" y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Review Loop</text>
+        <text x="1480" y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">OUTPUT</text>
+        <text x="1480" y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Approved Document</text>
+
+        <rect x="56" y="148" width="190" height="84" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
+        <circle cx="80" cy="178" r="13" fill="#1a1a18" />
+        <text x="80" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">B</text>
+        <text x="104" y="174" fontSize="13" fontWeight="600" fill="#1a1a18">Research Brief</text>
+        <text x="104" y="190" fontSize="10" fill="#4a4845">prompt · .md · Notion URL</text>
+        <text x="74"  y="210" fontSize="9" fontStyle="italic" fill="#706e67">Notion pages pre-fetched</text>
+        <text x="74"  y="223" fontSize="9" fontStyle="italic" fill="#706e67">captured to brief.md</text>
+
+        <rect x="56" y="252" width="190" height="186" rx="10" fill="url(#mapSurfaceSecure)" filter="url(#mapCardShadowDark)" />
+        <text x="151" y="276" textAnchor="middle" fontSize="13" fontWeight="600" fill="white">Preflight</text>
+        <text x="151" y="292" textAnchor="middle" fontSize="9" fontWeight="600" fill="#6aad86" letterSpacing="1.4">BOTH AGENTS · PARALLEL</text>
+        <line x1="74" y1="304" x2="228" y2="304" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <circle cx="78" cy="322" r="4" fill="#5aad80" />
+        <text x="90" y="326" fontSize="10" fill="rgba(255,255,255,0.9)">Brief clarity</text>
+        <circle cx="78" cy="342" r="4" fill="#5aad80" />
+        <text x="90" y="346" fontSize="10" fill="rgba(255,255,255,0.9)">Missing inputs</text>
+        <circle cx="78" cy="362" r="4" fill="#5aad80" />
+        <text x="90" y="366" fontSize="10" fill="rgba(255,255,255,0.9)">Framing concerns</text>
+        <line x1="74" y1="382" x2="228" y2="382" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <text x="151" y="400" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.6)">BRIEF_OK → proceed</text>
+        <text x="151" y="414" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.6)">NEEDS_INPUT → pause</text>
+        <text x="151" y="430" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.45)" fontFamily="monospace">harness · python</text>
+
+        <line x1="151" y1="232" x2="151" y2="252" stroke="#4f5fb8" strokeWidth="1.6" markerEnd="url(#mapArrowAccentSm)" />
+
+        <rect x="286" y="148" width="190" height="156" rx="10" fill="url(#mapSurfacePrimary)" filter="url(#mapCardShadowDark)" />
+        <circle cx="310" cy="178" r="14" fill="rgba(0,0,0,0.22)" />
+        <text x="310" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">C</text>
+        <text x="334" y="175" fontSize="13" fontWeight="600" fill="white">Claude</text>
+        <text x="334" y="190" fontSize="9" fill="rgba(255,255,255,0.7)">Sonnet 4.6 · thinking=med</text>
+        <line x1="304" y1="204" x2="464" y2="204" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <text x="304" y="222" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary + thesis</text>
+        <text x="304" y="238" fontSize="10" fill="rgba(255,255,255,0.92)">· Findings  [V] / [U]</text>
+        <text x="304" y="254" fontSize="10" fill="rgba(255,255,255,0.92)">· Disputable claims</text>
+        <text x="304" y="270" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions + sources</text>
+        <text x="381" y="292" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)">web search · no hedging · commit</text>
+
+        <text x="381" y="324" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="1.4">PARALLEL</text>
+        <line x1="346" y1="330" x2="416" y2="330" stroke="#4f5fb8" strokeWidth="1" strokeDasharray="3,3" opacity="0.55" />
+
+        <rect x="286" y="338" width="190" height="156" rx="10" fill="url(#mapSurfaceSlate)" filter="url(#mapCardShadowDark)" />
+        <circle cx="310" cy="368" r="14" fill="rgba(255,255,255,0.14)" />
+        <text x="310" y="368" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">G</text>
+        <text x="334" y="365" fontSize="13" fontWeight="600" fill="white">GPT</text>
+        <text x="334" y="380" fontSize="9" fill="rgba(255,255,255,0.7)">GPT-5.5 · reasoning=med</text>
+        <line x1="304" y1="394" x2="464" y2="394" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <text x="304" y="412" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary + thesis</text>
+        <text x="304" y="428" fontSize="10" fill="rgba(255,255,255,0.92)">· Findings  [V] / [U]</text>
+        <text x="304" y="444" fontSize="10" fill="rgba(255,255,255,0.92)">· Disputable claims</text>
+        <text x="304" y="460" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions + sources</text>
+        <text x="381" y="482" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)">asyncio.gather · fires at the same moment</text>
+
+        <path d="M 246 282 Q 270 270 286 220" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccent)" />
+        <text x="260" y="252" textAnchor="middle" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">PASS</text>
+        <path d="M 246 408 Q 270 420 286 414" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccent)" />
+
+        <rect x="516" y="148" width="250" height="378" rx="14" fill="url(#mapSurfaceNeutral)" filter="url(#mapCardShadowDark)" />
+        <text x="641" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Plan Negotiation</text>
+        <text x="641" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">TURN-BASED · UP TO 12 ROUNDS</text>
+        <line x1="536" y1="202" x2="746" y2="202" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+
+        <rect x="536" y="214" width="210" height="58" rx="7" fill="rgba(79,95,184,0.22)" stroke="rgba(79,95,184,0.4)" strokeWidth="1" />
+        <text x="548" y="233" fontSize="10" fontWeight="600" fill="#c5cdf0">Round 1 · Diff inventory</text>
+        <text x="548" y="249" fontSize="9" fill="rgba(255,255,255,0.7)">diff vs other draft · gap research</text>
+        <text x="548" y="263" fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="monospace">STATUS: NEGOTIATING (forced)</text>
+
+        <rect x="536" y="282" width="210" height="82" rx="7" fill="rgba(255,255,255,0.06)" />
+        <text x="548" y="301" fontSize="10" fontWeight="600" fill="rgba(255,255,255,0.92)">Rounds 2+ · Negotiation</text>
+        <text x="548" y="316" fontSize="9" fill="rgba(255,255,255,0.7)">· corroborate [U] / central [V]</text>
+        <text x="548" y="330" fontSize="9" fill="rgba(255,255,255,0.7)">· anti-sycophancy guard / turn</text>
+        <text x="548" y="344" fontSize="9" fill="rgba(255,255,255,0.7)">· D-N IDs track disagreements</text>
+        <text x="548" y="358" fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="monospace">BLOCKING / FINAL_SURFACED</text>
+
+        <line x1="536" y1="378" x2="746" y2="378" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <text x="641" y="396" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">CONVERGENCE GATE</text>
+        <text x="536" y="412" fontSize="9" fill="rgba(255,255,255,0.78)">+ Both STATUS: AGREED</text>
+        <text x="536" y="426" fontSize="9" fill="rgba(255,255,255,0.78)">+ AGREED_PLAN SHA-256 match</text>
+        <text x="536" y="440" fontSize="9" fill="rgba(255,255,255,0.78)">+ BLOCKING_DISAGREEMENTS = 0</text>
+        <text x="536" y="454" fontSize="9" fill="rgba(255,255,255,0.78)">+ OPEN_QUESTIONS = 0</text>
+        <text x="536" y="468" fontSize="9" fill="rgba(255,255,255,0.78)">+ STRONGEST_REMAINING_OBJECTION</text>
+        <text x="536" y="484" fontSize="9" fill="rgba(255,255,255,0.55)">FSD IDs aligned · pickDrafter() tiebreak</text>
+
+        <line x1="536" y1="498" x2="746" y2="498" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <text x="641" y="514" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">soft cap 6 · hard cap 12 · resumable</text>
+
+        <line x1="476" y1="220" x2="510" y2="290" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccentSm)" />
+        <text x="488" y="248" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">DRAFT-C</text>
+        <line x1="476" y1="414" x2="510" y2="340" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccentSm)" />
+        <text x="488" y="388" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">DRAFT-G</text>
+
+        <line x1="766" y1="337" x2="816" y2="337" stroke="#4f5fb8" strokeWidth="2" markerEnd="url(#mapArrowAccent)" />
+        <text x="791" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="0.8">AGREED</text>
+
+        <rect x="816" y="148" width="190" height="260" rx="10" fill="url(#mapSurfacePrimary)" filter="url(#mapCardShadowDark)" />
+        <circle cx="840" cy="178" r="14" fill="rgba(255,255,255,0.18)" />
+        <text x="840" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">★</text>
+        <text x="864" y="175" fontSize="13" fontWeight="600" fill="white">Drafter</text>
+        <text x="864" y="190" fontSize="9" fill="rgba(255,255,255,0.7)">tiebreak winner · single-shot</text>
+        <line x1="836" y1="204" x2="996" y2="204" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <text x="836" y="220" fontSize="9" fontWeight="600" fill="#c5cdf0" letterSpacing="1.4">INPUTS</text>
+        <text x="836" y="236" fontSize="10" fill="rgba(255,255,255,0.92)">· hash-verified AGREED_PLAN</text>
+        <text x="836" y="252" fontSize="10" fill="rgba(255,255,255,0.92)">· both Phase 1 drafts</text>
+        <text x="836" y="268" fontSize="10" fill="rgba(255,255,255,0.92)">· full Phase 2 conversation</text>
+        <text x="836" y="284" fontSize="10" fill="rgba(255,255,255,0.92)">· injected FSD array</text>
+        <line x1="836" y1="298" x2="996" y2="298" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <text x="836" y="314" fontSize="9" fontWeight="600" fill="#c5cdf0" letterSpacing="1.4">OUTPUT SECTIONS</text>
+        <text x="836" y="330" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary · Findings · FSD</text>
+        <text x="836" y="346" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions · Sources</text>
+        <text x="836" y="362" fontSize="10" fill="rgba(255,255,255,0.92)">· Confidence ledger [V] / [U]</text>
+        <text x="911" y="388" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)" fontFamily="monospace">draft-v1.md</text>
+
+        <line x1="1006" y1="337" x2="1056" y2="337" stroke="#4f5fb8" strokeWidth="2" markerEnd="url(#mapArrowAccent)" />
+        <text x="1031" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="0.8">DRAFT V1</text>
+
+        <rect x="1056" y="148" width="250" height="378" rx="14" fill="url(#mapSurfaceNeutral)" filter="url(#mapCardShadowDark)" />
+        <text x="1181" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Review Loop</text>
+        <text x="1181" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">TURN-BASED · DRAFTER vs REVIEWER</text>
+        <line x1="1076" y1="202" x2="1286" y2="202" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+
+        <rect x="1076" y="214" width="210" height="76" rx="7" fill="rgba(74,85,104,0.4)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+        <text x="1088" y="232" fontSize="10" fontWeight="600" fill="rgba(255,255,255,0.92)">Reviewer · non-drafter</text>
+        <text x="1088" y="248" fontSize="9" fill="rgba(255,255,255,0.7)">· evidence checked / round (req)</text>
+        <text x="1088" y="262" fontSize="9" fill="rgba(255,255,255,0.7)">· issue ledger · stable IDs</text>
+        <text x="1088" y="276" fontSize="9" fill="rgba(255,255,255,0.5)">corroborates [U] + central [V]</text>
+
+        <rect x="1076" y="300" width="210" height="76" rx="7" fill="rgba(79,95,184,0.22)" stroke="rgba(79,95,184,0.4)" strokeWidth="1" />
+        <text x="1088" y="318" fontSize="10" fontWeight="600" fill="#c5cdf0">Drafter · revision note</text>
+        <text x="1088" y="334" fontSize="9" fill="rgba(255,255,255,0.7)">· answers every open issue</text>
+        <text x="1088" y="348" fontSize="9" fill="rgba(255,255,255,0.7)">· writes draft-v(N+1).md</text>
+        <text x="1088" y="362" fontSize="9" fill="rgba(255,255,255,0.5)">updates Confidence on each rev</text>
+
+        <line x1="1076" y1="390" x2="1286" y2="390" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <text x="1181" y="408" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">APPROVAL GATE</text>
+        <text x="1076" y="424" fontSize="9" fill="rgba(255,255,255,0.78)">+ Both STATUS: APPROVED</text>
+        <text x="1076" y="438" fontSize="9" fill="rgba(255,255,255,0.78)">+ OPEN_ISSUES = 0</text>
+        <text x="1076" y="452" fontSize="9" fill="rgba(255,255,255,0.78)">+ ENDORSEMENT + NON-BLOCKING</text>
+        <text x="1076" y="466" fontSize="9" fill="rgba(255,255,255,0.78)">+ STRONGEST_REMAINING_OBJECTION</text>
+        <text x="1076" y="480" fontSize="9" fill="rgba(255,255,255,0.55)">carryover audit: FSD-N verified in draft</text>
+
+        <line x1="1076" y1="498" x2="1286" y2="498" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+        <text x="1181" y="514" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">soft cap 6 · hard cap 12 · deadlock = 51</text>
+
+        <line x1="1306" y1="337" x2="1356" y2="337" stroke="#3d7f5b" strokeWidth="2" markerEnd="url(#mapArrowGreen)" />
+        <text x="1331" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#3d7f5b" letterSpacing="0.8">APPROVED</text>
+
+        <rect x="1356" y="148" width="248" height="280" rx="10" fill="url(#mapSurfaceStore)" filter="url(#mapCardShadowDark)" />
+        <text x="1480" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Final Document</text>
+        <text x="1480" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#cba075" letterSpacing="1.4">BOTH MODELS ENDORSED</text>
+        <circle cx="1592" cy="166" r="5" fill="#3d7f5b" />
+        <line x1="1376" y1="202" x2="1584" y2="202" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+
+        <rect x="1376" y="212" width="208" height="40" rx="6" fill="rgba(0,0,0,0.22)" />
+        <text x="1388" y="230" fontSize="10" fill="#cba075" fontFamily="monospace">## How this document</text>
+        <text x="1388" y="244" fontSize="10" fill="#cba075" fontFamily="monospace">##   was produced</text>
+
+        <text x="1376" y="270" fontSize="10" fill="rgba(255,255,255,0.88)">· Outcome: APPROVED</text>
+        <text x="1376" y="286" fontSize="10" fill="rgba(255,255,255,0.88)">· Plan rounds · drafter · review rounds</text>
+        <text x="1376" y="302" fontSize="10" fill="rgba(255,255,255,0.88)">· Confidence: HIGH / MOD / LOW</text>
+        <text x="1376" y="318" fontSize="10" fill="rgba(255,255,255,0.88)">· Token cost estimate</text>
+
+        <line x1="1376" y1="334" x2="1584" y2="334" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        <text x="1376" y="352" fontSize="9" fontWeight="600" fill="#cba075" letterSpacing="1.4">CONFIDENCE LEDGER</text>
+        <text x="1376" y="370" fontSize="10" fill="rgba(255,255,255,0.78)">claim · [V] / [U] · CORROBORATED</text>
+        <text x="1376" y="386" fontSize="10" fill="rgba(255,255,255,0.78)">material claims only · body prose clean</text>
+        <text x="1376" y="412" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">final.md · written once, both models endorse</text>
+
+        <text x="56" y="562" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PROTOCOL DETAILS</text>
+        <line x1="56" y1="572" x2="200" y2="572" stroke="#9e9b95" strokeWidth="0.5" />
+
+        <rect x="56" y="588" width="496" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
+        <text x="76" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">SOURCE VERIFICATION  ·  v3.1</text>
+        <line x1="76" y1="620" x2="532" y2="620" stroke="#e8e2d8" strokeWidth="1" />
+        <rect x="76" y="632" width="40" height="20" rx="4" fill="#4f5fb8" />
+        <text x="96" y="646" textAnchor="middle" fontSize="10" fontWeight="700" fill="white">[V]</text>
+        <text x="124" y="646" fontSize="11" fill="#4a4845">verified this run — tool retrieved a source</text>
+        <rect x="76" y="660" width="40" height="20" rx="4" fill="#9e9b95" />
+        <text x="96" y="674" textAnchor="middle" fontSize="10" fontWeight="700" fill="white">[U]</text>
+        <text x="124" y="674" fontSize="11" fill="#4a4845">unverified — from training weights, must be corroborated</text>
+        <text x="76" y="698" fontSize="9" fontStyle="italic" fill="#706e67">CORROBORATED  ·  UNCORROBORATED  ·  CONTRADICTED</text>
+
+        <rect x="572" y="588" width="496" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
+        <text x="592" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">REPAIR MECHANISM</text>
+        <line x1="592" y1="620" x2="1048" y2="620" stroke="#e8e2d8" strokeWidth="1" />
+        <text x="592" y="640" fontSize="11" fill="#4a4845">1.  malformed turn  →  rename to <tspan fontFamily="monospace" fill="#3a4a8a">.malformed-N.md</tspan></text>
+        <text x="592" y="660" fontSize="11" fill="#4a4845">2.  repair prompt  →  re-check well-formedness</text>
+        <text x="592" y="680" fontSize="11" fill="#4a4845">3.  2 consecutive failures  →  <tspan fontWeight="600" fill="#cc6e55">exit 52</tspan></text>
+        <text x="592" y="700" fontSize="9" fontStyle="italic" fill="#706e67">repair events logged · invisible to the other agent</text>
+
+        <rect x="1088" y="588" width="516" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
+        <text x="1108" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">EXIT CODES</text>
+        <line x1="1108" y1="620" x2="1584" y2="620" stroke="#e8e2d8" strokeWidth="1" />
+        <text x="1108" y="640" fontSize="11" fill="#4a4845">
+          <tspan fontWeight="700" fill="#3d7f5b" fontFamily="monospace">0</tspan>
+          <tspan>  approved</tspan>
+          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">1</tspan>
+          <tspan>  preflight failure</tspan>
+          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">2</tspan>
+          <tspan>  runtime error</tspan>
+        </text>
+        <text x="1108" y="660" fontSize="11" fill="#4a4845">
+          <tspan fontWeight="700" fill="#4a9eca" fontFamily="monospace">50</tspan>
+          <tspan>  soft cap (resumable)</tspan>
+          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">51</tspan>
+          <tspan>  hard cap / deadlock</tspan>
+        </text>
+        <text x="1108" y="680" fontSize="11" fill="#4a4845">
+          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace">52</tspan>
+          <tspan>  protocol parse failure (2 consecutive malformed turns)</tspan>
+        </text>
+        <text x="1108" y="700" fontSize="9" fontStyle="italic" fill="#706e67"><tspan fontFamily="monospace">state.json</tspan> persisted  ·  resume with <tspan fontFamily="monospace">--resume</tspan></text>
+
+        <line x1="56" y1="752" x2="1604" y2="752" stroke="#d8d4cc" strokeWidth="1" opacity="0.7" />
+        <text x="56" y="778" fontSize="11" fill="#4a4845">
+          <tspan fontWeight="600" fill="#1a1a18">Agreement is valuable only when it improves the final answer.</tspan>
+          <tspan>  Do not agree for politeness, speed, symmetry, or fatigue · do not disagree for performance or to appear rigorous.</tspan>
+        </text>
+        <text x="56" y="800" fontSize="11" fill="#4a4845">
+          <tspan fontWeight="600" fill="#1a1a18">Phase 2 and Phase 4 each run internally until convergence.</tspan>
+          <tspan>  No cross-phase back-propagation occurs in a single run.</tspan>
+        </text>
+
+        <text x="1604" y="836" textAnchor="end" fontSize="9" fontStyle="italic" fill="#9e9b95">Dual Research Protocol v3.5  ·  Claude Sonnet 4.6 + GPT-5.5  ·  Python orchestrator</text>
+      </svg>
+    );
+  }
+
+  function ProtocolOverviewFold() {
+    return (
+      <details style={{
+        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        borderRadius: 8, overflow: 'hidden', marginTop: 14,
+      }}>
+        <summary style={{
+          listStyle: 'none', cursor: 'pointer', padding: '14px 18px',
+          display: 'flex', alignItems: 'center', gap: 12, userSelect: 'none',
+        }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>View full process map</span>
+          <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>
+            — every phase, sub-card, gate, callout and exit code in one page
+          </span>
+          <span className="mono" style={{
+            fontSize: 10, padding: '2px 8px', borderRadius: 999,
+            background: 'var(--bg-3)', color: 'var(--fg-2)',
+            border: '1px solid var(--border-2)', marginLeft: 'auto',
+            letterSpacing: '0.04em',
+          }}>v3.5 · landscape</span>
+          <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>▶</span>
+        </summary>
+        <div style={{
+          padding: 0, borderTop: '1px solid var(--border-1)', background: '#f5f1ea',
+        }}>
+          <ProtocolOverviewMap />
+        </div>
+        <div style={{
+          padding: '10px 18px', borderTop: '1px solid var(--border-1)',
+          fontSize: 11.5, color: 'var(--fg-2)',
+          display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
+        }}>
+          <span>Reference diagram — light surface, doesn't follow theme toggle.</span>
+          <a href="protocol-overview.svg" target="_blank" rel="noopener"
+             style={{ color: 'var(--info)' }}>Open SVG ↗</a>
+          <span className="mono" style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--fg-3)' }}>
+            1660 × 880 · Inter · cream &amp; indigo design system
+          </span>
+        </div>
+      </details>
+    );
+  }
+
+  // ─── Release notes block ──────────────────────────────────────────────
+
+  function ReleaseNote({ entry }) {
     return (
       <div style={{
-        padding: '12px 14px', marginBottom: 8,
+        padding: '14px 16px', marginBottom: 10,
         background: 'var(--bg-1)', border: '1px solid var(--border-1)',
         borderRadius: 8,
       }}>
-        <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--fg-0)', marginBottom: 4 }}>
-          {q}
+        <div style={{
+          display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 6,
+          flexWrap: 'wrap',
+        }}>
+          <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>{entry.version}</span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{entry.date}</span>
+          <span style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>{entry.summary}</span>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.6 }}>
-          {children}
-        </div>
+        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6 }}>
+          {entry.items.map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
       </div>
     );
   }
 
-  function PhaseRow({ phase, name, hint, hintColor, children }) {
-    return (
-      <div style={{
-        display: 'flex', gap: 18, padding: '14px 0',
-        borderTop: '1px solid var(--border-1)',
-      }}>
-        <div style={{ flexShrink: 0, width: 88 }}>
-          <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.05em' }}>
-            PHASE {phase}
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', marginTop: 2 }}>
-            {name}
-          </div>
-          <div className="mono" style={{ fontSize: 10, color: hintColor, marginTop: 4 }}>{hint}</div>
-        </div>
-        <div style={{ flex: 1, fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.65 }}>
-          {children}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── Page ─────────────────────────────────────────────────────────────
+  // ─── Main page ────────────────────────────────────────────────────────
 
   function HowItWorks() {
     return (
       <div style={{
-        height: '100%', overflow: 'auto', padding: '32px 32px 80px',
+        height: '100%', overflow: 'auto', padding: '28px 32px 96px',
         background: 'var(--bg-0)', color: 'var(--fg-0)',
       }}>
-        <div style={{ maxWidth: 820, margin: '0 auto' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
           {/* Hero */}
-          <div style={{ marginBottom: 36 }}>
+          <header style={{ marginBottom: 36 }}>
+            <div className="mono" style={{
+              fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.08em',
+              textTransform: 'uppercase', marginBottom: 8,
+            }}>PROTOCOL · v3.5</div>
             <h1 style={{
-              fontSize: 28, fontWeight: 600, margin: 0,
-              letterSpacing: '-0.02em',
+              fontSize: 30, fontWeight: 600, margin: 0,
+              letterSpacing: '-0.02em', color: 'var(--fg-0)',
             }}>How dual-research works</h1>
             <p style={{
-              fontSize: 14, color: 'var(--fg-2)', maxWidth: 600,
-              marginTop: 8, marginBottom: 24, lineHeight: 1.6,
+              fontSize: 14.5, color: 'var(--fg-2)', maxWidth: 640,
+              marginTop: 10, marginBottom: 0, lineHeight: 1.6,
             }}>
               Two language models start from the same brief, work independently,
               then negotiate until they agree on a single document. The
               orchestrator is deterministic; the agents are not. This page is
               what they actually do, in order.
             </p>
-            <PhaseFlowDiagram />
-          </div>
+            <TldrCards />
+          </header>
 
-          {/* Brief ingestion */}
-          <Section title="It starts with one brief">
-            <p>
-              You provide a prompt, a markdown file, or a Notion page. The orchestrator
-              ingests it once and serialises it as <code>brief.md</code> in the run's
-              session directory. <strong>That exact text is the only input both agents
-              ever see for the topic.</strong> Their prompts are otherwise identical
-              — the only thing that changes is whether the agent is told it's playing the
-              "claude" or "openai" role.
-            </p>
+          {/* Five phases at a glance */}
+          <Section
+            kicker="Overview"
+            title="The five phases"
+            lede={
+              <span>
+                A run walks a fixed phase machine. Some phases fire both agents in
+                parallel, some are turn-based with multiple rounds, one is a
+                single-shot draft. The orchestrator never lets an agent advance
+                the phase — it watches the outputs and decides.
+              </span>
+            }
+          >
+            <PhaseStrip />
+            <ProtocolOverviewFold />
           </Section>
 
-          {/* Phase walkthrough */}
-          <Section title="The five phases">
-            <PhaseRow phase={0} name="Preflight" hint="parallel" hintColor="var(--agent-b)">
-              Both agents read the brief and write a short critique — what's underspecified,
-              what's ambiguous, what's missing. The two API calls fire <code>asyncio.gather</code>-style,
-              so they run at the same moment without seeing each other's critique. In
-              autonomous mode their feedback is logged but doesn't gate the run.
-            </PhaseRow>
-
-            <PhaseRow phase={1} name="Independent research" hint="parallel" hintColor="var(--agent-b)">
-              Each agent writes a complete first-pass research draft, alone. Same brief
-              going in, same prompt structure, but each draft is the agent's own thinking
-              — they cannot see each other yet. This is the only phase where you actually
-              get to see how each model interprets the brief without negotiation pressure.
-              Outputs: <code>phase1/draft-claude.md</code> and <code>phase1/draft-openai.md</code>.
-            </PhaseRow>
-
-            <PhaseRow phase={2} name="Plan negotiation" hint="turn-based" hintColor="var(--agent-a)">
-              The agents start reading each other's work. Each round, both agents fire
-              <em> in parallel</em> with the brief, both Phase 1 drafts, and every prior
-              negotiation turn from both sides as input. Round 1 is structurally required
-              to be a "first read" — neither agent can mark AGREED yet. From round 2 on,
-              they exchange counter-proposals, mark disagreements with stable D-N
-              identifiers, and try to converge on an <code>AGREED_PLAN</code> block whose
-              SHA-256 hash matches the other agent's. Convergence detection is mechanical:
-              same <code>STATUS: AGREED</code>, same drafter choice, same plan hash, zero
-              open questions, zero blocking disagreements, matching final-surfaced
-              disagreements — all in the same round.
-            </PhaseRow>
-
-            <PhaseRow phase={3} name="Drafting" hint="single-shot" hintColor="var(--fg-2)">
-              One agent — the drafter, picked by the tiebreak below — writes the converged
-              document in a single call. They receive: the brief, both Phase 1 drafts, the
-              hash-verified canonical agreed plan, and the entire Phase 2 conversation as
-              context. The other agent is silent in this phase.
-            </PhaseRow>
-
-            <PhaseRow phase={4} name="Cross-review" hint="turn-based" hintColor="var(--agent-a)">
-              Same shape as Phase 2: both agents fire in parallel each round. The drafter
-              can include a <code>## Revised draft</code> section in their turn, which the
-              orchestrator detects, writes as <code>phase4/draft-vN+1.md</code>, and shows
-              to both agents in the next round. The reviewer can comment but not edit.
-              Convergence here means both agents emit <code>STATUS: APPROVED</code> with
-              zero open issues in the same round.
-            </PhaseRow>
+          {/* Chat lifecycle (main new section) */}
+          <Section
+            kicker="Chat lifecycle"
+            title="When do we start new chats?"
+            lede={
+              <span>
+                <strong>Every API call is a new "chat".</strong> The orchestrator
+                never holds a conversation handle, never sends a thread ID, never
+                appends to a stored message list. For each phase and each round,
+                it assembles a fresh prompt from scratch — re-inlining the brief,
+                the Phase&nbsp;1 drafts, any prior turns, the agreed plan, and so
+                on. The two agents do not share an API session and they have no
+                memory of previous calls beyond what the orchestrator quotes back
+                at them.
+              </span>
+            }
+            mutedLede="Below: every box is one HTTP request to one provider. The contents of each box are exactly the inputs that request carries."
+          >
+            <ChatLifecycle />
+            <Legend />
+            <ComparePanel />
           </Section>
 
-          {/* Negotiation pattern */}
-          <Section title="A round, up close">
-            <p style={{ marginBottom: 16 }}>
-              In each Phase 2 (and Phase 4) round, the orchestrator builds one prompt
-              per agent that bundles all the prior history, fires both calls in parallel,
-              writes the two responses to disk, then checks whether the convergence
-              criteria are met. If yes, advance phase. If no, repeat with the new turn
-              files appended to the history.
-            </p>
-            <NegotiationRoundDiagram />
+          {/* Context grows, prefix is cached */}
+          <Section
+            kicker="Cost shape"
+            title="Context grows, but the prefix is cached"
+            lede={
+              <span>
+                Because we re-inline everything, the prompt gets longer each
+                round. The orchestrator places a <code style={codeS}>CACHE_BREAKPOINT</code> marker
+                between the stable prefix (brief + Phase&nbsp;1 drafts + earlier
+                turns) and the volatile suffix (the round's instructions).
+                Anthropic caches the prefix with a 1h TTL; OpenAI auto-caches any
+                shared prefix ≥1024 tokens. Long runs end up paying full price
+                only for the small variable tail.
+              </span>
+            }
+          >
+            <ContextGrowthBars />
+          </Section>
+
+          {/* Phase deep-dive */}
+          <Section
+            kicker="Deep-dive"
+            title="Phase by phase"
+            mutedLede="Expand any phase for the full mechanics, inputs, and outputs."
+          >
+            <PhaseAccordion ph={0} name="Preflight" tag="parallel" defaultOpen>
+              <p>
+                Both agents read the brief and write a short critique — what's
+                underspecified, what's ambiguous, what's missing. The two API
+                calls fire <code style={codeS}>asyncio.gather</code>-style at the same moment;
+                neither sees the other's critique. In autonomous mode their
+                feedback is logged but doesn't gate the run.
+              </p>
+              <PhaseMeta rows={[
+                ['input',  <Tk kind="brief">brief</Tk>],
+                ['chats',  '2 fresh API calls (one per agent), no history'],
+                ['output', <span><code style={codeS}>preflight-claude.md</code>, <code style={codeS}>preflight-openai.md</code></span>],
+                ['gate',   'none — informational'],
+              ]} />
+            </PhaseAccordion>
+
+            <PhaseAccordion ph={1} name="Independent research" tag="parallel">
+              <p>
+                Each agent writes a complete first-pass research draft, alone.
+                Same brief, same prompt structure — but the two drafts are written
+                without any cross-talk. This is the only phase where you see how
+                each model interprets the brief under zero negotiation pressure.
+              </p>
+              <PhaseMeta rows={[
+                ['input',  <Tk kind="brief">brief</Tk>],
+                ['chats',  '2 fresh API calls (one per agent), no history'],
+                ['output', <span><code style={codeS}>phase1/draft-claude.md</code>, <code style={codeS}>phase1/draft-openai.md</code></span>],
+                ['gate',   'both drafts present ⇒ advance'],
+              ]} />
+            </PhaseAccordion>
+
+            <PhaseAccordion ph={2} name="Plan negotiation" tag="turn-based">
+              <p>
+                The agents start reading each other's work. Each round, both
+                agents fire <em>in parallel</em> with the brief, both Phase&nbsp;1
+                drafts, and every prior negotiation turn from both sides as input.
+                Round 1 is structurally required to be a "first read" — neither
+                agent can mark AGREED yet. From round 2 on, they exchange
+                counter-proposals, mark disagreements with stable
+                {' '}<code style={codeS}>D-N</code> identifiers, and try to converge on an
+                {' '}<code style={codeS}>AGREED_PLAN</code> block whose SHA-256 hash matches the other agent's.
+              </p>
+              <p>
+                Convergence detection is mechanical: same{' '}
+                <code style={codeS}>STATUS: AGREED</code>, same drafter choice, same plan hash,
+                zero open questions, zero blocking disagreements, matching
+                final-surfaced disagreements — all in the same round.
+              </p>
+              <PhaseMeta rows={[
+                ['r1 input', <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk></span>],
+                ['rN input', <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk> <Tk kind="hist">all prior P2 turns</Tk></span>],
+                ['chats',    '2 fresh API calls per round; full history re-inlined every time'],
+                ['output',   <span><code style={codeS}>phase2/round-NN-claude.md</code>, <code style={codeS}>phase2/round-NN-openai.md</code></span>],
+                ['caps',     'soft 6 rounds (warn), hard 12 rounds (exit 51)'],
+                ['gate',     'same-round plan-hash match + zero blocking disagreements'],
+              ]} />
+            </PhaseAccordion>
+
+            <PhaseAccordion ph={3} name="Drafting" tag="single-shot">
+              <p>
+                One agent — the drafter, picked by <code style={codeS}>tiebreak.pick_drafter</code> —
+                writes the converged document in a single call. They receive: the
+                brief, both Phase&nbsp;1 drafts, the hash-verified canonical agreed
+                plan, the final-surfaced disagreements, and the entire Phase&nbsp;2
+                conversation as context. The other agent is silent in this phase.
+              </p>
+              <PhaseMeta rows={[
+                ['input',  <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk> <Tk kind="plan">agreed plan</Tk> <Tk kind="hist">all P2 turns</Tk></span>],
+                ['chats',  '1 fresh API call (drafter only)'],
+                ['output', <code style={codeS}>phase3/draft-v1.md</code>],
+                ['gate',   'draft written ⇒ advance'],
+              ]} />
+            </PhaseAccordion>
+
+            <PhaseAccordion ph={4} name="Cross-review" tag="turn-based">
+              <p>
+                Same shape as Phase&nbsp;2: both agents fire in parallel each
+                round. The drafter can include a <code style={codeS}>## Revised draft</code>{' '}
+                section in their turn, which the orchestrator detects, writes as{' '}
+                <code style={codeS}>phase4/draft-vN+1.md</code>, and shows to both agents in the
+                next round. The reviewer can comment but not edit. Convergence
+                here means both agents emit <code style={codeS}>STATUS: APPROVED</code> with
+                zero open issues in the same round.
+              </p>
+              <PhaseMeta rows={[
+                ['input',  <span><Tk kind="brief">brief</Tk> <Tk kind="draft">current draft-vK</Tk> <Tk kind="histp">all prior P4 turns</Tk></span>],
+                ['chats',  '2 fresh API calls per round; full history re-inlined every time'],
+                ['output', <span><code style={codeS}>phase4/round-NN-&#123;agent&#125;.md</code>, plus <code style={codeS}>draft-vK+1.md</code> if revised</span>],
+                ['gate',   <span>both agents <code style={codeS}>STATUS: APPROVED</code>, zero open issues, same round</span>],
+              ]} />
+            </PhaseAccordion>
+          </Section>
+
+          {/* Round up close */}
+          <Section
+            kicker="Zoom in"
+            title="A round, up close"
+            lede={
+              <span>
+                In each Phase&nbsp;2 (and Phase&nbsp;4) round, the orchestrator
+                builds one prompt per agent that bundles all the prior history,
+                fires both calls in parallel, writes the two responses to disk,
+                then checks whether the convergence criteria are met. If yes,
+                advance phase. If no, repeat with the new turn files appended to
+                the history.
+              </span>
+            }
+          >
+            <div style={{
+              padding: '16px 18px', background: 'var(--bg-1)',
+              border: '1px solid var(--border-1)', borderRadius: 8,
+            }}>
+              <NegotiationRoundDiagram />
+              <div style={{
+                fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic', marginTop: 6,
+              }}>
+                If yes, advance phase. If no, append both turns to disk and run
+                the next round.
+              </div>
+            </div>
           </Section>
 
           {/* FAQ */}
-          <Section title="What gets decided when">
-            <FAQ q="Do they read each other's work?">
-              Not in Phases 0 and 1. From Phase 2 onward yes — each agent's prompt
-              inlines the brief, both Phase 1 drafts, and every prior round's turn
-              from both sides. They build context fully transparently.
-            </FAQ>
-
-            <FAQ q="Who goes first in a round? Random? Fixed?">
+          <Section kicker="FAQ" title="What gets decided when">
+            <Faq q="Do they read each other's work?">
+              Not in Phases 0 and 1. From Phase&nbsp;2 onward yes — each agent's
+              prompt inlines the brief, both Phase&nbsp;1 drafts, and every prior
+              round's turn from both sides. They build context fully transparently.
+            </Faq>
+            <Faq q="Who goes first in a round? Random? Fixed?">
               Neither. <strong>Both agents fire at the same moment</strong> via
-              <code>asyncio.gather</code>. There's no "speaker" in the way humans
-              would imagine. Each agent is independently producing a turn that
-              references all prior history — they aren't reading the round-N turn
-              of the other agent while they're writing round N.
-            </FAQ>
-
-            <FAQ q="Fresh chats per turn, or one long chat?">
+              {' '}<code style={codeS}>asyncio.gather</code>. There's no "speaker" in the way humans
+              would imagine. Each agent independently produces a turn that
+              references all prior history — they aren't reading the round-N
+              turn of the other agent while they're writing round N.
+            </Faq>
+            <Faq q="Fresh chats per turn, or one long chat?">
               <strong>Fresh API call every turn.</strong> The agents have no
-              persistent conversation handle; the orchestrator re-inlines the full
-              prior-turn history into every new prompt. The CACHE_BREAKPOINT marker
-              lets Anthropic cache the stable prefix (brief + Phase 1 drafts) so
-              the marginal cost of long history is small, but that's prefix caching
-              — not a session. From the agent's perspective every turn is a single
-              question with all context provided up front.
-            </FAQ>
-
-            <FAQ q="How is the drafter picked?">
-              A four-step cascade in <code>tiebreak.pick_drafter</code>:
+              persistent conversation handle; the orchestrator re-inlines the
+              full prior-turn history into every new prompt. The{' '}
+              <code style={codeS}>CACHE_BREAKPOINT</code> marker lets Anthropic cache the
+              stable prefix (brief + Phase&nbsp;1 drafts + earlier turns) so the
+              marginal cost of long history is small, but that's prefix caching —
+              not a session. From the agent's perspective every turn is a single
+              question with all context provided up front. See "Chat lifecycle"
+              above for the per-phase picture.
+            </Faq>
+            <Faq q="How is the drafter picked?">
+              A four-step cascade in <code style={codeS}>tiebreak.pick_drafter</code>:
               <ol style={{ paddingLeft: 22, margin: '6px 0' }}>
                 <li>If both agents independently recommend the same drafter in their AGREED turns — that wins.</li>
-                <li>Otherwise, sum each agent's self-rated <code>DOMAIN_FIT_SELF</code> plus the other's rating of them. Higher total drafts.</li>
+                <li>Otherwise, sum each agent's self-rated <code style={codeS}>DOMAIN_FIT_SELF</code> plus the other's rating of them. Higher total drafts.</li>
                 <li>Tiebreak by plan-alignment: word-set overlap between the agreed plan and each agent's Phase 1 draft.</li>
-                <li>Last-resort: <code>SHA-256(brief)</code>'s first byte parity. Even = claude, odd = openai. Deterministic, no concession asymmetry.</li>
+                <li>Last-resort: <code style={codeS}>SHA-256(brief)</code>'s first byte parity. Even = claude, odd = openai. Deterministic, no concession asymmetry.</li>
               </ol>
-            </FAQ>
-
-            <FAQ q="What if they never converge?">
-              Two caps. <strong>Soft cap</strong> (default 6 rounds) logs a warning and
-              keeps going. <strong>Hard cap</strong> (default 12 rounds) stops the
-              run, exits with code 51, and emits a <code>final.md</code> containing
-              the last draft plus both agents' last review turns as an
-              "unresolved disagreements" appendix. Confidence tag is forced to
-              <code>LOW</code>.
-            </FAQ>
-
-            <FAQ q="What if an agent emits something the parser can't read?">
+            </Faq>
+            <Faq q="What if they never converge?">
+              Two caps. <strong>Soft cap</strong> (default 6 rounds) logs a
+              warning and keeps going. <strong>Hard cap</strong> (default 12
+              rounds) stops the run, exits with code&nbsp;51, and emits a
+              {' '}<code style={codeS}>final.md</code> containing the last draft plus both agents'
+              last review turns as an "unresolved disagreements" appendix.
+              Confidence tag is forced to <code style={codeS}>LOW</code>.
+            </Faq>
+            <Faq q="What if an agent emits something the parser can't read?">
               Each agent has one repair attempt per phase. The orchestrator saves
-              the malformed turn (as <code>round-NN-agent.malformed-N.md</code>),
+              the malformed turn (as <code style={codeS}>round-NN-agent.malformed-N.md</code>),
               spends the budget, and re-prompts the agent with the specific
-              missing fields surfaced. If the agent fails again on the next round,
-              the run exits with code 52. Two consecutive parse failures kill it.
-            </FAQ>
-
-            <FAQ q="Which models are used?">
-              By default the production tier: Claude Sonnet 4.6 (with the 1M-context beta) +
-              GPT-5.5. There's a faster <code>test</code> tier (Haiku 4.5 + GPT-5-mini)
-              for verifying changes without spending much. The agent labels stay
-              <code>claude</code> and <code>openai</code>; the actual model id is
-              recorded in the run's metrics file.
-            </FAQ>
-
-            <FAQ q="Where does the cost come from?">
-              Every call records its token usage and a per-call USD cost
-              computed from the model's published pricing. The number you see in
-              the header is the sum of every call in the run. Anthropic prompt
-              caching gives ~75% off cached prefix reads — long Phase 2 runs are
-              cheaper than their input-token count suggests.
-            </FAQ>
+              missing fields surfaced. If the agent fails again on the next
+              round, the run exits with code&nbsp;52. Two consecutive parse
+              failures kill it.
+            </Faq>
+            <Faq q="Which models are used?">
+              By default the production tier: Claude Sonnet 4.6 (with the
+              1M-context beta) + GPT-5.5. There's a faster <code style={codeS}>test</code>{' '}
+              tier (Haiku 4.5 + GPT-5-mini) for verifying changes without
+              spending much. The agent labels stay <code style={codeS}>claude</code> and{' '}
+              <code style={codeS}>openai</code>; the actual model id is recorded in the
+              run's metrics file.
+            </Faq>
+            <Faq q="Where does the cost come from?">
+              Every call records its token usage and a per-call USD cost computed
+              from the model's published pricing. The number you see in the
+              header is the sum of every call in the run. Anthropic prompt
+              caching gives ~75% off cached prefix reads — long Phase&nbsp;2 runs
+              are cheaper than their input-token count suggests.
+            </Faq>
           </Section>
 
           {/* Release notes */}
-          <Section title="Release notes">
-            <p style={{ color: 'var(--fg-2)', fontSize: 12.5, marginBottom: 16 }}>
-              Each entry corresponds to a merged spec. Newest first.
-            </p>
-            {VERSION_NOTES.map(entry => (
-              <div key={entry.version} style={{
-                padding: '14px 16px', marginBottom: 10,
-                background: 'var(--bg-1)', border: '1px solid var(--border-1)',
-                borderRadius: 8,
-              }}>
-                <div style={{
-                  display: 'flex', alignItems: 'baseline', gap: 12,
-                  marginBottom: 6,
-                }}>
-                  <span className="mono" style={{
-                    fontSize: 13, fontWeight: 600, color: 'var(--fg-0)',
-                  }}>{entry.version}</span>
-                  <span className="mono" style={{
-                    fontSize: 11, color: 'var(--fg-3)',
-                  }}>{entry.date}</span>
-                  <span style={{
-                    fontSize: 12.5, color: 'var(--fg-2)',
-                  }}>{entry.summary}</span>
-                </div>
-                <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6 }}>
-                  {entry.items.map((item, i) => <li key={i}>{item}</li>)}
-                </ul>
-              </div>
-            ))}
+          <Section kicker="Changelog" title="Release notes" mutedLede="Each entry corresponds to a merged spec. Newest first.">
+            {VERSION_NOTES.map(entry => <ReleaseNote key={entry.version} entry={entry} />)}
           </Section>
 
         </div>
