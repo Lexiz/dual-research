@@ -3,9 +3,12 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
+
+if TYPE_CHECKING:
+    from dual_research.ingest.attachments import Attachment
 
 NOTION_API = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -30,6 +33,7 @@ class NotionIngestResult:
     pages_failed: list[tuple[str, str]] = field(default_factory=list)
     max_depth_reached: int = 0
     truncated: bool = False
+    attachments: list["Attachment"] = field(default_factory=list)
 
 
 _HEX32 = re.compile(r"([0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})", re.IGNORECASE)
@@ -145,19 +149,54 @@ async def _render_blocks(
     *,
     depth: int,
     child_pages_out: list[tuple[str, str]],
+    attachments_out: list["Attachment"] | None = None,
     indent: int = 0,
 ) -> str:
+    # Local import to avoid a top-level circular (attachments → notion via type hints).
+    from dual_research.ingest.attachments import (
+        Attachment,
+        attach_url,
+        kind_for_url,
+        mime_for,
+    )
+
     parts: list[str] = []
     numbered_idx = 0
     prev_type: str | None = None
 
     pad = "  " * indent
 
+    def _emit_attachment(att: Attachment) -> None:
+        if attachments_out is None:
+            return
+        # Dedup by (kind, url) — the same URL re-appearing as
+        # inline-text link + bookmark shouldn't double-list.
+        key = (att.kind, att.url or att.rel_path or att.source)
+        for existing in attachments_out:
+            if (existing.kind, existing.url or existing.rel_path or existing.source) == key:
+                return
+        attachments_out.append(att)
+
+    def _emit_rich_text_links(rich: list[dict] | None) -> None:
+        if not rich:
+            return
+        for r in rich:
+            href = r.get("href")
+            if not href:
+                continue
+            if not (href.startswith("http://") or href.startswith("https://")):
+                continue
+            label = (r.get("plain_text") or "").strip() or None
+            _emit_attachment(
+                attach_url(href, title=label, source=f"notion:{href}", kind="link")
+            )
+
     for block in blocks:
         bt = block.get("type", "")
         c = block.get(bt) or {}
         rich = c.get("rich_text")
         text = _rich_text_to_md(rich)
+        block_id = block.get("id", "")
 
         if prev_type == "numbered_list_item" and bt != "numbered_list_item":
             numbered_idx = 0
@@ -166,26 +205,35 @@ async def _render_blocks(
 
         if bt == "paragraph":
             md = text
+            _emit_rich_text_links(rich)
         elif bt == "heading_1":
             md = f"# {text}" if text else ""
+            _emit_rich_text_links(rich)
         elif bt == "heading_2":
             md = f"## {text}" if text else ""
+            _emit_rich_text_links(rich)
         elif bt == "heading_3":
             md = f"### {text}" if text else ""
+            _emit_rich_text_links(rich)
         elif bt == "bulleted_list_item":
             md = f"- {text}"
+            _emit_rich_text_links(rich)
         elif bt == "numbered_list_item":
             numbered_idx += 1
             md = f"{numbered_idx}. {text}"
+            _emit_rich_text_links(rich)
         elif bt == "to_do":
             done = c.get("checked", False)
             md = f"- [{'x' if done else ' '}] {text}"
+            _emit_rich_text_links(rich)
         elif bt == "quote":
             md = "\n".join(f"> {line}" for line in (text or "").splitlines()) or "> "
+            _emit_rich_text_links(rich)
         elif bt == "callout":
             emoji = ((c.get("icon") or {}).get("emoji")) or ""
             prefix = f"{emoji} " if emoji else ""
             md = "\n".join(f"> {prefix if i == 0 else ''}{line}" for i, line in enumerate((text or "").splitlines())) or f"> {prefix}"
+            _emit_rich_text_links(rich)
         elif bt == "code":
             lang = c.get("language") or ""
             md = f"```{lang}\n{text}\n```"
@@ -193,6 +241,7 @@ async def _render_blocks(
             md = "---"
         elif bt == "toggle":
             md = f"**{text}**" if text else ""
+            _emit_rich_text_links(rich)
         elif bt == "child_page":
             title = c.get("title") or "(untitled)"
             page_id = block.get("id", "")
@@ -207,15 +256,57 @@ async def _render_blocks(
             url = file.get("url", "")
             caption = _rich_text_to_md(c.get("caption", []))
             md = f"![{caption}]({url})" if url else f"_[image: {caption or 'no caption'}]_"
+            if url:
+                _emit_attachment(
+                    Attachment(
+                        kind="image",
+                        source=f"notion:{block_id}" if block_id else f"notion:{url}",
+                        title=(caption or "image").strip() or "image",
+                        caption=caption or None,
+                        url=url,
+                        rel_path=None,
+                        mime=mime_for(url, kind="image"),
+                    )
+                )
+        elif bt in ("file", "pdf"):
+            file = c.get("file") or c.get("external") or {}
+            url = file.get("url", "")
+            name = c.get("name") or url.rsplit("/", 1)[-1] or "(file)"
+            caption = _rich_text_to_md(c.get("caption", []))
+            md = f"[{name}]({url})" if url else f"_[file: {name}]_"
+            if url:
+                kind = "pdf" if bt == "pdf" or kind_for_url(url) == "pdf" else "file"
+                _emit_attachment(
+                    Attachment(
+                        kind=kind,
+                        source=f"notion:{block_id}" if block_id else f"notion:{url}",
+                        title=name,
+                        caption=caption or None,
+                        url=url,
+                        rel_path=None,
+                        mime=mime_for(url, kind=kind),
+                    )
+                )
         elif bt in ("bookmark", "embed", "link_preview"):
             url = c.get("url") or ""
             md = f"[{url}]({url})" if url else ""
+            if url:
+                _emit_attachment(
+                    attach_url(
+                        url,
+                        title=url,
+                        source=f"notion:{block_id}" if block_id else f"notion:{url}",
+                        kind="link",
+                    )
+                )
         elif bt == "equation":
             expr = c.get("expression") or ""
             md = f"$$\n{expr}\n$$"
         elif bt == "table_row":
             cells = c.get("cells") or []
             md = "| " + " | ".join(_rich_text_to_md(cell) for cell in cells) + " |"
+            for cell in cells:
+                _emit_rich_text_links(cell)
         elif bt in ("table", "column_list", "column", "synced_block"):
             md = ""
         elif bt == "unsupported":
@@ -238,6 +329,7 @@ async def _render_blocks(
                 nested,
                 depth=depth,
                 child_pages_out=child_pages_out,
+                attachments_out=attachments_out,
                 indent=indent + 1,
             )
             if inner:
@@ -254,6 +346,9 @@ async def notion_to_brief(
     token: str,
     limits: IngestLimits | None = None,
 ) -> NotionIngestResult:
+    # Local import keeps the typing-only top-level forward ref real at runtime.
+    from dual_research.ingest.attachments import Attachment, attach_url
+
     lims = limits or IngestLimits()
     root_id = extract_page_id(url_or_id)
 
@@ -263,6 +358,7 @@ async def notion_to_brief(
     failed: list[tuple[str, str]] = []
     max_depth_reached = 0
     truncated = False
+    attachments: list[Attachment] = []
 
     async with _Client(token, timeout=lims.request_timeout) as client:
         while queue:
@@ -296,8 +392,24 @@ async def notion_to_brief(
                 blocks = []
 
             body = await _render_blocks(
-                client, blocks, depth=depth, child_pages_out=child_pages
+                client,
+                blocks,
+                depth=depth,
+                child_pages_out=child_pages,
+                attachments_out=attachments,
             )
+
+            # Record the source page itself as a link attachment so the
+            # preflight modal's Sources tab can list it.
+            if page_url:
+                attachments.append(
+                    attach_url(
+                        page_url,
+                        title=title,
+                        source=f"notion:page:{page_id}",
+                        kind="link",
+                    )
+                )
 
             header = f"## Source: {title}\n\n{page_url}".rstrip()
             sections.append(f"{header}\n\n{body}\n" if body else f"{header}\n\n_(empty page)_\n")
@@ -327,6 +439,17 @@ async def notion_to_brief(
     header_lines.append("")
     content = "\n".join(header_lines) + "\n\n---\n\n" + "\n\n---\n\n".join(sections)
 
+    # De-dup attachments by (kind, url) while preserving order. Page-link
+    # attachments emitted last so any earlier inline-link entry wins.
+    deduped: list[Attachment] = []
+    seen_keys: set[tuple[str, str]] = set()
+    for a in attachments:
+        key = (a.kind, a.url or a.rel_path or a.source)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        deduped.append(a)
+
     return NotionIngestResult(
         content=content,
         root_page_id=root_id,
@@ -334,4 +457,5 @@ async def notion_to_brief(
         pages_failed=failed,
         max_depth_reached=max_depth_reached,
         truncated=truncated,
+        attachments=deduped,
     )

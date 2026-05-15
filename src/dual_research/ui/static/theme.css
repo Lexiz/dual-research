@@ -172,6 +172,12 @@ input { font-family: inherit; color: inherit; }
 }
 .seg-in { animation: seg-in 180ms ease-out both; }
 
+/* Modal overlay entrance (spec 0025) */
+@keyframes dr-modal-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* Cap meter */
 .cap-bar {
   position: relative;

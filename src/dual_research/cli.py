@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import re
 import sys
 from datetime import datetime, timezone
@@ -19,7 +20,14 @@ from dual_research.config import (
     load_credentials,
     resolve_paths,
 )
-from dual_research.ingest import BriefResult, IngestError, build_brief
+from dual_research.ingest import (
+    AttachmentBundle,
+    BriefResult,
+    IngestError,
+    build_brief,
+    materialise_local_markdown_attachments,
+)
+from dual_research.ingest.attachments import kind_counts
 from dual_research.ingest.notion import NotionError
 
 
@@ -118,6 +126,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Maximum total pages fetched for --notion ingest (default: 100).",
     )
     p.add_argument(
+        "--attach",
+        metavar="VALUE",
+        action="append",
+        default=[],
+        help="Attach an image, PDF, file, or URL alongside the brief. "
+             "Repeatable. Local paths are copied into the session-dir's "
+             "attachments/ directory; URLs are recorded as link entries.",
+    )
+    p.add_argument(
         "--ingest-only",
         action="store_true",
         help="Build the brief and exit. Useful for verifying input ingest "
@@ -214,6 +231,20 @@ def main(argv: list[str] | None = None) -> int:
     session_dir.mkdir(parents=True, exist_ok=True)
     brief_path = session_dir / "brief.md"
     brief_path.write_text(brief.content, encoding="utf-8")
+
+    # Materialise any local-file attachments into <session>/attachments/
+    # and write the metadata index. URL-only entries pass through
+    # unchanged. (Spec 0025.)
+    attachments_dir = session_dir / "attachments"
+    materialised = materialise_local_markdown_attachments(
+        brief.attachments, dest_dir=attachments_dir
+    )
+    brief.attachments = materialised
+    attachments_path = session_dir / "attachments.json"
+    attachments_path.write_text(
+        json.dumps(AttachmentBundle(materialised).to_dict(), indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     _print_brief_report(brief=brief, brief_path=brief_path)
 
@@ -415,6 +446,17 @@ def _print_brief_report(*, brief: BriefResult, brief_path: Path) -> None:
             if len(n.pages_failed) > 5:
                 print(f"     ...and {len(n.pages_failed) - 5} more")
     print(f"  written to   : {brief_path}")
+    if brief.attachments:
+        counts = kind_counts(brief.attachments)
+        breakdown = ", ".join(
+            f"{label}={counts[label]}"
+            for label in ("image", "pdf", "file", "link")
+            if counts.get(label)
+        )
+        print(
+            f"  attachments  : {len(brief.attachments)} item(s)"
+            f"  ·  {breakdown or '—'}"
+        )
 
     preview_lines = brief.content.splitlines()[:20]
     print()

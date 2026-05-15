@@ -132,6 +132,46 @@ function useRunList() {
   return { rows, connected };
 }
 
+// ─────────────────── useAttachments ───────────────────
+
+// Spec 0025. Lazy fetch of the attachments index for the active run.
+// Returns `{ attachments, loading }`. Empty list when the run has none
+// — the preflight modal renders an empty-state.
+function useAttachments(runId) {
+  const [attachments, setAttachments] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => {
+    if (!runId) { setAttachments([]); return; }
+    let cancelled = false;
+    setLoading(true);
+    authedFetch(`/api/runs/${encodeURIComponent(runId)}/attachments`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setAttachments(Array.isArray(data?.attachments) ? data.attachments : []);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAttachments([]);
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [runId]);
+  return { attachments, loading };
+}
+
+function attachmentBlobUrl(runId, relPath) {
+  if (!runId || !relPath) return null;
+  return `/api/runs/${encodeURIComponent(runId)}/attachment-blobs/${relPath
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/')}`;
+}
+
 // ─────────────────── useFileBody ───────────────────
 
 // Lazy fetch of a markdown file body. The runId is taken from the active
@@ -388,9 +428,12 @@ function buildLiveTimeline(run) {
 }
 
 // Walk the built timeline and attach `item.stats` from run.phaseStats so
-// ArtifactHeader can render inline chips (spec 0013).
+// ArtifactHeader can render inline chips (spec 0013). Also attaches
+// `item.summary` (spec 0025) from run.phaseSummaries for the new
+// summary-card collapsed state.
 function attachItemStats(items, run) {
   const ps = run.phaseStats || {};
+  const sums = run.phaseSummaries || {};
   for (const item of items) {
     if (item.kind === 'phase-divider' || item.kind === 'error' || item.kind === 'deadlock') continue;
     if (item.kind === 'input') {
@@ -408,11 +451,14 @@ function attachItemStats(items, run) {
         : count > 0
           ? { kind: 'preflight', state: 'issues', count }
           : null;
+      // briefSummary is the heuristic TL;DR; falls back to topic.
+      item.summary = run.briefSummary || item.summary || '';
       continue;
     }
     if (item.kind === 'plan' || item.kind === 'plan-live') {
       item.stats = ps.phase1?.[item.agent] || null;
       item.statsPhase = 1;
+      item.summary = sums[`phase1_${item.agent}`] || item.summary || '';
       continue;
     }
     if (item.kind === 'turn' || item.kind === 'turn-live') {
@@ -422,6 +468,16 @@ function attachItemStats(items, run) {
       const bucket = phase === 4 ? ps.phase4 : ps.phase2;
       item.stats = bucket?.[String(item.round)]?.[item.agent] || null;
       item.statsPhase = phase;
+      item.summary =
+        sums[`phase${phase}_round${item.round}_${item.agent}`] || item.summary || '';
+      continue;
+    }
+    if (item.kind === 'doc' || item.kind === 'doc-live') {
+      // Phase 3 converged draft + final document — surface a summary if
+      // the drafter wrote one in the markdown.
+      const key = item.id === 'doc-final' ? 'final' : 'phase3';
+      const s = sums[key];
+      if (s) item.summary = s;
       continue;
     }
   }
@@ -432,7 +488,8 @@ function attachItemStats(items, run) {
 
 Object.assign(window, {
   PHASES, TOPIC, INPUT_BRIEF, TURN_HISTORY,
-  RunContext, useLiveRun, useRunList, useFileBody,
+  RunContext, useLiveRun, useRunList, useFileBody, useAttachments,
+  attachmentBlobUrl,
   buildLiveTimeline, formatTopic, splitRunId,
   setActiveRunId, getActiveRunId,
 });

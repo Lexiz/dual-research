@@ -6,6 +6,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.23.0',
+      date: '2026-05-16',
+      summary: 'Visualisation foundations — summary cards, modal pattern, preflight tabs, attachment ingest.',
+      items: [
+        'Timeline cards no longer expand inline. Each card shows a one-line TL;DR + "View full" button; clicking opens a big centred modal over a dimmed overlay.',
+        'Preflight (Input) opens a tabbed modal: Content · Sources · Files. Images render as thumbnails, links list with host + caption.',
+        'Brief ingest now captures attachments: inline markdown images / links, Notion image / pdf / bookmark blocks, plus a new repeatable `--attach VALUE` CLI flag (local file or URL).',
+        'Hosted runs get a new `attachment_blobs` table; `--push` uploads binary attachments alongside the existing transcript and session files.',
+        'TL;DR cards come from each agent\'s existing `## Summary` section — no prompt changes; the UI just stopped ignoring it.',
+        'Foundation for the upcoming side-by-side inline-comments view: markdown rendering now emits a stable `id="b-…"` on every block, so future specs can anchor critic comments to specific paragraphs.',
+      ],
+    },
+    {
       version: '0.22.1',
       date: '2026-05-16',
       summary: 'Run-detail header pass 2 + compact theme toggle.',

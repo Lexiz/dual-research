@@ -144,3 +144,74 @@ def extract_revised_draft(turn_text: str) -> str | None:
     their turn. Returns None when the section is absent or empty.
     """
     return extract_fenced_section(turn_text, "Revised draft")
+
+
+# ─── Summary extraction (spec 0025) ────────────────────────────────────────────
+
+
+# Match `## Summary`, `## Summary of my position`, `## Summary of position`,
+# `## TL;DR`, or `## tldr`. Case-insensitive on the heading word.
+_SUMMARY_HEADING_RE = re.compile(
+    r"^##\s+(?:Summary(?:\s+of(?:\s+my)?\s+position)?|TL;DR|TLDR)\s*$",
+    re.MULTILINE | re.IGNORECASE,
+)
+
+
+def extract_summary(text: str) -> str | None:
+    """Return the body under the first `## Summary` (or `## TL;DR`) heading.
+
+    Body ends at the next `## ` heading or EOF. Returns None when the
+    heading is absent or its body is empty after stripping. Used by the
+    UI's summary-card layer to surface a TL;DR for plan drafts and
+    negotiation turns without rendering the whole document.
+    """
+    m = _SUMMARY_HEADING_RE.search(text or "")
+    if not m:
+        return None
+    start = m.end()
+    rest = text[start:]
+    next_heading = re.search(r"^##\s+\S", rest, re.MULTILINE)
+    body = rest[: next_heading.start()] if next_heading else rest
+    body = body.strip()
+    return body or None
+
+
+def synthesise_brief_tldr(brief_text: str, *, max_sentences: int = 2, max_chars: int = 360) -> str | None:
+    """Cheap TL;DR for a brief that doesn't carry an explicit Summary.
+
+    Skips H1/H2 lines and code fences. Joins up to `max_sentences`
+    sentence fragments, truncates at `max_chars` with an ellipsis. The
+    UI uses this for the preflight `input` card; it's intentionally
+    heuristic — a future spec can layer an LLM-generated TL;DR on top.
+    """
+    if not brief_text:
+        return None
+    in_fence = False
+    candidate_lines: list[str] = []
+    for raw in brief_text.splitlines():
+        line = raw.strip()
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if not line:
+            continue
+        if line.startswith("#"):
+            continue
+        if line.startswith(">") or line.startswith("---"):
+            continue
+        candidate_lines.append(line)
+        if len(candidate_lines) >= 6:
+            break
+    if not candidate_lines:
+        return None
+    body = " ".join(candidate_lines)
+    # Split on sentence terminators that aren't part of a number/abbreviation.
+    sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z(])", body)
+    chosen = " ".join(sentences[:max_sentences]).strip()
+    if not chosen:
+        chosen = body
+    if len(chosen) > max_chars:
+        chosen = chosen[:max_chars].rsplit(" ", 1)[0].rstrip(",.;:") + "…"
+    return chosen or None

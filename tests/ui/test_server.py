@@ -259,6 +259,90 @@ class TestStream:
     # automatically by the UI client in spec 0011.
 
 
+# ─── /api/runs/{id}/attachments + attachment-blobs (spec 0025) ───────────────
+
+
+class TestAttachments:
+    def _seed_with_attachments(self, runs_dir: Path) -> Path:
+        session = _seed_session(runs_dir, "20260515-100000-x", topic="With attachments")
+        att_dir = session / "attachments"
+        att_dir.mkdir()
+        (att_dir / "abc-foo.png").write_bytes(b"\x89PNG-binary")
+        (session / "attachments.json").write_text(
+            json.dumps(
+                {
+                    "attachments": [
+                        {
+                            "kind": "image",
+                            "source": "cli:foo.png",
+                            "title": "foo.png",
+                            "url": None,
+                            "rel_path": "attachments/abc-foo.png",
+                            "mime": "image/png",
+                            "size_bytes": len(b"\x89PNG-binary"),
+                        },
+                        {
+                            "kind": "link",
+                            "source": "url:https://example.com",
+                            "title": "Example",
+                            "url": "https://example.com",
+                        },
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        return session
+
+    def test_lists_attachments(self, client_with_runs):
+        c, runs = client_with_runs
+        session = self._seed_with_attachments(runs)
+        r = c.get(f"/api/runs/{session.name}/attachments")
+        assert r.status_code == 200
+        data = r.json()
+        assert "attachments" in data
+        kinds = [a["kind"] for a in data["attachments"]]
+        assert "image" in kinds
+        assert "link" in kinds
+
+    def test_empty_when_no_attachments_file(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "20260515-100000-no-att")
+        r = c.get(f"/api/runs/{session.name}/attachments")
+        assert r.status_code == 200
+        assert r.json() == {"attachments": []}
+
+    def test_serves_blob_with_mime(self, client_with_runs):
+        c, runs = client_with_runs
+        session = self._seed_with_attachments(runs)
+        r = c.get(f"/api/runs/{session.name}/attachment-blobs/attachments/abc-foo.png")
+        assert r.status_code == 200
+        assert r.headers["content-type"].startswith("image/")
+        assert r.content == b"\x89PNG-binary"
+
+    def test_blob_404_on_missing(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "20260515-100000-x")
+        r = c.get(f"/api/runs/{session.name}/attachment-blobs/attachments/none.png")
+        assert r.status_code == 404
+
+    def test_blob_rejects_path_outside_attachments(self, client_with_runs):
+        c, runs = client_with_runs
+        session = self._seed_with_attachments(runs)
+        # Even an existing file inside the session-dir is off-limits if it's
+        # not under attachments/.
+        r = c.get(f"/api/runs/{session.name}/attachment-blobs/brief.md")
+        assert r.status_code == 404
+
+    def test_blob_rejects_traversal(self, client_with_runs):
+        c, runs = client_with_runs
+        session = self._seed_with_attachments(runs)
+        r = c.get(
+            f"/api/runs/{session.name}/attachment-blobs/attachments/../brief.md"
+        )
+        assert r.status_code == 404
+
+
 # ─── Static UI mount ──────────────────────────────────────────────────────────
 
 

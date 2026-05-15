@@ -14,6 +14,7 @@ so unit tests can pass a fake in-memory client. See tests/persistence/test_remot
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from typing import Any, Iterator, Protocol
 
 EVENT_BATCH_SIZE = 500
 FILE_BATCH_SIZE = 50
+BLOB_BATCH_SIZE = 20
 SESSION_FILE_GLOBS = ("*.md", "*.json", "*.jsonl")
 
 _SESSION_ID_RE = re.compile(r"^(\d{8})-(\d{6})-(.+)$")
@@ -45,6 +47,7 @@ class PushSummary:
     events_upserted: int
     files_upserted: int
     duration_ms: int
+    blobs_upserted: int = 0
 
 
 class RemoteSession:
@@ -107,12 +110,23 @@ class RemoteSession:
             ).execute()
             files_count += len(batch)
 
+        # Spec 0025 — binary attachment blobs under session_dir/attachments/.
+        # attachments.json (the metadata index) is already a .json under
+        # the session-dir and flows through session_files above.
+        blobs_count = 0
+        for batch in _batch(_iter_blob_rows(run_id, session_dir), BLOB_BATCH_SIZE):
+            self._client.table("attachment_blobs").upsert(
+                batch, on_conflict="run_id,rel_path"
+            ).execute()
+            blobs_count += len(batch)
+
         duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         return PushSummary(
             run_id=run_id,
             runs_upserted=1,
             events_upserted=events_count,
             files_upserted=files_count,
+            blobs_upserted=blobs_count,
             duration_ms=duration_ms,
         )
 
@@ -247,6 +261,35 @@ def _iter_file_rows(run_id: str, session_dir: Path) -> Iterator[dict[str, Any]]:
                 "content": content,
                 "size_bytes": len(content.encode("utf-8")),
             }
+
+
+def _iter_blob_rows(run_id: str, session_dir: Path) -> Iterator[dict[str, Any]]:
+    """Yield rows for every file under session_dir/attachments/.
+
+    The file is read as bytes and base64-encoded. Mime type is best-
+    effort from the filename extension. The on-disk path is recorded
+    as `attachments/<basename>` — `attach_local_file` already names
+    files as `<sha8>-<basename>` so collisions across runs are unlikely.
+    """
+    import mimetypes
+
+    att_dir = session_dir / "attachments"
+    if not att_dir.exists() or not att_dir.is_dir():
+        return
+    for path in sorted(att_dir.iterdir()):
+        if not path.is_file():
+            continue
+        if path.name.startswith("."):
+            continue
+        data = path.read_bytes()
+        mime, _ = mimetypes.guess_type(path.name)
+        yield {
+            "run_id": run_id,
+            "rel_path": f"attachments/{path.name}",
+            "mime": mime or "application/octet-stream",
+            "size_bytes": len(data),
+            "content_b64": base64.b64encode(data).decode("ascii"),
+        }
 
 
 def _batch(items: Iterator[dict[str, Any]], size: int) -> Iterator[list[dict[str, Any]]]:

@@ -91,3 +91,63 @@ def test_materialize_paginates(monkeypatch: pytest.MonkeyPatch) -> None:
     with SupabaseSessionData(fake, "R1").materialize() as tmp:
         for i in range(1, 6):
             assert (tmp / f"phase2/round-{i:02d}-claude.md").read_text() == f"r{i}"
+
+
+def test_materialize_restores_binary_blobs_byte_for_byte() -> None:
+    """Spec 0025. `attachment_blobs` rows are base64-decoded and written
+    under <tmp>/attachments/<name> so the aggregator + the
+    attachment-blobs endpoint can read them identically to a real
+    on-disk session-dir.
+    """
+    import base64
+
+    raw_png = b"\x89PNG-fake-binary-content"
+    raw_pdf = b"%PDF-1.4 fake"
+
+    fake = FakeSupabaseClient(
+        session_files=[
+            {"run_id": "R1", "path": "brief.md", "content": "# topic\n"},
+            {
+                "run_id": "R1",
+                "path": "attachments.json",
+                "content": json.dumps({"attachments": []}),
+            },
+        ],
+        attachment_blobs=[
+            {
+                "run_id": "R1",
+                "rel_path": "attachments/abc-foo.png",
+                "mime": "image/png",
+                "size_bytes": len(raw_png),
+                "content_b64": base64.b64encode(raw_png).decode("ascii"),
+            },
+            {
+                "run_id": "R1",
+                "rel_path": "attachments/xyz-bar.pdf",
+                "mime": "application/pdf",
+                "size_bytes": len(raw_pdf),
+                "content_b64": base64.b64encode(raw_pdf).decode("ascii"),
+            },
+            {
+                "run_id": "R2",
+                "rel_path": "attachments/other.png",
+                "mime": "image/png",
+                "size_bytes": 4,
+                "content_b64": base64.b64encode(b"OTHR").decode("ascii"),
+            },
+        ],
+    )
+    with SupabaseSessionData(fake, "R1").materialize() as tmp:
+        assert (tmp / "attachments/abc-foo.png").read_bytes() == raw_png
+        assert (tmp / "attachments/xyz-bar.pdf").read_bytes() == raw_pdf
+        # Other-run blob is filtered out by the eq("run_id", …) clause.
+        assert not (tmp / "attachments/other.png").exists()
+
+
+def test_materialize_no_blobs_is_clean() -> None:
+    fake = FakeSupabaseClient(
+        session_files=[{"run_id": "R1", "path": "brief.md", "content": "# X"}],
+    )
+    with SupabaseSessionData(fake, "R1").materialize() as tmp:
+        # attachments/ is only created when there are blobs.
+        assert not (tmp / "attachments").exists()

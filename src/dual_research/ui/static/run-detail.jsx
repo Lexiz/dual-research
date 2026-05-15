@@ -197,21 +197,17 @@ function PhaseDots({ run }) {
 // RunDetailHeader above in spec 0023; RoundIndicator removed entirely in 0024.
 
 // ─────────────────── Timeline ───────────────────
+// Spec 0025: cards no longer expand inline. The Timeline owns a single
+// `openId` and renders a Modal for the active artifact. Live items
+// remain inline-streaming.
 function Timeline({ run }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
-  // expansion state — live items default expanded
-  const defaultExpanded = new Set(items.filter(i => i.live).map(i => i.id));
-  const [expanded, setExpanded] = React.useState(defaultExpanded);
-  React.useEffect(() => {
-    setExpanded(new Set(items.filter(i => i.live).map(i => i.id)));
-    // eslint-disable-next-line
-  }, [run.id, run.phase, run.status]);
+  const [openId, setOpenId] = React.useState(null);
 
-  const toggle = (id) => setExpanded(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  // Reset open modal when navigating between runs / phases.
+  React.useEffect(() => { setOpenId(null); }, [run.id]);
+
+  const openItem = items.find((i) => i.id === openId) || null;
 
   const artifactCount = items.filter(i => i.kind !== 'phase-divider' && i.kind !== 'error' && i.kind !== 'deadlock').length;
   const liveCount = items.filter(i => i.live).length;
@@ -255,11 +251,17 @@ function Timeline({ run }) {
             key={item.id}
             item={item}
             run={run}
-            expanded={expanded.has(item.id)}
-            onToggle={() => toggle(item.id)}
+            onOpen={() => setOpenId(item.id)}
           />
         ))}
       </div>
+      {openItem && (
+        <ArtifactModal
+          item={openItem}
+          run={run}
+          onClose={() => setOpenId(null)}
+        />
+      )}
     </section>
   );
 }
@@ -380,11 +382,11 @@ function buildTimeline(run) {
 }
 
 // ─────────────────── Timeline items ───────────────────
-function TimelineItem({ item, run, expanded, onToggle }) {
+function TimelineItem({ item, run, onOpen }) {
   if (item.kind === 'phase-divider') return <PhaseDivider item={item} run={run} />;
   if (item.kind === 'error')         return <ErrorCard item={item} />;
   if (item.kind === 'deadlock')      return <DeadlockCard item={item} />;
-  return <ArtifactCard item={item} expanded={expanded} onToggle={onToggle} />;
+  return <ArtifactCard item={item} onOpen={onOpen} />;
 }
 
 function PhaseDivider({ item, run }) {
@@ -419,18 +421,26 @@ function PhaseDivider({ item, run }) {
   );
 }
 
-// The unified card
-function ArtifactCard({ item, expanded, onToggle }) {
+// The unified card (spec 0025: summary + view-full button).
+//
+// Layout is now two rows when a summary is present:
+//   ┌───────────────────────────────────────────────────────────┐
+//   │ [icon] AGENT  turn 3      5 questions · 2 disagreements   │
+//   │  Summary line clamped to 2 lines …       [View full →]    │
+//   └───────────────────────────────────────────────────────────┘
+//
+// Clicking anywhere on the card opens the modal. Live items continue
+// to stream inline (no modal — the summary isn't available yet).
+function ArtifactCard({ item, onOpen }) {
   const meta = item.agent ? AGENT_META[item.agent] : null;
   const [hover, setHover] = React.useState(false);
 
-  // Header content varies by kind
-  const header = (
-    <ArtifactHeader item={item} meta={meta} expanded={expanded} hover={hover} />
-  );
-
   const accentColor = meta?.color || 'var(--fg-2)';
   const isLive = item.live;
+  const hasSummary = !isLive && !!(item.summary && String(item.summary).trim());
+
+  // The header row content (same as before, minus the chevron).
+  const header = <ArtifactHeader item={item} meta={meta} hover={hover} />;
 
   return (
     <div
@@ -439,7 +449,7 @@ function ArtifactCard({ item, expanded, onToggle }) {
       style={{
         marginBottom: 6,
         background: 'var(--bg-1)',
-        border: `1px solid ${expanded ? 'var(--border-2)' : 'var(--border-1)'}`,
+        border: '1px solid var(--border-1)',
         borderRadius: 'var(--r-3)',
         overflow: 'hidden',
         transition: 'border-color 120ms, background 120ms',
@@ -448,15 +458,67 @@ function ArtifactCard({ item, expanded, onToggle }) {
         } : {}),
       }}
     >
-      <button onClick={onToggle} style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '10px 12px',
-        background: hover && !expanded ? 'var(--bg-2)' : 'transparent',
-        transition: 'background 120ms',
-      }}>
+      <button
+        onClick={isLive ? undefined : onOpen}
+        disabled={isLive}
+        style={{
+          display: 'block', width: '100%', textAlign: 'left',
+          padding: hasSummary ? '10px 12px 8px' : '10px 12px',
+          background: hover && !isLive ? 'var(--bg-2)' : 'transparent',
+          transition: 'background 120ms',
+          cursor: isLive ? 'default' : 'pointer',
+        }}>
         {header}
+        {hasSummary && (
+          <SummaryRow
+            summary={item.summary}
+            onOpen={onOpen}
+          />
+        )}
       </button>
-      {expanded && <ArtifactBody item={item} />}
+      {isLive && <ArtifactLiveBody item={item} />}
+    </div>
+  );
+}
+
+// One-line "TL;DR + View full" row under the card header.
+function SummaryRow({ summary, onOpen }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-end', gap: 10,
+      marginTop: 6,
+    }}>
+      <p style={{
+        flex: 1, minWidth: 0,
+        margin: 0,
+        fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5,
+        // Clamp at two lines.
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        whiteSpace: 'normal',
+      }}>
+        {summary}
+      </p>
+      <span
+        onClick={(e) => { e.stopPropagation(); onOpen && onOpen(); }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '2px 8px',
+          fontSize: 10.5,
+          color: 'var(--fg-1)',
+          background: 'var(--bg-2)',
+          border: '1px solid var(--border-2)',
+          borderRadius: 999,
+          fontFamily: 'var(--mono)',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
+          cursor: 'pointer',
+        }}>
+        View full
+        <Icon.Arrow style={{ width: 10, height: 10 }} />
+      </span>
     </div>
   );
 }
@@ -571,7 +633,7 @@ function PreflightChip({ stats }) {
   return null;
 }
 
-function ArtifactHeader({ item, meta, expanded, hover }) {
+function ArtifactHeader({ item, meta, hover }) {
   if (item.kind === 'input') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
@@ -583,7 +645,6 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{item.topic || ''}</span>
         <PreflightChip stats={item.stats} />
-        <ExpandChevron expanded={expanded} hover={hover} />
       </div>
     );
   }
@@ -595,9 +656,7 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
           {item.completed ? 'Final document' : 'Converged document'}
         </span>
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>by {meta.name}</span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)',
-                       overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.summary}</span>
-        <ExpandChevron expanded={expanded} hover={hover} />
+        <span style={{ flex: 1 }} />
       </div>
     );
   }
@@ -623,15 +682,7 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
         <AgentIcon agent={item.agent} size={14} />
         <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 52 }}>{meta.name}</span>
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 76 }}>{kindLabel}</span>
-        {!isLive && (
-          <span style={{
-            flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)',
-            overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>{item.summary}</span>
-        )}
-        {isLive && (
-          <span style={{ flex: 1 }} />
-        )}
+        <span style={{ flex: 1 }} />
         <StatsChips stats={item.stats} phase={item.statsPhase} />
         {isLive ? (
           <AgentStatusInline status={item.status} />
@@ -644,57 +695,26 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
             r{item.round}
           </span>
         ) : null}
-        {!isLive && <ExpandChevron expanded={expanded} hover={hover} />}
       </div>
     );
   }
   return null;
 }
 
-function ExpandChevron({ expanded, hover }) {
+// Live (streaming) body — same UX as before but with a stable container.
+function ArtifactLiveBody({ item }) {
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: 18, height: 18,
-      opacity: expanded ? 0.6 : hover ? 0.6 : 0,
-      transition: 'opacity 120ms',
-      color: 'var(--fg-2)',
-      transform: expanded ? 'rotate(90deg)' : 'none',
-      transformOrigin: 'center',
-      flexShrink: 0,
+    <div style={{
+      padding: '0 14px 14px',
+      borderTop: '1px dashed var(--border-1)',
+      maxHeight: 280,
+      overflow: 'auto',
     }}>
-      <Icon.Chevron />
-    </span>
-  );
-}
-
-function ArtifactBody({ item }) {
-  // Live (streaming) bodies
-  if (item.live) {
-    return (
-      <div style={{
-        padding: '0 14px 14px',
-        borderTop: '1px dashed var(--border-1)',
-        maxHeight: 280,
-        overflow: 'auto',
-      }}>
-        <div style={{ paddingTop: 12 }}>
-          <StreamingText key={`${item.id}-${(item.body || '').length}`} content={item.body || ''} speed={70} />
-        </div>
+      <div style={{ paddingTop: 12 }}>
+        <StreamingText key={`${item.id}-${(item.body || '').length}`} content={item.body || ''} speed={70} />
       </div>
-    );
-  }
-
-  // Static bodies — input, plan, turn, doc — body fetched lazily from the
-  // file endpoint (spec 0010). The filePath is set per-item by buildLiveTimeline.
-  if (item.kind === 'input' || item.kind === 'plan' || item.kind === 'turn' || item.kind === 'doc') {
-    return (
-      <Body>
-        <LazyMarkdownBody filePath={item.filePath} />
-      </Body>
-    );
-  }
-  return null;
+    </div>
+  );
 }
 
 function LazyMarkdownBody({ filePath }) {
@@ -705,15 +725,253 @@ function LazyMarkdownBody({ filePath }) {
   return <Markdown text={body || '— body unavailable —'} />;
 }
 
-function Body({ children }) {
+// ─────────────────── Modal dispatch ───────────────────
+// Spec 0025. Owns title + accent + body shape per artifact kind.
+function ArtifactModal({ item, run, onClose }) {
+  const meta = item.agent ? AGENT_META[item.agent] : null;
+  const accent = meta?.color || COLORS.info;
+
+  if (item.kind === 'input') {
+    return <PreflightModal item={item} run={run} onClose={onClose} accent={accent} />;
+  }
+  return <DocumentModal item={item} meta={meta} onClose={onClose} accent={accent} />;
+}
+
+function DocumentModal({ item, meta, onClose, accent }) {
+  let title = 'Document';
+  let subtitle = null;
+  if (item.kind === 'doc') {
+    title = item.completed ? 'Final document' : 'Converged document';
+    subtitle = meta ? `by ${meta.name}` : null;
+  } else if (item.kind === 'plan' || item.kind === 'plan-live') {
+    title = `${meta?.name || 'Agent'} — plan draft`;
+  } else if (item.kind === 'turn' || item.kind === 'turn-live') {
+    const lbl = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
+    title = `${meta?.name || 'Agent'} — ${lbl}`;
+    subtitle = `round ${item.round}`;
+  }
+  return (
+    <Modal open={true} onClose={onClose} title={title} subtitle={subtitle} accent={accent}>
+      <LazyMarkdownBody filePath={item.filePath} />
+    </Modal>
+  );
+}
+
+function PreflightModal({ item, run, onClose, accent }) {
+  const { attachments, loading } = window.useAttachments(run.id);
+
+  // Split attachments into Sources (links) vs Files (image/pdf/file).
+  const fileKinds = new Set(['image', 'pdf', 'file']);
+  const sources = (attachments || []).filter((a) => a.kind === 'link');
+  const files = (attachments || []).filter((a) => fileKinds.has(a.kind));
+
+  const tabs = [
+    {
+      id: 'content',
+      label: 'Content',
+      content: <PreflightContentTab item={item} />,
+    },
+    {
+      id: 'sources',
+      label: 'Sources',
+      count: sources.length,
+      content: <PreflightSourcesTab sources={sources} loading={loading} />,
+    },
+    {
+      id: 'files',
+      label: 'Files',
+      count: files.length,
+      content: <PreflightFilesTab files={files} loading={loading} runId={run.id} />,
+    },
+  ];
+
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title="Input — brief"
+      subtitle={item.topic || ''}
+      accent={accent}
+      tabs={tabs}
+    />
+  );
+}
+
+function PreflightContentTab({ item }) {
+  return <LazyMarkdownBody filePath={item.filePath} />;
+}
+
+function PreflightSourcesTab({ sources, loading }) {
+  if (loading) {
+    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>;
+  }
+  if (sources.length === 0) {
+    return <AttachmentsEmpty label="No external links were extracted from this brief." />;
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {sources.map((s, i) => (
+        <SourceRow key={i} attachment={s} />
+      ))}
+    </div>
+  );
+}
+
+function PreflightFilesTab({ files, loading, runId }) {
+  if (loading) {
+    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>;
+  }
+  if (files.length === 0) {
+    return <AttachmentsEmpty label="No images, PDFs, or files were attached to this brief." />;
+  }
   return (
     <div style={{
-      padding: '12px 14px 14px',
-      borderTop: '1px dashed var(--border-1)',
-      maxHeight: 320,
-      overflow: 'auto',
-    }}>{children}</div>
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+      gap: 14,
+    }}>
+      {files.map((f, i) => (
+        <FileCard key={i} attachment={f} runId={runId} />
+      ))}
+    </div>
   );
+}
+
+function AttachmentsEmpty({ label }) {
+  return (
+    <div style={{
+      padding: '32px 16px',
+      textAlign: 'center',
+      color: 'var(--fg-3)',
+      fontSize: 12.5,
+      lineHeight: 1.6,
+      border: '1px dashed var(--border-2)',
+      borderRadius: 'var(--r-2)',
+      background: 'var(--bg-2)',
+    }}>
+      {label}
+    </div>
+  );
+}
+
+function SourceRow({ attachment }) {
+  const { title, url, caption, source } = attachment;
+  let host = '';
+  try { host = url ? new URL(url).host : ''; } catch (_) { host = ''; }
+  const displayTitle = title && title.trim() ? title : (url || source);
+  return (
+    <a
+      href={url || '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'block',
+        padding: '10px 12px',
+        background: 'var(--bg-1)',
+        border: '1px solid var(--border-1)',
+        borderRadius: 'var(--r-2)',
+        textDecoration: 'none',
+        color: 'var(--fg-0)',
+      }}>
+      <div style={{
+        fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>{displayTitle}</div>
+      <div className="mono" style={{
+        fontSize: 11, color: 'var(--fg-3)', marginTop: 3,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {host || url || '—'}
+      </div>
+      {caption && (
+        <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6, lineHeight: 1.55 }}>
+          {caption}
+        </div>
+      )}
+    </a>
+  );
+}
+
+function FileCard({ attachment, runId }) {
+  const { kind, title, caption, url, rel_path, size_bytes, mime } = attachment;
+  // Prefer the served blob URL when we have one; fall back to the
+  // external `url`. The blob endpoint is path-traversal-guarded server-
+  // side and works for both fs and supabase backends.
+  const localBlobUrl = rel_path ? window.attachmentBlobUrl(runId, rel_path) : null;
+  const renderUrl = localBlobUrl || url || null;
+
+  return (
+    <div style={{
+      background: 'var(--bg-1)',
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-3)',
+      overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        flex: 1, minHeight: 140,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg-0)',
+        overflow: 'hidden',
+      }}>
+        {kind === 'image' && renderUrl ? (
+          <a href={renderUrl} target="_blank" rel="noopener noreferrer"
+             style={{ display: 'block', width: '100%', height: '100%' }}>
+            <img src={renderUrl} alt={title || ''}
+                 style={{ display: 'block', width: '100%', height: '100%',
+                          objectFit: 'cover', maxHeight: 220 }}
+                 onError={(e) => { e.target.style.display = 'none'; }} />
+          </a>
+        ) : (
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            color: 'var(--fg-3)', padding: 12, textAlign: 'center',
+          }}>
+            <span style={{ fontSize: 28 }}>{kind === 'pdf' ? '📄' : '📎'}</span>
+            <span className="mono" style={{
+              fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>{kind}</span>
+          </div>
+        )}
+      </div>
+      <div style={{ padding: '10px 12px' }}>
+        <div title={title || ''} style={{
+          fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>{title || '(unnamed)'}</div>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4,
+        }}>
+          {[mime, size_bytes ? formatBytes(size_bytes) : null].filter(Boolean).join(' · ') || '—'}
+        </div>
+        {caption && (
+          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6, lineHeight: 1.5 }}>
+            {caption}
+          </div>
+        )}
+        {renderUrl && (
+          <a href={renderUrl} target="_blank" rel="noopener noreferrer"
+             style={{
+               display: 'inline-flex', alignItems: 'center', gap: 5,
+               marginTop: 8,
+               fontSize: 11.5, color: COLORS.info,
+               textDecoration: 'none',
+             }}>
+            {localBlobUrl ? 'Download' : 'Open'}
+            <Icon.Arrow style={{ width: 10, height: 10 }} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatBytes(n) {
+  if (n == null) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
 }
 
 function FinalDocPreview() {
