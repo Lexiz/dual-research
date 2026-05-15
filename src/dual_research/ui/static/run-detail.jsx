@@ -540,12 +540,32 @@ function ArtifactCard({ item, expanded, onToggle }) {
 function StatsChips({ stats, phase }) {
   if (!stats) return null;
   const chips = [];
-  // Phase 4 surfaces OPEN_ISSUES; Phase 2 surfaces OPEN_QUESTIONS + BLOCKING.
+  // Phase 4 surfaces OPEN_ISSUES; Phases 1/2 surface OPEN_QUESTIONS + BLOCKING.
+  // Labels are full words so they read naturally and match the right-pane
+  // Disagreement explorer's vocabulary (spec 0014).
   if (phase === 4) {
-    if (stats.openIssues != null) chips.push({ label: 'OI', value: stats.openIssues, tint: stats.openIssues > 0 ? 'warn' : 'ok' });
+    if (stats.openIssues != null) {
+      chips.push({
+        value: stats.openIssues,
+        label: stats.openIssues === 1 ? 'issue' : 'issues',
+        tint: stats.openIssues > 0 ? 'warn' : 'ok',
+      });
+    }
   } else {
-    if (stats.openQuestions != null) chips.push({ label: 'OQ', value: stats.openQuestions, tint: stats.openQuestions > 0 ? 'info' : 'ok' });
-    if (stats.blocking != null && stats.blocking > 0) chips.push({ label: 'BD', value: stats.blocking, tint: 'warn' });
+    if (stats.openQuestions != null) {
+      chips.push({
+        value: stats.openQuestions,
+        label: stats.openQuestions === 1 ? 'question' : 'questions',
+        tint: stats.openQuestions > 0 ? 'info' : 'ok',
+      });
+    }
+    if (stats.blocking != null && stats.blocking > 0) {
+      chips.push({
+        value: stats.blocking,
+        label: stats.blocking === 1 ? 'disagreement' : 'disagreements',
+        tint: 'warn',
+      });
+    }
   }
   const statusPill = stats.status && (stats.status === 'AGREED' || stats.status === 'APPROVED' || stats.status === 'NOT_APPROVED');
   return (
@@ -562,15 +582,15 @@ function StatChip({ label, value, tint }) {
   return (
     <span className="mono" style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '1px 6px',
+      padding: '1px 7px',
       background: 'transparent',
       border: `1px solid ${c}33`,
       borderRadius: 4,
-      fontSize: 10, color: c,
-      letterSpacing: '0.04em',
+      fontSize: 10.5, color: c,
+      letterSpacing: '0.02em',
     }}>
-      <span style={{ color: 'var(--fg-3)' }}>{label}</span>
       <span className="num" style={{ color: c, fontWeight: 500 }}>{value}</span>
+      <span style={{ color: 'var(--fg-3)' }}>{label}</span>
     </span>
   );
 }

@@ -92,6 +92,10 @@ class TestLoadCompletedRun:
         # Phase 0 preflight present for both agents.
         assert "claude" in r.phase_stats.phase0
         assert "gpt" in r.phase_stats.phase0
+        # Phase 1 counts (spec 0014) are derived from structured sections.
+        for ag in ("claude", "gpt"):
+            assert r.phase_stats.phase1[ag].open_questions is not None
+            assert r.phase_stats.phase1[ag].blocking is not None
         # Phase 2 has all five rounds parsed.
         assert sorted(r.phase_stats.phase2.keys()) == [1, 2, 3, 4, 5]
         # Phase 2 round 1 was NEGOTIATING for both agents.

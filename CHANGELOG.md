@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.15.0] — 2026-05-15
+
+### Added
+
+- **Clearer card stats** ([spec 0014](specs/0014-clearer-card-stats.md)) — Phase 1 plan-draft timeline cards now carry chips too, derived from structured sections inside the draft body. `turn_stats.py` extracts `open_questions` and `blocking` (anticipated disagreements) by counting items in the draft's `Open questions` and `Claims I expect the other agent might dispute` sections. Both Claude-style `## H2` and OpenAI-style `N. **Heading**` numbered-section formats are tolerated. Chip labels switched from cryptic two-letter codes (`OQ`, `BD`, `OI`) to plain English (`N questions`, `N disagreements`, `N issues`) so they read naturally and align with the right-pane Disagreement explorer's vocabulary. 4 new tests; total 215.
+
 ## [0.14.0] — 2026-05-15
 
 ### Added

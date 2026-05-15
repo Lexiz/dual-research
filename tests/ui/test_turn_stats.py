@@ -70,6 +70,76 @@ class TestBuildPhaseStatsSynthetic:
         assert s.open_questions == 3
         assert s.blocking == 1
 
+    def test_phase1_counts_questions_and_disputes_from_h2_form(self, tmp_path):
+        # Claude-style: ## headings with numbered list items inside.
+        _make_phase1(tmp_path, "claude", dedent("""\
+            # Independent plan — claude
+
+            ## Summary
+            Some prose summary.
+
+            ## Claims I expect the other agent might dispute
+
+            1. **First dispute** — Body text 1.
+
+            2. **Second dispute** — Body text 2.
+
+            3. **Third dispute** — Body text 3.
+
+            ## Open questions
+
+            1. **Q1** — Body.
+            2. **Q2** — Body.
+
+            ## Sources
+            None.
+        """))
+        ps = build_phase_stats(tmp_path)
+        s = ps.phase1["claude"]
+        # No STATUS marker, so status stays None; counts derived from sections.
+        assert s.open_questions == 2
+        assert s.blocking == 3
+
+    def test_phase1_counts_questions_and_disputes_from_numbered_form(self, tmp_path):
+        # GPT-style: top-level numbered sections, no ## headings at all.
+        _make_phase1(tmp_path, "openai", dedent("""\
+            1. **Summary** — Some summary text.
+            - Bullet one.
+            - Bullet two.
+
+            2. **My thesis** — A thesis sentence.
+
+            4. **Claims I expect the other agent might dispute** — numbered list.
+            1. "First claim." — explanation.
+            2. "Second claim." — explanation.
+            3. "Third claim." — explanation.
+            4. "Fourth claim." — explanation.
+
+            5. **Open questions** — list.
+            1. Question one body.
+            2. Question two body.
+            3. Question three body.
+
+            6. **Sources** — list.
+            1. Source one.
+        """))
+        ps = build_phase_stats(tmp_path)
+        s = ps.phase1["gpt"]
+        assert s.open_questions == 3
+        assert s.blocking == 4
+
+
+@requires_fixture
+class TestPhase1FixtureCounts:
+    def test_phase1_counts_present_for_both_agents(self):
+        ps = build_phase_stats(FIXTURE_CACHE_RUN)
+        # Both fixture agents should now have non-None counts thanks to spec 0014.
+        for ag in ("claude", "gpt"):
+            assert ag in ps.phase1, f"{ag} missing from phase1"
+            s = ps.phase1[ag]
+            assert s.open_questions is not None and s.open_questions > 0
+            assert s.blocking is not None and s.blocking > 0
+
     def test_phase2_rounds_keyed_by_round(self, tmp_path):
         _make_round(tmp_path, 2, 1, "claude", "STATUS: NEGOTIATING\nOPEN_QUESTIONS: 4\nBLOCKING_DISAGREEMENTS: 2\n")
         _make_round(tmp_path, 2, 1, "openai", "STATUS: NEGOTIATING\nOPEN_QUESTIONS: 5\nBLOCKING_DISAGREEMENTS: 0\n")
