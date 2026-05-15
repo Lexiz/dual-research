@@ -3,10 +3,10 @@ spec: 0007
 title: Rate-limit-aware retry + resume from prior session
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.8.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/7"
 ---
 
 # Spec 0007 — Rate-limit backoff + resume
