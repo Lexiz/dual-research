@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dual_research import __version__
@@ -17,6 +19,8 @@ from dual_research.config import (
     load_credentials,
     resolve_paths,
 )
+from dual_research.ingest import BriefResult, IngestError, build_brief
+from dual_research.ingest.notion import NotionError
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -87,6 +91,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Where to write run artifacts. Default: <project>/runs/.",
     )
     p.add_argument(
+        "--notion-max-depth",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Maximum child-page recursion depth for --notion ingest (default: 5).",
+    )
+    p.add_argument(
+        "--notion-max-pages",
+        type=int,
+        default=100,
+        metavar="N",
+        help="Maximum total pages fetched for --notion ingest (default: 100).",
+    )
+    p.add_argument(
+        "--ingest-only",
+        action="store_true",
+        help="Build the brief and exit. Useful for verifying input ingest "
+             "before paying for a full research run.",
+    )
+    p.add_argument(
         "--version",
         action="version",
         version=f"dual-research {__version__}",
@@ -110,6 +134,10 @@ def _derive_slug(args: argparse.Namespace) -> str:
 def _slugify(text: str) -> str:
     s = _SLUG_RE.sub("-", text.lower()).strip("-")
     return s[:60] if s else ""
+
+
+def _run_id(slug: str) -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-" + slug
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -136,12 +164,43 @@ def main(argv: list[str] | None = None) -> int:
     paths = resolve_paths(args.runs_dir)
     tier: ModelTier = TIERS[args.models]
     slug = _derive_slug(args)
+    run_id = _run_id(slug)
+    session_dir = paths.runs_dir / run_id
 
-    _print_launch_summary(args=args, tier=tier, paths=paths, slug=slug, creds=creds)
+    _print_launch_summary(
+        args=args, tier=tier, paths=paths, slug=slug, run_id=run_id, creds=creds
+    )
+
+    try:
+        brief = asyncio.run(_ingest(args, creds))
+    except (IngestError, NotionError, ValueError, FileNotFoundError) as e:
+        print(f"\n[ingest error] {e}", file=sys.stderr)
+        return 2
+
+    session_dir.mkdir(parents=True, exist_ok=True)
+    brief_path = session_dir / "brief.md"
+    brief_path.write_text(brief.content, encoding="utf-8")
+
+    _print_brief_report(brief=brief, brief_path=brief_path)
+
+    if args.ingest_only:
+        print()
+        print("[--ingest-only set — done. Brief is ready for the orchestrator.]")
+        return 0
 
     print()
-    print("[step 1 only — CLI shell. Orchestrator not wired yet; nothing was run.]")
+    print("[step 2 only — input ingest. Orchestrator (Phases 0–4) wires in step 5+.]")
     return 0
+
+
+async def _ingest(args: argparse.Namespace, creds: Credentials) -> BriefResult:
+    from dual_research.ingest.notion import IngestLimits
+
+    limits = IngestLimits(
+        max_depth=args.notion_max_depth,
+        max_pages=args.notion_max_pages,
+    )
+    return await build_brief(args, notion_token=creds.notion_token, limits=limits)
 
 
 def _print_launch_summary(
@@ -150,6 +209,7 @@ def _print_launch_summary(
     tier: ModelTier,
     paths: Paths,
     slug: str,
+    run_id: str,
     creds: Credentials,
 ) -> None:
     if args.prompt is not None:
@@ -164,21 +224,47 @@ def _print_launch_summary(
             return "(not set)"
         return f"{value[:4]}...{value[-4:]} ({len(value)} chars)"
 
-    out_path = args.out or f"{paths.runs_dir / '<run-id>' / 'final.md'}"
     print("dual-research — launch summary")
     print(f"  source       : {source}")
-    print(f"  slug         : {slug}")
+    print(f"  run id       : {run_id}")
     print(f"  model tier   : {tier.name}")
     print(f"     claude    : {tier.claude.model_id}  ({tier.claude.context_window:,} ctx)")
     print(f"     openai    : {tier.openai.model_id}  ({tier.openai.context_window:,} ctx)")
     print(f"  soft cap     : {args.soft_cap}")
     print(f"  hard cap     : {args.hard_cap}")
-    print(f"  runs dir     : {paths.runs_dir}")
-    print(f"  out path     : {out_path}")
+    print(f"  session dir  : {paths.runs_dir / run_id}")
     print(f"  credentials  :")
     print(f"     anthropic : {_masked(creds.anthropic_api_key)}")
     print(f"     openai    : {_masked(creds.openai_api_key)}")
     print(f"     notion    : {_masked(creds.notion_token)}")
+
+
+def _print_brief_report(*, brief: BriefResult, brief_path: Path) -> None:
+    print()
+    print("brief ingested")
+    print(f"  kind         : {brief.source_kind}")
+    print(f"  source       : {brief.source_ref}")
+    print(f"  size         : {brief.char_count:,} chars  ·  {brief.line_count:,} lines")
+    if brief.notion is not None:
+        n = brief.notion
+        print(f"  notion       : {n.pages_fetched} page(s) fetched"
+              f"  ·  max depth {n.max_depth_reached}"
+              f"  ·  {len(n.pages_failed)} failed"
+              f"  ·  truncated={n.truncated}")
+        if n.pages_failed:
+            print("  failed pages :")
+            for pid, msg in n.pages_failed[:5]:
+                print(f"     - {pid}: {msg}")
+            if len(n.pages_failed) > 5:
+                print(f"     ...and {len(n.pages_failed) - 5} more")
+    print(f"  written to   : {brief_path}")
+
+    preview_lines = brief.content.splitlines()[:20]
+    print()
+    print("  --- first 20 lines of brief ---")
+    for line in preview_lines:
+        print(f"  | {line}")
+    print("  --- end preview ---")
 
 
 if __name__ == "__main__":
