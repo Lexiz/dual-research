@@ -3,10 +3,10 @@ spec: 0009
 title: UI run aggregator
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.10.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/9"
 ---
 
 # Spec 0009 — UI run aggregator
