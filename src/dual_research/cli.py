@@ -56,6 +56,13 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Resume an existing session by path. Skips already-completed phases. "
              "Reads the brief from the session directory.",
     )
+    src.add_argument(
+        "--push",
+        metavar="SESSION_DIR",
+        help="Push a completed session-dir to Supabase. Requires SUPABASE_URL, "
+             "SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY in the environment. "
+             "Idempotent — re-pushing replaces the run's rows.",
+    )
 
     p.add_argument(
         "--out",
@@ -173,6 +180,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.resume:
         return _run_resume(args, parser)
+
+    if args.push:
+        return _run_push(args, parser)
 
     require_notion = args.notion is not None
     try:
@@ -304,6 +314,40 @@ def _run_resume(args: argparse.Namespace, parser: argparse.ArgumentParser) -> in
         soft_cap=soft_cap,
         hard_cap=hard_cap,
     )
+
+
+def _run_push(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    from dual_research.config import load_supabase_credentials
+    from dual_research.persistence.remote import RemoteSession
+
+    session_dir = Path(args.push).expanduser().resolve()
+    if not session_dir.is_dir():
+        parser.error(f"--push path is not a directory: {session_dir}")
+
+    try:
+        sb = load_supabase_credentials()
+    except MissingCredentialError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        remote = RemoteSession.from_credentials(sb.url, sb.service_role_key)
+        summary = remote.push_session_dir(session_dir)
+    except FileNotFoundError as e:
+        print(f"[push error] {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"[push error] {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+    print(
+        f"[push] run={summary.run_id}  "
+        f"events={summary.events_upserted}  "
+        f"files={summary.files_upserted}  "
+        f"duration={summary.duration_ms / 1000:.1f}s",
+        flush=True,
+    )
+    return 0
 
 
 async def _ingest(args: argparse.Namespace, creds: Credentials) -> BriefResult:
