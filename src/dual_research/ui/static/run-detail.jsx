@@ -5,36 +5,40 @@
 //   ├─ left: artifact cards (collapsible)   │  right: disagreements by phase (tabbed)
 //   └─ footer
 
-// ─────────────────── Top bar + phase strip (unchanged) ───────────────────
+// ─────────────────── Top bar — two stacked rows ───────────────────
 function TopBar({ run }) {
+  const ctx = React.useContext(window.RunContext) || {};
+  const onBack = () => ctx.navigate ? ctx.navigate('list') : (window.location.hash = '#/');
   const total = run.agents.claude.cost + run.agents.gpt.cost;
+  const idParts = window.splitRunId(run.id);
+  const startedClock = idParts.time || '—';
+  const elapsedTotal = Object.values(run.phaseTimings || {}).filter(Boolean).reduce((a, b) => a + b, 0);
+  const elapsedLabel = elapsedTotal > 0 ? fmt.duration(elapsedTotal) : '—';
+  const drafterLabel = run.drafter ? (AGENT_META[run.drafter]?.name || run.drafter) : '—';
+
   return (
     <header style={{
-      display: 'grid',
-      gridTemplateColumns: 'minmax(0, auto) minmax(0, 1fr) minmax(0, auto)',
-      alignItems: 'center',
-      gap: 24,
-      padding: '14px 24px',
+      display: 'flex', flexDirection: 'column',
+      padding: '10px 24px 12px',
       borderBottom: '1px solid var(--border-1)',
       background: 'var(--bg-0)',
       flexShrink: 0,
+      gap: 6,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-        <div style={{
-          width: 14, height: 14, borderRadius: 3,
-          background: 'linear-gradient(135deg, var(--agent-a) 0 50%, var(--agent-b) 50% 100%)',
-        }} />
-        <span style={{ fontSize: 13, color: 'var(--fg-1)' }}>dual&#8209;research</span>
-        <span style={{ color: 'var(--fg-4)', margin: '0 2px' }}>·</span>
-        <span className="mono" style={{ fontSize: 12, color: 'var(--fg-2)' }}>{run.id}</span>
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{
-          color: 'var(--fg-0)', fontSize: 13.5,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{run.topic}</div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 18, whiteSpace: 'nowrap' }}>
+      {/* Row 1: back · brand · id chip · spacer · cost · status */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 14, whiteSpace: 'nowrap',
+      }}>
+        <BackChip onClick={onBack} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 14, height: 14, borderRadius: 3,
+            background: 'linear-gradient(135deg, var(--agent-a) 0 50%, var(--agent-b) 50% 100%)',
+          }} />
+          <span style={{ fontSize: 13, color: 'var(--fg-1)' }}>dual&#8209;research</span>
+        </span>
+        <RunIdChip runId={run.id} displayId={run.displayId} />
+        <div style={{ flex: 1 }} />
         <span className="mono num" style={{ fontSize: 13, color: 'var(--fg-1)' }}>
           {fmt.cost(total)}
           {run.budget?.limit != null && (
@@ -43,7 +47,84 @@ function TopBar({ run }) {
         </span>
         <StatusBadge status={run.status} />
       </div>
+
+      {/* Row 2: topic (clamped to 2 lines) + meta line */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingLeft: 92 }}>
+        <div title={run.topic} style={{
+          color: 'var(--fg-0)', fontSize: 14, lineHeight: 1.35,
+          display: '-webkit-box',
+          WebkitBoxOrient: 'vertical',
+          WebkitLineClamp: 2,
+          overflow: 'hidden',
+        }}>{run.topic || '— no topic —'}</div>
+        <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+          started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span>
+          {' · '}drafter <span style={{ color: 'var(--fg-1)' }}>{drafterLabel}</span>
+          {' · '}<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed
+        </div>
+      </div>
     </header>
+  );
+}
+
+function BackChip({ onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title="Back to All runs"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        height: 26, padding: '0 10px',
+        background: hover ? 'var(--bg-2)' : 'var(--bg-1)',
+        border: '1px solid var(--border-2)',
+        borderRadius: 'var(--r-2)',
+        color: 'var(--fg-1)',
+        fontSize: 11.5,
+        cursor: 'pointer',
+        transition: 'background 120ms',
+      }}>
+      <span style={{ fontSize: 12, lineHeight: 1 }}>←</span>
+      <span>All runs</span>
+    </button>
+  );
+}
+
+function RunIdChip({ runId, displayId }) {
+  const [hover, setHover] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const onClick = async () => {
+    try {
+      await navigator.clipboard?.writeText(runId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch (e) { /* clipboard blocked — silent */ }
+  };
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title={copied ? 'Copied!' : `Click to copy ${runId}`}
+      className="mono"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        height: 26, padding: '0 10px',
+        background: hover ? 'var(--bg-2)' : 'var(--bg-2)',
+        border: '1px solid var(--border-2)',
+        borderRadius: 'var(--r-2)',
+        color: 'var(--fg-0)',
+        fontSize: 12,
+        fontWeight: 500,
+        letterSpacing: '0.04em',
+        cursor: 'pointer',
+        transition: 'background 120ms',
+      }}>
+      <span>{displayId || runId.slice(0, 4)}</span>
+      {copied && <span style={{ fontSize: 9.5, color: 'var(--ok)' }}>copied</span>}
+    </button>
   );
 }
 
@@ -117,9 +198,6 @@ function PhaseStrip({ run, errorCount, showErrors, onToggleErrors }) {
         </span>
       )}
       <ErrorsToggleButton count={errorCount} active={showErrors} onClick={onToggleErrors} />
-      <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
-        elapsed {fmt.duration(totalElapsed)}
-      </span>
     </div>
   );
 }

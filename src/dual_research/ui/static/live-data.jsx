@@ -170,6 +170,36 @@ function useFileBody(filePath) {
   return { body, loading };
 }
 
+// ─────────────────── Topic formatting ───────────────────
+
+// Trim a research-brief H1 down to one readable line. Many briefs are long
+// run-on questions; we clamp at the first sentence terminator or at 120
+// chars, whichever comes first. Full topic stays available in tooltip
+// attributes.
+function formatTopic(topic, { maxChars = 120 } = {}) {
+  if (!topic) return '';
+  const t = String(topic).trim();
+  if (!t) return '';
+  // Find first sentence terminator (?, ., !) that isn't part of a number.
+  const m = t.match(/^[^?.!]*[?.!]/);
+  let head = m ? m[0].trim() : t;
+  if (head.length > maxChars) {
+    head = head.slice(0, maxChars).replace(/\s+\S*$/, '') + '…';
+  }
+  return head;
+}
+
+// ─────────────────── Run-id chrome ───────────────────
+
+// Parse a session-dir name like `20260515-124552-cache-multi-round` into
+// {time: '12:45', slug: 'cache-multi-round'} for the two-line id cell.
+function splitRunId(id) {
+  if (!id) return { time: '', slug: '' };
+  const m = String(id).match(/^(\d{8})-(\d{2})(\d{2})\d{2}-(.+)$/);
+  if (!m) return { time: '', slug: String(id) };
+  return { time: `${m[2]}:${m[3]}`, slug: m[4] };
+}
+
 // ─────────────────── Filename conventions ───────────────────
 
 // The aggregator + on-disk layout use {agent} = {claude, openai}. The UI
@@ -353,6 +383,6 @@ function buildLiveTimeline(run) {
 Object.assign(window, {
   PHASES, TOPIC, INPUT_BRIEF, TURN_HISTORY,
   RunContext, useLiveRun, useRunList, useFileBody,
-  buildLiveTimeline,
+  buildLiveTimeline, formatTopic, splitRunId,
   setActiveRunId, getActiveRunId,
 });

@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.13.0] — 2026-05-15
+
+### Added
+
+- **UI polish and navigation** ([spec 0012](specs/0012-ui-polish-and-navigation.md)) — eight UX fixes informed by live review of v0.12.0. Mono font swap from Geist Mono to JetBrains Mono for readability; run-id column in the All-runs view becomes a two-line stacked cell with the 4-char display id as the primary label and the time + slug suffix below (full slug stays in the row tooltip); long topics clamp to the first sentence via a new `formatTopic()` helper; placeholder agent glyphs replaced with the official Claude (Anthropic) and OpenAI brand marks from simple-icons.org; run-detail top bar redesigned into two stacked rows with a `← All runs` back chip and a clickable display-id chip that copies the full slug to clipboard; the top tab strip becomes single-item (`All runs`) with the Run-detail tab removed; Design language is demoted from a tab to a small palette-icon button in the top-right cluster; the top-right cluster reshapes into three sibling controls of equal weight — connection state pill, segmented sun/moon theme toggle, and the design-language button. UI-only change (no Python, no backend).
+
 ## [0.12.0] — 2026-05-15
 
 ### Added
