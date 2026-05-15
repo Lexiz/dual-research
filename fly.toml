@@ -1,0 +1,42 @@
+# Spec 0020 — Fly.io deployment config for the dual-research UI server.
+#
+# App is created out-of-band (`fly apps create dual-research-alex`); deploy
+# with `fly deploy`. Secrets (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+# UI_BASIC_AUTH_PASSWORD) are set via `fly secrets set ...`.
+#
+# RUNS_BACKEND=supabase is in [env] below so the server reads from Supabase
+# rather than local disk on first boot. Local invocations of
+# `dual-research serve` ignore this file entirely.
+
+app = "dual-research-alex"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RUNS_BACKEND = "supabase"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
