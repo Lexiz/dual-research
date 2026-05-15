@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+from dual_research.protocol.convergence import (
+    FsdItem,
+    TiebreakCheck,
+    all_substantive_gates_pass_except_drafter,
+    assert_well_formed_plan_turn,
+    assert_well_formed_review_turn,
+    extract_canonical_fsd_items,
+    is_plan_agreed,
+    is_review_approved,
+    normalized_hash,
+    summarise_deadlock,
+)
+from dual_research.protocol.errors import ProtocolParseError, Status
+from dual_research.protocol.parse import (
+    ParsedPreflightTurn,
+    ParsedTurn,
+    extract_fenced_section,
+    has_agreed_plan,
+    parse_preflight_turn,
+    parse_turn,
+)
+from dual_research.protocol.prompts import (
+    PriorTurn,
+    drafting_prompt,
+    negotiation_round1_prompt,
+    negotiation_turn_prompt,
+    preflight_prompt,
+    repair_prompt,
+    research_prompt,
+    review_turn_prompt,
+)
+from dual_research.protocol.tiebreak import DrafterChoice, pick_drafter
+
+__all__ = [
+    "DrafterChoice",
+    "FsdItem",
+    "ParsedPreflightTurn",
+    "ParsedTurn",
+    "PriorTurn",
+    "ProtocolParseError",
+    "Status",
+    "TiebreakCheck",
+    "all_substantive_gates_pass_except_drafter",
+    "assert_well_formed_plan_turn",
+    "assert_well_formed_review_turn",
+    "drafting_prompt",
+    "extract_canonical_fsd_items",
+    "extract_fenced_section",
+    "has_agreed_plan",
+    "is_plan_agreed",
+    "is_review_approved",
+    "negotiation_round1_prompt",
+    "negotiation_turn_prompt",
+    "normalized_hash",
+    "parse_preflight_turn",
+    "parse_turn",
+    "pick_drafter",
+    "preflight_prompt",
+    "repair_prompt",
+    "research_prompt",
+    "review_turn_prompt",
+    "summarise_deadlock",
+]
