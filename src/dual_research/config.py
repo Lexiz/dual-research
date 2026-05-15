@@ -102,3 +102,32 @@ def load_credentials(*, require_notion: bool) -> Credentials:
         openai_api_key=openai,
         notion_token=notion or None,
     )
+
+
+@dataclass(frozen=True)
+class SupabaseCredentials:
+    url: str
+    anon_key: str
+    service_role_key: str
+
+
+def load_supabase_credentials() -> SupabaseCredentials:
+    url = os.environ.get("SUPABASE_URL", "").strip()
+    anon = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+    service = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+    missing = [
+        name
+        for name, value in (
+            ("SUPABASE_URL", url),
+            ("SUPABASE_ANON_KEY", anon),
+            ("SUPABASE_SERVICE_ROLE_KEY", service),
+        )
+        if not value
+    ]
+    if missing:
+        raise MissingCredentialError(
+            "Missing Supabase environment variable(s): " + ", ".join(missing)
+        )
+
+    return SupabaseCredentials(url=url, anon_key=anon, service_role_key=service)
