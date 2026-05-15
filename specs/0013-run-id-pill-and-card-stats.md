@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.14.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/13"
 ---
 
 # Spec 0013 — Run-id pill and timeline card stats
