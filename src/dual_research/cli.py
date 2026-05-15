@@ -188,9 +188,28 @@ def main(argv: list[str] | None = None) -> int:
         print("[--ingest-only set — done. Brief is ready for the orchestrator.]")
         return 0
 
-    print()
-    print("[step 2 only — input ingest. Orchestrator (Phases 0–4) wires in step 5+.]")
-    return 0
+    from dual_research.orchestrator import run_session
+
+    result = asyncio.run(
+        run_session(
+            session_root=session_dir,
+            slug=slug,
+            creds=creds,
+            tier=tier,
+            soft_cap=args.soft_cap,
+            hard_cap=args.hard_cap,
+        )
+    )
+
+    print(
+        f"\n[run] phase reached: {result.phase_reached}  "
+        f"exit code: {result.exit_code}  "
+        f"total cost: ${result.total_cost_usd:.4f}  "
+        f"duration: {result.duration_ms / 1000:.1f}s",
+        flush=True,
+    )
+    print(f"[run] session dir: {session_dir}", flush=True)
+    return result.exit_code
 
 
 async def _ingest(args: argparse.Namespace, creds: Credentials) -> BriefResult:
