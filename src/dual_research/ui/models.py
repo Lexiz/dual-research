@@ -1,0 +1,256 @@
+"""Dataclasses matching the Claude Design UI shape (see
+``~/Trimble/handoff/README.md`` §5).
+
+These are Python-side internal representations. The HTTP server (spec 0010)
+serializes them to JSON for the UI; field names are translated from
+snake_case to camelCase at that boundary.
+
+All shapes are plain mutable ``@dataclass`` (matching the project's existing
+``SessionState`` convention). The aggregator mutates a single ``Run`` in
+place as events arrive; defensive copies happen at the serialization layer.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+# ─── Status vocabulary ────────────────────────────────────────────────────────
+
+# Whole-run states (top-level Run.status).
+RunStatus = Literal[
+    "running",
+    "converged",
+    "deadlocked",
+    "errored",
+    "completed",
+    "idle",
+]
+
+# Per-agent activity states (AgentState.status).
+AgentStatus = Literal[
+    "idle",
+    "thinking",
+    "drafting",
+    "responding",
+    "reviewing",
+    "waiting",
+]
+
+# UI agent vocabulary. Backend uses {"claude", "openai"}; the aggregator
+# translates "openai" → "gpt" at the labels.py boundary.
+UiAgent = Literal["claude", "gpt"]
+
+
+# ─── Turn (current/last) ──────────────────────────────────────────────────────
+
+
+@dataclass
+class Turn:
+    """The ``currentTurn`` or ``lastTurn`` on an ``AgentState``.
+
+    ``kind`` mirrors the UI's per-turn iconography:
+        idle | thinking | plan-draft | response | doc-draft | review
+
+    ``body`` is the full text of the turn (read from the corresponding round
+    file once written). Empty string while the round file does not yet exist.
+
+    ``summary``, ``agreed``, ``contested`` are populated on ``lastTurn`` only,
+    and are intentionally sparse in v1 — the orchestrator does not emit them
+    directly, and the UI tolerates empty values.
+    """
+
+    kind: str = "idle"
+    index: int = 0
+    body: str = ""
+    summary: str | None = None
+    agreed: list[str] = field(default_factory=list)
+    contested: list[str] = field(default_factory=list)
+
+
+# ─── AgentState ───────────────────────────────────────────────────────────────
+
+
+@dataclass
+class TokenUsage:
+    in_: int = 0  # ``in`` is a Python keyword; serialized as ``in`` at the JSON boundary
+    out: int = 0
+
+
+@dataclass
+class AgentState:
+    status: AgentStatus = "idle"
+    current_turn: Turn = field(default_factory=Turn)
+    last_turn: Turn | None = None
+    tokens: TokenUsage = field(default_factory=TokenUsage)
+    cost: float = 0.0
+    model_id: str | None = None  # populated from RunStarted; UI shows in chrome
+
+
+# ─── Round / Budget ───────────────────────────────────────────────────────────
+
+
+@dataclass
+class Round:
+    current: int = 0
+    soft: int = 6
+    hard: int = 12
+
+
+@dataclass
+class Budget:
+    limit: float
+    warn_at: float = 0.75  # fraction of limit at which the meter goes yellow
+
+
+# ─── Disagreement + Progression ───────────────────────────────────────────────
+
+
+# UI's progression action taxonomy.
+ProgressionAction = Literal[
+    "raised",
+    "rejected",
+    "pushed back",
+    "restated",
+    "conceded",
+    "aligned",
+]
+
+
+@dataclass
+class ProgressionStep:
+    round: int
+    agent: str  # "claude" | "gpt" | "both" (UI vocabulary)
+    action: ProgressionAction
+    note: str = ""
+
+
+# UI's disagreement status enum.
+DisagreementStatus = Literal[
+    "open",
+    "resolved-claude",
+    "resolved-gpt",
+    "resolved-both",
+]
+
+
+@dataclass
+class Disagreement:
+    id: str  # e.g. "d-04" — UI displays as-is
+    phase: int  # 2 or 4
+    round: int  # latest round this disagreement was touched (for sort)
+    opened_round: int
+    closed_round: int | None = None
+    status: DisagreementStatus = "open"
+    deadlocked: bool = False  # set if hard cap was hit with this still open
+    raised_by: str = "claude"  # "claude" | "gpt" | "both"
+    short_label: str = ""  # 4–6 word headline
+    point: str = ""  # full contested-point statement
+    claude_position: str = ""
+    gpt_position: str = ""
+    resolution: str | None = None
+    progression: list[ProgressionStep] = field(default_factory=list)
+
+
+# ─── RunError ─────────────────────────────────────────────────────────────────
+
+
+ErrorSeverity = Literal["critical", "error", "warning", "info"]
+ErrorResolution = Literal["halted", "degraded", "recovered"]
+
+
+@dataclass
+class RunError:
+    id: str
+    timestamp: str  # ISO-8601 from the transcript event
+    rel_ago: int  # seconds before "now" — UI re-derives, but a default is helpful
+    code: str
+    severity: ErrorSeverity
+    run_id: str
+    agent: str | None  # "claude" | "gpt" | None (orchestrator-level)
+    phase: int | None
+    where: str  # e.g. "phase-2 / round-3 / claude"
+    summary: str
+    detail: str = ""
+    retried: int = 0
+    resolved: ErrorResolution = "recovered"
+
+
+# ─── Top-level error (when status == "errored") ───────────────────────────────
+
+
+@dataclass
+class TopLevelError:
+    when: str
+    where: str
+    code: str
+    detail: str
+
+
+# ─── Run ──────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class Run:
+    """The full UI ``Run`` object. One per session directory.
+
+    ``id`` is the canonical full session-dir name (used for URLs / API paths).
+    ``display_id`` is the 4-char form the UI shows in chrome (mono cell).
+    """
+
+    id: str
+    display_id: str
+    topic: str = ""
+    status: RunStatus = "running"
+    phase: int = 0
+    started_at_ago: int = 0  # seconds; updated by the server at serialization time
+    started_at: str | None = None  # ISO-8601; the source of truth
+    drafter: str | None = None  # "claude" | "gpt" | None
+    phase_timings: dict[int, int | None] = field(
+        default_factory=lambda: {0: None, 1: None, 2: None, 3: None, 4: None}
+    )
+    round: Round = field(default_factory=Round)
+    budget: Budget | None = None  # client-side preference; None until set
+    agents: dict[str, AgentState] = field(
+        default_factory=lambda: {"claude": AgentState(), "gpt": AgentState()}
+    )
+    disagreements: list[Disagreement] = field(default_factory=list)
+    errors: list[RunError] = field(default_factory=list)
+    error: TopLevelError | None = None  # populated only when status == "errored"
+
+
+# ─── RunListRow ───────────────────────────────────────────────────────────────
+
+
+@dataclass
+class RunListRow:
+    id: str
+    display_id: str
+    status: RunStatus
+    phase: int
+    topic: str
+    started_at_ago: int
+    started_at: str | None
+    duration: int  # seconds
+    cost: float
+    rounds: str | None = None  # e.g. "4/6", shown only for Phase 2/4 rows
+
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+
+def to_jsonable(obj: Any) -> Any:
+    """Recursively convert dataclass values to JSON-safe primitives.
+
+    Renames ``in_`` → ``in`` (TokenUsage). The server layer (spec 0010) layers
+    snake_case → camelCase on top of this.
+    """
+    from dataclasses import asdict, is_dataclass
+
+    if is_dataclass(obj):
+        return to_jsonable(asdict(obj))
+    if isinstance(obj, dict):
+        return {("in" if k == "in_" else k): to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [to_jsonable(v) for v in obj]
+    return obj

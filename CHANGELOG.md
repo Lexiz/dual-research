@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.10.0] — 2026-05-15
+
+### Added
+
+- **UI run aggregator** ([spec 0009](specs/0009-ui-run-aggregator.md)) — new internal package `src/dual_research/ui/` that reads a session directory and produces a single nested `Run` object matching the Claude Design UI shape (`agents.{claude,gpt}`, `disagreements[]` with per-round progression, `errors[]`, `phase_timings`, `round`). Pure read-side, zero backend changes; foundation for the upcoming HTTP server (spec 0010) and UI bundle (spec 0011). Handles backend↔UI agent label translation (`openai` → `gpt`), reconstructs Phase 2/4 disagreements with their stable D-N IDs from `## Substantive disagreements I'm holding` sections, and maps the four error-shaped backend events (`repair_invoked`, `soft_cap_hit`, `hard_cap_hit`, `run_failed`) to the UI's error taxonomy. Internal use only; no CLI surface yet. New tests under `tests/ui/`.
+
 ## [0.9.0] — 2026-05-15
 
 ### Added
