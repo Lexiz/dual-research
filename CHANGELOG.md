@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.14.0] — 2026-05-15
+
+### Added
+
+- **Run-id pill and timeline card stats** ([spec 0013](specs/0013-run-id-pill-and-card-stats.md)) — run-id cell in the All-runs list becomes a compact mono pill (just the 4-char `displayId`) with the full session-dir name, started time, and slug in the hover tooltip; the column shrinks 110px → 80px. Timeline cards now carry protocol-derived stats inline: Phase 0 input shows `OK` / `needs input · N`; Phase 1 plan drafts show `OQ N · BD M`; Phase 2 turns show `OQ N · BD M` plus a status pill when `AGREED`; Phase 4 turns show `OI N` plus `APPROVED` / `NOT_APPROVED`. Stats are produced by a new `dual_research.ui.turn_stats` module that re-uses `protocol.parse.parse_turn` against the per-phase round files and attaches them to `Run.phase_stats`. Aggregator + JS `buildLiveTimeline` thread the data through to `ArtifactHeader`.
+
 ## [0.13.0] — 2026-05-15
 
 ### Added

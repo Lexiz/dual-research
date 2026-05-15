@@ -187,6 +187,39 @@ class TopLevelError:
     detail: str
 
 
+# ─── Per-turn protocol stats (for inline timeline chips, spec 0013) ───────────
+
+
+@dataclass
+class TurnStats:
+    """The structured marker fields parsed from a single turn file.
+
+    Each field is optional — agents occasionally omit a marker, and the
+    UI silently drops chips whose value is ``None``.
+    """
+
+    status: str | None = None
+    open_questions: int | None = None
+    open_issues: int | None = None
+    blocking: int | None = None
+    fsd: int | None = None
+    brief_issues: int | None = None
+
+
+@dataclass
+class PhaseStats:
+    """All per-turn stats keyed by phase + (round, agent).
+
+    - ``phase0`` and ``phase1`` are single-shot per-agent.
+    - ``phase2`` and ``phase4`` are round-keyed dicts of per-agent stats.
+    """
+
+    phase0: dict[str, TurnStats] = field(default_factory=dict)
+    phase1: dict[str, TurnStats] = field(default_factory=dict)
+    phase2: dict[int, dict[str, TurnStats]] = field(default_factory=dict)
+    phase4: dict[int, dict[str, TurnStats]] = field(default_factory=dict)
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
 
@@ -217,6 +250,7 @@ class Run:
     disagreements: list[Disagreement] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
+    phase_stats: PhaseStats = field(default_factory=PhaseStats)
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────

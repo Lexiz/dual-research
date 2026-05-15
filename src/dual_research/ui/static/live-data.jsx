@@ -375,6 +375,45 @@ function buildLiveTimeline(run) {
     });
   }
 
+  return attachItemStats(items, run);
+}
+
+// Walk the built timeline and attach `item.stats` from run.phaseStats so
+// ArtifactHeader can render inline chips (spec 0013).
+function attachItemStats(items, run) {
+  const ps = run.phaseStats || {};
+  for (const item of items) {
+    if (item.kind === 'phase-divider' || item.kind === 'error' || item.kind === 'deadlock') continue;
+    if (item.kind === 'input') {
+      // Phase 0 preflight is keyed per agent, but the input card is shared;
+      // surface a "needs input" chip if either agent flagged brief issues.
+      const p0 = ps.phase0 || {};
+      const cIssues = p0.claude?.briefIssues ?? 0;
+      const gIssues = p0.gpt?.briefIssues ?? 0;
+      const total = cIssues + gIssues;
+      const bothOk = p0.claude?.status === 'BRIEF_OK' && p0.gpt?.status === 'BRIEF_OK';
+      item.stats = bothOk
+        ? { kind: 'preflight', state: 'ok' }
+        : total > 0
+          ? { kind: 'preflight', state: 'issues', count: total }
+          : null;
+      continue;
+    }
+    if (item.kind === 'plan' || item.kind === 'plan-live') {
+      item.stats = ps.phase1?.[item.agent] || null;
+      item.statsPhase = 1;
+      continue;
+    }
+    if (item.kind === 'turn' || item.kind === 'turn-live') {
+      // Round + agent lookup. Round-keyed dicts come over the wire with
+      // string keys after the snake_case → camelCase server pass.
+      const phase = (item.round && item.index && String(item.index).startsWith('rev-')) ? 4 : 2;
+      const bucket = phase === 4 ? ps.phase4 : ps.phase2;
+      item.stats = bucket?.[String(item.round)]?.[item.agent] || null;
+      item.statsPhase = phase;
+      continue;
+    }
+  }
   return items;
 }
 

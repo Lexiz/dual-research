@@ -83,7 +83,7 @@ function RunListView({ runs, onSelect }) {
       {/* Column headers */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '110px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
+        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
         padding: '8px 18px',
         background: 'var(--bg-1)',
         borderBottom: '1px solid var(--border-1)',
@@ -130,6 +130,8 @@ function RunRow({ run, onSelect }) {
   const phasePct = run.phase / 5;
   const idParts = window.splitRunId(run.id);
   const shortTopic = window.formatTopic(run.topic, { maxChars: 110 });
+  const idTooltip = `${run.id}${idParts.time ? ` · started ${idParts.time}` : ''}${idParts.slug ? ` · ${idParts.slug}` : ''}`;
+  const displayId = run.displayId || run.id.slice(0, 4);
 
   return (
     <div
@@ -139,7 +141,7 @@ function RunRow({ run, onSelect }) {
       title={run.id}
       style={{
         display: 'grid',
-        gridTemplateColumns: '110px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
+        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
         alignItems: 'center',
         padding: '10px 18px',
         borderBottom: '1px solid var(--border-1)',
@@ -150,17 +152,18 @@ function RunRow({ run, onSelect }) {
       {run.selected && (
         <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: COLORS.info }} />
       )}
-      {/* Run id cell: 4-char display id on top, time + slug suffix below. */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-        <span className="mono" style={{
-          fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
-          letterSpacing: '0.02em',
-        }}>{run.displayId || run.id.slice(0, 4)}</span>
-        <span className="mono" style={{
-          fontSize: 10, color: 'var(--fg-3)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{idParts.time}{idParts.slug ? ` · ${idParts.slug}` : ''}</span>
-      </div>
+      {/* Run id pill — 4-char displayId; full id + meta in tooltip. */}
+      <span className="mono" title={idTooltip} style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        padding: '3px 10px',
+        background: 'var(--bg-2)',
+        border: '1px solid var(--border-1)',
+        borderRadius: 999,
+        fontSize: 11.5,
+        color: 'var(--fg-1)',
+        letterSpacing: '0.04em',
+        width: 'fit-content',
+      }}>{displayId}</span>
       <StatusBadge status={run.status} />
       <div style={{ minWidth: 0, paddingRight: 16 }} title={run.topic}>
         <div style={{

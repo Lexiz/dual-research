@@ -111,12 +111,12 @@ function RunIdChip({ runId, displayId }) {
       className="mono"
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        height: 26, padding: '0 10px',
-        background: hover ? 'var(--bg-2)' : 'var(--bg-2)',
-        border: '1px solid var(--border-2)',
-        borderRadius: 'var(--r-2)',
-        color: 'var(--fg-0)',
-        fontSize: 12,
+        padding: '3px 12px',
+        background: hover ? 'var(--bg-3)' : 'var(--bg-2)',
+        border: '1px solid var(--border-1)',
+        borderRadius: 999,
+        color: 'var(--fg-1)',
+        fontSize: 11.5,
         fontWeight: 500,
         letterSpacing: '0.04em',
         cursor: 'pointer',
@@ -535,6 +535,90 @@ function ArtifactCard({ item, expanded, onToggle }) {
   );
 }
 
+// Small mono chips surfacing parsed protocol stats on a turn/plan row.
+// Stays out of the way: nothing rendered when stats are absent.
+function StatsChips({ stats, phase }) {
+  if (!stats) return null;
+  const chips = [];
+  // Phase 4 surfaces OPEN_ISSUES; Phase 2 surfaces OPEN_QUESTIONS + BLOCKING.
+  if (phase === 4) {
+    if (stats.openIssues != null) chips.push({ label: 'OI', value: stats.openIssues, tint: stats.openIssues > 0 ? 'warn' : 'ok' });
+  } else {
+    if (stats.openQuestions != null) chips.push({ label: 'OQ', value: stats.openQuestions, tint: stats.openQuestions > 0 ? 'info' : 'ok' });
+    if (stats.blocking != null && stats.blocking > 0) chips.push({ label: 'BD', value: stats.blocking, tint: 'warn' });
+  }
+  const statusPill = stats.status && (stats.status === 'AGREED' || stats.status === 'APPROVED' || stats.status === 'NOT_APPROVED');
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+      {chips.map((c, i) => <StatChip key={i} {...c} />)}
+      {statusPill && <StatusInline label={stats.status} />}
+    </span>
+  );
+}
+
+function StatChip({ label, value, tint }) {
+  const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
+  const c = colorMap[tint] || 'var(--fg-3)';
+  return (
+    <span className="mono" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '1px 6px',
+      background: 'transparent',
+      border: `1px solid ${c}33`,
+      borderRadius: 4,
+      fontSize: 10, color: c,
+      letterSpacing: '0.04em',
+    }}>
+      <span style={{ color: 'var(--fg-3)' }}>{label}</span>
+      <span className="num" style={{ color: c, fontWeight: 500 }}>{value}</span>
+    </span>
+  );
+}
+
+function StatusInline({ label }) {
+  const map = {
+    AGREED:       { color: COLORS.ok,   text: 'agreed' },
+    APPROVED:     { color: COLORS.ok,   text: 'approved' },
+    NOT_APPROVED: { color: COLORS.warn, text: 'not approved' },
+  };
+  const m = map[label] || { color: 'var(--fg-3)', text: String(label).toLowerCase() };
+  return (
+    <span className="mono" style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '1px 6px',
+      background: m.color + '14',
+      border: `1px solid ${m.color}55`,
+      borderRadius: 4,
+      fontSize: 10, color: m.color,
+      letterSpacing: '0.04em',
+    }}>{m.text}</span>
+  );
+}
+
+// Phase 0 preflight chip — distinct from the Phase 2/4 stats because the
+// preflight protocol uses BRIEF_OK + BRIEF_ISSUES, not the negotiation fields.
+function PreflightChip({ stats }) {
+  if (!stats) return null;
+  if (stats.state === 'ok') return <StatusInline label="OK" />;
+  if (stats.state === 'issues') {
+    return (
+      <span className="mono" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '1px 6px',
+        background: COLORS.warn + '14',
+        border: `1px solid ${COLORS.warn}55`,
+        borderRadius: 4,
+        fontSize: 10, color: COLORS.warn,
+        letterSpacing: '0.04em',
+      }}>
+        <span>needs input</span>
+        <span className="num" style={{ fontWeight: 500 }}>· {stats.count}</span>
+      </span>
+    );
+  }
+  return null;
+}
+
 function ArtifactHeader({ item, meta, expanded, hover }) {
   if (item.kind === 'input') {
     return (
@@ -546,6 +630,7 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
           flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)',
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{item.topic || ''}</span>
+        <PreflightChip stats={item.stats} />
         <ExpandChevron expanded={expanded} hover={hover} />
       </div>
     );
@@ -595,6 +680,7 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
         {isLive && (
           <span style={{ flex: 1 }} />
         )}
+        <StatsChips stats={item.stats} phase={item.statsPhase} />
         {isLive ? (
           <AgentStatusInline status={item.status} />
         ) : item.tokens != null || item.cost != null ? (
@@ -605,9 +691,7 @@ function ArtifactHeader({ item, meta, expanded, hover }) {
           <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
             r{item.round}
           </span>
-        ) : (
-          <span style={{ flex: 1 }} />
-        )}
+        ) : null}
         {!isLive && <ExpandChevron expanded={expanded} hover={hover} />}
       </div>
     );

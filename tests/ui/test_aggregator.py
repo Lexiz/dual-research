@@ -85,6 +85,22 @@ class TestLoadCompletedRun:
         assert r.round.soft >= 1
         assert r.round.hard >= r.round.soft
 
+    def test_phase_stats_populated(self):
+        # Spec 0013: load_run_snapshot must surface phase_stats so the UI
+        # timeline cards can render inline chips.
+        r = load_run_snapshot(FIXTURE_CACHE_RUN)
+        # Phase 0 preflight present for both agents.
+        assert "claude" in r.phase_stats.phase0
+        assert "gpt" in r.phase_stats.phase0
+        # Phase 2 has all five rounds parsed.
+        assert sorted(r.phase_stats.phase2.keys()) == [1, 2, 3, 4, 5]
+        # Phase 2 round 1 was NEGOTIATING for both agents.
+        assert r.phase_stats.phase2[1]["claude"].status == "NEGOTIATING"
+        # Phase 4 final round was APPROVED for both agents.
+        last_p4 = max(r.phase_stats.phase4.keys())
+        assert r.phase_stats.phase4[last_p4]["claude"].status == "APPROVED"
+        assert r.phase_stats.phase4[last_p4]["gpt"].status == "APPROVED"
+
 
 @requires_fixture
 class TestSummarizeRun:

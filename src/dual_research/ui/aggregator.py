@@ -27,6 +27,7 @@ from dual_research.ui.labels import (
     phase_to_int,
     ui_agent,
 )
+from dual_research.ui.turn_stats import build_phase_stats
 from dual_research.ui.models import (
     AgentState,
     Disagreement,
@@ -64,6 +65,8 @@ def load_run_snapshot(session_dir: Path) -> Run:
     run.errors = derive_errors(
         transcript=transcript, run_id=run.id, display_id=run.display_id
     )
+
+    run.phase_stats = build_phase_stats(session_dir)
 
     # started_at_ago is "now" relative to the earliest event.
     run.started_at_ago = _seconds_since(run.started_at)
