@@ -48,7 +48,7 @@ except ImportError:  # pragma: no cover — dependency declared in pyproject
 from dual_research import __version__
 from dual_research.config import resolve_paths
 from dual_research.ui import load_run_snapshot, summarize_run
-from dual_research.ui.auth import BasicAuthMiddleware
+from dual_research.ui.auth import SupabaseAuthMiddleware
 from dual_research.ui.datasource import SupabaseSessionData, latest_event_seq
 from dual_research.ui.labels import display_id, derive_run_status, phase_to_int
 from dual_research.ui.models import RunListRow, to_jsonable
@@ -56,11 +56,13 @@ from dual_research.ui.models import RunListRow, to_jsonable
 # ─── App + state ──────────────────────────────────────────────────────────────
 
 
-def _make_app(runs_dir: Path, *, basic_auth_password: str | None = None) -> FastAPI:
+def _make_app(runs_dir: Path) -> FastAPI:
     """Build a FastAPI app bound to a specific ``runs_dir``.
 
     Factory style so tests can spin up multiple apps over tmp directories
     without leaking state between tests.
+
+    Local (fs) mode is never auth-gated — this is the laptop dev path.
     """
     app = FastAPI(
         title="dual-research UI",
@@ -69,8 +71,6 @@ def _make_app(runs_dir: Path, *, basic_auth_password: str | None = None) -> Fast
         redoc_url=None,
     )
     app.state.runs_dir = runs_dir
-    if basic_auth_password:
-        app.add_middleware(BasicAuthMiddleware, expected_password=basic_auth_password)
 
     # ─── API routes ───────────────────────────────────────────────────────────
 
@@ -133,12 +133,21 @@ def _make_app(runs_dir: Path, *, basic_auth_password: str | None = None) -> Fast
 SUPABASE_STREAM_POLL_SECONDS = 5.0
 
 
-def _make_supabase_app(client: Any, *, basic_auth_password: str | None = None) -> FastAPI:
+def _make_supabase_app(
+    client: Any,
+    *,
+    supabase_url: str | None = None,
+    supabase_anon_key: str | None = None,
+) -> FastAPI:
     """Build a FastAPI app that reads runs from Supabase instead of disk.
 
     Used when ``RUNS_BACKEND=supabase``. The ``runs`` table powers the list
     view directly; the run-detail and stream paths materialize a tmp dir from
     ``session_files`` and hand it to the existing aggregator.
+
+    The Supabase Auth middleware (spec 0021) gates `/api/*` requests except
+    `/api/health` and `/api/config`. Tests can omit the URL + anon key — the
+    `/api/config` endpoint just returns empty strings then.
     """
     app = FastAPI(
         title="dual-research UI",
@@ -147,12 +156,18 @@ def _make_supabase_app(client: Any, *, basic_auth_password: str | None = None) -
         redoc_url=None,
     )
     app.state.backend = "supabase"
-    if basic_auth_password:
-        app.add_middleware(BasicAuthMiddleware, expected_password=basic_auth_password)
+    app.add_middleware(SupabaseAuthMiddleware, client=client)
 
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
         return {"ok": True, "version": __version__, "backend": "supabase"}
+
+    @app.get("/api/config")
+    async def config() -> dict[str, str]:
+        return {
+            "supabaseUrl": supabase_url or "",
+            "supabaseAnonKey": supabase_anon_key or "",
+        }
 
     @app.get("/api/runs")
     async def list_runs() -> JSONResponse:
@@ -476,7 +491,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     backend = os.environ.get("RUNS_BACKEND", "fs").strip().lower()
-    basic_auth_password = os.environ.get("UI_BASIC_AUTH_PASSWORD", "").strip() or None
 
     if backend == "supabase":
         from dual_research.config import load_supabase_credentials
@@ -488,23 +502,26 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"dual-research UI server v{__version__}\n"
             f"  backend: supabase ({sb.url})\n"
-            f"  basic-auth: {'enabled' if basic_auth_password else 'disabled'}\n"
+            f"  auth: Supabase / Google OAuth\n"
             f"  listening on http://{args.host}:{args.port}\n",
             file=sys.stderr,
         )
-        app = _make_supabase_app(client, basic_auth_password=basic_auth_password)
+        app = _make_supabase_app(
+            client,
+            supabase_url=sb.url,
+            supabase_anon_key=sb.anon_key,
+        )
     else:
         paths = resolve_paths(args.runs_dir)
         runs_dir = paths.runs_dir.resolve()
         print(
             f"dual-research UI server v{__version__}\n"
-            f"  backend: fs\n"
+            f"  backend: fs (local, unauthenticated)\n"
             f"  runs-dir: {runs_dir}\n"
-            f"  basic-auth: {'enabled' if basic_auth_password else 'disabled'}\n"
             f"  listening on http://{args.host}:{args.port}\n",
             file=sys.stderr,
         )
-        app = _make_app(runs_dir, basic_auth_password=basic_auth_password)
+        app = _make_app(runs_dir)
 
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0

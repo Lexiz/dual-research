@@ -20,6 +20,31 @@ function App() {
     try { localStorage.setItem('dr.theme', theme); } catch (e) {}
   }, [theme]);
 
+  // Auth gate (spec 0021). In fs mode (`hostedMode === false`) the client is
+  // null, useSession resolves immediately, and we skip both screens.
+  const { client, ready: clientReady, hostedMode } = useSupabaseClient();
+  const { session, ready: sessionReady } = useSession(client);
+  const [notApproved, setNotApproved] = React.useState(false);
+
+  // Listen for the global "not-approved" event that authedFetch raises when
+  // the server returns 403. Any /api call can trigger this; we swap to the
+  // not-approved screen until the user signs out.
+  React.useEffect(() => {
+    function onForbid() { setNotApproved(true); }
+    window.addEventListener('dr-not-approved', onForbid);
+    return () => window.removeEventListener('dr-not-approved', onForbid);
+  }, []);
+
+  if (hostedMode && (!clientReady || !sessionReady)) {
+    return <FullPageMessage title="Loading…" body="Connecting to the server." />;
+  }
+  if (hostedMode && !session) {
+    return <SignInScreen client={client} />;
+  }
+  if (hostedMode && notApproved) {
+    return <NotApprovedScreen session={session} client={client} />;
+  }
+
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--bg-0)' }}>
       <ChromeBar route={route} navigate={navigate}
