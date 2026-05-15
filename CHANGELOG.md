@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.24.0] — 2026-05-16
+
+### Added
+
+- **How-it-works restructure — chat-lifecycle diagram, phase accordions, v3.5 process map** ([spec 0026](specs/0026-howitworks-redesign.md)) — UI-only refresh of `#/how-it-works`. The page now opens with a four-card TL;DR strip (models · stateless transport · parallel timing · mechanical convergence), and the phase-by-phase walkthrough is collapsed into expandable accordions, each carrying an Inputs / Chats / Output / Gate / Caps meta block. New **Chat lifecycle** section addresses the most-asked question about the protocol — when do we start new chats? — with a 3-column grid (phase · Claude lane · OpenAI lane) showing every API call across all five phases, with the exact context bundle inside each call rendered as colour-coded chips (`brief`, `P1 draft-claude`, `P1 draft-openai`, `P2 turns`, `agreed plan`, `current draft`, `P4 turns`); a legend underneath maps the chip colours, and a side-by-side "what we don't do (×) / what we actually do (✓)" panel calls out the absence of any `thread_id`, OpenAI Assistants API, or persistent state. A new **Context grows, but the prefix is cached** stacked-bar visual makes the `CACHE_BREAKPOINT` cost story concrete — showing how the prompt grows from `brief` only (P0/P1) to `brief + 2 drafts + 4/10 P2 turns` (P2 r3/r6) through to the full P3 drafter context, with the cache split point marked on the axis. FAQ entries become individually-collapsible `<details>` blocks. New **View full process map** fold-out under the phase strip embeds the v3.5 protocol landscape (Phase 0 → Phase 4 → Final Document) with source-verification / repair / exit-code callouts and the protocol's principles footer — authored via the diagram skill (cream-and-indigo, Inter, 1660×880, no animations) and shipped both inlined inside `how-it-works.jsx` and as a standalone `src/dual_research/ui/static/protocol-overview.svg` for download. The inline visuals (phase strip, chat-lifecycle grid, context bars, round-up-close diagram) remain theme-aware via the existing `--agent-a` / `--agent-b` tokens; the fold-out map is the explicit exception — a separate reference surface that stays light regardless of the chrome bar's theme toggle. No backend changes, no prompt changes, no wire-format changes — the page just stopped under-selling what the orchestrator already does.
+
 ## [0.23.0] — 2026-05-16
 
 ### Added
