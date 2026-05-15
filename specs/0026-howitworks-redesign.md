@@ -6,7 +6,7 @@ version-bump: MINOR
 status: in-progress
 target-version: 0.24.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/26"
 ---
 
 # Spec 0026 — How-it-works restructure
