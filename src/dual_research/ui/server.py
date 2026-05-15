@@ -169,6 +169,80 @@ def _make_supabase_app(
             "supabaseAnonKey": supabase_anon_key or "",
         }
 
+    @app.get("/api/me")
+    async def me(request: Request) -> dict[str, Any]:
+        user = request.scope.get("user") or {}
+        token = user.get("token")
+        avatar_url: str | None = None
+        full_name: str | None = None
+        if token:
+            try:
+                u = client.auth.get_user(token).user
+                meta = getattr(u, "user_metadata", None) or {}
+                avatar_url = meta.get("avatar_url") or meta.get("picture")
+                full_name = meta.get("full_name") or meta.get("name")
+            except Exception:
+                pass
+        return {
+            "email": user.get("email") or "",
+            "isAdmin": bool(user.get("is_admin")),
+            "avatarUrl": avatar_url,
+            "fullName": full_name,
+        }
+
+    @app.get("/api/approved-emails")
+    async def list_approved_emails(request: Request) -> JSONResponse:
+        _require_admin(request)
+        res = (
+            client.table("approved_emails")
+            .select("email,is_admin,added_at")
+            .order("added_at", desc=True)
+            .execute()
+        )
+        return JSONResponse(_to_camel(res.data or []))
+
+    @app.post("/api/approved-emails")
+    async def add_approved_email(request: Request) -> JSONResponse:
+        _require_admin(request)
+        body = await request.json()
+        email = (body or {}).get("email", "").strip().lower()
+        is_admin_flag = bool((body or {}).get("isAdmin"))
+        if not _looks_like_email(email):
+            raise HTTPException(status_code=400, detail="invalid email")
+        row = {"email": email, "is_admin": is_admin_flag}
+        client.table("approved_emails").upsert([row], on_conflict="email").execute()
+        return JSONResponse(_to_camel(row), status_code=201)
+
+    @app.delete("/api/approved-emails/{email}")
+    async def delete_approved_email(request: Request, email: str) -> JSONResponse:
+        caller_email = _require_admin(request)
+        target = email.strip().lower()
+        if target == caller_email:
+            raise HTTPException(status_code=409, detail="cannot remove yourself")
+
+        # Look up target row to check admin status.
+        target_res = (
+            client.table("approved_emails")
+            .select("email,is_admin")
+            .eq("email", target)
+            .limit(1)
+            .execute()
+        )
+        target_rows = target_res.data or []
+        if not target_rows:
+            raise HTTPException(status_code=404, detail="email not on allowlist")
+
+        if target_rows[0].get("is_admin"):
+            admin_count = _count_admins(client)
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail="cannot remove the only remaining admin",
+                )
+
+        client.table("approved_emails").delete().eq("email", target).execute()
+        return JSONResponse({"deleted": target})
+
     @app.get("/api/runs")
     async def list_runs() -> JSONResponse:
         rows = _supabase_list_runs(client)
@@ -212,6 +286,32 @@ def _make_supabase_app(
     app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
 
     return app
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _looks_like_email(s: str) -> bool:
+    return bool(_EMAIL_RE.match(s or ""))
+
+
+def _require_admin(request: Request) -> str:
+    """Verify the request scope marks the caller as admin. Returns the email."""
+    user = request.scope.get("user") or {}
+    email = user.get("email")
+    if not email or not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="admin only")
+    return email
+
+
+def _count_admins(client: Any) -> int:
+    res = (
+        client.table("approved_emails")
+        .select("email")
+        .eq("is_admin", True)
+        .execute()
+    )
+    return len(res.data or [])
 
 
 def _supabase_list_runs(client: Any) -> list[RunListRow]:

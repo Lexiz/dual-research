@@ -25,6 +25,7 @@ function App() {
   const { client, ready: clientReady, hostedMode } = useSupabaseClient();
   const { session, ready: sessionReady } = useSession(client);
   const [notApproved, setNotApproved] = React.useState(false);
+  const me = useMe();  // null until first /api/me resolves
 
   // Listen for the global "not-approved" event that authedFetch raises when
   // the server returns 403. Any /api call can trigger this; we swap to the
@@ -39,7 +40,7 @@ function App() {
     return <FullPageMessage title="Loading…" body="Connecting to the server." />;
   }
   if (hostedMode && !session) {
-    return <SignInScreen client={client} />;
+    return <LandingScreen client={client} />;
   }
   if (hostedMode && notApproved) {
     return <NotApprovedScreen session={session} client={client} />;
@@ -49,12 +50,14 @@ function App() {
     <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--bg-0)' }}>
       <ChromeBar route={route} navigate={navigate}
                  theme={theme}
-                 onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+                 onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                 client={client} session={session} me={me} />
 
       <div style={{ height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
         {route.view === 'detail'   && <DetailScreen runId={route.runId} navigate={navigate} />}
         {route.view === 'list'     && <ListScreen navigate={navigate} />}
         {route.view === 'language' && <DesignLanguageView />}
+        {route.view === 'settings' && <SettingsScreen me={me} />}
       </div>
     </div>
   );
@@ -107,7 +110,7 @@ function ListScreen({ navigate }) {
 
 // ─────────────────── Top chrome ───────────────────
 
-function ChromeBar({ route, navigate, theme, onToggleTheme }) {
+function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me }) {
   const onList = route.view === 'list';
   return (
     <div style={{
@@ -127,8 +130,11 @@ function ChromeBar({ route, navigate, theme, onToggleTheme }) {
       <RightCluster
         theme={theme}
         onToggleTheme={onToggleTheme}
-        onOpenLanguage={() => navigate('language')}
-        languageActive={route.view === 'language'}
+        navigate={navigate}
+        route={route}
+        client={client}
+        session={session}
+        me={me}
       />
     </div>
   );
@@ -162,13 +168,140 @@ function ChromeTab({ label, icon, active, onClick }) {
 
 // ─────────────────── Right cluster — three sibling controls ───────────────────
 
-function RightCluster({ theme, onToggleTheme, onOpenLanguage, languageActive }) {
+function RightCluster({ theme, onToggleTheme, navigate, route, client, session, me }) {
   return (
     <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <ConnectionPill />
       <ThemeSegmentedToggle theme={theme} onToggle={onToggleTheme} />
-      <DesignLanguageButton onClick={onOpenLanguage} active={languageActive} />
+      {session
+        ? <AvatarMenu navigate={navigate} route={route}
+                      client={client} session={session} me={me} />
+        : <DesignLanguageButton onClick={() => navigate('language')}
+                                active={route.view === 'language'} />}
     </div>
+  );
+}
+
+// ─────────────────── Avatar dropdown ───────────────────
+
+function AvatarMenu({ navigate, route, client, session, me }) {
+  const [open, setOpen] = React.useState(false);
+  const rootRef = React.useRef(null);
+  const email = me?.email || session?.user?.email || '';
+  const avatarUrl = me?.avatarUrl || session?.user?.user_metadata?.avatar_url || null;
+  const fullName = me?.fullName || session?.user?.user_metadata?.full_name || email;
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onDown(e) {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    }
+    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const onSignOut = async () => {
+    setOpen(false);
+    try { await client.auth.signOut(); } catch (e) { /* noop */ }
+    window.location.replace('/');
+  };
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative', display: 'flex', alignItems: 'center',
+                                 borderLeft: '1px solid var(--border-1)', padding: '0 10px' }}>
+      <button onClick={() => setOpen(v => !v)}
+              title={email}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 0,
+                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+              }}>
+        <AvatarDisc email={email} url={avatarUrl} size={28} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 42, right: 8, minWidth: 220,
+          background: 'var(--bg-1)', border: '1px solid var(--border-2)',
+          borderRadius: 8, padding: 6, zIndex: 50,
+          boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-1)', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.2 }}>
+              {fullName}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2 }}>
+              {email}
+              {me?.isAdmin && (
+                <span style={{
+                  marginLeft: 6, padding: '0 6px', borderRadius: 999,
+                  background: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)',
+                  fontSize: 10, border: '1px solid var(--agent-b-border)',
+                }}>admin</span>
+              )}
+            </div>
+          </div>
+          <MenuItem onClick={() => { setOpen(false); navigate('language'); }}
+                    icon={Icon.Palette} label="Design language" active={route.view === 'language'} />
+          {me?.isAdmin && (
+            <MenuItem onClick={() => { setOpen(false); navigate('settings'); }}
+                      icon={Icon.Gear} label="Settings" active={route.view === 'settings'} />
+          )}
+          <div style={{ height: 1, background: 'var(--border-1)', margin: '4px 0' }} />
+          <MenuItem onClick={onSignOut} icon={Icon.SignOut} label="Sign out" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({ onClick, icon, label, active }) {
+  const Ico = icon;
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+      padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
+      border: 'none', background: active ? 'var(--bg-2)' : 'transparent',
+      color: 'var(--fg-0)', fontFamily: 'inherit', fontSize: 13,
+      textAlign: 'left',
+    }}
+    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-2)'; }}
+    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
+      {Ico && <Ico style={{ color: 'var(--fg-2)' }} />}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function AvatarDisc({ email, url, size = 28 }) {
+  const initials = (email || '?').slice(0, 1).toUpperCase();
+  // Deterministic hue from email so the fallback feels intentional.
+  let hash = 0;
+  for (const c of email || '') hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+  const hue = Math.abs(hash) % 360;
+  if (url) {
+    return (
+      <img src={url} alt={email}
+           referrerPolicy="no-referrer"
+           style={{
+             width: size, height: size, borderRadius: '50%',
+             border: '1px solid var(--border-2)', objectFit: 'cover',
+             display: 'block',
+           }} />
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: `hsl(${hue}, 55%, 38%)`,
+      color: 'white', display: 'inline-flex',
+      alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.round(size * 0.42), fontWeight: 600,
+      border: '1px solid var(--border-2)',
+    }}>{initials}</div>
   );
 }
 
