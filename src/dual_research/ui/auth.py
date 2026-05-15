@@ -40,7 +40,8 @@ class SupabaseAuthMiddleware:
         self._app = app
         self._client = client
         self._ttl = cache_ttl_seconds
-        self._cache: dict[str, tuple[str | None, bool, float]] = {}
+        # token_hash → (email_or_None, approved, is_admin, expires_at)
+        self._cache: dict[str, tuple[str | None, bool, bool, float]] = {}
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -57,7 +58,7 @@ class SupabaseAuthMiddleware:
             await _send_json(send, 401, {"error": "missing_token"})
             return
 
-        email, approved = self._validate(token)
+        email, approved, is_admin = self._validate(token)
         if email is None:
             await _send_json(send, 401, {"error": "invalid_token"})
             return
@@ -66,7 +67,7 @@ class SupabaseAuthMiddleware:
             return
 
         scope = dict(scope)
-        scope["user"] = {"email": email}
+        scope["user"] = {"email": email, "is_admin": is_admin, "token": token}
         await self._app(scope, receive, send)
 
     # ─── internals ────────────────────────────────────────────────────────
@@ -79,26 +80,26 @@ class SupabaseAuthMiddleware:
                     return parts[1]
         return None
 
-    def _validate(self, token: str) -> tuple[str | None, bool]:
-        """Return (email, approved). email is None when the token is invalid."""
+    def _validate(self, token: str) -> tuple[str | None, bool, bool]:
+        """Return (email, approved, is_admin). email is None when invalid."""
         key = hashlib.sha256(token.encode("utf-8")).hexdigest()
         now = time.monotonic()
 
         hit = self._cache.get(key)
         if hit is not None:
-            email, approved, expires_at = hit
+            email, approved, is_admin, expires_at = hit
             if now < expires_at:
-                return email, approved
+                return email, approved, is_admin
             del self._cache[key]
 
         email = _get_user_email(self._client, token)
         if email is None:
-            self._cache[key] = (None, False, now + self._ttl)
-            return None, False
+            self._cache[key] = (None, False, False, now + self._ttl)
+            return None, False, False
 
-        approved = _email_is_approved(self._client, email)
-        self._cache[key] = (email, approved, now + self._ttl)
-        return email, approved
+        approved, is_admin = _email_status(self._client, email)
+        self._cache[key] = (email, approved, is_admin, now + self._ttl)
+        return email, approved, is_admin
 
 
 def _get_user_email(client: Any, token: str) -> str | None:
@@ -114,18 +115,22 @@ def _get_user_email(client: Any, token: str) -> str | None:
     return str(email).strip().lower() or None
 
 
-def _email_is_approved(client: Any, email: str) -> bool:
+def _email_status(client: Any, email: str) -> tuple[bool, bool]:
+    """Return (approved, is_admin) for the given email."""
     try:
         res = (
             client.table("approved_emails")
-            .select("email")
+            .select("email,is_admin")
             .eq("email", email)
             .limit(1)
             .execute()
         )
     except Exception:
-        return False
-    return bool(res.data)
+        return False, False
+    rows = res.data or []
+    if not rows:
+        return False, False
+    return True, bool(rows[0].get("is_admin"))
 
 
 async def _send_json(send: Send, status: int, body: dict[str, Any]) -> None:

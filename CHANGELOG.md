@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.21.0] — 2026-05-15
+
+### Added
+
+- **Admin allowlist UI + profile menu + landing-page redesign** ([spec 0022](specs/0022-admin-and-polish.md)) — wraps up the hosted-deployment track with three user-facing upgrades. New admin route at `#/settings` (table of allowlist rows, inline add with optional admin checkbox, per-row remove) backed by four new endpoints: `GET /api/me` (email, isAdmin, avatarUrl, fullName from Google), `GET/POST /api/approved-emails`, `DELETE /api/approved-emails/{email}` — all admin-gated, with server-side protection against self-delete and removing the last admin (409 with a human-readable message). The chrome bar gains an **avatar dropdown** at the top-right: Google profile picture (deterministic-hue initials fallback when missing) opens a menu with Design language, Settings (admin only), and Sign out — the standalone Design link is gone. Landing page redesigned with a centered layout: a two-agent SVG visual (letter-mark "C" and "G" discs in the existing agent accent colours, dotted line + travelling dot between them), the wordmark, a tagline, and a properly-styled Google sign-in button. SupabaseAuthMiddleware now plumbs `is_admin` through the scope so admin handlers don't need a second DB lookup. 13 new unit tests; total 277.
+
 ## [0.20.0] — 2026-05-15
 
 ### Added

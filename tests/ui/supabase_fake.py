@@ -24,13 +24,16 @@ class FakeResult:
 
 class FakeBuilder:
     def __init__(self, rows: Iterable[dict[str, Any]]):
-        self._rows: list[dict[str, Any]] = list(rows)
+        # Hold a reference to the underlying list so mutations (upsert/delete)
+        # are visible to the next builder for the same table.
+        self._rows: list[dict[str, Any]] = rows if isinstance(rows, list) else list(rows)
         self._filters: list[Callable[[dict[str, Any]], bool]] = []
         self._sort: tuple[str, bool] | None = None
         self._range: tuple[int, int] | None = None
         self._limit: int | None = None
         self._upsert: list[dict[str, Any]] | None = None
         self._on_conflict: str | None = None
+        self._delete: bool = False
 
     # ─── chain ───────────────────────────────────────────────────────────────
 
@@ -64,9 +67,28 @@ class FakeBuilder:
         self._on_conflict = on_conflict
         return self
 
+    def delete(self) -> "FakeBuilder":
+        self._delete = True
+        return self
+
     # ─── terminator ──────────────────────────────────────────────────────────
 
     def execute(self) -> FakeResult:
+        if self._delete:
+            if not self._filters:
+                # Refuse to delete-all by accident — same as PostgREST's guard.
+                return FakeResult(data=[])
+            kept: list[dict[str, Any]] = []
+            removed: list[dict[str, Any]] = []
+            for r in self._rows:
+                if all(f(r) for f in self._filters):
+                    removed.append(r)
+                else:
+                    kept.append(r)
+            self._rows.clear()
+            self._rows.extend(kept)
+            return FakeResult(data=removed)
+
         if self._upsert is not None:
             # Replace-by-PK semantics; on_conflict is a comma-joined column list.
             keys = [k.strip() for k in (self._on_conflict or "").split(",") if k.strip()]
