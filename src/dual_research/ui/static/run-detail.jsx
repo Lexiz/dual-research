@@ -5,10 +5,11 @@
 //   ├─ left: artifact cards (collapsible)   │  right: disagreements by phase (tabbed)
 //   └─ footer
 
-// ─────────────────── Compact run-detail header (spec 0024 pass 2) ────────────
+// ─────────────────── Compact run-detail header (spec 0024 pass 3) ────────────
+// Back action now lives in the chrome bar's "All runs" tab (icon swaps to a
+// back-arrow on detail views), so the header has neither a back chip nor a
+// TOPIC tag — just topic + right-side badges.
 function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
-  const ctx = React.useContext(window.RunContext) || {};
-  const onBack = () => ctx.navigate ? ctx.navigate('list') : (window.location.hash = '#/');
   const total = run.agents.claude.cost + run.agents.gpt.cost;
   const idParts = window.splitRunId(run.id);
   const startedClock = idParts.time || '—';
@@ -22,16 +23,14 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
   return (
     <header style={{
       display: 'flex', flexDirection: 'column',
-      padding: '8px 20px 8px 12px',
+      padding: '8px 20px',
       borderBottom: '1px solid var(--border-1)',
       background: 'var(--bg-0)',
       flexShrink: 0,
       gap: 4,
     }}>
-      {/* Row 1: back arrow + TOPIC label + topic text + cost + status/errors */}
+      {/* Row 1: topic + cost + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-        <BackArrow onClick={onBack} />
-        <TopicLabel />
         <Topic text={run.topic} />
         <CostBadge cost={total} tokens={totalTokens} />
         <StatusErrorsBadge
@@ -44,7 +43,6 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
       {/* Row 2: meta line on left, phase dots on right */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        paddingLeft: 56,  // align with topic text
       }}>
         <div className="mono" style={{
           fontSize: 10.5, color: 'var(--fg-3)',
@@ -63,44 +61,6 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
         <PhaseDots run={run} />
       </div>
     </header>
-  );
-}
-
-function BackArrow({ onClick }) {
-  const [hover, setHover] = React.useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title="Back to All runs"
-      aria-label="Back"
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 24, height: 24, padding: 0,
-        background: hover ? 'var(--bg-2)' : 'transparent',
-        border: '1px solid var(--border-1)',
-        borderRadius: 6,
-        color: 'var(--fg-1)',
-        cursor: 'pointer', flexShrink: 0,
-      }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="15 18 9 12 15 6" />
-      </svg>
-    </button>
-  );
-}
-
-function TopicLabel() {
-  return (
-    <span className="mono" style={{
-      display: 'inline-block', flexShrink: 0,
-      padding: '2px 7px', borderRadius: 4,
-      background: 'var(--bg-2)', border: '1px solid var(--border-1)',
-      color: 'var(--fg-3)', fontSize: 10,
-      letterSpacing: '0.08em',
-    }}>TOPIC</span>
   );
 }
 

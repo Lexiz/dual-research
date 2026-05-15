@@ -123,7 +123,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
     }}>
       <ChromeTab
         label="All runs"
-        icon={Icon.List}
+        icon={route.view === 'detail' ? Icon.ArrowLeft : Icon.List}
         active={onList}
         onClick={() => navigate('list')}
       />
