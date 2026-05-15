@@ -267,7 +267,10 @@ function buildLiveTimeline(run) {
       extra: `${p2Rounds} round${p2Rounds === 1 ? '' : 's'}`,
     });
     if (ph === 2 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
-      const completedThrough = Math.max(0, cur - 1);
+      // For `running`, `cur` is the in-flight round handled by the live branch
+      // below. For `deadlocked` / `errored`, `cur` is already on disk and
+      // complete, so include it in the static-card loop. (Spec 0017.)
+      const completedThrough = st === 'running' ? Math.max(0, cur - 1) : cur;
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p2-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
                      filePath: fileForRound(2, r, 'claude') });

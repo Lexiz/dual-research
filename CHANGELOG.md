@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.16.2] — 2026-05-15
+
+### Fixed
+
+- **Deadlocked phase-2 last round** ([spec 0017](specs/0017-deadlock-last-round.md)) — when a run deadlocked at the Phase 2 hard cap, the timeline rendered N-1 of N turn-card pairs. The Phase 2 in-progress branch computed `completedThrough = cur - 1`, expecting the live branch below to cover the `cur` round — but the live branch only fired for `status === 'running'`. For `deadlocked` / `errored`, the `cur` round was on disk and complete but neither branch picked it up. The divider's "N rounds" text (which spec 0016 fixed to read from `phaseStats.phase2`) was therefore one ahead of the rendered card count. Surfaced by a live-verify run that hard-capped on the web-components-catalogue prompt (5 of 5 rounds, $0.47). One-line fix in `buildLiveTimeline`: `completedThrough = st === 'running' ? cur - 1 : cur`. Symmetric Phase 4 case is unreachable today (outer guard already excludes deadlocked/errored from the Phase 4 in-progress branch) and is left out of scope.
+
 ## [0.16.1] — 2026-05-15
 
 ### Fixed
