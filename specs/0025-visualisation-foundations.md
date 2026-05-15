@@ -3,10 +3,10 @@ spec: 0025
 title: Visualisation foundations — modal pattern, summary cards, preflight tabs, attachment ingest
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.23.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/25"
 ---
 
 # Spec 0025 — Visualisation foundations
