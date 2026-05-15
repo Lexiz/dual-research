@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import time
-from typing import TextIO
+from typing import Any, TextIO
 
 import anthropic
 from anthropic import AsyncAnthropic
 
-from dual_research.agents.base import AgentError, AgentResult, TokenUsage, web_search_enabled
+from dual_research.agents.base import (
+    AgentError,
+    AgentResult,
+    TokenUsage,
+    cache_enabled,
+    web_search_enabled,
+)
 from dual_research.agents.pricing import compute_cost
 from dual_research.config import ModelSpec
+from dual_research.protocol import CACHE_BREAKPOINT
 
 
 WEB_SEARCH_TOOL = {
@@ -16,6 +23,10 @@ WEB_SEARCH_TOOL = {
     "name": "web_search",
     "max_uses": 10,
 }
+
+# 1-hour cache TTL via the extended-cache-ttl-2025-04-11 beta.
+# Falls back to the default 5-minute TTL if the beta is rejected by the API.
+EXTENDED_CACHE_TTL_BETA = "extended-cache-ttl-2025-04-11"
 
 
 class ClaudeAgent:
@@ -27,6 +38,13 @@ class ClaudeAgent:
             raise ValueError(f"ClaudeAgent requires an anthropic ModelSpec, got provider={spec.provider!r}")
         self._spec = spec
         headers = dict(spec.extra_headers) if spec.extra_headers else {}
+        if cache_enabled():
+            # Merge cache beta into existing anthropic-beta header if present.
+            existing = headers.get("anthropic-beta", "")
+            betas = [b.strip() for b in existing.split(",") if b.strip()]
+            if EXTENDED_CACHE_TTL_BETA not in betas:
+                betas.append(EXTENDED_CACHE_TTL_BETA)
+            headers["anthropic-beta"] = ",".join(betas)
         self._client = AsyncAnthropic(
             api_key=api_key,
             default_headers=headers,
@@ -52,7 +70,7 @@ class ClaudeAgent:
         kwargs: dict = {
             "model": self._spec.model_id,
             "max_tokens": max_output_tokens,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": [{"role": "user", "content": _build_content(prompt)}],
         }
         if web_search_enabled():
             kwargs["tools"] = [WEB_SEARCH_TOOL]
@@ -110,3 +128,23 @@ def _count_web_searches(message) -> int:
         if btype == "server_tool_use" and getattr(block, "name", None) == "web_search":
             n += 1
     return n
+
+
+def _build_content(prompt: str) -> Any:
+    """Split a prompt on CACHE_BREAKPOINT and apply cache_control.
+
+    When the marker is absent OR cache is disabled, return the plain string
+    (Anthropic accepts either str or a list of content blocks).
+    """
+    if not cache_enabled() or CACHE_BREAKPOINT not in prompt:
+        return prompt.replace(CACHE_BREAKPOINT, "")
+
+    prefix, suffix = prompt.split(CACHE_BREAKPOINT, 1)
+    return [
+        {
+            "type": "text",
+            "text": prefix,
+            "cache_control": {"type": "ephemeral", "ttl": "1h"},
+        },
+        {"type": "text", "text": suffix},
+    ]

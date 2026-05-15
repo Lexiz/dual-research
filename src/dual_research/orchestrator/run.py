@@ -58,10 +58,14 @@ def _install_cost_ticker(event_bus: EventBus, metrics: Metrics) -> None:
         total = metrics.total_cost_usd()
         by_agent = {a: t["cost_usd"] for a, t in metrics.totals_by_agent().items()}
         await event_bus.publish(CostUpdate(total_usd=total, by_agent=by_agent))
-        # Stdout ticker (per-call)
+        cache_note = ""
+        if event.cache_read_tokens or event.cache_write_tokens:
+            cache_note = (
+                f"  cache:r={event.cache_read_tokens:,}/w={event.cache_write_tokens:,}"
+            )
         print(
             f"\n[{event.agent}] {event.phase}  in={event.input_tokens:,}  "
-            f"out={event.output_tokens:,}  ${event.cost_usd:.4f}  "
+            f"out={event.output_tokens:,}{cache_note}  ${event.cost_usd:.4f}  "
             f"{event.duration_ms / 1000:.1f}s   |   "
             f"running total: ${total:.4f}",
             flush=True,

@@ -9,6 +9,7 @@ from openai import AsyncOpenAI
 from dual_research.agents.base import AgentError, AgentResult, TokenUsage, web_search_enabled
 from dual_research.agents.pricing import compute_cost
 from dual_research.config import ModelSpec
+from dual_research.protocol import CACHE_BREAKPOINT
 
 
 WEB_SEARCH_TOOL = {"type": "web_search"}
@@ -54,9 +55,13 @@ class GptAgent:
         final_model = self._spec.model_id
         searches = 0
 
+        # OpenAI Responses API caches prefixes automatically (≥1024 token shared
+        # prefix) — no explicit markers needed. Strip the sentinel so the prompt
+        # reaches the model without it.
+        clean_prompt = prompt.replace(CACHE_BREAKPOINT, "")
         kwargs: dict[str, Any] = {
             "model": self._spec.model_id,
-            "input": prompt,
+            "input": clean_prompt,
             "stream": True,
             "max_output_tokens": max_output_tokens,
         }

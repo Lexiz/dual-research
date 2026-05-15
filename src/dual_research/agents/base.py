@@ -14,6 +14,11 @@ def web_search_enabled() -> bool:
     return os.environ.get("DUAL_RESEARCH_NO_WEB_SEARCH", "").strip().lower() not in ("1", "true", "yes")
 
 
+def cache_enabled() -> bool:
+    """Prompt caching is on by default. Set DUAL_RESEARCH_NO_CACHE=1 to disable."""
+    return os.environ.get("DUAL_RESEARCH_NO_CACHE", "").strip().lower() not in ("1", "true", "yes")
+
+
 @dataclass(frozen=True)
 class TokenUsage:
     input_tokens: int = 0
