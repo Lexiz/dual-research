@@ -3,10 +3,10 @@ spec: 0024
 title: Run-detail header pass 2 + compact theme toggle
 label: refactoring
 version-bump: PATCH
-status: in-progress
+status: merged
 target-version: 0.22.1
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/24"
 ---
 
 # Spec 0024 — Header pass 2 + compact theme toggle
