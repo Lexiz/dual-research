@@ -3,10 +3,10 @@ spec: 0021
 title: Google OAuth + email allowlist via Supabase Auth
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.20.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/21"
 ---
 
 # Spec 0021 — Google OAuth + email allowlist
