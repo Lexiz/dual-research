@@ -6,7 +6,7 @@ version-bump: PATCH
 status: merged
 target-version: 0.16.1
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/16"
 ---
 
 # Spec 0016 — Live data fidelity
