@@ -12,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.6.0] — 2026-05-15
+
+### Added
+
+- **Web search wiring on both providers** ([spec 0005](specs/0005-web-search.md)) — `ClaudeAgent` now passes the `web_search_20250305` server-side tool on `messages.stream(...)` (max 10 uses per call). `GptAgent` switched from Chat Completions to the Responses API and passes `{"type": "web_search"}` as a tool. Both stream identically to the prior shape. `DUAL_RESEARCH_NO_WEB_SEARCH=1` disables search on both providers (useful for offline tests). `AgentResult.extras` now records `searches: int` so the metadata header / transcript can surface how many searches each agent ran. Verified live: smoke test on a time-sensitive query ("current latest Python version") produced `3.14.5 — May 10, 2026` with real citations from both Claude (1 search) and GPT-5-mini (3 searches, $0.02 total). Prod-tier Phase 1 produced research with [V] tags and 2026-dated source URLs confirming both agents truly searched. 11 new pytest cases for the env-var flag; total suite: 81 green.
+
+### Known limitations
+
+- **Prod-tier rate limit (Anthropic).** The prod-tier full-convergence E2E surfaced an Anthropic Sonnet 4.6 rate limit of 30K input tokens per minute on the current account tier. Phase 2 round 2 includes the brief + both Phase 1 drafts + round-1 turns inlined (>100K input tokens), exceeding the per-minute budget and causing exit 2. **Mitigation paths** for a follow-up spec: (a) prompt caching on the brief / Phase 1 drafts / prior turns — the largely-static prefix should hit cache_read pricing and not count against per-minute input-token allowance; (b) Anthropic tier upgrade (sales contact). Test-tier runs (Haiku 4.5 + GPT-5-mini) are unaffected.
+
 ## [0.5.0] — 2026-05-15
 
 ### Added
