@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.15.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/14"
 ---
 
 # Spec 0014 — Clearer card stats
