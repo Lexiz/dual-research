@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.5.0] — 2026-05-15
+
+### Added
+
+- **Phases 3 + 4 + final document emission** ([spec 0004](specs/0004-phases-3-4-final.md)) — Phase 3 single-shot drafting by the agreed drafter (hash-verified `agreed_plan_block` + extracted canonical FSDs injected directly into the prompt). Phase 4 turn-based review loop with revised-draft detection (drafter embeds a `## Revised draft` section; orchestrator extracts and writes `draft-vN.md`, bumping `state.draft_round`). Repair flow reused from spec 0003. Soft cap = continue (autonomous); hard cap exits 51 with deadlock appendix in `final.md`. Metadata header rendering (Keep-a-Changelog–style provenance + cost + token totals + confidence tag HIGH/MODERATE/LOW). `final.md` lands in the session directory; `--out PATH` copies it elsewhere. Test-tier E2E demonstrated the Phase 2 hard-cap path cleanly (synthetic brief, test models couldn't hash-match an AGREED_PLAN block within 5 rounds, exit 51 + `phase2-deadlock.md` written). Phase 3 + 4 convergence path is unit-tested with stub agents; a prod-tier E2E to demonstrate the live convergence path is on the spec-0005 verification list. 12 new pytest cases; total: 70 green.
+
 ## [0.4.0] — 2026-05-15
 
 ### Added

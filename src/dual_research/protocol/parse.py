@@ -135,3 +135,12 @@ def parse_preflight_turn(text: str) -> ParsedPreflightTurn:
 
 def has_agreed_plan(parsed: ParsedTurn) -> bool:
     return parsed.agreed_plan is not None and len(parsed.agreed_plan) > 0
+
+
+def extract_revised_draft(turn_text: str) -> str | None:
+    """Return the body under `## Revised draft` (next top-level `##` ends it).
+
+    Used by Phase 4 to detect when the DRAFTER emits a new draft version inside
+    their turn. Returns None when the section is absent or empty.
+    """
+    return extract_fenced_section(turn_text, "Revised draft")

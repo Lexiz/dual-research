@@ -165,3 +165,48 @@ class Phase2Complete(Event):
     fsd_count: int
     via_tiebreak: bool
     kind: str = "phase2_complete"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Phase3Complete(Event):
+    drafter: str
+    draft_chars: int
+    kind: str = "phase3_complete"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Phase4RoundComplete(Event):
+    round: int
+    approved: bool
+    claude_status: str | None
+    openai_status: str | None
+    claude_open_issues: int | None
+    openai_open_issues: int | None
+    draft_round: int
+    kind: str = "phase4_round_complete"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Phase4DraftRevised(Event):
+    round: int
+    new_draft_round: int
+    new_draft_chars: int
+    kind: str = "phase4_draft_revised"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Phase4Complete(Event):
+    rounds: int
+    approved: bool
+    final_draft_round: int
+    revisions: int
+    kind: str = "phase4_complete"
+
+
+@dataclass(frozen=True, kw_only=True)
+class FinalEmitted(Event):
+    session_final_path: str
+    out_path: str | None
+    char_count: int
+    confidence: str
+    kind: str = "final_emitted"

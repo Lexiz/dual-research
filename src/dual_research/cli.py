@@ -198,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
             tier=tier,
             soft_cap=args.soft_cap,
             hard_cap=args.hard_cap,
+            out_path=Path(args.out).expanduser().resolve() if args.out else None,
         )
     )
 
@@ -209,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
         flush=True,
     )
     print(f"[run] session dir: {session_dir}", flush=True)
+    if result.final_path:
+        print(f"[run] final document: {result.final_path}", flush=True)
+        if args.out:
+            print(f"[run] also copied to: {args.out}", flush=True)
     return result.exit_code
 
 

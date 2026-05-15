@@ -16,9 +16,12 @@ from dual_research.events import (
     RunStarted,
     TurnEnded,
 )
+from dual_research.orchestrator.finalize import emit_final
 from dual_research.orchestrator.phase0 import Phase0Outcome, run_phase0
 from dual_research.orchestrator.phase1 import Phase1Outcome, run_phase1
 from dual_research.orchestrator.phase2 import Phase2Outcome, run_phase2
+from dual_research.orchestrator.phase3 import Phase3Outcome, run_phase3
+from dual_research.orchestrator.phase4 import Phase4Outcome, run_phase4
 from dual_research.persistence import (
     Metrics,
     SessionContext,
@@ -43,6 +46,9 @@ class RunResult:
     phase0: Phase0Outcome | None = None
     phase1: Phase1Outcome | None = None
     phase2: Phase2Outcome | None = None
+    phase3: Phase3Outcome | None = None
+    phase4: Phase4Outcome | None = None
+    final_path: str | None = None
 
 
 def _install_cost_ticker(event_bus: EventBus, metrics: Metrics) -> None:
@@ -81,6 +87,7 @@ async def run_session(
     tier: ModelTier,
     soft_cap: int,
     hard_cap: int,
+    out_path=None,
     event_bus: EventBus | None = None,
 ) -> RunResult:
     """Drive a session from its current state through as many phases as
@@ -125,6 +132,9 @@ async def run_session(
     phase0_outcome: Phase0Outcome | None = None
     phase1_outcome: Phase1Outcome | None = None
     phase2_outcome: Phase2Outcome | None = None
+    phase3_outcome: Phase3Outcome | None = None
+    phase4_outcome: Phase4Outcome | None = None
+    final_path: str | None = None
     phase_reached = state.phase
     exit_code = EXIT_OK
 
@@ -176,12 +186,50 @@ async def run_session(
                 phase_reached = "phase2"
             elif phase2_outcome.converged:
                 phase_reached = "phase3"
-                print(
-                    "\n[done] Phases 0–2 complete. Phases 3–4 are not yet wired up "
-                    "(see spec 0004); drafter is "
-                    f"{phase2_outcome.drafter} and the agreed plan is on disk.",
-                    flush=True,
-                )
+
+        if exit_code == EXIT_OK and state.phase == "phase3":
+            phase3_outcome = await run_phase3(
+                ctx=ctx,
+                claude_agent=claude,
+                openai_agent=gpt,
+                event_bus=bus,
+                brief_content=brief_content,
+            )
+            phase_reached = "phase4"
+
+        if exit_code == EXIT_OK and state.phase == "phase4":
+            phase4_outcome = await run_phase4(
+                ctx=ctx,
+                claude_agent=claude,
+                openai_agent=gpt,
+                event_bus=bus,
+                brief_content=brief_content,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+            )
+            if phase4_outcome.parse_failure:
+                exit_code = EXIT_PROTOCOL_PARSE_FAILURE
+                phase_reached = "phase4"
+            elif phase4_outcome.hard_capped:
+                exit_code = EXIT_HARD_CAP
+                phase_reached = "phase4"
+            else:
+                phase_reached = "done"
+
+        # Emit final document if Phase 4 completed (approved or hard-capped).
+        if phase4_outcome is not None and not phase4_outcome.parse_failure:
+            final_emitted = await emit_final(
+                ctx=ctx,
+                event_bus=bus,
+                out_path=out_path,
+                phase2_outcome=phase2_outcome,
+                phase4_outcome=phase4_outcome,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+                claude_model=tier.claude.model_id,
+                openai_model=tier.openai.model_id,
+            )
+            final_path = str(final_emitted)
 
         total_cost = metrics.total_cost_usd()
         duration_ms = int((time.perf_counter() - run_started) * 1000)
@@ -212,6 +260,9 @@ async def run_session(
             phase0=phase0_outcome,
             phase1=phase1_outcome,
             phase2=phase2_outcome,
+            phase3=phase3_outcome,
+            phase4=phase4_outcome,
+            final_path=final_path,
         )
 
     except Exception as e:
@@ -241,6 +292,9 @@ async def run_session(
             phase0=phase0_outcome,
             phase1=phase1_outcome,
             phase2=phase2_outcome,
+            phase3=phase3_outcome,
+            phase4=phase4_outcome,
+            final_path=final_path,
         )
 
 
