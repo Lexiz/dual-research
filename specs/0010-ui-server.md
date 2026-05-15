@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.11.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/10"
 ---
 
 # Spec 0010 — UI HTTP server with SSE
