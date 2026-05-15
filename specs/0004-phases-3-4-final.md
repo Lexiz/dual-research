@@ -3,10 +3,10 @@ spec: 0004
 title: Phases 3 + 4 — drafting, review, and final document emission
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.5.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/4"
 ---
 
 # Spec 0004 — Phases 3 + 4 + final document emission
