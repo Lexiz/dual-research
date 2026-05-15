@@ -113,6 +113,80 @@ class TestParseSection:
     def test_empty_section(self):
         assert _parse_section("") == []
 
+    def test_h3_heading_anchor(self):
+        # Claude's preferred mid-negotiation form: D-N entries as H3 headings.
+        section = dedent(
+            """\
+            ### D-1: SQLite in production (categorical vs. conditional)
+
+            - **Claude position:** narrow.
+            - **OpenAI position:** broad.
+
+            ### D-2: Concurrency semantics
+
+            - **Claude position:** strict.
+            """
+        )
+        out = _parse_section(section)
+        ids = [d["id"] for d in out]
+        assert ids == ["d-01", "d-02"]
+        assert "SQLite in production" in out[0]["label"]
+
+    def test_numbered_paren_anchor_with_status(self):
+        # OpenAI's negotiation form: numbered list with closing paren.
+        section = dedent(
+            """\
+            1) D-1: Scope of acceptable production use for SQLite — open
+            2) D-2: Concurrency semantics — open
+            """
+        )
+        out = _parse_section(section)
+        assert [d["id"] for d in out] == ["d-01", "d-02"]
+        assert out[0]["status"] == "open"
+        assert "Scope" in out[0]["label"]
+
+    def test_numbered_period_anchor_terminal(self):
+        # OpenAI's resolved form: numbered with period + terminal-state.
+        section = dedent(
+            """\
+            1. D-1: Operational cost — non_blocking_limitation. Evidence: managed pricing.
+            2. D-2: Durability caveats — resolved. Both agree.
+            """
+        )
+        out = _parse_section(section)
+        statuses = {d["id"]: d["status"] for d in out}
+        assert statuses == {"d-01": "non_blocking_limitation", "d-02": "resolved"}
+
+    def test_prose_mentioning_d1_does_not_match(self):
+        # Defensive: a passing reference to "D-1" inside running prose without
+        # an anchor should NOT trip the parser.
+        section = "Earlier in this round we labelled the contested point D-1, but it has since been dropped.\n"
+        assert _parse_section(section) == []
+
+
+def test_read_round_file_pulls_resolved_section(tmp_path):
+    # Claude's late-round pattern: substantive section empty, entries live
+    # under "## Resolved or non-blocking differences". The parser should pick
+    # them up so they don't disappear from the timeline.
+    from dual_research.ui.disagreements import _read_round_file
+
+    body = dedent(
+        """\
+        ## Substantive disagreements I'm holding
+        (None remaining. All prior disagreements have been resolved.)
+
+        ## Resolved or non-blocking differences
+        - **D-1 (SQLite production):** `resolved` — Both agents now accept the conditional framing.
+        - **D-2 (WAL concurrency):** `resolved` — Documentation citation accepted.
+        """
+    )
+    path = tmp_path / "round-04-claude.md"
+    path.write_text(body, encoding="utf-8")
+    entries = _read_round_file(path)
+    ids = sorted(e["id"] for e in entries)
+    assert ids == ["d-01", "d-02"]
+    assert all(e["status"] == "resolved" for e in entries)
+
 
 # ─── reconstruct() against the cache-multi-round fixture ──────────────────────
 

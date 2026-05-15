@@ -248,6 +248,11 @@ class Run:
         default_factory=lambda: {"claude": AgentState(), "gpt": AgentState()}
     )
     disagreements: list[Disagreement] = field(default_factory=list)
+    # Set when ``disagreements`` is empty but at least one round file contains
+    # literal ``D-<digit>`` anchors — i.e. the agent emitted disagreements that
+    # the parser couldn't recognise. UI uses this to distinguish a parser miss
+    # from a genuinely disagreement-free run.
+    disagreements_parse_suspected_miss: bool = False
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)

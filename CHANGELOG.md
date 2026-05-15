@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.16.1] — 2026-05-15
+
+### Fixed
+
+- **Live data fidelity** ([spec 0016](specs/0016-live-data-fidelity.md)) — five interpretation-layer bugs surfaced by the first concurrent backend + UI run (test-tier SQLite-vs-Postgres prompt, APPROVED in Phase 4 round 3, $0.4228).
+  - **Round enumeration** — `live-data.jsx` no longer reads `run.round.current` for past phases. Phase 2 turn-card count and the "N rounds" divider extra-text now derive from `phaseStats.phase2` keys, so a Phase 2 that ran 4 rounds renders as 4 rounds once the run advances to Phase 4. Symmetric fix for Phase 4 enumeration once the run completes.
+  - **Disagreement parser coverage** — `ui/disagreements.py::_D_LINE_RE` now also recognises `### D-N`, `#### D-N`, and `N.`/`N)` numbered-list anchors (Claude and OpenAI's actual mid-negotiation formats), in addition to the original `- D-N` list-marker form. A new bare-tail regex captures `<label> — <state>` without the `status:` keyword (OpenAI's form). `_read_round_file` now also pulls entries from `## Final-surfaced disagreements` and `## Resolved or non-blocking differences` so terminal-state entries don't vanish once Claude migrates them out of the "Substantive" section. Per-id records merged across sections keep the longest-information label. The live-integration run that previously rendered 0 disagreements now reconstructs all 6.
+  - **Negotiation prompt** — `protocol/prompts.py::negotiation_turn_prompt` now includes a verbatim example of the open-form and terminal-form anchor lines, so agents emit a format the parser recognises (belt-and-braces with the parser broadening above).
+  - **Terminal-status pills** — `run-detail.jsx::StatsChips` renders a status pill for every protocol state (`NEGOTIATING`, `REVIEWING`, `DISAGREED`, plus the existing `AGREED` / `APPROVED` / `NOT_APPROVED`). A non-terminal round no longer shows as a bare `4 questions · r1` with no agreement signal.
+  - **Phase 0 chip math** — `live-data.jsx::attachItemStats` reports `max(claude.briefIssues, gpt.briefIssues)` instead of the sum. The two agents critique the same brief; their issue lists overlap; the sum was meaningless.
+  - **Silent-failure footer** — when the parser finds zero disagreements but at least one round file contains a literal `D-<digit>` anchor, the aggregator sets a new `Run.disagreements_parse_suspected_miss` flag, and the Disagreement Explorer renders a one-line muted footer ("⚠ couldn't reconstruct disagreements from this run — open the round files directly"). Genuine no-disagreement runs are unaffected.
+- 9 new tests; total 223.
+
 ## [0.16.0] — 2026-05-15
 
 ### Added

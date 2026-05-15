@@ -567,11 +567,14 @@ function StatsChips({ stats, phase }) {
       });
     }
   }
-  const statusPill = stats.status && (stats.status === 'AGREED' || stats.status === 'APPROVED' || stats.status === 'NOT_APPROVED');
+  // Render a pill for every protocol-defined turn status, not just the
+  // terminal-agreed ones. Mid-state values (NEGOTIATING / REVIEWING /
+  // DISAGREED) used to be silently dropped, leaving the user unable to
+  // tell at a glance whether a round agreed.
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
       {chips.map((c, i) => <StatChip key={i} {...c} />)}
-      {statusPill && <StatusInline label={stats.status} />}
+      {stats.status && <StatusInline label={stats.status} />}
     </span>
   );
 }
@@ -600,8 +603,11 @@ function StatusInline({ label }) {
     AGREED:       { color: COLORS.ok,   text: 'agreed' },
     APPROVED:     { color: COLORS.ok,   text: 'approved' },
     NOT_APPROVED: { color: COLORS.warn, text: 'not approved' },
+    DISAGREED:    { color: COLORS.warn, text: 'disagreed' },
+    NEGOTIATING:  { color: COLORS.idle, text: 'negotiating' },
+    REVIEWING:    { color: COLORS.idle, text: 'reviewing' },
   };
-  const m = map[label] || { color: 'var(--fg-3)', text: String(label).toLowerCase() };
+  const m = map[label] || { color: COLORS.idle, text: String(label).toLowerCase().replace(/_/g, ' ') };
   return (
     <span className="mono" style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -1004,9 +1010,17 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
   }
 
   if (introduced === 0) {
+    const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
     return (
       <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
-        <div className="mono" style={{ fontSize: 12 }}>no disagreements in this phase</div>
+        <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
+          <div className="mono" style={{ fontSize: 12 }}>no disagreements in this phase</div>
+          {suspectedMiss && (
+            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85 }}>
+              ⚠ couldn't reconstruct disagreements from this run — open the round files directly
+            </div>
+          )}
+        </div>
       </div>
     );
   }
