@@ -6,7 +6,7 @@ version-bump: PATCH
 status: merged
 target-version: 0.16.2
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/17"
 ---
 
 # Spec 0017 — Render the last round in deadlocked / errored phase-2 timelines
