@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.8.0] — 2026-05-15
+
+### Added
+
+- **Rate-limit-aware retry + resume from prior session** ([spec 0007](specs/0007-resume-and-backoff.md)) — `agents/base.py` exports a `with_rate_limit_retry` helper that catches HTTP 429 from either SDK, honours the `Retry-After` header (clamped to [5s, 300s]), and falls back to exponential backoff with jitter. Both `ClaudeAgent` and `GptAgent` now wrap their SDK call in this helper (default 3 attempts). The CLI gains `--resume SESSION_DIR` (mutually exclusive with `--prompt`/`--brief`/`--notion`) which loads `state.json` from the session, validates it, and re-enters the orchestrator at the persisted phase — already-completed phases are skipped, partial phases pick up at the next round via the existing turn-file logic. `--extend-caps N` bumps both soft and hard caps by N on a resume so a previously hard-capped session can be given more rounds. Live verified: resume of a `state.phase=done` session correctly skips all phases (exit 0, $0 cost). 11 new pytest cases. Total suite: 104 green.
+
 ## [0.7.0] — 2026-05-15
 
 ### Added

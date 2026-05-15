@@ -12,6 +12,7 @@ from dual_research.agents.base import (
     TokenUsage,
     cache_enabled,
     web_search_enabled,
+    with_rate_limit_retry,
 )
 from dual_research.agents.pricing import compute_cost
 from dual_research.config import ModelSpec
@@ -75,7 +76,10 @@ class ClaudeAgent:
         if web_search_enabled():
             kwargs["tools"] = [WEB_SEARCH_TOOL]
 
-        try:
+        async def _do_call():
+            nonlocal text_parts, first_token
+            text_parts = []
+            first_token = True
             async with self._client.messages.stream(**kwargs) as stream:
                 async for delta in stream.text_stream:
                     text_parts.append(delta)
@@ -85,7 +89,10 @@ class ClaudeAgent:
                             first_token = False
                         stream_to.write(delta)
                         stream_to.flush()
-                final_msg = await stream.get_final_message()
+                return await stream.get_final_message()
+
+        try:
+            final_msg = await with_rate_limit_retry(_do_call, agent_label=self.label)
         except anthropic.APIError as e:
             raise AgentError(f"Anthropic API error ({type(e).__name__}): {e}") from e
 

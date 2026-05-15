@@ -50,6 +50,12 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="URL",
         help="Notion page URL — child pages are recursively pulled into the brief.",
     )
+    src.add_argument(
+        "--resume",
+        metavar="SESSION_DIR",
+        help="Resume an existing session by path. Skips already-completed phases. "
+             "Reads the brief from the session directory.",
+    )
 
     p.add_argument(
         "--out",
@@ -111,6 +117,14 @@ def _build_parser() -> argparse.ArgumentParser:
              "before paying for a full research run.",
     )
     p.add_argument(
+        "--extend-caps",
+        type=int,
+        default=0,
+        metavar="N",
+        help="When resuming, add N to BOTH soft and hard caps. Useful when the "
+             "previous run hit hard cap and you want to give it more rounds.",
+    )
+    p.add_argument(
         "--version",
         action="version",
         version=f"dual-research {__version__}",
@@ -150,6 +164,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.brief and not Path(args.brief).expanduser().exists():
         parser.error(f"--brief path does not exist: {args.brief}")
 
+    if args.resume:
+        return _run_resume(args, parser)
+
     require_notion = args.notion is not None
     try:
         creds = load_credentials(require_notion=require_notion)
@@ -188,6 +205,27 @@ def main(argv: list[str] | None = None) -> int:
         print("[--ingest-only set — done. Brief is ready for the orchestrator.]")
         return 0
 
+    return _run_orchestrator(
+        args=args,
+        creds=creds,
+        tier=tier,
+        slug=slug,
+        session_dir=session_dir,
+        soft_cap=args.soft_cap,
+        hard_cap=args.hard_cap,
+    )
+
+
+def _run_orchestrator(
+    *,
+    args: argparse.Namespace,
+    creds: Credentials,
+    tier: ModelTier,
+    slug: str,
+    session_dir: Path,
+    soft_cap: int,
+    hard_cap: int,
+) -> int:
     from dual_research.orchestrator import run_session
 
     result = asyncio.run(
@@ -196,8 +234,8 @@ def main(argv: list[str] | None = None) -> int:
             slug=slug,
             creds=creds,
             tier=tier,
-            soft_cap=args.soft_cap,
-            hard_cap=args.hard_cap,
+            soft_cap=soft_cap,
+            hard_cap=hard_cap,
             out_path=Path(args.out).expanduser().resolve() if args.out else None,
         )
     )
@@ -215,6 +253,50 @@ def main(argv: list[str] | None = None) -> int:
         if args.out:
             print(f"[run] also copied to: {args.out}", flush=True)
     return result.exit_code
+
+
+def _run_resume(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
+    session_dir = Path(args.resume).expanduser().resolve()
+    if not session_dir.is_dir():
+        parser.error(f"--resume path is not a directory: {session_dir}")
+    state_path = session_dir / "state.json"
+    brief_path = session_dir / "brief.md"
+    if not state_path.exists():
+        parser.error(f"no state.json in {session_dir} — cannot resume")
+    if not brief_path.exists():
+        parser.error(f"no brief.md in {session_dir} — cannot resume")
+
+    try:
+        creds = load_credentials(require_notion=False)
+    except MissingCredentialError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    tier: ModelTier = TIERS[args.models]
+    soft_cap = args.soft_cap + args.extend_caps
+    hard_cap = args.hard_cap + args.extend_caps
+
+    from dual_research.persistence.state import load_state
+
+    state = load_state(state_path)
+    slug = session_dir.name.split("-", 2)[-1] if "-" in session_dir.name else session_dir.name
+
+    print(f"[resume] session: {session_dir}")
+    print(f"[resume] state.phase = {state.phase}  drafter = {state.drafter}  "
+          f"draft_round = {state.draft_round}")
+    print(f"[resume] caps: soft={soft_cap}  hard={hard_cap}"
+          f"  (extended by {args.extend_caps})")
+    print(f"[resume] model tier: {tier.name}")
+
+    return _run_orchestrator(
+        args=args,
+        creds=creds,
+        tier=tier,
+        slug=slug,
+        session_dir=session_dir,
+        soft_cap=soft_cap,
+        hard_cap=hard_cap,
+    )
 
 
 async def _ingest(args: argparse.Namespace, creds: Credentials) -> BriefResult:
