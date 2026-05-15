@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.12.0] — 2026-05-15
+
+### Added
+
+- **UI bundle integration** ([spec 0011](specs/0011-ui-bundle-integration.md)) — the Claude Design React prototype is now wired to the live aggregator and lives under `src/dual_research/ui/static/`. `dual-research serve` boots the FastAPI server + UI bundle on `http://127.0.0.1:6173/` by default; the page reads real runs from disk and live-tails in-flight ones via SSE. Replaces the prototype's mock `data.jsx` with `live-data.jsx` (React hooks that fetch + stream the API), adds `router.jsx` (URL hash routing — `#/`, `#/runs/<id>`, `#/language`), and rewires `app.jsx` to use them. Per-turn markdown bodies are fetched lazily via `/api/runs/{id}/files/...`. Brand glyphs stay as placeholders. No build step (React + Babel + marked from CDN).
+
 ## [0.11.0] — 2026-05-15
 
 ### Added
