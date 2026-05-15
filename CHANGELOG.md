@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.19.0] — 2026-05-15
+
+### Added
+
+- **Fly.io deployment of the UI server with Supabase-backed aggregator** ([spec 0020](specs/0020-fly-deploy.md)) — the `dual-research serve` UI server can now run on Fly.io against the Supabase tables that spec 0019 introduced, so pushed runs are visible at a public URL. New `RUNS_BACKEND=fs|supabase` env var picks the backend at server boot — defaults to `fs` so local invocations are unchanged. In supabase mode, `/api/runs` queries the `runs` table directly (with a second query for `brief.md` topics) and the `/api/runs/{id}` + `/stream` paths materialize a tmp directory from `session_files` + `events` on each request, then hand it to the existing aggregator unchanged. New `Dockerfile` (python:3.14-slim, uv-managed deps) + `.dockerignore` + `fly.toml` (region `iad`, shared-cpu-1x@256mb, auto-stop after idle, health-check on `/api/health`). New `BasicAuthMiddleware` gates every route when `UI_BASIC_AUTH_PASSWORD` is set (Fly secret); `/api/health` always bypasses the gate so Fly's prober can see the machine. This middleware is a stopgap and gets removed in spec 0021 when Google OAuth lands. 22 new tests (datasource, supabase-mode server endpoints, basic-auth); total 260.
+
 ## [0.18.0] — 2026-05-15
 
 ### Added

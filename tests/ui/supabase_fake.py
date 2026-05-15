@@ -1,0 +1,114 @@
+"""In-memory fake supabase-py client supporting the read-side chain.
+
+Tests for spec 0020 use this to exercise the supabase backend of the UI
+server without hitting a live Supabase project. The chain mirrors the
+PostgREST builder API that supabase-py wraps:
+
+    client.table("runs").select("*").eq("id", x).order("created_at", desc=True).limit(10).execute()
+
+Supports: select (no-op projection), eq, in_, order, range, limit. Returns
+a result object with .data (and .count if available).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Callable, Iterable
+
+
+@dataclass
+class FakeResult:
+    data: list[dict[str, Any]]
+    count: int | None = None
+
+
+class FakeBuilder:
+    def __init__(self, rows: Iterable[dict[str, Any]]):
+        self._rows: list[dict[str, Any]] = list(rows)
+        self._filters: list[Callable[[dict[str, Any]], bool]] = []
+        self._sort: tuple[str, bool] | None = None
+        self._range: tuple[int, int] | None = None
+        self._limit: int | None = None
+        self._upsert: list[dict[str, Any]] | None = None
+        self._on_conflict: str | None = None
+
+    # ─── chain ───────────────────────────────────────────────────────────────
+
+    def select(self, columns: str = "*", **_kw: Any) -> "FakeBuilder":
+        return self
+
+    def eq(self, col: str, val: Any) -> "FakeBuilder":
+        self._filters.append(lambda r: r.get(col) == val)
+        return self
+
+    def in_(self, col: str, vals: list[Any]) -> "FakeBuilder":
+        valset = set(vals)
+        self._filters.append(lambda r: r.get(col) in valset)
+        return self
+
+    def order(self, col: str, *, desc: bool = False) -> "FakeBuilder":
+        self._sort = (col, desc)
+        return self
+
+    def range(self, start: int, end: int) -> "FakeBuilder":
+        # PostgREST range is inclusive on both ends.
+        self._range = (start, end + 1)
+        return self
+
+    def limit(self, n: int) -> "FakeBuilder":
+        self._limit = n
+        return self
+
+    def upsert(self, rows: list[dict[str, Any]], on_conflict: str = "") -> "FakeBuilder":
+        self._upsert = list(rows)
+        self._on_conflict = on_conflict
+        return self
+
+    # ─── terminator ──────────────────────────────────────────────────────────
+
+    def execute(self) -> FakeResult:
+        if self._upsert is not None:
+            # Replace-by-PK semantics; on_conflict is a comma-joined column list.
+            keys = [k.strip() for k in (self._on_conflict or "").split(",") if k.strip()]
+            existing_index: dict[tuple, int] = {}
+            for i, r in enumerate(self._rows):
+                if keys:
+                    pk = tuple(r.get(k) for k in keys)
+                    existing_index[pk] = i
+            for new_row in self._upsert:
+                if keys:
+                    pk = tuple(new_row.get(k) for k in keys)
+                    if pk in existing_index:
+                        self._rows[existing_index[pk]] = new_row
+                        continue
+                self._rows.append(new_row)
+            return FakeResult(data=list(self._upsert))
+
+        rows = self._rows
+        for f in self._filters:
+            rows = [r for r in rows if f(r)]
+        if self._sort:
+            col, desc = self._sort
+
+            def _key(r: dict[str, Any]) -> Any:
+                v = r.get(col)
+                return (v is None, v)
+
+            rows = sorted(rows, key=_key, reverse=desc)
+        if self._range:
+            s, e = self._range
+            rows = rows[s:e]
+        if self._limit is not None:
+            rows = rows[: self._limit]
+        return FakeResult(data=list(rows))
+
+
+@dataclass
+class FakeSupabaseClient:
+    runs: list[dict[str, Any]] = field(default_factory=list)
+    events: list[dict[str, Any]] = field(default_factory=list)
+    session_files: list[dict[str, Any]] = field(default_factory=list)
+
+    def table(self, name: str) -> FakeBuilder:
+        bucket = getattr(self, name)
+        return FakeBuilder(bucket)

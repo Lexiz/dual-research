@@ -31,6 +31,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator
 
@@ -47,12 +48,15 @@ except ImportError:  # pragma: no cover — dependency declared in pyproject
 from dual_research import __version__
 from dual_research.config import resolve_paths
 from dual_research.ui import load_run_snapshot, summarize_run
-from dual_research.ui.models import to_jsonable
+from dual_research.ui.auth import BasicAuthMiddleware
+from dual_research.ui.datasource import SupabaseSessionData, latest_event_seq
+from dual_research.ui.labels import display_id, derive_run_status, phase_to_int
+from dual_research.ui.models import RunListRow, to_jsonable
 
 # ─── App + state ──────────────────────────────────────────────────────────────
 
 
-def _make_app(runs_dir: Path) -> FastAPI:
+def _make_app(runs_dir: Path, *, basic_auth_password: str | None = None) -> FastAPI:
     """Build a FastAPI app bound to a specific ``runs_dir``.
 
     Factory style so tests can spin up multiple apps over tmp directories
@@ -65,6 +69,8 @@ def _make_app(runs_dir: Path) -> FastAPI:
         redoc_url=None,
     )
     app.state.runs_dir = runs_dir
+    if basic_auth_password:
+        app.add_middleware(BasicAuthMiddleware, expected_password=basic_auth_password)
 
     # ─── API routes ───────────────────────────────────────────────────────────
 
@@ -119,6 +125,223 @@ def _make_app(runs_dir: Path) -> FastAPI:
     app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
 
     return app
+
+
+# ─── Supabase-backed app (spec 0020) ──────────────────────────────────────────
+
+
+SUPABASE_STREAM_POLL_SECONDS = 5.0
+
+
+def _make_supabase_app(client: Any, *, basic_auth_password: str | None = None) -> FastAPI:
+    """Build a FastAPI app that reads runs from Supabase instead of disk.
+
+    Used when ``RUNS_BACKEND=supabase``. The ``runs`` table powers the list
+    view directly; the run-detail and stream paths materialize a tmp dir from
+    ``session_files`` and hand it to the existing aggregator.
+    """
+    app = FastAPI(
+        title="dual-research UI",
+        version=__version__,
+        docs_url=None,
+        redoc_url=None,
+    )
+    app.state.backend = "supabase"
+    if basic_auth_password:
+        app.add_middleware(BasicAuthMiddleware, expected_password=basic_auth_password)
+
+    @app.get("/api/health")
+    async def health() -> dict[str, Any]:
+        return {"ok": True, "version": __version__, "backend": "supabase"}
+
+    @app.get("/api/runs")
+    async def list_runs() -> JSONResponse:
+        rows = _supabase_list_runs(client)
+        return JSONResponse([_to_camel(dataclasses.asdict(r)) for r in rows])
+
+    @app.get("/api/runs/{run_id}")
+    async def get_run(run_id: str) -> JSONResponse:
+        _require_run_exists(client, run_id)
+        with SupabaseSessionData(client, run_id).materialize() as tmp:
+            run = load_run_snapshot(tmp)
+        # The tmpdir name was synthetic; restore the real run id everywhere.
+        run.id = run_id
+        run.display_id = display_id(run_id)
+        return JSONResponse(_to_camel(to_jsonable(run)))
+
+    @app.get("/api/runs/{run_id}/stream")
+    async def stream_run(run_id: str, request: Request) -> EventSourceResponse:
+        _require_run_exists(client, run_id)
+        return EventSourceResponse(_supabase_event_stream(client, run_id, request))
+
+    @app.get("/api/runs/{run_id}/files/{path:path}")
+    async def get_file(run_id: str, path: str) -> PlainTextResponse:
+        if not _safe_rel_path(path):
+            raise HTTPException(status_code=404, detail="not found")
+        res = (
+            client.table("session_files")
+            .select("content")
+            .eq("run_id", run_id)
+            .eq("path", path)
+            .limit(1)
+            .execute()
+        )
+        rows = res.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="not found")
+        return PlainTextResponse(rows[0]["content"], media_type="text/plain; charset=utf-8")
+
+    # Static UI bundle — same as fs mode.
+    static_dir = Path(__file__).resolve().parent / "static"
+    static_dir.mkdir(exist_ok=True)
+    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+
+    return app
+
+
+def _supabase_list_runs(client: Any) -> list[RunListRow]:
+    """Build a list of RunListRow from the runs table.
+
+    Joins in topic from session_files.brief.md via a second query; rounds
+    column is left None in supabase mode for v1 (would need an events
+    aggregate query per row).
+    """
+    res = (
+        client.table("runs")
+        .select(
+            "id,slug,created_at,phase_reached,exit_code,duration_ms,"
+            "total_cost_usd,state,metrics"
+        )
+        .order("created_at", desc=True)
+        .limit(100)
+        .execute()
+    )
+    runs_rows = res.data or []
+    if not runs_rows:
+        return []
+
+    run_ids = [r["id"] for r in runs_rows]
+    briefs_res = (
+        client.table("session_files")
+        .select("run_id,content")
+        .in_("run_id", run_ids)
+        .eq("path", "brief.md")
+        .execute()
+    )
+    briefs: dict[str, str] = {row["run_id"]: row["content"] for row in (briefs_res.data or [])}
+
+    out: list[RunListRow] = []
+    for r in runs_rows:
+        phase_str = r.get("phase_reached") or "phase0"
+        phase_int = phase_to_int(phase_str)
+        topic = _extract_h1(briefs.get(r["id"], ""))
+        started_at = r.get("created_at")
+        started_ago = _seconds_since_iso(started_at)
+        duration = r["duration_ms"] / 1000 if r.get("duration_ms") else None
+        status = _status_from_columns(
+            phase_reached=phase_str,
+            exit_code=r.get("exit_code"),
+            state=r.get("state") or {},
+        )
+        out.append(
+            RunListRow(
+                id=r["id"],
+                display_id=display_id(r["id"]),
+                status=status,  # type: ignore[arg-type]
+                phase=phase_int,
+                topic=topic,
+                started_at_ago=started_ago,
+                started_at=started_at or "",
+                duration=duration,
+                cost=float(r.get("total_cost_usd") or 0.0),
+                rounds=None,
+            )
+        )
+    return out
+
+
+def _status_from_columns(*, phase_reached: str, exit_code: int | None, state: dict) -> str:
+    """Map pushed-run columns onto the UI's status enum.
+
+    Pushed runs are by definition completed (push happens post-run), so we
+    only really see done / errored / deadlocked here.
+    """
+    final_emitted = bool(state.get("final_emitted_to"))
+    run_failed = exit_code not in (None, 0, 51)
+    hard_cap_hit = exit_code == 51
+    return derive_run_status(
+        state_phase=phase_reached,
+        final_emitted=final_emitted,
+        hard_cap_hit=hard_cap_hit,
+        run_failed=run_failed,
+    )
+
+
+def _extract_h1(brief_text: str) -> str:
+    """Match `aggregator._read_topic`: first H1, else first non-empty line."""
+    if not brief_text:
+        return ""
+    for line in brief_text.splitlines():
+        s = line.strip()
+        if s.startswith("# "):
+            return s[2:].strip()
+    for line in brief_text.splitlines():
+        s = line.strip()
+        if s:
+            return s[:200]
+    return ""
+
+
+def _seconds_since_iso(iso_ts: str | None) -> float | None:
+    if not iso_ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso_ts.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return (datetime.now(dt.tzinfo) - dt).total_seconds()
+
+
+def _require_run_exists(client: Any, run_id: str) -> None:
+    if not _safe_run_id(run_id):
+        raise HTTPException(status_code=404, detail="not found")
+    res = client.table("runs").select("id").eq("id", run_id).limit(1).execute()
+    if not (res.data or []):
+        raise HTTPException(status_code=404, detail="not found")
+
+
+def _safe_run_id(run_id: str) -> bool:
+    return bool(run_id) and run_id not in ("..", ".") and "/" not in run_id and "\\" not in run_id
+
+
+def _safe_rel_path(path: str) -> bool:
+    if not path or path.startswith("/") or ".." in path.split("/"):
+        return False
+    return True
+
+
+async def _supabase_event_stream(
+    client: Any,
+    run_id: str,
+    request: Request,
+) -> AsyncIterator[dict]:
+    """Polled SSE: emit a snapshot when max(events.seq) changes."""
+    last_seq = -2  # force first emit even on empty events
+    while True:
+        if await request.is_disconnected():
+            return
+        current_seq = latest_event_seq(client, run_id)
+        if current_seq != last_seq:
+            with SupabaseSessionData(client, run_id).materialize() as tmp:
+                run = load_run_snapshot(tmp)
+            run.id = run_id
+            run.display_id = display_id(run_id)
+            yield {
+                "event": "snapshot",
+                "data": json.dumps(_to_camel(to_jsonable(run))),
+            }
+            last_seq = current_seq
+        await asyncio.sleep(SUPABASE_STREAM_POLL_SECONDS)
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -252,20 +475,39 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    paths = resolve_paths(args.runs_dir)
-    runs_dir = paths.runs_dir.resolve()
+    backend = os.environ.get("RUNS_BACKEND", "fs").strip().lower()
+    basic_auth_password = os.environ.get("UI_BASIC_AUTH_PASSWORD", "").strip() or None
 
-    print(
-        f"dual-research UI server v{__version__}\n"
-        f"  runs-dir: {runs_dir}\n"
-        f"  listening on http://{args.host}:{args.port}\n",
-        file=sys.stderr,
-    )
+    if backend == "supabase":
+        from dual_research.config import load_supabase_credentials
+        from dual_research.persistence.remote import RemoteSession
 
-    # Build the app eagerly (catches config errors before uvicorn starts).
-    app = _make_app(runs_dir)
+        sb = load_supabase_credentials()
+        remote = RemoteSession.from_credentials(sb.url, sb.service_role_key)
+        client = remote._client  # internal handle is fine — same package
+        print(
+            f"dual-research UI server v{__version__}\n"
+            f"  backend: supabase ({sb.url})\n"
+            f"  basic-auth: {'enabled' if basic_auth_password else 'disabled'}\n"
+            f"  listening on http://{args.host}:{args.port}\n",
+            file=sys.stderr,
+        )
+        app = _make_supabase_app(client, basic_auth_password=basic_auth_password)
+    else:
+        paths = resolve_paths(args.runs_dir)
+        runs_dir = paths.runs_dir.resolve()
+        print(
+            f"dual-research UI server v{__version__}\n"
+            f"  backend: fs\n"
+            f"  runs-dir: {runs_dir}\n"
+            f"  basic-auth: {'enabled' if basic_auth_password else 'disabled'}\n"
+            f"  listening on http://{args.host}:{args.port}\n",
+            file=sys.stderr,
+        )
+        app = _make_app(runs_dir, basic_auth_password=basic_auth_password)
+
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
     return 0
 
 
-__all__ = ["main", "_make_app"]
+__all__ = ["main", "_make_app", "_make_supabase_app"]
