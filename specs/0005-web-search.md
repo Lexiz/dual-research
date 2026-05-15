@@ -3,10 +3,10 @@ spec: 0005
 title: Web search wiring + prod-tier full-convergence E2E
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: merged
 target-version: 0.6.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/5"
 ---
 
 # Spec 0005 — Web search + prod-tier E2E
