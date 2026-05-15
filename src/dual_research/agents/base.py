@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
+import random
 from dataclasses import dataclass
-from typing import Any, Protocol, TextIO, runtime_checkable
+from typing import Any, Awaitable, Callable, Protocol, TextIO, TypeVar, runtime_checkable
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 class AgentError(RuntimeError):
@@ -17,6 +24,73 @@ def web_search_enabled() -> bool:
 def cache_enabled() -> bool:
     """Prompt caching is on by default. Set DUAL_RESEARCH_NO_CACHE=1 to disable."""
     return os.environ.get("DUAL_RESEARCH_NO_CACHE", "").strip().lower() not in ("1", "true", "yes")
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    try:
+        import anthropic
+        if isinstance(exc, anthropic.RateLimitError):
+            return True
+    except ImportError:
+        pass
+    try:
+        import openai
+        if isinstance(exc, openai.RateLimitError):
+            return True
+    except ImportError:
+        pass
+    return getattr(exc, "status_code", None) == 429
+
+
+def _extract_retry_after(exc: Exception) -> float | None:
+    response = getattr(exc, "response", None)
+    if response is None:
+        return None
+    headers = getattr(response, "headers", None) or {}
+    raw = headers.get("retry-after") or headers.get("Retry-After")
+    if raw is None:
+        return None
+    try:
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return None
+
+
+async def with_rate_limit_retry(
+    call: Callable[[], Awaitable[T]],
+    *,
+    agent_label: str,
+    max_attempts: int = 3,
+    base_backoff_seconds: float = 30.0,
+    min_sleep: float = 5.0,
+    max_sleep: float = 300.0,
+) -> T:
+    """Retry `call()` on 429. Honours Retry-After; falls back to exponential
+    backoff with jitter. Clamps sleeps to [min_sleep, max_sleep]."""
+    last_exc: Exception | None = None
+    for attempt in range(max_attempts):
+        try:
+            return await call()
+        except Exception as e:
+            if not _is_rate_limit(e):
+                raise
+            last_exc = e
+            if attempt == max_attempts - 1:
+                break
+            header_sleep = _extract_retry_after(e)
+            if header_sleep is None:
+                header_sleep = base_backoff_seconds * (2 ** attempt) + random.uniform(0, 5)
+            sleep_for = max(min_sleep, min(max_sleep, header_sleep))
+            logger.warning(
+                "rate_limit on %s (attempt %d/%d); sleeping %.1fs",
+                agent_label,
+                attempt + 1,
+                max_attempts,
+                sleep_for,
+            )
+            await asyncio.sleep(sleep_for)
+    assert last_exc is not None
+    raise last_exc
 
 
 @dataclass(frozen=True)

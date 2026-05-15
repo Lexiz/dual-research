@@ -6,7 +6,13 @@ from typing import Any, TextIO
 import openai
 from openai import AsyncOpenAI
 
-from dual_research.agents.base import AgentError, AgentResult, TokenUsage, web_search_enabled
+from dual_research.agents.base import (
+    AgentError,
+    AgentResult,
+    TokenUsage,
+    web_search_enabled,
+    with_rate_limit_retry,
+)
 from dual_research.agents.pricing import compute_cost
 from dual_research.config import ModelSpec
 from dual_research.protocol import CACHE_BREAKPOINT
@@ -68,7 +74,12 @@ class GptAgent:
         if web_search_enabled():
             kwargs["tools"] = [WEB_SEARCH_TOOL]
 
-        try:
+        async def _do_call():
+            nonlocal text_parts, first_token, final_usage, final_model, searches
+            text_parts = []
+            first_token = True
+            final_usage = None
+            searches = 0
             stream = await self._client.responses.create(**kwargs)
             async for event in stream:
                 et = getattr(event, "type", "")
@@ -91,6 +102,9 @@ class GptAgent:
                     if resp is not None:
                         final_usage = getattr(resp, "usage", None) or final_usage
                         final_model = getattr(resp, "model", None) or final_model
+
+        try:
+            await with_rate_limit_retry(_do_call, agent_label=self.label)
         except openai.APIError as e:
             raise AgentError(f"OpenAI API error ({type(e).__name__}): {e}") from e
 
