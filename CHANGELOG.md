@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.11.0] — 2026-05-15
+
+### Added
+
+- **UI HTTP server with SSE** ([spec 0010](specs/0010-ui-server.md)) — new `dual_research.ui.server` module (FastAPI + uvicorn) exposed via a `dual-research serve` CLI subcommand. Endpoints: `GET /api/runs` (list rows), `GET /api/runs/{id}` (full `Run` snapshot), `GET /api/runs/{id}/stream` (SSE — emits a full snapshot on every `transcript.jsonl` change), `GET /api/runs/{id}/files/{path:path}` (path-scoped markdown file serve), `GET /api/health`. JSON payloads are camelCase at the wire (snake_case stays in Python). Defaults to `127.0.0.1:6173`. New deps: `fastapi`, `uvicorn[standard]`, `sse-starlette`, `watchfiles`. Static UI bundle directory exists at `src/dual_research/ui/static/` as a placeholder — spec 0011 fills it.
+
 ## [0.10.0] — 2026-05-15
 
 ### Added

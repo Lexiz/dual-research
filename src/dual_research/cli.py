@@ -155,6 +155,13 @@ def _run_id(slug: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # `dual-research serve [...]` shortcut: hand off to the UI server without
+    # going through the orchestrator's argparse (which would reject `serve`).
+    raw = list(sys.argv[1:] if argv is None else argv)
+    if raw and raw[0] == "serve":
+        from dual_research.ui.server import main as serve_main
+        return serve_main(raw[1:])
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 
