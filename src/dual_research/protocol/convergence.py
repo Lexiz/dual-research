@@ -45,6 +45,23 @@ def _sets_equal(a: list[str], b: list[str]) -> bool:
     return sorted(a) == sorted(b)
 
 
+def assert_well_formed_round1_turn(p: ParsedTurn, agent: str) -> None:
+    """Round-1 of Phase 2 is exempt from the strict plan-turn check.
+
+    Only STATUS, DRAFTER, OPEN_QUESTIONS are required; BLOCKING_DISAGREEMENTS,
+    FINAL_SURFACED_DISAGREEMENTS, and AGREED_PLAN are not. (Round 1 cannot agree.)
+    """
+    errs: list[str] = []
+    if p.status is None:
+        errs.append("missing STATUS:")
+    if p.drafter is None:
+        errs.append("missing DRAFTER:")
+    if p.open_questions is None:
+        errs.append("missing OPEN_QUESTIONS:")
+    if errs:
+        raise ProtocolParseError(agent, errs)
+
+
 def assert_well_formed_plan_turn(p: ParsedTurn, agent: str) -> None:
     errs: list[str] = []
     if p.status is None:

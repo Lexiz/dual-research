@@ -102,3 +102,66 @@ class CostUpdate(Event):
     total_usd: float
     by_agent: dict[str, float] = field(default_factory=dict)
     kind: str = "cost_update"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Phase2RoundComplete(Event):
+    round: int
+    agreed: bool
+    claude_status: str | None
+    openai_status: str | None
+    claude_drafter: str | None
+    openai_drafter: str | None
+    claude_open_questions: int | None
+    openai_open_questions: int | None
+    claude_blocking: int | None
+    openai_blocking: int | None
+    claude_fsd: int | None
+    openai_fsd: int | None
+    kind: str = "phase2_round_complete"
+
+
+@dataclass(frozen=True, kw_only=True)
+class RepairInvoked(Event):
+    agent: str
+    phase: int
+    round: int
+    errors: list[str]
+    budget_remaining: int
+    kind: str = "repair_invoked"
+
+
+@dataclass(frozen=True, kw_only=True)
+class SoftCapHit(Event):
+    phase: str
+    round: int
+    cap: int
+    kind: str = "soft_cap_hit"
+
+
+@dataclass(frozen=True, kw_only=True)
+class HardCapHit(Event):
+    phase: str
+    round: int
+    cap: int
+    kind: str = "hard_cap_hit"
+
+
+@dataclass(frozen=True, kw_only=True)
+class DrafterTiebreakResolved(Event):
+    round: int
+    selected_drafter: str
+    reason: str
+    claude_proposed: str | None
+    openai_proposed: str | None
+    kind: str = "drafter_tiebreak_resolved"
+
+
+@dataclass(frozen=True, kw_only=True)
+class Phase2Complete(Event):
+    rounds: int
+    converged: bool
+    drafter: str | None
+    fsd_count: int
+    via_tiebreak: bool
+    kind: str = "phase2_complete"

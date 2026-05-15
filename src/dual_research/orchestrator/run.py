@@ -18,17 +18,20 @@ from dual_research.events import (
 )
 from dual_research.orchestrator.phase0 import Phase0Outcome, run_phase0
 from dual_research.orchestrator.phase1 import Phase1Outcome, run_phase1
+from dual_research.orchestrator.phase2 import Phase2Outcome, run_phase2
 from dual_research.persistence import (
     Metrics,
     SessionContext,
     SessionDirectory,
 )
-from dual_research.persistence.state import SessionState
+from dual_research.persistence.state import SessionState, write_atomic
 
 logger = logging.getLogger(__name__)
 
 EXIT_OK = 0
 EXIT_RUNTIME = 2
+EXIT_HARD_CAP = 51
+EXIT_PROTOCOL_PARSE_FAILURE = 52
 
 
 @dataclass(frozen=True)
@@ -39,6 +42,7 @@ class RunResult:
     duration_ms: int
     phase0: Phase0Outcome | None = None
     phase1: Phase1Outcome | None = None
+    phase2: Phase2Outcome | None = None
 
 
 def _install_cost_ticker(event_bus: EventBus, metrics: Metrics) -> None:
@@ -120,7 +124,9 @@ async def run_session(
     run_started = time.perf_counter()
     phase0_outcome: Phase0Outcome | None = None
     phase1_outcome: Phase1Outcome | None = None
+    phase2_outcome: Phase2Outcome | None = None
     phase_reached = state.phase
+    exit_code = EXIT_OK
 
     try:
         if state.phase == "phase0":
@@ -148,14 +154,34 @@ async def run_session(
             state.phase = "phase2"
             session.save_state(state)
             phase_reached = "phase2"
+        else:
+            print(f"[phase 1] skipped (state already at {state.phase}).", flush=True)
 
-        # Phases 2-4 not yet implemented (specs 0003+). Stop here cleanly.
         if state.phase == "phase2":
-            print(
-                "\n[done] Phases 0 + 1 complete. Phases 2–4 are not yet wired up "
-                "(see specs/0003+); future runs will negotiate, draft, and review.",
-                flush=True,
+            phase2_outcome = await run_phase2(
+                ctx=ctx,
+                claude_agent=claude,
+                openai_agent=gpt,
+                event_bus=bus,
+                brief_content=brief_content,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
             )
+            if phase2_outcome.parse_failure:
+                exit_code = EXIT_PROTOCOL_PARSE_FAILURE
+                phase_reached = "phase2"
+            elif phase2_outcome.hard_capped:
+                _emit_phase2_deadlock(ctx.session.root, phase2_outcome)
+                exit_code = EXIT_HARD_CAP
+                phase_reached = "phase2"
+            elif phase2_outcome.converged:
+                phase_reached = "phase3"
+                print(
+                    "\n[done] Phases 0–2 complete. Phases 3–4 are not yet wired up "
+                    "(see spec 0004); drafter is "
+                    f"{phase2_outcome.drafter} and the agreed plan is on disk.",
+                    flush=True,
+                )
 
         total_cost = metrics.total_cost_usd()
         duration_ms = int((time.perf_counter() - run_started) * 1000)
@@ -165,7 +191,7 @@ async def run_session(
         await bus.publish(
             RunCompleted(
                 phase_reached=phase_reached,
-                exit_code=EXIT_OK,
+                exit_code=exit_code,
                 total_cost_usd=total_cost,
                 duration_ms=duration_ms,
             )
@@ -173,18 +199,19 @@ async def run_session(
         transcript.write(
             "run_completed",
             phase_reached=phase_reached,
-            exit_code=EXIT_OK,
+            exit_code=exit_code,
             total_cost_usd=total_cost,
             duration_ms=duration_ms,
         )
 
         return RunResult(
-            exit_code=EXIT_OK,
+            exit_code=exit_code,
             phase_reached=phase_reached,
             total_cost_usd=total_cost,
             duration_ms=duration_ms,
             phase0=phase0_outcome,
             phase1=phase1_outcome,
+            phase2=phase2_outcome,
         )
 
     except Exception as e:
@@ -213,4 +240,22 @@ async def run_session(
             duration_ms=duration_ms,
             phase0=phase0_outcome,
             phase1=phase1_outcome,
+            phase2=phase2_outcome,
         )
+
+
+def _emit_phase2_deadlock(session_root, phase2_outcome: Phase2Outcome) -> None:
+    """Write a deadlock summary into the session root when Phase 2 hits the hard cap."""
+    from pathlib import Path as _Path
+    payload = (
+        f"# Phase 2 deadlock\n\n"
+        f"Hard cap reached after {phase2_outcome.rounds} rounds without agreement. "
+        f"Both agents' last turns are preserved below for human adjudication.\n\n"
+        f"---\n\n"
+        f"## claude — last Phase 2 turn\n\n"
+        f"{phase2_outcome.last_claude_text or '(no content)'}\n\n"
+        f"---\n\n"
+        f"## openai — last Phase 2 turn\n\n"
+        f"{phase2_outcome.last_openai_text or '(no content)'}\n"
+    )
+    write_atomic(_Path(session_root) / "phase2-deadlock.md", payload)
