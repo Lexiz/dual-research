@@ -3,10 +3,10 @@ spec: 0023
 title: Compact run-detail header, "How it works" page, and release notes
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.22.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/23"
 ---
 
 # Spec 0023 — Compact header + "How it works" page + release notes
