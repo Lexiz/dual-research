@@ -3,7 +3,7 @@ spec: 0026
 title: How-it-works restructure — chat-lifecycle diagram, phase accordions, v3.5 process map
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.24.0
 created: 2026-05-16
 pr: "https://github.com/Lexiz/dual-research/pull/26"
