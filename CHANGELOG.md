@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.9.0] — 2026-05-15
+
+### Added
+
+- **Frontend handoff package** ([spec 0008](specs/0008-frontend-handoff.md)) — top-level `handoffs/` directory with two documents. `handoffs/backend-state.md` is a comprehensive snapshot of the backend at v0.9.0 (project state, repo layout, architecture, event bus contract with every event type, session-dir layout, CLI surface, engineering workflow, verified behaviour, known limitations, integration guidance for the UI). `handoffs/frontend-kickoff.md` is a paste-ready prompt the user pastes into a fresh Claude Code session to start frontend work — it instructs the new agent to read the backend handoff and the Claude Design output bundle at `~/Trimble/handoff/`, then ask clarifying questions before writing code. No code changes; backend behaviour unchanged. 104 tests still green.
+
 ## [0.8.0] — 2026-05-15
 
 ### Added
