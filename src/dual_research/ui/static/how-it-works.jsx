@@ -6,6 +6,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.22.1',
+      date: '2026-05-16',
+      summary: 'Run-detail header pass 2 + compact theme toggle.',
+      items: [
+        'Run-detail header trimmed further: icon-only back arrow, no brand pill, no copy-id chip, no "PHASE N Done" or "converged in …" duplicates.',
+        'Topic carries a "TOPIC" caps tag and reads as the visual centre.',
+        'Status badge composes with the errors count when present — `completed | ⚠ 3 errors`, right half clickable to open the errors view.',
+        'Cost and total tokens fold into one badge.',
+        'Chrome bar light/dark segmented toggle replaced by a single compact pill with sun and moon icon buttons inside.',
+      ],
+    },
+    {
       version: '0.22.0',
       date: '2026-05-16',
       summary: 'Compact run-detail header, "How it works" page, release notes.',
