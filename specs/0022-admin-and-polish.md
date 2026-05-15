@@ -3,10 +3,10 @@ spec: 0022
 title: Admin allowlist UI, profile menu, and landing-page redesign
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.21.0
 created: 2026-05-15
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/22"
 ---
 
 # Spec 0022 — Admin allowlist UI + profile menu + landing-page redesign
