@@ -196,6 +196,66 @@ def test_phase4_uses_phase4_path(tmp_path: Path) -> None:
     assert questions[0].raised_turn_key == "phase4_round1_claude"
 
 
+def test_phase4_answers_section_uses_prior_comments_heading(tmp_path: Path) -> None:
+    """Spec 0040 D1 — Phase 4 round R+1 answers questions raised in
+    round R via a ``## Answers to {other}'s prior comments`` section
+    (the protocol's Phase 4 phrasing, distinct from Phase 2's
+    ``open questions``). The reconstructed Question must transition
+    to ``status='answered'`` with both ``answered_round`` and
+    ``answered_turn_key`` populated — pre-spec the regex only matched
+    ``open questions`` so every Phase 4 question stayed open.
+    """
+    phase4 = tmp_path / "phase4"
+    phase4.mkdir()
+    _seed_phase2_round_file(
+        phase4,
+        1,
+        "claude",
+        "## Summary\nP4 C.\n\n"
+        "## Open questions for openai\n"
+        "1. Should we materialise the cost split on the runs table?\n",
+    )
+    _seed_phase2_round_file(
+        phase4,
+        1,
+        "openai",
+        "## Summary\nP4 G.\n",
+    )
+    _seed_phase2_round_file(
+        phase4,
+        2,
+        "openai",
+        "## Summary\nP4 G r2.\n\n"
+        "## Answers to claude's prior comments\n"
+        "1. Yes — adding a NUMERIC column avoids JSONB filter complexity.\n",
+    )
+
+    questions = reconstruct_questions(tmp_path, phase=4)
+    by_id = {q.id: q for q in questions}
+    q = by_id["Q-c-r1-01"]
+    assert q.status == "answered"
+    assert q.answered_round == 2
+    assert q.answered_by == "gpt"
+    assert q.answered_turn_key == "phase4_round2_gpt"
+
+
+def test_phase2_answers_open_questions_heading_still_recognised(tmp_path: Path) -> None:
+    """Spec 0040 D1 regression guard — the Phase 2 ``open questions``
+    phrasing must continue to work after the regex accepts both forms.
+    """
+    phase2 = tmp_path / "phase2"
+    phase2.mkdir()
+    _seed_phase2_round_file(phase2, 1, "claude", CLAUDE_R1_TURN)
+    _seed_phase2_round_file(phase2, 1, "openai", GPT_R1_TURN)
+    _seed_phase2_round_file(phase2, 2, "openai", GPT_R2_TURN)
+
+    questions = [q for q in reconstruct_questions(tmp_path, phase=2)
+                 if q.raised_by == "claude"]
+    by_id = {q.id: q for q in questions}
+    assert by_id["Q-c-r1-01"].status == "answered"
+    assert by_id["Q-c-r1-01"].answered_turn_key == "phase2_round2_gpt"
+
+
 def test_empty_directory_returns_empty_list(tmp_path: Path) -> None:
     assert reconstruct_questions(tmp_path, phase=2) == []
     (tmp_path / "phase2").mkdir()

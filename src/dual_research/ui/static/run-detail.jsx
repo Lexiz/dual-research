@@ -486,10 +486,14 @@ function Timeline({ run, highlightedTurnKeys }) {
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
         right={<AgentStrip agent="claude" run={run} />}
       />
-      {/* Row 2 — PaneToolbar: live-count on the left, Conversation/Consumption
-          tabs in the middle, GPT pill on the right (spec 0038 D14 — aligns
-          vertically with Claude's pill on the PaneHeader row above). */}
+      {/* Row 2 — PaneToolbar: Conversation/Consumption tabs on the LEFT,
+          directly under the "Timeline" title in the row above (spec 0040 D6 —
+          previously the tabs were stranded on the right, next to the GPT
+          pill they had no semantic relationship to). The live-count chip
+          sits to the right of the tabs; GPT pill stays on the right edge,
+          vertically aligned with the Claude pill on the PaneHeader row. */}
       <PaneToolbar>
+        <TimelineTabs active={tab} onChange={setTab} prominent />
         {liveCount > 0 && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -506,7 +510,6 @@ function Timeline({ run, highlightedTurnKeys }) {
           </span>
         )}
         <span style={{ flex: 1 }} />
-        <TimelineTabs active={tab} onChange={setTab} prominent />
         <AgentStrip agent="gpt" run={run} />
       </PaneToolbar>
       {tab === 'conversation' ? (
@@ -2078,22 +2081,20 @@ function StatsChips({ stats, phase, prevStats }) {
 function StatChip({ label, value, tint, delta }) {
   const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
   const c = colorMap[tint] || 'var(--fg-3)';
-  // Spec 0034: a small delta annotation when this chip has a prior-round
-  // value to compare against. ``-N`` means resolved since last round (good);
-  // ``+N`` means new this round (neutral). Zero delta is hidden.
-  const deltaSuffix = (delta != null && delta !== 0)
-    ? ` (${delta > 0 ? '+' : ''}${delta})`
-    : '';
-  const deltaColor = delta != null && delta < 0
-    ? COLORS.ok
-    : delta != null && delta > 0
-      ? c
-      : 'var(--fg-3)';
+  // Spec 0034 + 0040: small delta annotations.
+  //   negative delta = answered/resolved since last round → render as
+  //   `↩ N` glyph (clearly readable as "answered this round")
+  //   positive delta = new this round → render as `+N`
+  //   zero delta is hidden
+  const answeredCount = (delta != null && delta < 0) ? -delta : 0;
+  const newCount      = (delta != null && delta > 0) ?  delta : 0;
+  const tooltip =
+    answeredCount > 0 ? `${answeredCount} answered or resolved since last round`
+    : newCount > 0    ? `${newCount} new this round`
+    : undefined;
   return (
     <span className="mono"
-          title={delta != null && delta !== 0
-            ? `${delta > 0 ? '+' + delta + ' new this round' : (-delta) + ' resolved or answered since last round'}`
-            : undefined}
+          title={tooltip}
           style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '1px 7px',
@@ -2105,9 +2106,16 @@ function StatChip({ label, value, tint, delta }) {
     }}>
       <span className="num" style={{ color: c, fontWeight: 500 }}>{value}</span>
       <span style={{ color: 'var(--fg-3)' }}>{label}</span>
-      {deltaSuffix && (
-        <span className="num" style={{ color: deltaColor, fontWeight: 500 }}>
-          {deltaSuffix}
+      {answeredCount > 0 && (
+        <span className="num"
+              style={{ color: COLORS.ok, fontWeight: 500, marginLeft: 2 }}>
+          ↩ {answeredCount}
+        </span>
+      )}
+      {newCount > 0 && (
+        <span className="num"
+              style={{ color: c, fontWeight: 500, marginLeft: 2 }}>
+          +{newCount}
         </span>
       )}
     </span>
@@ -3970,6 +3978,13 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const questions = Array.isArray(run.questions) ? run.questions : [];
   const disagreements = Array.isArray(run.disagreements) ? run.disagreements : [];
 
+  // Spec 0040 D5: the Summary tab is visible only when the run has
+  // reached a terminal state — the post-mortem aggregate doesn't make
+  // sense while numbers are still shifting each poll.
+  const isTerminal = run.status === 'completed'
+    || run.status === 'deadlocked'
+    || run.status === 'errored';
+
   // Phase pick: prefer the currently-running phase; else any phase that has
   // either kind of item; else default to Phase 2.
   const haveAny = (pid) =>
@@ -3978,13 +3993,21 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
                  : haveAny(4) ? 4
                  : haveAny(2) ? 2
                  : 2;
+  // selectedPhase is 2 | 4 | 'summary'.
   const [selectedPhase, setSelectedPhase] = React.useState(initial);
   const [typeFilter, setTypeFilter] = React.useState('all'); // 'all' | 'questions' | 'disagreements'
   React.useEffect(() => { setSelectedPhase(initial); setTypeFilter('all'); }, [run.id, initial]);
+  // If the user had selected Summary but the run later regressed out of
+  // a terminal state (rare — e.g. a resume), fall back to a phase view.
+  React.useEffect(() => {
+    if (selectedPhase === 'summary' && !isTerminal) setSelectedPhase(initial);
+  }, [isTerminal, selectedPhase, initial]);
 
-  // Phase-filtered slices.
-  const phaseQuestions = questions.filter(q => q.phase === selectedPhase);
-  const phaseDisagreements = disagreements.filter(d => d.phase === selectedPhase);
+  // Phase-filtered slices. (Summary view ignores both filters and uses
+  // the full question/disagreement lists directly — see SummaryView.)
+  const isSummary = selectedPhase === 'summary';
+  const phaseQuestions = isSummary ? [] : questions.filter(q => q.phase === selectedPhase);
+  const phaseDisagreements = isSummary ? [] : disagreements.filter(d => d.phase === selectedPhase);
 
   // Type filter.
   const showQ = typeFilter === 'all' || typeFilter === 'questions';
@@ -4065,17 +4088,34 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
             onSelect={() => setSelectedPhase(t.pid)}
           />
         ))}
+        {/* Spec 0040 D5 — Summary tab joins as the rightmost choice once
+            the run reaches a terminal state. */}
+        {isTerminal && (
+          <CritiquePhaseTab
+            tab={{
+              pid: 'summary', label: 'Summary',
+              qTotal: questions.length, dTotal: disagreements.length,
+              pending: false, active: false, summary: true,
+            }}
+            active={selectedPhase === 'summary'}
+            onSelect={() => setSelectedPhase('summary')}
+          />
+        )}
         <span style={{ flex: 1 }} />
-        <CritiqueTypeFilter active={typeFilter} onChange={setTypeFilter} />
+        {!isSummary && <CritiqueTypeFilter active={typeFilter} onChange={setTypeFilter} />}
       </PaneToolbar>
-      <CritiquePhaseContent
-        run={run}
-        phaseId={selectedPhase}
-        openItems={openItems}
-        resolvedItems={resolvedItems}
-        introduced={introduced}
-        onHighlight={handleHighlight}
-      />
+      {isSummary ? (
+        <CritiqueSummaryView run={run} questions={questions} disagreements={disagreements} />
+      ) : (
+        <CritiquePhaseContent
+          run={run}
+          phaseId={selectedPhase}
+          openItems={openItems}
+          resolvedItems={resolvedItems}
+          introduced={introduced}
+          onHighlight={handleHighlight}
+        />
+      )}
     </section>
   );
 }
@@ -4147,30 +4187,43 @@ function CritiquePhaseTab({ tab, active, onSelect }) {
         boxShadow: active ? `inset 0 -2px 0 ${COLORS.info}` : 'none',
       }}>
       {tab.active && <Dot color={COLORS.info} pulse="pulse-a" size={6} />}
-      <span className="mono" style={{
-        fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: active ? 'var(--fg-2)' : 'var(--fg-3)',
-      }}>
-        Phase&nbsp;{tab.pid}
-      </span>
-      <span style={{
-        fontSize: 12.5,
-        color: active ? 'var(--fg-0)' : 'var(--fg-2)',
-        fontWeight: active ? 600 : 400,
-      }}>
-        {tab.label}
-      </span>
-      <span style={{ color: 'var(--fg-4)' }}>·</span>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-        {tab.pending ? 'pending'
-          : (tab.qTotal + tab.dTotal === 0) ? 'no items'
-          : <>
-              <span style={{ color: tab.qTotal > 0 ? COLORS.info : 'var(--fg-3)' }}>{tab.qTotal} Q</span>
-              <span style={{ color: 'var(--fg-4)' }}> · </span>
-              <span style={{ color: tab.dTotal > 0 ? COLORS.warn : 'var(--fg-3)' }}>{tab.dTotal} D</span>
-            </>
-        }
-      </span>
+      {!tab.summary && (
+        <>
+          <span className="mono" style={{
+            fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
+            color: active ? 'var(--fg-2)' : 'var(--fg-3)',
+          }}>
+            Phase&nbsp;{tab.pid}
+          </span>
+          <span style={{
+            fontSize: 12.5,
+            color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+            fontWeight: active ? 600 : 400,
+          }}>
+            {tab.label}
+          </span>
+          <span style={{ color: 'var(--fg-4)' }}>·</span>
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+            {tab.pending ? 'pending'
+              : (tab.qTotal + tab.dTotal === 0) ? 'no items'
+              : <>
+                  <span style={{ color: tab.qTotal > 0 ? COLORS.info : 'var(--fg-3)' }}>{tab.qTotal} Q</span>
+                  <span style={{ color: 'var(--fg-4)' }}> · </span>
+                  <span style={{ color: tab.dTotal > 0 ? COLORS.warn : 'var(--fg-3)' }}>{tab.dTotal} D</span>
+                </>
+            }
+          </span>
+        </>
+      )}
+      {tab.summary && (
+        <span style={{
+          fontSize: 12.5,
+          color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+          fontWeight: active ? 600 : 500,
+        }}>
+          ∑ {tab.label}
+        </span>
+      )}
     </button>
   );
 }
@@ -4233,6 +4286,163 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
   );
 }
 
+// Spec 0040 — Summary view. Post-mortem aggregate of the critique
+// journey: one row per (phase, round) tuple, columns for Q raised /
+// answered / open + D raised / resolved / open. Rounds with zero
+// activity in both kinds are omitted to keep the surface compact.
+function CritiqueSummaryView({ run, questions, disagreements }) {
+  // Build per-phase, per-round counters.
+  const collect = (pid) => {
+    const qs = questions.filter(q => q.phase === pid);
+    const ds = disagreements.filter(d => d.phase === pid);
+    const rounds = new Set();
+    for (const q of qs) {
+      if (q.raisedRound) rounds.add(q.raisedRound);
+      if (q.answeredRound) rounds.add(q.answeredRound);
+    }
+    for (const d of ds) {
+      if (d.openedRound) rounds.add(d.openedRound);
+      if (d.closedRound) rounds.add(d.closedRound);
+    }
+    const rows = Array.from(rounds).sort((a, b) => a - b).map((r) => ({
+      round: r,
+      qRaised: qs.filter(q => q.raisedRound === r).length,
+      qAnswered: qs.filter(q => q.answeredRound === r).length,
+      // Q still open as of end-of-round R: raised by ≤R, not yet answered or answered > R
+      qStillOpen: qs.filter(q =>
+        q.raisedRound <= r && (q.status === 'open' || (q.answeredRound != null && q.answeredRound > r))
+      ).length,
+      dRaised: ds.filter(d => d.openedRound === r).length,
+      dResolved: ds.filter(d => d.closedRound === r).length,
+      dStillOpen: ds.filter(d =>
+        (d.openedRound ?? 0) <= r && (d.status === 'open' || (d.closedRound != null && d.closedRound > r))
+      ).length,
+    }));
+    return { qs, ds, rows };
+  };
+  const p2 = collect(2);
+  const p4 = collect(4);
+
+  const renderPhase = (label, phaseInfo) => {
+    if (phaseInfo.qs.length === 0 && phaseInfo.ds.length === 0) {
+      return (
+        <section style={{ marginBottom: 22 }}>
+          <h3 style={{
+            fontSize: 12, fontWeight: 600, color: 'var(--fg-2)',
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            margin: '0 0 8px',
+          }}>{label}</h3>
+          <div className="mono" style={{
+            fontSize: 11.5, color: 'var(--fg-3)',
+            padding: '12px 14px',
+            background: 'var(--bg-1)',
+            border: '1px dashed var(--border-1)',
+            borderRadius: 'var(--r-2)',
+          }}>
+            no questions or disagreements were raised in this phase
+          </div>
+        </section>
+      );
+    }
+    const totalQOpen = phaseInfo.qs.filter(q => q.status === 'open').length;
+    const totalQAnswered = phaseInfo.qs.length - totalQOpen;
+    const totalDOpen = phaseInfo.ds.filter(d => d.status === 'open').length;
+    const totalDResolved = phaseInfo.ds.length - totalDOpen;
+    return (
+      <section style={{ marginBottom: 22 }}>
+        <h3 style={{
+          fontSize: 12, fontWeight: 600, color: 'var(--fg-2)',
+          letterSpacing: '0.04em', textTransform: 'uppercase',
+          margin: '0 0 8px',
+          display: 'flex', alignItems: 'baseline', gap: 10,
+        }}>
+          <span>{label}</span>
+          <span className="mono" style={{
+            fontSize: 10.5, letterSpacing: '0.02em', color: 'var(--fg-3)',
+            textTransform: 'none', fontWeight: 400,
+          }}>
+            {phaseInfo.qs.length} Q ({totalQAnswered} answered · {totalQOpen} open) ·{' '}
+            {phaseInfo.ds.length} D ({totalDResolved} resolved · {totalDOpen} open)
+          </span>
+        </h3>
+        <table style={{
+          width: '100%', borderCollapse: 'collapse',
+          fontSize: 12, color: 'var(--fg-1)',
+          background: 'var(--bg-1)',
+          border: '1px solid var(--border-1)',
+          borderRadius: 'var(--r-2)',
+          overflow: 'hidden',
+          fontFamily: 'var(--mono)',
+        }}>
+          <thead>
+            <tr style={{ background: 'var(--bg-2)', textAlign: 'left' }}>
+              <th style={_summaryTh}>Round</th>
+              <th style={_summaryTh}>Q raised</th>
+              <th style={_summaryTh}>Q answered</th>
+              <th style={_summaryTh}>Q still open</th>
+              <th style={_summaryTh}>D raised</th>
+              <th style={_summaryTh}>D resolved</th>
+              <th style={_summaryTh}>D still open</th>
+            </tr>
+          </thead>
+          <tbody>
+            {phaseInfo.rows.map((r) => (
+              <tr key={r.round} style={{ borderTop: '1px solid var(--border-1)' }}>
+                <td style={_summaryTd}>R{r.round}</td>
+                <td style={_summaryTd}>{r.qRaised || '—'}</td>
+                <td style={{
+                  ..._summaryTd,
+                  color: r.qAnswered > 0 ? COLORS.ok : 'var(--fg-3)',
+                }}>{r.qAnswered || '—'}</td>
+                <td style={{
+                  ..._summaryTd,
+                  color: r.qStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
+                }}>{r.qStillOpen || '—'}</td>
+                <td style={_summaryTd}>{r.dRaised || '—'}</td>
+                <td style={{
+                  ..._summaryTd,
+                  color: r.dResolved > 0 ? COLORS.ok : 'var(--fg-3)',
+                }}>{r.dResolved || '—'}</td>
+                <td style={{
+                  ..._summaryTd,
+                  color: r.dStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
+                }}>{r.dStillOpen || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+    );
+  };
+
+  return (
+    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
+      <div style={{ padding: '16px 24px 28px' }}>
+        <div style={{
+          fontSize: 11.5, color: 'var(--fg-3)', lineHeight: 1.55, marginBottom: 16,
+        }}>
+          Post-mortem aggregate of the critique journey across both phases.
+          Click a phase tab above to drill into the individual questions and
+          disagreements.
+        </div>
+        {renderPhase('Phase 2 — Negotiate', p2)}
+        {renderPhase('Phase 4 — Review', p4)}
+      </div>
+    </div>
+  );
+}
+
+const _summaryTh = {
+  padding: '8px 10px',
+  fontSize: 10, color: 'var(--fg-3)',
+  letterSpacing: '0.06em', textTransform: 'uppercase',
+  fontWeight: 600,
+};
+const _summaryTd = {
+  padding: '7px 10px',
+  fontSize: 12, color: 'var(--fg-1)',
+};
+
 // Spec 0034: Question card in the explorer.
 function QuestionCard({ q, onHighlight }) {
   const [open, setOpen] = React.useState(false);
@@ -4265,13 +4475,17 @@ function QuestionCard({ q, onHighlight }) {
         transition: 'border-color 120ms',
       }}
     >
-      <button onClick={onCardClick} style={{
+      <button onClick={onCardClick}
+              title={q.body || ''}
+              style={{
         display: 'block', width: '100%', textAlign: 'left',
-        padding: '12px 14px',
+        padding: '9px 12px',
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+        {/* Spec 0040 D2 — header row is a single line: type pill,
+            one-line truncated body, round + status badges.  Click expands. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <span className="mono" style={{
             fontSize: 10, color: COLORS.info, letterSpacing: '0.06em',
             padding: '1px 6px', borderRadius: 4,
@@ -4279,9 +4493,21 @@ function QuestionCard({ q, onHighlight }) {
             border: '1px solid rgba(107,156,240,0.30)',
             flexShrink: 0,
           }}>Q</span>
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.35 }}>
+          <span className="mono" style={{
+            fontSize: 10, color: 'var(--fg-3)', flexShrink: 0,
+          }}>
+            R{q.raisedRound}{isAnswered ? `→R${q.answeredRound}` : ''}
+          </span>
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
             {q.body || '(no body)'}
           </span>
+          <span className="mono" style={{
+            fontSize: 10, color: 'var(--fg-3)', flexShrink: 0,
+          }}>{q.id}</span>
           <span className="mono" style={{
             fontSize: 10.5,
             padding: '1px 6px', borderRadius: 999,
@@ -4292,50 +4518,66 @@ function QuestionCard({ q, onHighlight }) {
           }}>
             {isAnswered ? 'answered' : 'open'}
           </span>
-        </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          fontSize: 11, color: 'var(--fg-3)',
-        }}>
-          <span className="mono">{q.id}</span>
-          <span>·</span>
-          <span>raised by {raisedMeta?.name || q.raisedBy} R{q.raisedRound}</span>
-          {isAnswered && (
-            <>
-              <span>·</span>
-              <span>answered by {answerMeta?.name || q.answeredBy} R{q.answeredRound}</span>
-              {q.match === 'positional' && (
-                <span className="mono" style={{ color: COLORS.warn, opacity: 0.8 }}>
-                  · positional match
-                </span>
-              )}
-            </>
-          )}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 16, height: 16,
+            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
+            transition: 'opacity 120ms, transform 120ms',
+            color: 'var(--fg-2)',
+            transform: open ? 'rotate(90deg)' : 'none',
+            flexShrink: 0,
+          }}>
+            <Icon.Chevron />
+          </span>
         </div>
       </button>
-      {open && (q.quote || q.after || q.answerBody) && (
+      {open && (
         <div style={{
           padding: '10px 14px 14px',
           borderTop: '1px solid var(--border-1)',
           background: 'var(--bg-0)',
-          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.5,
+          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
+          display: 'flex', flexDirection: 'column', gap: 8,
         }}>
+          {/* Spec 0040 D2 — full body lives in the expanded surface so
+              the collapsed header can stay a single readable line. */}
+          <div style={{
+            fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {q.body || '(no body)'}
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          }}>
+            <span>raised by {raisedMeta?.name || q.raisedBy} · R{q.raisedRound}</span>
+            {isAnswered && (
+              <>
+                <span>·</span>
+                <span>answered by {answerMeta?.name || q.answeredBy} · R{q.answeredRound}</span>
+                {q.match === 'positional' && (
+                  <span style={{ color: COLORS.warn, opacity: 0.85 }}>· positional match</span>
+                )}
+              </>
+            )}
+          </div>
           {q.quote && (
-            <div style={{ marginBottom: 6 }}>
+            <div>
               <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
               <span style={{ fontStyle: 'italic' }}>"{q.quote}"</span>
             </div>
           )}
           {q.after && (
-            <div style={{ marginBottom: 6 }}>
+            <div>
               <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
               <span style={{ fontStyle: 'italic' }}>{q.after}</span>
             </div>
           )}
           {isAnswered && q.answerBody && (
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-1)' }}>
-              <span className="mono" style={{ color: COLORS.ok, fontSize: 10.5, marginRight: 6 }}>answer:</span>
-              {q.answerBody}
+            <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed var(--border-1)' }}>
+              <div className="mono" style={{ color: COLORS.ok, fontSize: 10.5, marginBottom: 4 }}>answer</div>
+              <div style={{ whiteSpace: 'pre-wrap' }}>{q.answerBody}</div>
             </div>
           )}
         </div>
@@ -4511,14 +4753,17 @@ function DisagreementCard({ d, onHighlight }) {
         transition: 'border-color 120ms',
       }}
     >
-      <button onClick={onCardClick} style={{
+      <button onClick={onCardClick}
+              title={d.point || d.shortLabel || ''}
+              style={{
         display: 'block', width: '100%', textAlign: 'left',
-        padding: '12px 14px',
+        padding: '9px 12px',
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        {/* Top row: label + status */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+        {/* Spec 0040 D2 — single-line header. Expanded surface below
+            carries the full point, progression, positions, resolution. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <span className="mono" style={{
             fontSize: 10, color: COLORS.warn, letterSpacing: '0.06em',
             padding: '1px 6px', borderRadius: 4,
@@ -4526,46 +4771,30 @@ function DisagreementCard({ d, onHighlight }) {
             border: '1px solid rgba(212,160,86,0.30)',
             flexShrink: 0,
           }}>D</span>
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.35 }}>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+            {roundRange.replace(' · still open', '')}
+          </span>
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
             {d.shortLabel || d.point}
+          </span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+            {exchanges} ex
           </span>
           {statusPill}
           <span style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 18, height: 18,
-            opacity: open ? 0.6 : hover ? 0.6 : 0.25,
-            transition: 'opacity 120ms',
+            width: 16, height: 16,
+            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
+            transition: 'opacity 120ms, transform 120ms',
             color: 'var(--fg-2)',
             transform: open ? 'rotate(90deg)' : 'none',
             flexShrink: 0,
           }}>
             <Icon.Chevron />
-          </span>
-        </div>
-        {/* Stats row */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 14,
-          fontSize: 11, color: 'var(--fg-3)',
-          fontFamily: 'var(--mono)',
-          whiteSpace: 'nowrap',
-        }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: 'var(--fg-4)' }}>raised by</span>
-            {raisedMeta ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <AgentIcon agent={d.raisedBy} size={12} variant="ghost" />
-                <span style={{ color: 'var(--fg-1)' }}>{raisedMeta.name.toLowerCase()}</span>
-              </span>
-            ) : (
-              <span style={{ color: 'var(--fg-1)' }}>both</span>
-            )}
-          </span>
-          <span style={{ color: 'var(--fg-4)' }}>·</span>
-          <span style={{ color: isResolved ? 'var(--fg-2)' : COLORS.warn }}>{roundRange}</span>
-          <span style={{ color: 'var(--fg-4)' }}>·</span>
-          <span>
-            <span style={{ color: 'var(--fg-1)' }}>{exchanges}</span>
-            {' '}exchange{exchanges === 1 ? '' : 's'}
           </span>
         </div>
       </button>
@@ -4576,6 +4805,31 @@ function DisagreementCard({ d, onHighlight }) {
           borderTop: '1px dashed var(--border-1)',
           background: 'var(--bg-0)',
         }}>
+          {/* Meta row — restored from the (now-compact) collapsed header. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            marginBottom: 12,
+            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ color: 'var(--fg-4)' }}>raised by</span>
+              {raisedMeta ? (
+                <>
+                  <AgentIcon agent={d.raisedBy} size={12} variant="ghost" />
+                  <span style={{ color: 'var(--fg-1)' }}>{raisedMeta.name.toLowerCase()}</span>
+                </>
+              ) : (
+                <span style={{ color: 'var(--fg-1)' }}>both</span>
+              )}
+            </span>
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <span style={{ color: isResolved ? 'var(--fg-2)' : COLORS.warn }}>{roundRange}</span>
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <span>
+              <span style={{ color: 'var(--fg-1)' }}>{exchanges}</span>
+              {' '}exchange{exchanges === 1 ? '' : 's'}
+            </span>
+          </div>
           {/* Full point statement */}
           <div style={{ marginBottom: 16 }}>
             <SmallLabel>Contested point</SmallLabel>
