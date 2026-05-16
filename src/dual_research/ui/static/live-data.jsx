@@ -209,6 +209,47 @@ function useFileBody(filePath) {
   return { body, loading };
 }
 
+// ─────────────────── Spec 0033 — useInputBundle ─────────────────────────────
+//
+// Lazy-fetch a per-turn input bundle from the server. ``turnKey`` is one of
+// the snake-case keys the aggregator stamps (``phase2_round3_claude``) or
+// the special ``input`` key for the synthesised Phase 0 shared bundle.
+// Returns ``{ bundle, loading, error }``.
+function useInputBundle(turnKey) {
+  const ctx = React.useContext(RunContext);
+  const runId = ctx?.runId || getActiveRunId();
+  const [bundle, setBundle] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!turnKey || !runId) { setBundle(null); return; }
+    let cancelled = false;
+    setLoading(true);
+    setBundle(null);
+    setError(null);
+    authedFetch(`/api/runs/${encodeURIComponent(runId)}/inputs/${encodeURIComponent(turnKey)}`)
+      .then(r => {
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        setBundle(data);
+        setLoading(false);
+      })
+      .catch(e => {
+        if (cancelled) return;
+        setError(String(e));
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [turnKey, runId]);
+
+  return { bundle, loading, error };
+}
+
 // ─────────────────── Topic formatting ───────────────────
 
 // Trim a research-brief H1 down to one readable line. Many briefs are long
@@ -267,9 +308,40 @@ function buildLiveTimeline(run) {
   const ph = run.phase;
   const st = run.status;
 
-  // Phase 0: the brief.
+  // Phase 0: the brief + per-agent preflight critiques (spec 0033).
+  //
+  // Spec 0033 split the single Phase 0 card into three:
+  // - `input` — the shared brief + system prompt (one modal)
+  // - `p0-claude` — Claude's brief-critique response (per-agent modal)
+  // - `p0-gpt` — GPT's brief-critique response (per-agent modal)
+  //
+  // The per-agent critique cards only render once both responses are on
+  // disk (i.e. Phase 0 has completed). While Phase 0 is in-flight the
+  // single `input` card stands alone — same behaviour as pre-0033 so
+  // there's no flicker mid-preflight.
   items.push({ id: 'phase-0', kind: 'phase-divider', phaseId: 0, duration: run.phaseTimings?.['0'] });
-  items.push({ id: 'input', kind: 'input', filePath: 'brief.md', topic: run.topic });
+  items.push({
+    id: 'input', kind: 'input', filePath: 'brief.md', topic: run.topic,
+    turnKey: 'input',
+  });
+  if (ph >= 1) {
+    items.push({
+      id: 'p0-claude', kind: 'preflight', agent: 'claude',
+      filePath: 'phase0/preflight-claude.md',
+      stats: run.phaseStats?.phase0?.claude || null,
+      statsPhase: 0,
+      summary: run.phaseSummaries?.phase0_claude || '',
+      turnKey: 'phase0_claude',
+    });
+    items.push({
+      id: 'p0-gpt', kind: 'preflight', agent: 'gpt',
+      filePath: 'phase0/preflight-openai.md',
+      stats: run.phaseStats?.phase0?.gpt || null,
+      statsPhase: 0,
+      summary: run.phaseSummaries?.phase0_gpt || '',
+      turnKey: 'phase0_gpt',
+    });
+  }
 
   if (ph >= 1) {
     items.push({ id: 'phase-1', kind: 'phase-divider', phaseId: 1, duration: run.phaseTimings?.['1'] });
@@ -281,16 +353,20 @@ function buildLiveTimeline(run) {
         status: run.agents?.claude?.status,
         body: run.agents?.claude?.currentTurn?.body || '',
         filePath: fileForPhase1Draft('claude'),
+        turnKey: 'phase1_claude',
       });
       items.push({
         id: 'p1-gpt-live', kind: 'plan-live', agent: 'gpt', live: true,
         status: run.agents?.gpt?.status,
         body: run.agents?.gpt?.currentTurn?.body || '',
         filePath: fileForPhase1Draft('gpt'),
+        turnKey: 'phase1_gpt',
       });
     } else {
-      items.push({ id: 'p1-claude', kind: 'plan', agent: 'claude', filePath: fileForPhase1Draft('claude') });
-      items.push({ id: 'p1-gpt',    kind: 'plan', agent: 'gpt',    filePath: fileForPhase1Draft('gpt')    });
+      items.push({ id: 'p1-claude', kind: 'plan', agent: 'claude',
+                   filePath: fileForPhase1Draft('claude'), turnKey: 'phase1_claude' });
+      items.push({ id: 'p1-gpt',    kind: 'plan', agent: 'gpt',
+                   filePath: fileForPhase1Draft('gpt'),    turnKey: 'phase1_gpt' });
     }
   }
 
@@ -312,9 +388,11 @@ function buildLiveTimeline(run) {
       const completedThrough = st === 'running' ? Math.max(0, cur - 1) : cur;
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p2-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
-                     filePath: fileForRound(2, r, 'claude') });
+                     filePath: fileForRound(2, r, 'claude'),
+                     turnKey: `phase2_round${r}_claude` });
         items.push({ id: `p2-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: r,
-                     filePath: fileForRound(2, r, 'gpt')    });
+                     filePath: fileForRound(2, r, 'gpt'),
+                     turnKey: `phase2_round${r}_gpt`    });
       }
       if (cur > 0 && st === 'running') {
         items.push({
@@ -323,6 +401,7 @@ function buildLiveTimeline(run) {
           status: run.agents?.claude?.status,
           body: run.agents?.claude?.currentTurn?.body || '',
           filePath: fileForRound(2, cur, 'claude'),
+          turnKey: `phase2_round${cur}_claude`,
         });
         items.push({
           id: `p2-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
@@ -330,6 +409,7 @@ function buildLiveTimeline(run) {
           status: run.agents?.gpt?.status,
           body: run.agents?.gpt?.currentTurn?.body || '',
           filePath: fileForRound(2, cur, 'gpt'),
+          turnKey: `phase2_round${cur}_gpt`,
         });
       }
     } else if (ph >= 3 || st === 'completed' || st === 'deadlocked') {
@@ -337,9 +417,11 @@ function buildLiveTimeline(run) {
       // has been overwritten by the next phase, so use the per-phase count.
       for (let r = 1; r <= p2Rounds; r++) {
         items.push({ id: `p2-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
-                     filePath: fileForRound(2, r, 'claude') });
+                     filePath: fileForRound(2, r, 'claude'),
+                     turnKey: `phase2_round${r}_claude` });
         items.push({ id: `p2-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: r,
-                     filePath: fileForRound(2, r, 'gpt')    });
+                     filePath: fileForRound(2, r, 'gpt'),
+                     turnKey: `phase2_round${r}_gpt`    });
       }
     }
   }
@@ -352,12 +434,14 @@ function buildLiveTimeline(run) {
         status: run.agents?.[run.drafter]?.status,
         body: run.agents?.[run.drafter]?.currentTurn?.body || '',
         filePath: 'phase3/draft-v1.md',
+        turnKey: `phase3_${run.drafter}`,
       });
     } else if (run.drafter) {
       items.push({
         id: 'doc-converged', kind: 'doc', agent: run.drafter,
         summary: `Converged document drafted by ${run.drafter}.`,
         filePath: 'phase3/draft-v1.md',
+        turnKey: `phase3_${run.drafter}`,
       });
     }
   }
@@ -377,9 +461,11 @@ function buildLiveTimeline(run) {
       const completedThrough = Math.max(0, cur - 1);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p4-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: `rev-${r}`,
-                     filePath: fileForRound(4, r, 'claude') });
+                     filePath: fileForRound(4, r, 'claude'),
+                     turnKey: `phase4_round${r}_claude` });
         items.push({ id: `p4-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: `rev-${r}`,
-                     filePath: fileForRound(4, r, 'gpt')    });
+                     filePath: fileForRound(4, r, 'gpt'),
+                     turnKey: `phase4_round${r}_gpt`    });
       }
       if (cur > 0) {
         items.push({
@@ -388,6 +474,7 @@ function buildLiveTimeline(run) {
           status: run.agents?.claude?.status,
           body: run.agents?.claude?.currentTurn?.body || '',
           filePath: fileForRound(4, cur, 'claude'),
+          turnKey: `phase4_round${cur}_claude`,
         });
         items.push({
           id: `p4-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
@@ -395,14 +482,17 @@ function buildLiveTimeline(run) {
           status: run.agents?.gpt?.status,
           body: run.agents?.gpt?.currentTurn?.body || '',
           filePath: fileForRound(4, cur, 'gpt'),
+          turnKey: `phase4_round${cur}_gpt`,
         });
       }
     } else if (ph === 5 || st === 'completed') {
       for (let r = 1; r <= p4Rounds; r++) {
         items.push({ id: `p4-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: `rev-${r}`,
-                     filePath: fileForRound(4, r, 'claude') });
+                     filePath: fileForRound(4, r, 'claude'),
+                     turnKey: `phase4_round${r}_claude` });
         items.push({ id: `p4-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: `rev-${r}`,
-                     filePath: fileForRound(4, r, 'gpt')    });
+                     filePath: fileForRound(4, r, 'gpt'),
+                     turnKey: `phase4_round${r}_gpt`    });
       }
     }
   }
@@ -455,6 +545,14 @@ function attachItemStats(items, run) {
       item.summary = run.briefSummary || item.summary || '';
       continue;
     }
+    if (item.kind === 'preflight') {
+      // Spec 0033: per-agent Phase 0 critique card.
+      const p0 = ps.phase0 || {};
+      item.stats = p0[item.agent] || null;
+      item.statsPhase = 0;
+      item.summary = sums[`phase0_${item.agent}`] || item.summary || '';
+      continue;
+    }
     if (item.kind === 'plan' || item.kind === 'plan-live') {
       item.stats = ps.phase1?.[item.agent] || null;
       item.statsPhase = 1;
@@ -489,6 +587,7 @@ function attachItemStats(items, run) {
 Object.assign(window, {
   PHASES, TOPIC, INPUT_BRIEF, TURN_HISTORY,
   RunContext, useLiveRun, useRunList, useFileBody, useAttachments,
+  useInputBundle,
   attachmentBlobUrl,
   buildLiveTimeline, formatTopic, splitRunId,
   setActiveRunId, getActiveRunId,

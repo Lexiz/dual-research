@@ -17,6 +17,7 @@ from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import research_prompt
 from dual_research.protocol.prompt_pieces import pieces_for_research
+from dual_research.protocol.prompts import research_input_bundle
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,9 @@ async def run_phase1(
     openai_prompt = research_prompt(brief_content=brief_content, agent_name="openai")
     # Spec 0030: per-piece token sizes for the Consumption tab.
     p1_pieces = pieces_for_research(brief=brief_content)
+    # Spec 0033: per-piece TEXT for the Input tab (per-agent system).
+    claude_bundle = research_input_bundle(brief=brief_content, agent_name="claude")
+    openai_bundle = research_input_bundle(brief=brief_content, agent_name="openai")
 
     print(
         "\n[phase 1] independent research — both agents in parallel "
@@ -64,6 +68,7 @@ async def run_phase1(
             stream_prefix="[claude] ",
             max_output_tokens=8192,
             prompt_pieces=p1_pieces,
+            prompt_bundle=claude_bundle,
         ),
         run_one_call(
             agent=openai_agent,
@@ -76,6 +81,7 @@ async def run_phase1(
             stream_to=None,
             max_output_tokens=8192,
             prompt_pieces=p1_pieces,
+            prompt_bundle=openai_bundle,
         ),
     )
 

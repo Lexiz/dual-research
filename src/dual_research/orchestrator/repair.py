@@ -16,6 +16,7 @@ from dual_research.protocol import (
     parse_turn,
     repair_prompt,
 )
+from dual_research.protocol.prompts import repair_input_bundle
 
 
 @dataclass
@@ -142,6 +143,13 @@ async def parse_with_repair(
         errors=first_errors or [],
         malformed_content=text,
     )
+    # Spec 0033: per-piece TEXT bundle for the Input tab.
+    repair_bundle = repair_input_bundle(
+        agent_name=agent.label,
+        phase=phase,
+        errors=first_errors or [],
+        malformed_content=text,
+    )
     repaired_result = await run_one_call(
         agent=agent,
         prompt=prompt,
@@ -152,6 +160,7 @@ async def parse_with_repair(
         event_bus=event_bus,
         stream_to=None,
         max_output_tokens=6144,
+        prompt_bundle=repair_bundle,
     )
     write_atomic(out_path, repaired_result.text)
     new_parsed = parse_turn(repaired_result.text)

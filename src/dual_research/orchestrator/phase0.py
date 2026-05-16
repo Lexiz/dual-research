@@ -18,6 +18,7 @@ from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import Status, parse_preflight_turn, preflight_prompt
 from dual_research.protocol.prompt_pieces import pieces_for_preflight
+from dual_research.protocol.prompts import preflight_input_bundle
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,10 @@ async def run_phase0(
     openai_prompt = preflight_prompt(brief_content=brief_content, agent_name="openai")
     # Spec 0030: per-piece token sizes for the Consumption tab.
     p0_pieces = pieces_for_preflight(brief=brief_content)
+    # Spec 0033: per-piece TEXT for the Input tab. One bundle per agent
+    # (the system template differs by agent_name).
+    claude_bundle = preflight_input_bundle(brief=brief_content, agent_name="claude")
+    openai_bundle = preflight_input_bundle(brief=brief_content, agent_name="openai")
 
     print("\n[phase 0] preflight — both agents in parallel\n", flush=True)
 
@@ -63,6 +68,7 @@ async def run_phase0(
             stream_to=None,
             max_output_tokens=4096,
             prompt_pieces=p0_pieces,
+            prompt_bundle=claude_bundle,
         ),
         run_one_call(
             agent=openai_agent,
@@ -75,6 +81,7 @@ async def run_phase0(
             stream_to=None,
             max_output_tokens=4096,
             prompt_pieces=p0_pieces,
+            prompt_bundle=openai_bundle,
         ),
     )
 

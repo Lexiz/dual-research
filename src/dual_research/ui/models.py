@@ -266,6 +266,12 @@ class TurnTokenUsage:
     # didn't thread search counts through TurnEnded.
     searches: int = 0
     search_cost: float = 0.0
+    # Spec 0033: relative path (from session dir) to the persisted
+    # per-turn input bundle JSON. ``None`` for pre-0033 transcripts and
+    # for turns whose ``TurnInputs`` event arrived but never landed on
+    # disk. The UI server resolves this to an absolute path when
+    # answering ``/api/runs/<id>/inputs/<key>``.
+    input_path: str | None = None
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import FsdItem, drafting_prompt
 from dual_research.protocol.prompt_pieces import pieces_for_drafting
+from dual_research.protocol.prompts import drafting_input_bundle
 
 
 @dataclass(frozen=True)
@@ -74,6 +75,16 @@ async def run_phase3(
         plan=ctx.state.agreed_plan,
         prior_turns=prior_turns,
     )
+    # Spec 0033: per-piece TEXT bundle for the Input tab.
+    p3_bundle = drafting_input_bundle(
+        brief=brief_content,
+        claude_draft=claude_draft,
+        openai_draft=openai_draft,
+        plan=ctx.state.agreed_plan,
+        prior_turns=prior_turns,
+        agent_name=drafter,
+        other_name=other,
+    )
 
     print(f"\n[phase 3] drafting by {drafter} (single-shot)\n", flush=True)
     result = await run_one_call(
@@ -87,6 +98,7 @@ async def run_phase3(
         stream_to=None,
         max_output_tokens=16384,
         prompt_pieces=p3_pieces,
+        prompt_bundle=p3_bundle,
     )
 
     draft_path = phase_dir / "draft-v1.md"

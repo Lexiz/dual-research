@@ -130,6 +130,8 @@ class TestCamelCase:
             "promptPieces": {"brief": 100, "d1": 600, "d2": 534},
             "searches": 0,
             "searchCost": 0.0,
+            # Spec 0033 — null on entries built without an Input bundle.
+            "inputPath": None,
         }
 
     def test_phase_token_usage_carries_searches_and_search_cost(self):
