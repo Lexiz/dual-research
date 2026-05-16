@@ -3,10 +3,10 @@ spec: 0027
 title: Negotiate inline comments — side-by-side modal with anchored critique cards
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.25.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/27"
 ---
 
 # Spec 0027 — Negotiate inline comments
