@@ -15,6 +15,16 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.29.0',
+      date: '2026-05-16',
+      summary: 'Consumption-tab follow-ups — tier-lookup window, click-to-expand bars, per-phase web-search count.',
+      items: [
+        'Existing runs now render at the right context window (1M for prod tier) — the aggregator derives the cap by looking up the run\'s `model_id` against `config.TIERS` when the run_started event didn\'t carry it explicitly. No data migration; just redeploy.',
+        'Click any phase row on the Consumption tab to see the exact per-input numbers as a 3-column table — kind · Claude tokens · OpenAI tokens — plus summary rows for input total, output, web searches, and tool cost.',
+        'Per-phase web-search count + cost. APIs don\'t expose tool-token attribution (search results fold into input_tokens), so we surface the next-best thing: number of web-search calls per turn and their per-request cost. $10/1k for Anthropic, $25/1k for OpenAI Responses-API web_search. Stays out of the headline cost chip — it\'s a separate side-channel.',
+      ],
+    },
+    {
       version: '0.28.0',
       date: '2026-05-16',
       summary: 'Timeline UX pass — inline unfold, per-input consumption segments, real context windows, parser repairs.',

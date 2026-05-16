@@ -87,6 +87,11 @@ class TurnEnded(Event):
     # against ``input_tokens`` for honest segment widths on the
     # Consumption tab. Empty dict for pre-0030 transcripts.
     prompt_pieces: dict[str, int] = field(default_factory=dict)
+    # Spec 0031: web-search tool calls in this turn. Anthropic +
+    # OpenAI both report tool-call counts; this is the count of
+    # web_search invocations. Pre-0031 transcripts omit it (defaults
+    # to 0).
+    searches: int = 0
     kind: str = "turn_ended"
 
 

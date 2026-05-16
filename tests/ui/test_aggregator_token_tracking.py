@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from dual_research.ui.aggregator import apply_event
 from dual_research.ui.models import Run, TurnTokenUsage
 
@@ -242,9 +244,13 @@ class TestSpec0030Fields:
         assert run.agents["claude"].context_window == 1_000_000
         assert run.agents["gpt"].context_window == 1_000_000
 
-    def test_pre_0030_run_started_falls_back_to_zero(self, tmp_path: Path) -> None:
-        """Replaying an old transcript without context_window fields must
-        not crash; the field defaults to 0."""
+    def test_pre_0030_run_started_falls_back_via_tier_lookup(
+        self, tmp_path: Path
+    ) -> None:
+        """Spec 0031 — when the run_started event omits the
+        context_window fields (pre-0030 transcripts), the aggregator
+        derives the right value from the model_id by scanning
+        ``config.TIERS``. claude-sonnet-4-6 → PROD_TIER → 1_000_000."""
         run = _empty_run()
         apply_event(
             run,
@@ -254,6 +260,25 @@ class TestSpec0030Fields:
                 "hard_cap": 8,
                 "claude_model": "claude-sonnet-4-6",
                 "openai_model": "gpt-5.5",
+            },
+            tmp_path,
+        )
+        assert run.agents["claude"].context_window == 1_000_000
+        assert run.agents["gpt"].context_window == 1_000_000
+
+    def test_unknown_model_falls_back_to_zero(self, tmp_path: Path) -> None:
+        """Spec 0031 — when the model_id isn't in any tier, the fallback
+        leaves context_window at 0 (the frontend then uses its hard
+        default)."""
+        run = _empty_run()
+        apply_event(
+            run,
+            {
+                "event": "run_started",
+                "soft_cap": 4,
+                "hard_cap": 8,
+                "claude_model": "totally-unknown-model",
+                "openai_model": "another-unknown-model",
             },
             tmp_path,
         )
@@ -299,15 +324,90 @@ class TestSpec0030Fields:
                 agent="openai",
                 phase="phase0",
                 label="phase0-openai",
+                model_id="totally-unknown-model",
                 # No prompt_pieces — old transcript / non-instrumented phase.
             ),
             tmp_path,
         )
         usage = run.phase_token_usage["phase0_gpt"]
         assert usage.prompt_pieces == {}
-        # context_window picks up the agent's value (0 here, since no
-        # run_started was applied).
+        # No run_started seen + unknown model → no tier match → 0.
+        # (Known model ids would be back-filled by the spec-0031
+        # per-turn fallback; that's a deliberate safety net, not a
+        # regression.)
         assert usage.context_window == 0
+
+
+class TestSpec0031Fields:
+    """Spec 0031 — `searches` flows from `TurnEnded` to the per-turn
+    entry alongside the computed `search_cost`."""
+
+    def test_searches_and_search_cost_stamped(self, tmp_path: Path) -> None:
+        run = _empty_run()
+        # 3 searches on a claude turn → claude rate is $0.010 → $0.030.
+        apply_event(
+            run,
+            {
+                "event": "turn_ended",
+                "agent": "claude",
+                "phase": "phase2",
+                "label": "phase2-claude-round-1",
+                "input_tokens": 1000,
+                "output_tokens": 500,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "cost_usd": 0.01,
+                "duration_ms": 1000,
+                "finish_reason": "end_turn",
+                "model_id": "claude-sonnet-4-6",
+                "prompt_pieces": {},
+                "searches": 3,
+            },
+            tmp_path,
+        )
+        usage = run.phase_token_usage["phase2_round1_claude"]
+        assert usage.searches == 3
+        assert usage.search_cost == pytest.approx(0.030)
+
+    def test_zero_searches_yields_zero_cost(self, tmp_path: Path) -> None:
+        run = _empty_run()
+        apply_event(
+            run,
+            _turn_ended(agent="claude", phase="phase1", label="phase1-claude"),
+            tmp_path,
+        )
+        usage = run.phase_token_usage["phase1_claude"]
+        assert usage.searches == 0
+        assert usage.search_cost == 0.0
+
+    def test_search_cost_uses_model_id_pricing(self, tmp_path: Path) -> None:
+        """OpenAI's per-search rate ($0.025) differs from Claude's
+        ($0.010); search_cost must reflect the turn's model_id."""
+        run = _empty_run()
+        apply_event(
+            run,
+            {
+                "event": "turn_ended",
+                "agent": "openai",
+                "phase": "phase2",
+                "label": "phase2-openai-round-1",
+                "input_tokens": 1000,
+                "output_tokens": 500,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "cost_usd": 0.01,
+                "duration_ms": 1000,
+                "finish_reason": "end_turn",
+                "model_id": "gpt-5.5",
+                "prompt_pieces": {},
+                "searches": 4,
+            },
+            tmp_path,
+        )
+        usage = run.phase_token_usage["phase2_round1_gpt"]
+        assert usage.searches == 4
+        # 4 × $0.025 = $0.10
+        assert usage.search_cost == pytest.approx(0.100)
 
 
 class TestAccumulationPreserved:
