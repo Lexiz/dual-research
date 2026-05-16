@@ -52,15 +52,15 @@ function composeAgentActivity(agent, run) {
   }
 }
 
-// ─────────────────── Compact run-detail header (spec 0024 pass 3 + 0033) ─────
-// Spec 0033 expands this from 2 to 4 rows:
-//   row 1: topic · cost · status · [Conversation/Consumption tabs]
-//   row 2: Claude agent strip — icon · model · tokens·cost · status sentence
-//   row 3: GPT    agent strip — same shape
-//   row 4: phase dots + dot labels + run metadata (started · elapsed · round)
-// The 4 rows collapse to 3 on narrow widths (the per-agent strips reduce
-// font and the metadata wraps under the dots row).
-function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, tab, onTabChange }) {
+// ─────────────────── Compact run-detail header (spec 0024 pass 3) ────────────
+// Spec 0035 reverts the spec-0033 four-row layout back to two rows:
+//   row 1: topic · cost · status/errors
+//   row 2: phase dots + dot labels + run metadata (started · drafter · elapsed · round)
+// The per-agent activity strips moved into the Timeline pane (where they
+// replace the deleted `AgentLegendChip`s) and the Conversation/Consumption
+// tabs moved back into the Timeline `PaneToolbar`. The header is chrome
+// only — global run identity + state — not per-agent or per-pane.
+function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
   const total = run.agents.claude.cost + run.agents.gpt.cost;
   const idParts = window.splitRunId(run.id);
   const startedClock = idParts.time || '—';
@@ -78,9 +78,9 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, tab, onT
       borderBottom: '1px solid var(--border-1)',
       background: 'var(--bg-0)',
       flexShrink: 0,
-      gap: 6,
+      gap: 4,
     }}>
-      {/* Row 1: topic + cost + status/errors + Conversation/Consumption tabs */}
+      {/* Row 1: topic + cost + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         <Topic text={run.topic} />
         <CostBadge cost={total} tokens={totalTokens} />
@@ -90,15 +90,8 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, tab, onT
           showErrors={showErrors}
           onToggleErrors={onToggleErrors}
         />
-        {onTabChange && (
-          <TimelineTabs active={tab} onChange={onTabChange} prominent />
-        )}
       </div>
-      {/* Row 2: Claude agent strip (spec 0033). */}
-      <AgentStrip agent="claude" run={run} />
-      {/* Row 3: GPT agent strip. */}
-      <AgentStrip agent="gpt" run={run} />
-      {/* Row 4: phase dots + dot labels + run metadata. */}
+      {/* Row 2: phase dots + dot labels on the left; run metadata on the right. */}
       <PhaseDotsRow
         run={run}
         startedClock={startedClock}
@@ -109,7 +102,14 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, tab, onT
   );
 }
 
-// ─────────────────── Spec 0033 — per-agent header strip ─────────────────────
+// ─────────────────── Spec 0035 — per-agent pill (Timeline toolbar) ──────────
+//
+// Single-line inline-flex pill carrying the same payload as spec 0033's
+// full-row `AgentStrip` (icon · name · model · tokens·cost · ● phrase).
+// Replaces the deleted `AgentLegendChip` (which lived in the toolbar but
+// missed the live-activity sentence). Pill border picks up the agent's
+// color — that's the "rail" cue; no separate left-border-rail like the
+// header variant had.
 function AgentStrip({ agent, run }) {
   const meta = AGENT_META[agent];
   const ag = run.agents?.[agent] || {};
@@ -123,47 +123,44 @@ function AgentStrip({ agent, run }) {
   const phraseColor = live ? 'var(--fg-1)' : 'var(--fg-3)';
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      minWidth: 0,
-      // Subtle agent-tinted left rail so the two strips read as paired.
-      borderLeft: `2px solid ${meta.color}`,
-      paddingLeft: 8,
-    }}>
+    <span
+      title={`${meta.name} · ${modelId} · ${totalTokens.toLocaleString()} tokens · ${cost.toFixed(4)} USD`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        padding: '3px 10px',
+        background: 'var(--bg-2)',
+        border: `1px solid ${meta.border}`,
+        borderRadius: 999,
+        whiteSpace: 'nowrap',
+        minWidth: 0,
+        flexShrink: 1,
+      }}>
       <AgentIcon agent={agent} size={14} />
-      <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 56 }}>
+      <span style={{ fontSize: 11.5, color: 'var(--fg-1)', fontWeight: 500 }}>
         {meta.name}
       </span>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+      <span className="mono" style={{
+        fontSize: 10.5, color: 'var(--fg-3)',
+        maxWidth: 160,
+        overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
         {modelId}
       </span>
-      {/* token + cost badge — same shape as CostBadge but agent-scoped */}
-      <span className="mono" title={`${cost.toFixed(4)} USD · ${totalTokens.toLocaleString()} tokens`}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '2px 8px', borderRadius: 999,
-              background: 'var(--bg-2)', border: '1px solid var(--border-1)',
-              fontSize: 10.5, color: 'var(--fg-1)',
-              whiteSpace: 'nowrap',
-            }}>
-        <span className="num">{fmt.tokens(totalTokens)}t</span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
-        <span className="num" style={{ color: 'var(--fg-2)' }}>{fmt.cost(cost)}</span>
+      <span className="mono" style={{
+        fontSize: 10.5, color: 'var(--fg-2)',
+      }}>
+        {fmt.tokens(totalTokens)}t · {fmt.cost(cost)}
       </span>
-      {/* pipe separator */}
-      <span style={{ color: 'var(--border-2)', fontSize: 12 }}>│</span>
-      {/* status dot + activity sentence */}
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-        <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
-        <span style={{
-          fontSize: 11.5, color: phraseColor,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {phrase}
-        </span>
+      <span style={{ color: 'var(--border-2)', fontSize: 11 }}>│</span>
+      <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
+      <span style={{
+        fontSize: 11, color: phraseColor,
+        maxWidth: 180,
+        overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {phrase}
       </span>
-      <span style={{ flex: 1 }} />
-    </div>
+    </span>
   );
 }
 
@@ -336,24 +333,29 @@ function PhaseDots({ run }) {
 // remain inline-streaming.
 //
 // Spec 0029: two tabs — `Conversation` (existing card view) and
-// `Consumption` (per-turn context-window bars). Tabs sit on the left of
-// the pane toolbar; the two `AgentLegendChip`s move to the right end.
-function Timeline({ run, tab = 'conversation', highlightedTurnKeys }) {
+// `Consumption` (per-turn context-window bars).
+//
+// Spec 0035 layout:
+//   PaneHeader (row 1): "Timeline · N artifacts" .................. [Claude pill]
+//   PaneToolbar (row 2): [GPT pill] [live-count chip] ............. [Conversation | Consumption]
+// Tab state is owned by Timeline (re-internalised — spec 0033 had lifted
+// it to RunDetail so the header could render the pill; spec 0035 moved
+// the tabs back here and unwound the lift).
+function Timeline({ run, highlightedTurnKeys }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
   const [openId, setOpenId] = React.useState(null);
+  const [tab, setTab] = React.useState('conversation'); // 'conversation' | 'consumption'
 
-  // Reset open modal when navigating between runs. Tab state is owned by
-  // RunDetail (spec 0033 lifted it so the header can render the pill).
+  // Reset open modal + active tab when navigating between runs.
   React.useEffect(() => {
     setOpenId(null);
+    setTab('conversation');
   }, [run.id]);
 
   const openItem = items.find((i) => i.id === openId) || null;
 
   const artifactCount = items.filter(i => i.kind !== 'phase-divider' && i.kind !== 'error' && i.kind !== 'deadlock').length;
   const liveCount = items.filter(i => i.live).length;
-  const claudeTotal = run.agents.claude;
-  const gptTotal = run.agents.gpt;
 
   return (
     <section style={{
@@ -361,17 +363,17 @@ function Timeline({ run, tab = 'conversation', highlightedTurnKeys }) {
       borderRight: '1px solid var(--border-1)',
       minWidth: 0, minHeight: 0,
     }}>
+      {/* Row 1 — PaneHeader: title on the left, Claude pill on the right. */}
       <PaneHeader
         title="Timeline"
         count={`${artifactCount} artifacts`}
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
+        right={<AgentStrip agent="claude" run={run} />}
       />
+      {/* Row 2 — PaneToolbar: GPT pill + live-count on the left,
+                                Conversation/Consumption tabs on the right. */}
       <PaneToolbar>
-        {/* Tabs moved to the run header (spec 0033). The toolbar now
-            keeps the per-agent legend chips + the live-count chip. */}
-        <span style={{ flex: 1 }} />
-        <AgentLegendChip agent="claude" tokens={claudeTotal.tokens.in + claudeTotal.tokens.out} cost={claudeTotal.cost} />
-        <AgentLegendChip agent="gpt"    tokens={gptTotal.tokens.in + gptTotal.tokens.out} cost={gptTotal.cost} />
+        <AgentStrip agent="gpt" run={run} />
         {liveCount > 0 && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -387,6 +389,8 @@ function Timeline({ run, tab = 'conversation', highlightedTurnKeys }) {
             {liveCount} live
           </span>
         )}
+        <span style={{ flex: 1 }} />
+        <TimelineTabs active={tab} onChange={setTab} prominent />
       </PaneToolbar>
       {tab === 'conversation' ? (
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px 16px 24px', background: 'var(--bg-0)' }}>
@@ -465,25 +469,10 @@ function TimelineTabs({ active, onChange, prominent = false }) {
   );
 }
 
-function AgentLegendChip({ agent, tokens, cost }) {
-  const meta = AGENT_META[agent];
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '3px 8px 3px 6px',
-      background: 'var(--bg-2)',
-      border: `1px solid ${meta.border}`,
-      borderRadius: 999,
-      whiteSpace: 'nowrap',
-    }}>
-      <AgentIcon agent={agent} size={14} />
-      <span style={{ fontSize: 11.5, color: 'var(--fg-1)' }}>{meta.name}</span>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-        {fmt.tokens(tokens)}t · {fmt.cost(cost)}
-      </span>
-    </span>
-  );
-}
+// `AgentLegendChip` (spec 0029) was deleted in spec 0035 — the same
+// payload (icon · name · tokens · cost), plus the live-activity
+// sentence, now lives on the per-agent `AgentStrip` pill rendered
+// directly in the Timeline pane header / toolbar.
 
 // ─────────────────── Consumption tab (spec 0029) ───────────────────
 //
@@ -534,6 +523,61 @@ const KIND_COLORS = {
 // the order content appears in the prompt; keeps the bars visually stable
 // even when keys arrive in a different order from the wire.
 const KIND_ORDER = ['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
+
+// Spec 0035 — distinct palette for the expanded-card sub-input bars.
+// Stays explicitly out of the agent-color space (Claude amber / GPT
+// green) so the TOTAL bar in agent color reads as the aggregate and
+// the sub-bars in these neutrals read as the components. The
+// collapsed-row segmented bar still uses ``KIND_COLORS`` above — that
+// compact view continues to mirror the how-it-works Tk palette.
+const SUBINPUT_COLORS = {
+  brief: '#5a7fc7',  // indigo
+  d1:    '#a98a5a',  // ochre (NOT Claude orange)
+  d2:    '#6f8c7a',  // sage (NOT GPT green)
+  plan:  '#7a6b9a',  // plum
+  hist:  '#c08570',  // rose
+  draft: '#5d8a8a',  // teal
+  histp: '#a18560',  // slate-amber
+};
+
+// Spec 0035 — compute a shared denominator for every bar in the
+// Consumption tab. Default behaviour: data-relative scale with 15%
+// headroom so the largest row fills ~85% of the bar (still leaves room
+// for the context-window tick marker if the cap sits beyond the data).
+// Returns ``{ denom, window, dataRelative }``.
+function computeConsumptionScale(rows, run) {
+  let maxConsumption = 0;
+  let maxWindow = 0;
+  for (const row of rows || []) {
+    for (const ag of ['claude', 'gpt']) {
+      const u = row[ag];
+      if (!u) continue;
+      const tokensIn = Number(u.in) || 0;
+      if (tokensIn > maxConsumption) maxConsumption = tokensIn;
+      const w = contextWindowFor(u, run, ag);
+      if (w > maxWindow) maxWindow = w;
+    }
+  }
+  if (maxConsumption <= 0) {
+    // No data yet — fall back to the full context window (or the default).
+    const w = maxWindow > 0 ? maxWindow : DEFAULT_CONTEXT_WINDOW;
+    return { denom: w, window: w, dataRelative: false };
+  }
+  const headroom = Math.max(maxConsumption + 1, Math.round(maxConsumption * 1.15));
+  // If the actual consumption is already > the recorded window (impossible
+  // but defensive), grow the scale to fit.
+  const denom = Math.max(headroom, maxConsumption);
+  return { denom, window: maxWindow || DEFAULT_CONTEXT_WINDOW, dataRelative: true };
+}
+
+// Tiny pretty-printer for a context-window cap (e.g. ``1M`` / ``400K`` / ``128K``).
+function _fmtCapLabel(n) {
+  if (!n) return '';
+  if (n >= 1_000_000 && n % 1_000_000 === 0) return `${n / 1_000_000}M`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1000) return `${Math.round(n / 1000)}K`;
+  return `${n}`;
+}
 
 // Build the wire-format inner key for a given (phase, round, agent).
 // Examples:
@@ -609,6 +653,9 @@ function ConsumptionView({ run }) {
       return next;
     });
   }, []);
+  // Spec 0035: shared scale across every bar in this grid. Recomputes
+  // when the per-turn usage dict changes (the rows are derived from it).
+  const scale = React.useMemo(() => computeConsumptionScale(rows, run), [rows, run]);
 
   if (rows.length === 0) {
     return <ConsumptionEmptyState />;
@@ -621,6 +668,27 @@ function ConsumptionView({ run }) {
       flex: 1, minHeight: 0, overflow: 'auto',
       padding: '16px 16px 32px', background: 'var(--bg-0)',
     }}>
+      {/* Spec 0035: caption telling the user the bars are data-relative
+          (not the full 1M-cap-relative). Same denominator across the grid. */}
+      <div className="mono" style={{
+        marginBottom: 10, padding: '0 4px',
+        fontSize: 10.5, color: 'var(--fg-3)',
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      }}>
+        <span>scale: <span style={{ color: 'var(--fg-1)' }}>{fmt.tokens(scale.denom)}t</span></span>
+        {scale.window > 0 && scale.window !== scale.denom && (
+          <>
+            <span>·</span>
+            <span>cap <span style={{ color: 'var(--fg-1)' }}>{_fmtCapLabel(scale.window)}</span></span>
+          </>
+        )}
+        <span style={{ flex: 1 }} />
+        {scale.dataRelative && (
+          <span style={{ fontStyle: 'italic', color: 'var(--fg-4)' }}>
+            bars sized to the largest input in this run, not the full window
+          </span>
+        )}
+      </div>
       <div style={{
         display: 'grid', gridTemplateColumns: '120px 1fr 1fr',
         gap: 10, alignItems: 'stretch',
@@ -652,6 +720,7 @@ function ConsumptionView({ run }) {
               key={row.id}
               row={row}
               run={run}
+              scale={scale}
               showPhaseTitle={isFirstOfPhase}
               expanded={expanded.has(row.id)}
               onToggle={() => toggleRow(row.id)}
@@ -665,7 +734,7 @@ function ConsumptionView({ run }) {
   );
 }
 
-function ConsumptionRow({ row, run, showPhaseTitle, expanded, onToggle }) {
+function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle }) {
   // Spec 0031: whole row is clickable to toggle the expanded body. The
   // expanded body sits below as a 4th grid row spanning all 3 columns
   // (so the 3-col rhythm of the grid keeps working).
@@ -701,58 +770,24 @@ function ConsumptionRow({ row, run, showPhaseTitle, expanded, onToggle }) {
       </div>
       {/* Claude lane */}
       <div onClick={onToggle} style={{ cursor: 'pointer' }}>
-        <TokenLaneCell usage={row.claude} agent="claude" run={run} />
+        <TokenLaneCell usage={row.claude} agent="claude" run={run} scale={scale} />
       </div>
       {/* OpenAI lane */}
       <div onClick={onToggle} style={{ cursor: 'pointer' }}>
-        <TokenLaneCell usage={row.gpt} agent="gpt" run={run} />
+        <TokenLaneCell usage={row.gpt} agent="gpt" run={run} scale={scale} />
       </div>
       {expanded && (
-        <ConsumptionRowExpanded row={row} run={run} />
+        <ConsumptionRowExpanded row={row} run={run} scale={scale} />
       )}
     </React.Fragment>
   );
 }
 
-// Per-row expanded body — a per-piece breakdown table laid out side-by-
-// side for both lanes. Spans all 3 columns of the parent grid.
-function ConsumptionRowExpanded({ row, run }) {
-  // Collect the union of kinds present on either lane, in canonical
-  // KIND_ORDER. Skip kinds that are zero on both sides.
-  const cPieces = (row.claude && row.claude.promptPieces) || {};
-  const gPieces = (row.gpt && row.gpt.promptPieces) || {};
-  const kindsShown = KIND_ORDER.filter(
-    (k) => (Number(cPieces[k]) || 0) > 0 || (Number(gPieces[k]) || 0) > 0
-  );
-
-  // Renormalise each lane's piece counts to the provider's `input`
-  // token total, so the numbers in the table match what the bar shows.
-  const renormLane = (usage) => {
-    if (!usage) return {};
-    const pieces = usage.promptPieces || {};
-    const tokensIn = Number(usage.in) || 0;
-    const present = KIND_ORDER.filter((k) => Number(pieces[k]) > 0);
-    if (present.length === 0 || tokensIn <= 0) return {};
-    const rawSum = present.reduce((acc, k) => acc + Number(pieces[k] || 0), 0);
-    if (rawSum <= 0) return {};
-    const scale = tokensIn / rawSum;
-    const out = {};
-    for (const k of present) {
-      out[k] = Math.max(0, Math.round(Number(pieces[k] || 0) * scale));
-    }
-    return out;
-  };
-  const cAdj = renormLane(row.claude);
-  const gAdj = renormLane(row.gpt);
-
-  const numCell = (n, opts = {}) => (
-    <span className="mono num" style={{
-      fontSize: 11, color: 'var(--fg-1)',
-      ...(opts.muted ? { color: 'var(--fg-3)' } : {}),
-      ...(opts.bold ? { fontWeight: 600 } : {}),
-    }}>{n != null ? `${fmt.tokens(n)}t` : '—'}</span>
-  );
-
+// Per-row expanded body — spec 0035 rework. Two per-agent
+// ``ConsumptionCard``s side-by-side, each carrying its agent's total
+// bar at top + stacked sub-bars per input piece below. Spans all 3
+// columns of the parent grid.
+function ConsumptionRowExpanded({ row, run, scale }) {
   return (
     <div style={{
       gridColumn: '1 / 4',
@@ -764,72 +799,268 @@ function ConsumptionRowExpanded({ row, run }) {
       <div className="mono" style={{
         fontSize: 10, color: 'var(--fg-3)',
         textTransform: 'uppercase', letterSpacing: '0.06em',
-        marginBottom: 8,
+        marginBottom: 10,
       }}>
         per-input breakdown · {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
         {row.label && ` · ${row.label}`}
       </div>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gap: '4px 16px',
-        alignItems: 'baseline',
-        fontSize: 11,
+        gridTemplateColumns: '1fr 1fr',
+        gap: 14,
+        alignItems: 'stretch',
       }}>
-        {/* Header row */}
-        <div className="mono" style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase' }}>input</div>
-        <div className="mono" style={{ fontSize: 9.5, color: 'var(--agent-a)', textTransform: 'uppercase' }}>Claude</div>
-        <div className="mono" style={{ fontSize: 9.5, color: 'var(--agent-b)', textTransform: 'uppercase' }}>GPT</div>
-
-        {/* Per-kind rows */}
-        {kindsShown.map((k) => (
-          <React.Fragment key={k}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              color: 'var(--fg-1)',
-            }}>
-              <span style={{
-                display: 'inline-block', width: 10, height: 10,
-                background: KIND_COLORS[k].bg, borderRadius: 2,
-              }} />
-              {KIND_COLORS[k].label}
-            </div>
-            <div>{numCell(cAdj[k])}</div>
-            <div>{numCell(gAdj[k])}</div>
-          </React.Fragment>
-        ))}
-
-        {/* Divider */}
-        <div style={{ gridColumn: '1 / 4', height: 1, background: 'var(--border-2)', margin: '6px 0' }} />
-
-        {/* Totals row */}
-        <div style={{ color: 'var(--fg-0)', fontWeight: 500 }}>Input total</div>
-        <div>{numCell(row.claude ? Number(row.claude.in) || 0 : null, { bold: true })}</div>
-        <div>{numCell(row.gpt ? Number(row.gpt.in) || 0 : null, { bold: true })}</div>
-
-        <div style={{ color: 'var(--fg-1)' }}>Output</div>
-        <div>{numCell(row.claude ? Number(row.claude.out) || 0 : null)}</div>
-        <div>{numCell(row.gpt ? Number(row.gpt.out) || 0 : null)}</div>
-
-        {/* Web-search row — count + cost (spec 0031). Only show when
-            at least one lane had a search this turn. */}
-        {((row.claude && Number(row.claude.searches) > 0)
-          || (row.gpt && Number(row.gpt.searches) > 0)) && (
-          <React.Fragment>
-            <div style={{ color: 'var(--fg-1)' }}>Web searches</div>
-            <div>{searchCell(row.claude)}</div>
-            <div>{searchCell(row.gpt)}</div>
-            <div style={{ color: 'var(--fg-3)', fontSize: 10 }}>Tool cost</div>
-            <div className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
-              {row.claude ? fmt.cost(Number(row.claude.searchCost) || 0) : '—'}
-            </div>
-            <div className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
-              {row.gpt ? fmt.cost(Number(row.gpt.searchCost) || 0) : '—'}
-            </div>
-          </React.Fragment>
-        )}
+        <ConsumptionCard usage={row.claude} agent="claude" run={run} scale={scale} />
+        <ConsumptionCard usage={row.gpt}    agent="gpt"    run={run} scale={scale} />
       </div>
     </div>
+  );
+}
+
+// Spec 0035 — one card per agent, rendered side-by-side in the expanded
+// row. Header carries the agent name + total tokens / cost; total bar
+// fills against the shared ``scale``; stacked sub-bars beneath show each
+// input piece's contribution at the same scale. Sort toggle flips
+// between size-descending (default) and canonical Tk order. Web-search
+// count + cost (spec 0031) survive at the bottom.
+function ConsumptionCard({ usage, agent, run, scale }) {
+  const meta = AGENT_META[agent];
+  const [sortMode, setSortMode] = React.useState('size'); // 'size' | 'order'
+
+  if (!usage) {
+    return (
+      <div style={{
+        padding: '14px 16px',
+        background: 'var(--bg-1)',
+        border: '1px dashed var(--border-2)', borderRadius: 6,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--fg-4)', fontSize: 12,
+        fontFamily: 'var(--mono)',
+      }}>
+        {meta.name} · silent this turn
+      </div>
+    );
+  }
+
+  const tokensIn  = Number(usage.in)  || 0;
+  const tokensOut = Number(usage.out) || 0;
+  const cost      = Number(usage.cost) || 0;
+  const ctxWindow = contextWindowFor(usage, run, agent);
+  const piecesRaw = usage.promptPieces || {};
+
+  // Renormalise piece counts so they sum to the provider's input_tokens.
+  const renormalised = (() => {
+    const present = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0);
+    if (present.length === 0 || tokensIn <= 0) return [];
+    const rawSum = present.reduce((acc, k) => acc + Number(piecesRaw[k] || 0), 0);
+    if (rawSum <= 0) return [];
+    const s = tokensIn / rawSum;
+    return present.map((k) => ({
+      kind: k,
+      tokens: Math.max(0, Math.round(Number(piecesRaw[k] || 0) * s)),
+    }));
+  })();
+
+  // Sort.
+  const sorted = (() => {
+    const copy = renormalised.slice();
+    if (sortMode === 'size') {
+      copy.sort((a, b) => b.tokens - a.tokens);
+    } else {
+      copy.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+    }
+    return copy;
+  })();
+
+  // Pieces that the protocol could have inlined here but didn't (zero
+  // count in `promptPieces`) — surfaced as a footnote.
+  const presentKinds = new Set(renormalised.map((p) => p.kind));
+  const missingKinds = KIND_ORDER.filter((k) => !presentKinds.has(k));
+
+  const pctOfCap = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
+  const hasSearches = Number(usage.searches) > 0;
+
+  return (
+    <div style={{
+      padding: '12px 14px',
+      background: 'var(--bg-1)',
+      border: `1px solid ${meta.border}`, borderRadius: 6,
+      display: 'flex', flexDirection: 'column', gap: 10,
+      minWidth: 0,
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        flexWrap: 'wrap',
+      }}>
+        <AgentIcon agent={agent} size={14} />
+        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
+          {meta.name}
+        </span>
+        <span className="mono num" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+          {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
+        </span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+          ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
+        </span>
+        <span style={{ flex: 1 }} />
+        {sorted.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setSortMode(m => m === 'size' ? 'order' : 'size')}
+            title="Toggle sort: by size / canonical Tk order"
+            style={{
+              appearance: 'none', border: '1px solid var(--border-1)',
+              background: 'var(--bg-2)', color: 'var(--fg-3)',
+              borderRadius: 999, padding: '1px 8px',
+              fontSize: 10.5, fontFamily: 'var(--mono)',
+              cursor: 'pointer',
+            }}
+          >
+            sort: {sortMode === 'size' ? '↓ size' : '↘ order'}
+          </button>
+        )}
+      </div>
+
+      {/* Total bar (agent color, against shared scale). */}
+      <SubInputBar
+        label="total input"
+        tokens={tokensIn}
+        scale={scale}
+        color={meta.color}
+        accent={true}
+      />
+
+      {/* Stacked sub-bars per piece. Empty when no pieces (pre-0030 turn). */}
+      {sorted.length > 0 && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 4,
+          paddingLeft: 8,
+          borderLeft: `1px dashed var(--border-2)`,
+        }}>
+          {sorted.map((p) => (
+            <SubInputBar
+              key={p.kind}
+              label={INPUT_PIECE_LABEL[p.kind] || KIND_COLORS[p.kind]?.label || p.kind}
+              tokens={p.tokens}
+              scale={scale}
+              color={SUBINPUT_COLORS[p.kind] || 'var(--fg-3)'}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty-piece footnote — friendly labels, not raw Tk keys. */}
+      {missingKinds.length > 0 && (
+        <div className="mono" style={{
+          fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
+          paddingLeft: 8,
+        }}>
+          not used in this turn:{' '}
+          {missingKinds.map((k) => INPUT_PIECE_LABEL[k] || KIND_COLORS[k]?.label || k).join(', ')}
+        </div>
+      )}
+
+      {/* Web-search row — spec 0031 carry-forward. */}
+      {hasSearches && (
+        <div className="mono" style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          paddingTop: 6, borderTop: '1px solid var(--border-1)',
+          fontSize: 10.5, color: 'var(--fg-3)',
+        }}>
+          <span>web searches:{' '}
+            <span className="num" style={{ color: 'var(--fg-1)' }}>
+              {Number(usage.searches).toLocaleString()}
+            </span>
+          </span>
+          <span>·</span>
+          <span>tool cost:{' '}
+            <span className="num" style={{ color: 'var(--fg-2)' }}>
+              {fmt.cost(Number(usage.searchCost) || 0)}
+            </span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One row inside a ConsumptionCard — label + bar + token count.
+function SubInputBar({ label, tokens, scale, color, accent }) {
+  const denom = scale?.denom || 1;
+  const widthPct = denom > 0 ? Math.min(100, (tokens / denom) * 100) : 0;
+  // Spec 0035: tick marker for the context-window cap shows ONLY on the
+  // accent (total) bar. Sub-bars share the same scale but the marker is
+  // visual noise repeated 7 times — keep it on the total only.
+  const markerPct = (accent && scale?.window > 0 && scale.window <= scale.denom)
+    ? (scale.window / scale.denom) * 100
+    : null;
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '140px 1fr 80px',
+      alignItems: 'center', gap: 10,
+      minWidth: 0,
+    }}>
+      <span style={{
+        fontSize: accent ? 11 : 10.5,
+        color: accent ? 'var(--fg-1)' : 'var(--fg-2)',
+        fontWeight: accent ? 500 : 400,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {label}
+      </span>
+      <div style={{
+        position: 'relative',
+        width: '100%', height: accent ? 14 : 10,
+        background: 'var(--bg-3)',
+        borderRadius: 3, overflow: 'hidden',
+        border: accent ? '1px solid rgba(0,0,0,0.10)' : 'none',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0, left: 0,
+          width: `${widthPct}%`,
+          background: color,
+          opacity: accent ? 0.9 : 0.75,
+        }} />
+        {markerPct != null && markerPct < 100 && (
+          <ContextWindowMarker pct={markerPct} label={_fmtCapLabel(scale.window)} />
+        )}
+      </div>
+      <span className="mono num" style={{
+        fontSize: 10.5, color: 'var(--fg-2)',
+        textAlign: 'right', whiteSpace: 'nowrap',
+      }}>
+        {fmt.tokens(tokens)}t
+      </span>
+    </div>
+  );
+}
+
+// Spec 0035 — tiny vertical tick + label at the context-window position
+// on a bar that's been zoomed-in to data scale. Tells the user where the
+// budget cap is without re-sizing the bar to the cap.
+function ContextWindowMarker({ pct, label }) {
+  return (
+    <React.Fragment>
+      <div style={{
+        position: 'absolute', top: -2, bottom: -2,
+        left: `${pct}%`, width: 1,
+        background: 'var(--fg-3)',
+        opacity: 0.55,
+      }} />
+      <span className="mono" style={{
+        position: 'absolute', left: `${pct}%`,
+        top: -1, transform: 'translateX(-50%) translateY(-100%)',
+        fontSize: 9, color: 'var(--fg-3)',
+        background: 'var(--bg-1)',
+        padding: '0 3px', borderRadius: 2,
+        whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+    </React.Fragment>
   );
 }
 
@@ -844,7 +1075,7 @@ function searchCell(usage) {
 }
 
 // One cell of a row — either a populated TokenBar or a silent placeholder.
-function TokenLaneCell({ usage, agent, run }) {
+function TokenLaneCell({ usage, agent, run, scale }) {
   if (!usage) {
     return (
       <div className="mono" style={{
@@ -856,7 +1087,7 @@ function TokenLaneCell({ usage, agent, run }) {
       }}>silent</div>
     );
   }
-  return <TokenBar usage={usage} agent={agent} run={run} />;
+  return <TokenBar usage={usage} agent={agent} run={run} scale={scale} />;
 }
 
 // Spec 0030: the bar now renders one segment per prompt-piece kind
@@ -865,7 +1096,7 @@ function TokenLaneCell({ usage, agent, run }) {
 // segment widths. An output tail still trails the input region (darker
 // shade, thinner band). When `promptPieces` is missing (pre-0030
 // transcripts) we fall back to the spec-0029 single-fill rendering.
-function TokenBar({ usage, agent, run }) {
+function TokenBar({ usage, agent, run, scale }) {
   const meta = AGENT_META[agent];
   const tokensIn  = Number(usage.in)  || 0;
   const tokensOut = Number(usage.out) || 0;
@@ -874,6 +1105,11 @@ function TokenBar({ usage, agent, run }) {
   const modelId   = usage.modelId || null;
   const cost      = Number(usage.cost) || 0;
   const ctxWindow = contextWindowFor(usage, run, agent);
+  // Spec 0035: bars are sized to the shared per-grid denominator (15%
+  // headroom over the largest input observed) rather than the context-
+  // window cap. The cap shows as a vertical tick marker on the bar.
+  // Falls back to the cap when no scale is supplied (older render paths).
+  const denom     = (scale && scale.denom) || ctxWindow;
   const piecesRaw = usage.promptPieces || {};
 
   // Renormalise heuristic piece counts so they sum to the provider's
@@ -893,8 +1129,15 @@ function TokenBar({ usage, agent, run }) {
   })();
   const hasPieces = renormalised.length > 0;
 
-  const inputPct  = Math.min(100, (tokensIn  / ctxWindow) * 100);
-  const outputPct = Math.min(100 - inputPct, (tokensOut / ctxWindow) * 100);
+  const inputPct  = Math.min(100, (tokensIn  / denom) * 100);
+  const outputPct = Math.min(100 - inputPct, (tokensOut / denom) * 100);
+  // Marker position for the context-window cap on a data-relative scale.
+  // Only render the marker when the cap sits inside the visible bar range
+  // (scale denom <= window) — when the bar IS sized to the cap, the
+  // marker would just sit at 100% and is redundant.
+  const showMarker = scale && scale.dataRelative && ctxWindow > 0
+    && ctxWindow <= denom && (ctxWindow / denom) < 0.99;
+  const markerPct = showMarker ? (ctxWindow / denom) * 100 : null;
 
   // Build tooltip — lead with model + window, then per-kind sizes if any.
   const tooltipLines = [
@@ -930,13 +1173,12 @@ function TokenBar({ usage, agent, run }) {
       }}>
         {hasPieces ? (
           // Per-piece segments (spec 0030). Each segment's width is its
-          // share of the context window. Cache-read shading is dropped
-          // here — the prompt-piece breakdown supersedes it for the visual.
+          // share of the bar's denominator (spec 0035: data-relative).
           (() => {
             let offsetPct = 0;
             return renormalised.map((p) => {
               const colour = KIND_COLORS[p.kind]?.bg || 'var(--fg-3)';
-              const widthPct = Math.min(100 - offsetPct, (p.tokens / ctxWindow) * 100);
+              const widthPct = Math.min(100 - offsetPct, (p.tokens / denom) * 100);
               const segment = (
                 <div key={p.kind} style={{
                   position: 'absolute', top: 0, bottom: 0,
@@ -957,16 +1199,16 @@ function TokenBar({ usage, agent, run }) {
             {cacheRead > 0 && (
               <div style={{
                 position: 'absolute', left: 0, top: 0, bottom: 0,
-                width: `${Math.min(100, (cacheRead / ctxWindow) * 100)}%`,
+                width: `${Math.min(100, (cacheRead / denom) * 100)}%`,
                 background: meta.color + '55',
               }} />
             )}
             {tokensIn - cacheRead > 0 && (
               <div style={{
                 position: 'absolute',
-                left: `${Math.min(100, (cacheRead / ctxWindow) * 100)}%`,
+                left: `${Math.min(100, (cacheRead / denom) * 100)}%`,
                 top: 0, bottom: 0,
-                width: `${Math.max(0, Math.min(100, ((tokensIn - cacheRead) / ctxWindow) * 100))}%`,
+                width: `${Math.max(0, Math.min(100, ((tokensIn - cacheRead) / denom) * 100))}%`,
                 background: meta.color,
               }} />
             )}
@@ -982,8 +1224,14 @@ function TokenBar({ usage, agent, run }) {
             borderLeft: '1px solid rgba(0,0,0,0.25)',
           }} />
         )}
+        {/* Spec 0035: vertical tick marker at the context-window cap. */}
+        {markerPct != null && (
+          <ContextWindowMarker pct={markerPct} label={_fmtCapLabel(ctxWindow)} />
+        )}
       </div>
-      {/* Numeric row underneath */}
+      {/* Numeric row underneath. Spec 0035: percent is now against the
+          context-window cap (the budget number that matters), not the
+          bar's data-relative denominator. */}
       <div className="mono" style={{
         display: 'flex', alignItems: 'center', gap: 8,
         marginTop: 5,
@@ -995,7 +1243,7 @@ function TokenBar({ usage, agent, run }) {
         <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
         <span>out</span>
         <span style={{ flex: 1 }} />
-        <span>{inputPct.toFixed(1)}% of {fmt.tokens(ctxWindow)}t</span>
+        <span>{((tokensIn / ctxWindow) * 100).toFixed(1)}% of {_fmtCapLabel(ctxWindow)}</span>
       </div>
     </div>
   );
@@ -3890,18 +4138,17 @@ function RunErrorsView({ run }) {
 // ─────────────────── Top-level ───────────────────
 function RunDetail({ run }) {
   const [showErrors, setShowErrors] = React.useState(false);
-  // Spec 0033: Conversation/Consumption tab state lifted from Timeline so
-  // the header can render the pill control.
-  const [timelineTab, setTimelineTab] = React.useState('conversation');
   // Spec 0034: cross-axis highlight. The CritiqueExplorer dispatches a
   // set of turn-keys here; Timeline forwards them to each ArtifactCard,
   // which applies a 1.5s flash ring. The Map carries the variant
   // (``'q'`` or ``'d'``) so the ring colour matches the source type.
+  // Spec 0035: the Conversation/Consumption tab state lifted to
+  // RunDetail by spec 0033 is unwound — `Timeline` re-owns its own
+  // `tab` state now that the tabs live in the Timeline pane toolbar.
   const [highlightedTurnKeys, setHighlightedTurnKeys] = React.useState(
     () => new Map()
   );
   React.useEffect(() => { setShowErrors(false); }, [run.id, run.phase, run.status]);
-  React.useEffect(() => { setTimelineTab('conversation'); }, [run.id]);
 
   const highlightTurns = React.useCallback((keys, variant) => {
     const next = new Map();
@@ -3929,8 +4176,6 @@ function RunDetail({ run }) {
         errorCount={errorCount}
         showErrors={showErrors}
         onToggleErrors={() => setShowErrors(s => !s)}
-        tab={timelineTab}
-        onTabChange={setTimelineTab}
       />
       <main style={{
         flex: 1, minHeight: 0,
@@ -3943,7 +4188,6 @@ function RunDetail({ run }) {
           <>
             <Timeline
               run={run}
-              tab={timelineTab}
               highlightedTurnKeys={highlightedTurnKeys}
             />
             <CritiqueExplorer run={run} onHighlightTurns={highlightTurns} />

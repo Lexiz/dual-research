@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.33.0',
+      date: '2026-05-16',
+      summary: 'Consumption rework + header-placement fix + app-version chip.',
+      items: [
+        'Consumption-tab bars are now sized to the actual data range (largest input × 1.15) instead of the full 1M-token cap. A vertical tick marker on each bar shows where the context-window cap sits — both signals visible without burying small consumption in a 1px sliver.',
+        'Caption above the Consumption grid names the scale: "scale: 87K · cap 1M". Bars are comparable across rows because the denominator is grid-wide.',
+        'Clicking a Consumption row now opens two side-by-side per-agent cards (Claude on the left, GPT on the right). Each card has the agent\'s total bar at top + one sub-bar per input piece below at the same scale. Sub-bars sort by descending size; toggle to canonical Tk order via the sort chip on each card.',
+        'Sub-bar palette is neutral (indigo / ochre / sage / plum / rose / teal / slate-amber) — explicitly distinct from agent-amber / agent-green. The total bar stays in agent color so the aggregate-vs-component distinction reads at a glance.',
+        'Pieces not used in a turn collapse to a single "not used: …" footnote with friendly labels.',
+        'App version chip in the chrome bar (left of "How it works"). Click it to see the release notes for what landed.',
+        'Header fix: per-agent activity pills moved out of the run header and into the Timeline pane — Claude on the right of "Timeline · N artifacts", GPT in the toolbar row below. The Conversation / Consumption tabs also moved back into the Timeline pane (prominent style preserved). Run header collapses to two rows.',
+      ],
+    },
+    {
       version: '0.32.0',
       date: '2026-05-16',
       summary: 'Critique navigation — first-class Q+D, side-by-side rework, sentiment cards, click-to-highlight.',
