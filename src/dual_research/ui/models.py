@@ -326,6 +326,12 @@ class TurnTokenUsage:
     # disk. The UI server resolves this to an absolute path when
     # answering ``/api/runs/<id>/inputs/<key>``.
     input_path: str | None = None
+    # Spec 0036: relative path (from session dir) to the persisted
+    # per-turn web-search audit JSON. ``None`` for pre-0036 transcripts
+    # or turns where web search didn't fire (or was disabled). The UI
+    # server resolves this to an absolute path when answering
+    # ``/api/runs/<id>/searches/<key>``.
+    search_audit_path: str | None = None
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

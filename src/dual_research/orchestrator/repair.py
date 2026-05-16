@@ -19,6 +19,13 @@ from dual_research.protocol import (
 from dual_research.protocol.prompts import repair_input_bundle
 
 
+# Spec 0036: repair turns sometimes need to replay the canonical plan +
+# the response that drifted, which can exceed the previous 6144-token
+# cap. Match the regular turn budget so large repaired turns don't
+# truncate.
+REPAIR_MAX_OUTPUT_TOKENS = 16384
+
+
 @dataclass
 class RepairTracker:
     """Per-phase repair-budget + consecutive-failure tracking.
@@ -159,7 +166,7 @@ async def parse_with_repair(
         transcript=transcript,
         event_bus=event_bus,
         stream_to=None,
-        max_output_tokens=6144,
+        max_output_tokens=REPAIR_MAX_OUTPUT_TOKENS,
         prompt_bundle=repair_bundle,
     )
     write_atomic(out_path, repaired_result.text)

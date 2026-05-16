@@ -35,7 +35,7 @@ class ScriptedAgent:
         self._script = list(script)
         self._idx = 0
 
-    async def run(self, prompt, *, max_output_tokens=8192, stream_to=None, stream_prefix=""):
+    async def run(self, prompt, *, max_output_tokens=8192, stream_to=None, stream_prefix="", audit_context=None):
         if self._idx >= len(self._script):
             raise RuntimeError(
                 f"ScriptedAgent({self.label}) script exhausted at call {self._idx + 1}; "

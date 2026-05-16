@@ -142,6 +142,23 @@ def _make_app(runs_dir: Path) -> FastAPI:
             raise HTTPException(status_code=404, detail="not found")
         return JSONResponse(payload)
 
+    # ─── Spec 0036 search audit ───────────────────────────────────────────
+    # GET /api/runs/{run_id}/searches/index   → list of available turn-keys
+    # GET /api/runs/{run_id}/searches/{key}   → full per-turn search audit
+
+    @app.get("/api/runs/{run_id}/searches/index")
+    async def list_searches_fs(run_id: str) -> JSONResponse:
+        session = _resolve_session(runs_dir, run_id)
+        return JSONResponse({"keys": _list_search_audit_keys_fs(session)})
+
+    @app.get("/api/runs/{run_id}/searches/{turn_key}")
+    async def get_search_audit_fs(run_id: str, turn_key: str) -> JSONResponse:
+        session = _resolve_session(runs_dir, run_id)
+        payload = _read_search_audit_fs(session, turn_key)
+        if payload is None:
+            raise HTTPException(status_code=404, detail="not found")
+        return JSONResponse(payload)
+
     @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
     async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
         session = _resolve_session(runs_dir, run_id)
@@ -364,6 +381,20 @@ def _make_supabase_app(
     async def get_input_bundle_sb(run_id: str, turn_key: str) -> JSONResponse:
         _require_run_exists(client, run_id)
         payload = _read_input_bundle_supabase(client, run_id, turn_key)
+        if payload is None:
+            raise HTTPException(status_code=404, detail="not found")
+        return JSONResponse(payload)
+
+    # ─── Spec 0036 search audit (hosted) ──────────────────────────────────
+    @app.get("/api/runs/{run_id}/searches/index")
+    async def list_searches_sb(run_id: str) -> JSONResponse:
+        _require_run_exists(client, run_id)
+        return JSONResponse({"keys": _list_search_audit_keys_supabase(client, run_id)})
+
+    @app.get("/api/runs/{run_id}/searches/{turn_key}")
+    async def get_search_audit_sb(run_id: str, turn_key: str) -> JSONResponse:
+        _require_run_exists(client, run_id)
+        payload = _read_search_audit_supabase(client, run_id, turn_key)
         if payload is None:
             raise HTTPException(status_code=404, detail="not found")
         return JSONResponse(payload)
@@ -674,6 +705,86 @@ def _list_input_bundle_keys_supabase(client: Any, run_id: str) -> list[str]:
             pass
     keys.sort()
     return keys
+
+
+# ─── Spec 0036 — search audit helpers ────────────────────────────────────────
+
+
+def _list_search_audit_keys_fs(session: Path) -> list[str]:
+    """List search-audit keys available on disk under ``session/searches/``."""
+    searches_dir = session / "searches"
+    if not searches_dir.is_dir():
+        return []
+    keys: list[str] = []
+    for entry in searches_dir.iterdir():
+        if not entry.is_file() or not entry.name.endswith(".json"):
+            continue
+        keys.append(entry.stem)
+    keys.sort()
+    return keys
+
+
+def _read_search_audit_fs(session: Path, turn_key: str) -> dict | None:
+    """Resolve a single per-turn search-audit bundle from disk."""
+    key = _normalize_input_key(turn_key)
+    if key is None or key == "input":
+        # No per-turn audit for the Phase 0 synthesised input bundle.
+        return None
+    path = session / "searches" / f"{key}.json"
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _list_search_audit_keys_supabase(client: Any, run_id: str) -> list[str]:
+    """List search-audit keys in the Supabase ``session_files`` table."""
+    try:
+        res = (
+            client.table("session_files")
+            .select("path")
+            .eq("run_id", run_id)
+            .like("path", "searches/%.json")
+            .execute()
+        )
+    except Exception:
+        return []
+    rows = res.data or []
+    keys: list[str] = []
+    for r in rows:
+        p = r.get("path") or ""
+        if not p.startswith("searches/") or not p.endswith(".json"):
+            continue
+        keys.append(p[len("searches/") : -len(".json")])
+    keys.sort()
+    return keys
+
+
+def _read_search_audit_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:
+    key = _normalize_input_key(turn_key)
+    if key is None or key == "input":
+        return None
+    table_path = f"searches/{key}.json"
+    try:
+        res = (
+            client.table("session_files")
+            .select("content")
+            .eq("run_id", run_id)
+            .eq("path", table_path)
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        return None
+    rows = (res.data if res else None) or []
+    if not rows:
+        return None
+    try:
+        return json.loads(rows[0]["content"])
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
 
 
 def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:

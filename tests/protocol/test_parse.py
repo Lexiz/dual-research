@@ -97,3 +97,88 @@ def test_missing_fields_parse_as_none() -> None:
     assert p.open_issues is None
     assert p.blocking_disagreements is None
     assert p.final_surfaced_disagreements is None
+
+
+# ─── Spec 0036 — parser fixes ────────────────────────────────────────────────
+
+
+from dual_research.protocol.parse import (
+    EVIDENCE_CHECKED_SECTION_RE,
+    CARRYOVER_AUDIT_SECTION_RE,
+    extract_revised_draft as _extract_revised_draft,
+    extract_revised_draft_inclusive,
+)
+
+
+def test_evidence_checked_regex_matches_trailing_context() -> None:
+    """Spec 0036: word-boundary fix lets the heading carry trailing text."""
+    cases = [
+        "## Evidence checked this round",
+        "## Evidence checked this round (3 sources)",
+        "## Evidence checked this round:",
+        "## Evidence checked this round - notes follow",
+    ]
+    for text in cases:
+        assert EVIDENCE_CHECKED_SECTION_RE.search(text), f"regex missed: {text!r}"
+
+
+def test_evidence_checked_regex_does_not_false_positive_on_roundup() -> None:
+    assert not EVIDENCE_CHECKED_SECTION_RE.search("## Evidence checked this roundup")
+    assert not EVIDENCE_CHECKED_SECTION_RE.search("## Evidence checked this roundtable")
+
+
+def test_carryover_audit_regex_matches_trailing_context() -> None:
+    """Spec 0036: parallel fix to the evidence regex."""
+    assert CARRYOVER_AUDIT_SECTION_RE.search("## Disagreement carryover audit")
+    assert CARRYOVER_AUDIT_SECTION_RE.search("## Disagreement carryover audit (none)")
+
+
+def test_extract_revised_draft_strips_horizontal_rule_only_body() -> None:
+    """Spec 0036: body of just `----` reads as no draft."""
+    text = "## Revised draft\n\n----\n\n## Next section\n\nbody\n"
+    assert _extract_revised_draft(text) is None
+
+
+def test_extract_revised_draft_strips_all_hr_forms() -> None:
+    for sep in ("----", "____", "****", "---", "___", "***"):
+        text = f"## Revised draft\n\n{sep}\n\n## Next\n"
+        assert _extract_revised_draft(text) is None, f"failed for sep {sep!r}"
+
+
+def test_extract_revised_draft_inclusive_absorbs_stray_sibling_heading() -> None:
+    """Drafter emitted `## Plan summary` as a sibling instead of `### Plan summary`."""
+    text = (
+        "## Revised draft\n\n"
+        "preamble line\n\n"
+        "## Plan summary\n\n"  # NOT in the protocol allowlist → absorbed
+        "absorbed body\n\n"
+        "## Summary\n\n"  # allowlisted → terminates the draft
+        "real summary\n"
+    )
+    body = extract_revised_draft_inclusive(text)
+    assert body is not None
+    assert "preamble line" in body
+    assert "## Plan summary" in body
+    assert "absorbed body" in body
+    assert "real summary" not in body
+
+
+def test_extract_revised_draft_inclusive_stops_at_first_allowlisted_heading() -> None:
+    text = (
+        "## Revised draft\n\n"
+        "draft body\n\n"
+        "## Evidence checked this round\n\n"
+        "evidence body\n"
+    )
+    body = extract_revised_draft_inclusive(text)
+    assert body == "draft body"
+
+
+def test_extract_revised_draft_inclusive_returns_none_when_absent() -> None:
+    text = "no revised draft here\n## Other\n"
+    assert extract_revised_draft_inclusive(text) is None
+
+
+def test_extract_revised_draft_inclusive_strips_hr_only_body() -> None:
+    text = "## Revised draft\n\n----\n\n## Summary\n"
+    assert extract_revised_draft_inclusive(text) is None

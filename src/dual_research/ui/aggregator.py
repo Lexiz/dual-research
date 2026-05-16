@@ -157,6 +157,8 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
         _on_turn_started(run, event)
     elif kind == "turn_inputs":
         _on_turn_inputs(run, event, session_dir)
+    elif kind == "turn_searches":
+        _on_turn_searches(run, event, session_dir)
     elif kind == "turn_ended":
         _on_turn_ended(run, event)
     elif kind in ("phase2_round_complete", "phase4_round_complete"):
@@ -356,11 +358,13 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     # OUT of the headline `cost` field (token-cost only, by design).
     searches = int(event.get("searches", 0) or 0)
     search_cost = compute_search_cost(turn_model_id or "", searches)
-    # Spec 0033: preserve the `input_path` stamped earlier by
-    # `_on_turn_inputs` (which may have created a stub `TurnTokenUsage`
-    # before TurnEnded arrived).
+    # Spec 0033 / 0036: preserve the `input_path` + `search_audit_path`
+    # stamped earlier by `_on_turn_inputs` / `_on_turn_searches` (either
+    # of which may have created a stub `TurnTokenUsage` before TurnEnded
+    # arrived).
     prev = run.phase_token_usage.get(key)
     input_path = prev.input_path if prev is not None else None
+    search_audit_path = prev.search_audit_path if prev is not None else None
     run.phase_token_usage[key] = TurnTokenUsage(
         in_=in_tokens,
         out=out_tokens,
@@ -373,6 +377,7 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         searches=searches,
         search_cost=search_cost,
         input_path=input_path,
+        search_audit_path=search_audit_path,
     )
 
 
@@ -461,6 +466,61 @@ def _on_turn_inputs(run: Run, event: dict, session_dir: Path) -> None:
         existing.input_path = rel
     else:
         run.phase_token_usage[key] = TurnTokenUsage(input_path=rel)
+
+
+def _on_turn_searches(run: Run, event: dict, session_dir: Path) -> None:
+    """Spec 0036 — persist a per-turn web-search audit bundle to
+    ``searches/<key>.json``.
+
+    Mirrors ``_on_turn_inputs``. The aggregator runs
+    ``validate_search_audit`` on the reconstructed audit dataclass
+    before writing so ``flags`` and ``matched_query_id`` are populated
+    on disk and on the wire. ``TurnTokenUsage.search_audit_path`` is
+    stamped so the UI can detect which turns have audit data available.
+    """
+    from dataclasses import asdict
+    from dual_research.audit import audit_from_dict, audit_to_dict, validate_search_audit
+
+    audit_raw = event.get("audit")
+    if not isinstance(audit_raw, dict) or not audit_raw:
+        return
+
+    backend_ag = event.get("agent")
+    if backend_ag not in ("claude", "openai"):
+        return
+    ag = ui_agent(backend_ag)
+    phase_str = event.get("phase", "phase0")
+    phase_int = phase_to_int(phase_str)
+    label = event.get("label") or ""
+    idx = _round_index_from_label(label)
+    if phase_int in (2, 4) and idx > 0:
+        key = f"phase{phase_int}_round{idx}_{ag}"
+    else:
+        key = f"phase{phase_int}_{ag}"
+    if "-repair" in label or "-hashdrift" in label:
+        key = f"{key}_repair"
+    # Honour the event's turn_key if it was provided and looks safe.
+    event_key = event.get("turn_key")
+    if isinstance(event_key, str) and re.match(r"^[a-zA-Z0-9_]+$", event_key):
+        key = event_key
+
+    audit = audit_from_dict(audit_raw)
+    validate_search_audit(audit)
+
+    searches_dir = session_dir / "searches"
+    try:
+        searches_dir.mkdir(parents=True, exist_ok=True)
+        path = searches_dir / f"{key}.json"
+        path.write_text(json.dumps(audit_to_dict(audit), indent=2), encoding="utf-8")
+    except OSError:
+        return
+
+    rel = f"searches/{key}.json"
+    existing = run.phase_token_usage.get(key)
+    if existing is not None:
+        existing.search_audit_path = rel
+    else:
+        run.phase_token_usage[key] = TurnTokenUsage(search_audit_path=rel)
 
 
 def _on_round_complete(run: Run, event: dict) -> None:

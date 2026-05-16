@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.34.0',
+      date: '2026-05-16',
+      summary: 'Web search audit foundation + parser fixes + resume hardening + --notion repeatable.',
+      items: [
+        'Web search is now audited per turn — every query, every retrieved URL (Anthropic also captures titles + page_age), and every citation (Anthropic captures the actual cited_text snippet) is normalised into a provider-neutral schema and persisted to session_dir/searches/<turn-key>.json. The new audit layer is the data foundation for the Web Search tab the next spec will surface in the UI; today you can already `jq` the bundles per turn.',
+        'OpenAI calls now force search_context_size=high + include=[web_search_call.action.sources], so the model receives more page content before generating and the full retrieval URL list comes back (not just cited URLs). Closes the bulk of the OpenAI community complaint that the API "ran search but hallucinated citations anyway".',
+        'A validator stamps four flags on each audit: search_performed, cited_url_not_in_consulted_sources (strong hallucination signal — cited a URL that wasn\'t in any retrieval set, after stripping utm_source-style tracking params), citations_without_search_event, queries_missing_from_actions. The "URL not in consulted set" check skips itself when the consulted set is empty so it doesn\'t false-positive on OpenAI without include.',
+        'Three CRITICAL parser fixes: ## Evidence checked this round and ## Disagreement carryover audit regexes use \\b word boundaries (so headings with trailing context like "(3 sources)" or ":" no longer get missed). extract_revised_draft strips horizontal-rule-only bodies (the old behaviour treated "----" as a valid draft and overwrote the converged document). New inclusive draft extractor absorbs stray "## Plan summary"-style sibling sub-sections the drafter sometimes emits instead of nested "### …" — Phase 4 uses it now.',
+        'Three orchestrator-hardening fixes: emit_final no longer crashes on --resume when phase2_outcome is None (the metadata header renders a "replayed from prior run" note instead). Repair-turn max_output_tokens raised 6144 → 16384 so large repaired turns don\'t truncate (matches the regular turn budget). Phase 4 now skips rounds whose turn files already exist on disk during --resume — replays state without re-issuing API calls or duplicating events.',
+        '--notion is now repeatable and combines with --brief / --prompt. Multi-source briefs are concatenated in CLI order with a "# Source: …" header between sources. --resume and --push remain exclusive with input sources but the CLI validates that explicitly in main() rather than relying on argparse mutex groups (so the error message tells you which combination is invalid).',
+      ],
+    },
+    {
       version: '0.33.0',
       date: '2026-05-16',
       summary: 'Consumption rework + header-placement fix + app-version chip.',
