@@ -3,10 +3,10 @@ spec: 0031
 title: Consumption-tab follow-ups — tier-lookup window, click-to-expand bars, per-phase web-search count
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.29.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/33"
 ---
 
 # Spec 0031 — Consumption-tab follow-ups
