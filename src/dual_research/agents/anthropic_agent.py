@@ -64,6 +64,7 @@ class ClaudeAgent:
         max_output_tokens: int = 8192,
         stream_to: TextIO | None = None,
         stream_prefix: str = "",
+        audit_context: dict | None = None,
     ) -> AgentResult:
         start = time.perf_counter()
         text_parts: list[str] = []
@@ -112,6 +113,33 @@ class ClaudeAgent:
         cost = compute_cost(self._spec.model_id, usage)
         duration_ms = int((time.perf_counter() - start) * 1000)
 
+        # Spec 0036: when an audit_context is supplied AND web search
+        # fired at least once, capture the per-turn audit payload
+        # (queries + retrieved sources + citations with cited_text) so
+        # the aggregator can persist it to session_dir/searches/.
+        search_audit: dict | None = None
+        if audit_context is not None and searches > 0:
+            try:
+                from dual_research.audit import normalize_anthropic_search_audit, audit_to_dict
+                audit_obj = normalize_anthropic_search_audit(
+                    final_msg,
+                    turn_key=str(audit_context.get("turn_key", "")),
+                    phase=str(audit_context.get("phase", "")),
+                    agent=str(audit_context.get("agent", self.label)),
+                    label=str(audit_context.get("label", "")),
+                )
+                search_audit = audit_to_dict(audit_obj)
+            except Exception:
+                # Defensive — never fail the call because of audit capture.
+                search_audit = None
+
+        extras: dict = {
+            "stop_reason": getattr(final_msg, "stop_reason", None),
+            "searches": searches,
+        }
+        if search_audit is not None:
+            extras["search_audit"] = search_audit
+
         return AgentResult(
             text=text,
             usage=usage,
@@ -120,10 +148,7 @@ class ClaudeAgent:
             model_id=final_msg.model or self._spec.model_id,
             provider=self.provider,
             label=self.label,
-            extras={
-                "stop_reason": getattr(final_msg, "stop_reason", None),
-                "searches": searches,
-            },
+            extras=extras,
         )
 
 

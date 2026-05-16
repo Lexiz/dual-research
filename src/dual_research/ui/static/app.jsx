@@ -192,9 +192,13 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
 // Spec 0035: tiny pill in the chrome's right cluster showing the deployed
 // version. Click → how-it-works page (where the VERSION_NOTES live).
 function AppVersionChip({ onClick }) {
+  // Spec 0036: call ALL hooks unconditionally before any early return —
+  // spec 0035 had `useState(false)` after the `if (!meta?.version) return null`
+  // guard, which produced a hook-order crash on first paint (meta is null → 2
+  // hooks; after fetch → 3 hooks) and took down the entire ChromeBar.
   const meta = window.useAppMeta ? window.useAppMeta() : null;
-  if (!meta?.version) return null;
   const [hover, setHover] = React.useState(false);
+  if (!meta?.version) return null;
   return (
     <button
       type="button"

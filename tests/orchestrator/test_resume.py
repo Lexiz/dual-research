@@ -52,7 +52,10 @@ def test_resume_mutually_exclusive_with_prompt(capsys: pytest.CaptureFixture) ->
     with pytest.raises(SystemExit):
         cli_main(["--resume", "/tmp/x", "--prompt", "hi"])
     err = capsys.readouterr().err
-    assert "not allowed with" in err
+    # Spec 0036: --prompt/--brief/--notion are no longer in argparse's mutex
+    # group with --resume; the CLI rejects the combination explicitly in
+    # main() instead. The error message changed accordingly.
+    assert "cannot be combined" in err
 
 
 def test_resume_loads_state_from_disk(session_dir_at_phase4: Path) -> None:

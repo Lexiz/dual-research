@@ -18,7 +18,16 @@ from dual_research.config import ModelSpec
 from dual_research.protocol import CACHE_BREAKPOINT
 
 
-WEB_SEARCH_TOOL = {"type": "web_search"}
+# Spec 0036: pin search_context_size=high so the model receives the
+# richest available page-content per result before generating. Closes
+# the bulk of the "hallucinated citations even though search ran"
+# failure mode that the community thread documents on Responses API.
+WEB_SEARCH_TOOL = {"type": "web_search", "search_context_size": "high"}
+
+# Spec 0036: surfacing the full retrieval URL list (not just citations)
+# requires the include parameter. Without it, action.sources is omitted
+# and the audit's negative-space (retrieved but uncited) is lost.
+WEB_SEARCH_INCLUDE = ["web_search_call.action.sources"]
 
 
 class GptAgent:
@@ -46,6 +55,7 @@ class GptAgent:
         max_output_tokens: int = 8192,
         stream_to: TextIO | None = None,
         stream_prefix: str = "",
+        audit_context: dict | None = None,
     ) -> AgentResult:
         """Use the Responses API with optional web_search tool.
 
@@ -73,13 +83,21 @@ class GptAgent:
         }
         if web_search_enabled():
             kwargs["tools"] = [WEB_SEARCH_TOOL]
+            kwargs["include"] = list(WEB_SEARCH_INCLUDE)
+
+        # Spec 0036: capture the fully-assembled Response object so the
+        # audit normaliser sees `action.sources` + citation annotations
+        # (which arrive in chunks during streaming but are present on
+        # the response.completed payload).
+        final_response: Any = None
 
         async def _do_call():
-            nonlocal text_parts, first_token, final_usage, final_model, searches
+            nonlocal text_parts, first_token, final_usage, final_model, searches, final_response
             text_parts = []
             first_token = True
             final_usage = None
             searches = 0
+            final_response = None
             stream = await self._client.responses.create(**kwargs)
             async for event in stream:
                 et = getattr(event, "type", "")
@@ -102,6 +120,7 @@ class GptAgent:
                     if resp is not None:
                         final_usage = getattr(resp, "usage", None) or final_usage
                         final_model = getattr(resp, "model", None) or final_model
+                        final_response = resp
 
         try:
             await with_rate_limit_retry(_do_call, agent_label=self.label)
@@ -132,6 +151,29 @@ class GptAgent:
         cost = compute_cost(self._spec.model_id, usage)
         duration_ms = int((time.perf_counter() - start) * 1000)
 
+        # Spec 0036: when an audit_context is supplied AND web search
+        # fired at least once, capture the per-turn audit (queries +
+        # consulted URLs + url_citation offsets). Requires the include
+        # parameter set above so `action.sources` is populated.
+        search_audit: dict | None = None
+        if audit_context is not None and searches > 0 and final_response is not None:
+            try:
+                from dual_research.audit import normalize_openai_search_audit, audit_to_dict
+                audit_obj = normalize_openai_search_audit(
+                    final_response,
+                    turn_key=str(audit_context.get("turn_key", "")),
+                    phase=str(audit_context.get("phase", "")),
+                    agent=str(audit_context.get("agent", self.label)),
+                    label=str(audit_context.get("label", "")),
+                )
+                search_audit = audit_to_dict(audit_obj)
+            except Exception:
+                search_audit = None
+
+        extras: dict = {"searches": searches}
+        if search_audit is not None:
+            extras["search_audit"] = search_audit
+
         return AgentResult(
             text=text,
             usage=usage,
@@ -140,5 +182,5 @@ class GptAgent:
             model_id=final_model,
             provider=self.provider,
             label=self.label,
-            extras={"searches": searches},
+            extras=extras,
         )

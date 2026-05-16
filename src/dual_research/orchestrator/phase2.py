@@ -490,6 +490,10 @@ async def run_phase2(
                     round=r,
                 )
                 try:
+                    # Spec 0036: match REPAIR_MAX_OUTPUT_TOKENS — the
+                    # hash-drift repair replays the canonical plan + the
+                    # response, which often exceeds 8192.
+                    from dual_research.orchestrator.repair import REPAIR_MAX_OUTPUT_TOKENS
                     repair_result = await run_one_call(
                         agent=repair_agent_call,
                         prompt=repair_text,
@@ -499,7 +503,7 @@ async def run_phase2(
                         transcript=ctx.transcript,
                         event_bus=event_bus,
                         stream_to=None,
-                        max_output_tokens=8192,
+                        max_output_tokens=REPAIR_MAX_OUTPUT_TOKENS,
                         prompt_bundle=repair_bundle,
                     )
                     write_atomic(repair_other_path, repair_result.text)

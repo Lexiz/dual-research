@@ -3,7 +3,7 @@ spec: 0036
 title: Web search audit foundation + protocol parser fixes + resume hardening + --notion repeatable
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.34.0
 created: 2026-05-16
 pr: ""
@@ -773,6 +773,9 @@ New files (audit module + tests):
 - `tests/audit/test_normalize_openai.py`
 - `tests/audit/test_validate.py`
 
+Modified frontend file (10b — discovered during verification):
+- `src/dual_research/ui/static/app.jsx` — `AppVersionChip` hooks-order fix.
+
 Modified backend files:
 - `src/dual_research/events/types.py` — add `TurnSearches`.
 - `src/dual_research/agents/anthropic_agent.py` —
@@ -810,6 +813,23 @@ Extended tests:
 - `tests/orchestrator/test_repair_budget.py` (new).
 - `tests/orchestrator/test_phase4_resume.py` (new).
 - `tests/cli/test_notion_repeatable.py` (new).
+
+### 10b. AppVersionChip hooks-order fix (discovered during verification)
+
+Spec 0035 shipped `AppVersionChip` in [`src/dual_research/ui/static/app.jsx`](src/dual_research/ui/static/app.jsx) with:
+
+```jsx
+function AppVersionChip({ onClick }) {
+  const meta = window.useAppMeta ? window.useAppMeta() : null;
+  if (!meta?.version) return null;           // ← early return BEFORE next hook
+  const [hover, setHover] = React.useState(false);
+  ...
+}
+```
+
+This violates the Rules of Hooks: first paint has `meta = null` → early return, only 2 hooks called (useState + useEffect from useAppMeta). After `/api/health` resolves and meta arrives, the component re-renders → falls through to the `useState(false)` call → 3 hooks. React detects the hook-count change and crashes the component. Without an error boundary, the chrome bar took down the entire page on every first paint since 0.33.0 merged. Discovered when verifying this spec's VERSION_NOTES entry rendered — the how-it-works page wouldn't paint.
+
+Fix: move `useState(false)` above the early return so both render paths call the same hooks in the same order. Folded into this spec rather than a separate hotfix because (a) the user has authorised bundling discovered bugs into in-flight specs, (b) the fix is one line, (c) without it nobody can see the VERSION_NOTES this spec adds.
 
 ### 11. Versioning + release notes
 

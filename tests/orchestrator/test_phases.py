@@ -28,7 +28,7 @@ class StubAgent:
         self.provider = "anthropic" if label == "claude" else "openai"
         self._text = text
 
-    async def run(self, prompt, *, max_output_tokens=8192, stream_to=None, stream_prefix=""):
+    async def run(self, prompt, *, max_output_tokens=8192, stream_to=None, stream_prefix="", audit_context=None):
         return AgentResult(
             text=self._text,
             usage=TokenUsage(input_tokens=10, output_tokens=20),

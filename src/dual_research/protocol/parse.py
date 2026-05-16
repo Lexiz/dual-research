@@ -32,11 +32,15 @@ STRONGEST_REMAINING_OBJECTION_RE = re.compile(
 )
 WHY_NON_BLOCKING_RE = re.compile(_LEAD + r"WHY_NON_BLOCKING:[ \t]*`?(.*)`?", re.MULTILINE)
 
+# Spec 0036: word-boundary anchor + tolerate trailing content. Agents
+# emit headings like ``## Evidence checked this round (3 sources)`` or
+# ``## Evidence checked this round:`` — the old ``\s*$`` form missed
+# them. ``\b`` keeps ``roundup`` / ``roundtable`` from false-positive.
 EVIDENCE_CHECKED_SECTION_RE = re.compile(
-    r"^##\s+Evidence checked this round\s*$", re.MULTILINE
+    r"^##\s+Evidence checked this round\b", re.MULTILINE
 )
 CARRYOVER_AUDIT_SECTION_RE = re.compile(
-    r"^##\s+Disagreement carryover audit\s*$", re.MULTILINE
+    r"^##\s+Disagreement carryover audit\b", re.MULTILINE
 )
 
 
@@ -137,13 +141,126 @@ def has_agreed_plan(parsed: ParsedTurn) -> bool:
     return parsed.agreed_plan is not None and len(parsed.agreed_plan) > 0
 
 
+# Spec 0036 — HR-only stripping helper for extract_revised_draft.
+# A body that's nothing but ``----`` (markdown horizontal rule) should
+# read as "no draft" rather than "draft body = ----". The agent often
+# emits the rule as a section separator that the rest of the protocol
+# text didn't make it past.
+_HR_LINE_RE = re.compile(r"^\s*[-_*]{3,}\s*$", re.MULTILINE)
+
+
+def _strip_horizontal_rules(body: str | None) -> str | None:
+    if not body:
+        return body
+    cleaned = _HR_LINE_RE.sub("", body).strip()
+    return cleaned or None
+
+
 def extract_revised_draft(turn_text: str) -> str | None:
     """Return the body under `## Revised draft` (next top-level `##` ends it).
 
     Used by Phase 4 to detect when the DRAFTER emits a new draft version inside
     their turn. Returns None when the section is absent or empty.
+
+    Spec 0036: a body whose remaining content is horizontal-rule-only
+    after stripping returns ``None`` — the agent meant a separator, not a
+    draft. Without this the orchestrator promoted ``----`` as a revised
+    draft and overwrote the converged document.
     """
-    return extract_fenced_section(turn_text, "Revised draft")
+    raw = extract_fenced_section(turn_text, "Revised draft")
+    return _strip_horizontal_rules(raw)
+
+
+# Spec 0036 — sibling-section tolerance for the drafter's ## Revised draft.
+# The drafter sometimes emits sub-sections (``## Plan summary``, ``##
+# Implementation steps``) as siblings of ``## Revised draft`` instead of
+# nested ``### …``. The strict extractor truncates at the first sibling
+# and returns just the preamble. The inclusive variant walks forward and
+# absorbs any ``## …`` heading that is NOT in the protocol allowlist.
+
+_PROTOCOL_TOP_HEADINGS: frozenset[str] = frozenset({
+    "summary",
+    "status block",
+    "disagreement carryover audit",
+    "evidence checked this round",
+    "substantive disagreements i'm holding",
+    "resolved or non-blocking differences",
+    "final-surfaced disagreements",
+    "comments on the current draft",
+    "agreed_plan",
+    "issue ledger (delta + currently open)",
+})
+
+# Headings that are protocol-known but use a variable suffix (agent name,
+# round number, etc.). The check matches the prefix lowercased.
+_PROTOCOL_TOP_HEADING_PREFIXES: tuple[str, ...] = (
+    "open questions for ",
+    "issue ledger",
+    "diff vs ",
+    "answers to ",
+    "summary of ",        # "Summary of my position" / "Summary of position"
+    "tl;dr",
+    "tldr",
+)
+
+
+def _is_protocol_top_heading(line: str) -> bool:
+    """True when ``line`` is a ``## ...`` heading matching the protocol allowlist."""
+    m = re.match(r"^##\s+(.+?)\s*$", line)
+    if not m:
+        return False
+    text = m.group(1).strip().lower()
+    if text in _PROTOCOL_TOP_HEADINGS:
+        return True
+    return any(text.startswith(prefix) for prefix in _PROTOCOL_TOP_HEADING_PREFIXES)
+
+
+_REVISED_DRAFT_HEADING_RE = re.compile(r"^##\s+Revised draft\s*$", re.MULTILINE)
+_TOP_HEADING_RE = re.compile(r"^##\s+\S", re.MULTILINE)
+
+
+def extract_revised_draft_inclusive(turn_text: str) -> str | None:
+    """Like ``extract_revised_draft`` but absorbs stray sibling sub-sections.
+
+    Spec 0036: walks forward from ``## Revised draft``; ``## ...`` headings
+    that are NOT in the protocol allowlist are absorbed as part of the
+    draft body. The first protocol-allowlisted heading ends the draft.
+
+    Returns ``None`` when the heading is absent or the resulting body is
+    horizontal-rule-only after stripping.
+    """
+    if not turn_text:
+        return None
+    m = _REVISED_DRAFT_HEADING_RE.search(turn_text)
+    if not m:
+        return None
+
+    start = m.end()
+    cursor = start
+    end = len(turn_text)
+
+    while True:
+        rest = turn_text[cursor:]
+        next_match = _TOP_HEADING_RE.search(rest)
+        if not next_match:
+            break
+        heading_start = cursor + next_match.start()
+        # The matched ``## `` prefix; need the full heading line to decide.
+        line_end = turn_text.find("\n", heading_start)
+        if line_end == -1:
+            line_end = len(turn_text)
+        heading_line = turn_text[heading_start:line_end]
+        if _is_protocol_top_heading(heading_line):
+            end = heading_start
+            break
+        # Stray sibling — absorb and keep walking from the next char after the
+        # heading line so we don't re-match the same one.
+        cursor = line_end + 1
+        if cursor >= len(turn_text):
+            break
+
+    body = turn_text[start:end].strip()
+    return _strip_horizontal_rules(body)
 
 
 # ─── Summary extraction (spec 0025) ────────────────────────────────────────────

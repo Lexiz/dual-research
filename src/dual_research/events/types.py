@@ -95,6 +95,33 @@ class TurnInputs(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class TurnSearches(Event):
+    """Spec 0036 — per-turn web-search audit payload.
+
+    Emitted by the orchestrator after the agent returns but before
+    ``TurnEnded``, so the aggregator can persist the audit bundle and
+    stamp ``search_audit_path`` on the turn's ``TurnTokenUsage`` row
+    before the ``TurnEnded`` handler runs.
+
+    ``audit`` is the JSON-serialisable dict produced by
+    ``dual_research.audit.audit_to_dict`` over a normalised
+    ``TurnSearchAudit``. Carrying it as an opaque dict on the event
+    keeps the events module free of an audit-schema import.
+
+    Not emitted when web search is disabled or when the provider
+    response carried no search activity. Aggregator + UI tolerate
+    absence (the search-audit-path stays ``None``).
+    """
+
+    agent: str
+    phase: str
+    label: str
+    turn_key: str
+    audit: dict = field(default_factory=dict)
+    kind: str = "turn_searches"
+
+
+@dataclass(frozen=True, kw_only=True)
 class TurnEnded(Event):
     agent: str
     phase: str

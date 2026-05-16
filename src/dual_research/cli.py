@@ -41,30 +41,40 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Exactly one input source is required: --prompt, --brief, or --notion.\n"
+            "At least one input source is required: --prompt, --brief, and/or --notion (repeatable).\n"
+            "When multiple input sources are passed, they're concatenated in CLI order with a\n"
+            "`# Source: ...` divider between adjacent sources.\n"
             "\n"
             "Examples:\n"
             "  dual-research --prompt 'Research the regulatory landscape for X.'\n"
             "  dual-research --brief ./my-brief.md --out ./final.md\n"
             "  dual-research --notion https://www.notion.so/Workspace/Page-abc123 --models test\n"
+            "  dual-research --notion URL_A --notion URL_B --prompt 'compare and contrast'\n"
         ),
     )
 
-    src = p.add_mutually_exclusive_group(required=True)
-    src.add_argument("--prompt", metavar="TEXT", help="Inline brief text.")
-    src.add_argument("--brief", metavar="PATH", help="Path to a markdown brief file.")
-    src.add_argument(
+    # Input sources — can be freely combined. Spec 0036: `--notion` is
+    # repeatable; `--brief` and `--prompt` stay singleton but combine with
+    # each other and with `--notion`.
+    p.add_argument("--prompt", metavar="TEXT", help="Inline brief text.")
+    p.add_argument("--brief", metavar="PATH", help="Path to a markdown brief file.")
+    p.add_argument(
         "--notion",
-        metavar="URL",
-        help="Notion page URL — child pages are recursively pulled into the brief.",
+        action="append",
+        default=[],
+        metavar="URL_OR_ID",
+        help="Notion page URL or ID — child pages are recursively pulled. "
+             "Repeatable; each occurrence appends one root. Concatenated in CLI order.",
     )
-    src.add_argument(
+    # Operational modes — exclusive with each other AND with --prompt/--brief/--notion.
+    op = p.add_mutually_exclusive_group(required=False)
+    op.add_argument(
         "--resume",
         metavar="SESSION_DIR",
         help="Resume an existing session by path. Skips already-completed phases. "
              "Reads the brief from the session directory.",
     )
-    src.add_argument(
+    op.add_argument(
         "--push",
         metavar="SESSION_DIR",
         help="Push a completed session-dir to Supabase. Requires SUPABASE_URL, "
@@ -173,8 +183,11 @@ def _derive_slug(args: argparse.Namespace) -> str:
         return _slugify(args.name)
     if args.brief:
         return _slugify(Path(args.brief).stem)
-    if args.notion:
-        return _slugify(args.notion.rsplit("/", 1)[-1].rsplit("-", 1)[0]) or "notion"
+    # Spec 0036: --notion is now a list. Use the first root for slug derivation.
+    notion_list = getattr(args, "notion", None) or []
+    if notion_list:
+        first = notion_list[0]
+        return _slugify(first.rsplit("/", 1)[-1].rsplit("-", 1)[0]) or "notion"
     return _slugify((args.prompt or "")[:60]) or "prompt"
 
 
@@ -204,13 +217,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.brief and not Path(args.brief).expanduser().exists():
         parser.error(f"--brief path does not exist: {args.brief}")
 
+    # Spec 0036: --resume / --push are mutually exclusive with input sources.
+    input_sources_set = bool(args.prompt) or bool(args.brief) or bool(args.notion)
     if args.resume:
+        if input_sources_set:
+            parser.error("--resume cannot be combined with --prompt / --brief / --notion")
         return _run_resume(args, parser)
 
     if args.push:
+        if input_sources_set:
+            parser.error("--push cannot be combined with --prompt / --brief / --notion")
         return _run_push(args, parser)
 
-    require_notion = args.notion is not None
+    # Otherwise require at least one input source.
+    if not input_sources_set:
+        parser.error(
+            "at least one of --prompt, --brief, --notion, --resume, or --push is required"
+        )
+
+    require_notion = bool(args.notion)
     try:
         creds = load_credentials(require_notion=require_notion)
     except MissingCredentialError as e:
@@ -427,12 +452,20 @@ def _print_launch_summary(
     run_id: str,
     creds: Credentials,
 ) -> None:
+    # Spec 0036: sources can combine. Describe each set source on its own line.
+    parts: list[str] = []
     if args.prompt is not None:
-        source = f"inline prompt ({len(args.prompt)} chars)"
-    elif args.brief:
-        source = f"markdown file: {args.brief}"
-    else:
-        source = f"notion url: {args.notion}"
+        parts.append(f"inline prompt ({len(args.prompt)} chars)")
+    if args.brief:
+        parts.append(f"markdown file: {args.brief}")
+    notion_list = getattr(args, "notion", None) or []
+    if len(notion_list) == 1:
+        parts.append(f"notion url: {notion_list[0]}")
+    elif len(notion_list) > 1:
+        parts.append(f"notion urls ({len(notion_list)}):")
+        for i, url in enumerate(notion_list, 1):
+            parts.append(f"      [{i}] {url}")
+    source = parts[0] if len(parts) == 1 else "multi-source — " + "; ".join(parts)
 
     def _masked(value: str | None) -> str:
         if not value:

@@ -24,7 +24,7 @@ from dual_research.persistence.state import write_atomic
 from dual_research.protocol import (
     ProtocolParseError,
     assert_well_formed_review_turn,
-    extract_revised_draft,
+    extract_revised_draft_inclusive,
     is_review_approved,
     parse_turn,
     review_turn_prompt,
@@ -74,6 +74,58 @@ async def run_phase4(
 
     for r in range(1, hard_cap + 1):
         rounds_done = r
+
+        # Spec 0036 — resume-aware skip. If both turn files for this
+        # round already exist on disk (e.g. the run is being resumed
+        # after Phase 4 round R completed), replay state without
+        # re-issuing API calls or re-emitting events. The transcript
+        # already carries the original TurnStarted/TurnEnded pair.
+        claude_path = turn_path(ctx.session, phase="phase4", round=r, agent="claude")
+        openai_path = turn_path(ctx.session, phase="phase4", round=r, agent="openai")
+        if claude_path.is_file() and openai_path.is_file():
+            print(
+                f"\n[phase 4] round {r}/{hard_cap} — skipping (turn files exist on disk)",
+                flush=True,
+            )
+            try:
+                claude_text_existing = claude_path.read_text(encoding="utf-8")
+                openai_text_existing = openai_path.read_text(encoding="utf-8")
+            except OSError:
+                # Fall through to the normal path if the read failed.
+                pass
+            else:
+                last_claude_text = claude_text_existing
+                last_openai_text = openai_text_existing
+
+                # Detect revised draft from the drafter's existing turn.
+                drafter_text = claude_text_existing if drafter == "claude" else openai_text_existing
+                revised = extract_revised_draft_inclusive(drafter_text)
+                if revised:
+                    # If the revision file already exists on disk, just
+                    # bump the state pointer. Otherwise write it now.
+                    new_round = ctx.state.draft_round + 1
+                    new_path = phase_dir / f"draft-v{new_round}.md"
+                    if not new_path.is_file():
+                        write_atomic(new_path, revised)
+                    ctx.state.draft_round = new_round
+                    ctx.session.save_state(ctx.state)
+                    revisions += 1
+
+                try:
+                    approved = is_review_approved(
+                        claude_text_existing, openai_text_existing, round=r
+                    )
+                except ProtocolParseError:
+                    approved = False
+
+                if approved:
+                    print(
+                        f"[phase 4] round {r}: replayed as APPROVED (resume).",
+                        flush=True,
+                    )
+                    break
+                continue
+
         current_draft = current_draft_path(ctx.session, ctx.state.draft_round).read_text(encoding="utf-8")
         prior = list_turns(ctx.session, phase="phase4", up_to_round=r)
         print(f"\n[phase 4] round {r}/{hard_cap}  (current draft = v{ctx.state.draft_round})\n", flush=True)
@@ -132,8 +184,7 @@ async def run_phase4(
             hard_cap=hard_cap,
         )
 
-        claude_path = turn_path(ctx.session, phase="phase4", round=r, agent="claude")
-        openai_path = turn_path(ctx.session, phase="phase4", round=r, agent="openai")
+        # `claude_path` / `openai_path` already bound above for the resume check.
 
         claude_result, openai_result = await asyncio.gather(
             run_one_call(
@@ -219,7 +270,7 @@ async def run_phase4(
 
         # Detect revised draft from the DRAFTER's turn
         drafter_text = claude_text if drafter == "claude" else openai_text
-        revised = extract_revised_draft(drafter_text)
+        revised = extract_revised_draft_inclusive(drafter_text)
         if revised:
             new_round = ctx.state.draft_round + 1
             new_path = phase_dir / f"draft-v{new_round}.md"

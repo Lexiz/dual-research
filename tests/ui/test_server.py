@@ -132,6 +132,8 @@ class TestCamelCase:
             "searchCost": 0.0,
             # Spec 0033 — null on entries built without an Input bundle.
             "inputPath": None,
+            # Spec 0036 — null on entries built without a search audit.
+            "searchAuditPath": None,
         }
 
     def test_phase_token_usage_carries_searches_and_search_cost(self):
@@ -350,6 +352,68 @@ class TestStream:
 
 
 # ─── /api/runs/{id}/attachments + attachment-blobs (spec 0025) ───────────────
+
+
+class TestSearchAuditEndpoints:
+    """Spec 0036 — /api/runs/{id}/searches/{index,turn_key}."""
+
+    def test_index_lists_keys_present_on_disk(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-1")
+        searches = session / "searches"
+        searches.mkdir()
+        (searches / "phase1_claude.json").write_text(
+            json.dumps({"provider": "anthropic", "turn_key": "phase1_claude"}),
+            encoding="utf-8",
+        )
+        (searches / "phase1_gpt.json").write_text(
+            json.dumps({"provider": "openai", "turn_key": "phase1_gpt"}),
+            encoding="utf-8",
+        )
+        resp = c.get(f"/api/runs/{session.name}/searches/index")
+        assert resp.status_code == 200
+        assert sorted(resp.json()["keys"]) == ["phase1_claude", "phase1_gpt"]
+
+    def test_index_returns_empty_when_no_searches_dir(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-empty")
+        resp = c.get(f"/api/runs/{session.name}/searches/index")
+        assert resp.status_code == 200
+        assert resp.json()["keys"] == []
+
+    def test_get_returns_payload_verbatim(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-2")
+        searches = session / "searches"
+        searches.mkdir()
+        payload = {
+            "provider": "anthropic",
+            "turn_key": "phase1_claude",
+            "tool_events": [{"event_id": "e", "queries": ["q"]}],
+            "citations": [],
+        }
+        (searches / "phase1_claude.json").write_text(json.dumps(payload), encoding="utf-8")
+        resp = c.get(f"/api/runs/{session.name}/searches/phase1_claude")
+        assert resp.status_code == 200
+        assert resp.json() == payload
+
+    def test_get_accepts_camel_case_key(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-3")
+        searches = session / "searches"
+        searches.mkdir()
+        (searches / "phase2_round3_claude.json").write_text(
+            json.dumps({"turn_key": "phase2_round3_claude"}), encoding="utf-8"
+        )
+        resp = c.get(f"/api/runs/{session.name}/searches/phase2Round3Claude")
+        assert resp.status_code == 200
+        assert resp.json()["turn_key"] == "phase2_round3_claude"
+
+    def test_get_404_on_missing_key(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-4")
+        resp = c.get(f"/api/runs/{session.name}/searches/phase1_claude")
+        assert resp.status_code == 404
 
 
 class TestAttachments:

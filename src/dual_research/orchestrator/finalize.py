@@ -14,15 +14,23 @@ from dual_research.persistence.state import write_atomic
 
 def confidence_tag(
     *,
-    phase2_outcome: Phase2Outcome,
+    phase2_outcome: Phase2Outcome | None,
     phase4_outcome: Phase4Outcome,
     soft_cap: int,
     hard_cap: int,
     repair_count: int,
 ) -> str:
-    """HIGH / MODERATE / LOW based on round counts, caps, repairs."""
+    """HIGH / MODERATE / LOW based on round counts, caps, repairs.
+
+    Spec 0036: ``phase2_outcome`` can be ``None`` when resuming a run that
+    completed Phase 2 in a previous invocation (state.json was past Phase 2
+    on resume so Phase 2 didn't re-run). In that case we don't have the
+    Phase 2 round / FSD counts and degrade to MODERATE rather than crashing.
+    """
     if not phase4_outcome.approved:
         return "LOW"
+    if phase2_outcome is None:
+        return "MODERATE"
     p2_clean = phase2_outcome.rounds <= soft_cap and not phase2_outcome.via_tiebreak
     p4_clean = phase4_outcome.rounds <= soft_cap
     if p2_clean and p4_clean and repair_count == 0 and phase2_outcome.fsd_count == 0:
@@ -43,13 +51,20 @@ def _count_repairs(transcript_path: Path) -> int:
 def render_metadata_header(
     *,
     ctx: SessionContext,
-    phase2_outcome: Phase2Outcome,
+    phase2_outcome: Phase2Outcome | None,
     phase4_outcome: Phase4Outcome,
     soft_cap: int,
     hard_cap: int,
     claude_model: str,
     openai_model: str,
 ) -> str:
+    """Compose the metadata header for ``final.md``.
+
+    Spec 0036: ``phase2_outcome`` is ``None`` when resuming a run that
+    completed Phase 2 in a previous invocation. The header renders a
+    "(replayed from prior run — Phase 2 details unavailable)" note in
+    place of the negotiation rounds + FSD lines.
+    """
     m = ctx.metrics
     by_agent = m.totals_by_agent()
     total = m.total_cost_usd()
@@ -73,13 +88,22 @@ def render_metadata_header(
         if phase4_outcome.approved
         else "**DEADLOCKED** — hard cap hit, document includes unresolved review comments"
     )
-    p2_note = "moderate contention" if phase2_outcome.rounds > 2 else "clean convergence"
-    if phase2_outcome.rounds > soft_cap:
-        p2_note += "; soft cap crossed"
-    if phase2_outcome.via_tiebreak:
-        p2_note += "; drafter resolved by orchestrator tiebreak"
-    p4_note = f"{phase4_outcome.revisions} draft revision(s)"
 
+    if phase2_outcome is None:
+        p2_rounds_line = "(replayed from prior run — Phase 2 details unavailable)"
+        p2_drafter_line = "(replayed from prior run — drafter recorded in state.json)"
+        p2_fsd_line = "(replayed from prior run)"
+    else:
+        p2_note = "moderate contention" if phase2_outcome.rounds > 2 else "clean convergence"
+        if phase2_outcome.rounds > soft_cap:
+            p2_note += "; soft cap crossed"
+        if phase2_outcome.via_tiebreak:
+            p2_note += "; drafter resolved by orchestrator tiebreak"
+        p2_rounds_line = f"**{phase2_outcome.rounds} rounds** ({p2_note})"
+        p2_drafter_line = f"**{phase2_outcome.drafter or '(unset)'}**"
+        p2_fsd_line = str(phase2_outcome.fsd_count)
+
+    p4_note = f"{phase4_outcome.revisions} draft revision(s)"
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     lines = [
@@ -90,10 +114,10 @@ def render_metadata_header(
         "> | metric | value |",
         "> |---|---|",
         f"> | Outcome | {outcome} |",
-        f"> | Plan negotiation | **{phase2_outcome.rounds} rounds** ({p2_note}) |",
-        f"> | Drafter | **{phase2_outcome.drafter or '(unset)'}** |",
+        f"> | Plan negotiation | {p2_rounds_line} |",
+        f"> | Drafter | {p2_drafter_line} |",
         f"> | Review | **{phase4_outcome.rounds} rounds**, {p4_note} (final = draft v{phase4_outcome.final_draft_round}) |",
-        f"> | FSDs surfaced | {phase2_outcome.fsd_count} |",
+        f"> | FSDs surfaced | {p2_fsd_line} |",
         f"> | Repair turns | {repair_count} |",
         f"> | Total time | {total_min}m {total_sec}s ({calls} model calls) |",
         f"> | Tokens | {input_tokens:,} input · {output_tokens:,} output |",
@@ -111,7 +135,7 @@ async def emit_final(
     ctx: SessionContext,
     event_bus: EventBus,
     out_path: Path | None,
-    phase2_outcome: Phase2Outcome,
+    phase2_outcome: Phase2Outcome | None,
     phase4_outcome: Phase4Outcome,
     soft_cap: int,
     hard_cap: int,

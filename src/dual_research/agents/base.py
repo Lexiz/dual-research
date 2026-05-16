@@ -143,4 +143,5 @@ class AgentCall(Protocol):
         max_output_tokens: int = 8192,
         stream_to: TextIO | None = None,
         stream_prefix: str = "",
+        audit_context: dict | None = None,
     ) -> AgentResult: ...
