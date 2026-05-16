@@ -264,6 +264,14 @@ class Run:
     # agent didn't write one — the UI renders the card without a TL;DR.
     brief_summary: str | None = None
     phase_summaries: dict[str, str] = field(default_factory=dict)
+    # ─── Review items (spec 0027) ─────────────────────────────────────────────
+    # Structured questions / disagreements / resolved items extracted from
+    # Phase 2 turn bodies. Keyed by `phase2_round{R}_<agent>` — same shape
+    # as `phase_summaries`. Each value is a list of dicts shaped like
+    # `{kind, body, quote, after, item_id}` (serialised from ReviewItem).
+    # Empty when the agent didn't anchor anything; missing keys for turns
+    # we couldn't parse.
+    phase_review_items: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────

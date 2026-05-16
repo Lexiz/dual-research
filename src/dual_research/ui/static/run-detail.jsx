@@ -726,13 +726,17 @@ function LazyMarkdownBody({ filePath }) {
 }
 
 // ─────────────────── Modal dispatch ───────────────────
-// Spec 0025. Owns title + accent + body shape per artifact kind.
+// Spec 0025 owns title + accent + body shape per artifact kind.
+// Spec 0027 layers the side-by-side review modal on top of phase 2 turn cards.
 function ArtifactModal({ item, run, onClose }) {
   const meta = item.agent ? AGENT_META[item.agent] : null;
   const accent = meta?.color || COLORS.info;
 
   if (item.kind === 'input') {
     return <PreflightModal item={item} run={run} onClose={onClose} accent={accent} />;
+  }
+  if ((item.kind === 'turn' || item.kind === 'turn-live') && item.statsPhase === 2) {
+    return <NegotiateReviewModal item={item} run={run} meta={meta} onClose={onClose} accent={accent} />;
   }
   return <DocumentModal item={item} meta={meta} onClose={onClose} accent={accent} />;
 }
@@ -755,6 +759,359 @@ function DocumentModal({ item, meta, onClose, accent }) {
       <LazyMarkdownBody filePath={item.filePath} />
     </Modal>
   );
+}
+
+// ─────────────────── Phase 2 side-by-side review modal (spec 0027) ───────────
+//
+// Left pane: the "thing being questioned" — the OTHER agent's most recent
+// turn for round N≥2, or their Phase 1 draft for round 1. Right pane: a
+// stack of ReviewCards grouped by kind (questions / disagreements /
+// resolved). Clicking a card scrolls the left pane to the anchored block
+// and flashes it. For `> after:` items we render a dashed-ghost placeholder
+// under the anchored heading.
+function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
+  const otherAgent = item.agent === 'claude' ? 'gpt' : 'claude';
+  const priorFilePath = priorContentPathFor(item, otherAgent);
+  const items = reviewItemsFor(run, item);
+
+  const leftRef = React.useRef(null);
+  const [activeIdx, setActiveIdx] = React.useState(null);
+  const [ghost, setGhost] = React.useState(null); // { headingEl, kind, body }
+
+  // Dismiss any previously-rendered ghost block.
+  const clearGhost = React.useCallback(() => {
+    if (ghost?.node && ghost.node.parentNode) {
+      ghost.node.parentNode.removeChild(ghost.node);
+    }
+    setGhost(null);
+  }, [ghost]);
+
+  // Imperatively mount a dashed-ghost placeholder after the given heading.
+  const mountGhost = React.useCallback((headingEl, kind, body) => {
+    clearGhost();
+    if (!headingEl || !headingEl.parentNode) return;
+    const node = document.createElement('div');
+    node.className = 'dr-ghost-block';
+    const kindLabel = document.createElement('div');
+    kindLabel.className = 'dr-ghost-block-kind';
+    kindLabel.textContent = kind === 'after' ? 'insert here' : 'note';
+    node.appendChild(kindLabel);
+    const bodyEl = document.createElement('div');
+    bodyEl.textContent = body || '(no detail)';
+    node.appendChild(bodyEl);
+    headingEl.insertAdjacentElement('afterend', node);
+    setGhost({ node, kind, body });
+  }, [clearGhost]);
+
+  const jumpToItem = React.useCallback((it) => {
+    if (!leftRef.current) return;
+    if (it.after) {
+      const heading = window.scrollAndFlash(leftRef.current, {
+        afterHeading: it.after,
+      });
+      if (heading) mountGhost(heading, 'after', it.body);
+      return;
+    }
+    if (it.quote) {
+      clearGhost();
+      window.scrollAndFlash(leftRef.current, { text: it.quote });
+      return;
+    }
+    // No anchor — nothing to jump to.
+    clearGhost();
+  }, [clearGhost, mountGhost]);
+
+  const handleSelect = React.useCallback((idx) => {
+    setActiveIdx(idx);
+    const it = items[idx];
+    if (it) jumpToItem(it);
+  }, [items, jumpToItem]);
+
+  // Keyboard j / k walk while the modal is open.
+  React.useEffect(() => {
+    if (!items.length) return;
+    const onKey = (e) => {
+      // Don't capture when the user is typing into an input/textarea.
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIdx((cur) => {
+          const next = cur == null ? 0 : Math.min(items.length - 1, cur + 1);
+          jumpToItem(items[next]);
+          return next;
+        });
+      } else if (e.key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIdx((cur) => {
+          const next = cur == null ? 0 : Math.max(0, cur - 1);
+          jumpToItem(items[next]);
+          return next;
+        });
+      } else if (e.key === 'Enter' && activeIdx != null) {
+        e.preventDefault();
+        jumpToItem(items[activeIdx]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [items, jumpToItem, activeIdx]);
+
+  const turnLabel = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
+  const title = `${meta?.name || 'Agent'} — ${turnLabel}`;
+  const subtitle = `round ${item.round} · reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      accent={accent}
+      width={1300}
+    >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
+        gap: 18,
+        minHeight: 0,
+        height: '100%',
+      }}>
+        {/* Left: prior content */}
+        <div style={{
+          minHeight: 0, minWidth: 0,
+          background: 'var(--bg-0)',
+          border: '1px solid var(--border-1)',
+          borderRadius: 'var(--r-2)',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{
+            padding: '8px 12px',
+            borderBottom: '1px solid var(--border-1)',
+            background: 'var(--bg-2)',
+            display: 'flex', alignItems: 'center', gap: 8,
+            flexShrink: 0,
+          }}>
+            <AgentIcon agent={otherAgent} size={14} />
+            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+              {priorFilePath}
+            </span>
+          </div>
+          <div ref={leftRef} style={{
+            flex: 1, minHeight: 0, overflow: 'auto',
+            padding: '14px 16px',
+          }}>
+            <LazyMarkdownBody filePath={priorFilePath} />
+          </div>
+        </div>
+
+        {/* Right: review cards */}
+        <div style={{
+          minHeight: 0, minWidth: 0,
+          display: 'flex', flexDirection: 'column',
+          gap: 12,
+          overflow: 'auto',
+          paddingRight: 4,
+        }}>
+          <ReviewKeyboardHint hasItems={items.length > 0} />
+          <ReviewGroup
+            label="Open questions"
+            color={COLORS.info}
+            items={items}
+            kinds={['question']}
+            activeIdx={activeIdx}
+            onSelect={handleSelect}
+          />
+          <ReviewGroup
+            label="Disagreements"
+            color={COLORS.warn}
+            items={items}
+            kinds={['disagreement']}
+            activeIdx={activeIdx}
+            onSelect={handleSelect}
+          />
+          <ReviewGroup
+            label="Resolved / non-blocking"
+            color={COLORS.ok}
+            items={items}
+            kinds={['resolved']}
+            activeIdx={activeIdx}
+            onSelect={handleSelect}
+          />
+          {items.length === 0 && (
+            <div style={{
+              padding: '20px 14px', textAlign: 'center',
+              color: 'var(--fg-3)', fontSize: 12.5,
+              border: '1px dashed var(--border-2)',
+              borderRadius: 'var(--r-2)',
+              background: 'var(--bg-2)',
+            }}>
+              No structured questions or disagreements were anchored in
+              this turn. Open the document modal from the timeline card
+              header to read the full markdown body.
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function ReviewKeyboardHint({ hasItems }) {
+  if (!hasItems) return null;
+  return (
+    <div className="mono" style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '6px 10px',
+      background: 'var(--bg-0)',
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-2)',
+      color: 'var(--fg-3)',
+      fontSize: 10.5,
+    }}>
+      <kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 3 }}>j</kbd>
+      <kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 3 }}>k</kbd>
+      <span>walk · </span>
+      <kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 3 }}>Esc</kbd>
+      <span>close</span>
+    </div>
+  );
+}
+
+function ReviewGroup({ label, color, items, kinds, activeIdx, onSelect }) {
+  // Render items in their original flat-list order, with indices for selection.
+  const entries = items
+    .map((it, i) => ({ it, i }))
+    .filter(({ it }) => kinds.includes(it.kind));
+  if (entries.length === 0) return null;
+  return (
+    <div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        fontSize: 10.5, color, fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase',
+        marginBottom: 6,
+      }}>
+        <span>{label}</span>
+        <span style={{
+          padding: '0 6px',
+          background: color + '22', color,
+          borderRadius: 999, fontSize: 10,
+          fontFamily: 'var(--mono)', fontWeight: 600,
+        }}>{entries.length}</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {entries.map(({ it, i }) => (
+          <ReviewCard
+            key={i}
+            item={it}
+            color={color}
+            active={activeIdx === i}
+            onClick={() => onSelect(i)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ReviewCard({ item, color, active, onClick }) {
+  const hasAnchor = !!(item.quote || item.after);
+  const isMissing = !!item.after;
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '10px 12px',
+        background: active ? 'var(--bg-2)' : 'var(--bg-1)',
+        border: `1px solid ${active ? color : 'var(--border-1)'}`,
+        borderLeft: `3px solid ${isMissing ? COLORS.warn : color}${isMissing ? '' : ''}`,
+        borderLeftStyle: isMissing ? 'dashed' : 'solid',
+        borderRadius: 'var(--r-2)',
+        cursor: hasAnchor ? 'pointer' : 'default',
+        transition: 'background 100ms, border-color 100ms',
+      }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        marginBottom: 4,
+      }}>
+        {item.itemId && (
+          <span className="mono" style={{
+            fontSize: 10, color, fontWeight: 600,
+            padding: '1px 6px',
+            background: color + '14',
+            border: `1px solid ${color}44`,
+            borderRadius: 4,
+            letterSpacing: '0.04em',
+          }}>{item.itemId}</span>
+        )}
+        {!hasAnchor && (
+          <span className="mono" style={{
+            fontSize: 9.5, color: 'var(--fg-3)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>no anchor</span>
+        )}
+        {isMissing && (
+          <span className="mono" style={{
+            fontSize: 9.5, color: COLORS.warn,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>missing</span>
+        )}
+        <span style={{ flex: 1 }} />
+        {hasAnchor && (
+          <span style={{ color: 'var(--fg-3)' }}>
+            <Icon.Arrow style={{ width: 12, height: 12 }} />
+          </span>
+        )}
+      </div>
+      {item.quote && (
+        <div style={{
+          fontSize: 11, color: 'var(--fg-2)',
+          fontStyle: 'italic',
+          marginBottom: 4,
+          paddingLeft: 8,
+          borderLeft: `2px solid ${color}55`,
+          overflow: 'hidden',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+        }}>“{item.quote}”</div>
+      )}
+      {item.after && (
+        <div className="mono" style={{
+          fontSize: 10.5, color: COLORS.warn,
+          marginBottom: 4,
+        }}>after: {item.after}</div>
+      )}
+      <div style={{
+        fontSize: 12.5, color: 'var(--fg-1)',
+        lineHeight: 1.5,
+        display: '-webkit-box',
+        WebkitLineClamp: 3,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }}>
+        {item.body}
+      </div>
+    </button>
+  );
+}
+
+// Resolve which file the left pane should render for a given Phase 2 turn item.
+// Round N≥2: the OTHER agent's round N-1 turn file. Round 1: their Phase 1 draft.
+function priorContentPathFor(item, otherUiAgent) {
+  const beAgent = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
+  const round = Number(item.round) || 1;
+  if (round <= 1) return `phase1/draft-${beAgent}.md`;
+  const rr = String(round - 1).padStart(2, '0');
+  return `phase2/round-${rr}-${beAgent}.md`;
+}
+
+function reviewItemsFor(run, item) {
+  const key = `phase2_round${item.round}_${item.agent}`;
+  const bucket = (run.phaseReviewItems || {})[key];
+  return Array.isArray(bucket) ? bucket : [];
 }
 
 function PreflightModal({ item, run, onClose, accent }) {

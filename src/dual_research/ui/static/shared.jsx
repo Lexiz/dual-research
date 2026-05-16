@@ -475,7 +475,80 @@ const fmt = {
 };
 
 // ───────────────────────── share to window for other Babel files ─────────────────────────
+// ───────────────────────── anchor scroll (spec 0027) ─────────────────────────
+// Scroll a block inside `container` into view and apply a brief flash highlight.
+//
+// Resolution order:
+//   1. If `blockId` is provided, getElementById within container.
+//   2. If `text` is provided, scan rendered blocks for substring match
+//      (case-insensitive, whitespace-collapsed).
+//   3. If `afterHeading` is provided, find heading whose text begins with
+//      that string; the caller renders the dashed-ghost placeholder under it.
+//
+// Returns the resolved element (or null) so callers can layer additional
+// behaviour (e.g. mounting a ghost placeholder).
+function _normaliseText(s) {
+  return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function _findBlockByText(container, text) {
+  if (!container || !text) return null;
+  const needle = _normaliseText(text);
+  if (!needle) return null;
+  // Cheap exact-hash route first: spec 0025's renderer already hashed every
+  // block, so a same-text paragraph in this container has the same id.
+  const blocks = container.querySelectorAll(
+    'p[id^="b-"], h1[id^="b-"], h2[id^="b-"], h3[id^="b-"], h4[id^="b-"], h5[id^="b-"], h6[id^="b-"], li[id^="b-"], blockquote[id^="b-"], pre[id^="b-"]'
+  );
+  // Pass 1: exact textContent match.
+  for (const el of blocks) {
+    if (_normaliseText(el.textContent) === needle) return el;
+  }
+  // Pass 2: substring (the quote is typically a span inside a longer block).
+  for (const el of blocks) {
+    if (_normaliseText(el.textContent).includes(needle)) return el;
+  }
+  return null;
+}
+
+function _findHeadingByPrefix(container, headingText) {
+  if (!container || !headingText) return null;
+  const needle = _normaliseText(headingText);
+  if (!needle) return null;
+  const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  for (const el of headings) {
+    const t = _normaliseText(el.textContent);
+    if (t === needle || t.startsWith(needle) || needle.startsWith(t)) return el;
+  }
+  return null;
+}
+
+function scrollAndFlash(container, { blockId, text, afterHeading } = {}) {
+  if (!container) return null;
+  let target = null;
+  if (blockId) target = container.querySelector(`#${CSS.escape(blockId)}`);
+  if (!target && text) target = _findBlockByText(container, text);
+  if (!target && afterHeading) target = _findHeadingByPrefix(container, afterHeading);
+  if (!target) return null;
+
+  // Smooth-scroll the target into the container's vertical centre.
+  const cRect = container.getBoundingClientRect();
+  const tRect = target.getBoundingClientRect();
+  const offset = tRect.top - cRect.top - container.clientHeight / 3;
+  container.scrollBy({ top: offset, behavior: 'smooth' });
+
+  // Flash highlight: add class, remove after the animation completes.
+  target.classList.remove('dr-flash');
+  // Force reflow so re-applying the class restarts the animation.
+  // eslint-disable-next-line no-unused-expressions
+  void target.offsetWidth;
+  target.classList.add('dr-flash');
+  window.setTimeout(() => target.classList.remove('dr-flash'), 1600);
+  return target;
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
+  scrollAndFlash,
 });

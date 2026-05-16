@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.25.0',
+      date: '2026-05-16',
+      summary: 'Negotiate inline comments — side-by-side modal with anchored critique cards.',
+      items: [
+        'Clicking a Phase 2 turn card opens a side-by-side modal: prior content on the left, the agent\'s questions and disagreements as inline-comment cards on the right.',
+        'Clicking a card scrolls the left pane to the referenced span and flashes it amber for 1.5s.',
+        '"Missing X" critiques use `> after: <heading>` and render a dashed-ghost "insert here" placeholder under the named section.',
+        'Keyboard walk: `j` / `k` (or ↓ / ↑) move between cards, `Enter` re-jumps the active card, `Esc` closes the modal.',
+        'Anchoring is opt-in via a one-paragraph prompt hint asking agents to emit `> quote: <verbatim span>` under each numbered question / D-N disagreement. Un-anchored items still render — they just don\'t auto-jump.',
+        'Older Phase 2 runs predate the marker convention and render as un-anchored cards. Re-running gives them the full experience.',
+      ],
+    },
+    {
       version: '0.24.0',
       date: '2026-05-16',
       summary: 'How-it-works restructure — chat-lifecycle diagram, phase accordions, v3.5 process map.',
