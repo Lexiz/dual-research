@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.27.0] — 2026-05-16
+
+### Added
+
+- **Token-consumption tab — per-turn context-window visualisation** ([spec 0029](specs/0029-token-consumption-tab.md)) — the timeline pane on a run-detail view now carries a two-pill segmented control on the left of its toolbar: `Conversation` (existing card view, unchanged) and `Consumption` (new). The two per-agent total chips that used to sit at the left of the toolbar move to the right end. Switching to `Consumption` swaps the artifact-card list out for a 3-column grid — phase / round label · Claude lane · OpenAI lane — borrowed verbatim from the `ChatLifecycle` visual on the how-it-works page. Each row is **one API call** (one turn per round per agent); P0 / P1 / P3 give a single row each, Phase 2 and Phase 4 give one row per round per agent, so the visual makes the buildup explicit — round 3 of Phase 2 is visibly larger than round 1 because the conversation history grew. Each bar is sized to its model's **actual** context window (Claude 200K, GPT-5.5 200K, GPT-5-mini 128K, default 128K for unknown ids) sourced from a new `dual_research/agents/context_windows.py` registry; the percent number under each bar gives the apples-to-apples comparison when the two lanes have different denominators. Bars have three layers: cache-read portion (lighter shade, ≤ input), fresh input (full agent colour), and a thinner output tail (darker shade, 60% height). Hover any bar for the full breakdown (input · cache read · output · cache write · cost · model id). The new `TurnTokenUsage` dataclass + `Run.phase_token_usage` flat dict captures the per-turn detail in the aggregator from `TurnEnded` events (which already carried `input_tokens` / `output_tokens` / `cache_read_tokens` / `cache_write_tokens` / `cost_usd` / `model_id` — the data was being discarded before this spec). Keys use the existing `phase{N}_<agent>` / `phase{N}_round{R}_<agent>` convention that `phase_summaries` and `phase_review_items` already use; the wire-format camelizer rewrites them to `phase{N}{Agent}` / `phase{N}Round{R}{Agent}` (e.g. `phase2Round1Claude`). Runs replayed from pre-0029 transcripts have an empty dict; the Consumption tab shows a small "no per-turn data" empty state. 17 new tests (per-phase key shapes, payload roundtrip, accumulation preservation, registry coverage, wire-format inner-key + field-name camelisation). 389 total green.
+
 ## [0.26.0] — 2026-05-16
 
 ### Added

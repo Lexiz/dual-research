@@ -200,12 +200,20 @@ function PhaseDots({ run }) {
 // Spec 0025: cards no longer expand inline. The Timeline owns a single
 // `openId` and renders a Modal for the active artifact. Live items
 // remain inline-streaming.
+//
+// Spec 0029: two tabs — `Conversation` (existing card view) and
+// `Consumption` (per-turn context-window bars). Tabs sit on the left of
+// the pane toolbar; the two `AgentLegendChip`s move to the right end.
 function Timeline({ run }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
   const [openId, setOpenId] = React.useState(null);
+  const [tab, setTab] = React.useState('conversation'); // 'conversation' | 'consumption'
 
-  // Reset open modal when navigating between runs / phases.
-  React.useEffect(() => { setOpenId(null); }, [run.id]);
+  // Reset open modal + active tab when navigating between runs.
+  React.useEffect(() => {
+    setOpenId(null);
+    setTab('conversation');
+  }, [run.id]);
 
   const openItem = items.find((i) => i.id === openId) || null;
 
@@ -226,9 +234,10 @@ function Timeline({ run }) {
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
       />
       <PaneToolbar>
+        <TimelineTabs active={tab} onChange={setTab} />
+        <span style={{ flex: 1 }} />
         <AgentLegendChip agent="claude" tokens={claudeTotal.tokens.in + claudeTotal.tokens.out} cost={claudeTotal.cost} />
         <AgentLegendChip agent="gpt"    tokens={gptTotal.tokens.in + gptTotal.tokens.out} cost={gptTotal.cost} />
-        <span style={{ flex: 1 }} />
         {liveCount > 0 && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -245,17 +254,21 @@ function Timeline({ run }) {
           </span>
         )}
       </PaneToolbar>
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px 16px 24px', background: 'var(--bg-0)' }}>
-        {items.map((item) => (
-          <TimelineItem
-            key={item.id}
-            item={item}
-            run={run}
-            onOpen={() => setOpenId(item.id)}
-          />
-        ))}
-      </div>
-      {openItem && (
+      {tab === 'conversation' ? (
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px 16px 24px', background: 'var(--bg-0)' }}>
+          {items.map((item) => (
+            <TimelineItem
+              key={item.id}
+              item={item}
+              run={run}
+              onOpen={() => setOpenId(item.id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <ConsumptionView run={run} />
+      )}
+      {tab === 'conversation' && openItem && (
         <ArtifactModal
           item={openItem}
           run={run}
@@ -263,6 +276,50 @@ function Timeline({ run }) {
         />
       )}
     </section>
+  );
+}
+
+// Segmented control of two pills — matches the AgentLegendChip aesthetic
+// (rounded pill, var(--bg-2) background, agent-style accent on active).
+function TimelineTabs({ active, onChange }) {
+  const tabs = [
+    { id: 'conversation', label: 'Conversation' },
+    { id: 'consumption',  label: 'Consumption'  },
+  ];
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      borderRadius: 999, overflow: 'hidden',
+      border: '1px solid var(--border-1)',
+      background: 'var(--bg-2)',
+      flexShrink: 0,
+    }}>
+      {tabs.map((t, i) => {
+        const isActive = t.id === active;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            style={{
+              appearance: 'none',
+              border: 'none',
+              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
+              background: isActive ? 'var(--bg-3)' : 'transparent',
+              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
+              fontSize: 11.5,
+              fontWeight: isActive ? 600 : 500,
+              padding: '3px 12px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -283,6 +340,358 @@ function AgentLegendChip({ agent, tokens, cost }) {
         {fmt.tokens(tokens)}t · {fmt.cost(cost)}
       </span>
     </span>
+  );
+}
+
+// ─────────────────── Consumption tab (spec 0029) ───────────────────
+//
+// Per-turn context-window visualisation. Each row is one API call (one
+// turn per round per agent); each bar shows that call's input fill +
+// output trailing segment against the model's actual context window.
+// Layout borrows the 3-col grid from `how-it-works.jsx::LifecycleRow`
+// (phase label · Claude lane · OpenAI lane) so the conceptual map and
+// the actual numbers share a visual idiom.
+//
+// IMPORTANT: the wire format camelizes inner dict keys, so the per-turn
+// dict comes through as e.g. `phase2Round1Claude` — NOT the snake-case
+// form `phase2_round1_claude` we use on the Python side. The
+// `consumptionKey` helper below mirrors the server's `_snake_to_camel`
+// rewrite of those keys.
+
+// Token caps per model, duplicated from `agents/context_windows.py`.
+// Worth a generated module if this list grows much; for the current
+// 4-model lineup, manual sync + a backend test in
+// `tests/agents/test_context_windows.py` is enough.
+const CONTEXT_WINDOWS_JS = {
+  'claude-sonnet-4-6': 200_000,
+  'claude-haiku-4-5':  200_000,
+  'gpt-5.5':           200_000,
+  'gpt-5-mini':        128_000,
+};
+const DEFAULT_CONTEXT_WINDOW = 128_000;
+
+function contextWindowFor(modelId) {
+  if (!modelId) return DEFAULT_CONTEXT_WINDOW;
+  if (CONTEXT_WINDOWS_JS[modelId] != null) return CONTEXT_WINDOWS_JS[modelId];
+  for (const [k, w] of Object.entries(CONTEXT_WINDOWS_JS)) {
+    if (modelId.startsWith(k)) return w;
+  }
+  return DEFAULT_CONTEXT_WINDOW;
+}
+
+// Build the wire-format inner key for a given (phase, round, agent).
+// Examples:
+//   (0, null, 'claude') → 'phase0Claude'
+//   (2, 3,    'gpt')    → 'phase2Round3Gpt'
+function consumptionKey(phase, round, agent) {
+  const Ag = agent === 'gpt' ? 'Gpt' : 'Claude';
+  if (round && round > 0) return `phase${phase}Round${round}${Ag}`;
+  return `phase${phase}${Ag}`;
+}
+
+// Walk the per-turn usage dict and produce ordered rows for rendering.
+// Each row: { id, phase, round, label, claude, gpt }. `claude`/`gpt`
+// is the `TurnTokenUsage`-shaped value or `null` (silent lane).
+function buildConsumptionRows(run) {
+  const usage = run.phaseTokenUsage || {};
+  // Parse the camelized keys back into (phase, round, agent).
+  const parsed = [];
+  for (const k of Object.keys(usage)) {
+    const m = /^phase(\d+)(?:Round(\d+))?(Claude|Gpt)$/.exec(k);
+    if (!m) continue;
+    parsed.push({
+      key: k,
+      phase: Number(m[1]),
+      round: m[2] ? Number(m[2]) : 0,
+      agent: m[3] === 'Gpt' ? 'gpt' : 'claude',
+    });
+  }
+  // Group by (phase, round). Use a Map keyed `${phase}:${round}` to
+  // preserve insertion-order; we'll re-sort below.
+  const grouped = new Map();
+  for (const p of parsed) {
+    const k = `${p.phase}:${p.round}`;
+    if (!grouped.has(k)) grouped.set(k, { phase: p.phase, round: p.round, claude: null, gpt: null });
+    grouped.get(k)[p.agent] = usage[p.key];
+  }
+  // Sort by phase then round.
+  const rows = Array.from(grouped.values()).sort((a, b) => {
+    if (a.phase !== b.phase) return a.phase - b.phase;
+    return a.round - b.round;
+  });
+  // Attach human labels.
+  for (const r of rows) {
+    r.id = `${r.phase}:${r.round}`;
+    if (r.round > 0) {
+      r.label = `Round ${r.round}`;
+    } else {
+      r.label = ''; // phase-only rows get a blank sub-label
+    }
+  }
+  return rows;
+}
+
+const PHASE_NAMES = {
+  0: 'P0 Preflight',
+  1: 'P1 Research',
+  2: 'P2 Negotiate',
+  3: 'P3 Drafting',
+  4: 'P4 Review',
+};
+
+function ConsumptionView({ run }) {
+  const rows = React.useMemo(() => buildConsumptionRows(run), [run.phaseTokenUsage]);
+
+  if (rows.length === 0) {
+    return <ConsumptionEmptyState />;
+  }
+
+  return (
+    <div style={{
+      flex: 1, minHeight: 0, overflow: 'auto',
+      padding: '16px 16px 32px', background: 'var(--bg-0)',
+    }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '120px 1fr 1fr',
+        gap: 10, alignItems: 'stretch',
+        padding: 14, background: 'var(--bg-1)',
+        border: '1px solid var(--border-1)', borderRadius: 8,
+      }}>
+        {/* Header strip — phase / Claude / OpenAI labels. Matches the
+            how-it-works ChatLifecycle visual exactly. */}
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'transparent', letterSpacing: '0.08em',
+          textTransform: 'uppercase', padding: '6px 0',
+        }}>phase</div>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--agent-a)', letterSpacing: '0.08em',
+          textTransform: 'uppercase', padding: '6px 0',
+        }}>Claude lane</div>
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--agent-b)', letterSpacing: '0.08em',
+          textTransform: 'uppercase', padding: '6px 0',
+        }}>OpenAI lane</div>
+
+        {rows.map((row, i) => {
+          // Group rounds of the same phase under a single phase label —
+          // only print the phase title on the first row of each phase
+          // block. Sub-rows show their round label inside the same cell.
+          const isFirstOfPhase = i === 0 || rows[i - 1].phase !== row.phase;
+          return (
+            <ConsumptionRow
+              key={row.id}
+              row={row}
+              showPhaseTitle={isFirstOfPhase}
+            />
+          );
+        })}
+      </div>
+
+      <ConsumptionLegend />
+    </div>
+  );
+}
+
+function ConsumptionRow({ row, showPhaseTitle }) {
+  return (
+    <React.Fragment>
+      {/* Phase / round label cell */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        padding: '10px',
+        background: showPhaseTitle ? 'var(--bg-2)' : 'transparent',
+        border: showPhaseTitle ? '1px solid var(--border-2)' : '1px solid transparent',
+        borderRadius: 6,
+        minHeight: 56,
+      }}>
+        {showPhaseTitle && (
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+            {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
+          </div>
+        )}
+        {row.label && (
+          <div className="mono" style={{
+            fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
+            textTransform: 'uppercase', marginTop: showPhaseTitle ? 3 : 0,
+          }}>{row.label}</div>
+        )}
+      </div>
+      {/* Claude lane */}
+      <TokenLaneCell usage={row.claude} agent="claude" />
+      {/* OpenAI lane */}
+      <TokenLaneCell usage={row.gpt} agent="gpt" />
+    </React.Fragment>
+  );
+}
+
+// One cell of a row — either a populated TokenBar or a silent placeholder.
+function TokenLaneCell({ usage, agent }) {
+  if (!usage) {
+    return (
+      <div className="mono" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '10px', minHeight: 56,
+        background: 'var(--bg-1)',
+        border: '1px dashed var(--border-2)', borderRadius: 6,
+        fontSize: 10, color: 'var(--fg-4)', letterSpacing: '0.04em',
+      }}>silent</div>
+    );
+  }
+  return <TokenBar usage={usage} agent={agent} />;
+}
+
+// The actual progress bar. Three visual segments:
+//   1. cache-read portion of input (lighter shade of agent colour)
+//   2. fresh input (full agent colour) — together (1)+(2) = `usage.in`
+//   3. output trailing segment (darker shade, 60% height)
+// Remainder of the bar is the unused context window.
+//
+// Tooltip carries the detailed breakdown — matches the existing
+// `CostBadge` lightweight pattern.
+function TokenBar({ usage, agent }) {
+  const meta = AGENT_META[agent];
+  const tokensIn  = Number(usage.in)  || 0;
+  const tokensOut = Number(usage.out) || 0;
+  const cacheRead = Number(usage.cacheRead) || 0;
+  const cacheWrite = Number(usage.cacheWrite) || 0;
+  const modelId   = usage.modelId || null;
+  const cost      = Number(usage.cost) || 0;
+  const ctxWindow = contextWindowFor(modelId);
+
+  const freshIn = Math.max(0, tokensIn - cacheRead);
+  const inputPct  = Math.min(100, (tokensIn  / ctxWindow) * 100);
+  const cachePct  = Math.min(100, (cacheRead / ctxWindow) * 100);
+  const freshPct  = Math.min(100, (freshIn   / ctxWindow) * 100);
+  const outputPct = Math.min(100 - inputPct, (tokensOut / ctxWindow) * 100);
+
+  const tooltip = [
+    `${meta.name} · ${modelId || 'unknown model'}`,
+    `input:  ${tokensIn.toLocaleString()}t  (cache read ${cacheRead.toLocaleString()}t)`,
+    `output: ${tokensOut.toLocaleString()}t`,
+    cacheWrite ? `cache write: ${cacheWrite.toLocaleString()}t` : null,
+    `cost:   ${fmt.cost(cost)}`,
+    `window: ${ctxWindow.toLocaleString()}t (${inputPct.toFixed(1)}% used)`,
+  ].filter(Boolean).join('\n');
+
+  // Darker variant of the agent colour for the output tail. We mix the
+  // colour with black at ~35% by stacking a semi-transparent overlay —
+  // simpler than re-deriving an HSL value here.
+  const agentColor = meta.color;
+  const cacheTint  = agentColor + '55'; // ~33% alpha — lighter shade
+
+  return (
+    <div title={tooltip} style={{
+      display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      padding: '8px 10px', minHeight: 56,
+      background: 'var(--bg-2)',
+      border: `1px solid ${meta.border}`, borderRadius: 6,
+    }}>
+      {/* Bar */}
+      <div style={{
+        position: 'relative',
+        width: '100%', height: 14,
+        background: 'var(--bg-3)',
+        borderRadius: 4, overflow: 'hidden',
+      }}>
+        {/* Layer 1: cache-read portion (lighter shade) sits at the start */}
+        {cachePct > 0 && (
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${cachePct}%`, background: cacheTint,
+          }} />
+        )}
+        {/* Layer 2: fresh input (full agent colour) sits to the right of cache */}
+        {freshPct > 0 && (
+          <div style={{
+            position: 'absolute', left: `${cachePct}%`, top: 0, bottom: 0,
+            width: `${freshPct}%`, background: agentColor,
+          }} />
+        )}
+        {/* Layer 3: output tail — thinner band, darker shade, sits after input */}
+        {outputPct > 0 && (
+          <div style={{
+            position: 'absolute', left: `${inputPct}%`, top: 3, bottom: 3,
+            width: `${outputPct}%`,
+            background: agentColor,
+            opacity: 0.45,
+            borderLeft: '1px solid rgba(0,0,0,0.25)',
+          }} />
+        )}
+      </div>
+      {/* Numeric row underneath */}
+      <div className="mono" style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        marginTop: 5,
+        fontSize: 10, color: 'var(--fg-3)',
+      }}>
+        <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensIn)}t</span>
+        <span>in</span>
+        <span>·</span>
+        <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
+        <span>out</span>
+        <span style={{ flex: 1 }} />
+        <span>{inputPct.toFixed(1)}% of {fmt.tokens(ctxWindow)}t</span>
+      </div>
+    </div>
+  );
+}
+
+function ConsumptionLegend() {
+  return (
+    <div className="mono" style={{
+      marginTop: 14, padding: '10px 14px',
+      background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+      borderRadius: 6,
+      display: 'flex', flexWrap: 'wrap', gap: 16,
+      fontSize: 10.5, color: 'var(--fg-3)',
+    }}>
+      <LegendSwatch color="var(--agent-a)" label="Claude input" />
+      <LegendSwatch color="var(--agent-a)" label="cache read" alpha={0.33} />
+      <LegendSwatch color="var(--agent-a)" label="output" alpha={0.45} thin />
+      <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-2)' }} />
+      <LegendSwatch color="var(--agent-b)" label="GPT input" />
+      <LegendSwatch color="var(--agent-b)" label="cache read" alpha={0.33} />
+      <LegendSwatch color="var(--agent-b)" label="output" alpha={0.45} thin />
+      <span style={{ flex: 1 }} />
+      <span>bar total = model context window</span>
+    </div>
+  );
+}
+
+function LegendSwatch({ color, label, alpha, thin }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{
+        display: 'inline-block',
+        width: 16, height: thin ? 4 : 10,
+        background: color, opacity: alpha ?? 1,
+        borderRadius: 2,
+      }} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function ConsumptionEmptyState() {
+  return (
+    <div style={{
+      flex: 1, minHeight: 0, overflow: 'auto',
+      padding: '32px 24px', background: 'var(--bg-0)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: 12,
+    }}>
+      <div style={{ fontSize: 13, color: 'var(--fg-1)', fontWeight: 500 }}>
+        No per-turn token data
+      </div>
+      <div className="mono" style={{
+        fontSize: 10.5, color: 'var(--fg-3)', textAlign: 'center',
+        lineHeight: 1.6, maxWidth: 420,
+      }}>
+        This run was recorded before spec 0029 added per-turn telemetry,<br/>
+        so its individual chat sizes aren't tracked. The run-total chips<br/>
+        above still reflect the full cost and token count.
+      </div>
+    </div>
   );
 }
 
