@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.32.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/36"
 ---
 
 # Spec 0034 — Critique navigation
