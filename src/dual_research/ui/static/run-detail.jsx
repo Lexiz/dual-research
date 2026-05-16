@@ -5,6 +5,45 @@
 //   ├─ left: artifact cards (collapsible)   │  right: disagreements by phase (tabbed)
 //   └─ footer
 
+// ─────────────────── Spec 0038 — search index context ──────────────────────
+//
+// Run-scoped fetch of /api/runs/<id>/searches/index?include=summary. One
+// network call per run-detail mount; consumers (SearchChip on each
+// collapsed card, SearchGistLine on each expanded card, RunSearchSummary
+// in the run header) all read from the same Map. Value shape:
+//   { keys: Set<string>|null, summary: Map<turnKey,{queries,consulted,hasWarning}>|null }
+// Both null while loading; after the fetch resolves they are non-null
+// even when the run has no audit data (empty Set + empty Map).
+const SearchIndexContext = React.createContext({ keys: null, summary: null });
+
+// URL normaliser mirroring ``dual_research.audit.validate.normalize_url``
+// for client-side membership comparison (used to mark a ConsultedSourceCard
+// as ``[cited]``). Keep narrow on purpose — over-normalisation would let
+// genuinely distinct URLs collapse into one. Aligned with the four rules
+// the validator applies server-side.
+const _SEARCH_TRACKING_PARAMS = new Set([
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+]);
+function normalizeSearchUrl(url) {
+  if (!url) return '';
+  let u;
+  try { u = new URL(url); } catch { return String(url).replace(/\/+$/, '').toLowerCase(); }
+  const scheme = (u.protocol || '').replace(':', '').toLowerCase();
+  const host = (u.hostname || '').toLowerCase();
+  const port = u.port ? `:${u.port}` : '';
+  let path = u.pathname || '';
+  if (path.length > 1 && path.endsWith('/')) path = path.replace(/\/+$/, '');
+  const kept = [];
+  u.searchParams.forEach((v, k) => {
+    if (!_SEARCH_TRACKING_PARAMS.has(k.toLowerCase())) {
+      kept.push(`${k}=${v}`);
+    }
+  });
+  let out = `${scheme}://${host}${port}${path}`;
+  if (kept.length) out += `?${kept.join('&')}`;
+  return out;
+}
+
 // ─────────────────── Spec 0033 — agent activity composer ────────────────────
 //
 // Maps (agent.status × run.phase × run.round) → a 3–6-word activity phrase
@@ -60,7 +99,7 @@ function composeAgentActivity(agent, run) {
 // replace the deleted `AgentLegendChip`s) and the Conversation/Consumption
 // tabs moved back into the Timeline `PaneToolbar`. The header is chrome
 // only — global run identity + state — not per-agent or per-pane.
-function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
+function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpToFirstSearch }) {
   const total = run.agents.claude.cost + run.agents.gpt.cost;
   const idParts = window.splitRunId(run.id);
   const startedClock = idParts.time || '—';
@@ -84,6 +123,7 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         <Topic text={run.topic} />
         <CostBadge cost={total} tokens={totalTokens} />
+        <RunSearchSummary onJump={onJumpToFirstSearch} />
         <StatusErrorsBadge
           status={run.status}
           errorCount={errorCount}
@@ -161,6 +201,66 @@ function AgentStrip({ agent, run }) {
         {phrase}
       </span>
     </span>
+  );
+}
+
+// ─────────────────── Spec 0038 — RunSearchSummary header chip ───────────────
+//
+// Reads the SearchIndexContext (populated once per run by `useSearchIndex`)
+// and renders a single chip in the run header:
+//   🔎 N · M URLs · ⚠ K unmatched
+// The warning segment renders only when at least one turn has a flagged
+// citation. Click jumps to the first flagged card (or the first card
+// with searches if no warnings). Hidden when the run has no audit data
+// — pre-0036 transcripts + runs where web search was disabled both
+// gracefully render nothing.
+function RunSearchSummary({ onJump }) {
+  const ctx = React.useContext(SearchIndexContext);
+  const summary = ctx?.summary;
+  if (!summary || summary.size === 0) return null;
+  let totalQueries = 0;
+  let totalUrls = 0;
+  let warnings = 0;
+  for (const v of summary.values()) {
+    totalQueries += v.queries || 0;
+    totalUrls += v.consulted || 0;
+    if (v.hasWarning) warnings += 1;
+  }
+  if (totalQueries === 0) return null;
+  const handle = (e) => {
+    e.stopPropagation();
+    if (onJump) onJump({ warningOnly: warnings > 0 });
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      title={warnings > 0
+        ? `${totalQueries} web searches · ${totalUrls} URLs retrieved · ${warnings} turn${warnings === 1 ? '' : 's'} flagged for unmatched citations — click to jump`
+        : `${totalQueries} web searches · ${totalUrls} URLs retrieved across the run — click to jump to the first searched turn`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '3px 10px',
+        background: 'var(--bg-2)',
+        border: `1px solid ${warnings > 0 ? COLORS.warn + '55' : 'var(--border-1)'}`,
+        borderRadius: 999,
+        fontFamily: 'inherit', cursor: 'pointer',
+        fontSize: 11, color: 'var(--fg-1)',
+        whiteSpace: 'nowrap', flexShrink: 0,
+      }}>
+      <span>🔎</span>
+      <span className="mono">{totalQueries}</span>
+      <span style={{ color: 'var(--fg-3)' }}>·</span>
+      <span className="mono">{totalUrls} URLs</span>
+      {warnings > 0 && (
+        <>
+          <span style={{ color: 'var(--fg-3)' }}>·</span>
+          <span className="mono" style={{ color: COLORS.warn }}>
+            ⚠ {warnings} unmatched
+          </span>
+        </>
+      )}
+    </button>
   );
 }
 
@@ -370,10 +470,10 @@ function Timeline({ run, highlightedTurnKeys }) {
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
         right={<AgentStrip agent="claude" run={run} />}
       />
-      {/* Row 2 — PaneToolbar: GPT pill + live-count on the left,
-                                Conversation/Consumption tabs on the right. */}
+      {/* Row 2 — PaneToolbar: live-count on the left, Conversation/Consumption
+          tabs in the middle, GPT pill on the right (spec 0038 D14 — aligns
+          vertically with Claude's pill on the PaneHeader row above). */}
       <PaneToolbar>
-        <AgentStrip agent="gpt" run={run} />
         {liveCount > 0 && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -391,6 +491,7 @@ function Timeline({ run, highlightedTurnKeys }) {
         )}
         <span style={{ flex: 1 }} />
         <TimelineTabs active={tab} onChange={setTab} prominent />
+        <AgentStrip agent="gpt" run={run} />
       </PaneToolbar>
       {tab === 'conversation' ? (
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px 16px 24px', background: 'var(--bg-0)' }}>
@@ -1507,6 +1608,7 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      data-turn-key={item.turnKey || undefined}
       style={{
         marginBottom: 6,
         background: 'var(--bg-1)',
@@ -1547,6 +1649,7 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
           gist={sentiment || gist}
           summary={item.summary}
           onOpen={onOpen}
+          turnKey={item.turnKey}
         />
       )}
       {isLive && <ArtifactLiveBody item={item} />}
@@ -1557,7 +1660,7 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
 // The unfolded body — gist line + summary paragraph + "View in full mode".
 // Sits below the header inside the same card. No modal entry from anywhere
 // here EXCEPT the explicit button.
-function ArtifactExpandedBody({ item, gist, summary, onOpen }) {
+function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
   return (
     <div style={{
       borderTop: '1px solid var(--border-2)',
@@ -1580,6 +1683,7 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen }) {
           whiteSpace: 'pre-wrap',
         }}>{summary}</p>
       )}
+      <SearchGistLine turnKey={turnKey} onOpen={onOpen} />
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
         marginTop: 2,
@@ -1605,6 +1709,74 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen }) {
         </button>
       </div>
     </div>
+  );
+}
+
+// ─────────────────── Spec 0038 — SearchChip / SearchGistLine ────────────────
+//
+// Both reads from SearchIndexContext (one fetch per run) — no per-card
+// network calls. Hidden when no audit data exists for this turn-key, or
+// when the run has no audit data at all (pre-0036 transcripts).
+function SearchChip({ turnKey }) {
+  const ctx = React.useContext(SearchIndexContext);
+  if (!turnKey) return null;
+  const summary = ctx?.summary;
+  if (!summary) return null;
+  const s = summary.get(turnKey);
+  if (!s || s.queries === 0) return null;
+  const tip = `${s.queries} web search${s.queries === 1 ? '' : 'es'} · ${s.consulted} URL${s.consulted === 1 ? '' : 's'} retrieved`
+    + (s.hasWarning ? ' · ⚠ unmatched citation' : '');
+  return (
+    <span title={tip} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 3,
+      padding: '1px 7px',
+      borderRadius: 999,
+      border: `1px solid ${s.hasWarning ? COLORS.warn + '55' : 'var(--border-1)'}`,
+      background: 'var(--bg-2)',
+      fontSize: 10.5, color: 'var(--fg-1)',
+      fontFamily: 'var(--mono)',
+      whiteSpace: 'nowrap',
+    }}>
+      <span style={{ fontSize: 10 }}>🔎</span>
+      {s.queries}
+      {s.hasWarning && (
+        <span style={{ color: COLORS.warn, fontWeight: 700 }}>⚠</span>
+      )}
+    </span>
+  );
+}
+
+function SearchGistLine({ turnKey, onOpen }) {
+  const ctx = React.useContext(SearchIndexContext);
+  if (!turnKey) return null;
+  const summary = ctx?.summary;
+  if (!summary) return null;
+  const s = summary.get(turnKey);
+  if (!s || s.queries === 0) return null;
+  const handle = (e) => { e.stopPropagation(); if (onOpen) onOpen(); };
+  const { queries, consulted, hasWarning } = s;
+  const base = consulted > 0
+    ? `Pulled ${consulted} result${consulted === 1 ? '' : 's'} across ${queries} quer${queries === 1 ? 'y' : 'ies'}`
+    : `${queries} quer${queries === 1 ? 'y' : 'ies'} fired (no source list returned)`;
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: 0,
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+        fontSize: 11.5,
+        color: hasWarning ? COLORS.warn : 'var(--fg-2)',
+      }}>
+      <span style={{ fontSize: 11 }}>🔎</span>
+      <span>{hasWarning ? '⚠ ' : ''}{base} · click to inspect</span>
+      <Icon.Arrow style={{ width: 10, height: 10 }} />
+    </button>
   );
 }
 
@@ -2009,6 +2181,7 @@ function ArtifactHeader({ item, meta, hover }) {
                        overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {sub}
         </span>
+        <SearchChip turnKey={item.turnKey} />
         {stats && (
           <span className="mono" style={{
             fontSize: 10.5, color: ok ? COLORS.ok : COLORS.warn,
@@ -2058,6 +2231,7 @@ function ArtifactHeader({ item, meta, hover }) {
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 76 }}>{kindLabel}</span>
         <span style={{ flex: 1 }} />
         <StatsChips stats={item.stats} phase={item.statsPhase} prevStats={item.prevStats} />
+        <SearchChip turnKey={item.turnKey} />
         {isLive ? (
           <AgentStatusInline status={item.status} />
         ) : item.tokens != null || item.cost != null ? (
@@ -2139,6 +2313,8 @@ function DocumentModal({ item, meta, onClose, accent }) {
   }
   // Spec 0033: every output modal gains an Input tab. The bundle key
   // is plumbed through ``item.turnKey`` by ``buildLiveTimeline``.
+  // Spec 0038: a Web Search tab joins as the last default tab.
+  const webSearch = useWebSearchTab(item.turnKey);
   const tabs = [
     {
       id: 'content',
@@ -2150,6 +2326,7 @@ function DocumentModal({ item, meta, onClose, accent }) {
       label: 'Input',
       content: <InputTabContent turnKey={item.turnKey} />,
     },
+    webSearch,
   ];
   return (
     <Modal
@@ -2161,6 +2338,24 @@ function DocumentModal({ item, meta, onClose, accent }) {
       tabs={tabs}
     />
   );
+}
+
+// Spec 0038: helper used by every full-view modal that gains a Web Search
+// tab. The badge string comes from the run-scoped SearchIndexContext —
+// when this turn has a hallucinated-citation flag, the tab label
+// renders a small `⚠` to match the per-card chip and the run-header
+// summary.
+function useWebSearchTab(turnKey) {
+  const ctx = React.useContext(SearchIndexContext);
+  const summary = ctx?.summary;
+  const s = turnKey && summary ? summary.get(turnKey) : null;
+  const badge = s && s.hasWarning ? '⚠' : null;
+  return {
+    id: 'webSearch',
+    label: 'Web Search',
+    badge,
+    content: <WebSearchTabContent turnKey={turnKey} />,
+  };
 }
 
 // ─────────────────── Phase 2 side-by-side review modal (spec 0027) ───────────
@@ -2367,6 +2562,9 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 // handed before generating the right-pane critique.
 function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
   const [sub, setSub] = React.useState('original');
+  const ctx = React.useContext(SearchIndexContext);
+  const summary = ctx?.summary;
+  const hasWarning = !!(item.turnKey && summary && summary.get(item.turnKey)?.hasWarning);
 
   return (
     <div style={{
@@ -2383,7 +2581,7 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0,
       }}>
-        <NegotiateLeftSubTabs active={sub} onChange={setSub} />
+        <NegotiateLeftSubTabs active={sub} onChange={setSub} hasSearchWarning={hasWarning} />
         <span style={{ flex: 1 }} />
         {sub === 'original' && (
           <>
@@ -2405,25 +2603,29 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
             inputs/{item.turnKey || '—'}.json
           </span>
         )}
+        {sub === 'webSearch' && (
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+            searches/{item.turnKey || '—'}.json
+          </span>
+        )}
       </div>
       <div ref={leftRef} style={{
         flex: 1, minHeight: 0, overflow: 'auto',
         padding: '14px 16px',
       }}>
-        {sub === 'original' ? (
-          <LazyMarkdownBody filePath={priorFilePath} />
-        ) : (
-          <InputTabContent turnKey={item.turnKey} />
-        )}
+        {sub === 'original' && <LazyMarkdownBody filePath={priorFilePath} />}
+        {sub === 'input' && <InputTabContent turnKey={item.turnKey} />}
+        {sub === 'webSearch' && <WebSearchTabContent turnKey={item.turnKey} />}
       </div>
     </div>
   );
 }
 
-function NegotiateLeftSubTabs({ active, onChange }) {
+function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning }) {
   const tabs = [
-    { id: 'original', label: 'Original' },
-    { id: 'input',    label: 'Input' },
+    { id: 'original',  label: 'Original' },
+    { id: 'input',     label: 'Input' },
+    { id: 'webSearch', label: 'Web Search', badge: hasSearchWarning ? '⚠' : null },
   ];
   return (
     <div style={{
@@ -2455,6 +2657,11 @@ function NegotiateLeftSubTabs({ active, onChange }) {
             }}
           >
             {t.label}
+            {t.badge && (
+              <span style={{ marginLeft: 4, color: COLORS.warn, fontWeight: 700 }}>
+                {t.badge}
+              </span>
+            )}
           </button>
         );
       })}
@@ -2533,21 +2740,32 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
           </div>
         </div>
 
-        {/* Right: the draft + per-section "🔗 brief" affordance. */}
-        <DraftRightPane filePath={item.filePath} onSectionClick={onSectionAnchorClick} />
+        {/* Right: the draft + per-section "🔗 brief" affordance.
+            Spec 0038: a Draft|Web Search sub-tab strip surfaces the
+            draft turn's audit bundle without changing the modal frame. */}
+        <DraftRightPane
+          filePath={item.filePath}
+          turnKey={item.turnKey}
+          onSectionClick={onSectionAnchorClick}
+        />
       </div>
     </Modal>
   );
 }
 
-function DraftRightPane({ filePath, onSectionClick }) {
+function DraftRightPane({ filePath, turnKey, onSectionClick }) {
   const { body, loading } = window.useFileBody(filePath);
   const containerRef = React.useRef(null);
+  const [sub, setSub] = React.useState('draft');
+  const ctx = React.useContext(SearchIndexContext);
+  const summary = ctx?.summary;
+  const hasWarning = !!(turnKey && summary && summary.get(turnKey)?.hasWarning);
 
   // Walk the rendered DOM after each render and inject a "🔗 brief"
   // button into every section heading. Best-effort — the markdown
   // renderer may take a tick to settle on first mount.
   React.useEffect(() => {
+    if (sub !== 'draft') return;
     if (!containerRef.current) return;
     const root = containerRef.current;
     const headings = root.querySelectorAll('h2, h3');
@@ -2585,22 +2803,73 @@ function DraftRightPane({ filePath, onSectionClick }) {
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0,
       }}>
-        <span className="mono" style={{
-          fontSize: 10, color: 'var(--fg-2)',
-          letterSpacing: '0.06em', textTransform: 'uppercase',
-        }}>draft</span>
+        <DraftRightSubTabs active={sub} onChange={setSub} hasSearchWarning={hasWarning} />
+        <span style={{ flex: 1 }} />
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
-          {filePath || '—'}
+          {sub === 'draft'
+            ? (filePath || '—')
+            : `searches/${turnKey || '—'}.json`}
         </span>
       </div>
       <div ref={containerRef} style={{
         flex: 1, minHeight: 0, overflow: 'auto',
         padding: '14px 16px',
       }}>
-        {loading
-          ? <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>
-          : <Markdown text={body || '— body unavailable —'} />}
+        {sub === 'draft' ? (
+          loading
+            ? <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>
+            : <Markdown text={body || '— body unavailable —'} />
+        ) : (
+          <WebSearchTabContent turnKey={turnKey} />
+        )}
       </div>
+    </div>
+  );
+}
+
+function DraftRightSubTabs({ active, onChange, hasSearchWarning }) {
+  const tabs = [
+    { id: 'draft',     label: 'Draft' },
+    { id: 'webSearch', label: 'Web Search', badge: hasSearchWarning ? '⚠' : null },
+  ];
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      borderRadius: 999, overflow: 'hidden',
+      border: '1px solid var(--border-1)',
+      background: 'var(--bg-1)',
+      flexShrink: 0,
+    }}>
+      {tabs.map((t, i) => {
+        const isActive = t.id === active;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            style={{
+              appearance: 'none',
+              border: 'none',
+              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
+              background: isActive ? 'var(--bg-3)' : 'transparent',
+              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
+              fontSize: 11,
+              fontWeight: isActive ? 600 : 500,
+              padding: '3px 10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}
+          >
+            {t.label}
+            {t.badge && (
+              <span style={{ marginLeft: 4, color: COLORS.warn, fontWeight: 700 }}>
+                {t.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -2922,6 +3191,414 @@ function InputEmptyState({ label }) {
   );
 }
 
+// ─────────────────── Spec 0038 — Web Search tab ─────────────────────────────
+//
+// Renders a per-turn audit bundle persisted under
+// ``session_dir/searches/<turn-key>.json`` by spec 0036. The provider
+// asymmetry is rendered honestly:
+//   - Anthropic: full per-query result list with title, host, page_age,
+//     `[cited]` tags on cited URLs, and a monospace `cited_text` block
+//     under each citation that points to that URL.
+//   - OpenAI: URL-only consulted sources (when `include` was sent) +
+//     URL+title citations without snippet text.
+// Hallucinated citations (cited URL not in any retrieval set) surface in
+// three places: tab badge, query-group dot, banner inside the tab body.
+function WebSearchTabContent({ turnKey }) {
+  const { bundle, loading, error } = window.useSearchBundle(turnKey);
+  if (!turnKey) {
+    return <SearchEmptyState kind="no-bundle" />;
+  }
+  if (loading) {
+    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading search audit…</div>;
+  }
+  if (error) {
+    return <SearchEmptyState kind="error" detail={error} />;
+  }
+  if (!bundle) {
+    return <SearchEmptyState kind="no-bundle" />;
+  }
+  const events = bundle.tool_events || [];
+  const citations = bundle.citations || [];
+  const provider = bundle.provider || 'unknown';
+  if (events.length === 0 && citations.length === 0) {
+    return <SearchEmptyState kind="no-search" />;
+  }
+  const flags = bundle.flags || {};
+
+  // Group citations by their `matched_query_id` so each QueryGroup body
+  // can render the per-query citations alongside the consulted sources.
+  // Citations with `matched_query_id === null` are the hallucinated ones
+  // — collected separately + listed in the banner.
+  const citationsByEventId = new Map();
+  const unmatched = [];
+  for (const c of citations) {
+    if (c.matched_query_id) {
+      const arr = citationsByEventId.get(c.matched_query_id) || [];
+      arr.push(c);
+      citationsByEventId.set(c.matched_query_id, arr);
+    } else {
+      unmatched.push(c);
+    }
+  }
+
+  const showBanner = !!flags.cited_url_not_in_consulted_sources && unmatched.length > 0;
+  const defaultOpen = events.length <= 2;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {showBanner && <HallucinationBanner unmatched={unmatched} />}
+      {events.length === 0 && citations.length > 0 && (
+        <SearchEmptyState kind="citations-only" provider={provider} />
+      )}
+      {events.map((ev, i) => (
+        <QueryGroup
+          key={ev.event_id || `ev-${i}`}
+          event={ev}
+          citations={citationsByEventId.get(ev.event_id) || []}
+          provider={provider}
+          defaultOpen={defaultOpen}
+        />
+      ))}
+      {events.length > 0 && citations.length === 0 && (
+        <div className="mono" style={{
+          fontSize: 11.5, color: 'var(--fg-3)',
+          padding: '8px 10px',
+          background: 'var(--bg-2)',
+          border: '1px dashed var(--border-2)',
+          borderRadius: 'var(--r-2)',
+        }}>
+          The model performed {events.length} search{events.length === 1 ? '' : 'es'} but cited none of the results in its final output.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HallucinationBanner({ unmatched }) {
+  return (
+    <div style={{
+      padding: '10px 12px',
+      borderRadius: 'var(--r-2)',
+      border: `1px solid ${COLORS.warn}55`,
+      background: 'rgba(212,160,86,0.10)',
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        fontSize: 12, color: COLORS.warn, fontWeight: 600,
+      }}>
+        <span>⚠</span>
+        <span>
+          {unmatched.length} citation{unmatched.length === 1 ? '' : 's'} reference{unmatched.length === 1 ? 's' : ''} a URL that wasn't in any retrieval set
+        </span>
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {unmatched.map((c, i) => (
+          <li key={i} style={{ fontSize: 11.5, color: 'var(--fg-1)' }}>
+            <a href={c.url} target="_blank" rel="noopener noreferrer"
+               style={{ color: 'var(--fg-0)', textDecoration: 'underline', wordBreak: 'break-all' }}>
+              {c.url}
+            </a>
+            {c.title && (
+              <span className="mono" style={{ display: 'block', color: 'var(--fg-3)', fontSize: 10.5 }}>
+                “{c.title}”
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function QueryGroup({ event, citations, provider, defaultOpen }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const queries = event.queries || [];
+  const sources = event.consulted_sources || [];
+  const actionType = event.action_type || 'search';
+  const queryLabel = queries.length
+    ? queries.join(' · ')
+    : actionType === 'search'
+      ? '(query not exposed)'
+      : `(${actionType})`;
+
+  // Build the set of cited URLs (normalised) so consulted-source cards can
+  // render a [cited] tag — and so the per-source cited_text blocks can be
+  // attached to the right card.
+  const citedNorm = new Set();
+  const citationsByNormUrl = new Map();
+  for (const c of citations) {
+    const n = normalizeSearchUrl(c.url || '');
+    if (!n) continue;
+    citedNorm.add(n);
+    const arr = citationsByNormUrl.get(n) || [];
+    arr.push(c);
+    citationsByNormUrl.set(n, arr);
+  }
+
+  // QueryGroup-level warning dot: any citation that resolved to THIS event
+  // but whose URL is not in this event's consulted set. (Rare — the
+  // common cross-ref miss is matched_query_id === null which is folded
+  // into the banner/tab badge, not here.)
+  const sourceNorm = new Set(sources.map(s => normalizeSearchUrl(s.url || '')).filter(Boolean));
+  const groupWarning = citations.some(c => {
+    const n = normalizeSearchUrl(c.url || '');
+    return n && !sourceNorm.has(n);
+  });
+
+  return (
+    <div style={{
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-2)',
+      background: 'var(--bg-1)',
+    }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          width: '100%',
+          padding: '7px 10px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          color: 'var(--fg-0)',
+          fontSize: 12,
+          textAlign: 'left',
+        }}
+      >
+        <span style={{
+          display: 'inline-block', width: 10, textAlign: 'center',
+          color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+        }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontWeight: 500, flex: 1, minWidth: 0,
+                       overflow: 'hidden', textOverflow: 'ellipsis',
+                       whiteSpace: 'nowrap' }}>
+          {queryLabel}
+        </span>
+        <span className="mono" style={{
+          fontSize: 10, color: 'var(--fg-3)',
+          padding: '1px 6px',
+          background: 'var(--bg-2)',
+          border: '1px solid var(--border-1)',
+          borderRadius: 999,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}>{actionType}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+          {sources.length} result{sources.length === 1 ? '' : 's'}
+          {citations.length > 0 && ` · ${citations.length} cited`}
+        </span>
+        {groupWarning && (
+          <span title="A citation pinned to this query references a URL not in its retrieval set"
+                style={{ color: COLORS.warn, fontSize: 12 }}>⚠</span>
+        )}
+      </button>
+      {open && (
+        <div style={{
+          borderTop: '1px solid var(--border-1)',
+          padding: '10px 12px',
+          background: 'var(--bg-0)',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          {sources.length === 0 ? (
+            <div className="mono" style={{
+              fontSize: 11, color: 'var(--fg-3)',
+              padding: '4px 0',
+            }}>
+              {provider === 'openai'
+                ? 'Provider returned no retrieval list — only citations are auditable.'
+                : 'No consulted sources returned for this event.'}
+            </div>
+          ) : (
+            sources.map((s, i) => {
+              const norm = normalizeSearchUrl(s.url || '');
+              const isCited = norm && citedNorm.has(norm);
+              const sourceCitations = (norm && citationsByNormUrl.get(norm)) || [];
+              return (
+                <ConsultedSourceCard
+                  key={i}
+                  source={s}
+                  isCited={isCited}
+                  citationsForSource={sourceCitations}
+                />
+              );
+            })
+          )}
+          {sources.length === 0 && citations.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {citations.map((c, i) => (
+                <CitationOnlyCard key={i} citation={c} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConsultedSourceCard({ source, isCited, citationsForSource }) {
+  const url = source.url || '';
+  let host = '';
+  try { host = new URL(url).hostname; } catch { host = ''; }
+  const title = source.title || null;
+  const pageAge = source.page_age || null;
+  return (
+    <div style={{
+      padding: '8px 10px',
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-2)',
+      background: 'var(--bg-1)',
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+           title={url}
+           style={{
+             color: 'var(--fg-0)', fontSize: 12.5, fontWeight: 500,
+             textDecoration: 'none', wordBreak: 'break-word', minWidth: 0,
+           }}>
+          {title || host || url}
+        </a>
+        {host && title && (
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{host}</span>
+        )}
+        {pageAge && (
+          <span className="mono" style={{
+            fontSize: 10, color: 'var(--fg-3)',
+            padding: '0 6px',
+            background: 'var(--bg-2)',
+            border: '1px solid var(--border-1)',
+            borderRadius: 999,
+          }}>{pageAge}</span>
+        )}
+        <span style={{ flex: 1 }} />
+        {isCited && (
+          <span style={{
+            fontSize: 10, color: COLORS.info, fontWeight: 600,
+            padding: '0 6px',
+            background: 'rgba(107,156,240,0.10)',
+            border: '1px solid rgba(107,156,240,0.30)',
+            borderRadius: 999,
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>[cited]</span>
+        )}
+      </div>
+      {citationsForSource && citationsForSource.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
+          {citationsForSource.map((c, i) => (
+            <CitedTextBlock key={i} citation={c} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CitedTextBlock({ citation }) {
+  const text = citation.cited_text;
+  return (
+    <div style={{
+      borderLeft: `2px solid ${COLORS.info}55`,
+      paddingLeft: 10,
+      display: 'flex', flexDirection: 'column', gap: 4,
+    }}>
+      <div className="mono" style={{
+        fontSize: 9.5, color: 'var(--fg-3)',
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+      }}>
+        cited from this URL
+      </div>
+      {text ? (
+        <pre style={{
+          margin: 0,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          fontFamily: 'var(--mono)',
+          fontSize: 11.5,
+          lineHeight: 1.5,
+          color: 'var(--fg-1)',
+        }}>{text}</pre>
+      ) : (
+        <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+          (provider returned no source-side snippet)
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CitationOnlyCard({ citation }) {
+  const url = citation.url || '';
+  let host = '';
+  try { host = new URL(url).hostname; } catch { host = ''; }
+  return (
+    <div style={{
+      padding: '8px 10px',
+      border: '1px dashed var(--border-1)',
+      borderRadius: 'var(--r-2)',
+      background: 'var(--bg-1)',
+      display: 'flex', flexDirection: 'column', gap: 4,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+           title={url}
+           style={{
+             color: 'var(--fg-0)', fontSize: 12.5, fontWeight: 500,
+             textDecoration: 'none', wordBreak: 'break-word',
+           }}>
+          {citation.title || host || url}
+        </a>
+        {host && citation.title && (
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{host}</span>
+        )}
+        <span style={{ flex: 1 }} />
+        <span style={{
+          fontSize: 10, color: COLORS.info, fontWeight: 600,
+          padding: '0 6px',
+          background: 'rgba(107,156,240,0.10)',
+          border: '1px solid rgba(107,156,240,0.30)',
+          borderRadius: 999,
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>citation</span>
+      </div>
+      {citation.cited_text && (
+        <CitedTextBlock citation={citation} />
+      )}
+    </div>
+  );
+}
+
+function SearchEmptyState({ kind, provider, detail }) {
+  let label;
+  if (kind === 'error') {
+    label = `Could not load web search audit${detail ? ` (${detail})` : ''}.`;
+  } else if (kind === 'no-search') {
+    label = 'Web search was available but not used in this turn.';
+  } else if (kind === 'citations-only') {
+    label = provider === 'openai'
+      ? 'Provider returned no retrieval list — only citations are auditable.'
+      : 'Citations recorded but no tool events captured.';
+  } else {
+    label = 'Web search audit not recorded for this turn. This run pre-dates spec 0036 or web search was disabled.';
+  }
+  return (
+    <div style={{
+      padding: '32px 16px',
+      textAlign: 'center',
+      color: 'var(--fg-3)',
+      fontSize: 12.5,
+      border: '1px dashed var(--border-2)',
+      borderRadius: 'var(--r-2)',
+      background: 'var(--bg-2)',
+    }}>
+      {label}
+    </div>
+  );
+}
+
 // ─────────────────── Spec 0033 — preflight modals ───────────────────────────
 //
 // Two modal variants for Phase 0:
@@ -2981,6 +3658,8 @@ function InputBriefModal({ item, run, onClose, accent }) {
 
 function PreflightResponseModal({ item, run, onClose, accent }) {
   const meta = AGENT_META[item.agent];
+  const turnKey = item.turnKey || `phase0_${item.agent}`;
+  const webSearch = useWebSearchTab(turnKey);
   const tabs = [
     {
       id: 'content',
@@ -2990,8 +3669,9 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
     {
       id: 'input',
       label: 'Input',
-      content: <InputTabContent turnKey={item.turnKey || `phase0_${item.agent}`} />,
+      content: <InputTabContent turnKey={turnKey} />,
     },
+    webSearch,
   ];
   return (
     <Modal
@@ -4164,38 +4844,73 @@ function RunDetail({ run }) {
 
   const errorCount = (run.errors || []).length;
 
+  // Spec 0038: one fetch of /searches/index?include=summary per run.
+  // Provided via context so the chip on every collapsed ArtifactCard,
+  // the gist line on every expanded card, and the RunSearchSummary
+  // header chip all share the same payload.
+  const searchIndex = window.useSearchIndex(run.id);
+  const onJumpToFirstSearch = React.useCallback((opts) => {
+    // ``opts.warningOnly`` — when true, prefer the first card flagged for
+    // an unmatched citation; otherwise the first card with any searches.
+    const summary = searchIndex.summary;
+    if (!summary) return;
+    let targetKey = null;
+    if (opts?.warningOnly) {
+      for (const [k, v] of summary.entries()) {
+        if (v.hasWarning) { targetKey = k; break; }
+      }
+    }
+    if (!targetKey) {
+      for (const [k, v] of summary.entries()) {
+        if (v.queries > 0) { targetKey = k; break; }
+      }
+    }
+    if (!targetKey) return;
+    // Find the DOM card carrying this turn-key and scroll into view.
+    const card = document.querySelector(`[data-turn-key="${targetKey}"]`);
+    if (card && card.scrollIntoView) {
+      card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (window.scrollAndFlash) {
+        // Fall through to flash if available.
+      }
+    }
+  }, [searchIndex.summary]);
+
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      height: '100%',
-      background: 'var(--bg-0)',
-      overflow: 'hidden',
-    }}>
-      <RunDetailHeader
-        run={run}
-        errorCount={errorCount}
-        showErrors={showErrors}
-        onToggleErrors={() => setShowErrors(s => !s)}
-      />
-      <main style={{
-        flex: 1, minHeight: 0,
-        display: 'grid',
-        gridTemplateColumns: showErrors ? '1fr' : '1fr 1fr',
+    <SearchIndexContext.Provider value={searchIndex}>
+      <div style={{
+        display: 'flex', flexDirection: 'column',
+        height: '100%',
+        background: 'var(--bg-0)',
+        overflow: 'hidden',
       }}>
-        {showErrors ? (
-          <RunErrorsView run={run} />
-        ) : (
-          <>
-            <Timeline
-              run={run}
-              highlightedTurnKeys={highlightedTurnKeys}
-            />
-            <CritiqueExplorer run={run} onHighlightTurns={highlightTurns} />
-          </>
-        )}
-      </main>
-      <Footer run={run} />
-    </div>
+        <RunDetailHeader
+          run={run}
+          errorCount={errorCount}
+          showErrors={showErrors}
+          onToggleErrors={() => setShowErrors(s => !s)}
+          onJumpToFirstSearch={onJumpToFirstSearch}
+        />
+        <main style={{
+          flex: 1, minHeight: 0,
+          display: 'grid',
+          gridTemplateColumns: showErrors ? '1fr' : '1fr 1fr',
+        }}>
+          {showErrors ? (
+            <RunErrorsView run={run} />
+          ) : (
+            <>
+              <Timeline
+                run={run}
+                highlightedTurnKeys={highlightedTurnKeys}
+              />
+              <CritiqueExplorer run={run} onHighlightTurns={highlightTurns} />
+            </>
+          )}
+        </main>
+        <Footer run={run} />
+      </div>
+    </SearchIndexContext.Provider>
   );
 }
 

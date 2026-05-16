@@ -281,6 +281,83 @@ function useInputBundle(turnKey) {
   return { bundle, loading, error };
 }
 
+// ─────────────────── Spec 0038 — useSearchBundle / useSearchIndex ───────────
+//
+// Lazy-fetch a per-turn web-search audit bundle. 404 is the legitimate
+// "no audit recorded" case — bundle stays null, loading flips false,
+// no error raised. Mirrors ``useInputBundle``.
+function useSearchBundle(turnKey) {
+  const ctx = React.useContext(RunContext);
+  const runId = ctx?.runId || getActiveRunId();
+  const [bundle, setBundle] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!turnKey || !runId) { setBundle(null); return; }
+    let cancelled = false;
+    setLoading(true);
+    setBundle(null);
+    setError(null);
+    authedFetch(`/api/runs/${encodeURIComponent(runId)}/searches/${encodeURIComponent(turnKey)}`)
+      .then(r => {
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (cancelled) return;
+        setBundle(data);
+        setLoading(false);
+      })
+      .catch(e => {
+        if (cancelled) return;
+        setError(String(e));
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [turnKey, runId]);
+
+  return { bundle, loading, error };
+}
+
+// Lazy-fetch the per-run search-audit index + summary. Returns
+// ``{ keys: Set<string> | null, summary: Map<string,{queries,consulted,hasWarning}> | null }``.
+// Both stay null while loading. The chip + gist + run-header summary
+// share this one fetch — no per-card network calls.
+function useSearchIndex(runId) {
+  const [state, setState] = React.useState({ keys: null, summary: null });
+
+  React.useEffect(() => {
+    if (!runId) { setState({ keys: null, summary: null }); return; }
+    let cancelled = false;
+    authedFetch(`/api/runs/${encodeURIComponent(runId)}/searches/index?include=summary`)
+      .then(r => r.ok ? r.json() : { keys: [], summary: {} })
+      .then(data => {
+        if (cancelled) return;
+        const keys = new Set(Array.isArray(data?.keys) ? data.keys : []);
+        const summary = new Map();
+        const rawSummary = data?.summary || {};
+        for (const k of Object.keys(rawSummary)) {
+          const v = rawSummary[k] || {};
+          summary.set(k, {
+            queries: Number(v.queries) || 0,
+            consulted: Number(v.consulted) || 0,
+            hasWarning: !!v.has_warning,
+          });
+        }
+        setState({ keys, summary });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState({ keys: new Set(), summary: new Map() });
+      });
+    return () => { cancelled = true; };
+  }, [runId]);
+
+  return state;
+}
+
 // ─────────────────── Topic formatting ───────────────────
 
 // Trim a research-brief H1 down to one readable line. Many briefs are long
@@ -624,7 +701,7 @@ function attachItemStats(items, run) {
 Object.assign(window, {
   PHASES, TOPIC, INPUT_BRIEF, TURN_HISTORY,
   RunContext, useLiveRun, useRunList, useFileBody, useAttachments,
-  useInputBundle, useAppMeta,
+  useInputBundle, useSearchBundle, useSearchIndex, useAppMeta,
   attachmentBlobUrl,
   buildLiveTimeline, formatTopic, splitRunId,
   setActiveRunId, getActiveRunId,

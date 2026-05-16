@@ -3,7 +3,7 @@ spec: 0038
 title: Web search audit UI + agent-pill alignment fix
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.35.0
 created: 2026-05-16
 pr: ""

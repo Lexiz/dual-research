@@ -439,6 +439,13 @@ function Modal({ open, onClose, title, subtitle, tabs, accent, children, width =
                       borderRadius: 999,
                     }}>{t.count}</span>
                   )}
+                  {t.badge && (
+                    <span style={{
+                      fontSize: 10.5,
+                      color: COLORS.warn,
+                      fontWeight: 700,
+                    }}>{t.badge}</span>
+                  )}
                 </button>
               );
             })}
