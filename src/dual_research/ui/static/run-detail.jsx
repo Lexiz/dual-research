@@ -455,6 +455,18 @@ const PHASE_NAMES = {
 
 function ConsumptionView({ run }) {
   const rows = React.useMemo(() => buildConsumptionRows(run), [run.phaseTokenUsage]);
+  // Spec 0031: per-row click-to-expand. Set of row ids currently open.
+  // Resets implicitly when navigating runs (Timeline component remounts
+  // ConsumptionView via the tab toggle).
+  const [expanded, setExpanded] = React.useState(() => new Set());
+  const toggleRow = React.useCallback((id) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   if (rows.length === 0) {
     return <ConsumptionEmptyState />;
@@ -499,6 +511,8 @@ function ConsumptionView({ run }) {
               row={row}
               run={run}
               showPhaseTitle={isFirstOfPhase}
+              expanded={expanded.has(row.id)}
+              onToggle={() => toggleRow(row.id)}
             />
           );
         })}
@@ -509,18 +523,24 @@ function ConsumptionView({ run }) {
   );
 }
 
-function ConsumptionRow({ row, run, showPhaseTitle }) {
+function ConsumptionRow({ row, run, showPhaseTitle, expanded, onToggle }) {
+  // Spec 0031: whole row is clickable to toggle the expanded body. The
+  // expanded body sits below as a 4th grid row spanning all 3 columns
+  // (so the 3-col rhythm of the grid keeps working).
   return (
     <React.Fragment>
       {/* Phase / round label cell */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
-        padding: '10px',
-        background: showPhaseTitle ? 'var(--bg-2)' : 'transparent',
-        border: showPhaseTitle ? '1px solid var(--border-2)' : '1px solid transparent',
-        borderRadius: 6,
-        minHeight: 56,
-      }}>
+      <div
+        onClick={onToggle}
+        style={{
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: '10px',
+          background: showPhaseTitle ? 'var(--bg-2)' : 'transparent',
+          border: showPhaseTitle ? '1px solid var(--border-2)' : '1px solid transparent',
+          borderRadius: 6,
+          minHeight: 56,
+          cursor: 'pointer',
+        }}>
         {showPhaseTitle && (
           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>
             {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
@@ -532,12 +552,152 @@ function ConsumptionRow({ row, run, showPhaseTitle }) {
             textTransform: 'uppercase', marginTop: showPhaseTitle ? 3 : 0,
           }}>{row.label}</div>
         )}
+        <div className="mono" style={{
+          fontSize: 9, color: 'var(--fg-4)', marginTop: 4,
+          letterSpacing: '0.04em',
+        }}>{expanded ? '▾ click to collapse' : '▸ click to expand'}</div>
       </div>
       {/* Claude lane */}
-      <TokenLaneCell usage={row.claude} agent="claude" run={run} />
+      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
+        <TokenLaneCell usage={row.claude} agent="claude" run={run} />
+      </div>
       {/* OpenAI lane */}
-      <TokenLaneCell usage={row.gpt} agent="gpt" run={run} />
+      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
+        <TokenLaneCell usage={row.gpt} agent="gpt" run={run} />
+      </div>
+      {expanded && (
+        <ConsumptionRowExpanded row={row} run={run} />
+      )}
     </React.Fragment>
+  );
+}
+
+// Per-row expanded body — a per-piece breakdown table laid out side-by-
+// side for both lanes. Spans all 3 columns of the parent grid.
+function ConsumptionRowExpanded({ row, run }) {
+  // Collect the union of kinds present on either lane, in canonical
+  // KIND_ORDER. Skip kinds that are zero on both sides.
+  const cPieces = (row.claude && row.claude.promptPieces) || {};
+  const gPieces = (row.gpt && row.gpt.promptPieces) || {};
+  const kindsShown = KIND_ORDER.filter(
+    (k) => (Number(cPieces[k]) || 0) > 0 || (Number(gPieces[k]) || 0) > 0
+  );
+
+  // Renormalise each lane's piece counts to the provider's `input`
+  // token total, so the numbers in the table match what the bar shows.
+  const renormLane = (usage) => {
+    if (!usage) return {};
+    const pieces = usage.promptPieces || {};
+    const tokensIn = Number(usage.in) || 0;
+    const present = KIND_ORDER.filter((k) => Number(pieces[k]) > 0);
+    if (present.length === 0 || tokensIn <= 0) return {};
+    const rawSum = present.reduce((acc, k) => acc + Number(pieces[k] || 0), 0);
+    if (rawSum <= 0) return {};
+    const scale = tokensIn / rawSum;
+    const out = {};
+    for (const k of present) {
+      out[k] = Math.max(0, Math.round(Number(pieces[k] || 0) * scale));
+    }
+    return out;
+  };
+  const cAdj = renormLane(row.claude);
+  const gAdj = renormLane(row.gpt);
+
+  const numCell = (n, opts = {}) => (
+    <span className="mono num" style={{
+      fontSize: 11, color: 'var(--fg-1)',
+      ...(opts.muted ? { color: 'var(--fg-3)' } : {}),
+      ...(opts.bold ? { fontWeight: 600 } : {}),
+    }}>{n != null ? `${fmt.tokens(n)}t` : '—'}</span>
+  );
+
+  return (
+    <div style={{
+      gridColumn: '1 / 4',
+      padding: '12px 14px',
+      background: 'var(--bg-2)',
+      border: '1px solid var(--border-2)', borderRadius: 6,
+      marginTop: -4,  // hug the row above
+    }}>
+      <div className="mono" style={{
+        fontSize: 10, color: 'var(--fg-3)',
+        textTransform: 'uppercase', letterSpacing: '0.06em',
+        marginBottom: 8,
+      }}>
+        per-input breakdown · {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
+        {row.label && ` · ${row.label}`}
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap: '4px 16px',
+        alignItems: 'baseline',
+        fontSize: 11,
+      }}>
+        {/* Header row */}
+        <div className="mono" style={{ fontSize: 9.5, color: 'var(--fg-4)', textTransform: 'uppercase' }}>input</div>
+        <div className="mono" style={{ fontSize: 9.5, color: 'var(--agent-a)', textTransform: 'uppercase' }}>Claude</div>
+        <div className="mono" style={{ fontSize: 9.5, color: 'var(--agent-b)', textTransform: 'uppercase' }}>GPT</div>
+
+        {/* Per-kind rows */}
+        {kindsShown.map((k) => (
+          <React.Fragment key={k}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              color: 'var(--fg-1)',
+            }}>
+              <span style={{
+                display: 'inline-block', width: 10, height: 10,
+                background: KIND_COLORS[k].bg, borderRadius: 2,
+              }} />
+              {KIND_COLORS[k].label}
+            </div>
+            <div>{numCell(cAdj[k])}</div>
+            <div>{numCell(gAdj[k])}</div>
+          </React.Fragment>
+        ))}
+
+        {/* Divider */}
+        <div style={{ gridColumn: '1 / 4', height: 1, background: 'var(--border-2)', margin: '6px 0' }} />
+
+        {/* Totals row */}
+        <div style={{ color: 'var(--fg-0)', fontWeight: 500 }}>Input total</div>
+        <div>{numCell(row.claude ? Number(row.claude.in) || 0 : null, { bold: true })}</div>
+        <div>{numCell(row.gpt ? Number(row.gpt.in) || 0 : null, { bold: true })}</div>
+
+        <div style={{ color: 'var(--fg-1)' }}>Output</div>
+        <div>{numCell(row.claude ? Number(row.claude.out) || 0 : null)}</div>
+        <div>{numCell(row.gpt ? Number(row.gpt.out) || 0 : null)}</div>
+
+        {/* Web-search row — count + cost (spec 0031). Only show when
+            at least one lane had a search this turn. */}
+        {((row.claude && Number(row.claude.searches) > 0)
+          || (row.gpt && Number(row.gpt.searches) > 0)) && (
+          <React.Fragment>
+            <div style={{ color: 'var(--fg-1)' }}>Web searches</div>
+            <div>{searchCell(row.claude)}</div>
+            <div>{searchCell(row.gpt)}</div>
+            <div style={{ color: 'var(--fg-3)', fontSize: 10 }}>Tool cost</div>
+            <div className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
+              {row.claude ? fmt.cost(Number(row.claude.searchCost) || 0) : '—'}
+            </div>
+            <div className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
+              {row.gpt ? fmt.cost(Number(row.gpt.searchCost) || 0) : '—'}
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function searchCell(usage) {
+  if (!usage) return <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>—</span>;
+  const n = Number(usage.searches) || 0;
+  return (
+    <span className="mono num" style={{ fontSize: 11, color: 'var(--fg-1)' }}>
+      {n.toLocaleString()}
+    </span>
   );
 }
 
@@ -703,23 +863,32 @@ function ConsumptionLegend() {
   // Spec 0030 — the bars now break down into prompt-piece kinds. Legend
   // shows the Tk palette + the output tail; bar total is the model's
   // real context window (from `RunStarted.{agent}_context_window`).
+  // Spec 0031 — adds the click-to-expand hint.
   return (
-    <div className="mono" style={{
-      marginTop: 14, padding: '10px 14px',
-      background: 'var(--bg-1)', border: '1px solid var(--border-1)',
-      borderRadius: 6,
-      display: 'flex', flexWrap: 'wrap', gap: 14,
-      alignItems: 'center',
-      fontSize: 10.5, color: 'var(--fg-3)',
-    }}>
-      {KIND_ORDER.map((k) => (
-        <LegendSwatch key={k} color={KIND_COLORS[k].bg} label={KIND_COLORS[k].label} />
-      ))}
-      <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-2)' }} />
-      <LegendSwatch color="var(--agent-a)" label="output (tail)" alpha={0.45} thin />
-      <span style={{ flex: 1 }} />
-      <span>bar total = model context window</span>
-    </div>
+    <React.Fragment>
+      <div className="mono" style={{
+        marginTop: 14, padding: '10px 14px',
+        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        borderRadius: 6,
+        display: 'flex', flexWrap: 'wrap', gap: 14,
+        alignItems: 'center',
+        fontSize: 10.5, color: 'var(--fg-3)',
+      }}>
+        {KIND_ORDER.map((k) => (
+          <LegendSwatch key={k} color={KIND_COLORS[k].bg} label={KIND_COLORS[k].label} />
+        ))}
+        <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-2)' }} />
+        <LegendSwatch color="var(--agent-a)" label="output (tail)" alpha={0.45} thin />
+        <span style={{ flex: 1 }} />
+        <span>bar total = model context window</span>
+      </div>
+      <div className="mono" style={{
+        marginTop: 6, padding: '0 4px',
+        fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
+      }}>
+        click any phase row to see exact per-input numbers + web-search count
+      </div>
+    </React.Fragment>
   );
 }
 

@@ -260,6 +260,12 @@ class TurnTokenUsage:
     model_id: str | None = None
     context_window: int = 0
     prompt_pieces: dict[str, int] = field(default_factory=dict)
+    # Spec 0031: web-search tool calls and their per-request USD cost.
+    # ``cost`` (above) is strictly token-cost — these are separate so the
+    # run-total chip's semantics don't shift. 0 for old transcripts that
+    # didn't thread search counts through TurnEnded.
+    searches: int = 0
+    search_cost: float = 0.0
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

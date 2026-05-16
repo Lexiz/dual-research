@@ -128,7 +128,24 @@ class TestCamelCase:
             "cost": 0.42, "modelId": "claude-sonnet-4-6",
             "contextWindow": 1_000_000,
             "promptPieces": {"brief": 100, "d1": 600, "d2": 534},
+            "searches": 0,
+            "searchCost": 0.0,
         }
+
+    def test_phase_token_usage_carries_searches_and_search_cost(self):
+        """Spec 0031 — `searches` and `search_cost` ride on each per-turn
+        entry and land on the wire as `searches` / `searchCost`."""
+        from dual_research.ui.models import Run, TurnTokenUsage, to_jsonable
+
+        run = Run(id="r", display_id="abcd")
+        run.phase_token_usage["phase2_round1_claude"] = TurnTokenUsage(
+            in_=100, out=50, model_id="claude-sonnet-4-6",
+            searches=3, search_cost=0.03,
+        )
+        wire = _to_camel(to_jsonable(run))
+        entry = wire["phaseTokenUsage"]["phase2Round1Claude"]
+        assert entry["searches"] == 3
+        assert entry["searchCost"] == 0.03
 
     def test_run_started_context_windows_flow_to_wire(self):
         """Spec 0030 — `AgentState.context_window` is set by the

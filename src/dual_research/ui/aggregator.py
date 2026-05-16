@@ -36,6 +36,8 @@ from dual_research.ui.labels import (
     ui_agent,
 )
 from dual_research.ui.turn_stats import build_phase_stats
+from dual_research.agents.pricing import compute_search_cost
+from dual_research.config import TIERS
 from dual_research.ui.models import (
     AgentState,
     Disagreement,
@@ -45,6 +47,26 @@ from dual_research.ui.models import (
     Turn,
     TurnTokenUsage,
 )
+
+
+def _context_window_from_tier(model_id: str | None) -> int:
+    """Spec 0031: derive the context-window for a given ``model_id`` by
+    scanning ``config.TIERS``.
+
+    Used as a fallback when ``RunStarted`` didn't carry the explicit
+    ``{agent}_context_window`` fields (pre-0030 transcripts). Returns the
+    first matching tier's value; 0 if nothing matches. The same model id
+    appearing in multiple tiers is currently impossible by design, so the
+    iteration order doesn't matter in practice.
+    """
+    if not model_id:
+        return 0
+    for tier in TIERS.values():
+        if tier.claude.model_id == model_id:
+            return tier.claude.context_window
+        if tier.openai.model_id == model_id:
+            return tier.openai.context_window
+    return 0
 
 # ─── Public entry points ──────────────────────────────────────────────────────
 
@@ -205,9 +227,22 @@ def _on_run_started(run: Run, event: dict) -> None:
     run.agents["claude"].model_id = event.get("claude_model")
     run.agents["gpt"].model_id = event.get("openai_model")
     # Spec 0030: real context-window caps from the tier's ModelSpec.
-    # 0 for pre-0030 transcripts; the frontend falls back to a default.
+    # 0 for pre-0030 transcripts; spec 0031 adds a TIERS-lookup fallback
+    # below so old runs render at the right scale without re-running.
     run.agents["claude"].context_window = int(event.get("claude_context_window", 0) or 0)
     run.agents["gpt"].context_window = int(event.get("openai_context_window", 0) or 0)
+    # Spec 0031: fallback path — if the event didn't carry an explicit
+    # context_window (or it's 0), derive it from the model_id by scanning
+    # `config.TIERS`. Pre-0030 transcripts immediately render at 1M after
+    # the next deploy without re-running.
+    if run.agents["claude"].context_window == 0:
+        run.agents["claude"].context_window = _context_window_from_tier(
+            run.agents["claude"].model_id
+        )
+    if run.agents["gpt"].context_window == 0:
+        run.agents["gpt"].context_window = _context_window_from_tier(
+            run.agents["gpt"].model_id
+        )
     run.status = "running"
 
 
@@ -293,15 +328,27 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     prompt_pieces: dict[str, int] = {
         str(k): int(v) for k, v in pieces_raw.items() if v is not None
     }
+    # Spec 0031: defence in depth — if state.context_window is still 0
+    # (run_started never seen or model unknown), try the tier lookup
+    # again using the event's model_id.
+    turn_model_id = event.get("model_id") or state.model_id
+    turn_context_window = state.context_window or _context_window_from_tier(turn_model_id)
+    # Spec 0031: web-search tool calls + their separate per-request cost.
+    # Cost is computed via the pricing module's per-search rate; stays
+    # OUT of the headline `cost` field (token-cost only, by design).
+    searches = int(event.get("searches", 0) or 0)
+    search_cost = compute_search_cost(turn_model_id or "", searches)
     run.phase_token_usage[key] = TurnTokenUsage(
         in_=in_tokens,
         out=out_tokens,
         cache_read=cache_read,
         cache_write=cache_write,
         cost=cost,
-        model_id=event.get("model_id") or state.model_id,
-        context_window=state.context_window,
+        model_id=turn_model_id,
+        context_window=turn_context_window,
         prompt_pieces=prompt_pieces,
+        searches=searches,
+        search_cost=search_cost,
     )
 
 

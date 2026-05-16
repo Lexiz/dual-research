@@ -49,6 +49,9 @@ async def run_one_call(
 
     metrics.record(label=label, result=result)
     finish_reason = (result.extras or {}).get("stop_reason") or (result.extras or {}).get("finish_reason")
+    # Spec 0031: web-search tool calls — both agents stash this count in
+    # `extras["searches"]` after each call. Default to 0 for paranoia.
+    searches = int((result.extras or {}).get("searches") or 0)
 
     end_event = TurnEnded(
         agent=agent.label,
@@ -63,6 +66,7 @@ async def run_one_call(
         finish_reason=str(finish_reason) if finish_reason is not None else None,
         model_id=result.model_id,
         prompt_pieces=dict(prompt_pieces) if prompt_pieces else {},
+        searches=searches,
     )
     await event_bus.publish(end_event)
     transcript.write(
@@ -79,6 +83,7 @@ async def run_one_call(
         finish_reason=end_event.finish_reason,
         model_id=end_event.model_id,
         prompt_pieces=end_event.prompt_pieces,
+        searches=end_event.searches,
     )
 
     return result
