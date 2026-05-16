@@ -13,7 +13,7 @@ from dual_research.agents.base import (
     web_search_enabled,
     with_rate_limit_retry,
 )
-from dual_research.agents.pricing import compute_cost
+from dual_research.agents.pricing import compute_full_cost
 from dual_research.config import ModelSpec
 from dual_research.protocol import CACHE_BREAKPOINT
 
@@ -146,9 +146,11 @@ class GptAgent:
             output_tokens=output_tokens,
             cache_read_tokens=cached,
             cache_write_tokens=0,
+            cache_write_5m_tokens=0,
+            cache_write_1h_tokens=0,
         )
         text = "".join(text_parts)
-        cost = compute_cost(self._spec.model_id, usage)
+        cost = compute_full_cost(self._spec.model_id, usage, searches)
         duration_ms = int((time.perf_counter() - start) * 1000)
 
         # Spec 0036: when an audit_context is supplied AND web search

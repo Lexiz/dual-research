@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.37.0',
+      date: '2026-05-16',
+      summary: 'Cost-pipeline integrity — resume preserves prior cost, 1h cache priced at the 1h rate, web-search fees fold into the headline.',
+      items: [
+        "Run totals will go UP for runs that used web search or 1h cache writes — search fees are now part of the headline cost (previously a side-channel hidden in the Consumption tab). The audit of the partner-vetting run showed metrics.json reported $2.45 against a recomputed ~$9.86; that gap is what the run list will now show for every existing run.",
+        "Resume now preserves the pre-resume cost record. `Metrics.load_or_new(path)` rehydrates from disk on every session entry, so a `--resume` after a kill no longer overwrites the pre-resume call list with only the resume-window calls (the bug that drove this spec).",
+        "Cache writes are now priced at the tier the agent actually requested. The Anthropic agent requests `cache_control: {ttl: \"1h\"}` (since spec 0017) but the pricing table hardcoded the 5-minute rate (1.25× input) instead of the 1h rate (2× input). New runs price each tier exactly from `usage.cache_creation.ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` on the Anthropic response.",
+        "Transcript is now the canonical truth path in the aggregator. metrics.json is the cold-start fallback for runs that haven't emitted any turn yet (previously the priority was inverted, which let a stale-on-resume metrics.json silently mask the transcript's correct numbers).",
+        "Transcript dedup by label. A parse-error recovery replays the same `turn_ended` label twice — the later one is the canonical successful attempt. The aggregator now keeps only the last occurrence per label so the agent rollup doesn't double-count the failed retry's cost. Sibling labels with `-repair` suffixes are NOT deduped — they're distinct API calls billed separately.",
+        "`dual-research recompute-costs --run RUN_ID | --all [--push] [--dry-run]` is the new backfill subcommand. Re-walks each run's transcript, recomputes every per-turn cost under the new pricing rules, and rewrites metrics.json. Backs up the original to `metrics.json.pre-0039.bak` on the first invocation; idempotent on re-run.",
+        "CostBadge tooltip + CLI `[run]` summary both show the breakdown when search fees fired: `$9.8551 (tokens $8.7801 · web search $1.0750)`. The Consumption tab's per-turn card relabels its old \"tool cost\" line to \"of which web search\" — same number, clearer that it's part of the headline, not on top.",
+      ],
+    },
+    {
       version: '0.35.0',
       date: '2026-05-16',
       summary: 'Web search audit UI + agent-pill alignment fix.',

@@ -95,10 +95,23 @@ async def with_rate_limit_retry(
 
 @dataclass(frozen=True)
 class TokenUsage:
+    """Per-call token accounting.
+
+    Spec 0039 split ``cache_write_tokens`` by TTL tier so the 1h-cache
+    write rate (2× input) can be priced separately from the 5m rate
+    (1.25× input). The aggregate ``cache_write_tokens`` field is
+    preserved as the sum so transcripts written by older versions still
+    deserialise unchanged. Agents enforce
+    ``cache_write_tokens == cache_write_5m_tokens + cache_write_1h_tokens``;
+    when only the aggregate is available (older response shapes), it is
+    credited entirely to the 5m bucket (the pre-beta default).
+    """
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_tokens: int = 0
     cache_write_tokens: int = 0
+    cache_write_5m_tokens: int = 0
+    cache_write_1h_tokens: int = 0
 
     @property
     def total(self) -> int:
@@ -110,6 +123,8 @@ class TokenUsage:
             output_tokens=self.output_tokens + other.output_tokens,
             cache_read_tokens=self.cache_read_tokens + other.cache_read_tokens,
             cache_write_tokens=self.cache_write_tokens + other.cache_write_tokens,
+            cache_write_5m_tokens=self.cache_write_5m_tokens + other.cache_write_5m_tokens,
+            cache_write_1h_tokens=self.cache_write_1h_tokens + other.cache_write_1h_tokens,
         )
 
 

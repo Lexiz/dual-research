@@ -6,6 +6,7 @@ import time
 from typing import TextIO
 
 from dual_research.agents.base import AgentCall, AgentResult
+from dual_research.agents.pricing import compute_search_cost
 from dual_research.events import EventBus, TurnEnded, TurnInputs, TurnSearches, TurnStarted
 from dual_research.persistence import Metrics, Transcript
 
@@ -153,6 +154,12 @@ async def run_one_call(
             audit=searches_event.audit,
         )
 
+    # Spec 0039: pre-compute the search-cost breakdown so the event +
+    # the transcript both carry it alongside the full cost in
+    # ``cost_usd``. ``result.cost_usd`` is now the full invoice (token
+    # cost + search cost) per the agents' switch to ``compute_full_cost``.
+    search_cost = compute_search_cost(result.model_id, searches)
+
     end_event = TurnEnded(
         agent=agent.label,
         phase=phase,
@@ -161,7 +168,10 @@ async def run_one_call(
         output_tokens=result.usage.output_tokens,
         cache_read_tokens=result.usage.cache_read_tokens,
         cache_write_tokens=result.usage.cache_write_tokens,
+        cache_write_5m_tokens=result.usage.cache_write_5m_tokens,
+        cache_write_1h_tokens=result.usage.cache_write_1h_tokens,
         cost_usd=result.cost_usd,
+        search_cost=search_cost,
         duration_ms=duration_ms,
         finish_reason=str(finish_reason) if finish_reason is not None else None,
         model_id=result.model_id,
@@ -178,7 +188,10 @@ async def run_one_call(
         output_tokens=end_event.output_tokens,
         cache_read_tokens=end_event.cache_read_tokens,
         cache_write_tokens=end_event.cache_write_tokens,
+        cache_write_5m_tokens=end_event.cache_write_5m_tokens,
+        cache_write_1h_tokens=end_event.cache_write_1h_tokens,
         cost_usd=end_event.cost_usd,
+        search_cost=end_event.search_cost,
         duration_ms=end_event.duration_ms,
         finish_reason=end_event.finish_reason,
         model_id=end_event.model_id,

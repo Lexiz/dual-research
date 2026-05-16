@@ -390,6 +390,84 @@ class TestLoadSyntheticSession:
         # Phase 2 row has rounds string.
         assert row.rounds is not None
 
+    def test_summarize_prefers_transcript_over_metrics_post_resume(self, tmp_path):
+        """Spec 0039 D3 — when metrics.json reflects only a resume window
+        but the transcript has the full history, the transcript wins.
+
+        The partner-vetting bug: metrics.json reported $2.45 (phase 4
+        only, post-overwrite) while the transcript carried every phase's
+        turn_ended events. Pre-spec aggregator fell back to transcript
+        only when metrics == 0.0, so the wrong $2.45 leaked to the UI.
+        Spec 0039 inverts the priority.
+        """
+        session = _write_session_skeleton(tmp_path)
+        # Simulate the post-resume state: metrics.json says $2.45 ...
+        (session / "metrics.json").write_text(
+            json.dumps({"total_cost_usd": 2.45}), encoding="utf-8"
+        )
+        # ... but the transcript carries the full $5.10 across all phases.
+        for i, (agent, cost) in enumerate([
+            ("claude", 1.50), ("openai", 0.75),
+            ("claude", 1.85), ("openai", 1.00),
+        ]):
+            _append_event(
+                session,
+                event="turn_ended",
+                agent=agent, phase=f"phase{i // 2}",
+                label=f"phase{i // 2}-{agent}",
+                input_tokens=0, output_tokens=0,
+                cache_read_tokens=0, cache_write_tokens=0,
+                cost_usd=cost,
+                duration_ms=0, finish_reason="end_turn",
+                model_id="claude-sonnet-4-6" if agent == "claude" else "gpt-5.5",
+            )
+        row = summarize_run(session)
+        # Transcript wins — UI shows $5.10, not the stale $2.45.
+        assert row.cost == pytest.approx(5.10)
+
+    def test_summarize_dedupes_duplicate_labels_in_transcript(self, tmp_path):
+        """Spec 0039 D3 — a parse-error recovery double-counts naively.
+
+        The transcript sum must dedupe by ``label`` (later wins) — the
+        same convention the recompute tool uses. The partner-vetting
+        run had every phase-4 label appearing twice; this test pins the
+        canonical behaviour.
+        """
+        session = _write_session_skeleton(tmp_path)
+        (session / "metrics.json").write_text(
+            json.dumps({"total_cost_usd": 0.0}), encoding="utf-8"
+        )
+        # Failed phase-4 retry — then the canonical attempt.
+        _append_event(
+            session, event="turn_ended", agent="claude", phase="phase4",
+            label="phase4-r1-claude",
+            input_tokens=0, output_tokens=0,
+            cache_read_tokens=0, cache_write_tokens=0,
+            cost_usd=0.99, duration_ms=0, finish_reason="end_turn",
+            model_id="claude-sonnet-4-6",
+        )
+        _append_event(
+            session, event="turn_ended", agent="claude", phase="phase4",
+            label="phase4-r1-claude",   # same label
+            input_tokens=0, output_tokens=0,
+            cache_read_tokens=0, cache_write_tokens=0,
+            cost_usd=0.10, duration_ms=0, finish_reason="end_turn",
+            model_id="claude-sonnet-4-6",
+        )
+        # And one canonical phase-3 turn.
+        _append_event(
+            session, event="turn_ended", agent="claude", phase="phase3",
+            label="phase3-claude",
+            input_tokens=0, output_tokens=0,
+            cache_read_tokens=0, cache_write_tokens=0,
+            cost_usd=0.50, duration_ms=0, finish_reason="end_turn",
+            model_id="claude-sonnet-4-6",
+        )
+        row = summarize_run(session)
+        # Phase 3 ($0.50) + phase 4 canonical ($0.10) = $0.60.
+        # NOT $0.99 + $0.10 + $0.50 = $1.59 (naive sum).
+        assert row.cost == pytest.approx(0.60)
+
 
 class TestDisagreementsParseSuspectedMiss:
     """Spec 0016 I5: when round files contain D-N anchors that the parser
