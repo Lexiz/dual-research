@@ -173,12 +173,39 @@ class DrafterTiebreakResolved(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class DrafterCanonicalPromoted(Event):
+    """Spec 0032 — Phase 2 escaped a hash-drift loop by promoting the
+    drafter's plan as canonical without strict hash-match.
+
+    Fires when both agents emit STATUS: AGREED with matching drafter /
+    OQ / BD / FSD on two successive rounds but the AGREED_PLAN hashes
+    keep drifting (the model paraphrases instead of copying verbatim).
+    First detection triggers a `force_verbatim_copy` repair turn; if
+    that also fails to match, the orchestrator promotes the named
+    drafter's plan as canonical and exits Phase 2 converged.
+
+    `canonical_hash` and `other_hash` are the short prefixes used in
+    the run log — same shape as the protocol's internal hash check.
+    """
+
+    round: int
+    drafter: str
+    other_agent: str
+    canonical_hash: str
+    other_hash: str
+    kind: str = "drafter_canonical_promoted"
+
+
+@dataclass(frozen=True, kw_only=True)
 class Phase2Complete(Event):
     rounds: int
     converged: bool
     drafter: str | None
     fsd_count: int
     via_tiebreak: bool
+    # Spec 0032: set when Phase 2 converged via canonical promotion
+    # rather than clean hash-match agreement.
+    via_canonical_promotion: bool = False
     kind: str = "phase2_complete"
 
 

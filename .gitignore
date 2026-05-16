@@ -21,4 +21,10 @@ runs/
 .DS_Store
 
 # Per-developer harness config (Claude Code preview launch settings)
-.claude/
+# Ignore everything in .claude/ EXCEPT project-versioned skills under
+# .claude/skills/ (spec 0032). Git's gitignore semantics require the
+# parent directory itself to NOT be blanket-ignored before child
+# negations work — hence the `.claude/*` glob plus per-child exceptions.
+.claude/*
+!.claude/skills/
+!.claude/skills/**

@@ -173,6 +173,31 @@ class TiebreakCheck:
     agreed_plan: str | None = None
 
 
+@dataclass(frozen=True)
+class PlanHashDrift:
+    """Spec 0032 — describes the 'agreed on everything except the plan hash' state.
+
+    Fires when both agents emit STATUS: AGREED with matching drafter / OQ=0
+    / BD=0 / matching FSD count / both having a populated AGREED_PLAN block,
+    but ``normalized_hash(claude.agreed_plan) != normalized_hash(openai.agreed_plan)``.
+    The protocol prompt acknowledges this case explicitly — "Same-round
+    AGREED with mismatched plans is a parse error and triggers a repair
+    turn" — but the orchestrator didn't implement that branch before
+    spec 0032.
+
+    ``other_agent`` is the agent the orchestrator should re-call with a
+    ``force_verbatim_copy_prompt``: by definition the non-drafter, since
+    the drafter's plan is the one we canonicalise.
+    """
+
+    detected: bool
+    drafter: str | None = None            # "claude" | "gpt"
+    canonical_plan: str | None = None     # the drafter's AGREED_PLAN block
+    other_agent: str | None = None        # "claude" | "gpt" — the one to repair
+    canonical_hash: str | None = None     # short hash for telemetry
+    other_hash: str | None = None         # short hash of the non-canonical plan
+
+
 def all_substantive_gates_pass_except_drafter(
     claude_turn: str, openai_turn: str
 ) -> TiebreakCheck:
@@ -230,6 +255,69 @@ class FsdItem:
     gpt_position: str
     final_document_treatment: str
     affects_recommendation: str
+
+
+def all_substantive_gates_pass_except_plan_hash(
+    claude_turn: str, openai_turn: str
+) -> PlanHashDrift:
+    """Spec 0032 — detect the 'agreed except for plan-hash drift' state.
+
+    Returns ``PlanHashDrift(detected=False)`` whenever any substantive
+    gate fails. When all gates pass except the plan hash, returns a
+    populated dataclass naming the canonical plan (the one written by the
+    named drafter) and which agent needs to copy it verbatim.
+
+    Distinct from ``all_substantive_gates_pass_except_drafter``: this one
+    requires drafters to MATCH and hashes to DIFFER, vs that one which
+    requires drafters to DIFFER and hashes to MATCH. Either failure mode
+    has its own escape hatch.
+    """
+    try:
+        c = parse_turn(claude_turn)
+        o = parse_turn(openai_turn)
+        assert_well_formed_plan_turn(c, "claude")
+        assert_well_formed_plan_turn(o, "openai")
+    except ProtocolParseError:
+        return PlanHashDrift(detected=False)
+
+    if c.status != Status.AGREED or o.status != Status.AGREED:
+        return PlanHashDrift(detected=False)
+    if c.open_questions != 0 or o.open_questions != 0:
+        return PlanHashDrift(detected=False)
+    if c.blocking_disagreements != 0 or o.blocking_disagreements != 0:
+        return PlanHashDrift(detected=False)
+    if c.final_surfaced_disagreements != o.final_surfaced_disagreements:
+        return PlanHashDrift(detected=False)
+    if not has_agreed_plan(c) or not has_agreed_plan(o):
+        return PlanHashDrift(detected=False)
+    if c.drafter is None or o.drafter is None or c.drafter != o.drafter:
+        # Drafters MUST match for this state — the
+        # all_substantive_gates_pass_except_drafter path handles the
+        # opposite case.
+        return PlanHashDrift(detected=False)
+
+    c_hash = normalized_hash(c.agreed_plan)
+    o_hash = normalized_hash(o.agreed_plan)
+    if c_hash == o_hash:
+        # Hashes match: this is the success path, not drift.
+        return PlanHashDrift(detected=False)
+
+    # We have the drift state. The drafter named in both turns picks
+    # which plan is canonical.
+    drafter = c.drafter
+    canonical_plan = c.agreed_plan if drafter == "claude" else o.agreed_plan
+    other_agent = "gpt" if drafter == "claude" else "claude"
+    canonical_hash = c_hash if drafter == "claude" else o_hash
+    other_hash = o_hash if drafter == "claude" else c_hash
+
+    return PlanHashDrift(
+        detected=True,
+        drafter=drafter,
+        canonical_plan=canonical_plan,
+        other_agent=other_agent,
+        canonical_hash=canonical_hash,
+        other_hash=other_hash,
+    )
 
 
 def extract_canonical_fsd_items(agreed_plan_text: str | None) -> list[FsdItem]:

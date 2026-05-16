@@ -149,6 +149,15 @@ def _build_parser() -> argparse.ArgumentParser:
              "previous run hit hard cap and you want to give it more rounds.",
     )
     p.add_argument(
+        "--push-while-running",
+        action="store_true",
+        help="Push the session-dir to Supabase every 30s during the run so the "
+             "hosted UI streams updates as the orchestrator progresses (spec 0032). "
+             "Requires SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY "
+             "in the environment. A final synchronous push runs on exit so the "
+             "hosted UI always sees the completed state.",
+    )
+    p.add_argument(
         "--version",
         action="version",
         version=f"dual-research {__version__}",
@@ -276,6 +285,23 @@ def _run_orchestrator(
 ) -> int:
     from dual_research.orchestrator import run_session
 
+    # Spec 0032 — --push-while-running enables periodic supabase pushes
+    # during the run. Load creds eagerly so we fail fast with a clear
+    # error if Supabase env is missing.
+    supabase_creds = None
+    if getattr(args, "push_while_running", False):
+        from dual_research.config import load_supabase_credentials
+        try:
+            supabase_creds = load_supabase_credentials()
+        except MissingCredentialError as e:
+            print(f"error: --push-while-running set, but {e}", file=sys.stderr)
+            print(
+                "Set SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY "
+                "in ~/.zshrc and start a new shell, or use a session-local export.",
+                file=sys.stderr,
+            )
+            return 1
+
     result = asyncio.run(
         run_session(
             session_root=session_dir,
@@ -285,6 +311,7 @@ def _run_orchestrator(
             soft_cap=soft_cap,
             hard_cap=hard_cap,
             out_path=Path(args.out).expanduser().resolve() if args.out else None,
+            push_while_running=supabase_creds,
         )
     )
 

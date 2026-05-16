@@ -15,6 +15,17 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.30.0',
+      date: '2026-05-16',
+      summary: 'Phase-2 hash-drift escape, P2 summaries, live-push flag, dual-research-run skill.',
+      items: [
+        'Fixed a Phase 2 convergence bug where both agents emitted STATUS: AGREED but their AGREED_PLAN hashes kept drifting (OpenAI paraphrasing instead of copying verbatim). The orchestrator now fires a force-verbatim repair turn on first detection; if drift persists, it promotes the drafter\'s plan as canonical and exits Phase 2.',
+        'Phase 2 prompts now require a `## Summary` section — matching Phase 0 / 1 / 3 / 4. Timeline cards on the Conversation tab finally show a meaningful TL;DR when you unfold them.',
+        'New `--push-while-running` CLI flag: the orchestrator pushes the session-dir to Supabase every 30s during the run, so the hosted UI updates as phases land. A final synchronous push fires on exit. Opt-in; requires the supabase env keys.',
+        'New `dual-research-run` Claude Code skill captures the canonical recipe for firing a test run: source the env keys, ensure the local UI server is up, fire the run with the right flags, report both URLs. Versions with the code.',
+      ],
+    },
+    {
       version: '0.29.0',
       date: '2026-05-16',
       summary: 'Consumption-tab follow-ups — tier-lookup window, click-to-expand bars, per-phase web-search count.',

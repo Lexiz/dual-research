@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 import time
@@ -7,7 +8,7 @@ import traceback
 from dataclasses import dataclass
 
 from dual_research.agents import ClaudeAgent, GptAgent, make_agents
-from dual_research.config import Credentials, ModelTier
+from dual_research.config import Credentials, ModelTier, SupabaseCredentials
 from dual_research.events import (
     CostUpdate,
     EventBus,
@@ -93,10 +94,16 @@ async def run_session(
     hard_cap: int,
     out_path=None,
     event_bus: EventBus | None = None,
+    push_while_running: SupabaseCredentials | None = None,
 ) -> RunResult:
     """Drive a session from its current state through as many phases as
-    are wired up. Phase 0 and Phase 1 are implemented; Phases 2–4 are
-    stubbed (the run exits cleanly after Phase 1 with a message)."""
+    are wired up.
+
+    Spec 0032: when ``push_while_running`` is set, spawn a background
+    task that pushes the session-dir to Supabase every 30 s. A final
+    synchronous push runs in the finally block at exit so the hosted UI
+    always sees the completed state even if the run errored.
+    """
     session = SessionDirectory(root=session_root).ensure()
     state = session.load_state()
     transcript = session.open_transcript()
@@ -106,6 +113,26 @@ async def run_session(
     bus = event_bus or EventBus()
     _install_cost_ticker(bus, metrics)
     _install_transcript_publisher(bus, ctx)
+
+    # Spec 0032 — live-push setup. Spawn the periodic-push task once
+    # the run is about to start; cleanly stop it in the finally block
+    # so the run always ends with a synchronous final push.
+    push_stop_event: asyncio.Event | None = None
+    push_task: asyncio.Task | None = None
+    if push_while_running is not None:
+        push_stop_event = asyncio.Event()
+        push_task = asyncio.create_task(
+            _push_watch_loop(
+                session_dir=session.root,
+                creds=push_while_running,
+                stop=push_stop_event,
+            )
+        )
+        print(
+            f"[push-while-running] enabled — pushing to {push_while_running.url} "
+            f"every 30s. Hosted UI will update as the run progresses.",
+            flush=True,
+        )
 
     claude, gpt = make_agents(tier=tier, creds=creds)
 
@@ -305,6 +332,77 @@ async def run_session(
             phase4=phase4_outcome,
             final_path=final_path,
         )
+
+    finally:
+        # Spec 0032 — always stop the push-loop and do one final
+        # synchronous push so the hosted UI sees the final state, even
+        # on errored runs.
+        if push_task is not None and push_stop_event is not None:
+            push_stop_event.set()
+            try:
+                await asyncio.wait_for(push_task, timeout=60.0)
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "push-watch loop didn't drain in 60s; cancelling"
+                )
+                push_task.cancel()
+            except Exception:  # the loop swallowed everything; defensive
+                logger.exception("push-watch loop exited with error")
+
+
+# ─── Spec 0032 — push-while-running loop ────────────────────────────────
+
+
+async def _push_watch_loop(
+    *,
+    session_dir,
+    creds: SupabaseCredentials,
+    stop: asyncio.Event,
+    interval_seconds: float = 30.0,
+) -> None:
+    """Periodic Supabase push during a live run.
+
+    Calls ``RemoteSession.push_session_dir`` every ``interval_seconds``
+    until ``stop`` is set, then does one final synchronous push at the
+    end. Push failures are logged but do not propagate — a Supabase
+    blip mid-run must not abort the orchestrator.
+
+    Imported lazily so the supabase dep can stay optional for users
+    who don't enable the flag.
+    """
+    from dual_research.persistence.remote import RemoteSession
+
+    try:
+        remote = RemoteSession.from_credentials(creds.url, creds.service_role_key)
+    except Exception as e:
+        logger.warning("push-watch: failed to initialise RemoteSession: %s", e)
+        return
+
+    # Wait briefly before the first push so the session-dir has time to
+    # accumulate at least one phase's worth of artifacts. Avoids
+    # uploading an empty dir on the very first tick.
+    try:
+        await asyncio.wait_for(stop.wait(), timeout=5.0)
+        # Stop was already set — fall through to the final push below.
+    except asyncio.TimeoutError:
+        pass
+
+    while not stop.is_set():
+        try:
+            remote.push_session_dir(session_dir)
+        except Exception as e:
+            logger.warning("push-watch: tick push failed: %s", e)
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=interval_seconds)
+        except asyncio.TimeoutError:
+            continue
+
+    # Final synchronous push — last tick before the orchestrator exits.
+    try:
+        remote.push_session_dir(session_dir)
+        logger.info("push-watch: final push complete")
+    except Exception as e:
+        logger.warning("push-watch: final push failed: %s", e)
 
 
 def _emit_phase2_deadlock(session_root, phase2_outcome: Phase2Outcome) -> None:
