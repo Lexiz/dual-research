@@ -43,6 +43,7 @@ from dual_research.ui.models import (
     RunListRow,
     TopLevelError,
     Turn,
+    TurnTokenUsage,
 )
 
 # ─── Public entry points ──────────────────────────────────────────────────────
@@ -250,9 +251,14 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         return
     ag = ui_agent(backend_ag)
     state = run.agents[ag]
-    state.tokens.in_ += int(event.get("input_tokens", 0))
-    state.tokens.out += int(event.get("output_tokens", 0))
-    state.cost += float(event.get("cost_usd", 0.0))
+    in_tokens = int(event.get("input_tokens", 0))
+    out_tokens = int(event.get("output_tokens", 0))
+    cache_read = int(event.get("cache_read_tokens", 0))
+    cache_write = int(event.get("cache_write_tokens", 0))
+    cost = float(event.get("cost_usd", 0.0))
+    state.tokens.in_ += in_tokens
+    state.tokens.out += out_tokens
+    state.cost += cost
     phase_str = event.get("phase", "phase0")
     is_drafter = (run.drafter == ag) if run.drafter else False
     state.status = derive_agent_status(
@@ -264,6 +270,25 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     state.last_turn = Turn(
         kind=_turn_kind_for_phase(phase_str, ag, is_drafter=is_drafter),
         index=idx,
+    )
+    # Per-turn token usage (spec 0029) — keyed the same way as
+    # phase_summaries / phase_review_items so the Consumption tab can join
+    # cleanly. Single-shot phases (0, 1, 3) use phase{N}_<agent>;
+    # round-loop phases (2, 4) use phase{N}_round{R}_<agent>. The model id
+    # is recorded so the frontend can pick the right context-window
+    # denominator, even if the agent's `model_id` later changes mid-run.
+    phase_int = phase_to_int(phase_str)
+    if phase_int in (2, 4) and idx > 0:
+        key = f"phase{phase_int}_round{idx}_{ag}"
+    else:
+        key = f"phase{phase_int}_{ag}"
+    run.phase_token_usage[key] = TurnTokenUsage(
+        in_=in_tokens,
+        out=out_tokens,
+        cache_read=cache_read,
+        cache_write=cache_write,
+        cost=cost,
+        model_id=event.get("model_id") or state.model_id,
     )
 
 

@@ -100,6 +100,33 @@ class TestCamelCase:
         assert _to_camel(None) is None
         assert _to_camel([1, 2, 3]) == [1, 2, 3]
 
+    def test_phase_token_usage_inner_keys_and_fields(self):
+        """Spec 0029 — per-turn usage dict survives the wire pass with
+        camelized inner keys and `in_` → `in`, `cache_read` → `cacheRead`,
+        `model_id` → `modelId`."""
+        from dual_research.ui.models import Run, TurnTokenUsage, to_jsonable
+
+        run = Run(id="r", display_id="abcd")
+        run.phase_token_usage["phase2_round1_claude"] = TurnTokenUsage(
+            in_=1234, out=567, cache_read=300, cache_write=80,
+            cost=0.42, model_id="claude-sonnet-4-6",
+        )
+        run.phase_token_usage["phase0_gpt"] = TurnTokenUsage(
+            in_=10, out=20, model_id="gpt-5.5",
+        )
+        wire = _to_camel(to_jsonable(run))
+        usage = wire["phaseTokenUsage"]
+        # Inner keys are camelized — the frontend must mirror this.
+        assert set(usage.keys()) == {"phase2Round1Claude", "phase0Gpt"}
+        # Field names: `in_` → `in`, `cache_read` → `cacheRead`,
+        # `cache_write` → `cacheWrite`, `model_id` → `modelId`.
+        entry = usage["phase2Round1Claude"]
+        assert entry == {
+            "in": 1234, "out": 567,
+            "cacheRead": 300, "cacheWrite": 80,
+            "cost": 0.42, "modelId": "claude-sonnet-4-6",
+        }
+
 
 # ─── /api/health ──────────────────────────────────────────────────────────────
 
@@ -177,10 +204,18 @@ class TestRunSnapshot:
             "phaseTimings",
             "phaseReviewItems",   # spec 0027
             "currentDraftPath",   # spec 0028
+            "phaseTokenUsage",    # spec 0029
         ):
             assert k in body, f"missing key {k}"
         assert body["topic"] == "Topic X"
         assert body["agents"]["claude"]["tokens"].keys() == {"in", "out"}
+        # Spec 0029 — per-turn token usage is keyed by `phase{N}_<agent>` or
+        # `phase{N}_round{R}_<agent>` on the Python side. The wire camelizer
+        # rewrites those inner keys to `phase{N}{Agent}` / `phase{N}Round{R}{Agent}`
+        # (e.g. `phase2Round1Claude`). Empty for a freshly-seeded fixture
+        # because no `turn_ended` events have been applied — the dict
+        # exists, just has no entries.
+        assert isinstance(body["phaseTokenUsage"], dict)
 
     def test_path_traversal_rejected(self, client_with_runs):
         c, _ = client_with_runs

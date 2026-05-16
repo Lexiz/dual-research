@@ -220,6 +220,30 @@ class PhaseStats:
     phase4: dict[int, dict[str, TurnStats]] = field(default_factory=dict)
 
 
+# ─── Per-turn token usage (spec 0029) ─────────────────────────────────────────
+
+
+@dataclass
+class TurnTokenUsage:
+    """Per-turn token + cost detail, captured from ``TurnEnded`` events.
+
+    One instance per API call. Stored on ``Run.phase_token_usage`` keyed by
+    ``phase{N}_<agent>`` (single-shot phases) or
+    ``phase{N}_round{R}_<agent>`` (round-loop phases) — the same key
+    convention as ``phase_summaries`` and ``phase_review_items``.
+
+    Powers the spec-0029 Consumption tab. ``in_`` is renamed to ``in`` at
+    the JSON boundary (matches ``TokenUsage`` above).
+    """
+
+    in_: int = 0
+    out: int = 0
+    cache_read: int = 0
+    cache_write: int = 0
+    cost: float = 0.0
+    model_id: str | None = None
+
+
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
 
@@ -279,6 +303,14 @@ class Run:
     # side-by-side modal's left pane. None when neither file exists yet
     # (Phase 3 hasn't completed).
     current_draft_path: str | None = None
+    # ─── Per-turn token usage (spec 0029) ─────────────────────────────────────
+    # Keyed by `phase{N}_<agent>` for single-shot phases (0, 1, 3) and
+    # `phase{N}_round{R}_<agent>` for round-loop phases (2, 4) — same
+    # convention as `phase_summaries` / `phase_review_items`. Populated by
+    # the aggregator on `TurnEnded` events; empty when the run was replayed
+    # from a pre-0029 transcript that didn't record per-turn telemetry.
+    # Drives the Consumption tab in the timeline pane.
+    phase_token_usage: dict[str, TurnTokenUsage] = field(default_factory=dict)
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────

@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.27.0',
+      date: '2026-05-16',
+      summary: 'Token-consumption tab — per-turn context-window visualisation.',
+      items: [
+        'New `Consumption` tab in the timeline pane sits alongside `Conversation`; the two per-agent total chips move to the right end of the toolbar.',
+        'Each row is one API call — P0 / P1 / P3 give a single row, Phase 2 and Phase 4 give one row per round. Bars on each side show the chat\'s context-window utilisation; subsequent rounds visibly grow as the prompt history accumulates.',
+        'Bar denominator = the model\'s actual context window (Claude 200K, GPT-5.5 200K, GPT-5-mini 128K). Asymmetric widths are honest — the percent number underneath each bar is the apples-to-apples comparison.',
+        'Each bar shows three layers: cache-read portion (lighter shade), fresh input (full agent colour), and a thinner output tail. Hover for the full breakdown including model id and cost.',
+        'Aggregator preserves per-turn token detail on `Run.phase_token_usage` (camelised inner keys at the wire, e.g. `phase2Round3Claude`); old runs from before this spec show an empty state on the Consumption tab and remain unaffected on the Conversation tab.',
+      ],
+    },
+    {
       version: '0.26.0',
       date: '2026-05-16',
       summary: 'Cross-review inline comments — Phase 4 side-by-side modal.',
@@ -1213,6 +1225,18 @@
             <ChatLifecycle />
             <Legend />
             <ComparePanel />
+            <div className="mono" style={{
+              marginTop: 14, padding: '8px 12px',
+              background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+              borderRadius: 6, fontSize: 10.5, color: 'var(--fg-3)',
+              lineHeight: 1.55,
+            }}>
+              Want the same lanes filled with real numbers from a run? Open
+              any run and switch the timeline pane to its
+              <span style={{ color: 'var(--fg-1)' }}>&nbsp;Consumption&nbsp;</span>
+              tab — each row is one chat above, with a bar showing how much
+              of that model's context window the call consumed.
+            </div>
           </Section>
 
           {/* Context grows, prefix is cached */}
