@@ -3,10 +3,10 @@ spec: 0032
 title: Phase-2 hash-drift escape, P2 summaries, live-push flag, dual-research-run skill
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.30.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/34"
 ---
 
 # Spec 0032 — Convergence escape + operational quality-of-life
