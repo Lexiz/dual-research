@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.39.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/42"
 ---
 
 # Spec 0041 — Critique classification + resilience + sentiment
