@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.38.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/41"
 ---
 
 # Spec 0040 — Critique rework
