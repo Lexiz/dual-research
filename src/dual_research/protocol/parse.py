@@ -188,13 +188,21 @@ class ReviewItem:
     each item. The UI uses them to scroll the prior content (the
     other agent's most recent turn, or Phase 1 draft for round 1) so
     that clicking a review card brings the referenced span into view.
+
+    Spec 0034: ``block_id`` is the pre-resolved anchor — set by
+    ``resolve_review_items`` after running ``assign_block_ids`` over
+    the prior content. The UI uses it directly via
+    ``document.getElementById`` (no DOM text scan) and only falls back
+    to ``quote``/``after`` substring matching when ``block_id`` is None
+    (paraphrased anchor / parser miss).
     """
 
     kind: str           # "question" | "disagreement" | "resolved"
     body: str           # the item's full body, joined newlines
     quote: str | None   # verbatim ≤25-word span (anchor target)
     after: str | None   # heading text for "missing X" critiques
-    item_id: str | None # e.g. "D-3" for disagreements; None for plain questions
+    item_id: str | None  # e.g. "D-3" for disagreements; None for plain questions
+    block_id: str | None = None  # spec 0034: pre-resolved against prior blocks
 
 
 _QUOTE_RE = re.compile(r"^\s*>\s*quote:\s*(.+?)\s*$", re.IGNORECASE)
@@ -401,6 +409,68 @@ def _section_body_at(text: str, start: int) -> str:
     rest = text[start:]
     next_heading = re.search(r"^##\s+\S", rest, re.MULTILINE)
     return rest[: next_heading.start()] if next_heading else rest
+
+
+def _normalize_for_match(s: str) -> str:
+    """Whitespace + case-insensitive normalisation for anchor resolution."""
+    if not s:
+        return ""
+    return re.sub(r"\s+", " ", s).strip().lower()
+
+
+def resolve_review_items(
+    turn_text: str,
+    prior_blocks: "list",  # list[BlockRecord] — typed loosely to avoid circular import
+) -> list[ReviewItem]:
+    """Spec 0034 — pre-resolve each review item's anchor against prior content.
+
+    Walks the items extracted from ``turn_text`` and, for each item that
+    carries a ``quote`` or ``after`` anchor, searches ``prior_blocks``
+    for a matching block. Returns a new list of ``ReviewItem`` with
+    ``block_id`` populated when a match is found.
+
+    Resolution strategy:
+    - ``quote: X``: find the first prior block whose normalised text
+      contains the normalised quote. Whitespace + case-insensitive.
+    - ``after: H``: find the first prior block whose normalised text
+      equals the normalised heading (heading blocks are stripped of
+      ``#`` markers when text-ified by ``assign_block_ids``).
+    - No match → ``block_id`` stays ``None`` (UI falls back to the
+      runtime text-scan).
+    """
+    items = extract_review_items(turn_text)
+    if not prior_blocks:
+        return items
+
+    # Pre-normalise block text for O(N) match.
+    norm_blocks = [(b, _normalize_for_match(b.text)) for b in prior_blocks]
+
+    resolved: list[ReviewItem] = []
+    for it in items:
+        block_id: str | None = None
+        if it.quote:
+            needle = _normalize_for_match(it.quote)
+            if needle:
+                for b, btxt in norm_blocks:
+                    if needle in btxt:
+                        block_id = b.id
+                        break
+        if block_id is None and it.after:
+            needle = _normalize_for_match(it.after)
+            if needle:
+                for b, btxt in norm_blocks:
+                    if btxt == needle:
+                        block_id = b.id
+                        break
+        resolved.append(ReviewItem(
+            kind=it.kind,
+            body=it.body,
+            quote=it.quote,
+            after=it.after,
+            item_id=it.item_id,
+            block_id=block_id,
+        ))
+    return resolved
 
 
 def synthesise_brief_tldr(brief_text: str, *, max_sentences: int = 2, max_chars: int = 360) -> str | None:

@@ -568,6 +568,12 @@ function attachItemStats(items, run) {
       item.statsPhase = phase;
       item.summary =
         sums[`phase${phase}_round${item.round}_${item.agent}`] || item.summary || '';
+      // Spec 0034: round-over-round delta annotations on chips need the
+      // prior round's stats for the same agent. Lookup is best-effort; if
+      // we're on round 1 it stays null and chips render without deltas.
+      if (item.round > 1) {
+        item.prevStats = bucket?.[String(item.round - 1)]?.[item.agent] || null;
+      }
       continue;
     }
     if (item.kind === 'doc' || item.kind === 'doc-live') {

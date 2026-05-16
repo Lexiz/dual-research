@@ -338,7 +338,7 @@ function PhaseDots({ run }) {
 // Spec 0029: two tabs — `Conversation` (existing card view) and
 // `Consumption` (per-turn context-window bars). Tabs sit on the left of
 // the pane toolbar; the two `AgentLegendChip`s move to the right end.
-function Timeline({ run, tab = 'conversation' }) {
+function Timeline({ run, tab = 'conversation', highlightedTurnKeys }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
   const [openId, setOpenId] = React.useState(null);
 
@@ -396,6 +396,7 @@ function Timeline({ run, tab = 'conversation' }) {
               item={item}
               run={run}
               onOpen={() => setOpenId(item.id)}
+              highlightedTurnKeys={highlightedTurnKeys}
             />
           ))}
         </div>
@@ -1166,11 +1167,16 @@ function buildTimeline(run) {
 }
 
 // ─────────────────── Timeline items ───────────────────
-function TimelineItem({ item, run, onOpen }) {
+function TimelineItem({ item, run, onOpen, highlightedTurnKeys }) {
   if (item.kind === 'phase-divider') return <PhaseDivider item={item} run={run} />;
   if (item.kind === 'error')         return <ErrorCard item={item} />;
   if (item.kind === 'deadlock')      return <DeadlockCard item={item} />;
-  return <ArtifactCard item={item} run={run} onOpen={onOpen} />;
+  return <ArtifactCard
+    item={item}
+    run={run}
+    onOpen={onOpen}
+    highlightedTurnKeys={highlightedTurnKeys}
+  />;
 }
 
 function PhaseDivider({ item, run }) {
@@ -1219,7 +1225,7 @@ function PhaseDivider({ item, run }) {
 // opens the modal directly). The unfolded body renders the gist line,
 // the TL;DR summary, and a "View in full mode" button — that button is
 // the ONLY entry point to the existing `ArtifactModal`.
-function ArtifactCard({ item, run, onOpen }) {
+function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
   const meta = item.agent ? AGENT_META[item.agent] : null;
   const [hover, setHover] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
@@ -1228,9 +1234,22 @@ function ArtifactCard({ item, run, onOpen }) {
   const isLive = item.live;
   const hasSummary = !isLive && !!(item.summary && String(item.summary).trim());
   const gist = !isLive ? composeGist(item, run) : '';
-  const canExpand = !isLive && (hasSummary || gist);
+  // Spec 0034: sentiment paragraph (Phase 2/4 only) takes priority over
+  // the single-line gist when there's enough material.
+  const sentiment = !isLive ? composeSentiment(item, run) : '';
+  const canExpand = !isLive && (hasSummary || gist || sentiment);
 
   const header = <ArtifactHeader item={item} meta={meta} hover={hover} />;
+
+  // Spec 0034: cross-axis click-to-highlight. If this card's turnKey is
+  // in the highlight set (from the CritiqueExplorer), apply a ring +
+  // briefly draw attention. Two variants (q / d) for visual provenance.
+  const flashKind = item.turnKey && highlightedTurnKeys
+    ? (highlightedTurnKeys.get ? highlightedTurnKeys.get(item.turnKey) : null)
+    : null;
+  const flashColor = flashKind === 'q' ? COLORS.info
+                   : flashKind === 'd' ? COLORS.warn
+                   : null;
 
   const toggleExpand = () => {
     if (canExpand) setExpanded((v) => !v);
@@ -1246,13 +1265,17 @@ function ArtifactCard({ item, run, onOpen }) {
         border: '1px solid var(--border-1)',
         borderRadius: 'var(--r-3)',
         overflow: 'hidden',
-        transition: 'border-color 120ms, background 120ms',
+        transition: 'border-color 120ms, background 120ms, box-shadow 1500ms ease-out',
         ...(isLive ? {
           borderLeft: `2px solid ${accentColor}`,
         } : {}),
         ...(expanded ? {
           borderColor: accentColor + '55',
           background: 'var(--bg-1)',
+        } : {}),
+        ...(flashColor ? {
+          boxShadow: `0 0 0 2px ${flashColor}, 0 0 24px ${flashColor}55`,
+          borderColor: flashColor,
         } : {}),
       }}
     >
@@ -1273,7 +1296,7 @@ function ArtifactCard({ item, run, onOpen }) {
       {expanded && (
         <ArtifactExpandedBody
           item={item}
-          gist={gist}
+          gist={sentiment || gist}
           summary={item.summary}
           onOpen={onOpen}
         />
@@ -1432,9 +1455,137 @@ function composeGist(item, run) {
   return '';
 }
 
+
+// ─────────────────── Spec 0034 — sentiment paragraph composer ───────────────
+//
+// Replaces the single-line gist on Phase 1 + Phase 2 + Phase 4 unfolded
+// cards with 2-3 sentences synthesised from:
+// - item.stats (TurnStats)
+// - run.questions filtered to (phase, raised_by=agent, raised_round=round)
+// - run.disagreements filtered to (phase, round, agent)
+// - prior-round counts (delta computation)
+//
+// Returns "" if there's not enough material for a meaningful paragraph
+// (Phase 1 first turn before stats exist, etc.) — caller falls back to
+// composeGist for those.
+function composeSentiment(item, run) {
+  if (!item) return '';
+  const phase = item.statsPhase;
+  const agent = item.agent;
+  const agentName = agent ? (AGENT_META[agent]?.name || agent) : 'Agent';
+  const stats = item.stats || {};
+  const status = (stats.status || '').toUpperCase();
+  const round = Number(item.round) || 0;
+  const plur = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+  const allQuestions = Array.isArray(run?.questions) ? run.questions : [];
+  const allDis = Array.isArray(run?.disagreements) ? run.disagreements : [];
+
+  // Phase 1 — independent draft. No critique stats; sentiment comes from
+  // protocol artefacts in the draft itself (V/U tag counts via the draft
+  // body — out of scope to parse here). Fall back to composeGist.
+  if (phase === 1) {
+    return '';
+  }
+
+  // Phase 2 — negotiation turn. Headline: status. Then counts + deltas
+  // from question/disagreement objects.
+  if (phase === 2) {
+    const myNewQs = allQuestions.filter(
+      q => q.phase === 2 && q.raisedBy === agent && q.raisedRound === round
+    );
+    const otherQsAnsweredHere = allQuestions.filter(
+      q => q.phase === 2 && q.answeredRound === round && q.answeredBy === agent
+    );
+    const myOpenedDsHere = allDis.filter(
+      d => d.phase === 2 && d.openedRound === round
+              && (d.progression || []).some(p => p.round === round && p.agent === agent)
+    );
+    const myClosedDsHere = allDis.filter(
+      d => d.phase === 2 && d.closedRound === round
+              && (d.progression || []).some(p => p.round === round && p.agent === agent)
+    );
+
+    const sentences = [];
+
+    // Lead: status + agent identity.
+    if (status === 'AGREED') {
+      sentences.push(`${agentName} endorsed the plan this round.`);
+    } else if (status === 'NEGOTIATING' || !status) {
+      if (round === 1) {
+        sentences.push(`${agentName}'s round-1 difference inventory.`);
+      } else {
+        sentences.push(`${agentName} still negotiating in round ${round}.`);
+      }
+    } else {
+      sentences.push(`${agentName} · ${status.toLowerCase()}.`);
+    }
+
+    // Activity sentence: what moved this round.
+    const movements = [];
+    if (myNewQs.length > 0) movements.push(`raised ${plur(myNewQs.length, 'new question')}`);
+    if (otherQsAnsweredHere.length > 0) movements.push(
+      `answered ${plur(otherQsAnsweredHere.length, 'prior question')}`,
+    );
+    if (myOpenedDsHere.length > 0) movements.push(
+      `surfaced ${plur(myOpenedDsHere.length, 'disagreement')}`,
+    );
+    if (myClosedDsHere.length > 0) movements.push(
+      `resolved ${plur(myClosedDsHere.length, 'disagreement')}`,
+    );
+    if (movements.length > 0) {
+      sentences.push(`${capitalise(movements.join(', '))}.`);
+    }
+
+    // Standing snapshot: open Qs + Ds left holding.
+    const standingParts = [];
+    if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
+      standingParts.push(plur(stats.openQuestions, 'open question'));
+    }
+    if (typeof stats.blocking === 'number' && stats.blocking > 0) {
+      standingParts.push(plur(stats.blocking, 'open disagreement'));
+    }
+    if (typeof stats.fsd === 'number' && stats.fsd > 0) {
+      standingParts.push(`${stats.fsd} final-surfaced`);
+    }
+    if (standingParts.length > 0) {
+      sentences.push(`Standing: ${standingParts.join(' · ')}.`);
+    }
+
+    return sentences.join(' ');
+  }
+
+  // Phase 4 — review turn. Same pattern but issue-oriented.
+  if (phase === 4) {
+    const sentences = [];
+    if (status === 'APPROVED') {
+      sentences.push(`${agentName} approved the draft this round.`);
+    } else if (status === 'REVIEWING') {
+      sentences.push(`${agentName} still reviewing in round ${round}.`);
+    } else {
+      sentences.push(agentName + (status ? ` · ${status.toLowerCase()}.` : '.'));
+    }
+    if (typeof stats.openIssues === 'number' && stats.openIssues > 0) {
+      sentences.push(`${plur(stats.openIssues, 'issue')} open against the current draft.`);
+    } else if (stats.openIssues === 0) {
+      sentences.push('No open issues this round.');
+    }
+    return sentences.join(' ');
+  }
+
+  return '';
+}
+
+function capitalise(s) {
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 // Small mono chips surfacing parsed protocol stats on a turn/plan row.
 // Stays out of the way: nothing rendered when stats are absent.
-function StatsChips({ stats, phase }) {
+// Spec 0034: ``prevStats`` enables round-over-round delta annotations
+// (e.g. ``4 Q (-2)`` for "two questions answered since prior round").
+function StatsChips({ stats, phase, prevStats }) {
   if (!stats) return null;
   const chips = [];
   // Phase 4 surfaces OPEN_ISSUES; Phases 1/2 surface OPEN_QUESTIONS + BLOCKING.
@@ -1446,6 +1597,9 @@ function StatsChips({ stats, phase }) {
         value: stats.openIssues,
         label: stats.openIssues === 1 ? 'issue' : 'issues',
         tint: stats.openIssues > 0 ? 'warn' : 'ok',
+        delta: prevStats?.openIssues != null
+          ? stats.openIssues - prevStats.openIssues
+          : null,
       });
     }
   } else {
@@ -1454,6 +1608,9 @@ function StatsChips({ stats, phase }) {
         value: stats.openQuestions,
         label: stats.openQuestions === 1 ? 'question' : 'questions',
         tint: stats.openQuestions > 0 ? 'info' : 'ok',
+        delta: prevStats?.openQuestions != null
+          ? stats.openQuestions - prevStats.openQuestions
+          : null,
       });
     }
     if (stats.blocking != null && stats.blocking > 0) {
@@ -1461,6 +1618,9 @@ function StatsChips({ stats, phase }) {
         value: stats.blocking,
         label: stats.blocking === 1 ? 'disagreement' : 'disagreements',
         tint: 'warn',
+        delta: prevStats?.blocking != null
+          ? stats.blocking - prevStats.blocking
+          : null,
       });
     }
   }
@@ -1476,11 +1636,26 @@ function StatsChips({ stats, phase }) {
   );
 }
 
-function StatChip({ label, value, tint }) {
+function StatChip({ label, value, tint, delta }) {
   const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
   const c = colorMap[tint] || 'var(--fg-3)';
+  // Spec 0034: a small delta annotation when this chip has a prior-round
+  // value to compare against. ``-N`` means resolved since last round (good);
+  // ``+N`` means new this round (neutral). Zero delta is hidden.
+  const deltaSuffix = (delta != null && delta !== 0)
+    ? ` (${delta > 0 ? '+' : ''}${delta})`
+    : '';
+  const deltaColor = delta != null && delta < 0
+    ? COLORS.ok
+    : delta != null && delta > 0
+      ? c
+      : 'var(--fg-3)';
   return (
-    <span className="mono" style={{
+    <span className="mono"
+          title={delta != null && delta !== 0
+            ? `${delta > 0 ? '+' + delta + ' new this round' : (-delta) + ' resolved or answered since last round'}`
+            : undefined}
+          style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '1px 7px',
       background: 'transparent',
@@ -1491,6 +1666,11 @@ function StatChip({ label, value, tint }) {
     }}>
       <span className="num" style={{ color: c, fontWeight: 500 }}>{value}</span>
       <span style={{ color: 'var(--fg-3)' }}>{label}</span>
+      {deltaSuffix && (
+        <span className="num" style={{ color: deltaColor, fontWeight: 500 }}>
+          {deltaSuffix}
+        </span>
+      )}
     </span>
   );
 }
@@ -1629,7 +1809,7 @@ function ArtifactHeader({ item, meta, hover }) {
         <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 52 }}>{meta.name}</span>
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 76 }}>{kindLabel}</span>
         <span style={{ flex: 1 }} />
-        <StatsChips stats={item.stats} phase={item.statsPhase} />
+        <StatsChips stats={item.stats} phase={item.statsPhase} prevStats={item.prevStats} />
         {isLive ? (
           <AgentStatusInline status={item.status} />
         ) : item.tokens != null || item.cost != null ? (
@@ -1687,6 +1867,11 @@ function ArtifactModal({ item, run, onClose }) {
   if ((item.kind === 'turn' || item.kind === 'turn-live')
       && (item.statsPhase === 2 || item.statsPhase === 4)) {
     return <NegotiateReviewModal item={item} run={run} meta={meta} onClose={onClose} accent={accent} />;
+  }
+  // Spec 0034: Phase 1 plan drafts open a side-by-side viewer (brief on
+  // the left, draft on the right) instead of the one-pane DocumentModal.
+  if (item.kind === 'plan' || item.kind === 'plan-live') {
+    return <DraftReviewModal item={item} run={run} meta={meta} onClose={onClose} accent={accent} />;
   }
   return <DocumentModal item={item} meta={meta} onClose={onClose} accent={accent} />;
 }
@@ -1774,6 +1959,26 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 
   const jumpToItem = React.useCallback((it) => {
     if (!leftRef.current) return;
+    // Spec 0034: try the pre-resolved block_id first — fastest + most
+    // reliable (no DOM-text scan, no whitespace tolerance issues, no
+    // failure on paraphrased quotes that happen to substring-match
+    // unrelated content).
+    if (it.blockId) {
+      const node = leftRef.current.querySelector(`#${it.blockId}`);
+      if (node) {
+        clearGhost();
+        node.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        if (window.scrollAndFlash) {
+          // Use scrollAndFlash's flash animation by passing the resolved
+          // text — the helper will find the same node again but the visual
+          // flash is what we're after.
+          const tx = (node.textContent || '').trim().slice(0, 80);
+          if (tx) window.scrollAndFlash(leftRef.current, { text: tx });
+        }
+        return;
+      }
+      // Pre-resolved ID didn't match a node — fall through to text scan.
+    }
     if (it.after) {
       const heading = window.scrollAndFlash(leftRef.current, {
         afterHeading: it.after,
@@ -2005,6 +2210,149 @@ function NegotiateLeftSubTabs({ active, onChange }) {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ─────────────────── Spec 0034 — Phase 1 side-by-side draft viewer ──────────
+//
+// Brief on the left (with the spec-0033 ``Original | Input`` sub-tabs so
+// the user can also see the system prompt), draft on the right. The
+// right pane is plain markdown — no critique list, no keyboard nav —
+// since Phase 1 is an independent draft, not a critique. A small "🔗 brief"
+// affordance appears next to each section heading on the right pane;
+// clicking attempts a best-effort substring match into the brief and
+// flashes the matching block if found.
+function DraftReviewModal({ item, run, meta, onClose, accent }) {
+  const briefPath = "brief.md";
+  const leftRef = React.useRef(null);
+  const [sub, setSub] = React.useState('original');
+
+  const onSectionAnchorClick = React.useCallback((sectionText) => {
+    if (!leftRef.current || !sectionText || sub !== 'original') return;
+    if (window.scrollAndFlash) {
+      window.scrollAndFlash(leftRef.current, { text: sectionText.slice(0, 60) });
+    }
+  }, [sub]);
+
+  const title = `${meta?.name || 'Agent'} — Phase 1 draft`;
+  const subtitle = 'side-by-side with the brief';
+
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      accent={accent}
+      width={1300}
+    >
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.3fr)',
+        gap: 18,
+        minHeight: 0,
+        height: '100%',
+      }}>
+        {/* Left: brief (with Original | Input sub-tabs, spec 0033). */}
+        <div style={{
+          minHeight: 0, minWidth: 0,
+          background: 'var(--bg-0)',
+          border: '1px solid var(--border-1)',
+          borderRadius: 'var(--r-2)',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{
+            padding: '6px 12px',
+            borderBottom: '1px solid var(--border-1)',
+            background: 'var(--bg-2)',
+            display: 'flex', alignItems: 'center', gap: 10,
+            flexShrink: 0,
+          }}>
+            <NegotiateLeftSubTabs active={sub} onChange={setSub} />
+            <span style={{ flex: 1 }} />
+            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+              {sub === 'original' ? briefPath : `inputs/${item.turnKey || '—'}.json`}
+            </span>
+          </div>
+          <div ref={leftRef} style={{
+            flex: 1, minHeight: 0, overflow: 'auto',
+            padding: '14px 16px',
+          }}>
+            {sub === 'original'
+              ? <LazyMarkdownBody filePath={briefPath} />
+              : <InputTabContent turnKey={item.turnKey} />}
+          </div>
+        </div>
+
+        {/* Right: the draft + per-section "🔗 brief" affordance. */}
+        <DraftRightPane filePath={item.filePath} onSectionClick={onSectionAnchorClick} />
+      </div>
+    </Modal>
+  );
+}
+
+function DraftRightPane({ filePath, onSectionClick }) {
+  const { body, loading } = window.useFileBody(filePath);
+  const containerRef = React.useRef(null);
+
+  // Walk the rendered DOM after each render and inject a "🔗 brief"
+  // button into every section heading. Best-effort — the markdown
+  // renderer may take a tick to settle on first mount.
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const root = containerRef.current;
+    const headings = root.querySelectorAll('h2, h3');
+    headings.forEach((h) => {
+      if (h.dataset.briefBtn === '1') return;
+      const text = (h.textContent || '').trim();
+      if (!text) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '🔗 brief';
+      btn.title = 'Find the closest matching block in the brief';
+      btn.className = 'dr-section-brief-btn';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (onSectionClick) onSectionClick(text);
+      });
+      h.appendChild(document.createTextNode(' '));
+      h.appendChild(btn);
+      h.dataset.briefBtn = '1';
+    });
+  });
+
+  return (
+    <div style={{
+      minHeight: 0, minWidth: 0,
+      background: 'var(--bg-0)',
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-2)',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        padding: '6px 12px',
+        borderBottom: '1px solid var(--border-1)',
+        background: 'var(--bg-2)',
+        display: 'flex', alignItems: 'center', gap: 10,
+        flexShrink: 0,
+      }}>
+        <span className="mono" style={{
+          fontSize: 10, color: 'var(--fg-2)',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>draft</span>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          {filePath || '—'}
+        </span>
+      </div>
+      <div ref={containerRef} style={{
+        flex: 1, minHeight: 0, overflow: 'auto',
+        padding: '14px 16px',
+      }}>
+        {loading
+          ? <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>
+          : <Markdown text={body || '— body unavailable —'} />}
+      </div>
     </div>
   );
 }
@@ -2661,65 +3009,391 @@ function DeadlockCard({ item }) {
   );
 }
 
-// ─────────────────── Disagreement explorer (right panel) ───────────────────
-function DisagreementExplorer({ run }) {
-  const phasesWithDisagreements = [];
-  if (run.phase >= 2 || run.disagreements.some(d => d.phase === 2)) phasesWithDisagreements.push(2);
-  if (run.phase >= 4 || run.disagreements.some(d => d.phase === 4)) phasesWithDisagreements.push(4);
-  if (phasesWithDisagreements.length === 0) phasesWithDisagreements.push(2);
+// ─────────────────── Critique explorer (right panel, spec 0034) ────────────
+//
+// Renames the former "Disagreement explorer" and renders BOTH first-class
+// questions and disagreements, typed. Three filters:
+//   - phase tab:  Phase 2 (Negotiate) | Phase 4 (Review)
+//   - type:       All | Questions | Disagreements
+//   - status:     All | Open | Resolved/answered
+//
+// Clicking any card calls ``onHighlightTurns(keys, variant)`` which makes
+// the corresponding turn-cards in the timeline flash for 2s.
+function CritiqueExplorer({ run, onHighlightTurns }) {
+  const questions = Array.isArray(run.questions) ? run.questions : [];
+  const disagreements = Array.isArray(run.disagreements) ? run.disagreements : [];
 
-  const initial = (run.phase === 4 || run.phase === 2) ? run.phase :
-                  phasesWithDisagreements.includes(4) ? 4 : 2;
+  // Phase pick: prefer the currently-running phase; else any phase that has
+  // either kind of item; else default to Phase 2.
+  const haveAny = (pid) =>
+    questions.some(q => q.phase === pid) || disagreements.some(d => d.phase === pid);
+  const initial = (run.phase === 4 || run.phase === 2) ? run.phase
+                 : haveAny(4) ? 4
+                 : haveAny(2) ? 2
+                 : 2;
   const [selectedPhase, setSelectedPhase] = React.useState(initial);
-  React.useEffect(() => { setSelectedPhase(initial); }, [run.id, initial]);
+  const [typeFilter, setTypeFilter] = React.useState('all'); // 'all' | 'questions' | 'disagreements'
+  React.useEffect(() => { setSelectedPhase(initial); setTypeFilter('all'); }, [run.id, initial]);
 
-  const allInPhase = run.disagreements.filter(d => d.phase === selectedPhase);
-  const open = allInPhase.filter(d => d.status === 'open');
-  const resolved = allInPhase.filter(d => d.status.startsWith('resolved'));
-  const introduced = allInPhase.length;
+  // Phase-filtered slices.
+  const phaseQuestions = questions.filter(q => q.phase === selectedPhase);
+  const phaseDisagreements = disagreements.filter(d => d.phase === selectedPhase);
 
+  // Type filter.
+  const showQ = typeFilter === 'all' || typeFilter === 'questions';
+  const showD = typeFilter === 'all' || typeFilter === 'disagreements';
+
+  // Group by status.
+  const openItems = [];
+  const resolvedItems = [];
+  if (showD) {
+    for (const d of phaseDisagreements) {
+      const item = { ...d, _critiqueKind: 'd' };
+      (d.status === 'open' ? openItems : resolvedItems).push(item);
+    }
+  }
+  if (showQ) {
+    for (const q of phaseQuestions) {
+      const item = { ...q, _critiqueKind: 'q' };
+      (q.status === 'open' ? openItems : resolvedItems).push(item);
+    }
+  }
+
+  // Sort: by round ascending so the user reads chronological history.
+  const byRound = (a, b) => {
+    const aR = a._critiqueKind === 'q' ? a.raisedRound : a.openedRound;
+    const bR = b._critiqueKind === 'q' ? b.raisedRound : b.openedRound;
+    return (aR || 0) - (bR || 0);
+  };
+  openItems.sort(byRound);
+  resolvedItems.sort(byRound);
+
+  const introduced = (showQ ? phaseQuestions.length : 0) + (showD ? phaseDisagreements.length : 0);
+  const totalOpen = openItems.length;
+  const totalResolved = resolvedItems.length;
+
+  // Phase-tab info: shows Q + D counts per phase.
   const phaseInfo = (pid) => {
-    const inPhase = run.disagreements.filter(d => d.phase === pid);
+    const qInPhase = questions.filter(q => q.phase === pid);
+    const dInPhase = disagreements.filter(d => d.phase === pid);
     const pending = run.phase < pid || (pid === 4 && run.phase < 3);
     return {
       pid,
       label: pid === 2 ? 'Negotiate' : 'Review',
-      total: inPhase.length,
-      open: inPhase.filter(d => d.status === 'open').length,
-      resolved: inPhase.filter(d => d.status.startsWith('resolved')).length,
+      qTotal: qInPhase.length,
+      dTotal: dInPhase.length,
+      qOpen: qInPhase.filter(q => q.status === 'open').length,
+      dOpen: dInPhase.filter(d => d.status === 'open').length,
       pending,
       active: (run.phase === pid && run.status === 'running'),
     };
   };
   const tabs = [phaseInfo(2), phaseInfo(4)];
 
-  const totalIntroduced = run.disagreements.length;
+  const totalIntroduced = questions.length + disagreements.length;
+
+  const handleHighlight = React.useCallback((keys, variant) => {
+    if (onHighlightTurns) onHighlightTurns(keys, variant);
+  }, [onHighlightTurns]);
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
       <PaneHeader
-        title="Disagreements"
+        title="Critique"
         count={`${totalIntroduced} introduced`}
         accentColor={COLORS.info}
         right={
           <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <SmallStat label="open"     value={open.length} color={open.length > 0 ? COLORS.warn : 'var(--fg-3)'} />
-            <SmallStat label="resolved" value={resolved.length} color={resolved.length > 0 ? COLORS.ok : 'var(--fg-3)'} />
+            <SmallStat label="open"     value={totalOpen} color={totalOpen > 0 ? COLORS.warn : 'var(--fg-3)'} />
+            <SmallStat label="resolved" value={totalResolved} color={totalResolved > 0 ? COLORS.ok : 'var(--fg-3)'} />
           </span>
         }
       />
       <PaneToolbar>
         {tabs.map((t) => (
-          <PhaseTab
+          <CritiquePhaseTab
             key={t.pid}
             tab={t}
             active={selectedPhase === t.pid}
             onSelect={() => setSelectedPhase(t.pid)}
           />
         ))}
+        <span style={{ flex: 1 }} />
+        <CritiqueTypeFilter active={typeFilter} onChange={setTypeFilter} />
       </PaneToolbar>
-      <PhaseContent run={run} phaseId={selectedPhase} open={open} resolved={resolved} introduced={introduced} />
+      <CritiquePhaseContent
+        run={run}
+        phaseId={selectedPhase}
+        openItems={openItems}
+        resolvedItems={resolvedItems}
+        introduced={introduced}
+        onHighlight={handleHighlight}
+      />
     </section>
+  );
+}
+
+// Keep the old export name as an alias for backwards-compat in case any
+// other module references it (no external links to break, but defensive).
+const DisagreementExplorer = CritiqueExplorer;
+
+function CritiqueTypeFilter({ active, onChange }) {
+  const items = [
+    { id: 'all',           label: 'All' },
+    { id: 'questions',     label: 'Questions' },
+    { id: 'disagreements', label: 'Disagreements' },
+  ];
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      borderRadius: 999, overflow: 'hidden',
+      border: '1px solid var(--border-1)',
+      background: 'var(--bg-2)',
+      flexShrink: 0,
+    }}>
+      {items.map((t, i) => {
+        const isActive = t.id === active;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            style={{
+              appearance: 'none',
+              border: 'none',
+              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
+              background: isActive ? 'var(--bg-3)' : 'transparent',
+              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
+              fontSize: 11,
+              fontWeight: isActive ? 600 : 500,
+              padding: '3px 10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function CritiquePhaseTab({ tab, active, onSelect }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onSelect}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        height: 28,
+        padding: '0 12px',
+        background: active ? 'var(--bg-3)' : hover ? 'var(--bg-2)' : 'var(--bg-1)',
+        border: `1px solid ${active ? 'var(--border-3)' : 'var(--border-1)'}`,
+        borderRadius: 'var(--r-2)',
+        transition: 'background 120ms, border-color 120ms',
+        whiteSpace: 'nowrap',
+        position: 'relative',
+        boxShadow: active ? `inset 0 -2px 0 ${COLORS.info}` : 'none',
+      }}>
+      {tab.active && <Dot color={COLORS.info} pulse="pulse-a" size={6} />}
+      <span className="mono" style={{
+        fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: active ? 'var(--fg-2)' : 'var(--fg-3)',
+      }}>
+        Phase&nbsp;{tab.pid}
+      </span>
+      <span style={{
+        fontSize: 12.5,
+        color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+        fontWeight: active ? 600 : 400,
+      }}>
+        {tab.label}
+      </span>
+      <span style={{ color: 'var(--fg-4)' }}>·</span>
+      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+        {tab.pending ? 'pending'
+          : (tab.qTotal + tab.dTotal === 0) ? 'no items'
+          : <>
+              <span style={{ color: tab.qTotal > 0 ? COLORS.info : 'var(--fg-3)' }}>{tab.qTotal} Q</span>
+              <span style={{ color: 'var(--fg-4)' }}> · </span>
+              <span style={{ color: tab.dTotal > 0 ? COLORS.warn : 'var(--fg-3)' }}>{tab.dTotal} D</span>
+            </>
+        }
+      </span>
+    </button>
+  );
+}
+
+function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduced, onHighlight }) {
+  const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
+  if (pending) {
+    return (
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
+        <div style={{ textAlign: 'center', maxWidth: 280, lineHeight: 1.6, fontSize: 12.5 }}>
+          {phaseId === 2 ? (
+            <>
+              <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <AgentIcon agent="claude" size={16} />
+                <span className="mono" style={{ color: 'var(--fg-4)' }}>↔</span>
+                <AgentIcon agent="gpt" size={16} />
+              </div>
+              Negotiation hasn't started yet. Both agents are still drafting independent plans.
+            </>
+          ) : (
+            <>Cross-review begins after Phase 3 produces a converged draft.</>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (introduced === 0) {
+    const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
+    return (
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
+        <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
+          <div className="mono" style={{ fontSize: 12 }}>no questions or disagreements in this phase</div>
+          {suspectedMiss && (
+            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85 }}>
+              ⚠ couldn't reconstruct disagreements from this run — open the round files directly
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const renderItem = (item) => item._critiqueKind === 'q'
+    ? <QuestionCard key={item.id} q={item} onHighlight={onHighlight} />
+    : <DisagreementCard key={item.id} d={item} onHighlight={onHighlight} />;
+
+  return (
+    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
+      <div style={{ padding: '6px 24px 28px' }}>
+        {openItems.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={openItems.length} />}
+        {openItems.map(renderItem)}
+        {resolvedItems.length > 0 && (
+          <GroupHeader label="Resolved / answered" color={COLORS.ok} count={resolvedItems.length}
+                       style={{ marginTop: openItems.length ? 20 : 0 }} />
+        )}
+        {resolvedItems.map(renderItem)}
+      </div>
+    </div>
+  );
+}
+
+// Spec 0034: Question card in the explorer.
+function QuestionCard({ q, onHighlight }) {
+  const [open, setOpen] = React.useState(false);
+  const [hover, setHover] = React.useState(false);
+  const isAnswered = q.status === 'answered';
+  const accentColor = COLORS.info;
+  const raisedMeta = AGENT_META[q.raisedBy];
+  const answerMeta = q.answeredBy ? AGENT_META[q.answeredBy] : null;
+
+  const onCardClick = React.useCallback(() => {
+    if (onHighlight) {
+      const keys = [q.raisedTurnKey];
+      if (q.answeredTurnKey) keys.push(q.answeredTurnKey);
+      onHighlight(keys, 'q');
+    }
+    setOpen(o => !o);
+  }, [q, onHighlight]);
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        marginBottom: 8,
+        background: 'var(--bg-1)',
+        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
+        borderLeft: `3px solid ${accentColor}`,
+        borderRadius: 'var(--r-3)',
+        overflow: 'hidden',
+        transition: 'border-color 120ms',
+      }}
+    >
+      <button onClick={onCardClick} style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '12px 14px',
+        background: hover && !open ? 'var(--bg-2)' : 'transparent',
+        transition: 'background 120ms',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+          <span className="mono" style={{
+            fontSize: 10, color: COLORS.info, letterSpacing: '0.06em',
+            padding: '1px 6px', borderRadius: 4,
+            background: 'rgba(107,156,240,0.10)',
+            border: '1px solid rgba(107,156,240,0.30)',
+            flexShrink: 0,
+          }}>Q</span>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.35 }}>
+            {q.body || '(no body)'}
+          </span>
+          <span className="mono" style={{
+            fontSize: 10.5,
+            padding: '1px 6px', borderRadius: 999,
+            border: `1px solid ${isAnswered ? COLORS.ok + '55' : COLORS.warn + '55'}`,
+            color: isAnswered ? COLORS.ok : COLORS.warn,
+            background: isAnswered ? 'rgba(111,179,128,0.08)' : 'rgba(212,160,86,0.08)',
+            flexShrink: 0,
+          }}>
+            {isAnswered ? 'answered' : 'open'}
+          </span>
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          fontSize: 11, color: 'var(--fg-3)',
+        }}>
+          <span className="mono">{q.id}</span>
+          <span>·</span>
+          <span>raised by {raisedMeta?.name || q.raisedBy} R{q.raisedRound}</span>
+          {isAnswered && (
+            <>
+              <span>·</span>
+              <span>answered by {answerMeta?.name || q.answeredBy} R{q.answeredRound}</span>
+              {q.match === 'positional' && (
+                <span className="mono" style={{ color: COLORS.warn, opacity: 0.8 }}>
+                  · positional match
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      </button>
+      {open && (q.quote || q.after || q.answerBody) && (
+        <div style={{
+          padding: '10px 14px 14px',
+          borderTop: '1px solid var(--border-1)',
+          background: 'var(--bg-0)',
+          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.5,
+        }}>
+          {q.quote && (
+            <div style={{ marginBottom: 6 }}>
+              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
+              <span style={{ fontStyle: 'italic' }}>"{q.quote}"</span>
+            </div>
+          )}
+          {q.after && (
+            <div style={{ marginBottom: 6 }}>
+              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
+              <span style={{ fontStyle: 'italic' }}>{q.after}</span>
+            </div>
+          )}
+          {isAnswered && q.answerBody && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border-1)' }}>
+              <span className="mono" style={{ color: COLORS.ok, fontSize: 10.5, marginRight: 6 }}>answer:</span>
+              {q.answerBody}
+            </div>
+          )}
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -2836,9 +3510,21 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
   );
 }
 
-function DisagreementCard({ d }) {
+function DisagreementCard({ d, onHighlight }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
+
+  // Spec 0034: click highlights the raised/closed turn-cards in the
+  // timeline so the user can follow the disagreement's history visually.
+  const onCardClick = React.useCallback(() => {
+    if (onHighlight) {
+      const keys = [];
+      if (d.raisedTurnKey) keys.push(d.raisedTurnKey);
+      if (d.closedTurnKey) keys.push(d.closedTurnKey);
+      if (keys.length > 0) onHighlight(keys, 'd');
+    }
+    setOpen(o => !o);
+  }, [d, onHighlight]);
 
   const isResolved = d.status.startsWith('resolved');
   const which = isResolved ? d.status.split('-')[1] : null;
@@ -2878,7 +3564,7 @@ function DisagreementCard({ d }) {
         transition: 'border-color 120ms',
       }}
     >
-      <button onClick={() => setOpen(!open)} style={{
+      <button onClick={onCardClick} style={{
         display: 'block', width: '100%', textAlign: 'left',
         padding: '12px 14px',
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
@@ -2886,6 +3572,13 @@ function DisagreementCard({ d }) {
       }}>
         {/* Top row: label + status */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
+          <span className="mono" style={{
+            fontSize: 10, color: COLORS.warn, letterSpacing: '0.06em',
+            padding: '1px 6px', borderRadius: 4,
+            background: 'rgba(212,160,86,0.10)',
+            border: '1px solid rgba(212,160,86,0.30)',
+            flexShrink: 0,
+          }}>D</span>
           <span style={{ flex: 1, fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.35 }}>
             {d.shortLabel || d.point}
           </span>
@@ -3200,8 +3893,27 @@ function RunDetail({ run }) {
   // Spec 0033: Conversation/Consumption tab state lifted from Timeline so
   // the header can render the pill control.
   const [timelineTab, setTimelineTab] = React.useState('conversation');
+  // Spec 0034: cross-axis highlight. The CritiqueExplorer dispatches a
+  // set of turn-keys here; Timeline forwards them to each ArtifactCard,
+  // which applies a 1.5s flash ring. The Map carries the variant
+  // (``'q'`` or ``'d'``) so the ring colour matches the source type.
+  const [highlightedTurnKeys, setHighlightedTurnKeys] = React.useState(
+    () => new Map()
+  );
   React.useEffect(() => { setShowErrors(false); }, [run.id, run.phase, run.status]);
   React.useEffect(() => { setTimelineTab('conversation'); }, [run.id]);
+
+  const highlightTurns = React.useCallback((keys, variant) => {
+    const next = new Map();
+    for (const k of (keys || [])) {
+      if (k) next.set(k, variant);
+    }
+    setHighlightedTurnKeys(next);
+    // Auto-clear after 2s so subsequent unrelated clicks don't pile.
+    setTimeout(() => {
+      setHighlightedTurnKeys(new Map());
+    }, 2000);
+  }, []);
 
   const errorCount = (run.errors || []).length;
 
@@ -3229,8 +3941,12 @@ function RunDetail({ run }) {
           <RunErrorsView run={run} />
         ) : (
           <>
-            <Timeline run={run} tab={timelineTab} />
-            <DisagreementExplorer run={run} />
+            <Timeline
+              run={run}
+              tab={timelineTab}
+              highlightedTurnKeys={highlightedTurnKeys}
+            />
+            <CritiqueExplorer run={run} onHighlightTurns={highlightTurns} />
           </>
         )}
       </main>

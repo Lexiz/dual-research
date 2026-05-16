@@ -321,7 +321,15 @@ def _make_supabase_app(
         rows = res.data or []
         if not rows:
             raise HTTPException(status_code=404, detail="not found")
-        return PlainTextResponse(rows[0]["content"], media_type="text/plain; charset=utf-8")
+        body = rows[0]["content"]
+        # Spec 0034: same block-id injection for hosted serves.
+        if path.endswith(".md"):
+            try:
+                from dual_research.protocol.blocks import assign_block_ids
+                body, _ = assign_block_ids(body)
+            except Exception:
+                pass
+        return PlainTextResponse(body, media_type="text/plain; charset=utf-8")
 
     @app.get("/api/runs/{run_id}/attachments")
     async def list_attachments(run_id: str) -> JSONResponse:
@@ -768,6 +776,12 @@ def _read_scoped_file(session: Path, rel_path: str) -> str:
     """Read ``session/rel_path`` after verifying it stays inside ``session``.
 
     404s on traversal, non-allowed extensions, missing files, and binaries.
+
+    Spec 0034: ``.md`` files are rewritten through ``assign_block_ids``
+    on the way out so the rendered DOM carries the same block IDs the
+    aggregator pre-resolved against. The added ``<!-- block-id: b-N -->``
+    HTML comments are invisible to humans reading the rendered markdown
+    and are stripped + lifted by the frontend's Markdown renderer.
     """
     target = (session / rel_path).resolve()
     base = session.resolve()
@@ -778,9 +792,17 @@ def _read_scoped_file(session: Path, rel_path: str) -> str:
     if target.suffix not in _ALLOWED_FILE_EXT:
         raise HTTPException(status_code=404, detail="not found")
     try:
-        return target.read_text(encoding="utf-8")
+        body = target.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         raise HTTPException(status_code=404, detail="not found")
+    if target.suffix == ".md":
+        try:
+            from dual_research.protocol.blocks import assign_block_ids
+            body, _ = assign_block_ids(body)
+        except Exception:
+            # Defensive: never fail the read because of an ID-rewrite hiccup.
+            pass
+    return body
 
 
 async def _run_event_stream(session: Path, request: Request) -> AsyncIterator[dict]:
