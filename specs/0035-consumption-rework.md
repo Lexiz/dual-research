@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.33.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/37"
 ---
 
 # Spec 0035 — Consumption rework + header-placement fix + app-version chip
