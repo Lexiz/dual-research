@@ -50,18 +50,42 @@ function getActiveRunId() { return __activeRunId; }
 const DETAIL_POLL_MS = 5000;
 const CONNECTED_WINDOW_MS = 7000;
 
+// Spec 0041 D6 — load-time resilience.
+//
+// Pre-spec: a single transient 502 on the first poll (Fly machine
+// wake, Supabase materialise-temp-dir for a 141-event run) flipped
+// `error` immediately and the DetailScreen rendered a full-page
+// "Could not load run" until the next poll 5s later succeeded. The
+// user saw the error screen flash and disappear for no obvious
+// reason.
+//
+// Now: tolerate up to 2 consecutive failures before surfacing
+// `error`. Once we have run data, never overwrite it with an error
+// screen — a transient failure keeps showing the stale data while
+// the connected indicator dims. First-load retries are paced
+// faster (1s, 2s, 4s) before settling into 5s steady-state polling.
+const INITIAL_RETRY_DELAYS_MS = [1000, 2000, 4000];
+const ERROR_VISIBILITY_THRESHOLD = 3;
+
 function useLiveRun(runId) {
   const [run, setRun] = React.useState(null);
   const [error, setError] = React.useState(null);
   const [lastOk, setLastOk] = React.useState(0);
+  const runRef = React.useRef(null);
+  const consecErrorsRef = React.useRef(0);
 
   React.useEffect(() => {
     if (!runId) return;
     setRun(null);
     setError(null);
     setLastOk(0);
+    runRef.current = null;
+    consecErrorsRef.current = 0;
 
     let cancelled = false;
+    let attempt = 0;
+    let timer = null;
+
     const tick = () => {
       authedFetch(`/api/runs/${encodeURIComponent(runId)}`)
         .then(r => {
@@ -70,15 +94,40 @@ function useLiveRun(runId) {
         })
         .then(data => {
           if (cancelled) return;
+          runRef.current = data;
           setRun(data);
           setLastOk(Date.now());
           setError(null);
+          consecErrorsRef.current = 0;
         })
-        .catch(e => { if (!cancelled) setError(String(e)); });
+        .catch(e => {
+          if (cancelled) return;
+          consecErrorsRef.current += 1;
+          // Never overwrite a successful run with an error screen —
+          // the connected indicator dims naturally when polls fail.
+          // The error screen only fires on the initial-load sequence,
+          // and only after ERROR_VISIBILITY_THRESHOLD consecutive
+          // failures (so a single transient 502 doesn't flash).
+          if (runRef.current == null
+              && consecErrorsRef.current >= ERROR_VISIBILITY_THRESHOLD) {
+            setError(String(e));
+          }
+        });
     };
-    tick();
-    const id = setInterval(tick, DETAIL_POLL_MS);
-    return () => { cancelled = true; clearInterval(id); };
+
+    const schedule = () => {
+      tick();
+      attempt += 1;
+      const next = attempt - 1 < INITIAL_RETRY_DELAYS_MS.length
+        ? INITIAL_RETRY_DELAYS_MS[attempt - 1]
+        : DETAIL_POLL_MS;
+      timer = setTimeout(schedule, next);
+    };
+    timer = setTimeout(schedule, 0);
+    return () => {
+      cancelled = true;
+      if (timer != null) clearTimeout(timer);
+    };
   }, [runId]);
 
   const [connected, setConnected] = React.useState(false);

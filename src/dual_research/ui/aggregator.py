@@ -27,6 +27,8 @@ from dual_research.protocol.parse import (
     synthesise_brief_tldr,
 )
 from dual_research.ui.disagreements import mark_deadlocked_open, reconstruct
+from dual_research.ui.comments import reconstruct_comments
+from dual_research.ui.issues import reconstruct_issues
 from dual_research.ui.questions import reconstruct_questions
 from dual_research.ui.errors import derive_errors
 from dual_research.ui.labels import (
@@ -112,6 +114,18 @@ def load_run_snapshot(session_dir: Path) -> Run:
     q2 = reconstruct_questions(session_dir, phase=2)
     q4 = reconstruct_questions(session_dir, phase=4)
     run.questions = q2 + q4
+    # Spec 0041: Phase 4 Issue ledger + Comments are reconstructed
+    # separately and travel on their own ``Run`` lists so the UI can
+    # render them as distinct typed groups. Phase 2 occasionally
+    # emits issues too; reconstruct both phases for both kinds.
+    run.issues = (
+        reconstruct_issues(session_dir, phase=2)
+        + reconstruct_issues(session_dir, phase=4)
+    )
+    run.comments = (
+        reconstruct_comments(session_dir, phase=2)
+        + reconstruct_comments(session_dir, phase=4)
+    )
     # Anchor pre-resolution for questions: same prior-content lookup as
     # used by ``_read_phase_review_items``.
     _resolve_question_anchors(session_dir, run.questions)

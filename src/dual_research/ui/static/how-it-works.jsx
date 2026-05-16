@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.39.0',
+      date: '2026-05-16',
+      summary: 'Critique classification fix + load-time resilience + sentiment paragraph + tighter cards.',
+      items: [
+        "Phase 4 critique now distinguishes Issues, Questions, Disagreements, and Comments instead of bucketing them all as 'questions'. The protocol uses three different markdown sections (Issue ledger, Open questions for X, Comments on the current draft) with different closure semantics, but the parser previously classified all three as 'question' — which is why partner-vetting's Phase 4 read 'APPROVED with 0 open issues' on the timeline and '74 questions, 61 open' on the critique pane at the same time. Phase 4 now reports 30 I (30 resolved · 0 open) · 0 Q · 0 D · 33 C, reconciling with the timeline.",
+        "Phase 4 issue status comes from the markers inside each ledger entry ('open' / 'resolved' / 'non-blocking') — matching the agent's own OPEN_ISSUES: N end-of-turn counter. No more cross-round positional-match heuristic that mis-classified resolved items as still-open.",
+        "The 'Could not load run' flash on initial page load is gone. useLiveRun now retries the first poll at 1s, 2s, 4s before settling into 5s steady-state. A single transient 502 (Fly cold-start wake + Supabase materialise) silently retries until the second poll succeeds. Once we have run data, a transient failure NEVER replaces the page with the error screen — the connected indicator dims naturally.",
+        "Question / disagreement / issue / comment card headlines truncate hard at ~70 characters before the ellipsis. Column reads as a scannable list; the full text is in the expanded body and on hover.",
+        "Timeline plan/turn cards now lead with an overall-sentiment paragraph on every phase: Positive — / Mostly positive — / Cautious — / Critical — / Solid — / Done —. Pre-spec, Phase 0 / 1 / 3 / 5 produced no sentiment and Phase 2 / 4 were terse. Now: '**Cautious —** Claude's round-1 difference inventory. Raised 6 new questions. Standing: 6 open questions.'",
+        "New IssueCard and CommentCard components in the critique pane mirror the QuestionCard shape. Type filter strip becomes All / Issues / Questions / Disagreements / Comments with per-kind pills. Phase tab counts show I/Q/D/C breakdown (zeros collapse). Summary tab table gains I raised / I resolved / I still open + C noted columns.",
+      ],
+    },
+    {
       version: '0.38.0',
       date: '2026-05-16',
       summary: 'Critique rework — Phase 4 answer linkage fix, compact cards, Summary tab, Timeline tabs re-alignment.',

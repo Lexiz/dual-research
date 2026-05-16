@@ -172,9 +172,13 @@ def test_phase4_review_items_keyed_correctly(tmp_path: Path) -> None:
     key = "phase4_round1_gpt"
     assert key in run.phase_review_items
     items = run.phase_review_items[key]
-    # Both Comments (2) and Issue ledger (1) items, all classified as "question".
+    # Spec 0041 D1 — the parser now classifies the three Phase 4
+    # sections under distinct kinds (issue / comment / question)
+    # instead of bucketing all three under "question". The aggregator
+    # surfaces them on this list in the order their sections appear.
     assert len(items) == 3
-    assert all(i["kind"] == "question" for i in items)
+    kinds = sorted(i["kind"] for i in items)
+    assert kinds == ["comment", "comment", "issue"]
     # Phase 2 keys still absent.
     assert all(k.startswith("phase4_") for k in run.phase_review_items.keys())
 

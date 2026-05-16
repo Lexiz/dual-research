@@ -314,7 +314,7 @@ class ReviewItem:
     (paraphrased anchor / parser miss).
     """
 
-    kind: str           # "question" | "disagreement" | "resolved"
+    kind: str           # "question" | "disagreement" | "resolved" | "issue" | "comment"
     body: str           # the item's full body, joined newlines
     quote: str | None   # verbatim ≤25-word span (anchor target)
     after: str | None   # heading text for "missing X" critiques
@@ -361,8 +361,18 @@ def _extract_anchor_markers(body_lines: list[str]) -> tuple[str | None, str | No
     return quote, after
 
 
-def _walk_section_questions(body: str) -> list[ReviewItem]:
-    """Yield ReviewItems for a numbered-list section (Open questions, etc)."""
+def _walk_section_items(body: str, *, kind: str = "question") -> list[ReviewItem]:
+    """Yield ReviewItems for a numbered-list section.
+
+    The classifier — spec 0041 D1 — passes the kind explicitly:
+    - ``Open questions for {other}``   → ``kind="question"``
+    - ``Issue ledger (delta + currently open)`` → ``kind="issue"``
+    - ``Comments on the current draft`` → ``kind="comment"``
+    Pre-0041 the parser bucketed all three under ``"question"`` "so the
+    UI groups them"; the side-effect was a Phase 4 critique view that
+    reported 61 open ``questions`` for a run that the protocol counted
+    as 0 open issues + approved. The kinds now match the protocol.
+    """
     out: list[ReviewItem] = []
     lines = body.splitlines()
     current: list[str] | None = None
@@ -381,7 +391,7 @@ def _walk_section_questions(body: str) -> list[ReviewItem]:
         quote, after = _extract_anchor_markers(current)
         out.append(
             ReviewItem(
-                kind="question",
+                kind=kind,
                 body=body_text,
                 quote=quote,
                 after=after,
@@ -389,14 +399,32 @@ def _walk_section_questions(body: str) -> list[ReviewItem]:
             )
         )
 
+    # Spec 0041 — Issue ledgers in this run alternate between two styles:
+    #   GPT  uses  ``1. **OAI-1 — open — ...**``  (numbered + bold)
+    #   Claude uses ``**C-1** — `open` — ...``   (bold heading only)
+    # Both should be treated as discrete entries. We detect either a
+    # numbered prefix or a bold-prefixed ID-token line as a new entry.
     for line in lines:
-        if _NUMBERED_RE.match(line):
+        if _NUMBERED_RE.match(line) or _BOLD_ID_HEADING_RE.match(line):
             _flush()
             current = [line]
         elif current is not None:
             current.append(line)
     _flush()
     return out
+
+
+# A bolded ledger-entry header: line starts with ``**`` followed by a
+# token that looks like an issue/disagreement ID (``C-1`` / ``OAI-3`` /
+# ``D-5`` / ``D-OAI-1``). Used by ``_walk_section_items`` to recognise
+# the Claude-style Issue ledger that's bold-prefixed but not numbered.
+_BOLD_ID_HEADING_RE = re.compile(
+    r"^\s*\*\*\s*(?:[A-Z]{1,4}-)+(?:[A-Z]+-)?\d+\b",
+)
+
+
+# Back-compat alias — preserved so any external caller still works.
+_walk_section_questions = _walk_section_items
 
 
 def _walk_section_disagreements(body: str, *, kind: str) -> list[ReviewItem]:
@@ -475,36 +503,26 @@ def extract_review_items(turn_text: str) -> list[ReviewItem]:
     open_q_match = re.search(r"^##\s+Open questions for .+?$", turn_text, re.MULTILINE)
     if open_q_match:
         body = _section_body_at(turn_text, open_q_match.end())
-        out.extend(_walk_section_questions(body))
+        out.extend(_walk_section_items(body, kind="question"))
 
     # Round-1 difference inventory (numbered list, similar shape).
     diff_match = re.search(r"^##\s+Diff vs .+?Phase 1\s*$", turn_text, re.MULTILINE)
     if diff_match:
         body = _section_body_at(turn_text, diff_match.end())
-        # Reclassify these as disagreements — they're structurally diffs.
-        for item in _walk_section_questions(body):
-            out.append(
-                ReviewItem(
-                    kind="disagreement",
-                    body=item.body,
-                    quote=item.quote,
-                    after=item.after,
-                    item_id=item.item_id,
-                )
-            )
+        out.extend(_walk_section_items(body, kind="disagreement"))
 
-    # Phase 4 — Issue ledger (numbered list, structurally similar to
-    # Open questions). Classify as "question" so the UI groups them
-    # alongside other open-action items.
+    # Spec 0041 D1 — Phase 4 ``Issue ledger`` and ``Comments on the
+    # current draft`` no longer get bucketed as "question". They have
+    # different protocol semantics (issues are stateful and closed by
+    # the drafter's revision; comments are non-blocking) and the
+    # critique pane now renders them as their own typed groups.
     body_issues = extract_fenced_section(turn_text, "Issue ledger (delta + currently open)")
     if body_issues:
-        out.extend(_walk_section_questions(body_issues))
+        out.extend(_walk_section_items(body_issues, kind="issue"))
 
-    # Phase 4 — Comments on the current draft (numbered list). Same
-    # treatment as Open questions for grouping purposes.
     body_comments = extract_fenced_section(turn_text, "Comments on the current draft")
     if body_comments:
-        out.extend(_walk_section_questions(body_comments))
+        out.extend(_walk_section_items(body_comments, kind="comment"))
 
     body_substantive = extract_fenced_section(turn_text, "Substantive disagreements I'm holding")
     if body_substantive:

@@ -239,6 +239,21 @@ def test_phase4_answers_section_uses_prior_comments_heading(tmp_path: Path) -> N
     assert q.answered_turn_key == "phase4_round2_gpt"
 
 
+def test_phase4_issue_ledger_only_produces_no_questions(tmp_path: Path) -> None:
+    """Spec 0041 D2 — when a Phase 4 turn only has an Issue ledger
+    section (no ``## Open questions for X``), the question
+    reconstructor returns zero. Pre-spec the parser bucketed Issue
+    ledger items under ``kind="question"`` and inflated the count."""
+    phase4 = tmp_path / "phase4"
+    phase4.mkdir()
+    _seed_phase2_round_file(
+        phase4, 1, "claude",
+        "## Issue ledger (delta + currently open)\n\n"
+        "**C-1** — `open` — A draft-level concern.\n",
+    )
+    assert reconstruct_questions(tmp_path, phase=4) == []
+
+
 def test_phase2_answers_open_questions_heading_still_recognised(tmp_path: Path) -> None:
     """Spec 0040 D1 regression guard — the Phase 2 ``open questions``
     phrasing must continue to work after the regex accepts both forms.

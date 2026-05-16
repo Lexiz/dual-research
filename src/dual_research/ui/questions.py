@@ -49,6 +49,12 @@ def _extract_questions_from_turn(turn_text: str) -> list[tuple[str, str | None, 
 
     Returns ``[(body, quote, after), ...]`` in the order the parser
     emitted them — which mirrors the agent's numbered list.
+
+    Spec 0041 D2 — only items classified as ``kind="question"`` count
+    here. Pre-0041 the parser bucketed Phase 4's Issue ledger and
+    Comments sections under ``"question"`` too; those now have their
+    own kinds (``"issue"`` / ``"comment"``) and their own reconstruction
+    paths in ``ui/issues.py`` / ``ui/comments.py``.
     """
     items = extract_review_items(turn_text)
     return [(it.body, it.quote, it.after) for it in items if it.kind == "question"]
