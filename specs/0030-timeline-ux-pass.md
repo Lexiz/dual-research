@@ -3,10 +3,10 @@ spec: 0030
 title: Timeline UX pass — inline unfold, per-input segments, real context windows, parser repairs
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.28.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/32"
 ---
 
 # Spec 0030 — Timeline UX pass
