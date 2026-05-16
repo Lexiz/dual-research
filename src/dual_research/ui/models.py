@@ -264,14 +264,21 @@ class Run:
     # agent didn't write one — the UI renders the card without a TL;DR.
     brief_summary: str | None = None
     phase_summaries: dict[str, str] = field(default_factory=dict)
-    # ─── Review items (spec 0027) ─────────────────────────────────────────────
+    # ─── Review items (spec 0027 + 0028) ──────────────────────────────────────
     # Structured questions / disagreements / resolved items extracted from
-    # Phase 2 turn bodies. Keyed by `phase2_round{R}_<agent>` — same shape
-    # as `phase_summaries`. Each value is a list of dicts shaped like
+    # Phase 2 + Phase 4 turn bodies. Keyed by `phase{N}_round{R}_<agent>`.
+    # Each value is a list of dicts shaped like
     # `{kind, body, quote, after, item_id}` (serialised from ReviewItem).
     # Empty when the agent didn't anchor anything; missing keys for turns
     # we couldn't parse.
     phase_review_items: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    # ─── Phase 4 left-pane resolver (spec 0028) ───────────────────────────────
+    # Path (relative to the session-dir) of the latest converged-document
+    # version available — highest `phase4/draft-v*.md` if any drafter
+    # revisions have landed, else `phase3/draft-v1.md`. Used by the Phase 4
+    # side-by-side modal's left pane. None when neither file exists yet
+    # (Phase 3 hasn't completed).
+    current_draft_path: str | None = None
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────

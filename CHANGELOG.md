@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.26.0] — 2026-05-16
+
+### Added
+
+- **Cross-review inline comments — Phase 4 side-by-side modal** ([spec 0028](specs/0028-review-inline-comments.md)) — final spec on the visualisation track. Clicking a Phase 4 turn card now opens the same side-by-side modal as Phase 2: left pane is the **current converged document**, right pane is the agent's issues / comments / disagreements as anchored cards. Click a card → left pane scrolls + flashes; `> after:` cards mount a dashed "insert here" ghost block. The aggregator picks the highest-numbered `phase4/draft-v*.md` if drafter revisions have landed, else falls back to `phase3/draft-v1.md`, and surfaces the result as `Run.current_draft_path` (camelCase `currentDraftPath` at the wire). `review_turn_prompt` gains the same one-paragraph anchor hint under `## Issue ledger`, `## Comments on the current draft`, and `## Substantive disagreements I'm holding` — asking each numbered item / D-N entry to carry an optional `> quote: <verbatim ≤25-word span>` or `> after: <heading title>` blockquote sub-line. The `extract_review_items` parser learns two new section recognisers (`## Issue ledger (delta + currently open)` and `## Comments on the current draft`); existing recognisers (Open questions, Substantive disagreements, Resolved or non-blocking, Final-surfaced, Round-1 diff) keep their behaviour. The aggregator's `_read_phase_review_items` walks Phase 4 round files too, keyed as `phase4_round{R}_<agent>` — same shape as Phase 2's keys. The frontend dispatches both `statsPhase === 2` and `statsPhase === 4` turn cards to `NegotiateReviewModal`; `priorContentPathFor` returns `run.currentDraftPath` for Phase 4 items and the existing other-agent prior turn for Phase 2. Phase 3 (single-shot drafting) and the final document stay single-pane — no critique sections to anchor. 13 new tests covering Phase 4 parser shapes, Phase 4 prompt marker presence in all three sections, aggregator keying, `current_draft_path` resolution (highest revision wins, falls back to phase3, null when neither exists), and wire-format presence of `currentDraftPath`. 372 total green.
+
 ## [0.25.0] — 2026-05-16
 
 ### Added

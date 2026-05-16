@@ -163,3 +163,96 @@ def test_returns_review_item_dataclass() -> None:
     ).strip()
     items = extract_review_items(text)
     assert isinstance(items[0], ReviewItem)
+
+
+# ─── Phase 4 sections (spec 0028) ────────────────────────────────────────────
+
+
+def test_phase4_issue_ledger_extracted() -> None:
+    text = dedent(
+        """
+        STATUS: REVIEWING
+
+        ## Issue ledger (delta + currently open)
+
+        1. I-1 status: open — Confidence ledger missing for the cohort baseline.
+           > after: 6. Confidence ledger
+        2. I-2 status: open — Sources section duplicates citation [4] and [7].
+           > quote: [4] U.S. Census Bureau, "American Community Survey 2024"
+
+        ## Evidence checked this round
+        - foo
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 2
+    assert items[0].after == "6. Confidence ledger"
+    assert items[1].quote and "American Community Survey" in items[1].quote
+
+
+def test_phase4_comments_on_draft_extracted() -> None:
+    text = dedent(
+        """
+        STATUS: REVIEWING
+
+        ## Comments on the current draft
+
+        1. (a) Findings section, second paragraph; (b) framing reads as causal but
+           the underlying evidence is correlational; (c) reframe as "associated with".
+           > quote: density causes lower per-household retrofit cost
+        2. (a) Disagreements section; (b) FSD-2 missing from the body; (c) add it.
+           > after: 3. Disagreements left open
+
+        ## Disagreement carryover audit
+        - foo
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 2
+    assert items[0].quote and "density causes lower" in items[0].quote
+    assert items[1].after == "3. Disagreements left open"
+
+
+def test_phase4_issue_ledger_and_comments_combine() -> None:
+    text = dedent(
+        """
+        STATUS: REVIEWING
+
+        ## Issue ledger (delta + currently open)
+
+        1. I-1 status: open — One issue.
+           > quote: claim under question
+
+        ## Comments on the current draft
+
+        1. (a) section x; (b) issue y; (c) change z.
+           > after: 4. Operations
+
+        ## Disagreement carryover audit
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 2
+    # Order: Issue ledger before Comments (matches section order in the text).
+    assert items[0].quote == "claim under question"
+    assert items[1].after == "4. Operations"
+
+
+def test_phase4_substantive_disagreements_extracted() -> None:
+    """Phase 4 turns reuse the same `## Substantive disagreements I'm holding`
+    section shape as Phase 2 — the existing parser path handles them."""
+    text = dedent(
+        """
+        STATUS: REVIEWING
+
+        ## Substantive disagreements I'm holding
+
+        - D-5: cohort definition — status: open
+          > quote: we limit the cohort to single-family households
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 1
+    assert items[0].kind == "disagreement"
+    assert items[0].item_id == "D-5"
+    assert items[0].quote and "cohort to single-family" in items[0].quote

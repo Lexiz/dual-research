@@ -138,3 +138,74 @@ def test_malformed_round_files_skipped(tmp_path: Path) -> None:
     )
     run = load_run_snapshot(session)
     assert run.phase_review_items == {}
+
+
+# ─── Phase 4 + current_draft_path (spec 0028) ────────────────────────────────
+
+
+def test_phase4_review_items_keyed_correctly(tmp_path: Path) -> None:
+    session = tmp_path / "20260516-100000-p4"
+    session.mkdir()
+    _minimal_session(session)
+    (session / "phase4").mkdir()
+    (session / "phase4" / "round-01-openai.md").write_text(
+        dedent(
+            """
+            STATUS: REVIEWING
+
+            ## Comments on the current draft
+
+            1. (a) Findings section; (b) framing reads as causal; (c) reframe.
+               > quote: density causes lower per-household retrofit cost
+            2. (a) Disagreements; (b) FSD-2 missing; (c) add it.
+               > after: 3. Disagreements left open
+
+            ## Issue ledger (delta + currently open)
+
+            1. I-1 status: open — Confidence ledger missing for baseline cohort.
+               > after: 6. Confidence ledger
+            """
+        ).strip(),
+        encoding="utf-8",
+    )
+    run = load_run_snapshot(session)
+    key = "phase4_round1_gpt"
+    assert key in run.phase_review_items
+    items = run.phase_review_items[key]
+    # Both Comments (2) and Issue ledger (1) items, all classified as "question".
+    assert len(items) == 3
+    assert all(i["kind"] == "question" for i in items)
+    # Phase 2 keys still absent.
+    assert all(k.startswith("phase4_") for k in run.phase_review_items.keys())
+
+
+def test_current_draft_path_falls_back_to_phase3(tmp_path: Path) -> None:
+    session = tmp_path / "20260516-100000-p3only"
+    session.mkdir()
+    _minimal_session(session)
+    (session / "phase3").mkdir()
+    (session / "phase3" / "draft-v1.md").write_text("# Draft v1\n", encoding="utf-8")
+    run = load_run_snapshot(session)
+    assert run.current_draft_path == "phase3/draft-v1.md"
+
+
+def test_current_draft_path_prefers_highest_phase4_revision(tmp_path: Path) -> None:
+    session = tmp_path / "20260516-100000-revisions"
+    session.mkdir()
+    _minimal_session(session)
+    (session / "phase3").mkdir()
+    (session / "phase3" / "draft-v1.md").write_text("v1\n", encoding="utf-8")
+    (session / "phase4").mkdir()
+    (session / "phase4" / "draft-v2.md").write_text("v2\n", encoding="utf-8")
+    (session / "phase4" / "draft-v4.md").write_text("v4\n", encoding="utf-8")
+    (session / "phase4" / "draft-v3.md").write_text("v3\n", encoding="utf-8")
+    run = load_run_snapshot(session)
+    assert run.current_draft_path == "phase4/draft-v4.md"
+
+
+def test_current_draft_path_null_when_phase3_not_complete(tmp_path: Path) -> None:
+    session = tmp_path / "20260516-100000-early"
+    session.mkdir()
+    _minimal_session(session)
+    run = load_run_snapshot(session)
+    assert run.current_draft_path is None

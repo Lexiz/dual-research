@@ -588,6 +588,16 @@ Address every comment/question {other_name} raised in their most recent turn. "(
 ## Issue ledger (delta + currently open)
 Numbered list. Include (a) all currently open issues with stable IDs and current status, (b) new issues raised this round with stable IDs assigned by the agent who raises them, (c) status changes for previously raised issues — status one of `open` / `accepted` / `rejected` / `resolved`, each with a one-sentence reason. Resolved historical issues can be referenced by ID rather than re-emitted in full. The DRAFTER must answer every prior `open` issue this round as accepted / rejected / resolved / still-open; silent skipping is not allowed.
 
+For each `open` issue, add ONE blockquote line right under the numbered item anchoring the issue to a specific span on the current draft:
+
+  > quote: <a verbatim ≤25-word span from the current draft this issue is about>
+
+If the issue is about MISSING content, use:
+
+  > after: <verbatim section heading the missing content should follow, without the leading "## ">
+
+The anchor is one line, a markdown blockquote, immediately under the item. Skip it when no specific span is being critiqued. Un-anchored issues are fine; the UI just won't auto-scroll the draft when the user clicks them.
+
 ## Evidence checked this round
 Required every round. Use these exact sub-fields:
 - New research performed: <list with inline source citations, or "(none)">
@@ -605,6 +615,16 @@ Evidence discipline rule: if you raise a factual, citation, market, legal, techn
 ## Comments on the current draft
 Numbered list of new or still-open comments. For each: (a) location in the draft (section name and quoted line if possible), (b) the issue, (c) the specific change you want. Structure, clarity, framing, citation completeness, and rhetorical framing are ALL in scope — for a research document, structure is substance when it affects the document's correctness, completeness, or usefulness. Word-choice quibbles that do not affect any of those are out of scope.
 
+Right under each numbered comment, add ONE blockquote line anchoring the comment to the current draft:
+
+  > quote: <a verbatim ≤25-word span from the current draft this comment is about>
+
+If the comment is about MISSING content, use:
+
+  > after: <verbatim section heading the missing content should follow, without the leading "## ">
+
+The anchor is one line, a markdown blockquote, immediately under the numbered item. The (a) sub-bullet may already paraphrase a location — the blockquote anchor is the machine-readable form the UI uses to scroll the draft into view. Skip the anchor when no specific span is being critiqued.
+
 ## Disagreement carryover audit
 Required in round 1 and in any turn emitting STATUS: APPROVED. Optional in other rounds.
 
@@ -614,6 +634,16 @@ Required in round 1 and in any turn emitting STATUS: APPROVED. Optional in other
 
 ## Substantive disagreements I'm holding
 Numbered list. For each: your position, {other_name}'s position, why you are holding, and one-sentence materiality test (how would this change the final document?). If you cannot state materiality, drop the item.
+
+For each entry, optionally add ONE blockquote line anchoring the disagreement to the current draft:
+
+  > quote: <a verbatim ≤25-word span from the current draft this disagreement is about>
+
+or, for disagreements about MISSING content:
+
+  > after: <verbatim section heading the missing content should follow, without the leading "## ">
+
+The anchor is one line, a markdown blockquote, immediately under the numbered item. Un-anchored entries are fine.
 
 ## Drafter revision note
 If you are the DRAFTER ({drafter_name}), for every comment from {other_name}'s prior turn state:

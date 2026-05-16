@@ -735,7 +735,8 @@ function ArtifactModal({ item, run, onClose }) {
   if (item.kind === 'input') {
     return <PreflightModal item={item} run={run} onClose={onClose} accent={accent} />;
   }
-  if ((item.kind === 'turn' || item.kind === 'turn-live') && item.statsPhase === 2) {
+  if ((item.kind === 'turn' || item.kind === 'turn-live')
+      && (item.statsPhase === 2 || item.statsPhase === 4)) {
     return <NegotiateReviewModal item={item} run={run} meta={meta} onClose={onClose} accent={accent} />;
   }
   return <DocumentModal item={item} meta={meta} onClose={onClose} accent={accent} />;
@@ -771,7 +772,7 @@ function DocumentModal({ item, meta, onClose, accent }) {
 // under the anchored heading.
 function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
   const otherAgent = item.agent === 'claude' ? 'gpt' : 'claude';
-  const priorFilePath = priorContentPathFor(item, otherAgent);
+  const priorFilePath = priorContentPathFor(item, otherAgent, run);
   const items = reviewItemsFor(run, item);
 
   const leftRef = React.useRef(null);
@@ -859,7 +860,9 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 
   const turnLabel = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
   const title = `${meta?.name || 'Agent'} — ${turnLabel}`;
-  const subtitle = `round ${item.round} · reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+  const subtitle = item.statsPhase === 4
+    ? `round ${item.round} · reviewing the converged document`
+    : `round ${item.round} · reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
 
   return (
     <Modal
@@ -892,9 +895,16 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
             display: 'flex', alignItems: 'center', gap: 8,
             flexShrink: 0,
           }}>
-            <AgentIcon agent={otherAgent} size={14} />
+            {item.statsPhase === 4 ? (
+              <span className="mono" style={{
+                fontSize: 10, color: 'var(--fg-2)',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+              }}>current draft</span>
+            ) : (
+              <AgentIcon agent={otherAgent} size={14} />
+            )}
             <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
-              {priorFilePath}
+              {priorFilePath || '— no draft yet —'}
             </span>
           </div>
           <div ref={leftRef} style={{
@@ -1098,9 +1108,20 @@ function ReviewCard({ item, color, active, onClick }) {
   );
 }
 
-// Resolve which file the left pane should render for a given Phase 2 turn item.
-// Round N≥2: the OTHER agent's round N-1 turn file. Round 1: their Phase 1 draft.
-function priorContentPathFor(item, otherUiAgent) {
+// Resolve which file the left pane should render for a side-by-side modal.
+//
+// Phase 2:
+//   - Round 1: the OTHER agent's Phase 1 draft.
+//   - Round N≥2: the OTHER agent's round N-1 turn file.
+// Phase 4:
+//   - The latest converged-document version available, surfaced by the
+//     aggregator on `run.currentDraftPath`. Falls back to `phase3/draft-v1.md`
+//     server-side; null when neither file exists yet.
+function priorContentPathFor(item, otherUiAgent, run) {
+  const phase = item.statsPhase || 2;
+  if (phase === 4) {
+    return run?.currentDraftPath || null;
+  }
   const beAgent = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
   const round = Number(item.round) || 1;
   if (round <= 1) return `phase1/draft-${beAgent}.md`;
@@ -1109,7 +1130,8 @@ function priorContentPathFor(item, otherUiAgent) {
 }
 
 function reviewItemsFor(run, item) {
-  const key = `phase2_round${item.round}_${item.agent}`;
+  const phase = item.statsPhase || 2;
+  const key = `phase${phase}_round${item.round}_${item.agent}`;
   const bucket = (run.phaseReviewItems || {})[key];
   return Array.isArray(bucket) ? bucket : [];
 }

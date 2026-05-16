@@ -88,9 +88,12 @@ def load_run_snapshot(session_dir: Path) -> Run:
     run.brief_summary = _read_brief_summary(session_dir)
     run.phase_summaries = _read_phase_summaries(session_dir)
 
-    # Review items (spec 0027): structured questions / disagreements
-    # extracted from every Phase 2 turn body.
+    # Review items (spec 0027 + 0028): structured questions /
+    # disagreements extracted from every Phase 2 + Phase 4 turn body.
     run.phase_review_items = _read_phase_review_items(session_dir)
+    # Latest converged-document path — used by the Phase 4 side-by-side
+    # modal's left pane.
+    run.current_draft_path = _find_current_draft_path(session_dir)
 
     # started_at_ago is "now" relative to the earliest event.
     run.started_at_ago = _seconds_since(run.started_at)
@@ -698,36 +701,68 @@ def _ui_agent(backend_agent: str) -> str:
 
 
 def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
-    """Walk every Phase 2 turn file and extract structured review items.
+    """Walk every Phase 2 + Phase 4 turn file and extract review items.
 
-    Keyed by `phase2_round{R}_<agent>` — same convention as
-    `phase_summaries`. Phase 4 cross-review reuses the same parser
-    in spec 0028; for now this only walks phase2.
+    Keyed by `phase{N}_round{R}_<agent>` — same convention as
+    `phase_summaries`. Phase 4 was added in spec 0028 (cross-review
+    side-by-side modal); the section taxonomy in `extract_review_items`
+    handles both phases.
     """
     out: dict[str, list[dict]] = {}
-    phase_dir = session_dir / "phase2"
-    if not phase_dir.exists():
-        return out
-    for entry in sorted(phase_dir.iterdir()):
-        if not entry.is_file() or not entry.name.endswith(".md"):
+    for phase_n in (2, 4):
+        phase_dir = session_dir / f"phase{phase_n}"
+        if not phase_dir.exists():
             continue
-        if ".malformed" in entry.name:
-            continue
-        m = _ROUND_FILE_RE.match(entry.name)
-        if not m:
-            continue
-        round_n = int(m.group(1))
-        agent = m.group(2)
-        try:
-            text = entry.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        items = extract_review_items(text)
-        if not items:
-            continue
-        key = f"phase2_round{round_n}_{_ui_agent(agent)}"
-        out[key] = [asdict(i) for i in items]
+        for entry in sorted(phase_dir.iterdir()):
+            if not entry.is_file() or not entry.name.endswith(".md"):
+                continue
+            if ".malformed" in entry.name:
+                continue
+            m = _ROUND_FILE_RE.match(entry.name)
+            if not m:
+                continue
+            round_n = int(m.group(1))
+            agent = m.group(2)
+            try:
+                text = entry.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            items = extract_review_items(text)
+            if not items:
+                continue
+            key = f"phase{phase_n}_round{round_n}_{_ui_agent(agent)}"
+            out[key] = [asdict(i) for i in items]
     return out
+
+
+_DRAFT_VERSION_RE = re.compile(r"^draft-v(\d+)\.md$")
+
+
+def _find_current_draft_path(session_dir: Path) -> str | None:
+    """Return the latest converged-document path, relative to session-dir.
+
+    Prefers the highest-numbered `phase4/draft-v*.md` (drafter revisions
+    that land in Phase 4); falls back to `phase3/draft-v1.md`. Returns
+    None when neither file exists yet (Phase 3 hasn't completed).
+    """
+    phase4 = session_dir / "phase4"
+    if phase4.is_dir():
+        best: tuple[int, str] | None = None
+        for entry in phase4.iterdir():
+            if not entry.is_file():
+                continue
+            m = _DRAFT_VERSION_RE.match(entry.name)
+            if not m:
+                continue
+            n = int(m.group(1))
+            if best is None or n > best[0]:
+                best = (n, entry.name)
+        if best is not None:
+            return f"phase4/{best[1]}"
+    phase3 = session_dir / "phase3" / "draft-v1.md"
+    if phase3.is_file():
+        return "phase3/draft-v1.md"
+    return None
 
 
 def _scan_disagreement_anchors(session_dir: Path) -> bool:

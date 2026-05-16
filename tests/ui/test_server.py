@@ -175,6 +175,8 @@ class TestRunSnapshot:
             "disagreements",
             "errors",
             "phaseTimings",
+            "phaseReviewItems",   # spec 0027
+            "currentDraftPath",   # spec 0028
         ):
             assert k in body, f"missing key {k}"
         assert body["topic"] == "Topic X"

@@ -368,6 +368,19 @@ def extract_review_items(turn_text: str) -> list[ReviewItem]:
                 )
             )
 
+    # Phase 4 — Issue ledger (numbered list, structurally similar to
+    # Open questions). Classify as "question" so the UI groups them
+    # alongside other open-action items.
+    body_issues = extract_fenced_section(turn_text, "Issue ledger (delta + currently open)")
+    if body_issues:
+        out.extend(_walk_section_questions(body_issues))
+
+    # Phase 4 — Comments on the current draft (numbered list). Same
+    # treatment as Open questions for grouping purposes.
+    body_comments = extract_fenced_section(turn_text, "Comments on the current draft")
+    if body_comments:
+        out.extend(_walk_section_questions(body_comments))
+
     body_substantive = extract_fenced_section(turn_text, "Substantive disagreements I'm holding")
     if body_substantive:
         out.extend(_walk_section_disagreements(body_substantive, kind="disagreement"))
