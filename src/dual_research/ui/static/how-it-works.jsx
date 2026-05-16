@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.35.0',
+      date: '2026-05-16',
+      summary: 'Web search audit UI + agent-pill alignment fix.',
+      items: [
+        'Every turn that fired web search now carries a 🔎 N chip on its timeline card (next to the existing token + cost chips). Tooltip reports "N web searches · M URLs retrieved"; quiet on turns where search didn\'t happen.',
+        'Expanding a card surfaces a one-line audit affordance below the sentiment paragraph: "Pulled M results across N queries · click to inspect →". Click opens the full-view modal pre-positioned to the Web Search tab. Provider-aware copy: OpenAI without sources gets "M citations · click to inspect →" instead.',
+        'New Web Search tab on every full-view modal — joins Content / Input on one-pane modals (Phase 0 critique, Phase 3 doc, Phase 5 final), as a sub-tab on the Phase 2/4 side-by-side left pane (Original | Input | Web Search), and on the Phase 1 draft modal\'s right pane (Draft | Web Search). The tab renders a per-query accordion: each query group lists every retrieved URL, with Anthropic carrying title + host + page_age chip + monospace cited_text block per citation, OpenAI carrying URL-only. Results that the model actually cited get a [cited] tag.',
+        'Hallucinated citations — a citation referencing a URL that wasn\'t in any retrieval set — surface in three places: a ⚠ badge on the Web Search tab strip, a ⚠ dot on the per-query group header (when relevant), and a banner inside the tab body listing every offending URL + title. Pre-existing validator data; the UI just reads Citation.matched_query_id.',
+        'New run-header chip: 🔎 N · M URLs (total searches across all turns · total consulted URLs). When any turn has an unmatched citation, appends "· ⚠ K unmatched"; click jumps the timeline to the first flagged card. Hidden entirely on pre-0036 transcripts so older runs stay clean.',
+        'Agent-pill alignment fix (spec-0035 follow-up): Claude\'s pill sits on the right of the Timeline header row; GPT\'s used to sit on the LEFT of the toolbar row below, breaking the visual column. They now both right-align — toolbar order is now [live-count] [flex] [Conversation | Consumption] [GPT pill]. Pure JSX reorder, no CSS changes.',
+        'Server: /api/runs/<id>/searches/index gains an optional ?include=summary query param returning a per-key {queries, consulted, has_warning} map so the chip layer reads counts from one per-run fetch instead of fetching every bundle. Backward-compatible — default response shape unchanged.',
+      ],
+    },
+    {
       version: '0.34.0',
       date: '2026-05-16',
       summary: 'Web search audit foundation + parser fixes + resume hardening + --notion repeatable.',

@@ -147,9 +147,15 @@ def _make_app(runs_dir: Path) -> FastAPI:
     # GET /api/runs/{run_id}/searches/{key}   → full per-turn search audit
 
     @app.get("/api/runs/{run_id}/searches/index")
-    async def list_searches_fs(run_id: str) -> JSONResponse:
+    async def list_searches_fs(run_id: str, request: Request) -> JSONResponse:
         session = _resolve_session(runs_dir, run_id)
-        return JSONResponse({"keys": _list_search_audit_keys_fs(session)})
+        keys = _list_search_audit_keys_fs(session)
+        if request.query_params.get("include") == "summary":
+            return JSONResponse({
+                "keys": keys,
+                "summary": _search_audit_summary_fs(session, keys),
+            })
+        return JSONResponse({"keys": keys})
 
     @app.get("/api/runs/{run_id}/searches/{turn_key}")
     async def get_search_audit_fs(run_id: str, turn_key: str) -> JSONResponse:
@@ -387,9 +393,15 @@ def _make_supabase_app(
 
     # ─── Spec 0036 search audit (hosted) ──────────────────────────────────
     @app.get("/api/runs/{run_id}/searches/index")
-    async def list_searches_sb(run_id: str) -> JSONResponse:
+    async def list_searches_sb(run_id: str, request: Request) -> JSONResponse:
         _require_run_exists(client, run_id)
-        return JSONResponse({"keys": _list_search_audit_keys_supabase(client, run_id)})
+        keys = _list_search_audit_keys_supabase(client, run_id)
+        if request.query_params.get("include") == "summary":
+            return JSONResponse({
+                "keys": keys,
+                "summary": _search_audit_summary_supabase(client, run_id, keys),
+            })
+        return JSONResponse({"keys": keys})
 
     @app.get("/api/runs/{run_id}/searches/{turn_key}")
     async def get_search_audit_sb(run_id: str, turn_key: str) -> JSONResponse:
@@ -785,6 +797,66 @@ def _read_search_audit_supabase(client: Any, run_id: str, turn_key: str) -> dict
         return json.loads(rows[0]["content"])
     except (TypeError, ValueError, json.JSONDecodeError):
         return None
+
+
+def _summarize_audit_payload(payload: dict) -> dict:
+    """Compute the per-key summary stats the UI's chip layer consumes."""
+    events = payload.get("tool_events") or []
+    queries = len(events)
+    consulted = 0
+    for ev in events:
+        sources = ev.get("consulted_sources") or []
+        consulted += len(sources)
+    flags = payload.get("flags") or {}
+    has_warning = bool(flags.get("cited_url_not_in_consulted_sources"))
+    return {"queries": queries, "consulted": consulted, "has_warning": has_warning}
+
+
+def _search_audit_summary_fs(session: Path, keys: list[str]) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for key in keys:
+        path = session / "searches" / f"{key}.json"
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        out[key] = _summarize_audit_payload(payload)
+    return out
+
+
+def _search_audit_summary_supabase(
+    client: Any, run_id: str, keys: list[str]
+) -> dict[str, dict]:
+    if not keys:
+        return {}
+    try:
+        res = (
+            client.table("session_files")
+            .select("path,content")
+            .eq("run_id", run_id)
+            .like("path", "searches/%.json")
+            .execute()
+        )
+    except Exception:
+        return {}
+    rows = res.data or []
+    key_set = set(keys)
+    out: dict[str, dict] = {}
+    for row in rows:
+        p = row.get("path") or ""
+        if not p.startswith("searches/") or not p.endswith(".json"):
+            continue
+        key = p[len("searches/") : -len(".json")]
+        if key not in key_set:
+            continue
+        try:
+            payload = json.loads(row.get("content") or "")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        out[key] = _summarize_audit_payload(payload)
+    return out
 
 
 def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:

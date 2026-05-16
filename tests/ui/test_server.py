@@ -415,6 +415,91 @@ class TestSearchAuditEndpoints:
         resp = c.get(f"/api/runs/{session.name}/searches/phase1_claude")
         assert resp.status_code == 404
 
+    def test_index_with_summary_returns_per_key_counts(self, client_with_runs):
+        # Spec 0038: ``?include=summary`` extends the response with a per-key
+        # map of {queries, consulted, has_warning} so the chip-on-card layer
+        # can render counts without fetching every bundle.
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-summary")
+        searches = session / "searches"
+        searches.mkdir()
+        # Anthropic-style bundle: two queries, three URLs total, no flag.
+        (searches / "phase1_claude.json").write_text(
+            json.dumps(
+                {
+                    "provider": "anthropic",
+                    "turn_key": "phase1_claude",
+                    "tool_events": [
+                        {
+                            "event_id": "e1",
+                            "queries": ["q1"],
+                            "consulted_sources": [
+                                {"url": "https://a.example/x"},
+                                {"url": "https://b.example/y"},
+                            ],
+                        },
+                        {
+                            "event_id": "e2",
+                            "queries": ["q2"],
+                            "consulted_sources": [{"url": "https://c.example/z"}],
+                        },
+                    ],
+                    "citations": [],
+                    "flags": {"cited_url_not_in_consulted_sources": False},
+                }
+            ),
+            encoding="utf-8",
+        )
+        # OpenAI-style bundle: one query, one URL, hallucinated-citation flag.
+        (searches / "phase2_round1_gpt.json").write_text(
+            json.dumps(
+                {
+                    "provider": "openai",
+                    "turn_key": "phase2_round1_gpt",
+                    "tool_events": [
+                        {
+                            "event_id": "e3",
+                            "queries": ["q3"],
+                            "consulted_sources": [{"url": "https://d.example/w"}],
+                        }
+                    ],
+                    "citations": [],
+                    "flags": {"cited_url_not_in_consulted_sources": True},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        # Default response shape (no ?include) is unchanged — backward compat.
+        resp_plain = c.get(f"/api/runs/{session.name}/searches/index")
+        assert resp_plain.status_code == 200
+        assert "summary" not in resp_plain.json()
+
+        # ?include=summary attaches per-key stats.
+        resp = c.get(f"/api/runs/{session.name}/searches/index?include=summary")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert sorted(data["keys"]) == ["phase1_claude", "phase2_round1_gpt"]
+        summary = data["summary"]
+        assert summary["phase1_claude"] == {
+            "queries": 2,
+            "consulted": 3,
+            "has_warning": False,
+        }
+        assert summary["phase2_round1_gpt"] == {
+            "queries": 1,
+            "consulted": 1,
+            "has_warning": True,
+        }
+
+    def test_index_summary_empty_when_no_searches(self, client_with_runs):
+        c, runs = client_with_runs
+        session = _seed_session(runs, "run-search-summary-empty")
+        resp = c.get(f"/api/runs/{session.name}/searches/index?include=summary")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data == {"keys": [], "summary": {}}
+
 
 class TestAttachments:
     def _seed_with_attachments(self, runs_dir: Path) -> Path:
