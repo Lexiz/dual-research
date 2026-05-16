@@ -3,10 +3,10 @@ spec: 0028
 title: Cross-review inline comments — Phase 4 side-by-side modal
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.26.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/28"
 ---
 
 # Spec 0028 — Cross-review inline comments
