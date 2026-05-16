@@ -227,6 +227,16 @@ Numbered list. For each: which diff item it addresses, what you searched / read,
 ## Open questions for {other_name}
 Numbered list. Genuine, substantive questions whose resolution is needed before we can converge on a plan. Each must be one {other_name} can actually answer from their draft or from research they would plausibly do — not rhetorical.
 
+Right under each numbered item, add ONE blockquote line anchoring the question to the prior content, in one of these two forms:
+
+  > quote: <a verbatim ≤25-word span from {other_name}'s Phase 1 draft that this question is about>
+
+If the question is about MISSING content (something that should be there but isn't), use this form instead:
+
+  > after: <verbatim section heading the missing content should follow, copied without the leading "## ">
+
+The anchor is one line, a markdown blockquote, immediately under the numbered item. Skip the anchor when no specific span is being critiqued — un-anchored items are fine. The UI uses these anchors to scroll the prior draft into view next to your comment.
+
 ## Initial plan proposal
 Bullet list of sections the final document should contain, with one-line key content per section. This is a *first* proposal; rounds 2+ will negotiate it.
 
@@ -317,6 +327,16 @@ Scope discipline: corroboration applies only to claims you consider material (v3
 ## Open questions for {other_name}
 Numbered list. Genuine, substantive questions whose resolution is needed before agreement. Empty list is acceptable only if you genuinely have no open questions — see anti-sycophancy procedure above.
 
+Right under each numbered item, add ONE blockquote line anchoring the question to the prior content (either {other_name}'s most recent Phase 2 turn or their Phase 1 draft):
+
+  > quote: <a verbatim ≤25-word span from the prior content this question is about>
+
+If the question is about MISSING content, use:
+
+  > after: <verbatim section heading the missing content should follow, without the leading "## ">
+
+The anchor is one line, a markdown blockquote, immediately under the numbered item. Skip it when no specific span is being critiqued — un-anchored items are fine. The UI uses these anchors to scroll the prior content into view next to your comment.
+
 ## Plan as I currently propose it
 Bullet list of sections the final document should contain. Incorporate {other_name}'s good points from prior rounds; hold the line only where evidence supports it.
 
@@ -330,6 +350,16 @@ The anchor line for each entry MUST follow one of these two exact shapes (with a
 - Terminal form (verbatim): ``- **D-N (<short label>):** `<terminal-state>` — <one-line note>``
 
 (Terminal-state is one of: resolved, non_blocking_limitation, conceded, accepted.) The (a)–(e) sub-items hang off the open-form anchor line as `- (a) ...` bullets.
+
+For each open-form D-N entry, add ONE additional blockquote sub-item that anchors the disagreement to a specific span on the prior content:
+
+- ``> quote: <a verbatim ≤25-word span from {other_name}'s most recent turn or Phase 1 draft that this disagreement is about>``
+
+or, for disagreements about MISSING content:
+
+- ``> after: <verbatim section heading the missing content should follow, without the leading "## ">``
+
+The anchor sub-item is one blockquote line, indented under the D-N anchor line alongside the (a)–(e) bullets. Skip it when no specific span is being critiqued. Un-anchored entries are fine; the UI just won't auto-scroll the left pane when the user clicks them.
 
 For entries with status `final_surfaced`: list them here and also in the ## Final-surfaced disagreements section below.
 

@@ -1,0 +1,165 @@
+"""Structured review-item extraction — spec 0027.
+
+`extract_review_items` walks a Phase 2 turn body and pulls each
+question / disagreement / resolved item into a structured `ReviewItem`,
+with optional `quote` / `after` anchors lifted from `> quote: …` /
+`> after: …` blockquote sub-lines under each item.
+"""
+
+from __future__ import annotations
+
+from textwrap import dedent
+
+from dual_research.protocol.parse import (
+    ReviewItem,
+    extract_review_items,
+)
+
+
+def test_extracts_open_questions_with_quotes() -> None:
+    text = dedent(
+        """
+        ## Open questions for openai
+
+        1. Why not Postgres for the read-heavy path?
+           > quote: I recommend SQLite for the entire surface for simplicity
+        2. What's your evidence for the 50 % write penalty claim?
+           > quote: writes are roughly 50 % slower under contention
+
+        ## Plan as I currently propose it
+        - foo
+        """
+    ).strip()
+    items = extract_review_items(text)
+    questions = [i for i in items if i.kind == "question"]
+    assert len(questions) == 2
+    assert questions[0].body.startswith("Why not Postgres")
+    assert questions[0].quote == "I recommend SQLite for the entire surface for simplicity"
+    assert questions[1].quote == "writes are roughly 50 % slower under contention"
+    assert all(q.after is None for q in questions)
+
+
+def test_after_marker_for_missing_content() -> None:
+    text = dedent(
+        """
+        ## Open questions for openai
+
+        1. The draft never addresses backup strategy at all.
+           > after: 4. Operations
+
+        ## Plan as I currently propose it
+        - foo
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 1
+    assert items[0].after == "4. Operations"
+    assert items[0].quote is None
+
+
+def test_extracts_substantive_disagreements_with_anchor_id() -> None:
+    text = dedent(
+        """
+        ## Substantive disagreements I'm holding
+
+        - D-3: index strategy — status: open
+          - (a) D-3 index strategy
+          - (b) my position: composite (created_at, status) is sufficient
+          - (c) openai's position: needs covering index
+          > quote: Postgres can do composite without partial — fine for our scale
+
+        - D-4: cache layer — status: open
+          - (a) D-4 cache layer
+          > after: 6. Cache layer
+
+        ## Final-surfaced disagreements
+        (none)
+        """
+    ).strip()
+    items = extract_review_items(text)
+    disagreements = [i for i in items if i.kind == "disagreement"]
+    assert {d.item_id for d in disagreements} == {"D-3", "D-4"}
+    d3 = next(d for d in disagreements if d.item_id == "D-3")
+    assert "Postgres can do composite" in (d3.quote or "")
+    d4 = next(d for d in disagreements if d.item_id == "D-4")
+    assert d4.after == "6. Cache layer"
+
+
+def test_resolved_section_is_classified_as_resolved() -> None:
+    text = dedent(
+        """
+        ## Resolved or non-blocking differences
+
+        - **D-1 (timezone handling):** `resolved` — both now agree on UTC.
+        - **D-2 (HTTP/2 push):** `non_blocking_limitation` — minor, doesn't block.
+        """
+    ).strip()
+    items = extract_review_items(text)
+    resolved = [i for i in items if i.kind == "resolved"]
+    assert {r.item_id for r in resolved} == {"D-1", "D-2"}
+
+
+def test_round_1_diff_section_treated_as_disagreements() -> None:
+    text = dedent(
+        """
+        ## Diff vs openai's Phase 1
+
+        1. They propose SQLite, I propose Postgres for the write path.
+           > quote: SQLite is fine end-to-end for our scale
+        2. They omit any mention of failover.
+           > after: 5. Reliability
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert [i.kind for i in items] == ["disagreement", "disagreement"]
+    assert items[0].quote and "SQLite is fine" in items[0].quote
+    assert items[1].after == "5. Reliability"
+
+
+def test_un_anchored_items_still_extracted() -> None:
+    text = dedent(
+        """
+        ## Open questions for openai
+
+        1. Bare question with no anchor at all.
+        2. Another question, also bare.
+
+        ## Plan as I currently propose it
+        - foo
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 2
+    assert all(i.quote is None and i.after is None for i in items)
+
+
+def test_empty_text_returns_empty_list() -> None:
+    assert extract_review_items("") == []
+    assert extract_review_items(None) == []  # type: ignore[arg-type]
+
+
+def test_quote_marker_tolerates_extra_whitespace_and_backticks() -> None:
+    text = dedent(
+        """
+        ## Open questions for claude
+
+        1. Question about a specific span.
+           >   quote:   `the exact phrase they used`
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 1
+    assert items[0].quote == "the exact phrase they used"
+
+
+def test_returns_review_item_dataclass() -> None:
+    text = dedent(
+        """
+        ## Open questions for openai
+
+        1. A question.
+           > quote: a span
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert isinstance(items[0], ReviewItem)

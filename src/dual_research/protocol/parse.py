@@ -176,6 +176,220 @@ def extract_summary(text: str) -> str | None:
     return body or None
 
 
+# ─── Review-item extraction (spec 0027) ───────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class ReviewItem:
+    """One question / disagreement / resolved item extracted from a Phase 2 turn.
+
+    `quote` and `after` are the optional anchor markers the agent
+    emits as ``> quote: …`` / ``> after: …`` blockquote sub-lines under
+    each item. The UI uses them to scroll the prior content (the
+    other agent's most recent turn, or Phase 1 draft for round 1) so
+    that clicking a review card brings the referenced span into view.
+    """
+
+    kind: str           # "question" | "disagreement" | "resolved"
+    body: str           # the item's full body, joined newlines
+    quote: str | None   # verbatim ≤25-word span (anchor target)
+    after: str | None   # heading text for "missing X" critiques
+    item_id: str | None # e.g. "D-3" for disagreements; None for plain questions
+
+
+_QUOTE_RE = re.compile(r"^\s*>\s*quote:\s*(.+?)\s*$", re.IGNORECASE)
+_AFTER_RE = re.compile(r"^\s*>\s*after:\s*(.+?)\s*$", re.IGNORECASE)
+# Numbered question lines: `1. …`, `1) …`, with optional leading whitespace.
+_NUMBERED_RE = re.compile(r"^\s*(\d+)[.)]\s+(.*)$")
+# D-N open-form anchor line, tolerant of leading list marker / surrounding asterisks.
+_D_OPEN_RE = re.compile(
+    r"^\s*-\s+\*?\*?(?P<id>D-\d+)\*?\*?\s*:\s*(?P<title>.+?)\s*[—-]\s*status:\s*open\s*$",
+    re.IGNORECASE,
+)
+# D-N terminal-form anchor line — same shape as the open-form regex on
+# the prefix; status is one of the protocol's terminal-state keywords.
+_D_TERMINAL_RE = re.compile(
+    r"^\s*-\s+\*?\*?(?P<id>D-\d+)\*?\*?\s*"
+    r"(?:\(.*?\))?\s*:?\*?\*?\s*"
+    r"`?(?P<state>resolved|non_blocking_limitation|conceded|accepted|dropped_as_immaterial)`?",
+    re.IGNORECASE,
+)
+
+
+def _extract_anchor_markers(body_lines: list[str]) -> tuple[str | None, str | None]:
+    """Return (quote, after) from the first matching blockquote line in body_lines."""
+    quote: str | None = None
+    after: str | None = None
+    for line in body_lines:
+        if quote is None:
+            m = _QUOTE_RE.match(line)
+            if m:
+                quote = m.group(1).strip().strip("`'\"")
+                continue
+        if after is None:
+            m = _AFTER_RE.match(line)
+            if m:
+                after = m.group(1).strip().strip("`'\"# ")
+                continue
+        if quote and after:
+            break
+    return quote, after
+
+
+def _walk_section_questions(body: str) -> list[ReviewItem]:
+    """Yield ReviewItems for a numbered-list section (Open questions, etc)."""
+    out: list[ReviewItem] = []
+    lines = body.splitlines()
+    current: list[str] | None = None
+
+    def _flush() -> None:
+        if current is None:
+            return
+        text_lines = [line for line in current if line.strip()]
+        if not text_lines:
+            return
+        # The first line is the numbered prefix; strip leading numbering for body.
+        m = _NUMBERED_RE.match(current[0])
+        first_body = m.group(2) if m else current[0]
+        rest = current[1:]
+        body_text = "\n".join([first_body] + rest).strip()
+        quote, after = _extract_anchor_markers(current)
+        out.append(
+            ReviewItem(
+                kind="question",
+                body=body_text,
+                quote=quote,
+                after=after,
+                item_id=None,
+            )
+        )
+
+    for line in lines:
+        if _NUMBERED_RE.match(line):
+            _flush()
+            current = [line]
+        elif current is not None:
+            current.append(line)
+    _flush()
+    return out
+
+
+def _walk_section_disagreements(body: str, *, kind: str) -> list[ReviewItem]:
+    """Yield ReviewItems for a D-N anchored disagreements section."""
+    out: list[ReviewItem] = []
+    lines = body.splitlines()
+    current: list[str] | None = None
+    current_id: str | None = None
+    current_kind: str = kind
+
+    def _flush() -> None:
+        if current is None or current_id is None:
+            return
+        body_text = "\n".join(line for line in current if line.strip()).strip()
+        if not body_text:
+            return
+        quote, after = _extract_anchor_markers(current)
+        out.append(
+            ReviewItem(
+                kind=current_kind,
+                body=body_text,
+                quote=quote,
+                after=after,
+                item_id=current_id,
+            )
+        )
+
+    for line in lines:
+        open_m = _D_OPEN_RE.match(line)
+        terminal_m = _D_TERMINAL_RE.match(line)
+        if open_m:
+            _flush()
+            current = [line]
+            current_id = open_m.group("id")
+            current_kind = kind
+        elif terminal_m:
+            _flush()
+            current = [line]
+            current_id = terminal_m.group("id")
+            # Reclassify terminal-form items as resolved when seen inside an
+            # "Open form" section. The Resolved-or-non-blocking section calls
+            # this with kind="resolved" already.
+            state = (terminal_m.group("state") or "").lower()
+            current_kind = "resolved" if state in (
+                "resolved", "non_blocking_limitation", "conceded",
+                "accepted", "dropped_as_immaterial",
+            ) else kind
+        elif current is not None:
+            current.append(line)
+    _flush()
+    return out
+
+
+def extract_review_items(turn_text: str) -> list[ReviewItem]:
+    """Extract structured review items from a Phase 2 turn body.
+
+    Walks the four protocol sections (Open questions / Substantive
+    disagreements / Resolved or non-blocking / Final-surfaced) and
+    returns a flat list. Each item carries an optional `quote` or
+    `after` anchor extracted from the ``> quote:`` / ``> after:``
+    blockquote sub-lines the agent is asked to emit under each entry.
+
+    Tolerant of:
+    - Round-1 difference inventory (``## Diff vs … Phase 1`` — treated
+      as a disagreement-style section with numbered items).
+    - Missing sections (returns an empty list for those).
+    - Items without any anchor markers (quote/after are None).
+    """
+    if not turn_text:
+        return []
+
+    out: list[ReviewItem] = []
+
+    # Open questions section — heading text is "Open questions for <name>".
+    # Match the heading prefix only; agent name varies.
+    open_q_match = re.search(r"^##\s+Open questions for .+?$", turn_text, re.MULTILINE)
+    if open_q_match:
+        body = _section_body_at(turn_text, open_q_match.end())
+        out.extend(_walk_section_questions(body))
+
+    # Round-1 difference inventory (numbered list, similar shape).
+    diff_match = re.search(r"^##\s+Diff vs .+?Phase 1\s*$", turn_text, re.MULTILINE)
+    if diff_match:
+        body = _section_body_at(turn_text, diff_match.end())
+        # Reclassify these as disagreements — they're structurally diffs.
+        for item in _walk_section_questions(body):
+            out.append(
+                ReviewItem(
+                    kind="disagreement",
+                    body=item.body,
+                    quote=item.quote,
+                    after=item.after,
+                    item_id=item.item_id,
+                )
+            )
+
+    body_substantive = extract_fenced_section(turn_text, "Substantive disagreements I'm holding")
+    if body_substantive:
+        out.extend(_walk_section_disagreements(body_substantive, kind="disagreement"))
+
+    body_resolved = extract_fenced_section(turn_text, "Resolved or non-blocking differences")
+    if body_resolved:
+        out.extend(_walk_section_disagreements(body_resolved, kind="resolved"))
+
+    body_final = extract_fenced_section(turn_text, "Final-surfaced disagreements")
+    if body_final:
+        out.extend(_walk_section_disagreements(body_final, kind="disagreement"))
+
+    return out
+
+
+def _section_body_at(text: str, start: int) -> str:
+    """Return text from `start` up to the next ``## `` heading or EOF."""
+    rest = text[start:]
+    next_heading = re.search(r"^##\s+\S", rest, re.MULTILINE)
+    return rest[: next_heading.start()] if next_heading else rest
+
+
 def synthesise_brief_tldr(brief_text: str, *, max_sentences: int = 2, max_chars: int = 360) -> str | None:
     """Cheap TL;DR for a brief that doesn't carry an explicit Summary.
 

@@ -178,6 +178,44 @@ input { font-family: inherit; color: inherit; }
   to   { opacity: 1; }
 }
 
+/* Click-to-anchor flash highlight (spec 0027) — applied to a block when a
+   review comment card jumps to it. Soft amber tint that fades over 1.5s. */
+@keyframes dr-flash {
+  0%   { background-color: rgba(212, 160, 86, 0.42); }
+  100% { background-color: rgba(212, 160, 86, 0.00); }
+}
+.dr-flash {
+  animation: dr-flash 1.5s ease-out 1 both;
+  border-radius: var(--r-2);
+}
+
+/* Ghost-block placeholder for "missing X" / `> after:` review items. Rendered
+   underneath the anchored heading on jump; auto-dismissed on next click. */
+.dr-ghost-block {
+  border: 1px dashed var(--warn);
+  border-radius: var(--r-2);
+  padding: 10px 12px;
+  margin: 10px 0;
+  background: rgba(212, 160, 86, 0.06);
+  color: var(--fg-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  position: relative;
+}
+.dr-ghost-block::before {
+  content: '‸';                /* proofreader's caret — "insert here" */
+  position: absolute; left: -14px; top: 6px;
+  color: var(--warn); font-weight: 700; font-size: 13px;
+}
+.dr-ghost-block-kind {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin-bottom: 4px;
+}
+
 /* Cap meter */
 .cap-bar {
   position: relative;

@@ -18,7 +18,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dual_research.persistence.state import SessionState
-from dual_research.protocol.parse import extract_summary, synthesise_brief_tldr
+from dataclasses import asdict
+
+from dual_research.protocol.parse import (
+    ReviewItem,
+    extract_review_items,
+    extract_summary,
+    synthesise_brief_tldr,
+)
 from dual_research.ui.disagreements import mark_deadlocked_open, reconstruct
 from dual_research.ui.errors import derive_errors
 from dual_research.ui.labels import (
@@ -80,6 +87,10 @@ def load_run_snapshot(session_dir: Path) -> Run:
     # `## Summary` sections from every completed turn file.
     run.brief_summary = _read_brief_summary(session_dir)
     run.phase_summaries = _read_phase_summaries(session_dir)
+
+    # Review items (spec 0027): structured questions / disagreements
+    # extracted from every Phase 2 turn body.
+    run.phase_review_items = _read_phase_review_items(session_dir)
 
     # started_at_ago is "now" relative to the earliest event.
     run.started_at_ago = _seconds_since(run.started_at)
@@ -684,6 +695,39 @@ def _maybe_set_summary(target: dict[str, str], key: str, path: Path) -> None:
 def _ui_agent(backend_agent: str) -> str:
     """Backend writes `claude` / `openai`; UI vocabulary is `claude` / `gpt`."""
     return "gpt" if backend_agent == "openai" else backend_agent
+
+
+def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
+    """Walk every Phase 2 turn file and extract structured review items.
+
+    Keyed by `phase2_round{R}_<agent>` — same convention as
+    `phase_summaries`. Phase 4 cross-review reuses the same parser
+    in spec 0028; for now this only walks phase2.
+    """
+    out: dict[str, list[dict]] = {}
+    phase_dir = session_dir / "phase2"
+    if not phase_dir.exists():
+        return out
+    for entry in sorted(phase_dir.iterdir()):
+        if not entry.is_file() or not entry.name.endswith(".md"):
+            continue
+        if ".malformed" in entry.name:
+            continue
+        m = _ROUND_FILE_RE.match(entry.name)
+        if not m:
+            continue
+        round_n = int(m.group(1))
+        agent = m.group(2)
+        try:
+            text = entry.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        items = extract_review_items(text)
+        if not items:
+            continue
+        key = f"phase2_round{round_n}_{_ui_agent(agent)}"
+        out[key] = [asdict(i) for i in items]
+    return out
 
 
 def _scan_disagreement_anchors(session_dir: Path) -> bool:
