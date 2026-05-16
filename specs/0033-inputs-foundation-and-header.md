@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.31.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/35"
 ---
 
 # Spec 0033 — Inputs foundation + two-row live header
