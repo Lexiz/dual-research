@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.26.0',
+      date: '2026-05-16',
+      summary: 'Cross-review inline comments — Phase 4 side-by-side modal.',
+      items: [
+        'Clicking a Phase 4 turn card now opens the same side-by-side modal as Phase 2: the current converged document on the left, the agent\'s issues / comments / disagreements as anchored cards on the right.',
+        'Left pane uses the latest converged-document version available — the highest-numbered `phase4/draft-v*.md` if a drafter revision has landed, else `phase3/draft-v1.md`.',
+        'Phase 4 prompts get the same `> quote:` / `> after:` marker hint as Phase 2, under Issue ledger / Comments on the current draft / Substantive disagreements.',
+        'Phase 3 (single-shot drafting) and the final document still open the single-pane modal — there are no critique sections to anchor to.',
+        'Wraps up the visualisation track (specs 0025 → 0027 → 0028). Every place where an agent critiques prior content now has a side-by-side review modal.',
+      ],
+    },
+    {
       version: '0.25.0',
       date: '2026-05-16',
       summary: 'Negotiate inline comments — side-by-side modal with anchored critique cards.',
