@@ -173,6 +173,10 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
   return (
     <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <ConnectionPill />
+      {/* Spec 0035: app-version chip — fetched once from /api/health,
+          cached on window.__appMeta. Clicking opens the how-it-works
+          page anchored at the VERSION_NOTES section. */}
+      <AppVersionChip onClick={() => navigate('how-it-works')} />
       <HowItWorksLink onClick={() => navigate('how-it-works')}
                       active={route.view === 'how-it-works'} />
       <ThemeToggle theme={theme} onToggle={onToggleTheme} />
@@ -182,6 +186,36 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
         : <DesignLanguageButton onClick={() => navigate('language')}
                                 active={route.view === 'language'} />}
     </div>
+  );
+}
+
+// Spec 0035: tiny pill in the chrome's right cluster showing the deployed
+// version. Click → how-it-works page (where the VERSION_NOTES live).
+function AppVersionChip({ onClick }) {
+  const meta = window.useAppMeta ? window.useAppMeta() : null;
+  if (!meta?.version) return null;
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      title={`dual-research v${meta.version} · click for release notes`}
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '0 12px',
+        borderLeft: '1px solid var(--border-1)',
+        background: hover ? 'var(--bg-2)' : 'transparent',
+        color: 'var(--fg-3)',
+        fontFamily: 'var(--mono)', fontSize: 10.5,
+        cursor: 'pointer',
+        border: 'none', borderLeftWidth: 1, borderLeftStyle: 'solid',
+        borderLeftColor: 'var(--border-1)',
+      }}
+    >
+      v{meta.version}
+    </button>
   );
 }
 

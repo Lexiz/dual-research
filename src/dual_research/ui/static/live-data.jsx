@@ -209,6 +209,37 @@ function useFileBody(filePath) {
   return { body, loading };
 }
 
+// ─────────────────── Spec 0035 — useAppMeta ─────────────────────────────────
+//
+// Lazy-fetch /api/health on app mount; cache the result on
+// ``window.__appMeta`` so a navigation between runs doesn't re-request.
+// Returns ``{ version, ... } | null``. The version chip in the chrome
+// bar reads this; first-paint shows nothing until the fetch lands (one
+// HTTP round-trip), then renders.
+function useAppMeta() {
+  const [meta, setMeta] = React.useState(
+    typeof window !== 'undefined' ? (window.__appMeta || null) : null
+  );
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.__appMeta) {
+      setMeta(window.__appMeta);
+      return;
+    }
+    let cancelled = false;
+    authedFetch('/api/health')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (cancelled || !d) return;
+        window.__appMeta = d;
+        setMeta(d);
+      })
+      .catch(() => { /* silent — chip just doesn't render */ });
+    return () => { cancelled = true; };
+  }, []);
+  return meta;
+}
+
 // ─────────────────── Spec 0033 — useInputBundle ─────────────────────────────
 //
 // Lazy-fetch a per-turn input bundle from the server. ``turnKey`` is one of
@@ -593,7 +624,7 @@ function attachItemStats(items, run) {
 Object.assign(window, {
   PHASES, TOPIC, INPUT_BRIEF, TURN_HISTORY,
   RunContext, useLiveRun, useRunList, useFileBody, useAttachments,
-  useInputBundle,
+  useInputBundle, useAppMeta,
   attachmentBlobUrl,
   buildLiveTimeline, formatTopic, splitRunId,
   setActiveRunId, getActiveRunId,
