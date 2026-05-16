@@ -199,6 +199,20 @@ def _parse_one(
         elif letter == "e":
             materiality = body
 
+    # Spec 0030: when the agent uses a heading-only form (no `(a) D-N: "..."`
+    # sub-bullet), fall back to the first content line under the entry as
+    # `point`. Same fallback feeds `my_position` / `other_position` from
+    # **I claim:** / **They claim:** style bullets when the (b)/(c) markers
+    # are absent.
+    if not point or not my_position or not other_position:
+        fallback = _fallback_from_block(block, label=label)
+        if not point:
+            point = fallback.get("point", "")
+        if not my_position:
+            my_position = fallback.get("my_position", "")
+        if not other_position:
+            other_position = fallback.get("other_position", "")
+
     return {
         "id": d_id,
         "label": label,
@@ -209,6 +223,104 @@ def _parse_one(
         "why": why,
         "materiality": materiality,
         "resolution_note": resolution_note,
+    }
+
+
+# Spec 0030 — heading-only D-N entries don't carry `(a)/(b)/(c)` markers;
+# walk the block to find the first content line that's neither the entry
+# header nor a meta prefix (`status:`, blockquote, label-only bold prefix).
+# Position-style bullets (`**I claim**`, `**They claim**`) feed
+# `my_position` / `other_position`.
+
+# Skip lines starting with these prefixes (case-insensitive) when scanning
+# for the contested-point fallback. Each is a known meta line that carries
+# no semantic content for `point`.
+_META_LINE_PREFIXES = (
+    "status:",
+    "- status:",
+    "> quote:",
+    "> after:",
+    ">",
+)
+
+_I_CLAIM_RE = re.compile(
+    r"^\s*[-*]?\s*\*\*\s*(?:I\s+claim|My\s+position|My\s+take)\b[^:]*:\s*\*\*\s*(.+?)\s*$",
+    re.IGNORECASE,
+)
+_THEY_CLAIM_RE = re.compile(
+    r"^\s*[-*]?\s*\*\*\s*(?:They\s+claim|Their\s+position|Their\s+take|"
+    r"[A-Za-z]+(?:'s)?\s+position)\b[^:]*:\s*\*\*\s*(.+?)\s*$",
+    re.IGNORECASE,
+)
+
+
+def _strip_bullet(line: str) -> str:
+    """Remove leading list-marker (-, *, 1., 2.) and bold-label prefix."""
+    line = re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", line)
+    line = re.sub(r"^\*\*[^*]+\*\*[:\s]*", "", line, count=1)
+    return line.strip()
+
+
+def _fallback_from_block(block: str, *, label: str) -> dict:
+    """Best-effort scan of a D-N block for missing point / position fields.
+
+    The block always starts with the entry header line (the `D-N` anchor).
+    We skip that line, then walk the remaining lines:
+
+      - Lines starting with a known meta prefix (`status:`, blockquote) are
+        skipped.
+      - The first `**I claim:**` / `**They claim:**` bullet feeds
+        ``my_position`` / ``other_position``.
+      - The first remaining non-empty content line (with list-marker and
+        bold-label prefix stripped) feeds ``point`` — capped at 200 chars.
+      - If the picked content line happens to be the entry's short label
+        (we de-dup with a case-insensitive equality check), we keep scanning.
+    """
+    lines = block.splitlines()
+    # Drop the first line (the D-N anchor itself).
+    body_lines = lines[1:] if lines else []
+
+    point = ""
+    my_position = ""
+    other_position = ""
+
+    for raw in body_lines:
+        if not raw.strip():
+            continue
+        # Strip the list-marker first so meta-prefix detection catches
+        # forms like `- > quote: …` (a blockquote wrapped in a bullet).
+        bullet_stripped = re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", raw).strip()
+        lower = bullet_stripped.lower()
+        if any(lower.startswith(p) for p in _META_LINE_PREFIXES):
+            continue
+
+        # Position-style bullets win first (regex handles optional list marker).
+        i_m = _I_CLAIM_RE.match(raw)
+        if i_m and not my_position:
+            my_position = i_m.group(1).strip().rstrip(".")
+            continue
+        t_m = _THEY_CLAIM_RE.match(raw)
+        if t_m and not other_position:
+            other_position = t_m.group(1).strip().rstrip(".")
+            continue
+
+        # General content line for `point`.
+        if not point:
+            content = _strip_bullet(raw)
+            if not content:
+                continue
+            # Avoid echoing back the short label when it happens to be the
+            # first content line.
+            if label and content.lower().strip("`") == label.lower().strip("`"):
+                continue
+            if len(content) > 200:
+                content = content[:197].rstrip() + "…"
+            point = content
+
+    return {
+        "point": point,
+        "my_position": my_position,
+        "other_position": other_position,
     }
 
 

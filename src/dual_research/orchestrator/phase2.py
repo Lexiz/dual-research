@@ -32,6 +32,10 @@ from dual_research.protocol import (
     parse_turn,
     pick_drafter,
 )
+from dual_research.protocol.prompt_pieces import (
+    pieces_for_negotiation_round1,
+    pieces_for_negotiation_turn,
+)
 
 
 @dataclass(frozen=True)
@@ -97,6 +101,13 @@ async def run_phase2(
                 other_name="claude",
             )
             validator = assert_well_formed_round1_turn
+            # Spec 0030: per-piece token sizes — same shape for both agents
+            # in round 1 (brief + d1 + d2, no history yet).
+            round_pieces = pieces_for_negotiation_round1(
+                brief=brief_content,
+                claude_draft=claude_draft,
+                openai_draft=openai_draft,
+            )
         else:
             prior = list_turns(ctx.session, phase="phase2", up_to_round=r)
             claude_prompt = negotiation_turn_prompt(
@@ -122,6 +133,13 @@ async def run_phase2(
                 hard_cap=hard_cap,
             )
             validator = assert_well_formed_plan_turn
+            # Spec 0030: rounds 2+ also carry the growing P2 history.
+            round_pieces = pieces_for_negotiation_turn(
+                brief=brief_content,
+                claude_draft=claude_draft,
+                openai_draft=openai_draft,
+                prior_turns=prior,
+            )
 
         claude_path = turn_path(ctx.session, phase="phase2", round=r, agent="claude")
         openai_path = turn_path(ctx.session, phase="phase2", round=r, agent="openai")
@@ -137,6 +155,7 @@ async def run_phase2(
                 event_bus=event_bus,
                 stream_to=None,
                 max_output_tokens=8192,
+                prompt_pieces=round_pieces,
             ),
             run_one_call(
                 agent=openai_agent,
@@ -148,6 +167,7 @@ async def run_phase2(
                 event_bus=event_bus,
                 stream_to=None,
                 max_output_tokens=8192,
+                prompt_pieces=round_pieces,
             ),
         )
         write_atomic(claude_path, claude_result.text)

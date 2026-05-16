@@ -204,6 +204,10 @@ def _on_run_started(run: Run, event: dict) -> None:
     # Stash model ids on each agent so the UI can show real names.
     run.agents["claude"].model_id = event.get("claude_model")
     run.agents["gpt"].model_id = event.get("openai_model")
+    # Spec 0030: real context-window caps from the tier's ModelSpec.
+    # 0 for pre-0030 transcripts; the frontend falls back to a default.
+    run.agents["claude"].context_window = int(event.get("claude_context_window", 0) or 0)
+    run.agents["gpt"].context_window = int(event.get("openai_context_window", 0) or 0)
     run.status = "running"
 
 
@@ -282,6 +286,13 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         key = f"phase{phase_int}_round{idx}_{ag}"
     else:
         key = f"phase{phase_int}_{ag}"
+    # Spec 0030: per-piece sizes and the real context-window cap travel with
+    # each turn. The frontend renormalises piece widths against `input_tokens`
+    # (the provider's count) for honest segment proportions.
+    pieces_raw = event.get("prompt_pieces") or {}
+    prompt_pieces: dict[str, int] = {
+        str(k): int(v) for k, v in pieces_raw.items() if v is not None
+    }
     run.phase_token_usage[key] = TurnTokenUsage(
         in_=in_tokens,
         out=out_tokens,
@@ -289,6 +300,8 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         cache_write=cache_write,
         cost=cost,
         model_id=event.get("model_id") or state.model_id,
+        context_window=state.context_window,
+        prompt_pieces=prompt_pieces,
     )
 
 

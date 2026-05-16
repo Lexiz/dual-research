@@ -16,6 +16,7 @@ from dual_research.orchestrator._turns import list_turns
 from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import FsdItem, drafting_prompt
+from dual_research.protocol.prompt_pieces import pieces_for_drafting
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,17 @@ async def run_phase3(
         agreed_plan_block=ctx.state.agreed_plan,
         final_surfaced_disagreements=fsd_items,
     )
+    # Spec 0030: claude_draft / openai_draft naming is canonical across the
+    # bar palette regardless of who's drafting in this run.
+    claude_draft = own_draft if drafter == "claude" else other_draft
+    openai_draft = own_draft if drafter == "openai" else other_draft
+    p3_pieces = pieces_for_drafting(
+        brief=brief_content,
+        claude_draft=claude_draft,
+        openai_draft=openai_draft,
+        plan=ctx.state.agreed_plan,
+        prior_turns=prior_turns,
+    )
 
     print(f"\n[phase 3] drafting by {drafter} (single-shot)\n", flush=True)
     result = await run_one_call(
@@ -74,6 +86,7 @@ async def run_phase3(
         event_bus=event_bus,
         stream_to=None,
         max_output_tokens=16384,
+        prompt_pieces=p3_pieces,
     )
 
     draft_path = phase_dir / "draft-v1.md"

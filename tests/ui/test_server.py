@@ -103,13 +103,16 @@ class TestCamelCase:
     def test_phase_token_usage_inner_keys_and_fields(self):
         """Spec 0029 — per-turn usage dict survives the wire pass with
         camelized inner keys and `in_` → `in`, `cache_read` → `cacheRead`,
-        `model_id` → `modelId`."""
+        `model_id` → `modelId`. Spec 0030 adds `contextWindow` and
+        `promptPieces`."""
         from dual_research.ui.models import Run, TurnTokenUsage, to_jsonable
 
         run = Run(id="r", display_id="abcd")
         run.phase_token_usage["phase2_round1_claude"] = TurnTokenUsage(
             in_=1234, out=567, cache_read=300, cache_write=80,
             cost=0.42, model_id="claude-sonnet-4-6",
+            context_window=1_000_000,
+            prompt_pieces={"brief": 100, "d1": 600, "d2": 534},
         )
         run.phase_token_usage["phase0_gpt"] = TurnTokenUsage(
             in_=10, out=20, model_id="gpt-5.5",
@@ -118,14 +121,41 @@ class TestCamelCase:
         usage = wire["phaseTokenUsage"]
         # Inner keys are camelized — the frontend must mirror this.
         assert set(usage.keys()) == {"phase2Round1Claude", "phase0Gpt"}
-        # Field names: `in_` → `in`, `cache_read` → `cacheRead`,
-        # `cache_write` → `cacheWrite`, `model_id` → `modelId`.
         entry = usage["phase2Round1Claude"]
         assert entry == {
             "in": 1234, "out": 567,
             "cacheRead": 300, "cacheWrite": 80,
             "cost": 0.42, "modelId": "claude-sonnet-4-6",
+            "contextWindow": 1_000_000,
+            "promptPieces": {"brief": 100, "d1": 600, "d2": 534},
         }
+
+    def test_run_started_context_windows_flow_to_wire(self):
+        """Spec 0030 — `AgentState.context_window` is set by the
+        aggregator from the `run_started` event and reaches the wire as
+        `contextWindow` on each agent."""
+        from pathlib import Path
+
+        from dual_research.ui.aggregator import apply_event
+        from dual_research.ui.models import Run, to_jsonable
+
+        run = Run(id="r", display_id="abcd")
+        apply_event(
+            run,
+            {
+                "event": "run_started",
+                "soft_cap": 6,
+                "hard_cap": 12,
+                "claude_model": "claude-sonnet-4-6",
+                "openai_model": "gpt-5.5",
+                "claude_context_window": 1_000_000,
+                "openai_context_window": 1_000_000,
+            },
+            Path("/tmp"),
+        )
+        wire = _to_camel(to_jsonable(run))
+        assert wire["agents"]["claude"]["contextWindow"] == 1_000_000
+        assert wire["agents"]["gpt"]["contextWindow"] == 1_000_000
 
 
 # ─── /api/health ──────────────────────────────────────────────────────────────
@@ -216,6 +246,10 @@ class TestRunSnapshot:
         # because no `turn_ended` events have been applied — the dict
         # exists, just has no entries.
         assert isinstance(body["phaseTokenUsage"], dict)
+        # Spec 0030 — `contextWindow` is present on every agent, defaulting
+        # to 0 for fixtures that didn't apply a run_started event.
+        assert "contextWindow" in body["agents"]["claude"]
+        assert "contextWindow" in body["agents"]["gpt"]
 
     def test_path_traversal_rejected(self, client_with_runs):
         c, _ = client_with_runs

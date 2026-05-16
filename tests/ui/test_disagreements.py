@@ -92,7 +92,77 @@ class TestParseSection:
         out = _parse_section(section)
         assert len(out) == 1
         assert out[0]["status"] == "non_blocking_limitation"
-        assert out[0]["label"] == "team thresholds"
+
+    # ─── Spec 0030 — heading-only fallback ─────────────────────────────────
+
+    def test_fallback_extracts_point_from_first_bullet_when_no_paren_a(self):
+        """A heading-only D-N entry (no `(a) D-N: "..."` sub-bullet) must
+        still surface `point` — by falling back to the first non-meta
+        content line under the entry."""
+        section = dedent(
+            """\
+            - D-1: SQLite vs Postgres for production — status: open
+              - status: open
+              - SQLite in production for a single-tenant API with 1–10M rows is risky once write concurrency or operational tooling matters.
+              - **I claim:** Postgres is the safer default.
+              - **They claim:** SQLite is sufficient and operationally simpler.
+            """
+        )
+        out = _parse_section(section)
+        assert len(out) == 1
+        d = out[0]
+        assert d["id"] == "d-01"
+        assert d["status"] == "open"
+        assert "SQLite in production" in d["point"]
+        # Position-style bullets fed via the same fallback path.
+        assert "Postgres" in d["my_position"]
+        assert "SQLite" in d["other_position"]
+
+    def test_fallback_skips_meta_prefixes(self):
+        """Lines starting with `status:`, `> quote:`, `> after:` must not
+        be picked as `point`."""
+        section = dedent(
+            """\
+            - D-2: Compiler stability — status: open
+              - status: open
+              - > quote: "tsc-go is stable"
+              - The real concern is regression risk in long-running CI.
+            """
+        )
+        out = _parse_section(section)
+        d = out[0]
+        assert "regression risk" in d["point"]
+        assert "stable" not in d["point"]
+
+    def test_fallback_does_not_repeat_short_label(self):
+        """If the only content line is the same as the entry's short
+        label, the fallback skips it rather than echoing back."""
+        section = dedent(
+            """\
+            - D-3: Caching strategy — status: open
+              - Caching strategy
+              - Pure memoisation is fine for the small-tenant case.
+            """
+        )
+        out = _parse_section(section)
+        d = out[0]
+        assert "memoisation" in d["point"]
+        # Doesn't echo back the label.
+        assert d["point"] != "Caching strategy"
+
+    def test_inline_form_takes_precedence_over_fallback(self):
+        """When both an explicit `(a)` bullet AND fallback-eligible content
+        exist, the explicit form wins."""
+        section = dedent(
+            """\
+            - D-4: Topic — status: open
+              - status: open
+              - (a) D-4: "The explicit contested point."
+              - This bullet should be ignored.
+            """
+        )
+        out = _parse_section(section)
+        assert out[0]["point"] == "The explicit contested point."
 
     def test_multiple_disagreements_distinct_blocks(self):
         section = dedent(

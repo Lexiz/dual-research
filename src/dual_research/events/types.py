@@ -23,6 +23,10 @@ class RunStarted(Event):
     openai_model: str
     soft_cap: int
     hard_cap: int
+    # Spec 0030: real context-window caps from the tier's ModelSpec.
+    # Default 0 keeps pre-0030 transcripts replay-safe.
+    claude_context_window: int = 0
+    openai_context_window: int = 0
     kind: str = "run_started"
 
 
@@ -77,6 +81,12 @@ class TurnEnded(Event):
     duration_ms: int
     finish_reason: str | None
     model_id: str
+    # Spec 0030: best-effort per-piece token sizes (Tk-vocab keys —
+    # ``brief`` / ``d1`` / ``d2`` / ``hist`` / ``plan`` / ``draft`` /
+    # ``histp``). Computed at call time via char÷3.5 heuristic; renormalised
+    # against ``input_tokens`` for honest segment widths on the
+    # Consumption tab. Empty dict for pre-0030 transcripts.
+    prompt_pieces: dict[str, int] = field(default_factory=dict)
     kind: str = "turn_ended"
 
 

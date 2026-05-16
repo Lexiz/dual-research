@@ -29,6 +29,7 @@ from dual_research.protocol import (
     parse_turn,
     review_turn_prompt,
 )
+from dual_research.protocol.prompt_pieces import pieces_for_review
 
 
 @dataclass(frozen=True)
@@ -98,6 +99,14 @@ async def run_phase4(
             soft_cap=soft_cap,
             hard_cap=hard_cap,
         )
+        # Spec 0030: per-piece sizes for the Consumption tab. Both agents
+        # share the same input shape this round (same brief + same draft
+        # + same prior P4 turns).
+        round_pieces = pieces_for_review(
+            brief=brief_content,
+            draft=current_draft,
+            prior_turns=prior,
+        )
 
         claude_path = turn_path(ctx.session, phase="phase4", round=r, agent="claude")
         openai_path = turn_path(ctx.session, phase="phase4", round=r, agent="openai")
@@ -113,6 +122,7 @@ async def run_phase4(
                 event_bus=event_bus,
                 stream_to=None,
                 max_output_tokens=16384,
+                prompt_pieces=round_pieces,
             ),
             run_one_call(
                 agent=openai_agent,
@@ -124,6 +134,7 @@ async def run_phase4(
                 event_bus=event_bus,
                 stream_to=None,
                 max_output_tokens=16384,
+                prompt_pieces=round_pieces,
             ),
         )
         write_atomic(claude_path, claude_result.text)
