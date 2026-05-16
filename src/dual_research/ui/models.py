@@ -215,6 +215,71 @@ class Question:
     match: QuestionMatch | None = None  # set when answered
 
 
+# ─── Issue + Comment (spec 0041) ─────────────────────────────────────────────
+
+
+IssueStatus = Literal["open", "resolved"]
+
+
+@dataclass
+class Issue:
+    """Spec 0041 D3 — items extracted from the Phase 4 ``Issue ledger
+    (delta + currently open)`` section.
+
+    An Issue is a reviewer-flagged problem with the converged draft.
+    Status semantics differ from a Question: an Issue is closed when
+    the drafter's revision incorporates the fix — which the reviewer
+    signals by **dropping the entry from the next round's ledger**
+    rather than by writing an ``## Answers to:`` numbered line.
+
+    So an Issue's status is derived from presence/absence in the
+    LATEST round's ledger snapshot (by raising agent), not from a
+    cross-round positional match. ``round_first_seen`` is the round
+    the issue first appeared; ``round_last_seen`` is the latest
+    round it appeared in. ``status="resolved"`` iff the issue is
+    absent from the latest round's ledger by the same agent.
+
+    Pre-0041, these items were silently bucketed as Questions and
+    rendered as a 61-strong "open questions" pile on the partner-
+    vetting run even though the timeline correctly reported zero
+    open issues. Spec 0041 D3 reconciles the two by giving issues
+    their own type with their own closure semantics.
+    """
+
+    id: str  # "I-{agent}-r{round}-{idx}"
+    phase: int  # 2 | 4
+    raised_by: str  # "claude" | "gpt"
+    round_first_seen: int
+    round_last_seen: int
+    status: IssueStatus = "open"
+    body: str = ""
+    quote: str | None = None
+    after: str | None = None
+    block_id: str | None = None
+    raised_turn_key: str = ""
+
+
+@dataclass
+class Comment:
+    """Spec 0041 — items extracted from ``Comments on the current draft``.
+
+    Comments are non-blocking commentary. They have no closure
+    protocol — once written, they stay as ``noted``. We capture them
+    so the UI's Critique pane can surface them separately from
+    issues and questions.
+    """
+
+    id: str  # "C-{agent}-r{round}-{idx}"
+    phase: int  # 2 | 4
+    raised_by: str
+    raised_round: int
+    body: str = ""
+    quote: str | None = None
+    after: str | None = None
+    block_id: str | None = None
+    raised_turn_key: str = ""
+
+
 # ─── RunError ─────────────────────────────────────────────────────────────────
 
 
@@ -379,6 +444,14 @@ class Run:
     # phase 2 and phase 4 contribute. IDs are parser-assigned (the protocol
     # doesn't number questions).
     questions: list[Question] = field(default_factory=list)
+    # Spec 0041: Phase 4 ``Issue ledger`` items + ``Comments on the current
+    # draft`` items get their own typed lists, separate from Questions.
+    # Pre-0041 these were silently bucketed as Questions and rendered
+    # under that label on the Critique pane even though the protocol
+    # tracks them with different closure semantics (issues are closed
+    # by the drafter's revision; comments are non-blocking).
+    issues: list[Issue] = field(default_factory=list)
+    comments: list[Comment] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)

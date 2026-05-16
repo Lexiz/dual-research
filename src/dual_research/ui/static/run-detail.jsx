@@ -1682,6 +1682,24 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
 // The unfolded body — gist line + summary paragraph + "View in full mode".
 // Sits below the header inside the same card. No modal entry from anywhere
 // here EXCEPT the explicit button.
+// Spec 0041 — the sentiment composer emits ``**Word —** rest of sentence``
+// patterns. Inline-render those as bold spans without dragging in the
+// full markdown pipeline.
+function renderInlineBold(text) {
+  if (!text) return text;
+  const parts = String(text).split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} style={{ color: 'var(--fg-0)', fontWeight: 600 }}>
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+}
+
 function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
   return (
     <div style={{
@@ -1693,9 +1711,9 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
       {gist && (
         <div style={{
           fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55,
-          fontStyle: 'italic',
+          fontStyle: 'normal',
         }}>
-          {gist}
+          {renderInlineBold(gist)}
         </div>
       )}
       {summary && (
@@ -1910,6 +1928,25 @@ function composeGist(item, run) {
 // Returns "" if there's not enough material for a meaningful paragraph
 // (Phase 1 first turn before stats exist, etc.) — caller falls back to
 // composeGist for those.
+// Spec 0041 D7 — body truncation helper. Compact-card headlines clip
+// at ~70 chars before ellipsis so the column reads as a scannable list
+// rather than a wall of wrapped text. The full body lives in the
+// expanded surface (no truncation) and on the ``title`` attribute for
+// hover tooltips.
+function truncateBody(s, max = 70) {
+  if (s == null) return '';
+  const trimmed = String(s).trim();
+  if (trimmed.length <= max) return trimmed;
+  return trimmed.slice(0, max - 1).trimEnd() + '…';
+}
+
+// Spec 0041 D8 — sentiment composer with overall-sentiment lead.
+// Pre-spec the composer covered Phase 2 + Phase 4 with terse output
+// and Phase 0 / 1 / 3 / 5 returned ''. Now every phase emits a 2–3
+// sentence paragraph: sentence 1 is the overall sentiment word + the
+// agent identity + the round-level cue; sentence 2 carries the
+// activity counts (raised / answered / resolved); sentence 3 is the
+// standing snapshot when there's something to say.
 function composeSentiment(item, run) {
   if (!item) return '';
   const phase = item.statsPhase;
@@ -1922,16 +1959,63 @@ function composeSentiment(item, run) {
 
   const allQuestions = Array.isArray(run?.questions) ? run.questions : [];
   const allDis = Array.isArray(run?.disagreements) ? run.disagreements : [];
+  const allIssues = Array.isArray(run?.issues) ? run.issues : [];
+  const allComments = Array.isArray(run?.comments) ? run.comments : [];
 
-  // Phase 1 — independent draft. No critique stats; sentiment comes from
-  // protocol artefacts in the draft itself (V/U tag counts via the draft
-  // body — out of scope to parse here). Fall back to composeGist.
-  if (phase === 1) {
+  const lead = (word, rest) =>
+    `**${word} —** ${rest}`;
+
+  // ─── Phase 0 — per-agent brief critique ─────────────────────────────────
+  if (item.kind === 'preflight') {
+    const briefIssues = stats.briefIssues ?? 0;
+    if (status === 'BRIEF_OK' && briefIssues === 0) {
+      return lead('Positive', `${agentName} approved the brief outright.`);
+    }
+    if (status === 'BRIEF_OK') {
+      return lead(
+        'Mostly positive',
+        `${agentName} approved the brief but flagged ${plur(briefIssues, 'minor issue')}.`,
+      );
+    }
+    if (status === 'BRIEF_NEEDS_INPUT') {
+      return lead(
+        'Cautious',
+        `${agentName} flagged ${plur(briefIssues, 'blocking issue')} before drafting.`,
+      );
+    }
+    return briefIssues > 0
+      ? lead('Cautious', `${agentName} flagged ${plur(briefIssues, 'issue')} on the brief.`)
+      : lead('Neutral', `${agentName} reviewed the brief.`);
+  }
+
+  // ─── Phase 0 — shared input card ────────────────────────────────────────
+  if (item.kind === 'input') {
+    const s = stats || {};
+    if (s.state === 'ok') {
+      return lead('Positive', `Both agents found the brief OK to proceed.`);
+    }
+    if (s.state === 'issues' && s.count > 0) {
+      return lead(
+        'Cautious',
+        `Brief came back with ${plur(s.count, 'issue')} flagged across the two agents.`,
+      );
+    }
     return '';
   }
 
-  // Phase 2 — negotiation turn. Headline: status. Then counts + deltas
-  // from question/disagreement objects.
+  // ─── Phase 1 — independent draft ────────────────────────────────────────
+  if (phase === 1) {
+    // What we know cheaply about a Phase 1 draft: it landed. The
+    // counts that matter (V/U tags, question count) live in the
+    // draft body which we don't parse here. The sentiment lead just
+    // marks it as solid; sentence 2 nods to "independent draft".
+    return lead(
+      'Solid',
+      `${agentName} delivered an independent Phase 1 draft. The draft is now an input to Phase 2 negotiation.`,
+    );
+  }
+
+  // ─── Phase 2 — negotiation turn ─────────────────────────────────────────
   if (phase === 2) {
     const myNewQs = allQuestions.filter(
       q => q.phase === 2 && q.raisedBy === agent && q.raisedRound === round
@@ -1948,22 +2032,32 @@ function composeSentiment(item, run) {
               && (d.progression || []).some(p => p.round === round && p.agent === agent)
     );
 
-    const sentences = [];
-
-    // Lead: status + agent identity.
+    let sentimentWord = 'Neutral';
+    let leadRest;
     if (status === 'AGREED') {
-      sentences.push(`${agentName} endorsed the plan this round.`);
+      sentimentWord = 'Positive';
+      leadRest = `${agentName} endorsed the plan this round.`;
     } else if (status === 'NEGOTIATING' || !status) {
       if (round === 1) {
-        sentences.push(`${agentName}'s round-1 difference inventory.`);
+        sentimentWord = 'Cautious';
+        leadRest = `${agentName}'s round-1 difference inventory.`;
+      } else if (myClosedDsHere.length === 0 && otherQsAnsweredHere.length === 0
+                 && myOpenedDsHere.length === 0 && myNewQs.length === 0) {
+        sentimentWord = 'Critical';
+        leadRest = `${agentName} still negotiating in round ${round} with no movement.`;
       } else {
-        sentences.push(`${agentName} still negotiating in round ${round}.`);
+        sentimentWord = 'Cautious';
+        leadRest = `${agentName} still negotiating in round ${round}.`;
       }
+    } else if (status === 'DISAGREED') {
+      sentimentWord = 'Critical';
+      leadRest = `${agentName} disagreed in round ${round}.`;
     } else {
-      sentences.push(`${agentName} · ${status.toLowerCase()}.`);
+      leadRest = `${agentName} · ${status.toLowerCase()}.`;
     }
 
-    // Activity sentence: what moved this round.
+    const sentences = [lead(sentimentWord, leadRest)];
+
     const movements = [];
     if (myNewQs.length > 0) movements.push(`raised ${plur(myNewQs.length, 'new question')}`);
     if (otherQsAnsweredHere.length > 0) movements.push(
@@ -1979,7 +2073,6 @@ function composeSentiment(item, run) {
       sentences.push(`${capitalise(movements.join(', '))}.`);
     }
 
-    // Standing snapshot: open Qs + Ds left holding.
     const standingParts = [];
     if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
       standingParts.push(plur(stats.openQuestions, 'open question'));
@@ -1997,21 +2090,63 @@ function composeSentiment(item, run) {
     return sentences.join(' ');
   }
 
-  // Phase 4 — review turn. Same pattern but issue-oriented.
-  if (phase === 4) {
-    const sentences = [];
-    if (status === 'APPROVED') {
-      sentences.push(`${agentName} approved the draft this round.`);
-    } else if (status === 'REVIEWING') {
-      sentences.push(`${agentName} still reviewing in round ${round}.`);
-    } else {
-      sentences.push(agentName + (status ? ` · ${status.toLowerCase()}.` : '.'));
+  // ─── Phase 3 — drafter writes the converged document ────────────────────
+  if (phase === 3 || item.kind === 'doc' || item.kind === 'doc-live') {
+    if (item.completed) {
+      return lead('Done', `Final document emitted by ${agentName}.`);
     }
-    if (typeof stats.openIssues === 'number' && stats.openIssues > 0) {
-      sentences.push(`${plur(stats.openIssues, 'issue')} open against the current draft.`);
-    } else if (stats.openIssues === 0) {
+    return lead(
+      'Solid',
+      `${agentName} wrote v1 of the converged document.`,
+    );
+  }
+
+  // ─── Phase 4 — review turn ──────────────────────────────────────────────
+  if (phase === 4) {
+    const openIssuesNow = typeof stats.openIssues === 'number'
+      ? stats.openIssues
+      : allIssues.filter(i => i.phase === 4 && i.raisedBy === agent && i.status === 'open').length;
+    const myCommentsHere = allComments.filter(
+      c => c.phase === 4 && c.raisedBy === agent && c.raisedRound === round
+    );
+    const myIssuesNewHere = allIssues.filter(
+      i => i.phase === 4 && i.raisedBy === agent && i.roundFirstSeen === round
+    );
+
+    let sentimentWord;
+    let leadRest;
+    if (status === 'APPROVED' && openIssuesNow === 0) {
+      sentimentWord = 'Positive';
+      leadRest = `${agentName} approved the draft this round.`;
+    } else if (status === 'APPROVED') {
+      sentimentWord = 'Mostly positive';
+      leadRest = `${agentName} approved with ${plur(openIssuesNow, 'open issue')} carried.`;
+    } else if (status === 'NOT_APPROVED') {
+      sentimentWord = 'Critical';
+      leadRest = `${agentName} did not approve; ${plur(openIssuesNow, 'open issue')}.`;
+    } else if (status === 'REVIEWING') {
+      sentimentWord = openIssuesNow > 0 ? 'Cautious' : 'Neutral';
+      leadRest = `${agentName} still reviewing in round ${round}.`;
+    } else {
+      sentimentWord = 'Neutral';
+      leadRest = `${agentName} · ${status ? status.toLowerCase() : 'reviewing'}.`;
+    }
+
+    const sentences = [lead(sentimentWord, leadRest)];
+
+    const movements = [];
+    if (myIssuesNewHere.length > 0) movements.push(`raised ${plur(myIssuesNewHere.length, 'new issue')}`);
+    if (myCommentsHere.length > 0) movements.push(`noted ${plur(myCommentsHere.length, 'comment')}`);
+    if (movements.length > 0) {
+      sentences.push(`${capitalise(movements.join(', '))}.`);
+    }
+
+    if (openIssuesNow > 0) {
+      sentences.push(`${plur(openIssuesNow, 'issue')} open against the current draft.`);
+    } else if (status === 'APPROVED') {
       sentences.push('No open issues this round.');
     }
+
     return sentences.join(' ');
   }
 
@@ -3977,6 +4112,12 @@ function DeadlockCard({ item }) {
 function CritiqueExplorer({ run, onHighlightTurns }) {
   const questions = Array.isArray(run.questions) ? run.questions : [];
   const disagreements = Array.isArray(run.disagreements) ? run.disagreements : [];
+  // Spec 0041 — Phase 4 ``Issue ledger`` + ``Comments on the current
+  // draft`` get their own first-class arrays alongside questions /
+  // disagreements. Older runs (transcripts without `run.issues`) get
+  // empty lists.
+  const issues = Array.isArray(run.issues) ? run.issues : [];
+  const comments = Array.isArray(run.comments) ? run.comments : [];
 
   // Spec 0040 D5: the Summary tab is visible only when the run has
   // reached a terminal state — the post-mortem aggregate doesn't make
@@ -4004,18 +4145,30 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   }, [isTerminal, selectedPhase, initial]);
 
   // Phase-filtered slices. (Summary view ignores both filters and uses
-  // the full question/disagreement lists directly — see SummaryView.)
+  // the full lists directly — see SummaryView.)
   const isSummary = selectedPhase === 'summary';
   const phaseQuestions = isSummary ? [] : questions.filter(q => q.phase === selectedPhase);
   const phaseDisagreements = isSummary ? [] : disagreements.filter(d => d.phase === selectedPhase);
+  const phaseIssues = isSummary ? [] : issues.filter(i => i.phase === selectedPhase);
+  const phaseComments = isSummary ? [] : comments.filter(c => c.phase === selectedPhase);
 
-  // Type filter.
+  // Spec 0041 D5 — type filter now distinguishes four kinds.
+  const showI = typeFilter === 'all' || typeFilter === 'issues';
   const showQ = typeFilter === 'all' || typeFilter === 'questions';
   const showD = typeFilter === 'all' || typeFilter === 'disagreements';
+  const showC = typeFilter === 'all' || typeFilter === 'comments';
 
-  // Group by status.
+  // Group by status. Comments don't have a status — they're always
+  // "noted"; they go in the resolved column to keep open-vs-noise
+  // separation clean.
   const openItems = [];
   const resolvedItems = [];
+  if (showI) {
+    for (const i of phaseIssues) {
+      const item = { ...i, _critiqueKind: 'i' };
+      (i.status === 'open' ? openItems : resolvedItems).push(item);
+    }
+  }
   if (showD) {
     for (const d of phaseDisagreements) {
       const item = { ...d, _critiqueKind: 'd' };
@@ -4028,39 +4181,59 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
       (q.status === 'open' ? openItems : resolvedItems).push(item);
     }
   }
+  if (showC) {
+    for (const c of phaseComments) {
+      const item = { ...c, _critiqueKind: 'c' };
+      resolvedItems.push(item);
+    }
+  }
 
   // Sort: by round ascending so the user reads chronological history.
-  const byRound = (a, b) => {
-    const aR = a._critiqueKind === 'q' ? a.raisedRound : a.openedRound;
-    const bR = b._critiqueKind === 'q' ? b.raisedRound : b.openedRound;
-    return (aR || 0) - (bR || 0);
+  const sortRound = (it) => {
+    switch (it._critiqueKind) {
+      case 'q': return it.raisedRound;
+      case 'd': return it.openedRound;
+      case 'i': return it.roundFirstSeen;
+      case 'c': return it.raisedRound;
+      default:  return 0;
+    }
   };
+  const byRound = (a, b) => (sortRound(a) || 0) - (sortRound(b) || 0);
   openItems.sort(byRound);
   resolvedItems.sort(byRound);
 
-  const introduced = (showQ ? phaseQuestions.length : 0) + (showD ? phaseDisagreements.length : 0);
   const totalOpen = openItems.length;
   const totalResolved = resolvedItems.length;
+  const introduced = (showI ? phaseIssues.length : 0)
+                   + (showQ ? phaseQuestions.length : 0)
+                   + (showD ? phaseDisagreements.length : 0)
+                   + (showC ? phaseComments.length : 0);
 
-  // Phase-tab info: shows Q + D counts per phase.
+  // Phase-tab info: shows I + Q + D + C counts per phase (any zeros
+  // collapse out of the label).
   const phaseInfo = (pid) => {
+    const iInPhase = issues.filter(i => i.phase === pid);
     const qInPhase = questions.filter(q => q.phase === pid);
     const dInPhase = disagreements.filter(d => d.phase === pid);
+    const cInPhase = comments.filter(c => c.phase === pid);
     const pending = run.phase < pid || (pid === 4 && run.phase < 3);
     return {
       pid,
       label: pid === 2 ? 'Negotiate' : 'Review',
+      iTotal: iInPhase.length,
+      iOpen: iInPhase.filter(i => i.status === 'open').length,
       qTotal: qInPhase.length,
-      dTotal: dInPhase.length,
       qOpen: qInPhase.filter(q => q.status === 'open').length,
+      dTotal: dInPhase.length,
       dOpen: dInPhase.filter(d => d.status === 'open').length,
+      cTotal: cInPhase.length,
       pending,
       active: (run.phase === pid && run.status === 'running'),
     };
   };
   const tabs = [phaseInfo(2), phaseInfo(4)];
 
-  const totalIntroduced = questions.length + disagreements.length;
+  const totalIntroduced = issues.length + questions.length + disagreements.length + comments.length;
 
   const handleHighlight = React.useCallback((keys, variant) => {
     if (onHighlightTurns) onHighlightTurns(keys, variant);
@@ -4125,10 +4298,16 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 const DisagreementExplorer = CritiqueExplorer;
 
 function CritiqueTypeFilter({ active, onChange }) {
+  // Spec 0041 D5 — four typed groups instead of two. Order is the
+  // visual hierarchy: Issues + Questions are the items that gate
+  // approval; Disagreements are blocking stances; Comments are
+  // non-blocking commentary at the end.
   const items = [
     { id: 'all',           label: 'All' },
+    { id: 'issues',        label: 'Issues' },
     { id: 'questions',     label: 'Questions' },
     { id: 'disagreements', label: 'Disagreements' },
+    { id: 'comments',      label: 'Comments' },
   ];
   return (
     <div style={{
@@ -4205,11 +4384,29 @@ function CritiquePhaseTab({ tab, active, onSelect }) {
           <span style={{ color: 'var(--fg-4)' }}>·</span>
           <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
             {tab.pending ? 'pending'
-              : (tab.qTotal + tab.dTotal === 0) ? 'no items'
+              : ((tab.iTotal || 0) + (tab.qTotal || 0) + (tab.dTotal || 0) + (tab.cTotal || 0) === 0) ? 'no items'
               : <>
-                  <span style={{ color: tab.qTotal > 0 ? COLORS.info : 'var(--fg-3)' }}>{tab.qTotal} Q</span>
-                  <span style={{ color: 'var(--fg-4)' }}> · </span>
-                  <span style={{ color: tab.dTotal > 0 ? COLORS.warn : 'var(--fg-3)' }}>{tab.dTotal} D</span>
+                  {tab.iTotal > 0 && (
+                    <>
+                      <span style={{ color: COLORS.warn }}>{tab.iTotal} I</span>
+                      <span style={{ color: 'var(--fg-4)' }}> · </span>
+                    </>
+                  )}
+                  {tab.qTotal > 0 && (
+                    <>
+                      <span style={{ color: COLORS.info }}>{tab.qTotal} Q</span>
+                      <span style={{ color: 'var(--fg-4)' }}> · </span>
+                    </>
+                  )}
+                  {tab.dTotal > 0 && (
+                    <>
+                      <span style={{ color: COLORS.warn }}>{tab.dTotal} D</span>
+                      {tab.cTotal > 0 && <span style={{ color: 'var(--fg-4)' }}> · </span>}
+                    </>
+                  )}
+                  {tab.cTotal > 0 && (
+                    <span style={{ color: 'var(--fg-3)' }}>{tab.cTotal} C</span>
+                  )}
                 </>
             }
           </span>
@@ -4267,9 +4464,15 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
     );
   }
 
-  const renderItem = (item) => item._critiqueKind === 'q'
-    ? <QuestionCard key={item.id} q={item} onHighlight={onHighlight} />
-    : <DisagreementCard key={item.id} d={item} onHighlight={onHighlight} />;
+  const renderItem = (item) => {
+    switch (item._critiqueKind) {
+      case 'q': return <QuestionCard key={item.id} q={item} onHighlight={onHighlight} />;
+      case 'd': return <DisagreementCard key={item.id} d={item} onHighlight={onHighlight} />;
+      case 'i': return <IssueCard key={item.id} issue={item} onHighlight={onHighlight} />;
+      case 'c': return <CommentCard key={item.id} comment={item} onHighlight={onHighlight} />;
+      default:  return null;
+    }
+  };
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
@@ -4291,10 +4494,16 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
 // answered / open + D raised / resolved / open. Rounds with zero
 // activity in both kinds are omitted to keep the surface compact.
 function CritiqueSummaryView({ run, questions, disagreements }) {
-  // Build per-phase, per-round counters.
+  // Spec 0041 — extend the summary with Issues + Comments alongside
+  // Questions + Disagreements. The full Run carries all four lists.
+  const issues = Array.isArray(run?.issues) ? run.issues : [];
+  const comments = Array.isArray(run?.comments) ? run.comments : [];
+
   const collect = (pid) => {
     const qs = questions.filter(q => q.phase === pid);
     const ds = disagreements.filter(d => d.phase === pid);
+    const is_ = issues.filter(i => i.phase === pid);
+    const cs = comments.filter(c => c.phase === pid);
     const rounds = new Set();
     for (const q of qs) {
       if (q.raisedRound) rounds.add(q.raisedRound);
@@ -4304,11 +4513,25 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
       if (d.openedRound) rounds.add(d.openedRound);
       if (d.closedRound) rounds.add(d.closedRound);
     }
+    for (const i of is_) {
+      if (i.roundFirstSeen) rounds.add(i.roundFirstSeen);
+      if (i.roundLastSeen) rounds.add(i.roundLastSeen);
+    }
+    for (const c of cs) {
+      if (c.raisedRound) rounds.add(c.raisedRound);
+    }
     const rows = Array.from(rounds).sort((a, b) => a - b).map((r) => ({
       round: r,
+      iRaised: is_.filter(i => i.roundFirstSeen === r).length,
+      iResolved: is_.filter(i =>
+        i.status === 'resolved' && i.roundLastSeen === r
+      ).length,
+      iStillOpen: is_.filter(i =>
+        i.roundFirstSeen <= r
+        && (i.status === 'open' || i.roundLastSeen > r)
+      ).length,
       qRaised: qs.filter(q => q.raisedRound === r).length,
       qAnswered: qs.filter(q => q.answeredRound === r).length,
-      // Q still open as of end-of-round R: raised by ≤R, not yet answered or answered > R
       qStillOpen: qs.filter(q =>
         q.raisedRound <= r && (q.status === 'open' || (q.answeredRound != null && q.answeredRound > r))
       ).length,
@@ -4317,14 +4540,16 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
       dStillOpen: ds.filter(d =>
         (d.openedRound ?? 0) <= r && (d.status === 'open' || (d.closedRound != null && d.closedRound > r))
       ).length,
+      cNoted: cs.filter(c => c.raisedRound === r).length,
     }));
-    return { qs, ds, rows };
+    return { qs, ds, is_, cs, rows };
   };
   const p2 = collect(2);
   const p4 = collect(4);
 
   const renderPhase = (label, phaseInfo) => {
-    if (phaseInfo.qs.length === 0 && phaseInfo.ds.length === 0) {
+    if (phaseInfo.qs.length === 0 && phaseInfo.ds.length === 0
+        && phaseInfo.is_.length === 0 && phaseInfo.cs.length === 0) {
       return (
         <section style={{ marginBottom: 22 }}>
           <h3 style={{
@@ -4339,7 +4564,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
             border: '1px dashed var(--border-1)',
             borderRadius: 'var(--r-2)',
           }}>
-            no questions or disagreements were raised in this phase
+            no critique items were raised in this phase
           </div>
         </section>
       );
@@ -4348,21 +4573,27 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     const totalQAnswered = phaseInfo.qs.length - totalQOpen;
     const totalDOpen = phaseInfo.ds.filter(d => d.status === 'open').length;
     const totalDResolved = phaseInfo.ds.length - totalDOpen;
+    const totalIOpen = phaseInfo.is_.filter(i => i.status === 'open').length;
+    const totalIResolved = phaseInfo.is_.length - totalIOpen;
     return (
       <section style={{ marginBottom: 22 }}>
         <h3 style={{
           fontSize: 12, fontWeight: 600, color: 'var(--fg-2)',
           letterSpacing: '0.04em', textTransform: 'uppercase',
           margin: '0 0 8px',
-          display: 'flex', alignItems: 'baseline', gap: 10,
+          display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
         }}>
           <span>{label}</span>
           <span className="mono" style={{
             fontSize: 10.5, letterSpacing: '0.02em', color: 'var(--fg-3)',
             textTransform: 'none', fontWeight: 400,
           }}>
+            {phaseInfo.is_.length > 0 && (
+              <>{phaseInfo.is_.length} I ({totalIResolved} resolved · {totalIOpen} open) · </>
+            )}
             {phaseInfo.qs.length} Q ({totalQAnswered} answered · {totalQOpen} open) ·{' '}
             {phaseInfo.ds.length} D ({totalDResolved} resolved · {totalDOpen} open)
+            {phaseInfo.cs.length > 0 && <> · {phaseInfo.cs.length} C</>}
           </span>
         </h3>
         <table style={{
@@ -4377,18 +4608,31 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
           <thead>
             <tr style={{ background: 'var(--bg-2)', textAlign: 'left' }}>
               <th style={_summaryTh}>Round</th>
+              <th style={_summaryTh}>I raised</th>
+              <th style={_summaryTh}>I resolved</th>
+              <th style={_summaryTh}>I still open</th>
               <th style={_summaryTh}>Q raised</th>
               <th style={_summaryTh}>Q answered</th>
               <th style={_summaryTh}>Q still open</th>
               <th style={_summaryTh}>D raised</th>
               <th style={_summaryTh}>D resolved</th>
               <th style={_summaryTh}>D still open</th>
+              <th style={_summaryTh}>C noted</th>
             </tr>
           </thead>
           <tbody>
             {phaseInfo.rows.map((r) => (
               <tr key={r.round} style={{ borderTop: '1px solid var(--border-1)' }}>
                 <td style={_summaryTd}>R{r.round}</td>
+                <td style={_summaryTd}>{r.iRaised || '—'}</td>
+                <td style={{
+                  ..._summaryTd,
+                  color: r.iResolved > 0 ? COLORS.ok : 'var(--fg-3)',
+                }}>{r.iResolved || '—'}</td>
+                <td style={{
+                  ..._summaryTd,
+                  color: r.iStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
+                }}>{r.iStillOpen || '—'}</td>
                 <td style={_summaryTd}>{r.qRaised || '—'}</td>
                 <td style={{
                   ..._summaryTd,
@@ -4407,6 +4651,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
                   ..._summaryTd,
                   color: r.dStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
                 }}>{r.dStillOpen || '—'}</td>
+                <td style={_summaryTd}>{r.cNoted || '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -4503,7 +4748,7 @@ function QuestionCard({ q, onHighlight }) {
             fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {q.body || '(no body)'}
+            {truncateBody(q.body, 70) || '(no body)'}
           </span>
           <span className="mono" style={{
             fontSize: 10, color: 'var(--fg-3)', flexShrink: 0,
@@ -4779,7 +5024,7 @@ function DisagreementCard({ d, onHighlight }) {
             fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
-            {d.shortLabel || d.point}
+            {truncateBody(d.shortLabel || d.point, 70)}
           </span>
           <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
             {exchanges} ex
@@ -4871,6 +5116,255 @@ function DisagreementCard({ d, onHighlight }) {
                 borderLeft: `2px solid ${COLORS.ok}55`,
                 fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
               }}>{d.resolution}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+// Spec 0041 D5 — Phase 4 Issue ledger items have their own card type.
+// Same compact-header + expandable-body shape as QuestionCard. The
+// left-rail color is the warn-amber issue color (matches the timeline
+// chip's "issues" tint). Click flashes the timeline turn-card where
+// the issue was first raised.
+function IssueCard({ issue, onHighlight }) {
+  const [open, setOpen] = React.useState(false);
+  const [hover, setHover] = React.useState(false);
+  const isOpen = issue.status === 'open';
+  const accentColor = isOpen ? COLORS.warn : COLORS.ok;
+  const raisedMeta = AGENT_META[issue.raisedBy];
+
+  const onCardClick = React.useCallback(() => {
+    if (onHighlight && issue.raisedTurnKey) {
+      onHighlight([issue.raisedTurnKey], 'd');
+    }
+    setOpen(o => !o);
+  }, [issue, onHighlight]);
+
+  const roundLabel = issue.roundFirstSeen === issue.roundLastSeen
+    ? `R${issue.roundFirstSeen}`
+    : `R${issue.roundFirstSeen}→R${issue.roundLastSeen}`;
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        marginBottom: 8,
+        background: 'var(--bg-1)',
+        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
+        borderLeft: `3px solid ${accentColor}`,
+        borderRadius: 'var(--r-3)',
+        overflow: 'hidden',
+        transition: 'border-color 120ms',
+      }}>
+      <button onClick={onCardClick}
+              title={issue.body || ''}
+              style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '9px 12px',
+        background: hover && !open ? 'var(--bg-2)' : 'transparent',
+        transition: 'background 120ms',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span className="mono" style={{
+            fontSize: 10, color: COLORS.warn, letterSpacing: '0.06em',
+            padding: '1px 6px', borderRadius: 4,
+            background: 'rgba(212,160,86,0.10)',
+            border: '1px solid rgba(212,160,86,0.30)',
+            flexShrink: 0,
+          }}>I</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+            {roundLabel}
+          </span>
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {truncateBody(issue.body, 70)}
+          </span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+            {issue.id}
+          </span>
+          <span className="mono" style={{
+            fontSize: 10.5,
+            padding: '1px 6px', borderRadius: 999,
+            border: `1px solid ${isOpen ? COLORS.warn + '55' : COLORS.ok + '55'}`,
+            color: isOpen ? COLORS.warn : COLORS.ok,
+            background: isOpen ? 'rgba(212,160,86,0.08)' : 'rgba(111,179,128,0.08)',
+            flexShrink: 0,
+          }}>
+            {isOpen ? 'open' : 'resolved'}
+          </span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 16, height: 16,
+            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
+            transition: 'opacity 120ms, transform 120ms',
+            color: 'var(--fg-2)',
+            transform: open ? 'rotate(90deg)' : 'none',
+            flexShrink: 0,
+          }}>
+            <Icon.Chevron />
+          </span>
+        </div>
+      </button>
+      {open && (
+        <div style={{
+          padding: '10px 14px 14px',
+          borderTop: '1px solid var(--border-1)',
+          background: 'var(--bg-0)',
+          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div style={{
+            fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {issue.body || '(no body)'}
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          }}>
+            <span>flagged by {raisedMeta?.name || issue.raisedBy} · first seen R{issue.roundFirstSeen}</span>
+            {issue.roundLastSeen !== issue.roundFirstSeen && (
+              <>
+                <span>·</span>
+                <span>last seen R{issue.roundLastSeen}</span>
+              </>
+            )}
+          </div>
+          {issue.quote && (
+            <div>
+              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
+              <span style={{ fontStyle: 'italic' }}>"{issue.quote}"</span>
+            </div>
+          )}
+          {issue.after && (
+            <div>
+              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
+              <span style={{ fontStyle: 'italic' }}>{issue.after}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+// Spec 0041 D5 — Comments on the current draft. Non-blocking, no
+// closure protocol; always renders as ``noted``. The left-rail is
+// neutral grey so it's visually de-prioritised next to issues +
+// questions + disagreements.
+function CommentCard({ comment, onHighlight }) {
+  const [open, setOpen] = React.useState(false);
+  const [hover, setHover] = React.useState(false);
+  const raisedMeta = AGENT_META[comment.raisedBy];
+
+  const onCardClick = React.useCallback(() => {
+    if (onHighlight && comment.raisedTurnKey) {
+      onHighlight([comment.raisedTurnKey], 'd');
+    }
+    setOpen(o => !o);
+  }, [comment, onHighlight]);
+
+  return (
+    <article
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        marginBottom: 8,
+        background: 'var(--bg-1)',
+        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
+        borderLeft: `3px solid var(--border-3)`,
+        borderRadius: 'var(--r-3)',
+        overflow: 'hidden',
+        transition: 'border-color 120ms',
+      }}>
+      <button onClick={onCardClick}
+              title={comment.body || ''}
+              style={{
+        display: 'block', width: '100%', textAlign: 'left',
+        padding: '9px 12px',
+        background: hover && !open ? 'var(--bg-2)' : 'transparent',
+        transition: 'background 120ms',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span className="mono" style={{
+            fontSize: 10, color: 'var(--fg-2)', letterSpacing: '0.06em',
+            padding: '1px 6px', borderRadius: 4,
+            background: 'var(--bg-2)',
+            border: '1px solid var(--border-1)',
+            flexShrink: 0,
+          }}>C</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+            R{comment.raisedRound}
+          </span>
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontSize: 12.5, color: 'var(--fg-1)', fontWeight: 500, lineHeight: 1.4,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {truncateBody(comment.body, 70)}
+          </span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+            {comment.id}
+          </span>
+          <span className="mono" style={{
+            fontSize: 10.5,
+            padding: '1px 6px', borderRadius: 999,
+            border: '1px solid var(--border-1)',
+            color: 'var(--fg-3)',
+            background: 'var(--bg-2)',
+            flexShrink: 0,
+          }}>noted</span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 16, height: 16,
+            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
+            transition: 'opacity 120ms, transform 120ms',
+            color: 'var(--fg-2)',
+            transform: open ? 'rotate(90deg)' : 'none',
+            flexShrink: 0,
+          }}>
+            <Icon.Chevron />
+          </span>
+        </div>
+      </button>
+      {open && (
+        <div style={{
+          padding: '10px 14px 14px',
+          borderTop: '1px solid var(--border-1)',
+          background: 'var(--bg-0)',
+          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div style={{
+            fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {comment.body || '(no body)'}
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          }}>
+            <span>noted by {raisedMeta?.name || comment.raisedBy} · R{comment.raisedRound}</span>
+          </div>
+          {comment.quote && (
+            <div>
+              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
+              <span style={{ fontStyle: 'italic' }}>"{comment.quote}"</span>
+            </div>
+          )}
+          {comment.after && (
+            <div>
+              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
+              <span style={{ fontStyle: 'italic' }}>{comment.after}</span>
             </div>
           )}
         </div>
