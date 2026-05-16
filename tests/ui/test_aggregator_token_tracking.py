@@ -34,6 +34,7 @@ def _turn_ended(
     cache_write: int = 0,
     cost: float = 0.01,
     model_id: str = "claude-sonnet-4-6",
+    prompt_pieces: dict[str, int] | None = None,
 ) -> dict:
     return {
         "event": "turn_ended",
@@ -48,6 +49,7 @@ def _turn_ended(
         "duration_ms": 1000,
         "finish_reason": "end_turn",
         "model_id": model_id,
+        "prompt_pieces": prompt_pieces or {},
     }
 
 
@@ -212,6 +214,100 @@ class TestPhaseTokenUsagePayload:
         apply_event(run, event, tmp_path)
         usage = run.phase_token_usage["phase1_claude"]
         assert usage.model_id == "claude-sonnet-4-6"
+
+
+class TestSpec0030Fields:
+    """Spec 0030 — `context_window` flows through `run_started` to
+    `AgentState.context_window` and is also stamped on each `TurnTokenUsage`.
+    `prompt_pieces` from `TurnEnded` is preserved on the per-turn entry.
+    """
+
+    def test_run_started_stamps_context_window_on_agents(
+        self, tmp_path: Path
+    ) -> None:
+        run = _empty_run()
+        apply_event(
+            run,
+            {
+                "event": "run_started",
+                "soft_cap": 6,
+                "hard_cap": 12,
+                "claude_model": "claude-sonnet-4-6",
+                "openai_model": "gpt-5.5",
+                "claude_context_window": 1_000_000,
+                "openai_context_window": 1_000_000,
+            },
+            tmp_path,
+        )
+        assert run.agents["claude"].context_window == 1_000_000
+        assert run.agents["gpt"].context_window == 1_000_000
+
+    def test_pre_0030_run_started_falls_back_to_zero(self, tmp_path: Path) -> None:
+        """Replaying an old transcript without context_window fields must
+        not crash; the field defaults to 0."""
+        run = _empty_run()
+        apply_event(
+            run,
+            {
+                "event": "run_started",
+                "soft_cap": 4,
+                "hard_cap": 8,
+                "claude_model": "claude-sonnet-4-6",
+                "openai_model": "gpt-5.5",
+            },
+            tmp_path,
+        )
+        assert run.agents["claude"].context_window == 0
+        assert run.agents["gpt"].context_window == 0
+
+    def test_turn_token_usage_carries_window_and_pieces(self, tmp_path: Path) -> None:
+        run = _empty_run()
+        apply_event(
+            run,
+            {
+                "event": "run_started",
+                "soft_cap": 6,
+                "hard_cap": 12,
+                "claude_model": "claude-sonnet-4-6",
+                "openai_model": "gpt-5.5",
+                "claude_context_window": 1_000_000,
+                "openai_context_window": 1_000_000,
+            },
+            tmp_path,
+        )
+        apply_event(
+            run,
+            _turn_ended(
+                agent="claude",
+                phase="phase2",
+                label="phase2-claude-round-1",
+                prompt_pieces={"brief": 250, "d1": 500, "d2": 480},
+            ),
+            tmp_path,
+        )
+        usage = run.phase_token_usage["phase2_round1_claude"]
+        assert usage.context_window == 1_000_000
+        assert usage.prompt_pieces == {"brief": 250, "d1": 500, "d2": 480}
+
+    def test_empty_prompt_pieces_round_trips_as_empty_dict(
+        self, tmp_path: Path
+    ) -> None:
+        run = _empty_run()
+        apply_event(
+            run,
+            _turn_ended(
+                agent="openai",
+                phase="phase0",
+                label="phase0-openai",
+                # No prompt_pieces — old transcript / non-instrumented phase.
+            ),
+            tmp_path,
+        )
+        usage = run.phase_token_usage["phase0_gpt"]
+        assert usage.prompt_pieces == {}
+        # context_window picks up the agent's value (0 here, since no
+        # run_started was applied).
+        assert usage.context_window == 0
 
 
 class TestAccumulationPreserved:

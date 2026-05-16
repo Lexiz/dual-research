@@ -21,12 +21,19 @@ async def run_one_call(
     stream_to: TextIO | None = sys.stdout,
     stream_prefix: str = "",
     max_output_tokens: int = 8192,
+    prompt_pieces: dict[str, int] | None = None,
 ) -> AgentResult:
     """Run one agent call with event emission and persistence side-effects.
 
     Publishes TurnStarted before the call, TurnEnded after, records the
     AgentResult into metrics, and appends both events to the transcript.
     Streams tokens to stdout by default with a per-agent prefix.
+
+    ``prompt_pieces`` (spec 0030) is the per-input token breakdown computed
+    by the phase orchestrator from the same input strings used to build
+    the prompt. It's surfaced on ``TurnEnded`` and consumed by the
+    Consumption tab to render segmented bars. Pass ``None`` to omit (the
+    event carries an empty dict by default).
     """
     await event_bus.publish(TurnStarted(agent=agent.label, phase=phase, label=label))
     transcript.write("turn_started", agent=agent.label, phase=phase, label=label)
@@ -55,6 +62,7 @@ async def run_one_call(
         duration_ms=duration_ms,
         finish_reason=str(finish_reason) if finish_reason is not None else None,
         model_id=result.model_id,
+        prompt_pieces=dict(prompt_pieces) if prompt_pieces else {},
     )
     await event_bus.publish(end_event)
     transcript.write(
@@ -70,6 +78,7 @@ async def run_one_call(
         duration_ms=end_event.duration_ms,
         finish_reason=end_event.finish_reason,
         model_id=end_event.model_id,
+        prompt_pieces=end_event.prompt_pieces,
     )
 
     return result

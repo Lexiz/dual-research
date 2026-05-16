@@ -85,6 +85,11 @@ class AgentState:
     tokens: TokenUsage = field(default_factory=TokenUsage)
     cost: float = 0.0
     model_id: str | None = None  # populated from RunStarted; UI shows in chrome
+    # Real context-window cap from the tier's ModelSpec (spec 0030).
+    # Sourced from `RunStarted.{claude,openai}_context_window`. 0 when
+    # unknown (pre-0030 transcripts); the UI falls back to 128k for the
+    # bar denominator in that case.
+    context_window: int = 0
 
 
 # ─── Round / Budget ───────────────────────────────────────────────────────────
@@ -232,8 +237,19 @@ class TurnTokenUsage:
     ``phase{N}_round{R}_<agent>`` (round-loop phases) — the same key
     convention as ``phase_summaries`` and ``phase_review_items``.
 
-    Powers the spec-0029 Consumption tab. ``in_`` is renamed to ``in`` at
-    the JSON boundary (matches ``TokenUsage`` above).
+    Powers the spec-0029 Consumption tab and (since spec 0030) its per-input
+    segmented bars. ``in_`` is renamed to ``in`` at the JSON boundary
+    (matches ``TokenUsage`` above).
+
+    Spec 0030 added:
+    - ``context_window``: real cap from the model's ``ModelSpec`` — the
+      bar denominator on the frontend. 0 for pre-0030 transcripts (the
+      UI falls back to ``AgentState.context_window`` or a hard default).
+    - ``prompt_pieces``: per-piece token counts using the Tk vocabulary
+      from how-it-works (``brief`` / ``d1`` / ``d2`` / ``hist`` / ``plan``
+      / ``draft`` / ``histp``). Best-effort char÷3.5 heuristic computed at
+      call time from the input strings — proportional, not invoice-grade.
+      Empty dict for pre-0030 transcripts.
     """
 
     in_: int = 0
@@ -242,6 +258,8 @@ class TurnTokenUsage:
     cache_write: int = 0
     cost: float = 0.0
     model_id: str | None = None
+    context_window: int = 0
+    prompt_pieces: dict[str, int] = field(default_factory=dict)
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────

@@ -118,6 +118,9 @@ async def run_session(
             openai_model=tier.openai.model_id,
             soft_cap=soft_cap,
             hard_cap=hard_cap,
+            # Spec 0030: real context-window caps from the tier's ModelSpec.
+            claude_context_window=tier.claude.context_window,
+            openai_context_window=tier.openai.context_window,
         )
     )
     transcript.write(
@@ -129,6 +132,8 @@ async def run_session(
         openai_model=tier.openai.model_id,
         soft_cap=soft_cap,
         hard_cap=hard_cap,
+        claude_context_window=tier.claude.context_window,
+        openai_context_window=tier.openai.context_window,
     )
 
     brief_content = session.brief_path.read_text(encoding="utf-8")

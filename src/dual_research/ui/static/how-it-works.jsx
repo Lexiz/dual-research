@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.28.0',
+      date: '2026-05-16',
+      summary: 'Timeline UX pass — inline unfold, per-input consumption segments, real context windows, parser repairs.',
+      items: [
+        'Cards on the timeline now unfold inline on click — showing a synthesised gist, the TL;DR summary, and a "View in full mode" button. The modal is no longer the immediate destination.',
+        'Disagreement cards finally render their contested point. The parser falls back to the first content line of the entry when the agent didn\'t use the explicit `(a) D-N: "…"` form; progression "raised" notes pick up the same text.',
+        'Consumption bars now break down into per-input coloured segments — brief / d1 / d2 / plan / hist / draft / histp — matching the Tk palette on this page exactly. Each phase orchestrator computes piece sizes via a char÷3.5 heuristic and renormalises against the provider\'s reported input_tokens.',
+        'Bars are now sized to the model\'s actual context window. Prod-tier runs (Claude Sonnet 4.6 + GPT-5.5) draw 1M-wide bars on both lanes; test-tier honours each model\'s real cap.',
+        '`agents/context_windows.py` (spec 0029) is gone — the wire format carries context windows now, sourced from `ModelSpec.context_window`. No hand-maintained registry to drift.',
+      ],
+    },
+    {
       version: '0.27.0',
       date: '2026-05-16',
       summary: 'Token-consumption tab — per-turn context-window visualisation.',

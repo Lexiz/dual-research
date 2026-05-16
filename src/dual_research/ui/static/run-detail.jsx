@@ -358,26 +358,40 @@ function AgentLegendChip({ agent, tokens, cost }) {
 // `consumptionKey` helper below mirrors the server's `_snake_to_camel`
 // rewrite of those keys.
 
-// Token caps per model, duplicated from `agents/context_windows.py`.
-// Worth a generated module if this list grows much; for the current
-// 4-model lineup, manual sync + a backend test in
-// `tests/agents/test_context_windows.py` is enough.
-const CONTEXT_WINDOWS_JS = {
-  'claude-sonnet-4-6': 200_000,
-  'claude-haiku-4-5':  200_000,
-  'gpt-5.5':           200_000,
-  'gpt-5-mini':        128_000,
-};
+// Spec 0030: context windows now flow through the wire — every
+// `phaseTokenUsage` entry carries its `contextWindow`, and the agent
+// state carries a per-agent fallback. The JS registry that spec 0029
+// hand-rolled is gone (the values were wrong — see spec 0030).
 const DEFAULT_CONTEXT_WINDOW = 128_000;
 
-function contextWindowFor(modelId) {
-  if (!modelId) return DEFAULT_CONTEXT_WINDOW;
-  if (CONTEXT_WINDOWS_JS[modelId] != null) return CONTEXT_WINDOWS_JS[modelId];
-  for (const [k, w] of Object.entries(CONTEXT_WINDOWS_JS)) {
-    if (modelId.startsWith(k)) return w;
-  }
+function contextWindowFor(usage, run, agent) {
+  if (usage && usage.contextWindow) return usage.contextWindow;
+  const fallback = run?.agents?.[agent]?.contextWindow;
+  if (fallback) return fallback;
   return DEFAULT_CONTEXT_WINDOW;
 }
+
+// Spec 0030: per-piece segment colours mirror the Tk palette in
+// `how-it-works.jsx::ChatLifecycle`. The Consumption tab fills the bar
+// with one segment per prompt-piece kind so the live numbers read as a
+// direct continuation of the conceptual diagram.
+//
+// `bg` is the segment fill (solid, ~55% alpha). `fg` is the legend swatch
+// + tooltip-line accent.
+const KIND_COLORS = {
+  brief: { bg: 'rgba(107,156,240,0.65)', fg: '#9ab6e8',         label: 'brief' },
+  d1:    { bg: 'rgba(212,165,116,0.70)', fg: 'var(--agent-a)',  label: 'Claude P1 draft' },
+  d2:    { bg: 'rgba(124,196,184,0.70)', fg: 'var(--agent-b)',  label: 'GPT P1 draft' },
+  plan:  { bg: 'rgba(111,179,128,0.65)', fg: 'var(--ok)',       label: 'agreed plan' },
+  hist:  { bg: 'rgba(212,160,86,0.55)',  fg: 'var(--warn)',     label: 'P2 history' },
+  draft: { bg: 'rgba(217,106,106,0.55)', fg: 'var(--err)',      label: 'current draft' },
+  histp: { bg: 'rgba(212,160,86,0.40)',  fg: 'var(--warn)',     label: 'P4 history' },
+};
+
+// Canonical render order for segments inside a bar (left → right). Mirrors
+// the order content appears in the prompt; keeps the bars visually stable
+// even when keys arrive in a different order from the wire.
+const KIND_ORDER = ['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
 
 // Build the wire-format inner key for a given (phase, round, agent).
 // Examples:
@@ -445,6 +459,8 @@ function ConsumptionView({ run }) {
   if (rows.length === 0) {
     return <ConsumptionEmptyState />;
   }
+  // Pass `run` down so TokenBar can fall back to AgentState.contextWindow
+  // when a per-turn entry lacks its own (pre-0030 transcripts).
 
   return (
     <div style={{
@@ -481,6 +497,7 @@ function ConsumptionView({ run }) {
             <ConsumptionRow
               key={row.id}
               row={row}
+              run={run}
               showPhaseTitle={isFirstOfPhase}
             />
           );
@@ -492,7 +509,7 @@ function ConsumptionView({ run }) {
   );
 }
 
-function ConsumptionRow({ row, showPhaseTitle }) {
+function ConsumptionRow({ row, run, showPhaseTitle }) {
   return (
     <React.Fragment>
       {/* Phase / round label cell */}
@@ -517,15 +534,15 @@ function ConsumptionRow({ row, showPhaseTitle }) {
         )}
       </div>
       {/* Claude lane */}
-      <TokenLaneCell usage={row.claude} agent="claude" />
+      <TokenLaneCell usage={row.claude} agent="claude" run={run} />
       {/* OpenAI lane */}
-      <TokenLaneCell usage={row.gpt} agent="gpt" />
+      <TokenLaneCell usage={row.gpt} agent="gpt" run={run} />
     </React.Fragment>
   );
 }
 
 // One cell of a row — either a populated TokenBar or a silent placeholder.
-function TokenLaneCell({ usage, agent }) {
+function TokenLaneCell({ usage, agent, run }) {
   if (!usage) {
     return (
       <div className="mono" style={{
@@ -537,18 +554,16 @@ function TokenLaneCell({ usage, agent }) {
       }}>silent</div>
     );
   }
-  return <TokenBar usage={usage} agent={agent} />;
+  return <TokenBar usage={usage} agent={agent} run={run} />;
 }
 
-// The actual progress bar. Three visual segments:
-//   1. cache-read portion of input (lighter shade of agent colour)
-//   2. fresh input (full agent colour) — together (1)+(2) = `usage.in`
-//   3. output trailing segment (darker shade, 60% height)
-// Remainder of the bar is the unused context window.
-//
-// Tooltip carries the detailed breakdown — matches the existing
-// `CostBadge` lightweight pattern.
-function TokenBar({ usage, agent }) {
+// Spec 0030: the bar now renders one segment per prompt-piece kind
+// from `usage.promptPieces` (Tk palette), renormalised against
+// `usage.in` so heuristic-vs-provider-token mismatches don't distort
+// segment widths. An output tail still trails the input region (darker
+// shade, thinner band). When `promptPieces` is missing (pre-0030
+// transcripts) we fall back to the spec-0029 single-fill rendering.
+function TokenBar({ usage, agent, run }) {
   const meta = AGENT_META[agent];
   const tokensIn  = Number(usage.in)  || 0;
   const tokensOut = Number(usage.out) || 0;
@@ -556,28 +571,46 @@ function TokenBar({ usage, agent }) {
   const cacheWrite = Number(usage.cacheWrite) || 0;
   const modelId   = usage.modelId || null;
   const cost      = Number(usage.cost) || 0;
-  const ctxWindow = contextWindowFor(modelId);
+  const ctxWindow = contextWindowFor(usage, run, agent);
+  const piecesRaw = usage.promptPieces || {};
 
-  const freshIn = Math.max(0, tokensIn - cacheRead);
+  // Renormalise heuristic piece counts so they sum to the provider's
+  // input_tokens. Skip zero-valued entries; preserve KIND_ORDER for
+  // visual stability.
+  const renormalised = (() => {
+    const present = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0);
+    if (present.length === 0 || tokensIn <= 0) return [];
+    const rawSum = present.reduce((acc, k) => acc + Number(piecesRaw[k] || 0), 0);
+    if (rawSum <= 0) return [];
+    const scale = tokensIn / rawSum;
+    return present.map((k) => ({
+      kind: k,
+      raw: Number(piecesRaw[k] || 0),
+      tokens: Math.max(0, Math.round(Number(piecesRaw[k] || 0) * scale)),
+    }));
+  })();
+  const hasPieces = renormalised.length > 0;
+
   const inputPct  = Math.min(100, (tokensIn  / ctxWindow) * 100);
-  const cachePct  = Math.min(100, (cacheRead / ctxWindow) * 100);
-  const freshPct  = Math.min(100, (freshIn   / ctxWindow) * 100);
   const outputPct = Math.min(100 - inputPct, (tokensOut / ctxWindow) * 100);
 
-  const tooltip = [
+  // Build tooltip — lead with model + window, then per-kind sizes if any.
+  const tooltipLines = [
     `${meta.name} · ${modelId || 'unknown model'}`,
     `input:  ${tokensIn.toLocaleString()}t  (cache read ${cacheRead.toLocaleString()}t)`,
     `output: ${tokensOut.toLocaleString()}t`,
     cacheWrite ? `cache write: ${cacheWrite.toLocaleString()}t` : null,
     `cost:   ${fmt.cost(cost)}`,
     `window: ${ctxWindow.toLocaleString()}t (${inputPct.toFixed(1)}% used)`,
-  ].filter(Boolean).join('\n');
-
-  // Darker variant of the agent colour for the output tail. We mix the
-  // colour with black at ~35% by stacking a semi-transparent overlay —
-  // simpler than re-deriving an HSL value here.
-  const agentColor = meta.color;
-  const cacheTint  = agentColor + '55'; // ~33% alpha — lighter shade
+  ];
+  if (hasPieces) {
+    tooltipLines.push('', 'inputs:');
+    for (const p of renormalised) {
+      const lbl = KIND_COLORS[p.kind]?.label || p.kind;
+      tooltipLines.push(`  ${lbl.padEnd(18, ' ')} ${p.tokens.toLocaleString()}t`);
+    }
+  }
+  const tooltip = tooltipLines.filter((l) => l !== null).join('\n');
 
   return (
     <div title={tooltip} style={{
@@ -593,26 +626,56 @@ function TokenBar({ usage, agent }) {
         background: 'var(--bg-3)',
         borderRadius: 4, overflow: 'hidden',
       }}>
-        {/* Layer 1: cache-read portion (lighter shade) sits at the start */}
-        {cachePct > 0 && (
-          <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0,
-            width: `${cachePct}%`, background: cacheTint,
-          }} />
+        {hasPieces ? (
+          // Per-piece segments (spec 0030). Each segment's width is its
+          // share of the context window. Cache-read shading is dropped
+          // here — the prompt-piece breakdown supersedes it for the visual.
+          (() => {
+            let offsetPct = 0;
+            return renormalised.map((p) => {
+              const colour = KIND_COLORS[p.kind]?.bg || 'var(--fg-3)';
+              const widthPct = Math.min(100 - offsetPct, (p.tokens / ctxWindow) * 100);
+              const segment = (
+                <div key={p.kind} style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  left: `${offsetPct}%`, width: `${widthPct}%`,
+                  background: colour,
+                  // Hairline separator on the right edge — keeps adjacent
+                  // segments visually distinct.
+                  borderRight: '1px solid rgba(0,0,0,0.25)',
+                }} />
+              );
+              offsetPct += widthPct;
+              return segment;
+            });
+          })()
+        ) : (
+          // Fallback: spec-0029 single-fill rendering for pre-0030 data.
+          <React.Fragment>
+            {cacheRead > 0 && (
+              <div style={{
+                position: 'absolute', left: 0, top: 0, bottom: 0,
+                width: `${Math.min(100, (cacheRead / ctxWindow) * 100)}%`,
+                background: meta.color + '55',
+              }} />
+            )}
+            {tokensIn - cacheRead > 0 && (
+              <div style={{
+                position: 'absolute',
+                left: `${Math.min(100, (cacheRead / ctxWindow) * 100)}%`,
+                top: 0, bottom: 0,
+                width: `${Math.max(0, Math.min(100, ((tokensIn - cacheRead) / ctxWindow) * 100))}%`,
+                background: meta.color,
+              }} />
+            )}
+          </React.Fragment>
         )}
-        {/* Layer 2: fresh input (full agent colour) sits to the right of cache */}
-        {freshPct > 0 && (
-          <div style={{
-            position: 'absolute', left: `${cachePct}%`, top: 0, bottom: 0,
-            width: `${freshPct}%`, background: agentColor,
-          }} />
-        )}
-        {/* Layer 3: output tail — thinner band, darker shade, sits after input */}
+        {/* Output tail — thinner band, darker shade, sits after input. */}
         {outputPct > 0 && (
           <div style={{
             position: 'absolute', left: `${inputPct}%`, top: 3, bottom: 3,
             width: `${outputPct}%`,
-            background: agentColor,
+            background: meta.color,
             opacity: 0.45,
             borderLeft: '1px solid rgba(0,0,0,0.25)',
           }} />
@@ -637,21 +700,23 @@ function TokenBar({ usage, agent }) {
 }
 
 function ConsumptionLegend() {
+  // Spec 0030 — the bars now break down into prompt-piece kinds. Legend
+  // shows the Tk palette + the output tail; bar total is the model's
+  // real context window (from `RunStarted.{agent}_context_window`).
   return (
     <div className="mono" style={{
       marginTop: 14, padding: '10px 14px',
       background: 'var(--bg-1)', border: '1px solid var(--border-1)',
       borderRadius: 6,
-      display: 'flex', flexWrap: 'wrap', gap: 16,
+      display: 'flex', flexWrap: 'wrap', gap: 14,
+      alignItems: 'center',
       fontSize: 10.5, color: 'var(--fg-3)',
     }}>
-      <LegendSwatch color="var(--agent-a)" label="Claude input" />
-      <LegendSwatch color="var(--agent-a)" label="cache read" alpha={0.33} />
-      <LegendSwatch color="var(--agent-a)" label="output" alpha={0.45} thin />
+      {KIND_ORDER.map((k) => (
+        <LegendSwatch key={k} color={KIND_COLORS[k].bg} label={KIND_COLORS[k].label} />
+      ))}
       <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-2)' }} />
-      <LegendSwatch color="var(--agent-b)" label="GPT input" />
-      <LegendSwatch color="var(--agent-b)" label="cache read" alpha={0.33} />
-      <LegendSwatch color="var(--agent-b)" label="output" alpha={0.45} thin />
+      <LegendSwatch color="var(--agent-a)" label="output (tail)" alpha={0.45} thin />
       <span style={{ flex: 1 }} />
       <span>bar total = model context window</span>
     </div>
@@ -685,9 +750,9 @@ function ConsumptionEmptyState() {
       </div>
       <div className="mono" style={{
         fontSize: 10.5, color: 'var(--fg-3)', textAlign: 'center',
-        lineHeight: 1.6, maxWidth: 420,
+        lineHeight: 1.6, maxWidth: 460,
       }}>
-        This run was recorded before spec 0029 added per-turn telemetry,<br/>
+        This run was recorded before per-turn telemetry was added,<br/>
         so its individual chat sizes aren't tracked. The run-total chips<br/>
         above still reflect the full cost and token count.
       </div>
@@ -795,7 +860,7 @@ function TimelineItem({ item, run, onOpen }) {
   if (item.kind === 'phase-divider') return <PhaseDivider item={item} run={run} />;
   if (item.kind === 'error')         return <ErrorCard item={item} />;
   if (item.kind === 'deadlock')      return <DeadlockCard item={item} />;
-  return <ArtifactCard item={item} onOpen={onOpen} />;
+  return <ArtifactCard item={item} run={run} onOpen={onOpen} />;
 }
 
 function PhaseDivider({ item, run }) {
@@ -840,16 +905,26 @@ function PhaseDivider({ item, run }) {
 //
 // Clicking anywhere on the card opens the modal. Live items continue
 // to stream inline (no modal — the summary isn't available yet).
-function ArtifactCard({ item, onOpen }) {
+// Spec 0030: clicking a card toggles inline expansion (it no longer
+// opens the modal directly). The unfolded body renders the gist line,
+// the TL;DR summary, and a "View in full mode" button — that button is
+// the ONLY entry point to the existing `ArtifactModal`.
+function ArtifactCard({ item, run, onOpen }) {
   const meta = item.agent ? AGENT_META[item.agent] : null;
   const [hover, setHover] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(false);
 
   const accentColor = meta?.color || 'var(--fg-2)';
   const isLive = item.live;
   const hasSummary = !isLive && !!(item.summary && String(item.summary).trim());
+  const gist = !isLive ? composeGist(item, run) : '';
+  const canExpand = !isLive && (hasSummary || gist);
 
-  // The header row content (same as before, minus the chevron).
   const header = <ArtifactHeader item={item} meta={meta} hover={hover} />;
+
+  const toggleExpand = () => {
+    if (canExpand) setExpanded((v) => !v);
+  };
 
   return (
     <div
@@ -865,71 +940,169 @@ function ArtifactCard({ item, onOpen }) {
         ...(isLive ? {
           borderLeft: `2px solid ${accentColor}`,
         } : {}),
+        ...(expanded ? {
+          borderColor: accentColor + '55',
+          background: 'var(--bg-1)',
+        } : {}),
       }}
     >
       <button
-        onClick={isLive ? undefined : onOpen}
-        disabled={isLive}
+        type="button"
+        onClick={toggleExpand}
+        disabled={!canExpand}
+        aria-expanded={expanded}
         style={{
           display: 'block', width: '100%', textAlign: 'left',
-          padding: hasSummary ? '10px 12px 8px' : '10px 12px',
-          background: hover && !isLive ? 'var(--bg-2)' : 'transparent',
+          padding: '10px 12px',
+          background: hover && canExpand ? 'var(--bg-2)' : 'transparent',
           transition: 'background 120ms',
-          cursor: isLive ? 'default' : 'pointer',
+          cursor: canExpand ? 'pointer' : 'default',
         }}>
         {header}
-        {hasSummary && (
-          <SummaryRow
-            summary={item.summary}
-            onOpen={onOpen}
-          />
-        )}
       </button>
+      {expanded && (
+        <ArtifactExpandedBody
+          item={item}
+          gist={gist}
+          summary={item.summary}
+          onOpen={onOpen}
+        />
+      )}
       {isLive && <ArtifactLiveBody item={item} />}
     </div>
   );
 }
 
-// One-line "TL;DR + View full" row under the card header.
-function SummaryRow({ summary, onOpen }) {
+// The unfolded body — gist line + summary paragraph + "View in full mode".
+// Sits below the header inside the same card. No modal entry from anywhere
+// here EXCEPT the explicit button.
+function ArtifactExpandedBody({ item, gist, summary, onOpen }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-end', gap: 10,
-      marginTop: 6,
+      borderTop: '1px solid var(--border-2)',
+      padding: '10px 12px 12px',
+      background: 'var(--bg-1)',
+      display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      <p style={{
-        flex: 1, minWidth: 0,
-        margin: 0,
-        fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5,
-        // Clamp at two lines.
-        display: '-webkit-box',
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-        whiteSpace: 'normal',
-      }}>
-        {summary}
-      </p>
-      <span
-        onClick={(e) => { e.stopPropagation(); onOpen && onOpen(); }}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '2px 8px',
-          fontSize: 10.5,
-          color: 'var(--fg-1)',
-          background: 'var(--bg-2)',
-          border: '1px solid var(--border-2)',
-          borderRadius: 999,
-          fontFamily: 'var(--mono)',
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-          cursor: 'pointer',
+      {gist && (
+        <div style={{
+          fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55,
+          fontStyle: 'italic',
         }}>
-        View full
-        <Icon.Arrow style={{ width: 10, height: 10 }} />
-      </span>
+          {gist}
+        </div>
+      )}
+      {summary && (
+        <p style={{
+          margin: 0,
+          fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6,
+          whiteSpace: 'pre-wrap',
+        }}>{summary}</p>
+      )}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        marginTop: 2,
+      }}>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpen && onOpen(); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 12px',
+            fontSize: 11.5,
+            color: 'var(--fg-0)',
+            background: 'var(--bg-2)',
+            border: '1px solid var(--border-1)',
+            borderRadius: 999,
+            fontFamily: 'inherit',
+            fontWeight: 500,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}>
+          View in full mode
+          <Icon.Arrow style={{ width: 11, height: 11 }} />
+        </button>
+      </div>
     </div>
   );
+}
+
+// Synthesise a one-line gist describing what happened in this item.
+// Reads `item.stats`, `item.statsPhase`, `item.agent`, `item.round` plus
+// `run.disagreements` (filtered to the item's round/phase). Returns "" if
+// nothing meaningful can be said.
+function composeGist(item, run) {
+  if (!item) return '';
+  const phase = item.statsPhase;
+  const agent = item.agent;
+  const agentName = agent ? (AGENT_META[agent]?.name || agent) : 'Agent';
+  const stats = item.stats || {};
+  const ds = Array.isArray(run?.disagreements) ? run.disagreements : [];
+
+  // Helpers
+  const plur = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const status = (stats.status || '').toUpperCase();
+
+  // ─── Phase 0 — preflight critique (item.kind === 'input') ──────────────
+  if (item.kind === 'input') {
+    const s = stats || {};
+    if (s.state === 'ok') return 'Both agents found the brief OK to proceed.';
+    if (s.state === 'issues' && s.count > 0) {
+      return `Brief came back with ${plur(s.count, 'issue')} flagged across the two agents.`;
+    }
+    return '';
+  }
+
+  // ─── Phase 1 — independent draft ───────────────────────────────────────
+  if (phase === 1) {
+    return `${agentName} wrote an independent Phase 1 draft (no critique stats this phase).`;
+  }
+
+  // ─── Phase 2 — negotiation turn ────────────────────────────────────────
+  if (phase === 2) {
+    const parts = [];
+    if (status === 'AGREED') parts.push(`${agentName} agreed to the plan`);
+    else if (status === 'NEGOTIATING') parts.push(`${agentName} still negotiating`);
+    else parts.push(agentName);
+
+    if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
+      parts.push(`raised ${plur(stats.openQuestions, 'question')}`);
+    }
+    if (typeof stats.blocking === 'number' && stats.blocking > 0) {
+      parts.push(`${plur(stats.blocking, 'blocking disagreement')}`);
+    }
+    if (typeof stats.fsd === 'number' && stats.fsd > 0) {
+      parts.push(`${stats.fsd} final-surfaced`);
+    }
+    // Mention this round's disagreement transitions for THIS agent.
+    const myProg = ds
+      .filter((d) => d && d.phase === 2)
+      .flatMap((d) => (d.progression || []).filter((p) => p.agent === agent && p.round === item.round))
+      .map((p) => p.action);
+    if (myProg.includes('conceded')) parts.push('conceded a held D-N');
+    if (myProg.includes('aligned')) parts.push('marked one non-blocking');
+    return parts.length === 1 ? '' : parts[0] + ', ' + parts.slice(1).join(', ') + '.';
+  }
+
+  // ─── Phase 3 — drafter wrote v1 ───────────────────────────────────────
+  if (phase === 3 || item.kind === 'doc' || item.kind === 'doc-live') {
+    return `${agentName} wrote v1 of the converged document.`;
+  }
+
+  // ─── Phase 4 — review turn ────────────────────────────────────────────
+  if (phase === 4) {
+    const parts = [];
+    if (status === 'APPROVED') parts.push(`${agentName} approved the draft`);
+    else if (status === 'REVIEWING') parts.push(`${agentName} still reviewing`);
+    else parts.push(agentName);
+
+    if (typeof stats.openIssues === 'number' && stats.openIssues > 0) {
+      parts.push(`${plur(stats.openIssues, 'issue')} open`);
+    }
+    return parts.length === 1 ? '' : parts[0] + ', ' + parts.slice(1).join(', ') + '.';
+  }
+
+  return '';
 }
 
 // Small mono chips surfacing parsed protocol stats on a turn/plan row.
