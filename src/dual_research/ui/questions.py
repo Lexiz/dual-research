@@ -55,19 +55,25 @@ def _extract_questions_from_turn(turn_text: str) -> list[tuple[str, str | None, 
 
 
 def _extract_answers_from_turn(turn_text: str, *, other_name: str) -> list[str]:
-    """Pull the numbered answers from a turn's ``## Answers to {other}'s
-    open questions`` section. Returns the bodies in numbered order.
+    """Pull the numbered answers from a turn's "Answers to" section.
+
+    Returns the bodies in numbered order.
 
     ``other_name`` is the backend agent name (``"claude"`` / ``"openai"``)
     whose questions are being answered.
+
+    Spec 0040 — the protocol uses two phrasings depending on the phase:
+    - Phase 2: ``## Answers to {other}'s open questions``
+    - Phase 4: ``## Answers to {other}'s prior comments``
+    Both forms are accepted. Capitalisation is flexible (case-insensitive).
+    A future phase with yet another phrasing adds a new alternation here.
     """
     if not turn_text:
         return []
-    # Heading match is flexible — the protocol asks for "Answers to
-    # {other}'s open questions" but lowercase/capitalization sometimes
-    # drifts.
     pattern = re.compile(
-        r"^##\s+Answers to\s+" + re.escape(other_name) + r"['']?s open questions\b",
+        r"^##\s+Answers to\s+"
+        + re.escape(other_name)
+        + r"['']?s\s+(?:open questions|prior comments)\b",
         re.MULTILINE | re.IGNORECASE,
     )
     m = pattern.search(turn_text)

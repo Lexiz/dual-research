@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.38.0',
+      date: '2026-05-16',
+      summary: 'Critique rework — Phase 4 answer linkage fix, compact cards, Summary tab, Timeline tabs re-alignment.',
+      items: [
+        "Phase 4 question status now transitions to `answered` correctly. The protocol uses two different section headings — Phase 2 writes `## Answers to {other}'s open questions`, Phase 4 writes `## Answers to {other}'s prior comments` — but the reconstruction regex only matched the Phase 2 form. Every Phase 4 question silently stayed `open` regardless of the next round's response. Partner-vetting Phase 4 now correctly reports 13 answered + 61 open instead of 0 + 74.",
+        "Question and disagreement cards collapsed to a single readable line by default. Type pill, round range, one-line truncated body, status pill, chevron. Click expands to the full body plus quote / after anchors and (for questions) the answer body or (for disagreements) the progression timeline + current positions + resolution. Disagreement cards shrink from ~70px collapsed height to ~38px.",
+        "Clicking any critique card flashes BOTH timeline endpoints — the raising turn and the answering/closing turn — on the left pane. Was wired for disagreements since spec 0034; now works reliably for Phase 4 questions too (the linkage was blanked by the bug above).",
+        "Timeline plan/turn chip row gains an explicit `↩ N` annotation when a turn closed prior-round questions or disagreements. The pre-spec `(-N)` delta was generic — the new glyph makes the answered-this-round count legible at a glance.",
+        "New `∑ Summary` tab on the Critique pane, visible only when the run reaches a terminal state (completed / deadlocked / errored). Body: per-phase table with one row per round showing Q raised / Q answered / Q still open / D raised / D resolved / D still open. Click an existing phase tab to drill back into individual cards.",
+        "Conversation / Consumption tabs moved from the right edge of the Timeline toolbar to the LEFT edge — directly under the `Timeline · N artifacts` title where a reviewer naturally looks. The GPT pill stays on the right, preserving the spec-0038 vertical column with Claude's pill on the row above.",
+      ],
+    },
+    {
       version: '0.37.0',
       date: '2026-05-16',
       summary: 'Cost-pipeline integrity — resume preserves prior cost, 1h cache priced at the 1h rate, web-search fees fold into the headline.',
