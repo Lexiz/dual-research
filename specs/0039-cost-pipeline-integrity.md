@@ -6,7 +6,7 @@ version-bump: MINOR
 status: merged
 target-version: 0.37.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/40"
 ---
 
 # Spec 0039 — Cost-pipeline integrity
