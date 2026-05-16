@@ -3,6 +3,7 @@ from __future__ import annotations
 from dual_research.events.bus import EventBus, Subscriber
 from dual_research.events.types import (
     CostUpdate,
+    DrafterCanonicalPromoted,
     DrafterTiebreakResolved,
     Event,
     FinalEmitted,
@@ -28,6 +29,7 @@ from dual_research.events.types import (
 
 __all__ = [
     "CostUpdate",
+    "DrafterCanonicalPromoted",
     "DrafterTiebreakResolved",
     "Event",
     "EventBus",

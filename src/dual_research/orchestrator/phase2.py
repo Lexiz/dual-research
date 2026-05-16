@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 
 from dual_research.agents.base import AgentCall
 from dual_research.events import (
+    DrafterCanonicalPromoted,
     DrafterTiebreakResolved,
     EventBus,
     HardCapHit,
@@ -23,9 +24,11 @@ from dual_research.persistence.state import write_atomic
 from dual_research.protocol import (
     ProtocolParseError,
     all_substantive_gates_pass_except_drafter,
+    all_substantive_gates_pass_except_plan_hash,
     assert_well_formed_plan_turn,
     assert_well_formed_round1_turn,
     extract_canonical_fsd_items,
+    force_verbatim_copy_prompt,
     is_plan_agreed,
     negotiation_round1_prompt,
     negotiation_turn_prompt,
@@ -74,11 +77,18 @@ async def run_phase2(
     tracker = RepairTracker()
     converged = False
     via_tiebreak = False
+    via_canonical_promotion = False
     rounds_done = 0
     last_claude_text: str | None = None
     last_openai_text: str | None = None
     parse_failure = False
     parse_failure_agent: str | None = None
+    # Spec 0032 — track how many times we've fired a force-verbatim-copy
+    # repair turn for each agent. First detection of hash drift fires a
+    # repair turn (counter goes to 1); if drift recurs and the counter is
+    # already ≥ 1, we escape via canonical promotion. Per-agent because
+    # only one side ever needs repairing (the non-drafter).
+    hash_drift_repair_attempts: dict[str, int] = {"claude": 0, "gpt": 0}
 
     for r in range(1, hard_cap + 1):
         rounds_done = r
@@ -329,6 +339,182 @@ async def run_phase2(
             )
             break
 
+        # ─── Spec 0032 — Phase 2 hash-drift escape ─────────────────────
+        # When both agents emit STATUS: AGREED with matching drafter / OQ
+        # / BD / FSD but their AGREED_PLAN hashes differ, the model is
+        # paraphrasing instead of copying verbatim. The protocol prompt
+        # acknowledges this case explicitly. First detection: fire a
+        # force-verbatim repair turn for the non-drafter and re-check.
+        # If it still drifts, canonical-promote the drafter's plan and
+        # exit Phase 2 — agents agreed on substance, we shouldn't
+        # deadlock on wording.
+        if r > 1:
+            drift = all_substantive_gates_pass_except_plan_hash(claude_text, openai_text)
+            if drift.detected:
+                other = drift.other_agent  # "claude" | "gpt"
+
+                def _promote_canonical() -> None:
+                    """Promote drift.drafter's plan as canonical and converge."""
+                    nonlocal converged, via_canonical_promotion
+                    ctx.state.drafter = drift.drafter
+                    ctx.state.agreed_plan = drift.canonical_plan
+                    fsd_items = extract_canonical_fsd_items(drift.canonical_plan)
+                    ctx.state.final_surfaced_disagreements = [
+                        asdict(i) for i in fsd_items
+                    ]
+                    converged = True
+                    via_canonical_promotion = True
+
+                if hash_drift_repair_attempts.get(other, 0) >= 1:
+                    # D3 — second detection: auto-promote.
+                    _promote_canonical()
+                    await event_bus.publish(
+                        DrafterCanonicalPromoted(
+                            round=r,
+                            drafter=drift.drafter,
+                            other_agent=other,
+                            canonical_hash=(drift.canonical_hash or "")[:12],
+                            other_hash=(drift.other_hash or "")[:12],
+                        )
+                    )
+                    ctx.transcript.write(
+                        "drafter_canonical_promoted",
+                        round=r,
+                        drafter=drift.drafter,
+                        other_agent=other,
+                        canonical_hash=(drift.canonical_hash or "")[:12],
+                        other_hash=(drift.other_hash or "")[:12],
+                    )
+                    print(
+                        f"\n[phase 2] AGREED (canonical promotion). "
+                        f"Drafter = {drift.drafter}. "
+                        f"{other}'s plan kept drifting across two rounds; "
+                        f"using drafter's plan as canonical.",
+                        flush=True,
+                    )
+                    break
+
+                # D2 — first detection: fire a force-verbatim-copy repair
+                # turn for the non-drafter and re-check convergence
+                # within this round.
+                hash_drift_repair_attempts[other] = (
+                    hash_drift_repair_attempts.get(other, 0) + 1
+                )
+                # Map the UI-vocab "gpt" agent back to its backend objects.
+                if other == "gpt":
+                    repair_agent_call = openai_agent
+                    repair_other_path = openai_path
+                    repair_agent_name = "openai"
+                    repair_other_name = "claude"
+                else:
+                    repair_agent_call = claude_agent
+                    repair_other_path = claude_path
+                    repair_agent_name = "claude"
+                    repair_other_name = "openai"
+
+                print(
+                    f"\n[phase 2] hash drift detected on round {r}: "
+                    f"both AGREED but plan hashes differ "
+                    f"(canonical={(drift.canonical_hash or '')[:8]} "
+                    f"other={(drift.other_hash or '')[:8]}). "
+                    f"Firing force-verbatim repair for {other}.",
+                    flush=True,
+                )
+                ctx.transcript.write(
+                    "phase2_hash_drift_detected",
+                    round=r,
+                    drafter=drift.drafter,
+                    other_agent=other,
+                    canonical_hash=(drift.canonical_hash or "")[:12],
+                    other_hash=(drift.other_hash or "")[:12],
+                )
+
+                repair_text = force_verbatim_copy_prompt(
+                    agent_name=repair_agent_name,
+                    other_name=repair_other_name,
+                    drafter_name=drift.drafter,
+                    canonical_plan=drift.canonical_plan or "",
+                    round=r,
+                )
+                try:
+                    repair_result = await run_one_call(
+                        agent=repair_agent_call,
+                        prompt=repair_text,
+                        label=f"phase2-r{r}-{other}-hashdrift-repair",
+                        phase="phase2",
+                        metrics=ctx.metrics,
+                        transcript=ctx.transcript,
+                        event_bus=event_bus,
+                        stream_to=None,
+                        max_output_tokens=8192,
+                    )
+                    write_atomic(repair_other_path, repair_result.text)
+                    # Re-evaluate convergence with the repaired turn.
+                    if other == "gpt":
+                        openai_text = repair_result.text
+                    else:
+                        claude_text = repair_result.text
+                    try:
+                        agreed_after_repair = is_plan_agreed(claude_text, openai_text)
+                    except ProtocolParseError:
+                        agreed_after_repair = False
+                except Exception as e:  # network error, agent error, etc.
+                    print(
+                        f"[phase 2] force-verbatim repair call failed: {e}. "
+                        f"Falling through to next round.",
+                        flush=True,
+                    )
+                    agreed_after_repair = False
+
+                if agreed_after_repair:
+                    # Repair worked — canonicalise as usual.
+                    ctx.state.drafter = drift.drafter
+                    ctx.state.agreed_plan = drift.canonical_plan
+                    fsd_items = extract_canonical_fsd_items(drift.canonical_plan)
+                    ctx.state.final_surfaced_disagreements = [
+                        asdict(i) for i in fsd_items
+                    ]
+                    converged = True
+                    print(
+                        f"\n[phase 2] AGREED (after force-verbatim repair). "
+                        f"Drafter = {drift.drafter}.",
+                        flush=True,
+                    )
+                    break
+
+                # Repair didn't fix it — escape via canonical promotion.
+                still_drift = all_substantive_gates_pass_except_plan_hash(
+                    claude_text, openai_text
+                )
+                if still_drift.detected:
+                    _promote_canonical()
+                    await event_bus.publish(
+                        DrafterCanonicalPromoted(
+                            round=r,
+                            drafter=drift.drafter,
+                            other_agent=other,
+                            canonical_hash=(drift.canonical_hash or "")[:12],
+                            other_hash=(still_drift.other_hash or "")[:12],
+                        )
+                    )
+                    ctx.transcript.write(
+                        "drafter_canonical_promoted",
+                        round=r,
+                        drafter=drift.drafter,
+                        other_agent=other,
+                        canonical_hash=(drift.canonical_hash or "")[:12],
+                        other_hash=(still_drift.other_hash or "")[:12],
+                    )
+                    print(
+                        f"\n[phase 2] AGREED (canonical promotion). "
+                        f"Repair turn still drifted; using drafter's plan.",
+                        flush=True,
+                    )
+                    break
+                # else: repair output is unparseable or substantively
+                # different — fall through to the next round and let the
+                # normal negotiation continue.
+
         if r == soft_cap:
             await event_bus.publish(SoftCapHit(phase="phase2", round=r, cap=soft_cap))
             ctx.transcript.write("soft_cap_hit", phase="phase2", round=r, cap=soft_cap)
@@ -358,6 +544,7 @@ async def run_phase2(
             drafter=ctx.state.drafter,
             fsd_count=len(ctx.state.final_surfaced_disagreements),
             via_tiebreak=via_tiebreak,
+            via_canonical_promotion=via_canonical_promotion,
         )
     )
     ctx.transcript.write(
@@ -367,6 +554,7 @@ async def run_phase2(
         drafter=ctx.state.drafter,
         fsd_count=len(ctx.state.final_surfaced_disagreements),
         via_tiebreak=via_tiebreak,
+        via_canonical_promotion=via_canonical_promotion,
         parse_failure=parse_failure,
     )
 

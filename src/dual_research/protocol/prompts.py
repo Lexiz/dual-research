@@ -213,6 +213,9 @@ You should use web search this round. Without new research, this round is a wast
 ## Task
 Produce your round-1 turn with these sections (headings verbatim):
 
+## Summary
+3–5 sentences summarising your position at this round: the diff items you consider material, your updated thesis after research, what you're proposing as the initial plan, and who you propose as drafter. Keep it short and factual — the UI extracts this as the timeline-card TL;DR.
+
 ## Diff vs {other_name}'s Phase 1
 Numbered list. For each material difference between your draft and theirs: state what you said, what they said, the type of difference (factual / interpretive / scope / framing), and whether it is substantive, minor, or already resolved by re-reading. Do not list trivial wording differences; only differences a reader would care about.
 
@@ -302,6 +305,9 @@ This is **round {round}** of Phase 2 (soft cap {soft_cap}, hard cap {hard_cap}).
         + f"""
 ## Task
 Produce your turn for round {round} with these sections (headings verbatim):
+
+## Summary
+3–5 sentences summarising your position in THIS round: what you've held onto, what you've conceded or updated this round, whether you're agreeing or still negotiating, and (if agreeing) whom you propose as drafter. Keep it short and factual — the UI extracts this as the timeline-card TL;DR.
 
 ## Answers to {other_name}'s open questions
 Address every numbered question {other_name} listed in their most recent turn. If their last turn had none, write "(none)".
@@ -731,6 +737,88 @@ Re-emit your turn with the substantive content unchanged. Only fix the formattin
 {fields_block}
 
 If your STATUS line is missing or malformed, infer the correct status from your turn's content. For phase {phase}: if open questions/issues count to 0 and you have no substantive disagreements, you may emit AGREED/APPROVED; otherwise emit NEGOTIATING/REVIEWING.
+
+"""
+        + _OUTPUT_INSTRUCTION
+    )
+
+
+# ---------- Spec 0032 — Phase 2 hash-drift escape ----------
+
+
+def force_verbatim_copy_prompt(
+    *,
+    agent_name: str,
+    other_name: str,
+    drafter_name: str,
+    canonical_plan: str,
+    round: int,
+) -> str:
+    """Spec 0032 — special Phase 2 repair prompt for the hash-drift case.
+
+    Fires when both agents have emitted ``STATUS: AGREED`` with matching
+    drafter / OQ / BD / FSD, but their ``AGREED_PLAN`` blocks don't
+    hash-match (the model paraphrased instead of copying verbatim per the
+    protocol). Hands the recipient the canonical plan block (from the
+    named drafter's turn) and demands byte-for-byte reproduction.
+
+    The recipient is always the NON-drafter — if drafter == "claude" we
+    repair openai, and vice versa.
+    """
+    return (
+        COMMON_PREAMBLE
+        + f"""
+# Phase 2 — verbatim-copy repair (round {round})
+
+You are agent "{agent_name}". The other agent is "{other_name}". The
+orchestrator detected that both of you emitted `STATUS: AGREED` in
+round {round} with matching DRAFTER, OPEN_QUESTIONS=0,
+BLOCKING_DISAGREEMENTS=0, and matching FINAL_SURFACED_DISAGREEMENTS —
+but your `AGREED_PLAN` blocks do NOT hash-match. Per the protocol:
+
+> Same-round AGREED with mismatched plans is a parse error and
+> triggers a repair turn.
+
+The drafter ({drafter_name}) wrote the canonical `AGREED_PLAN`
+block below. Your task this turn: re-emit your round-{round} turn
+**reusing this exact `AGREED_PLAN` block, byte-for-byte**. Do not
+paraphrase, do not reorder sections, do not "improve" wording. The
+hash check normalises whitespace, list markers, heading case, and
+trailing punctuation — so minor formatting differences are fine —
+but the substantive content of each line must match exactly.
+
+## Canonical AGREED_PLAN (from {drafter_name})
+
+```
+{canonical_plan}
+```
+
+## Task
+
+Re-emit your full round-{round} Phase 2 turn with every required
+section: `## Summary`, `## Answers to {other_name}'s open questions`,
+`## What I researched since the last round`, `## Open questions for
+{other_name}`, `## Plan as I currently propose it`, `## Substantive
+disagreements I'm holding`, `## Resolved or non-blocking differences`,
+`## Agreement check`, `## AGREED_PLAN`, `## Drafter recommendation`,
+`## Status`. The `## AGREED_PLAN` section MUST contain the canonical
+block above, byte-for-byte.
+
+For every other section you may carry over the substantive content
+from your previous round-{round} turn — they are not under dispute.
+Keep them, but you must still emit them. In `## Status` write:
+
+- `STATUS: AGREED`
+- `OPEN_QUESTIONS: 0`
+- `BLOCKING_DISAGREEMENTS: 0`
+- `FINAL_SURFACED_DISAGREEMENTS: <same count as before>`
+
+In `## Drafter recommendation` write `DRAFTER: {drafter_name}` with
+the same one-sentence justification you used previously.
+
+The orchestrator's hash check will run again. If your `AGREED_PLAN`
+block still doesn't match, Phase 2 will escape via canonical
+promotion — your plan version will be discarded — so just copy.
 
 """
         + _OUTPUT_INSTRUCTION
