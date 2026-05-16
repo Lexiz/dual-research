@@ -39,6 +39,11 @@ from dual_research.protocol.prompt_pieces import (
     pieces_for_negotiation_round1,
     pieces_for_negotiation_turn,
 )
+from dual_research.protocol.prompts import (
+    force_verbatim_copy_input_bundle,
+    negotiation_round1_input_bundle,
+    negotiation_turn_input_bundle,
+)
 
 
 @dataclass(frozen=True)
@@ -118,6 +123,21 @@ async def run_phase2(
                 claude_draft=claude_draft,
                 openai_draft=openai_draft,
             )
+            # Spec 0033: per-piece TEXT — per-agent system templates.
+            claude_bundle = negotiation_round1_input_bundle(
+                brief=brief_content,
+                claude_draft=claude_draft,
+                openai_draft=openai_draft,
+                agent_name="claude",
+                other_name="openai",
+            )
+            openai_bundle = negotiation_round1_input_bundle(
+                brief=brief_content,
+                claude_draft=claude_draft,
+                openai_draft=openai_draft,
+                agent_name="openai",
+                other_name="claude",
+            )
         else:
             prior = list_turns(ctx.session, phase="phase2", up_to_round=r)
             claude_prompt = negotiation_turn_prompt(
@@ -150,6 +170,29 @@ async def run_phase2(
                 openai_draft=openai_draft,
                 prior_turns=prior,
             )
+            # Spec 0033: per-piece TEXT bundles (per-agent system templates).
+            claude_bundle = negotiation_turn_input_bundle(
+                brief=brief_content,
+                claude_draft=claude_draft,
+                openai_draft=openai_draft,
+                prior_turns=prior,
+                agent_name="claude",
+                other_name="openai",
+                round=r,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+            )
+            openai_bundle = negotiation_turn_input_bundle(
+                brief=brief_content,
+                claude_draft=claude_draft,
+                openai_draft=openai_draft,
+                prior_turns=prior,
+                agent_name="openai",
+                other_name="claude",
+                round=r,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+            )
 
         claude_path = turn_path(ctx.session, phase="phase2", round=r, agent="claude")
         openai_path = turn_path(ctx.session, phase="phase2", round=r, agent="openai")
@@ -166,6 +209,7 @@ async def run_phase2(
                 stream_to=None,
                 max_output_tokens=8192,
                 prompt_pieces=round_pieces,
+                prompt_bundle=claude_bundle,
             ),
             run_one_call(
                 agent=openai_agent,
@@ -178,6 +222,7 @@ async def run_phase2(
                 stream_to=None,
                 max_output_tokens=8192,
                 prompt_pieces=round_pieces,
+                prompt_bundle=openai_bundle,
             ),
         )
         write_atomic(claude_path, claude_result.text)
@@ -436,6 +481,14 @@ async def run_phase2(
                     canonical_plan=drift.canonical_plan or "",
                     round=r,
                 )
+                # Spec 0033: per-piece TEXT bundle for the repair turn.
+                repair_bundle = force_verbatim_copy_input_bundle(
+                    agent_name=repair_agent_name,
+                    other_name=repair_other_name,
+                    drafter_name=drift.drafter,
+                    canonical_plan=drift.canonical_plan or "",
+                    round=r,
+                )
                 try:
                     repair_result = await run_one_call(
                         agent=repair_agent_call,
@@ -447,6 +500,7 @@ async def run_phase2(
                         event_bus=event_bus,
                         stream_to=None,
                         max_output_tokens=8192,
+                        prompt_bundle=repair_bundle,
                     )
                     write_atomic(repair_other_path, repair_result.text)
                     # Re-evaluate convergence with the repaired turn.

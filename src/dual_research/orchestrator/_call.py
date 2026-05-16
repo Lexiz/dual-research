@@ -5,7 +5,7 @@ import time
 from typing import TextIO
 
 from dual_research.agents.base import AgentCall, AgentResult
-from dual_research.events import EventBus, TurnEnded, TurnStarted
+from dual_research.events import EventBus, TurnEnded, TurnInputs, TurnStarted
 from dual_research.persistence import Metrics, Transcript
 
 
@@ -22,6 +22,7 @@ async def run_one_call(
     stream_prefix: str = "",
     max_output_tokens: int = 8192,
     prompt_pieces: dict[str, int] | None = None,
+    prompt_bundle: dict[str, str] | None = None,
 ) -> AgentResult:
     """Run one agent call with event emission and persistence side-effects.
 
@@ -34,9 +35,33 @@ async def run_one_call(
     the prompt. It's surfaced on ``TurnEnded`` and consumed by the
     Consumption tab to render segmented bars. Pass ``None`` to omit (the
     event carries an empty dict by default).
+
+    ``prompt_bundle`` (spec 0033) is the per-input *text* — the Tk-keyed
+    dict produced by ``protocol/prompts.py::*_input_bundle()``. Emitted
+    on a ``TurnInputs`` event right after ``TurnStarted`` so the
+    aggregator can persist it to ``session_dir/inputs/<key>.json``;
+    the UI's Input tab reads from that file on demand. Pass ``None`` to
+    omit (no ``TurnInputs`` event is emitted, equivalent to pre-0033
+    behaviour).
     """
     await event_bus.publish(TurnStarted(agent=agent.label, phase=phase, label=label))
     transcript.write("turn_started", agent=agent.label, phase=phase, label=label)
+
+    if prompt_bundle is not None:
+        inputs_event = TurnInputs(
+            agent=agent.label,
+            phase=phase,
+            label=label,
+            pieces=dict(prompt_bundle),
+        )
+        await event_bus.publish(inputs_event)
+        transcript.write(
+            "turn_inputs",
+            agent=inputs_event.agent,
+            phase=inputs_event.phase,
+            label=inputs_event.label,
+            pieces=inputs_event.pieces,
+        )
 
     start = time.perf_counter()
     result = await agent.run(

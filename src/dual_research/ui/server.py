@@ -125,6 +125,23 @@ def _make_app(runs_dir: Path) -> FastAPI:
         session = _resolve_session(runs_dir, run_id)
         return JSONResponse(_read_attachments_index(session))
 
+    # ─── Spec 0033 input bundles ──────────────────────────────────────────
+    # GET /api/runs/{run_id}/inputs/index    → list of available turn-keys
+    # GET /api/runs/{run_id}/inputs/{key}    → full per-turn input bundle
+
+    @app.get("/api/runs/{run_id}/inputs/index")
+    async def list_inputs_fs(run_id: str) -> JSONResponse:
+        session = _resolve_session(runs_dir, run_id)
+        return JSONResponse({"keys": _list_input_bundle_keys_fs(session)})
+
+    @app.get("/api/runs/{run_id}/inputs/{turn_key}")
+    async def get_input_bundle_fs(run_id: str, turn_key: str) -> JSONResponse:
+        session = _resolve_session(runs_dir, run_id)
+        payload = _read_input_bundle_fs(session, turn_key)
+        if payload is None:
+            raise HTTPException(status_code=404, detail="not found")
+        return JSONResponse(payload)
+
     @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
     async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
         session = _resolve_session(runs_dir, run_id)
@@ -326,6 +343,23 @@ def _make_supabase_app(
             return JSONResponse({"attachments": []})
         return JSONResponse(data)
 
+    # ─── Spec 0033 input bundles ──────────────────────────────────────────
+    # GET /api/runs/{run_id}/inputs/index    → list of available turn-keys
+    # GET /api/runs/{run_id}/inputs/{key}    → full per-turn input bundle
+
+    @app.get("/api/runs/{run_id}/inputs/index")
+    async def list_inputs_sb(run_id: str) -> JSONResponse:
+        _require_run_exists(client, run_id)
+        return JSONResponse({"keys": _list_input_bundle_keys_supabase(client, run_id)})
+
+    @app.get("/api/runs/{run_id}/inputs/{turn_key}")
+    async def get_input_bundle_sb(run_id: str, turn_key: str) -> JSONResponse:
+        _require_run_exists(client, run_id)
+        payload = _read_input_bundle_supabase(client, run_id, turn_key)
+        if payload is None:
+            raise HTTPException(status_code=404, detail="not found")
+        return JSONResponse(payload)
+
     @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
     async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
         _require_run_exists(client, run_id)
@@ -523,6 +557,168 @@ def _read_attachments_index(session: Path) -> dict[str, Any]:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {"attachments": []}
+
+
+# ─── Spec 0033 — input bundle helpers ─────────────────────────────────────────
+
+
+_INPUT_KEY_RE = re.compile(r"^[a-zA-Z0-9_]+$")
+
+
+def _normalize_input_key(turn_key: str) -> str | None:
+    """Normalise a turn-key from camel or snake form.
+
+    The wire format uses ``phase2Round3Claude`` for Consumption-tab keys;
+    the on-disk filenames use ``phase2_round3_claude.json``. The Input
+    endpoint accepts both. Also accepts the special key ``input`` for
+    the Phase 0 shared bundle.
+
+    Returns the canonical snake-case key or ``None`` if the input is
+    invalid.
+    """
+    if not turn_key or not _INPUT_KEY_RE.match(turn_key):
+        return None
+    if turn_key == "input":
+        return "input"
+    # Camel → snake. ``phase2Round3Claude`` → ``phase2_round3_claude``.
+    snake = re.sub(r"(?<!^)([A-Z])", r"_\1", turn_key).lower()
+    return snake
+
+
+def _list_input_bundle_keys_fs(session: Path) -> list[str]:
+    """List input-bundle keys available on disk under ``session/inputs/``."""
+    inputs_dir = session / "inputs"
+    if not inputs_dir.is_dir():
+        # Phase 0 synth still available if brief.md exists — surface that
+        # so the UI can show the Input tab on the Phase 0 card.
+        if (session / "brief.md").is_file():
+            return ["input"]
+        return []
+    keys: list[str] = []
+    for entry in inputs_dir.iterdir():
+        if not entry.is_file() or not entry.name.endswith(".json"):
+            continue
+        keys.append(entry.stem)
+    if "input" not in keys and (session / "brief.md").is_file():
+        keys.append("input")
+    keys.sort()
+    return keys
+
+
+def _read_input_bundle_fs(session: Path, turn_key: str) -> dict | None:
+    """Resolve a single input bundle from disk; synthesise Phase 0 if needed."""
+    from dual_research.ui.aggregator import build_phase0_input_bundle
+
+    key = _normalize_input_key(turn_key)
+    if key is None:
+        return None
+    if key == "input":
+        # Try a persisted bundle first; fall back to synthesis from brief.md.
+        path = session / "inputs" / "input.json"
+        if path.is_file():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return None
+        return build_phase0_input_bundle(session)
+    path = session / "inputs" / f"{key}.json"
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _list_input_bundle_keys_supabase(client: Any, run_id: str) -> list[str]:
+    """List input-bundle keys present in the Supabase ``session_files`` table."""
+    try:
+        res = (
+            client.table("session_files")
+            .select("path")
+            .eq("run_id", run_id)
+            .like("path", "inputs/%.json")
+            .execute()
+        )
+    except Exception:
+        return []
+    rows = res.data or []
+    keys: list[str] = []
+    for r in rows:
+        p = r.get("path") or ""
+        if not p.startswith("inputs/") or not p.endswith(".json"):
+            continue
+        keys.append(p[len("inputs/") : -len(".json")])
+    # Phase 0 synth: surface `input` if brief.md is in session_files.
+    if "input" not in keys:
+        try:
+            brief_res = (
+                client.table("session_files")
+                .select("path")
+                .eq("run_id", run_id)
+                .eq("path", "brief.md")
+                .limit(1)
+                .execute()
+            )
+            if brief_res.data:
+                keys.append("input")
+        except Exception:
+            pass
+    keys.sort()
+    return keys
+
+
+def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:
+    """Resolve a single input bundle from Supabase; synthesise Phase 0 if needed."""
+    from dual_research.protocol.prompts import preflight_input_bundle
+
+    key = _normalize_input_key(turn_key)
+    if key is None:
+        return None
+    table_path = f"inputs/{key}.json"
+    try:
+        res = (
+            client.table("session_files")
+            .select("content")
+            .eq("run_id", run_id)
+            .eq("path", table_path)
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        res = None
+    rows = (res.data if res else None) or []
+    if rows:
+        try:
+            return json.loads(rows[0]["content"])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return None
+    if key == "input":
+        # Fall back to synthesis from brief.md (live in session_files).
+        try:
+            brief_res = (
+                client.table("session_files")
+                .select("content")
+                .eq("run_id", run_id)
+                .eq("path", "brief.md")
+                .limit(1)
+                .execute()
+            )
+        except Exception:
+            return None
+        brief_rows = brief_res.data or []
+        if not brief_rows:
+            return None
+        brief_text = brief_rows[0].get("content") or ""
+        pieces = preflight_input_bundle(brief=brief_text, agent_name="<agent>")
+        return {
+            "agent": "shared",
+            "phase": "phase0",
+            "label": "phase0-input",
+            "pieces": pieces,
+            "emitted_at": "",
+        }
+    return None
 
 
 async def _supabase_event_stream(

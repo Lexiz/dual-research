@@ -24,6 +24,7 @@ from dual_research.events.types import (
     RunStarted,
     SoftCapHit,
     TurnEnded,
+    TurnInputs,
     TurnStarted,
 )
 
@@ -52,5 +53,6 @@ __all__ = [
     "SoftCapHit",
     "Subscriber",
     "TurnEnded",
+    "TurnInputs",
     "TurnStarted",
 ]

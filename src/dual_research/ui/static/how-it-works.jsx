@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.31.0',
+      date: '2026-05-16',
+      summary: 'Inputs foundation — universal Input view, Phase 0 split, two-row live header.',
+      items: [
+        'Every full-view modal now has an Input tab showing exactly what the model saw — system prompt + brief + drafts + plan + history, one collapsible section per piece. The Phase 2/4 side-by-side modal\'s left pane gains an Original | Input sub-tab strip; same component everywhere.',
+        'Phase 0 split into three timeline cards: shared `input` (brief + system) opens a brief-audit modal, plus per-agent `claude` / `gpt` critique cards opening their own modals. The previous single card conflated input with response.',
+        'Run-detail header redesigned: row 1 carries topic + cost + status + Conversation/Consumption tabs, rows 2-3 are per-agent strips showing `[icon] [model] · [tokens·cost] │ [pulse dot + activity sentence]`, row 4 has phase dots with labels + metadata. The two tabs are now primary chrome — accent underline on the active tab.',
+        'Activity sentences are deterministic — `drafting parallel plan`, `negotiating · round 3`, `waiting for Claude`. Greys out + falls to a waiting phrase when the agent isn\'t live.',
+        'Per-turn input bundles travel through a new `TurnInputs` event → on-disk `inputs/<key>.json` → REST endpoint `/api/runs/<id>/inputs/<key>`. Bundles are byte-equal to what the prompt builder emitted (placeholder substitution, no drift). Pre-0033 runs synthesise their Phase 0 input on-demand from `brief.md`.',
+        'Fixed a latent regex bug in `_round_index_from_label` — Phase 2/4 Consumption-tab keys had been collapsing across rounds in production because the regex didn\'t recognise the `r{N}-` label form the orchestrator actually emits.',
+      ],
+    },
+    {
       version: '0.30.0',
       date: '2026-05-16',
       summary: 'Phase-2 hash-drift escape, P2 summaries, live-push flag, dual-research-run skill.',

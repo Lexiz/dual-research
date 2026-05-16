@@ -69,6 +69,32 @@ class TurnStarted(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class TurnInputs(Event):
+    """Spec 0033 — full per-piece prompt text for an upcoming turn.
+
+    Emitted alongside ``TurnStarted`` (NOT ``TurnEnded``) so the UI can
+    audit what's about to be sent even while the call is in flight. Keys
+    match the spec-0030 Tk-vocab (``brief``, ``d1``, ``d2``, ``plan``,
+    ``hist``, ``draft``, ``histp``) plus a fixed ``system`` key for the
+    static instruction template.
+
+    Empty pieces are present-with-empty-string, not omitted, so the UI
+    can render a "(not used in this turn)" stub uniformly.
+
+    Payload size is non-trivial (whole prompt text per turn); the
+    aggregator persists each bundle to ``session_dir/inputs/<key>.json``
+    and the UI fetches on demand via a REST endpoint. Bundles are NOT
+    pushed over SSE.
+    """
+
+    agent: str  # "claude" | "openai" (backend vocab)
+    phase: str  # "phase0" | "phase1" | "phase2_round1" | ...
+    label: str  # same label shape as TurnStarted / TurnEnded
+    pieces: dict[str, str] = field(default_factory=dict)
+    kind: str = "turn_inputs"
+
+
+@dataclass(frozen=True, kw_only=True)
 class TurnEnded(Event):
     agent: str
     phase: str

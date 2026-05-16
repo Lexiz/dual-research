@@ -30,6 +30,7 @@ from dual_research.protocol import (
     review_turn_prompt,
 )
 from dual_research.protocol.prompt_pieces import pieces_for_review
+from dual_research.protocol.prompts import review_input_bundle
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,29 @@ async def run_phase4(
             draft=current_draft,
             prior_turns=prior,
         )
+        # Spec 0033: per-piece TEXT bundles (per-agent system templates).
+        claude_bundle = review_input_bundle(
+            brief=brief_content,
+            draft=current_draft,
+            prior_turns=prior,
+            agent_name="claude",
+            other_name="openai",
+            drafter_name=drafter,
+            round=r,
+            soft_cap=soft_cap,
+            hard_cap=hard_cap,
+        )
+        openai_bundle = review_input_bundle(
+            brief=brief_content,
+            draft=current_draft,
+            prior_turns=prior,
+            agent_name="openai",
+            other_name="claude",
+            drafter_name=drafter,
+            round=r,
+            soft_cap=soft_cap,
+            hard_cap=hard_cap,
+        )
 
         claude_path = turn_path(ctx.session, phase="phase4", round=r, agent="claude")
         openai_path = turn_path(ctx.session, phase="phase4", round=r, agent="openai")
@@ -123,6 +147,7 @@ async def run_phase4(
                 stream_to=None,
                 max_output_tokens=16384,
                 prompt_pieces=round_pieces,
+                prompt_bundle=claude_bundle,
             ),
             run_one_call(
                 agent=openai_agent,
@@ -135,6 +160,7 @@ async def run_phase4(
                 stream_to=None,
                 max_output_tokens=16384,
                 prompt_pieces=round_pieces,
+                prompt_bundle=openai_bundle,
             ),
         )
         write_atomic(claude_path, claude_result.text)

@@ -139,6 +139,8 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
         _on_phase_exited(run, event)
     elif kind == "turn_started":
         _on_turn_started(run, event)
+    elif kind == "turn_inputs":
+        _on_turn_inputs(run, event, session_dir)
     elif kind == "turn_ended":
         _on_turn_ended(run, event)
     elif kind in ("phase2_round_complete", "phase4_round_complete"):
@@ -338,6 +340,11 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     # OUT of the headline `cost` field (token-cost only, by design).
     searches = int(event.get("searches", 0) or 0)
     search_cost = compute_search_cost(turn_model_id or "", searches)
+    # Spec 0033: preserve the `input_path` stamped earlier by
+    # `_on_turn_inputs` (which may have created a stub `TurnTokenUsage`
+    # before TurnEnded arrived).
+    prev = run.phase_token_usage.get(key)
+    input_path = prev.input_path if prev is not None else None
     run.phase_token_usage[key] = TurnTokenUsage(
         in_=in_tokens,
         out=out_tokens,
@@ -349,7 +356,95 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         prompt_pieces=prompt_pieces,
         searches=searches,
         search_cost=search_cost,
+        input_path=input_path,
     )
+
+
+def build_phase0_input_bundle(session_dir: Path) -> dict | None:
+    """Spec 0033 — synthesise the shared Phase 0 input bundle on demand.
+
+    Called by the UI server for the special ``input`` turn-key (the
+    "input modal" on the run's Phase 0 card). Reads ``brief.md`` and
+    composes a preflight-shaped bundle with a placeholder ``agent_name``.
+
+    Returns the JSON-ready payload or ``None`` if ``brief.md`` is
+    missing.
+    """
+    from dual_research.protocol.prompts import preflight_input_bundle
+
+    brief_path = session_dir / "brief.md"
+    if not brief_path.exists():
+        return None
+    try:
+        brief_text = brief_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    pieces = preflight_input_bundle(brief=brief_text, agent_name="<agent>")
+    return {
+        "agent": "shared",
+        "phase": "phase0",
+        "label": "phase0-input",
+        "pieces": pieces,
+        "emitted_at": "",
+    }
+
+
+def _on_turn_inputs(run: Run, event: dict, session_dir: Path) -> None:
+    """Spec 0033 — persist a per-turn input bundle to ``inputs/<key>.json``.
+
+    Emitted by the orchestrator alongside ``TurnStarted``; carries the
+    Tk-keyed text dict produced by ``protocol/prompts.py::*_input_bundle()``.
+    The JSON file is the UI server's source-of-truth (read on demand via
+    ``/api/runs/<id>/inputs/<key>``). The aggregator stamps a relative
+    path on ``TurnTokenUsage.input_path`` so the UI can detect which
+    turns have bundles available.
+    """
+    backend_ag = event.get("agent")
+    if backend_ag not in ("claude", "openai"):
+        return
+    ag = ui_agent(backend_ag)
+    phase_str = event.get("phase", "phase0")
+    phase_int = phase_to_int(phase_str)
+    label = event.get("label") or ""
+    idx = _round_index_from_label(label)
+    if phase_int in (2, 4) and idx > 0:
+        key = f"phase{phase_int}_round{idx}_{ag}"
+    else:
+        key = f"phase{phase_int}_{ag}"
+    # Repair turns have labels like ``phase2-r3-claude-repair`` — capture
+    # them under a distinct key so the round-N entry isn't overwritten by
+    # the repaired retry. The Consumption tab already ignores keys that
+    # don't match ``^phase\d+(Round\d+)?(Claude|Gpt)$``; the Input tab
+    # falls back to "(repair)" suffix display via the regex below.
+    if "-repair" in label or "-hashdrift" in label:
+        key = f"{key}_repair"
+
+    pieces_raw = event.get("pieces") or {}
+    pieces: dict[str, str] = {str(k): str(v) for k, v in pieces_raw.items()}
+
+    inputs_dir = session_dir / "inputs"
+    try:
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        path = inputs_dir / f"{key}.json"
+        payload = {
+            "agent": ag,
+            "phase": phase_str,
+            "label": label,
+            "pieces": pieces,
+            "emitted_at": event.get("ts", "") or "",
+        }
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except OSError:
+        # Disk-write failures are non-fatal — the UI just won't have the
+        # bundle to render. Same failure mode as a pre-0033 run.
+        return
+
+    rel = f"inputs/{key}.json"
+    existing = run.phase_token_usage.get(key)
+    if existing is not None:
+        existing.input_path = rel
+    else:
+        run.phase_token_usage[key] = TurnTokenUsage(input_path=rel)
 
 
 def _on_round_complete(run: Run, event: dict) -> None:
@@ -621,7 +716,20 @@ def _turn_kind_for_phase(phase: str, ui_ag: str, *, is_drafter: bool) -> str:
 
 
 def _round_index_from_label(label: str) -> int:
-    """Extract the round number from a turn label like ``"phase2-claude-round-3"``."""
+    """Extract the round number from a turn label.
+
+    Two label shapes in the wild:
+    - ``phase2-r3-claude`` / ``phase2-r3-claude-repair`` — the actual
+      orchestrator emits this form (see ``orchestrator/phase2.py``).
+    - ``phase2-claude-round-3`` — older test fixtures + the original
+      shape this helper was designed against.
+
+    Returns 0 if neither shape matches (single-shot phases — Phase 0, 1, 3 —
+    correctly fall into the round-less keying branch).
+    """
+    m = re.search(r"-r(\d+)(?:[-_]|$)", label)
+    if m:
+        return int(m.group(1))
     m = re.search(r"round[-_](\d+)", label)
     return int(m.group(1)) if m else 0
 

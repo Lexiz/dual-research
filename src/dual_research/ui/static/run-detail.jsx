@@ -5,11 +5,62 @@
 //   ├─ left: artifact cards (collapsible)   │  right: disagreements by phase (tabbed)
 //   └─ footer
 
-// ─────────────────── Compact run-detail header (spec 0024 pass 3) ────────────
-// Back action now lives in the chrome bar's "All runs" tab (icon swaps to a
-// back-arrow on detail views), so the header has neither a back chip nor a
-// TOPIC tag — just topic + right-side badges.
-function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
+// ─────────────────── Spec 0033 — agent activity composer ────────────────────
+//
+// Maps (agent.status × run.phase × run.round) → a 3–6-word activity phrase
+// + live/idle flag. The two per-agent header strips render this as
+//   `● drafting parallel plan`
+// — pulse on `live === true`, grey static dot otherwise. No LLM; pure switch.
+function composeAgentActivity(agent, run) {
+  const ag = run.agents?.[agent];
+  const other = agent === 'claude' ? 'gpt' : 'claude';
+  const otherAg = run.agents?.[other];
+  const otherName = AGENT_META[other]?.name || other;
+  const status = ag?.status || 'idle';
+  const otherStatus = otherAg?.status || 'idle';
+
+  // Terminal phrasing — run is done.
+  if (run.status === 'completed') return { live: false, phrase: 'done' };
+  if (run.status === 'errored')   return { live: false, phrase: 'errored' };
+  if (run.status === 'deadlocked')return { live: false, phrase: 'deadlocked' };
+
+  const livelyStatuses = new Set(['thinking', 'drafting', 'responding', 'reviewing']);
+  const isLive = livelyStatuses.has(status);
+  const otherIsLive = livelyStatuses.has(otherStatus);
+
+  // Idle / waiting → grey strip + a sentence about what they're waiting for.
+  if (!isLive) {
+    if (otherIsLive) {
+      return { live: false, phrase: `waiting for ${otherName}` };
+    }
+    if (run.phase != null && run.phase >= 0) {
+      return { live: false, phrase: `waiting · phase ${run.phase}` };
+    }
+    return { live: false, phrase: 'idle' };
+  }
+
+  // Live phrases keyed on (phase, status).
+  const round = run.round?.current;
+  switch (run.phase) {
+    case 0: return { live: true, phrase: 'critiquing the brief' };
+    case 1: return { live: true, phrase: 'drafting parallel plan' };
+    case 2: return { live: true, phrase: round ? `negotiating · round ${round}` : 'negotiating' };
+    case 3: return { live: true, phrase: 'drafting converged doc' };
+    case 4: return { live: true, phrase: round ? `reviewing · round ${round}` : 'reviewing' };
+    case 5: return { live: true, phrase: 'finalising' };
+    default: return { live: true, phrase: status };
+  }
+}
+
+// ─────────────────── Compact run-detail header (spec 0024 pass 3 + 0033) ─────
+// Spec 0033 expands this from 2 to 4 rows:
+//   row 1: topic · cost · status · [Conversation/Consumption tabs]
+//   row 2: Claude agent strip — icon · model · tokens·cost · status sentence
+//   row 3: GPT    agent strip — same shape
+//   row 4: phase dots + dot labels + run metadata (started · elapsed · round)
+// The 4 rows collapse to 3 on narrow widths (the per-agent strips reduce
+// font and the metadata wraps under the dots row).
+function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, tab, onTabChange }) {
   const total = run.agents.claude.cost + run.agents.gpt.cost;
   const idParts = window.splitRunId(run.id);
   const startedClock = idParts.time || '—';
@@ -27,9 +78,9 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
       borderBottom: '1px solid var(--border-1)',
       background: 'var(--bg-0)',
       flexShrink: 0,
-      gap: 4,
+      gap: 6,
     }}>
-      {/* Row 1: topic + cost + status/errors */}
+      {/* Row 1: topic + cost + status/errors + Conversation/Consumption tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         <Topic text={run.topic} />
         <CostBadge cost={total} tokens={totalTokens} />
@@ -39,28 +90,111 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors }) {
           showErrors={showErrors}
           onToggleErrors={onToggleErrors}
         />
+        {onTabChange && (
+          <TimelineTabs active={tab} onChange={onTabChange} prominent />
+        )}
       </div>
-      {/* Row 2: meta line on left, phase dots on right */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--fg-3)',
-          display: 'flex', flexWrap: 'wrap', flex: 1, minWidth: 0,
-        }}>
-          <span>started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span></span>
-          <span>&nbsp;·&nbsp;drafter <span style={{ color: 'var(--fg-1)' }}>{drafterLabel}</span></span>
-          <span>&nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed</span>
-          {run.status === 'running' && (run.phase === 2 || run.phase === 4) && run.round && (
-            <span>&nbsp;·&nbsp;round&nbsp;
-              <span style={{ color: 'var(--fg-1)' }}>{run.round.current}/{run.round.soft}</span>
-              <span style={{ color: 'var(--fg-3)' }}>&nbsp;(hard {run.round.hard})</span>
-            </span>
-          )}
-        </div>
-        <PhaseDots run={run} />
-      </div>
+      {/* Row 2: Claude agent strip (spec 0033). */}
+      <AgentStrip agent="claude" run={run} />
+      {/* Row 3: GPT agent strip. */}
+      <AgentStrip agent="gpt" run={run} />
+      {/* Row 4: phase dots + dot labels + run metadata. */}
+      <PhaseDotsRow
+        run={run}
+        startedClock={startedClock}
+        elapsedLabel={elapsedLabel}
+        drafterLabel={drafterLabel}
+      />
     </header>
+  );
+}
+
+// ─────────────────── Spec 0033 — per-agent header strip ─────────────────────
+function AgentStrip({ agent, run }) {
+  const meta = AGENT_META[agent];
+  const ag = run.agents?.[agent] || {};
+  const tokensIn = ag.tokens?.in || 0;
+  const tokensOut = ag.tokens?.out || 0;
+  const totalTokens = tokensIn + tokensOut;
+  const cost = ag.cost || 0;
+  const modelId = ag.modelId || ag.model_id || meta?.name || agent;
+  const { live, phrase } = composeAgentActivity(agent, run);
+  const dotColor = live ? meta.color : 'var(--border-3)';
+  const phraseColor = live ? 'var(--fg-1)' : 'var(--fg-3)';
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      minWidth: 0,
+      // Subtle agent-tinted left rail so the two strips read as paired.
+      borderLeft: `2px solid ${meta.color}`,
+      paddingLeft: 8,
+    }}>
+      <AgentIcon agent={agent} size={14} />
+      <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 56 }}>
+        {meta.name}
+      </span>
+      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+        {modelId}
+      </span>
+      {/* token + cost badge — same shape as CostBadge but agent-scoped */}
+      <span className="mono" title={`${cost.toFixed(4)} USD · ${totalTokens.toLocaleString()} tokens`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '2px 8px', borderRadius: 999,
+              background: 'var(--bg-2)', border: '1px solid var(--border-1)',
+              fontSize: 10.5, color: 'var(--fg-1)',
+              whiteSpace: 'nowrap',
+            }}>
+        <span className="num">{fmt.tokens(totalTokens)}t</span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span className="num" style={{ color: 'var(--fg-2)' }}>{fmt.cost(cost)}</span>
+      </span>
+      {/* pipe separator */}
+      <span style={{ color: 'var(--border-2)', fontSize: 12 }}>│</span>
+      {/* status dot + activity sentence */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
+        <span style={{
+          fontSize: 11.5, color: phraseColor,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {phrase}
+        </span>
+      </span>
+      <span style={{ flex: 1 }} />
+    </div>
+  );
+}
+
+// ─────────────────── Spec 0033 — phase dots row with labels ─────────────────
+function PhaseDotsRow({ run, startedClock, elapsedLabel, drafterLabel }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      paddingTop: 2,
+    }}>
+      <PhaseDots run={run} />
+      <span className="mono" style={{
+        fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.03em',
+      }}>
+        preflight · drafts · negotiate · drafting · review
+      </span>
+      <span style={{ flex: 1 }} />
+      <span className="mono" style={{
+        fontSize: 10.5, color: 'var(--fg-3)',
+        whiteSpace: 'nowrap',
+      }}>
+        started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span>
+        &nbsp;·&nbsp;drafter <span style={{ color: 'var(--fg-1)' }}>{drafterLabel}</span>
+        &nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed
+        {run.status === 'running' && (run.phase === 2 || run.phase === 4) && run.round && (
+          <>&nbsp;·&nbsp;round <span style={{ color: 'var(--fg-1)' }}>
+            {run.round.current}/{run.round.soft}
+          </span><span style={{ color: 'var(--fg-3)' }}>&nbsp;(hard {run.round.hard})</span></>
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -204,15 +338,14 @@ function PhaseDots({ run }) {
 // Spec 0029: two tabs — `Conversation` (existing card view) and
 // `Consumption` (per-turn context-window bars). Tabs sit on the left of
 // the pane toolbar; the two `AgentLegendChip`s move to the right end.
-function Timeline({ run }) {
+function Timeline({ run, tab = 'conversation' }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
   const [openId, setOpenId] = React.useState(null);
-  const [tab, setTab] = React.useState('conversation'); // 'conversation' | 'consumption'
 
-  // Reset open modal + active tab when navigating between runs.
+  // Reset open modal when navigating between runs. Tab state is owned by
+  // RunDetail (spec 0033 lifted it so the header can render the pill).
   React.useEffect(() => {
     setOpenId(null);
-    setTab('conversation');
   }, [run.id]);
 
   const openItem = items.find((i) => i.id === openId) || null;
@@ -234,7 +367,8 @@ function Timeline({ run }) {
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
       />
       <PaneToolbar>
-        <TimelineTabs active={tab} onChange={setTab} />
+        {/* Tabs moved to the run header (spec 0033). The toolbar now
+            keeps the per-agent legend chips + the live-count chip. */}
         <span style={{ flex: 1 }} />
         <AgentLegendChip agent="claude" tokens={claudeTotal.tokens.in + claudeTotal.tokens.out} cost={claudeTotal.cost} />
         <AgentLegendChip agent="gpt"    tokens={gptTotal.tokens.in + gptTotal.tokens.out} cost={gptTotal.cost} />
@@ -281,11 +415,17 @@ function Timeline({ run }) {
 
 // Segmented control of two pills — matches the AgentLegendChip aesthetic
 // (rounded pill, var(--bg-2) background, agent-style accent on active).
-function TimelineTabs({ active, onChange }) {
+// Spec 0033: when ``prominent`` is set (in the run header), bump font +
+// padding and add a 1px accent underline on the active tab so the
+// control reads as primary chrome.
+function TimelineTabs({ active, onChange, prominent = false }) {
   const tabs = [
     { id: 'conversation', label: 'Conversation' },
     { id: 'consumption',  label: 'Consumption'  },
   ];
+  const fontSize = prominent ? 12.5 : 11.5;
+  const padV = prominent ? 4 : 3;
+  const padH = prominent ? 14 : 12;
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'stretch',
@@ -305,11 +445,12 @@ function TimelineTabs({ active, onChange }) {
               appearance: 'none',
               border: 'none',
               borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
+              borderBottom: prominent && isActive ? `2px solid ${COLORS.info}` : 'none',
               background: isActive ? 'var(--bg-3)' : 'transparent',
               color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
-              fontSize: 11.5,
+              fontSize,
               fontWeight: isActive ? 600 : 500,
-              padding: '3px 12px',
+              padding: `${padV}px ${padH}px`,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               fontFamily: 'inherit',
@@ -1222,6 +1363,23 @@ function composeGist(item, run) {
     return '';
   }
 
+  // ─── Phase 0 — per-agent critique (spec 0033 split) ────────────────────
+  if (item.kind === 'preflight') {
+    const issues = stats.briefIssues ?? 0;
+    if (status === 'BRIEF_OK') {
+      return issues > 0
+        ? `${agentName} approved the brief but flagged ${plur(issues, 'minor issue')}.`
+        : `${agentName} approved the brief without changes.`;
+    }
+    if (status === 'BRIEF_NEEDS_INPUT') {
+      return `${agentName} flagged ${plur(issues, 'issue')} requiring user input before Phase 1.`;
+    }
+    if (issues > 0) {
+      return `${agentName} flagged ${plur(issues, 'issue')} on the brief.`;
+    }
+    return '';
+  }
+
   // ─── Phase 1 — independent draft ───────────────────────────────────────
   if (phase === 1) {
     return `${agentName} wrote an independent Phase 1 draft (no critique stats this phase).`;
@@ -1399,6 +1557,43 @@ function ArtifactHeader({ item, meta, hover }) {
       </div>
     );
   }
+  if (item.kind === 'preflight') {
+    // Spec 0033: per-agent Phase 0 critique card.
+    const stats = item.stats || null;
+    const statusVal = stats?.status;
+    const briefIssues = stats?.briefIssues ?? 0;
+    const ok = statusVal === 'BRIEF_OK';
+    const sub = ok
+      ? 'approved the brief'
+      : briefIssues > 0
+        ? `flagged ${briefIssues} issue${briefIssues === 1 ? '' : 's'}`
+        : 'brief critique';
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
+        <AgentIcon agent={item.agent} size={14} />
+        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 52 }}>
+          {meta?.name || item.agent}
+        </span>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 110 }}>
+          brief critique
+        </span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--fg-2)',
+                       overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {sub}
+        </span>
+        {stats && (
+          <span className="mono" style={{
+            fontSize: 10.5, color: ok ? COLORS.ok : COLORS.warn,
+            padding: '1px 6px', borderRadius: 999,
+            background: ok ? 'rgba(111,179,128,0.10)' : 'rgba(212,160,86,0.10)',
+            border: `1px solid ${ok ? 'rgba(111,179,128,0.30)' : 'rgba(212,160,86,0.30)'}`,
+          }}>
+            {ok ? 'ok' : `${briefIssues} issue${briefIssues === 1 ? '' : 's'}`}
+          </span>
+        )}
+      </div>
+    );
+  }
   if (item.kind === 'doc') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
@@ -1484,7 +1679,10 @@ function ArtifactModal({ item, run, onClose }) {
   const accent = meta?.color || COLORS.info;
 
   if (item.kind === 'input') {
-    return <PreflightModal item={item} run={run} onClose={onClose} accent={accent} />;
+    return <InputBriefModal item={item} run={run} onClose={onClose} accent={accent} />;
+  }
+  if (item.kind === 'preflight') {
+    return <PreflightResponseModal item={item} run={run} onClose={onClose} accent={accent} />;
   }
   if ((item.kind === 'turn' || item.kind === 'turn-live')
       && (item.statsPhase === 2 || item.statsPhase === 4)) {
@@ -1506,10 +1704,29 @@ function DocumentModal({ item, meta, onClose, accent }) {
     title = `${meta?.name || 'Agent'} — ${lbl}`;
     subtitle = `round ${item.round}`;
   }
+  // Spec 0033: every output modal gains an Input tab. The bundle key
+  // is plumbed through ``item.turnKey`` by ``buildLiveTimeline``.
+  const tabs = [
+    {
+      id: 'content',
+      label: 'Content',
+      content: <LazyMarkdownBody filePath={item.filePath} />,
+    },
+    {
+      id: 'input',
+      label: 'Input',
+      content: <InputTabContent turnKey={item.turnKey} />,
+    },
+  ];
   return (
-    <Modal open={true} onClose={onClose} title={title} subtitle={subtitle} accent={accent}>
-      <LazyMarkdownBody filePath={item.filePath} />
-    </Modal>
+    <Modal
+      open={true}
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      accent={accent}
+      tabs={tabs}
+    />
   );
 }
 
@@ -1631,40 +1848,13 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
         minHeight: 0,
         height: '100%',
       }}>
-        {/* Left: prior content */}
-        <div style={{
-          minHeight: 0, minWidth: 0,
-          background: 'var(--bg-0)',
-          border: '1px solid var(--border-1)',
-          borderRadius: 'var(--r-2)',
-          display: 'flex', flexDirection: 'column',
-        }}>
-          <div style={{
-            padding: '8px 12px',
-            borderBottom: '1px solid var(--border-1)',
-            background: 'var(--bg-2)',
-            display: 'flex', alignItems: 'center', gap: 8,
-            flexShrink: 0,
-          }}>
-            {item.statsPhase === 4 ? (
-              <span className="mono" style={{
-                fontSize: 10, color: 'var(--fg-2)',
-                letterSpacing: '0.06em', textTransform: 'uppercase',
-              }}>current draft</span>
-            ) : (
-              <AgentIcon agent={otherAgent} size={14} />
-            )}
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
-              {priorFilePath || '— no draft yet —'}
-            </span>
-          </div>
-          <div ref={leftRef} style={{
-            flex: 1, minHeight: 0, overflow: 'auto',
-            padding: '14px 16px',
-          }}>
-            <LazyMarkdownBody filePath={priorFilePath} />
-          </div>
-        </div>
+        {/* Left: prior content + Input sub-tab (spec 0033). */}
+        <NegotiateLeftPane
+          item={item}
+          otherAgent={otherAgent}
+          priorFilePath={priorFilePath}
+          leftRef={leftRef}
+        />
 
         {/* Right: review cards */}
         <div style={{
@@ -1715,6 +1905,107 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+// Spec 0033: left pane carries an Original|Input sub-tab strip. ``Original``
+// is the prior agent's content (unchanged from spec 0027); ``Input`` is the
+// per-turn input bundle for THIS agent's turn — exactly what they were
+// handed before generating the right-pane critique.
+function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
+  const [sub, setSub] = React.useState('original');
+
+  return (
+    <div style={{
+      minHeight: 0, minWidth: 0,
+      background: 'var(--bg-0)',
+      border: '1px solid var(--border-1)',
+      borderRadius: 'var(--r-2)',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{
+        padding: '6px 12px',
+        borderBottom: '1px solid var(--border-1)',
+        background: 'var(--bg-2)',
+        display: 'flex', alignItems: 'center', gap: 10,
+        flexShrink: 0,
+      }}>
+        <NegotiateLeftSubTabs active={sub} onChange={setSub} />
+        <span style={{ flex: 1 }} />
+        {sub === 'original' && (
+          <>
+            {item.statsPhase === 4 ? (
+              <span className="mono" style={{
+                fontSize: 10, color: 'var(--fg-2)',
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+              }}>current draft</span>
+            ) : (
+              <AgentIcon agent={otherAgent} size={14} />
+            )}
+            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+              {priorFilePath || '— no draft yet —'}
+            </span>
+          </>
+        )}
+        {sub === 'input' && (
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+            inputs/{item.turnKey || '—'}.json
+          </span>
+        )}
+      </div>
+      <div ref={leftRef} style={{
+        flex: 1, minHeight: 0, overflow: 'auto',
+        padding: '14px 16px',
+      }}>
+        {sub === 'original' ? (
+          <LazyMarkdownBody filePath={priorFilePath} />
+        ) : (
+          <InputTabContent turnKey={item.turnKey} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NegotiateLeftSubTabs({ active, onChange }) {
+  const tabs = [
+    { id: 'original', label: 'Original' },
+    { id: 'input',    label: 'Input' },
+  ];
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      borderRadius: 999, overflow: 'hidden',
+      border: '1px solid var(--border-1)',
+      background: 'var(--bg-1)',
+      flexShrink: 0,
+    }}>
+      {tabs.map((t, i) => {
+        const isActive = t.id === active;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            style={{
+              appearance: 'none',
+              border: 'none',
+              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
+              background: isActive ? 'var(--bg-3)' : 'transparent',
+              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
+              fontSize: 11,
+              fontWeight: isActive ? 600 : 500,
+              padding: '3px 10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1887,7 +2178,167 @@ function reviewItemsFor(run, item) {
   return Array.isArray(bucket) ? bucket : [];
 }
 
-function PreflightModal({ item, run, onClose, accent }) {
+// ─────────────────── Spec 0033 — Input tab + bundle rendering ───────────────
+//
+// Friendly labels per Tk-vocab key. Stays in sync with KIND_COLORS.label
+// from the Consumption tab.
+const INPUT_PIECE_LABEL = {
+  system: 'System prompt',
+  brief:  'Brief',
+  d1:     "Claude's Phase 1 draft",
+  d2:     "GPT's Phase 1 draft",
+  plan:   'Agreed plan',
+  hist:   'Prior Phase 2 turns',
+  draft:  'Current draft',
+  histp:  'Prior Phase 4 review turns',
+};
+
+// Canonical render order — mirrors ``protocol/prompts.py::INPUT_BUNDLE_KEY_ORDER``.
+const INPUT_PIECE_ORDER = ['system', 'brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
+
+// Pieces collapsed by default. The `system` template is long boilerplate
+// the user can drill into if they care; the substantive content (brief,
+// drafts, history) is open by default so the audit content is immediately
+// visible.
+const INPUT_PIECE_DEFAULT_COLLAPSED = new Set(['system']);
+
+function InputTabContent({ turnKey }) {
+  const { bundle, loading, error } = window.useInputBundle(turnKey);
+
+  if (!turnKey) {
+    return <InputEmptyState label="No input record for this artifact." />;
+  }
+  if (loading) {
+    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading input bundle…</div>;
+  }
+  if (error || !bundle) {
+    return (
+      <InputEmptyState label={
+        error
+          ? `Could not load input bundle (${error}).`
+          : 'Input bundle not recorded — this run pre-dates spec 0033, or the bundle was lost.'
+      } />
+    );
+  }
+  const pieces = bundle.pieces || {};
+  // Render the canonical order; any unknown keys append at the end.
+  const renderKeys = INPUT_PIECE_ORDER.filter(k => k in pieces)
+    .concat(Object.keys(pieces).filter(k => !INPUT_PIECE_ORDER.includes(k)));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {renderKeys.map(key => (
+        <InputSection
+          key={key}
+          piece={key}
+          text={pieces[key] || ''}
+          defaultCollapsed={INPUT_PIECE_DEFAULT_COLLAPSED.has(key)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function InputSection({ piece, text, defaultCollapsed }) {
+  const [open, setOpen] = React.useState(!defaultCollapsed);
+  const label = INPUT_PIECE_LABEL[piece] || piece;
+  const isEmpty = !text;
+  const chars = text ? text.length : 0;
+  const approxTokens = text ? Math.max(1, Math.round(text.length / 3.5)) : 0;
+
+  return (
+    <div style={{
+      border: '1px solid var(--border-1)',
+      borderRadius: 6,
+      background: 'var(--bg-1)',
+    }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          width: '100%',
+          padding: '7px 10px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          color: 'var(--fg-0)',
+          fontSize: 12,
+          textAlign: 'left',
+        }}
+      >
+        <span style={{
+          display: 'inline-block', width: 10, textAlign: 'center',
+          color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+        }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontWeight: 500 }}>{label}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+          ({piece})
+        </span>
+        <span style={{ flex: 1 }} />
+        {isEmpty ? (
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+            (not used in this turn)
+          </span>
+        ) : (
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+            {chars.toLocaleString()} chars · ~{approxTokens.toLocaleString()}t
+          </span>
+        )}
+      </button>
+      {open && !isEmpty && (
+        <div style={{
+          borderTop: '1px solid var(--border-1)',
+          padding: '10px 12px',
+          maxHeight: 360,
+          overflow: 'auto',
+          background: 'var(--bg-0)',
+        }}>
+          <pre style={{
+            margin: 0,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'var(--mono)',
+            fontSize: 11.5,
+            lineHeight: 1.5,
+            color: 'var(--fg-1)',
+          }}>{text}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InputEmptyState({ label }) {
+  return (
+    <div style={{
+      padding: '32px 16px',
+      textAlign: 'center',
+      color: 'var(--fg-3)',
+      fontSize: 12.5,
+      border: '1px dashed var(--border-2)',
+      borderRadius: 'var(--r-2)',
+      background: 'var(--bg-2)',
+    }}>
+      {label}
+    </div>
+  );
+}
+
+// ─────────────────── Spec 0033 — preflight modals ───────────────────────────
+//
+// Two modal variants for Phase 0:
+// - InputBriefModal — opens from the shared `input` card. Default tab is
+//   Input (the user's audit intent here is primary); the brief markdown is
+//   one click away under Content.
+// - PreflightResponseModal — opens from the per-agent `preflight` cards.
+//   Default tab is Content (the user clicked through to read the response);
+//   Input is available as a sibling tab and shows the SAME shared bundle as
+//   the Phase 0 brief modal — deliberately repeated, because every output
+//   modal in spec 0033 also shows that output's input.
+
+function InputBriefModal({ item, run, onClose, accent }) {
   const { attachments, loading } = window.useAttachments(run.id);
 
   // Split attachments into Sources (links) vs Files (image/pdf/file).
@@ -1896,6 +2347,11 @@ function PreflightModal({ item, run, onClose, accent }) {
   const files = (attachments || []).filter((a) => fileKinds.has(a.kind));
 
   const tabs = [
+    {
+      id: 'input',
+      label: 'Input',
+      content: <InputTabContent turnKey={item.turnKey || 'input'} />,
+    },
     {
       id: 'content',
       label: 'Content',
@@ -1920,6 +2376,32 @@ function PreflightModal({ item, run, onClose, accent }) {
       open={true}
       onClose={onClose}
       title="Input — brief"
+      subtitle={item.topic || ''}
+      accent={accent}
+      tabs={tabs}
+    />
+  );
+}
+
+function PreflightResponseModal({ item, run, onClose, accent }) {
+  const meta = AGENT_META[item.agent];
+  const tabs = [
+    {
+      id: 'content',
+      label: 'Content',
+      content: <LazyMarkdownBody filePath={item.filePath} />,
+    },
+    {
+      id: 'input',
+      label: 'Input',
+      content: <InputTabContent turnKey={item.turnKey || `phase0_${item.agent}`} />,
+    },
+  ];
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title={`${meta?.name || 'Agent'} — brief critique`}
       subtitle={item.topic || ''}
       accent={accent}
       tabs={tabs}
@@ -2715,7 +3197,11 @@ function RunErrorsView({ run }) {
 // ─────────────────── Top-level ───────────────────
 function RunDetail({ run }) {
   const [showErrors, setShowErrors] = React.useState(false);
+  // Spec 0033: Conversation/Consumption tab state lifted from Timeline so
+  // the header can render the pill control.
+  const [timelineTab, setTimelineTab] = React.useState('conversation');
   React.useEffect(() => { setShowErrors(false); }, [run.id, run.phase, run.status]);
+  React.useEffect(() => { setTimelineTab('conversation'); }, [run.id]);
 
   const errorCount = (run.errors || []).length;
 
@@ -2731,6 +3217,8 @@ function RunDetail({ run }) {
         errorCount={errorCount}
         showErrors={showErrors}
         onToggleErrors={() => setShowErrors(s => !s)}
+        tab={timelineTab}
+        onTabChange={setTimelineTab}
       />
       <main style={{
         flex: 1, minHeight: 0,
@@ -2741,7 +3229,7 @@ function RunDetail({ run }) {
           <RunErrorsView run={run} />
         ) : (
           <>
-            <Timeline run={run} />
+            <Timeline run={run} tab={timelineTab} />
             <DisagreementExplorer run={run} />
           </>
         )}

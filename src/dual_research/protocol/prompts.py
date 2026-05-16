@@ -823,3 +823,331 @@ promotion — your plan version will be discarded — so just copy.
 """
         + _OUTPUT_INSTRUCTION
     )
+
+
+# ---------- Spec 0033 — input bundles for the UI Input tab ----------
+#
+# Each phase's prompt is built from a static template (instructions,
+# section structure, anti-sycophancy reminders, output schema) plus a
+# small set of inlined content strings (the brief, the agents' Phase 1
+# drafts, the AGREED_PLAN block, the current draft, prior-round
+# transcripts). The UI's per-turn Input tab renders these as
+# independently collapsible sections so the user can audit *what
+# actually went into the model* at this turn.
+#
+# The vocabulary matches the spec-0030 Tk keys exactly
+# (`brief`, `d1`, `d2`, `plan`, `hist`, `draft`, `histp`) plus a fixed
+# `system` key for the static instruction template. Empty pieces are
+# returned as empty strings (not omitted) so the UI can render a
+# "(not used in this turn)" stub uniformly.
+#
+# Implementation choice: each `*_input_bundle()` builds the `system`
+# value by calling the corresponding `*_prompt()` with a
+# `_placeholder("<label>")` string in place of each inlined content
+# argument and then stripping the `CACHE_BREAKPOINT` sentinel. This
+# means the system text is byte-equal to the prompt template by
+# construction — any drift between prompt and bundle is impossible.
+
+
+_BUNDLE_PLACEHOLDER_PREFIX = "[see the "
+_BUNDLE_PLACEHOLDER_SUFFIX = ' section below in this Input tab]'
+
+
+def _placeholder(label: str) -> str:
+    """The string substituted for inline content in the rendered system template."""
+    return f'{_BUNDLE_PLACEHOLDER_PREFIX}"{label}"{_BUNDLE_PLACEHOLDER_SUFFIX}'
+
+
+def _strip_cache_marker(text: str) -> str:
+    """Remove the cache-control sentinel from system text destined for human view."""
+    # Also collapse the doubled-blank-line that often sits around the marker.
+    return text.replace(CACHE_BREAKPOINT, "").replace("\n\n\n", "\n\n")
+
+
+def _placeholder_prior_turns(label: str) -> "list[PriorTurn]":
+    """A single-element PriorTurn list carrying a placeholder string.
+
+    Threads a placeholder through `_inline_prior_turns` so the system
+    template still shows the heading + structure that prior-turn inlining
+    produces, without dumping any actual transcript content.
+    """
+    return [PriorTurn(agent="<placeholder>", round=0, content=_placeholder(label))]
+
+
+def preflight_input_bundle(*, brief: str, agent_name: str = "<agent>") -> dict[str, str]:
+    """Spec 0033 — Phase 0 preflight input bundle.
+
+    Keys with content (per protocol): ``system``, ``brief``. Other Tk
+    keys are returned as empty strings so the UI can render uniform
+    "(not used in this turn)" stubs.
+    """
+    system_text = _strip_cache_marker(
+        preflight_prompt(
+            brief_content=_placeholder("brief"),
+            agent_name=agent_name,
+        )
+    )
+    return {
+        "system": system_text,
+        "brief": brief or "",
+        "d1": "",
+        "d2": "",
+        "plan": "",
+        "hist": "",
+        "draft": "",
+        "histp": "",
+    }
+
+
+def research_input_bundle(*, brief: str, agent_name: str = "<agent>") -> dict[str, str]:
+    """Spec 0033 — Phase 1 research input bundle. Content keys: ``system``, ``brief``."""
+    system_text = _strip_cache_marker(
+        research_prompt(
+            brief_content=_placeholder("brief"),
+            agent_name=agent_name,
+        )
+    )
+    return {
+        "system": system_text,
+        "brief": brief or "",
+        "d1": "",
+        "d2": "",
+        "plan": "",
+        "hist": "",
+        "draft": "",
+        "histp": "",
+    }
+
+
+def negotiation_round1_input_bundle(
+    *,
+    brief: str,
+    claude_draft: str,
+    openai_draft: str,
+    agent_name: str = "<agent>",
+    other_name: str = "<other>",
+) -> dict[str, str]:
+    """Spec 0033 — Phase 2 round 1 input bundle. Content keys: ``system``, ``brief``, ``d1``, ``d2``."""
+    system_text = _strip_cache_marker(
+        negotiation_round1_prompt(
+            brief_content=_placeholder("brief"),
+            own_draft=_placeholder("d1"),
+            other_draft=_placeholder("d2"),
+            agent_name=agent_name,
+            other_name=other_name,
+        )
+    )
+    return {
+        "system": system_text,
+        "brief": brief or "",
+        "d1": claude_draft or "",
+        "d2": openai_draft or "",
+        "plan": "",
+        "hist": "",
+        "draft": "",
+        "histp": "",
+    }
+
+
+def negotiation_turn_input_bundle(
+    *,
+    brief: str,
+    claude_draft: str,
+    openai_draft: str,
+    prior_turns: Iterable[PriorTurn],
+    agent_name: str = "<agent>",
+    other_name: str = "<other>",
+    round: int = 0,
+    soft_cap: int = 0,
+    hard_cap: int = 0,
+) -> dict[str, str]:
+    """Spec 0033 — Phase 2 rounds 2+ input bundle.
+
+    ``prior_turns`` is the same ``PriorTurn`` iterable the prompt builder
+    receives; the bundle inlines it via the same ``_inline_prior_turns``
+    helper so the ``hist`` text is byte-equal to what the model sees.
+    """
+    system_text = _strip_cache_marker(
+        negotiation_turn_prompt(
+            brief_content=_placeholder("brief"),
+            own_draft=_placeholder("d1"),
+            other_draft=_placeholder("d2"),
+            prior_turns=_placeholder_prior_turns("hist"),
+            agent_name=agent_name,
+            other_name=other_name,
+            round=round,
+            soft_cap=soft_cap,
+            hard_cap=hard_cap,
+        )
+    )
+    hist_text = _inline_prior_turns(prior_turns, "Prior Phase 2 conversation turns (in order)")
+    return {
+        "system": system_text,
+        "brief": brief or "",
+        "d1": claude_draft or "",
+        "d2": openai_draft or "",
+        "plan": "",
+        "hist": hist_text,
+        "draft": "",
+        "histp": "",
+    }
+
+
+def drafting_input_bundle(
+    *,
+    brief: str,
+    claude_draft: str,
+    openai_draft: str,
+    plan: str | None,
+    prior_turns: Iterable[PriorTurn],
+    agent_name: str = "<agent>",
+    other_name: str = "<other>",
+) -> dict[str, str]:
+    """Spec 0033 — Phase 3 drafting input bundle.
+
+    Content keys: ``system``, ``brief``, ``d1``, ``d2``, ``plan``, ``hist``.
+    """
+    system_text = _strip_cache_marker(
+        drafting_prompt(
+            brief_content=_placeholder("brief"),
+            own_draft=_placeholder("d1"),
+            other_draft=_placeholder("d2"),
+            prior_turns=_placeholder_prior_turns("hist"),
+            agent_name=agent_name,
+            other_name=other_name,
+            agreed_plan_block=_placeholder("plan"),
+            final_surfaced_disagreements=[],
+        )
+    )
+    hist_text = _inline_prior_turns(prior_turns, "Full Phase 2 conversation")
+    return {
+        "system": system_text,
+        "brief": brief or "",
+        "d1": claude_draft or "",
+        "d2": openai_draft or "",
+        "plan": plan or "",
+        "hist": hist_text,
+        "draft": "",
+        "histp": "",
+    }
+
+
+def review_input_bundle(
+    *,
+    brief: str,
+    draft: str,
+    prior_turns: Iterable[PriorTurn],
+    agent_name: str = "<agent>",
+    other_name: str = "<other>",
+    drafter_name: str = "<drafter>",
+    round: int = 0,
+    soft_cap: int = 0,
+    hard_cap: int = 0,
+) -> dict[str, str]:
+    """Spec 0033 — Phase 4 review input bundle.
+
+    Content keys: ``system``, ``brief``, ``draft``, ``histp``.
+    """
+    system_text = _strip_cache_marker(
+        review_turn_prompt(
+            brief_content=_placeholder("brief"),
+            draft_content=_placeholder("draft"),
+            prior_turns=_placeholder_prior_turns("histp"),
+            agent_name=agent_name,
+            other_name=other_name,
+            drafter_name=drafter_name,
+            round=round,
+            soft_cap=soft_cap,
+            hard_cap=hard_cap,
+        )
+    )
+    histp_text = _inline_prior_turns(prior_turns, "Prior Phase 4 review turns (in order)")
+    return {
+        "system": system_text,
+        "brief": brief or "",
+        "d1": "",
+        "d2": "",
+        "plan": "",
+        "hist": "",
+        "draft": draft or "",
+        "histp": histp_text,
+    }
+
+
+def repair_input_bundle(
+    *,
+    agent_name: str = "<agent>",
+    phase: int = 0,
+    errors: "list[str] | None" = None,
+    malformed_content: str = "",
+) -> dict[str, str]:
+    """Spec 0033 — repair input bundle.
+
+    Repair turns inline the (malformed) previous turn under the ``hist``
+    slot — there is no separate brief / draft / drafts payload.
+    """
+    system_text = _strip_cache_marker(
+        repair_prompt(
+            agent_name=agent_name,
+            phase=phase,
+            errors=errors or ["<placeholder>"],
+            malformed_content=_placeholder("hist"),
+        )
+    )
+    return {
+        "system": system_text,
+        "brief": "",
+        "d1": "",
+        "d2": "",
+        "plan": "",
+        "hist": malformed_content or "",
+        "draft": "",
+        "histp": "",
+    }
+
+
+def force_verbatim_copy_input_bundle(
+    *,
+    agent_name: str = "<agent>",
+    other_name: str = "<other>",
+    drafter_name: str = "<drafter>",
+    canonical_plan: str = "",
+    round: int = 0,
+) -> dict[str, str]:
+    """Spec 0033 — force-verbatim-copy (Phase 2 hash-drift repair) input bundle.
+
+    Content keys: ``system``, ``plan``.
+    """
+    system_text = _strip_cache_marker(
+        force_verbatim_copy_prompt(
+            agent_name=agent_name,
+            other_name=other_name,
+            drafter_name=drafter_name,
+            canonical_plan=_placeholder("plan"),
+            round=round,
+        )
+    )
+    return {
+        "system": system_text,
+        "brief": "",
+        "d1": "",
+        "d2": "",
+        "plan": canonical_plan or "",
+        "hist": "",
+        "draft": "",
+        "histp": "",
+    }
+
+
+# Canonical key order for any bundle. Stays in sync with
+# `ui/static/run-detail.jsx::KIND_ORDER` + the `system` prefix.
+INPUT_BUNDLE_KEY_ORDER: "tuple[str, ...]" = (
+    "system",
+    "brief",
+    "d1",
+    "d2",
+    "plan",
+    "hist",
+    "draft",
+    "histp",
+)
