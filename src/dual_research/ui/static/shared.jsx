@@ -224,11 +224,65 @@ function _injectBlockIds(html) {
   return container.innerHTML;
 }
 
+// Spec 0034: when the source markdown carries backend-emitted block-id
+// comments (``<!-- block-id: b-N -->``), use those IDs verbatim so the
+// pre-resolved anchors on ReviewItem.block_id point at real DOM nodes.
+// Returns ``{ stripped, ids }`` — the markdown with comments removed +
+// the ordered list of IDs in document order.
+function _extractBackendBlockIds(source) {
+  if (!source || source.indexOf('<!-- block-id:') === -1) {
+    return { stripped: source, ids: [] };
+  }
+  const re = /^<!--\s*block-id:\s*(b-\d+)\s*-->\s*$/;
+  const ids = [];
+  const outLines = [];
+  const lines = source.split('\n');
+  for (const ln of lines) {
+    const m = re.exec(ln);
+    if (m) {
+      ids.push(m[1]);
+    } else {
+      outLines.push(ln);
+    }
+  }
+  return { stripped: outLines.join('\n'), ids };
+}
+
+// Apply backend IDs to rendered blocks in document order. If the backend
+// emitted N IDs and the renderer emits N block elements, mapping is 1-1.
+// If the counts don't match (edge: list-item splitting differs slightly),
+// the un-matched blocks fall through to the hash-based fallback.
+function _applyBackendBlockIds(html, ids) {
+  if (typeof document === 'undefined' || !ids || ids.length === 0) return html;
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const blocks = container.querySelectorAll(
+    'p, li, h1, h2, h3, h4, h5, h6, blockquote, pre'
+  );
+  let i = 0;
+  blocks.forEach((el) => {
+    if (el.id) return;
+    if (i < ids.length) {
+      el.id = ids[i];
+      i += 1;
+    }
+  });
+  // Anything still un-IDed gets the hash fallback (no collisions because
+  // hash IDs and backend IDs live in different namespaces — b-{digits} vs
+  // b-{base36}).
+  return _injectBlockIds(container.innerHTML);
+}
+
 function Markdown({ text, className, style }) {
   const html = React.useMemo(() => {
     if (typeof window === 'undefined' || typeof window.marked === 'undefined') return null;
     try {
-      const raw = window.marked.parse(text || '', { gfm: true, breaks: false });
+      // Spec 0034: pull backend-emitted block-id comments out of the
+      // source BEFORE parsing — marked can otherwise inline them as raw
+      // HTML or drop them depending on the gfm setting.
+      const { stripped, ids } = _extractBackendBlockIds(text || '');
+      const raw = window.marked.parse(stripped, { gfm: true, breaks: false });
+      if (ids.length > 0) return _applyBackendBlockIds(raw, ids);
       return _injectBlockIds(raw);
     } catch (e) {
       return null;

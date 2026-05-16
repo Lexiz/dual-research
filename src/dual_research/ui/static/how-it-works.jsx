@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.32.0',
+      date: '2026-05-16',
+      summary: 'Critique navigation — first-class Q+D, side-by-side rework, sentiment cards, click-to-highlight.',
+      items: [
+        'Questions are first-class now — parallel to Disagreements. IDs assigned at parse time (Q-c-r1-01 shape), answers linked positionally from the next-round "Answers to X" section with verbatim-match confidence tagging. They show in the new Critique explorer alongside disagreements, typed.',
+        'The right-pane explorer is renamed Critique — phase tabs show "Phase 2 · 3 Q · 4 D"-shape counts, and a new filter strip toggles between All / Questions / Disagreements. Each card has a Q or D left-rail tag.',
+        'Click any Q or D card in the explorer → the matching turn-cards in the timeline flash for 2s (blue ring for questions, amber for disagreements). Lets you walk a critique\'s history from the explorer side.',
+        'Side-by-side viewer reliability fix. Block IDs are now assigned at parse time on the backend (protocol/blocks.py), embedded as HTML comments in served markdown, lifted onto rendered DOM nodes by the frontend, and pre-resolved by the parser against the prior content. NegotiateReviewModal\'s jumpToItem uses the resolved ID via getElementById — fastest + most reliable. Falls back to the legacy text-scan only when the agent paraphrased the quote.',
+        'Phase 1 plan cards open a new DraftReviewModal with the brief on the left (carrying the spec-0033 Original | Input sub-tabs) and the draft on the right. Each draft section heading has a 🔗 brief affordance that scans the brief for the closest matching block.',
+        'Cards on the timeline now show a sentiment paragraph when unfolded — "Claude still negotiating in round 3. Raised 1 new question, answered 3 prior questions, resolved 1 disagreement. Standing: 2 open disagreements." Replaces the single-line gist.',
+        'Card chips gain round-over-round deltas: 4 Q (-2) means "two answered since last round"; 5 D (+1, -2) means "one new this round, two resolved". The chip tooltip explains.',
+      ],
+    },
+    {
       version: '0.31.0',
       date: '2026-05-16',
       summary: 'Inputs foundation — universal Input view, Phase 0 split, two-row live header.',

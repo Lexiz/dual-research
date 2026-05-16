@@ -155,6 +155,60 @@ class Disagreement:
     gpt_position: str = ""
     resolution: str | None = None
     progression: list[ProgressionStep] = field(default_factory=list)
+    # Spec 0034: turn-key references for cross-axis click-to-highlight.
+    # ``raised_turn_key`` points at the timeline card where the first
+    # progression step landed; ``closed_turn_key`` points at the turn
+    # that flipped the status to resolved/non-blocking (None while
+    # status == "open"). Format matches ``item.turnKey`` from spec
+    # 0033 (e.g. ``phase2_round3_claude``).
+    raised_turn_key: str = ""
+    closed_turn_key: str | None = None
+
+
+# ─── Question (spec 0034) ─────────────────────────────────────────────────────
+
+
+QuestionStatus = Literal["open", "answered"]
+QuestionMatch = Literal["positional", "verbatim"]
+
+
+@dataclass
+class Question:
+    """Spec 0034 — first-class question object, parallel to ``Disagreement``.
+
+    Questions in Phase 2 and Phase 4 turns previously only surfaced as a
+    chip count on the timeline card (``TurnStats.open_questions``). This
+    object captures the same data shape as a disagreement so the UI's
+    Critique explorer can render Qs alongside Ds and the side-by-side
+    viewer can pre-resolve their anchors.
+
+    IDs follow ``Q-{raiser_initial}-r{round}-{idx}`` (e.g.
+    ``Q-c-r1-01`` for Claude's first round-1 question). The protocol
+    doesn't require agents to emit ``Q-N`` IDs — the parser assigns them
+    deterministically at extraction time from the order they appear in
+    the agent's ``## Open questions for X`` section.
+
+    ``answered_*`` fields are populated by walking round R+1's
+    ``## Answers to {other}'s open questions`` section in positional
+    order. ``match='verbatim'`` means we also confirmed the answer
+    quotes the question body; ``match='positional'`` is best-effort.
+    """
+
+    id: str  # "Q-c-r1-01"
+    phase: int  # 2 | 4
+    raised_round: int
+    raised_by: str  # "claude" | "gpt"
+    status: QuestionStatus = "open"
+    body: str = ""
+    quote: str | None = None
+    after: str | None = None
+    block_id: str | None = None
+    raised_turn_key: str = ""
+    answered_round: int | None = None
+    answered_by: str | None = None
+    answered_turn_key: str | None = None
+    answer_body: str = ""  # excerpt of the answer when matched
+    match: QuestionMatch | None = None  # set when answered
 
 
 # ─── RunError ─────────────────────────────────────────────────────────────────
@@ -307,6 +361,10 @@ class Run:
     # the parser couldn't recognise. UI uses this to distinguish a parser miss
     # from a genuinely disagreement-free run.
     disagreements_parse_suspected_miss: bool = False
+    # Spec 0034: first-class questions, parallel to disagreements. Both
+    # phase 2 and phase 4 contribute. IDs are parser-assigned (the protocol
+    # doesn't number questions).
+    questions: list[Question] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)

@@ -27,6 +27,7 @@ from dual_research.protocol.parse import (
     synthesise_brief_tldr,
 )
 from dual_research.ui.disagreements import mark_deadlocked_open, reconstruct
+from dual_research.ui.questions import reconstruct_questions
 from dual_research.ui.errors import derive_errors
 from dual_research.ui.labels import (
     derive_agent_status,
@@ -92,6 +93,21 @@ def load_run_snapshot(session_dir: Path) -> Run:
     p4 = reconstruct(session_dir, phase=4)
     hard_cap_hit = any(e.get("event") == "hard_cap_hit" for e in transcript)
     run.disagreements = mark_deadlocked_open(p2 + p4, hard_cap_hit=hard_cap_hit)
+    # Spec 0034: thread `raised_turn_key` / `closed_turn_key` from the
+    # progression steps so the UI's cross-axis click-to-highlight knows
+    # which timeline card to flash for each disagreement.
+    _populate_disagreement_turn_keys(run.disagreements)
+
+    # Spec 0034: first-class Question objects from Phase 2 + Phase 4
+    # ``## Open questions for X`` sections. IDs are parser-assigned;
+    # answer linkage is positional with a verbatim-match confidence
+    # signal (see ``ui/questions.py``).
+    q2 = reconstruct_questions(session_dir, phase=2)
+    q4 = reconstruct_questions(session_dir, phase=4)
+    run.questions = q2 + q4
+    # Anchor pre-resolution for questions: same prior-content lookup as
+    # used by ``_read_phase_review_items``.
+    _resolve_question_anchors(session_dir, run.questions)
 
     # When the parser found nothing, scan the round files for raw `D-<digit>`
     # anchors. If any are present, the agents *did* emit disagreements that we
@@ -900,8 +916,50 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
     `phase_summaries`. Phase 4 was added in spec 0028 (cross-review
     side-by-side modal); the section taxonomy in `extract_review_items`
     handles both phases.
+
+    Spec 0034: each item is anchor-resolved against the PRIOR content
+    (Phase 1 draft / previous-round turn / current converged draft) at
+    parse time via ``resolve_review_items``. The result is a list of
+    items each carrying ``block_id`` — populated when the anchor
+    resolves cleanly, None when the agent paraphrased or the parser
+    missed. The frontend uses ``block_id`` first via
+    ``document.getElementById`` and falls back to the legacy
+    text-scan only when None.
     """
+    from dual_research.protocol.blocks import assign_block_ids
+    from dual_research.protocol.parse import resolve_review_items
+
     out: dict[str, list[dict]] = {}
+    # Cache the current-draft path lookup so we don't probe the
+    # phase4 directory once per turn.
+    cached_current_draft: str | None = None
+
+    def _resolve_prior_blocks(phase_n: int, round_n: int, agent_be: str):
+        nonlocal cached_current_draft
+        # Mirror ``ui/static/run-detail.jsx::priorContentPathFor``.
+        if phase_n == 4:
+            # Phase 4 anchors are against the current converged draft.
+            if cached_current_draft is None:
+                cached_current_draft = _find_current_draft_path(session_dir) or ""
+            if not cached_current_draft:
+                return []
+            prior_path = session_dir / cached_current_draft
+        else:
+            other_be = "openai" if agent_be == "claude" else "claude"
+            if round_n <= 1:
+                prior_path = session_dir / "phase1" / f"draft-{other_be}.md"
+            else:
+                rr = f"{round_n - 1:02d}"
+                prior_path = session_dir / "phase2" / f"round-{rr}-{other_be}.md"
+        if not prior_path.is_file():
+            return []
+        try:
+            prior_text = prior_path.read_text(encoding="utf-8")
+        except OSError:
+            return []
+        _, records = assign_block_ids(prior_text)
+        return records
+
     for phase_n in (2, 4):
         phase_dir = session_dir / f"phase{phase_n}"
         if not phase_dir.exists():
@@ -920,7 +978,8 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
                 text = entry.read_text(encoding="utf-8")
             except OSError:
                 continue
-            items = extract_review_items(text)
+            prior_blocks = _resolve_prior_blocks(phase_n, round_n, agent)
+            items = resolve_review_items(text, prior_blocks)
             if not items:
                 continue
             key = f"phase{phase_n}_round{round_n}_{_ui_agent(agent)}"
@@ -981,3 +1040,97 @@ def _scan_disagreement_anchors(session_dir: Path) -> bool:
             if _DASH_DIGIT_RE.search(text):
                 return True
     return False
+
+
+# ─── Spec 0034 — disagreement turn-key threading + question anchor resolution
+
+
+def _populate_disagreement_turn_keys(disagreements: list) -> None:
+    """Stamp ``raised_turn_key`` / ``closed_turn_key`` on each disagreement.
+
+    Read off the disagreement's ``progression`` steps: the first step's
+    ``(round, agent)`` is the raised-turn; for status-resolved
+    disagreements, the LAST step's ``(round, agent)`` is the closed-turn.
+    Format matches spec 0033's ``item.turnKey`` so the explorer's
+    click-to-highlight feature jumps straight to a timeline card.
+    """
+    for d in disagreements:
+        progression = getattr(d, "progression", None) or []
+        if progression:
+            first = progression[0]
+            agent_ui = "gpt" if first.agent == "openai" else first.agent
+            d.raised_turn_key = f"phase{d.phase}_round{first.round}_{agent_ui}"
+            if str(d.status).startswith("resolved"):
+                last = progression[-1]
+                agent_last = "gpt" if last.agent == "openai" else last.agent
+                d.closed_turn_key = f"phase{d.phase}_round{last.round}_{agent_last}"
+        elif d.opened_round:
+            # Fallback when progression is empty — derive from opened_round
+            # + raised_by. (Disagreement parsing always emits a progression
+            # in practice, but be defensive.)
+            raised = "gpt" if d.raised_by == "openai" else d.raised_by
+            if raised in ("claude", "gpt"):
+                d.raised_turn_key = f"phase{d.phase}_round{d.opened_round}_{raised}"
+
+
+def _resolve_question_anchors(session_dir: Path, questions: list) -> None:
+    """Pre-resolve each Question's ``quote``/``after`` anchor against the
+    block-IDs of the prior content the question was about.
+
+    Mirrors ``_read_phase_review_items``: Phase 2 uses the other agent's
+    prior round-file (or Phase 1 draft for round 1); Phase 4 uses the
+    current converged draft.
+    """
+    from dual_research.protocol.blocks import assign_block_ids
+
+    if not questions:
+        return
+
+    cache: dict[tuple[int, int, str], list] = {}
+    current_draft_rel = _find_current_draft_path(session_dir) or ""
+
+    def _prior_blocks(phase: int, round_n: int, raiser_ui: str) -> list:
+        key = (phase, round_n, raiser_ui)
+        if key in cache:
+            return cache[key]
+        if phase == 4:
+            prior_path = session_dir / current_draft_rel if current_draft_rel else None
+        else:
+            other_be = "claude" if raiser_ui == "gpt" else "openai"
+            if round_n <= 1:
+                prior_path = session_dir / "phase1" / f"draft-{other_be}.md"
+            else:
+                rr = f"{round_n - 1:02d}"
+                prior_path = session_dir / "phase2" / f"round-{rr}-{other_be}.md"
+        if not prior_path or not prior_path.is_file():
+            cache[key] = []
+            return []
+        try:
+            text = prior_path.read_text(encoding="utf-8")
+        except OSError:
+            cache[key] = []
+            return []
+        _, records = assign_block_ids(text)
+        cache[key] = records
+        return records
+
+    for q in questions:
+        if not q.quote and not q.after:
+            continue
+        blocks = _prior_blocks(q.phase, q.raised_round, q.raised_by)
+        if not blocks:
+            continue
+        if q.quote:
+            needle = re.sub(r"\s+", " ", q.quote).strip().lower()
+            for b in blocks:
+                hay = re.sub(r"\s+", " ", b.text).strip().lower()
+                if needle and needle in hay:
+                    q.block_id = b.id
+                    break
+        if q.block_id is None and q.after:
+            needle = re.sub(r"\s+", " ", q.after).strip().lower()
+            for b in blocks:
+                hay = re.sub(r"\s+", " ", b.text).strip().lower()
+                if hay == needle:
+                    q.block_id = b.id
+                    break
