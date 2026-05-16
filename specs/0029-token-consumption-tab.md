@@ -3,10 +3,10 @@ spec: 0029
 title: Token-consumption tab — per-turn context-window visualisation
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.27.0
 created: 2026-05-16
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/31"
 ---
 
 # Spec 0029 — Token-consumption tab
