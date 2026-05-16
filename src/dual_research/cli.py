@@ -208,6 +208,13 @@ def main(argv: list[str] | None = None) -> int:
         from dual_research.ui.server import main as serve_main
         return serve_main(raw[1:])
 
+    # Spec 0039: `dual-research recompute-costs [--run RUN_ID | --all]
+    # [--push] [--runs-dir PATH]` reprices existing runs from their
+    # transcripts under the current pricing rules (1h cache writes priced
+    # at the 1h tier, search fees folded into the headline).
+    if raw and raw[0] == "recompute-costs":
+        return _run_recompute(raw[1:])
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 
@@ -340,10 +347,20 @@ def _run_orchestrator(
         )
     )
 
+    # Spec 0039: `total_cost_usd` is the FULL invoice (tokens + web
+    # search). When search fees fired, surface the breakdown so a
+    # reviewer can see "of which web search" without opening the UI.
+    cost_line = f"total cost: ${result.total_cost_usd:.4f}"
+    if getattr(result, "total_search_cost_usd", 0.0) > 0:
+        token_cost = max(0.0, result.total_cost_usd - result.total_search_cost_usd)
+        cost_line += (
+            f"  (tokens ${token_cost:.4f} · "
+            f"web search ${result.total_search_cost_usd:.4f})"
+        )
     print(
         f"\n[run] phase reached: {result.phase_reached}  "
         f"exit code: {result.exit_code}  "
-        f"total cost: ${result.total_cost_usd:.4f}  "
+        f"{cost_line}  "
         f"duration: {result.duration_ms / 1000:.1f}s",
         flush=True,
     )
@@ -430,6 +447,90 @@ def _run_push(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         f"duration={summary.duration_ms / 1000:.1f}s",
         flush=True,
     )
+    return 0
+
+
+def _run_recompute(argv: list[str]) -> int:
+    """Spec 0039 — repricing backfill for existing runs.
+
+    Walks each run's transcript, recomputes per-turn cost under the
+    current pricing rules, and rewrites ``metrics.json``. Optionally
+    re-pushes the updated session-dir to Supabase so the hosted UI
+    catches up immediately.
+    """
+    from dual_research.audit.recompute import recompute_all, recompute_run
+
+    sub = argparse.ArgumentParser(
+        prog="dual-research recompute-costs",
+        description=(
+            "Reprice existing runs from their transcripts under the "
+            "current pricing rules (spec 0039)."
+        ),
+    )
+    g = sub.add_mutually_exclusive_group(required=True)
+    g.add_argument("--run", metavar="RUN_ID",
+                   help="Recompute a single run by id (directory name under --runs-dir).")
+    g.add_argument("--all", action="store_true",
+                   help="Recompute every run under --runs-dir.")
+    sub.add_argument("--runs-dir", default=None,
+                     help="Override the default runs directory (otherwise resolved from config).")
+    sub.add_argument("--push", action="store_true",
+                     help="After rewriting metrics.json, re-push the session to Supabase.")
+    sub.add_argument("--dry-run", action="store_true",
+                     help="Report the diff without writing metrics.json.")
+    args = sub.parse_args(argv)
+
+    paths = resolve_paths(args.runs_dir)
+    runs_dir = paths.runs_dir
+
+    if args.run:
+        session_dir = runs_dir / args.run
+        if not session_dir.is_dir():
+            print(f"error: run not found: {session_dir}", file=sys.stderr)
+            return 2
+        reports = [recompute_run(session_dir, write=not args.dry_run)]
+    else:
+        reports = recompute_all(runs_dir, write=not args.dry_run)
+
+    grand_old = sum(r.old_total for r in reports)
+    grand_new = sum(r.new_total for r in reports)
+    for r in reports:
+        diff_marker = "✓" if abs(r.delta) < 1e-6 else "Δ"
+        print(
+            f"[{diff_marker}] {r.run_id}: ${r.old_total:.4f} → ${r.new_total:.4f}  "
+            f"({r.delta:+.4f})"
+            + ("  [backed up]" if r.backed_up else "")
+            + ("  [written]" if r.metrics_written else "")
+        )
+    print(
+        f"--- {len(reports)} run(s) | "
+        f"${grand_old:.4f} → ${grand_new:.4f} ({grand_new - grand_old:+.4f})"
+    )
+
+    if args.push and not args.dry_run:
+        from dual_research.config import load_supabase_credentials
+        from dual_research.persistence.remote import RemoteSession
+
+        try:
+            sb = load_supabase_credentials()
+        except MissingCredentialError as e:
+            print(f"--push requested but: {e}", file=sys.stderr)
+            return 1
+        remote = RemoteSession.from_credentials(sb.url, sb.service_role_key)
+        for r in reports:
+            if not r.metrics_written:
+                continue
+            session_dir = runs_dir / r.run_id
+            try:
+                summary = remote.push_session_dir(session_dir)
+                print(
+                    f"[pushed] {summary.run_id}  events={summary.events_upserted}  "
+                    f"files={summary.files_upserted}  "
+                    f"duration={summary.duration_ms / 1000:.1f}s"
+                )
+            except Exception as e:
+                print(f"[push error] {r.run_id}: {type(e).__name__}: {e}", file=sys.stderr)
+
     return 0
 
 

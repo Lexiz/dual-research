@@ -82,6 +82,13 @@ def load_run_snapshot(session_dir: Path) -> Run:
     run.started_at = _earliest_event_ts(session_dir / "transcript.jsonl")
 
     transcript = _read_transcript(session_dir / "transcript.jsonl")
+    # Spec 0039 — dedupe ``turn_ended`` events by ``label`` so a
+    # parse-error retry doesn't double-count its cost on the agent
+    # rollup. The last occurrence per label is the canonical
+    # successful attempt; earlier occurrences are skipped. Other
+    # events (turn_started, turn_inputs, turn_searches, …) replay
+    # in full — their dedup happens elsewhere if needed.
+    transcript = _dedup_turn_ended_by_label(transcript)
     for event in transcript:
         apply_event(run, event, session_dir)
 
@@ -208,11 +215,13 @@ def summarize_run(session_dir: Path) -> RunListRow:
         run_failed=run_failed,
     )
 
-    cost = float(metrics.get("total_cost_usd", 0.0)) if metrics else 0.0
-    if cost == 0.0:
-        # metrics.json may reflect only a resume window with no new calls;
-        # fall back to scanning the transcript for turn_ended cost_usd.
-        cost = _sum_transcript_cost(session_dir / "transcript.jsonl")
+    # Spec 0039 D3 — transcript is the canonical truth; metrics.json is
+    # the cold-start fallback for runs that haven't emitted any turn
+    # yet. The transcript sum dedupes by label (later event wins) so a
+    # parse-error recovery's duplicate turns don't double-count.
+    cost = _sum_transcript_cost(session_dir / "transcript.jsonl")
+    if cost == 0.0 and metrics:
+        cost = float(metrics.get("total_cost_usd", 0.0) or 0.0)
 
     # Round counter for Phase 2/4 rows. Soft cap isn't in state.json; we
     # default to 6 (the CLI default). A Phase 2/4 row with no round files yet
@@ -315,10 +324,18 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     cache_read = int(event.get("cache_read_tokens", 0))
     cache_write = int(event.get("cache_write_tokens", 0))
     cost = float(event.get("cost_usd", 0.0))
-    state.tokens.in_ += in_tokens
-    state.tokens.out += out_tokens
-    state.cost += cost
     phase_str = event.get("phase", "phase0")
+    # Spec 0039 — pre-0039 transcripts carry token-only cost in
+    # ``cost_usd``. Detect them by the absence of ``search_cost`` on the
+    # event and fold the search fee back in so the per-agent + per-turn
+    # headline stays consistent with the recompute tool. New events
+    # already include search fees in ``cost_usd``, so this branch
+    # leaves them untouched.
+    if "search_cost" not in event:
+        n_searches = int(event.get("searches", 0) or 0)
+        if n_searches > 0:
+            model_id = event.get("model_id") or ""
+            cost += compute_search_cost(model_id, n_searches)
     is_drafter = (run.drafter == ag) if run.drafter else False
     state.status = derive_agent_status(
         phase=phase_str, agent_active=False, is_drafter=is_drafter
@@ -365,12 +382,31 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     prev = run.phase_token_usage.get(key)
     input_path = prev.input_path if prev is not None else None
     search_audit_path = prev.search_audit_path if prev is not None else None
+
+    # Spec 0039 — same-label dedup (parse-error retries) is handled
+    # upstream by ``_dedup_turn_ended_by_label`` so by the time we get
+    # here the event stream is canonical. The agent-level totals
+    # accumulate every event unconditionally; the per-turn dict
+    # overwrites when sibling labels share a key (e.g. ``phase4-r1-claude``
+    # and ``phase4-r1-claude-repair`` both → ``phase4_round1_claude``)
+    # — the LAST sibling wins on the Consumption tab card but BOTH
+    # contribute to the agent rollup, which matches the real billing.
+    state.tokens.in_ += in_tokens
+    state.tokens.out += out_tokens
+    state.cost += cost
+    state.search_cost += search_cost
+
+    # Spec 0039 D9: token_cost = full cost - search cost. The breakdown
+    # is what the Consumption tab's "of which web search" reads; the
+    # invariant token_cost + search_cost == cost holds for every turn.
+    token_cost = max(0.0, cost - search_cost)
     run.phase_token_usage[key] = TurnTokenUsage(
         in_=in_tokens,
         out=out_tokens,
         cache_read=cache_read,
         cache_write=cache_write,
         cost=cost,
+        token_cost=token_cost,
         model_id=turn_model_id,
         context_window=turn_context_window,
         prompt_pieces=prompt_pieces,
@@ -713,11 +749,52 @@ def _duration_seconds(transcript_path: Path) -> int:
         return 0
 
 
+def _dedup_turn_ended_by_label(events: list[dict]) -> list[dict]:
+    """Spec 0039 — keep the last ``turn_ended`` per ``label`` only.
+
+    Sibling labels (canonical + ``-repair`` variants that the
+    aggregator's per-turn key maps to the same bucket) are NOT
+    deduped — they are distinct API calls billed separately. Only
+    exact-label collisions (parse-error retries) collapse. Order is
+    preserved by first-seen so timing-sensitive logic downstream still
+    sees a clean monotonic event stream.
+    """
+    last_index: dict[str, int] = {}
+    for i, ev in enumerate(events):
+        if ev.get("event") != "turn_ended":
+            continue
+        label = ev.get("label")
+        if not label:
+            continue
+        last_index[label] = i
+    keep = set(last_index.values())
+    out: list[dict] = []
+    for i, ev in enumerate(events):
+        if ev.get("event") == "turn_ended":
+            label = ev.get("label")
+            if label and i != last_index.get(label):
+                continue
+        out.append(ev)
+    return out
+
+
 def _sum_transcript_cost(transcript_path: Path) -> float:
-    """Sum ``cost_usd`` across all ``turn_ended`` events in the transcript."""
+    """Sum ``cost_usd`` across the canonical turn_ended events.
+
+    Spec 0039:
+    - Parse-error recoveries replay the same ``label`` multiple times.
+      Keep the last occurrence per label (failed earlier attempts are
+      discarded; their cost is part of the deduped total only when the
+      canonical attempt's ``cost_usd`` accounts for them — usually it
+      doesn't, but that's a provider-side reality, not something the
+      aggregator can fix).
+    - Pre-0039 events store token-only cost in ``cost_usd``. When the
+      event lacks ``search_cost`` AND has ``searches > 0``, fold the
+      search fee back in so the headline matches the recompute tool.
+    """
     if not transcript_path.exists():
         return 0.0
-    total = 0.0
+    by_label: dict[str, float] = {}
     try:
         for line in transcript_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -727,11 +804,22 @@ def _sum_transcript_cost(transcript_path: Path) -> float:
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if event.get("event") == "turn_ended":
-                total += float(event.get("cost_usd", 0.0))
+            if event.get("event") != "turn_ended":
+                continue
+            label = event.get("label")
+            if not label:
+                continue
+            cost = float(event.get("cost_usd", 0.0))
+            if "search_cost" not in event:
+                n_searches = int(event.get("searches", 0) or 0)
+                if n_searches > 0:
+                    cost += compute_search_cost(
+                        event.get("model_id") or "", n_searches
+                    )
+            by_label[label] = cost
     except OSError:
         return 0.0
-    return total
+    return sum(by_label.values())
 
 
 def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool]:

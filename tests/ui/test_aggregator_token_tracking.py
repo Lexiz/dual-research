@@ -445,3 +445,79 @@ class TestAccumulationPreserved:
         # And the per-turn dict has both entries with their own values.
         assert run.phase_token_usage["phase2_round1_claude"].in_ == 100
         assert run.phase_token_usage["phase2_round2_claude"].in_ == 300
+
+
+class TestSpec0039DedupAndBreakdown:
+    """Spec 0039 — duplicate ``turn_ended`` events with the same label
+    (parse-error recoveries) must dedupe to "later wins" so the
+    agent-level totals don't double-count. The per-turn record also
+    surfaces ``token_cost`` so the Consumption tab can show "of which
+    web search" without losing the invariant.
+    """
+
+    def test_token_cost_plus_search_cost_equals_cost(self, tmp_path: Path) -> None:
+        run = _empty_run()
+        # Claude turn with 5 web searches → search_cost = 5 × $0.010 = $0.050.
+        # Headline cost is full invoice (token cost + search cost).
+        apply_event(
+            run,
+            _turn_ended(
+                agent="claude", phase="phase2", label="phase2-claude-r1",
+                in_tokens=1000, out_tokens=200,
+                cost=0.123,
+                model_id="claude-sonnet-4-6",
+            ) | {"searches": 5},
+            tmp_path,
+        )
+        usage = run.phase_token_usage["phase2_round1_claude"]
+        assert usage.searches == 5
+        assert usage.search_cost == pytest.approx(0.050)
+        assert usage.token_cost + usage.search_cost == pytest.approx(usage.cost)
+
+    def test_label_dedup_filter_keeps_last_per_label(self) -> None:
+        """Spec 0039 — ``_dedup_turn_ended_by_label`` is the canonical
+        pre-filter applied at ``load_run_snapshot``-time. Same-label
+        collisions collapse (later wins); sibling labels with different
+        names pass through unmodified.
+        """
+        from dual_research.ui.aggregator import _dedup_turn_ended_by_label
+
+        events = [
+            {"event": "turn_ended", "label": "phase4-r1-claude", "cost_usd": 0.99},
+            {"event": "phase_entered", "phase": "phase4"},
+            {"event": "turn_ended", "label": "phase4-r1-claude", "cost_usd": 0.05},
+            # Sibling: same per-turn key but a distinct label.
+            {"event": "turn_ended", "label": "phase4-r1-claude-repair", "cost_usd": 0.07},
+        ]
+        out = _dedup_turn_ended_by_label(events)
+        labels = [(e.get("event"), e.get("label"), e.get("cost_usd"))
+                  for e in out]
+        # Only the canonical phase4-r1-claude survives; sibling intact.
+        assert labels == [
+            ("phase_entered", None, None),
+            ("turn_ended", "phase4-r1-claude", 0.05),
+            ("turn_ended", "phase4-r1-claude-repair", 0.07),
+        ]
+
+    def test_pre_spec_event_gets_search_fee_folded_in(self, tmp_path: Path) -> None:
+        """Pre-0039 transcripts carry token-only ``cost_usd``. The
+        aggregator must detect them (absence of ``search_cost`` on the
+        event) and fold the search fee back in so the header CostBadge
+        matches the recompute tool's totals."""
+        run = _empty_run()
+        # Pre-0039 shape: cost is token-only, no search_cost field on event.
+        apply_event(
+            run,
+            _turn_ended(
+                agent="claude", phase="phase2", label="phase2-r1-claude",
+                in_tokens=1000, out_tokens=100, cost=0.10,
+            ) | {"searches": 4},
+            tmp_path,
+        )
+        # 4 Claude searches × $0.010 = $0.040 added on top of $0.10.
+        assert run.agents["claude"].cost == pytest.approx(0.140)
+        # Per-turn record's `cost` field reflects the full invoice.
+        usage = run.phase_token_usage["phase2_round1_claude"]
+        assert usage.cost == pytest.approx(0.140)
+        assert usage.search_cost == pytest.approx(0.040)
+        assert usage.token_cost == pytest.approx(0.10)

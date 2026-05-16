@@ -130,6 +130,8 @@ class TestCamelCase:
             "promptPieces": {"brief": 100, "d1": 600, "d2": 534},
             "searches": 0,
             "searchCost": 0.0,
+            # Spec 0039 — token-cost breakdown alongside the full cost.
+            "tokenCost": 0.0,
             # Spec 0033 — null on entries built without an Input bundle.
             "inputPath": None,
             # Spec 0036 — null on entries built without a search audit.

@@ -101,6 +101,10 @@ function composeAgentActivity(agent, run) {
 // only — global run identity + state — not per-agent or per-pane.
 function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpToFirstSearch }) {
   const total = run.agents.claude.cost + run.agents.gpt.cost;
+  // Spec 0039: ``cost`` is now the full invoice (tokens + web search).
+  // ``searchCost`` carries the breakdown so the CostBadge tooltip can
+  // show "of which web search" without losing the total.
+  const totalSearchCost = (run.agents.claude.searchCost || 0) + (run.agents.gpt.searchCost || 0);
   const idParts = window.splitRunId(run.id);
   const startedClock = idParts.time || '—';
   const elapsedTotal = Object.values(run.phaseTimings || {}).filter(Boolean).reduce((a, b) => a + b, 0);
@@ -122,7 +126,7 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
       {/* Row 1: topic + cost + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         <Topic text={run.topic} />
-        <CostBadge cost={total} tokens={totalTokens} />
+        <CostBadge cost={total} tokens={totalTokens} searchCost={totalSearchCost} />
         <RunSearchSummary onJump={onJumpToFirstSearch} />
         <StatusErrorsBadge
           status={run.status}
@@ -308,9 +312,21 @@ function Topic({ text }) {
   );
 }
 
-function CostBadge({ cost, tokens }) {
+function CostBadge({ cost, tokens, searchCost }) {
+  // Spec 0039: ``cost`` is now the full invoice (tokens + web search).
+  // When ``searchCost`` is non-zero, tooltip surfaces the breakdown so
+  // the user can see how much of the headline was tool spend.
+  const sc = Number(searchCost) || 0;
+  const tokenCost = Math.max(0, cost - sc);
+  let tip = `${cost.toFixed(4)} USD · ${tokens.toLocaleString()} tokens`;
+  if (sc > 0) {
+    tip = (
+      `${cost.toFixed(4)} USD (tokens ${tokenCost.toFixed(4)} · `
+      + `web search ${sc.toFixed(4)}) · ${tokens.toLocaleString()} tokens`
+    );
+  }
   return (
-    <span title={`${cost.toFixed(4)} USD · ${tokens.toLocaleString()} tokens`}
+    <span title={tip}
           className="mono"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1062,7 +1078,10 @@ function ConsumptionCard({ usage, agent, run, scale }) {
         </div>
       )}
 
-      {/* Web-search row — spec 0031 carry-forward. */}
+      {/* Web-search row — spec 0031 carry-forward. Spec 0039 relabels
+          "tool cost" to "of which web search" since the per-turn ``cost``
+          field now includes search fees in the headline (no longer a
+          separate side-channel that needs to be added on top). */}
       {hasSearches && (
         <div className="mono" style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -1075,7 +1094,7 @@ function ConsumptionCard({ usage, agent, run, scale }) {
             </span>
           </span>
           <span>·</span>
-          <span>tool cost:{' '}
+          <span>of which web search:{' '}
             <span className="num" style={{ color: 'var(--fg-2)' }}>
               {fmt.cost(Number(usage.searchCost) || 0)}
             </span>

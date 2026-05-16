@@ -90,6 +90,10 @@ class AgentState:
     # unknown (pre-0030 transcripts); the UI falls back to 128k for the
     # bar denominator in that case.
     context_window: int = 0
+    # Spec 0039: search-fee component of ``cost``. ``cost`` is now the
+    # full per-agent invoice (tokens + searches); ``search_cost`` is the
+    # breakdown so the CostBadge tooltip can show "of which web search".
+    search_cost: float = 0.0
 
 
 # ─── Round / Budget ───────────────────────────────────────────────────────────
@@ -314,12 +318,16 @@ class TurnTokenUsage:
     model_id: str | None = None
     context_window: int = 0
     prompt_pieces: dict[str, int] = field(default_factory=dict)
-    # Spec 0031: web-search tool calls and their per-request USD cost.
-    # ``cost`` (above) is strictly token-cost — these are separate so the
-    # run-total chip's semantics don't shift. 0 for old transcripts that
-    # didn't thread search counts through TurnEnded.
+    # Spec 0031 + Spec 0039: web-search tool calls and their per-request
+    # USD cost. ``cost`` (above) is the FULL per-turn cost (tokens +
+    # search fees) since spec 0039 folded search fees into the headline
+    # invoice. ``token_cost`` carries the breakdown so the Consumption
+    # tab can show "of which tokens / of which web search" without
+    # losing the total. Invariant: ``token_cost + search_cost == cost``.
+    # ``searches`` is the count that ``search_cost`` was derived from.
     searches: int = 0
     search_cost: float = 0.0
+    token_cost: float = 0.0
     # Spec 0033: relative path (from session dir) to the persisted
     # per-turn input bundle JSON. ``None`` for pre-0033 transcripts and
     # for turns whose ``TurnInputs`` event arrived but never landed on

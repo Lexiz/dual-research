@@ -145,6 +145,15 @@ class TurnEnded(Event):
     # web_search invocations. Pre-0031 transcripts omit it (defaults
     # to 0).
     searches: int = 0
+    # Spec 0039: cost_usd is now the FULL invoice (tokens + web-search
+    # fees). ``search_cost`` is preserved alongside as a breakdown so
+    # the UI can show "of which web search" without losing the total.
+    # The 5m/1h cache-write split lets the recompute tool re-price
+    # exactly; older transcripts lack the split and credit the
+    # aggregate ``cache_write_tokens`` entirely to 5m at recompute time.
+    cache_write_5m_tokens: int = 0
+    cache_write_1h_tokens: int = 0
+    search_cost: float = 0.0
     kind: str = "turn_ended"
 
 

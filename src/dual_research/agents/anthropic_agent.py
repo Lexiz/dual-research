@@ -14,7 +14,7 @@ from dual_research.agents.base import (
     web_search_enabled,
     with_rate_limit_retry,
 )
-from dual_research.agents.pricing import compute_cost
+from dual_research.agents.pricing import compute_full_cost
 from dual_research.config import ModelSpec
 from dual_research.protocol import CACHE_BREAKPOINT
 
@@ -27,6 +27,13 @@ WEB_SEARCH_TOOL = {
 
 # 1-hour cache TTL via the extended-cache-ttl-2025-04-11 beta.
 # Falls back to the default 5-minute TTL if the beta is rejected by the API.
+#
+# Spec 0039 prices the 1h tier at 2× input (vs 1.25× for 5m); the longer
+# TTL is deliberately chosen because our multi-round phases re-read the
+# same drafts/plans across 30+ minutes of wall time, where the 5m tier
+# would expire mid-phase. Anthropic reports the per-TTL token split on
+# the response (``usage.cache_creation.ephemeral_5m_input_tokens`` /
+# ``ephemeral_1h_input_tokens``) so we can price each tier exactly.
 EXTENDED_CACHE_TTL_BETA = "extended-cache-ttl-2025-04-11"
 
 
@@ -102,15 +109,33 @@ class ClaudeAgent:
             stream_to.flush()
 
         u = final_msg.usage
+        cw_total = getattr(u, "cache_creation_input_tokens", 0) or 0
+        cc = getattr(u, "cache_creation", None)
+        if cc is not None:
+            cw_5m = getattr(cc, "ephemeral_5m_input_tokens", 0) or 0
+            cw_1h = getattr(cc, "ephemeral_1h_input_tokens", 0) or 0
+        else:
+            # Older response shape (or the beta was rejected) — credit the
+            # aggregate to the 5m bucket. Matches pre-beta API behaviour.
+            cw_5m = cw_total
+            cw_1h = 0
+        if cw_total and cw_5m + cw_1h != cw_total:
+            # Defensive: trust the per-TTL breakdown over the aggregate
+            # (the API is the source of truth for the split). Logging
+            # would be useful here but the agents stay quiet — pricing
+            # already comes out right from the breakdown.
+            pass
         usage = TokenUsage(
             input_tokens=getattr(u, "input_tokens", 0) or 0,
             output_tokens=getattr(u, "output_tokens", 0) or 0,
             cache_read_tokens=getattr(u, "cache_read_input_tokens", 0) or 0,
-            cache_write_tokens=getattr(u, "cache_creation_input_tokens", 0) or 0,
+            cache_write_tokens=cw_5m + cw_1h,
+            cache_write_5m_tokens=cw_5m,
+            cache_write_1h_tokens=cw_1h,
         )
         searches = _count_web_searches(final_msg)
         text = "".join(text_parts)
-        cost = compute_cost(self._spec.model_id, usage)
+        cost = compute_full_cost(self._spec.model_id, usage, searches)
         duration_ms = int((time.perf_counter() - start) * 1000)
 
         # Spec 0036: when an audit_context is supplied AND web search

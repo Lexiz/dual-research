@@ -50,6 +50,9 @@ class RunResult:
     phase3: Phase3Outcome | None = None
     phase4: Phase4Outcome | None = None
     final_path: str | None = None
+    # Spec 0039: search-fee component of ``total_cost_usd``. The CLI
+    # summary surfaces "(tokens $X · web search $Y)" when this is > 0.
+    total_search_cost_usd: float = 0.0
 
 
 def _install_cost_ticker(event_bus: EventBus, metrics: Metrics) -> None:
@@ -107,7 +110,11 @@ async def run_session(
     session = SessionDirectory(root=session_root).ensure()
     state = session.load_state()
     transcript = session.open_transcript()
-    metrics = Metrics()
+    # Spec 0039 — rehydrate any prior metrics.json so resumed runs preserve
+    # the cost record across session boundaries. Without this, the
+    # post-resume save() overwrites the pre-resume call list with only the
+    # resume-window calls (the partner-vetting bug that drove this spec).
+    metrics = Metrics.load_or_new(session.metrics_path)
     ctx = SessionContext(session=session, state=state, transcript=transcript, metrics=metrics)
 
     bus = event_bus or EventBus()
@@ -268,6 +275,7 @@ async def run_session(
             final_path = str(final_emitted)
 
         total_cost = metrics.total_cost_usd()
+        total_search_cost = metrics.total_search_cost_usd()
         duration_ms = int((time.perf_counter() - run_started) * 1000)
         metrics.mark_done()
         metrics.save(session.metrics_path)
@@ -299,6 +307,7 @@ async def run_session(
             phase3=phase3_outcome,
             phase4=phase4_outcome,
             final_path=final_path,
+            total_search_cost_usd=total_search_cost,
         )
 
     except Exception as e:
