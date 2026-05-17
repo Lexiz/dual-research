@@ -3,10 +3,10 @@ spec: 0058
 title: Modal primitive (single + split) + sub-tabs + RoundScrubber + provider-symmetric SourceCard
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.56.0
 created: 2026-05-17
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/62
 ---
 
 # Spec 0058 — Modal + RoundScrubber + SourceCard
