@@ -384,5 +384,6 @@
     LandingScreen,
     NotApprovedScreen,
     DemoRunCapsule,
+    AgentDuoVisual,      // consumed by onboarding.jsx (SPEC-0061)
   });
 })();
