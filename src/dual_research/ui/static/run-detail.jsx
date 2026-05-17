@@ -91,85 +91,8 @@ function composeAgentActivity(agent, run) {
   }
 }
 
-// ─────────────────── Spec 0046 D9 — shared PaneButton ──────────────────────
-//
-// One uniform toggle/tab/filter button used across every in-pane control
-// in the run-detail view:
-//   - Critique pane phase buttons (`Phase 2` / `Phase 4` / `Summary`) — D1
-//   - Critique pane filter chips (`All` / `Questions` / `Disagreements` /
-//     `Claims` / `Issues` / `Comments`) — D2
-//   - Timeline pane's `Conversation` / `Consumption` segmented control
-//   - Future: any toolbar segmented control on the Critique / Consumption
-//     surfaces
-//
-// Pre-spec each of these had its own border, padding, font, hover/active
-// styling. Spec 0046 D9 collapses them onto one component so the eye reads
-// the buttons as one design language across the panes.
-function PaneButton({
-  active, onClick, children, leftAccent,
-  size = 'md',         // 'sm' | 'md' — sm is the filter-chip variant
-  variant = 'default', // 'default' | 'subtle' — subtle drops the border
-                       // for inline segmented use
-  title,
-  disabled,
-}) {
-  const [hover, setHover] = React.useState(false);
-  const padV = size === 'sm' ? 3 : 5;
-  const padH = size === 'sm' ? 10 : 12;
-  const fontSize = size === 'sm' ? 11 : 12;
-  const borderColor = variant === 'subtle'
-    ? 'transparent'
-    : (active ? 'var(--border-3)' : 'var(--border-1)');
-  const bg = active
-    ? 'var(--bg-3)'
-    : hover ? 'var(--bg-2)' : (variant === 'subtle' ? 'transparent' : 'var(--bg-1)');
-  return (
-    <button
-      type="button"
-      onClick={disabled ? undefined : onClick}
-      title={title}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      disabled={disabled}
-      style={{
-        appearance: 'none',
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        border: `1px solid ${borderColor}`,
-        background: bg,
-        color: active ? 'var(--fg-0)' : disabled ? 'var(--fg-4)' : 'var(--fg-2)',
-        fontSize,
-        fontWeight: active ? 600 : 500,
-        padding: `${padV}px ${padH}px`,
-        borderRadius: 'var(--r-2)',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        fontFamily: 'inherit',
-        whiteSpace: 'nowrap',
-        transition: 'background 120ms, border-color 120ms, color 120ms',
-        boxShadow: active && variant === 'default' ? `inset 0 -2px 0 ${COLORS.info}` : 'none',
-        opacity: disabled ? 0.55 : 1,
-      }}
-    >
-      {leftAccent && (
-        <span style={{
-          width: 6, height: 6, borderRadius: '50%',
-          background: leftAccent, flexShrink: 0,
-        }} />
-      )}
-      {children}
-    </button>
-  );
-}
-
-// Spec 0046 D9 — small grouping wrapper that keeps a row of `PaneButton`s
-// tightly packed with a single shared gap. Used everywhere we render a
-// segmented control (filter chips, phase buttons, etc.).
-function PaneButtonGroup({ children, gap = 6 }) {
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap, flexShrink: 0 }}>
-      {children}
-    </div>
-  );
-}
+// PaneButton / PaneButtonGroup removed in SPEC-0057 D8 — all call sites
+// migrated to Tab/TabGroup in SPEC-0053. See CHANGELOG 0.55.0.
 
 // ─────────────────── Compact run-detail header (spec 0024 pass 3) ────────────
 // Spec 0035 reverts the spec-0033 four-row layout back to two rows:
@@ -775,6 +698,52 @@ function PhaseDots({ run }) {
 // PhaseStrip / ErrorsToggleButton / RoundIndicator (spec 0017) folded into
 // RunDetailHeader above in spec 0023; RoundIndicator removed entirely in 0024.
 
+// ─────────────────── PhaseRail (SPEC-0057 D1) ───────────────────
+// Sticky vertical rail down the timeline pane left edge showing phase progress.
+// Click a phase node to scroll the timeline to that phase's divider card.
+function PhaseRail({ run, scrollContainerRef }) {
+  const { phase, status } = run;
+  const handleClick = React.useCallback((phaseId) => {
+    if (!scrollContainerRef?.current) return;
+    const container = scrollContainerRef.current;
+    // Phase dividers have a data-phase-id attribute.
+    const target = container.querySelector(`[data-phase-id="${phaseId}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [scrollContainerRef]);
+
+  return (
+    <div className="phase-rail">
+      {PHASES.map((p, i) => {
+        const completed = p.id < phase || (status === 'completed' && p.id <= 5);
+        const current = p.id === phase && status !== 'completed';
+        const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
+        const stateClass = failed ? 'is-failed'
+                         : current ? 'is-current'
+                         : completed ? 'is-completed'
+                         : '';
+        const isLast = i === PHASES.length - 1;
+        return (
+          <React.Fragment key={p.id}>
+            <div
+              className={`phase-rail-node ${stateClass}`}
+              onClick={() => handleClick(p.id)}
+              title={`Phase ${p.id} — ${p.label}`}
+            >
+              <span className="pr-dot">
+                {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
+              </span>
+              <span className="pr-label">{p.short}</span>
+            </div>
+            {!isLast && <span className="phase-rail-connector" />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─────────────────── Timeline ───────────────────
 // Spec 0025: cards no longer expand inline. The Timeline owns a single
 // `openId` and renders a Modal for the active artifact. Live items
@@ -793,6 +762,7 @@ function Timeline({ run, highlightedTurnKeys }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
   const [openId, setOpenId] = React.useState(null);
   const [tab, setTab] = React.useState('conversation'); // 'conversation' | 'consumption'
+  const scrollRef = React.useRef(null);
 
   // Reset open modal + active tab when navigating between runs.
   React.useEffect(() => {
@@ -845,16 +815,19 @@ function Timeline({ run, highlightedTurnKeys }) {
         <TimelineAgentPill agent="gpt" run={run} />
       </PaneToolbar>
       {tab === 'conversation' ? (
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px 16px 24px', background: 'var(--bg-0)' }}>
-          {items.map((item) => (
-            <TimelineItem
-              key={item.id}
-              item={item}
-              run={run}
-              onOpen={() => setOpenId(item.id)}
-              highlightedTurnKeys={highlightedTurnKeys}
-            />
-          ))}
+        <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', background: 'var(--bg-0)' }}>
+          <PhaseRail run={run} scrollContainerRef={scrollRef} />
+          <div style={{ flex: 1, minWidth: 0, padding: '8px 16px 24px 8px' }}>
+            {items.map((item) => (
+              <TimelineItem
+                key={item.id}
+                item={item}
+                run={run}
+                onOpen={() => setOpenId(item.id)}
+                highlightedTurnKeys={highlightedTurnKeys}
+              />
+            ))}
+          </div>
         </div>
       ) : (
         <ConsumptionView run={run} />
@@ -2525,7 +2498,7 @@ function PhaseDivider({ item, run }) {
   const p = PHASES[item.phaseId];
   const current = item.phaseId === run.phase && run.status !== 'completed';
   return (
-    <div style={{
+    <div data-phase-id={item.phaseId} style={{
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '8px 12px',
       marginTop: 16, marginBottom: 8,
@@ -2597,6 +2570,8 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
     if (canExpand) setExpanded((v) => !v);
   };
 
+  // SPEC-0057 D2: migrate to Card primitive. Live cards use Card.live variant.
+  const agentSlot = item.agent === 'gpt' ? 'b' : 'a';
   return (
     <div
       onMouseEnter={() => setHover(true)}
@@ -2604,48 +2579,36 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
       data-turn-key={item.turnKey || undefined}
       style={{
         marginBottom: 6,
-        background: 'var(--bg-1)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 'var(--r-3)',
-        overflow: 'hidden',
-        transition: 'border-color 120ms, background 120ms, box-shadow 1500ms ease-out',
-        ...(isLive ? {
-          borderLeft: `2px solid ${accentColor}`,
-        } : {}),
-        ...(expanded ? {
-          borderColor: accentColor + '55',
-          background: 'var(--bg-1)',
-        } : {}),
         ...(flashColor ? {
           boxShadow: `0 0 0 2px ${flashColor}, 0 0 24px ${flashColor}55`,
           borderColor: flashColor,
+          borderRadius: 'var(--r-3)',
         } : {}),
       }}
     >
-      <button
-        type="button"
-        onClick={toggleExpand}
-        disabled={!canExpand}
-        aria-expanded={expanded}
-        style={{
-          display: 'block', width: '100%', textAlign: 'left',
-          padding: '10px 12px',
-          background: hover && canExpand ? 'var(--bg-2)' : 'transparent',
-          transition: 'background 120ms',
-          cursor: canExpand ? 'pointer' : 'default',
-        }}>
-        {header}
-      </button>
-      {expanded && (
-        <ArtifactExpandedBody
-          item={item}
-          gist={sentiment || gist}
-          summary={item.summary}
-          onOpen={onOpen}
-          turnKey={item.turnKey}
-        />
-      )}
-      {isLive && <ArtifactLiveBody item={item} />}
+      <Card
+        live={isLive}
+        agent={isLive ? agentSlot : undefined}
+        expanded={expanded}
+        interactive={canExpand}
+        onClick={canExpand ? toggleExpand : undefined}
+      >
+        <div style={{ padding: '10px 12px' }}>
+          {header}
+        </div>
+        {expanded && (
+          <CardBody>
+            <ArtifactExpandedBody
+              item={item}
+              gist={sentiment || gist}
+              summary={item.summary}
+              onOpen={onOpen}
+              turnKey={item.turnKey}
+            />
+          </CardBody>
+        )}
+        {isLive && <ArtifactLiveBody item={item} />}
+      </Card>
     </div>
   );
 }
@@ -3337,12 +3300,13 @@ function StatsChips({ phase, run, item }) {
 
   if (chips.length === 0 && !showAgreed && !showRepairHint) return null;
 
+  // SPEC-0057 D3 — ChipCluster discipline: collapse >5 chips.
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+    <ChipCluster max={5}>
       {chips.map((c, i) => <StatChip key={i} {...c} />)}
       {showAgreed && <ConvergedChip phase={phase} />}
       {showRepairHint && <RepairChip compact />}
-    </span>
+    </ChipCluster>
   );
 }
 
@@ -5629,7 +5593,10 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   // selectedPhase is 2 | 4 | 'summary'.
   const [selectedPhase, setSelectedPhase] = React.useState(initial);
   const [typeFilter, setTypeFilter] = React.useState('all'); // 'all' | 'questions' | 'disagreements'
-  React.useEffect(() => { setSelectedPhase(initial); setTypeFilter('all'); }, [run.id, initial]);
+  // SPEC-0057 D4 — three-axis filter: kind + agent + status.
+  const [agentFilter, setAgentFilter] = React.useState('all'); // 'all' | 'claude' | 'gpt'
+  const [statusFilter, setStatusFilter] = React.useState('all'); // 'all' | 'open' | 'resolved' | 'drift'
+  React.useEffect(() => { setSelectedPhase(initial); setTypeFilter('all'); setAgentFilter('all'); setStatusFilter('all'); }, [run.id, initial]);
   // Spec 0046 D2 — when the user switches phase, reset to ``all`` if the
   // previous filter isn't in the new phase's allowlist. Without this an
   // ``issues`` selection persists into Phase 2 and quietly renders no
@@ -5659,35 +5626,49 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const showD = typeFilter === 'all' || typeFilter === 'disagreements';
   const showC = typeFilter === 'all' || typeFilter === 'comments';
 
+  // SPEC-0057 D4 — agent filter: match raisedBy field.
+  const matchesAgent = (it) => {
+    if (agentFilter === 'all') return true;
+    return it.raisedBy === agentFilter;
+  };
+
+  // SPEC-0057 D5 — detect drift items (ghosted rounds > 0 + open).
+  const findLedgerGhostRounds = (phaseId, itemId) => {
+    const entries = (run && run.phaseLedgers && run.phaseLedgers[phaseId]) || [];
+    const entry = entries.find((e) => e.id === itemId);
+    return entry?.ghostedRounds || 0;
+  };
+  const isDrift = (it) => {
+    const ghost = findLedgerGhostRounds(selectedPhase, it.id);
+    return ghost > 0 && it.status === 'open';
+  };
+
   // Group by status. Comments don't have a status — they're always
   // "noted"; they go in the resolved column to keep open-vs-noise
-  // separation clean.
+  // separation clean. SPEC-0057 adds a driftItems group.
   const openItems = [];
   const resolvedItems = [];
-  if (showI) {
-    for (const i of phaseIssues) {
-      const item = { ...i, _critiqueKind: 'i' };
-      (i.status === 'open' ? openItems : resolvedItems).push(item);
-    }
-  }
-  if (showD) {
-    for (const d of phaseDisagreements) {
-      const item = { ...d, _critiqueKind: 'd' };
-      (d.status === 'open' ? openItems : resolvedItems).push(item);
-    }
-  }
-  if (showQ) {
-    for (const q of phaseQuestions) {
-      const item = { ...q, _critiqueKind: 'q' };
-      (q.status === 'open' ? openItems : resolvedItems).push(item);
-    }
-  }
-  if (showC) {
-    for (const c of phaseComments) {
-      const item = { ...c, _critiqueKind: 'c' };
+  const driftItems = [];
+  const pushItem = (it, critiqueKind) => {
+    const item = { ...it, _critiqueKind: critiqueKind };
+    if (!matchesAgent(it)) return;
+    const drift = isDrift(it);
+    // Status filter (SPEC-0057 D4).
+    if (statusFilter === 'open' && (it.status !== 'open' || drift)) return;
+    if (statusFilter === 'resolved' && it.status === 'open') return;
+    if (statusFilter === 'drift' && !drift) return;
+    if (drift) {
+      driftItems.push(item);
+    } else if (it.status === 'open') {
+      openItems.push(item);
+    } else {
       resolvedItems.push(item);
     }
-  }
+  };
+  if (showI) for (const i of phaseIssues) pushItem(i, 'i');
+  if (showD) for (const d of phaseDisagreements) pushItem(d, 'd');
+  if (showQ) for (const q of phaseQuestions) pushItem(q, 'q');
+  if (showC) for (const c of phaseComments) resolvedItems.push({ ...c, _critiqueKind: 'c' });
 
   // Sort: by round ascending so the user reads chronological history.
   const sortRound = (it) => {
@@ -5702,9 +5683,11 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const byRound = (a, b) => (sortRound(a) || 0) - (sortRound(b) || 0);
   openItems.sort(byRound);
   resolvedItems.sort(byRound);
+  driftItems.sort(byRound);
 
   const totalOpen = openItems.length;
   const totalResolved = resolvedItems.length;
+  const totalDrift = driftItems.length;
   const introduced = (showI ? phaseIssues.length : 0)
                    + (showQ ? phaseQuestions.length : 0)
                    + (showD ? phaseDisagreements.length : 0)
@@ -5805,11 +5788,34 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
       />
       {!isSummary && (
         <PaneToolbar>
-          <CritiqueTypeFilter
-            active={typeFilter}
-            onChange={setTypeFilter}
-            phaseId={selectedPhase}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <CritiqueTypeFilter
+                active={typeFilter}
+                onChange={setTypeFilter}
+                phaseId={selectedPhase}
+              />
+            </div>
+            {/* SPEC-0057 D4 — agent + status filter axes */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <TabGroup>
+                <Tab size="sm" active={agentFilter === 'all'} onClick={() => setAgentFilter('all')}>All</Tab>
+                <Tab size="sm" active={agentFilter === 'claude'} onClick={() => setAgentFilter('claude')}>
+                  <AgentIcon agent="claude" size={12} /> Claude
+                </Tab>
+                <Tab size="sm" active={agentFilter === 'gpt'} onClick={() => setAgentFilter('gpt')}>
+                  <AgentIcon agent="gpt" size={12} /> GPT
+                </Tab>
+              </TabGroup>
+              <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>·</span>
+              <TabGroup>
+                <Tab size="sm" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</Tab>
+                <Tab size="sm" active={statusFilter === 'open'} onClick={() => setStatusFilter('open')}>Open</Tab>
+                <Tab size="sm" active={statusFilter === 'resolved'} onClick={() => setStatusFilter('resolved')}>Resolved</Tab>
+                <Tab size="sm" active={statusFilter === 'drift'} onClick={() => setStatusFilter('drift')}>Drift</Tab>
+              </TabGroup>
+            </div>
+          </div>
         </PaneToolbar>
       )}
       {isSummary ? (
@@ -5820,6 +5826,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
           phaseId={selectedPhase}
           openItems={openItems}
           resolvedItems={resolvedItems}
+          driftItems={driftItems}
           introduced={introduced}
           onHighlight={handleHighlight}
         />
@@ -5886,7 +5893,7 @@ function CritiqueTypeFilter({ active, onChange, phaseId }) {
   );
 }
 
-function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduced, onHighlight }) {
+function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftItems = [], introduced, onHighlight }) {
   const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
   if (pending) {
     return (
@@ -5909,7 +5916,8 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
     );
   }
 
-  if (introduced === 0) {
+  const totalVisible = openItems.length + resolvedItems.length + driftItems.length;
+  if (introduced === 0 && totalVisible === 0) {
     const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
     return (
       <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
@@ -5939,11 +5947,21 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
       <div style={{ padding: '6px 24px 28px' }}>
-        {openItems.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={openItems.length} />}
+        {/* SPEC-0057 D5 — DriftCluster above Open/Resolved */}
+        {driftItems.length > 0 && (
+          <>
+            <GroupHeader label="Drift" color={COLORS.err} count={driftItems.length} tone="err" />
+            <div style={{ marginBottom: 4, fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)' }}>
+              {driftItems.length} item{driftItems.length === 1 ? '' : 's'} without response for multiple rounds
+            </div>
+            {driftItems.map(renderItem)}
+          </>
+        )}
+        {openItems.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={openItems.length} style={{ marginTop: driftItems.length ? 20 : 0 }} />}
         {openItems.map(renderItem)}
         {resolvedItems.length > 0 && (
           <GroupHeader label="Resolved / answered" color={COLORS.ok} count={resolvedItems.length}
-                       style={{ marginTop: openItems.length ? 20 : 0 }} />
+                       style={{ marginTop: (openItems.length || driftItems.length) ? 20 : 0 }} />
         )}
         {resolvedItems.map(renderItem)}
       </div>
@@ -6131,9 +6149,63 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     );
   };
 
+  // SPEC-0057 D6 — highest-leverage open thread: the question with the most
+  // ghosted rounds, indicating a deadlock/neglect pattern. Renders as a
+  // QuestionThread at the top of the summary.
+  const highestLeverageThread = React.useMemo(() => {
+    const allQ = [...questions, ...(Array.isArray(run?.issues) ? run.issues : [])];
+    const openQ = allQ.filter(q => q.status === 'open');
+    if (openQ.length === 0) return null;
+    const entries = (run && run.phaseLedgers) || {};
+    let best = null;
+    let bestGhost = 0;
+    for (const q of openQ) {
+      const phase = q.phase || 2;
+      const ledger = entries[phase] || [];
+      const le = ledger.find(e => e.id === q.id);
+      const ghost = le?.ghostedRounds || 0;
+      if (ghost > bestGhost || (!best && ghost === 0)) {
+        best = q;
+        bestGhost = ghost;
+      }
+    }
+    if (!best) return null;
+    // Build minimal turns for the thread.
+    const turns = [];
+    if (best.raisedBy) {
+      turns.push({ agent: best.raisedBy, round: best.raisedRound || 1, verdict: 'raised', quote: best.body || null, kind: 'origin' });
+    }
+    if (bestGhost > 0) {
+      const other = best.raisedBy === 'claude' ? 'gpt' : 'claude';
+      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: `ghosted ${bestGhost}r`, kind: 'ghosted' });
+    }
+    const threadStatus = bestGhost > 0 ? 'drift' : 'open';
+    const footer = bestGhost > 0 ? `Not addressed for ${bestGhost} round(s) — highest-leverage open item.` : null;
+    return { question: best, turns, threadStatus, footer, ghostedRounds: bestGhost };
+  }, [questions, run]);
+
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
       <div style={{ padding: '16px 24px 28px' }}>
+        {/* SPEC-0057 D6 — highest-leverage thread as opening artifact */}
+        {highestLeverageThread && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: 'var(--fg-2)',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              marginBottom: 8,
+            }}>
+              Highest-leverage open item
+            </div>
+            <QuestionThread
+              id={highestLeverageThread.question.id}
+              status={highestLeverageThread.threadStatus}
+              question={highestLeverageThread.question.body || '(no body)'}
+              turns={highestLeverageThread.turns}
+              footer={highestLeverageThread.footer}
+            />
+          </div>
+        )}
         <div style={{
           fontSize: 11.5, color: 'var(--fg-3)', lineHeight: 1.55, marginBottom: 16,
         }}>
@@ -6428,37 +6500,36 @@ function stripMarkdown(text) {
   return s.trim();
 }
 
+// SPEC-0057 D7 — map accent colors to Chip tones. Falls back to inline style
+// for colors not in the tone system.
+function _toneFromColor(color) {
+  if (color === COLORS.info) return 'info';
+  if (color === COLORS.ok) return 'ok';
+  if (color === COLORS.warn) return 'warn';
+  if (color === COLORS.err) return 'err';
+  if (color === COLORS.agentA) return 'a';
+  if (color === COLORS.agentB) return 'b';
+  return null;
+}
+
 function CardHeadline({
   kind, publicId, statusLabel, statusColor, body,
   ghostedRounds, accentColor, trailing,
 }) {
+  const kindTone = _toneFromColor(accentColor);
+  const statusTone = _toneFromColor(statusColor);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-      <span className="mono" style={{
-        fontSize: 10.5, letterSpacing: '0.04em',
-        padding: '1px 6px', borderRadius: 4,
-        color: accentColor,
-        background: `${accentColor}14`,
-        border: `1px solid ${accentColor}44`,
-        flexShrink: 0,
-        whiteSpace: 'nowrap',
-      }}>
+      {/* SPEC-0057 D7 — kind badge migrated to Chip primitive */}
+      <Chip tone={kindTone} style={!kindTone ? { color: accentColor, borderColor: `${accentColor}44`, background: `${accentColor}14` } : undefined}>
         {KIND_LABELS[kind] || kind}{publicId ? ` ${publicId}` : ''}
-      </span>
+      </Chip>
       {statusLabel && (
         <>
           <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
-          <span className="mono" style={{
-            fontSize: 10.5,
-            padding: '1px 6px', borderRadius: 999,
-            border: `1px solid ${statusColor}55`,
-            color: statusColor,
-            background: `${statusColor}14`,
-            flexShrink: 0,
-            whiteSpace: 'nowrap',
-          }}>
+          <Chip tone={statusTone} pill style={!statusTone ? { color: statusColor, borderColor: `${statusColor}55`, background: `${statusColor}14` } : undefined}>
             {statusLabel}
-          </span>
+          </Chip>
         </>
       )}
       <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
