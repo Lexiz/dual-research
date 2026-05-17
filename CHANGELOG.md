@@ -12,6 +12,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.49.0] — 2026-05-17
+
+### Changed
+
+- **Consumption tab: content-vs-billing split + output bar + cross-turn slot naming** ([spec 0051](specs/0051-consumption-content-vs-billing-and-output.md)). The 0.47.1 hotfix made cached tokens visible (`in + cache_read + cache_write`), which exposed two new problems on the Consumption tab: Claude's "Brief" sub-bar was 3–4× GPT's in P1/P2 because Anthropic's Messages API bills `cache_read_input_tokens` across every internal turn of a tool-use loop (6 web searches → ~7 re-reads of the cached prefix → ~420kt of cache_read for a 60kt brief), and the expanded card had no output bar even though output is the more expensive per-token rate. Spec 0051 fixes both.
+  - **A1 — two parallel numbers per turn.** Card headline now reads `Claude 60kt seen · 411kt billed · 7.2kt out` with a `× 7 reuse` chip when there's measurable cache amplification (multiplier ≥ 1.5). When there's no reuse, collapses back to the simple `71kt in · 1.2kt out` form. The same content/billed split appears under the collapsed-row segmented bar so the two views agree at a glance.
+  - **A2 / A4 — pieces breakdown anchored to content size.** Per-piece sub-bars (`User prompt: Brief`, `Claude's Phase 1 draft`, etc.) now use raw `promptPieces` heuristic counts directly. The pre-spec renormalisation step that scaled pieces to sum to billed `tokensIn` is gone — that's what made the "Brief" bar read as 411kt on P1 Claude. Sums to roughly `reuse.content` now, matching distinct content the model saw.
+  - **A3 — `× N reuse` chip.** Small info-tinted chip surfaces alongside the headline when `billed / content ≥ 1.5`. Tooltip explains "the cached prompt prefix was read this many times across internal tool-use turns; same content, provider bills each re-read." Mirrors the existing `RepairChip` / `ReconcileChip` chip vocabulary.
+  - **Total input bar with content/reuse split** (new `TotalInputBar` component). Solid agent-colour fill from 0 → `content`; striped diagonal overlay from `content` → `billed`. When there's no reuse, the bar fills solid edge-to-edge. The piece sub-bars beneath now line up with the solid portion of the total bar — visual conservation of artifacts.
+  - **B1–B3 — output bar in expanded `ConsumptionCard`.** New `OutputBar` component below the input cluster, on the same shared scale. Coloured by the **destination input slot** (`d1` / `d2` / `hist` / `draft` / `histp`), not the agent colour. So P1 Claude's `→ d1 · Claude's Phase 1 draft` output bar uses the same ochre as the `d1` segment on every later card's input — scroll-trace an artifact through the run by colour alone. P0 cards (preflight critique, consumed by the orchestrator for go/no-go) get the descriptive label `→ preflight critique` since there's no later-turn input slot.
+  - **B4 — cost cluster gains the output split.** `Tokens: $X · Web search: $Y · Total: $T` becomes `Input: $A · Output: $B · Web search: $C · Total: $T`. Output cost computed client-side via a small `OUTPUT_RATE_PER_MTOK` table mirroring `agents/pricing.py::PRICING.output_per_mtok` (prefix-matched against the live model ID — `gpt-5.5-2026-04-23` matches the `gpt-5.5` key the same way `lookup_pricing` does server-side). Models not in the table fall back to $10/MTok and the figure is marked with a `~` in the cell + tooltip. Sum invariant preserved: `inputCost + outputCost + searchCost == total`.
+  - **B5 — output-bar tooltip.** Hover surfaces `Nkt output → feeds the \`d1\` slot in later turns' inputs · $X.XX at the model's published output rate · model: claude-sonnet-4-6`.
+  - **Slot identity is frontend-only.** New `outputSlotFor(phase, agent)` helper computes the destination slot from `(phase, agent)`. No wire-format change; if a future surface needs slot identity server-side, lift it into `protocol/prompt_pieces.py` in a follow-up.
+  - **`data-output-slot` attribute on `OutputBar`** prepares the ground for spec-0051 bucket C (interactive hover-lineage between input pieces and the originating output bar). C1/C2 deferred — the spec is sliceable; bucket C ships in a follow-up when state plumbing is sketched out.
+  - **No backend changes.** Pure frontend (`run-detail.jsx`). No wire format / aggregator / pricing changes. 725 pytest baseline green preserved.
+
+### Files touched
+
+- `src/dual_research/ui/static/run-detail.jsx` — new `contentTokensIn`, `reuseInfo`, `outputSlotFor`, `outputBarLabel`, `outputCostFor` helpers + `OUTPUT_RATE_PER_MTOK` rate table. New `TotalInputBar`, `OutputBar`, `ReuseChip` components. `ConsumptionCard` + `TokenBar` rewritten to use content-vs-billed math. `CostsCluster` extended with input/output split.
+
 ## [0.48.1] — 2026-05-17
 
 ### Fixed
