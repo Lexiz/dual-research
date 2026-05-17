@@ -3,10 +3,10 @@ spec: 0045
 title: Full-view shell standardisation + model pill layout
 label: refactoring
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.43.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/46"
 ---
 
 # Spec 0045 — Full-view shell standardisation + model pill layout
