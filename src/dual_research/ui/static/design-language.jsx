@@ -88,24 +88,23 @@ function DesignLanguageView() {
         </Section>
 
         {/* Typography */}
-        <Section title="02 — Typography" subtitle="One sans for UI chrome, one mono for everything an agent produced or anything that's a number.">
+        <Section title="02 — Typography" subtitle="One sans for UI chrome + data (tabular figures via .num utility), one serif for agent-produced prose and hero text. No monospace.">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
             <FontCard
               kind="Sans-serif"
-              face="Geist"
+              face="IBM Plex Sans"
               fallback="ui-sans-serif, system-ui, -apple-system, sans-serif"
-              role="UI chrome only — panel titles, labels, body prose. Never used for streaming output or numbers."
+              role="UI chrome, body, labels, buttons, navigation, status pills, IDs, costs, tokens (with tabular-nums via .num utility)."
               sampleFamily="var(--sans)"
               weights={[400, 500, 600]}
             />
             <FontCard
-              kind="Monospace"
-              face="JetBrains Mono"
-              fallback='ui-monospace, "SF Mono", Menlo'
-              role="Agent output, all numbers, run ids, phase ids, status pills, code-shaped labels. Same family as the sans means metrics line up cleanly."
-              sampleFamily="var(--mono)"
-              weights={[400, 500]}
-              mono
+              kind="Serif"
+              face="IBM Plex Serif"
+              fallback='ui-serif, "Iowan Old Style", Charter, Georgia, serif'
+              role="Agent-produced prose, hero text, page-level headings, blockquotes, QuestionThread quotes. The agent's voice — humanist proportions blend with the sans."
+              sampleFamily="var(--serif)"
+              weights={[400, 500, 600]}
             />
           </div>
 

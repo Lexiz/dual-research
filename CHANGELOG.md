@@ -12,6 +12,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.48.0] — 2026-05-17
+
+### Changed
+
+- **Design-system foundation — tokens, base, a11y, MDI icons, emoji removal** ([spec 0050](specs/0050-design-system-foundation.md)). First spec of the 11-spec Claude Design migration arc. Invisible-but-everywhere refactor that underwrites all Ship 2+ work.
+  - **Typography**: dropped JetBrains Mono + Geist entirely; loaded IBM Plex Sans + IBM Plex Serif from Google Fonts. `--mono` now aliases `--sans` (alignment via `font-variant-numeric: tabular-nums` on `.num`/`.mono` utilities, not a separate mono family). All hardcoded `JetBrains Mono, monospace` and `Geist, system-ui, sans-serif` SVG `<text fontFamily="…">` references (17 sites across `how-it-works.jsx`, `auth.jsx`, `design-language.jsx`) swept to the new families. TYPE-01..05.
+  - **Color & contrast**: foreground tier retuned for WCAG-AA at 12 px (`--fg-0` dark `#f2f4f7` → `#ffffff`, light `#14171c` → `#04060a`; `--fg-3` dark `#5e636d` → `#7d8290`, light `#898d95` → `#6f7480`). Status-background + status-border tokens added (`--ok-bg`, `--info-bg`, `--warn-bg`, `--err-bg` + matching borders). Light-mode `--bg-3` darkened (`#e8e4db` → `#ddd8cb`) so hover rows lift. Lighter shadow recipes for cream surfaces. Agent-color rgba layers bumped in light mode. CLR-01..07, LIT-01..04.
+  - **Spacing / radii / motion**: 4-px grid enforced (off-grid 6/10/14/18/22 retired); 10 radii → 4 named + pill; 3 elevation levels; 3 motion durations + one easing; reduced-motion contract — `@media (prefers-reduced-motion: reduce)` forces all durations ≤1 ms and disables halos / caret blink / scroll-behavior. SP-01..04, A11Y-02.
+  - **Accessibility**: global `:focus-visible` ring (2 px `--info` at 2 px offset) in `base.css` — no component opts out. A11Y-01.
+  - **Iconography**: MDI swap. New `src/dual_research/ui/static/icons.jsx` (~60 Material Design Icons inlined as path data, exposes `<Mdi name size color />` on `window`). `Icon` in `shared.jsx` rewritten as a thin shim — all 14 legacy keys (`Activity`, `List`, `Palette`, `Chevron`, `Dot`, `Check`, `X`, `Arrow`, `ArrowLeft`, `Spark`, `Warn`, `Gear`, `SignOut`, `Help`) preserved as components that forward to `<Mdi>`. Future specs migrate call sites onto `<Mdi>` directly. ICN-01.
+  - **Emoji elimination**: 13 emoji swept across 4 surfaces (`run-detail.jsx`, `run-list.jsx`, `how-it-works.jsx`, `live-data.jsx`). 🔎 → `magnify`, ⚠ → `alert`, 🔗 → stripped (DOM text), 📄/📎 → `file-document`, ⏳ → `timer`, ✓ → `check`. The 5-state ReconcileChip palette migrated from `{glyph: '✓'}` to `{icon: 'check'}` while preserving all 5 visual states (`verified` / `drift` / `partial` / `unverified` / `awaiting_provider_data`). Three carve-outs deferred to later specs (live-data PHASES.short ✓, run-list ⏎ keyboard hint, how-it-works narrative prose); see spec doc for rationale. ICN-02.
+- **File layout**: `theme.css` slimmed from 383 → 109 lines — the legacy component classes (`.dr-section-brief-btn`, `.dr-ghost-block`, `.dr-ghost-block-kind`, `.cap-bar`, `.bg-grid`, `.phase-step-line`, `.uppercase-label`) stay; tokens / reset / body / type utilities / markdown / scrollbars / focus / motion / pulse keyframes / selection now live in the new `tokens.css` + `base.css`. `theme.css` will drain spec-by-spec across Ship 2.
+- **`index.html`**: Google Fonts link swapped (`Geist`+`JetBrains Mono` → `IBM Plex Sans`+`IBM Plex Serif`); `<link rel="stylesheet" href="theme.css">` replaced with `tokens.css` + `base.css` + `theme.css` (order matters — tokens first, base second, legacy last); new `<script type="text/babel" src="icons.jsx">` loaded ahead of `shared.jsx`.
+
+### Added
+
+- New file `src/dual_research/ui/static/tokens.css` — authoritative token sheet, copied verbatim from the Claude Design brief. Every component reads from these; no hex codes anywhere in components.
+- New file `src/dual_research/ui/static/base.css` — body, type utilities (`.mono` / `.num` / `.serif` / `.t-*`), focus ring, reduced-motion contract, animations (`caret-blink`, `pulse-*`, `seg-in`, `dr-flash`, `dr-modal-in`), markdown rendering (`.md`). Copied verbatim from the brief.
+- New file `src/dual_research/ui/static/icons.jsx` — MDI dictionary (~60 icons as inline path data) + `<Mdi>` React component. Copied verbatim from the brief.
+
+### Tests
+
+- 725 baseline pytest green (no Python changes; pure asset shuffle).
+- Preview-verified on `localhost:6173` against the partner-vetting run (`3a4a`) — all surfaces render in both themes, ReconcileChip `unverified` state intact, GhostedAnnotation / RepairChip / cost chips functional, 88 MDI SVGs rendering on run-detail, zero console errors.
+
 ## [0.47.1] — 2026-05-17
 
 ### Fixed

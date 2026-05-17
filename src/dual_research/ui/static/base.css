@@ -1,0 +1,212 @@
+/* =============================================================
+   dual-research — Base styles, type, animations, focus, .md
+   ============================================================= */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  transition: background var(--m-base) var(--ease), color var(--m-base) var(--ease);
+}
+
+#root { min-height: 100vh; }
+
+/* Scrollbars */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border-2);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--border-3);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+button { font-family: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, textarea, select { font-family: inherit; color: inherit; }
+a { color: var(--info); text-decoration: underline; text-decoration-color: rgba(107,156,240,0.45); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--info); }
+
+/* Global focus indicator — V1 fix.
+   Applies to every focusable element unless explicitly overridden.
+   Replaced by :focus-visible so mouse focus stays clean. */
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--r-1);
+}
+
+/* ── Type utilities ─────────────────────────────────── */
+.mono  { font-family: var(--sans); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.num   { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.serif { font-family: var(--serif); font-feature-settings: "ss01"; }
+.t-display { font-family: var(--serif); font-size: var(--t-display); font-weight: var(--w-semi); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--fg-0); }
+.t-title   { font-size: var(--t-title);   font-weight: var(--w-bold); line-height: var(--lh-snug);  color: var(--fg-0); letter-spacing: -0.01em; }
+.t-h3      { font-size: var(--t-h3);      font-weight: var(--w-semi); line-height: var(--lh-snug);  color: var(--fg-0); }
+.t-body    { font-size: var(--t-body);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--fg-1); }
+.t-meta    { font-size: var(--t-meta);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--fg-2); }
+.t-mono    { font-size: var(--t-mono); font-family: var(--sans); font-weight: var(--w-medium); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.t-label   {
+  font-size: var(--t-label);
+  font-weight: var(--w-medium);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  line-height: 1;
+}
+
+/* ── Caret blink for streaming text ─────────────────── */
+.caret::after {
+  content: "▍";
+  display: inline-block;
+  margin-left: 1px;
+  animation: caret-blink 1.05s steps(1) infinite;
+  opacity: 0.8;
+}
+@keyframes caret-blink { 0%, 50% { opacity: 0.9; } 51%, 100% { opacity: 0; } }
+
+/* ── Status pulse halos ─────────────────────────────── */
+@keyframes pulse-a    { 0%,100%{ box-shadow:0 0 0 0 rgba(212,165,116,.5);} 50%{ box-shadow:0 0 0 6px rgba(212,165,116,0);} }
+@keyframes pulse-b    { 0%,100%{ box-shadow:0 0 0 0 rgba(124,196,184,.5);} 50%{ box-shadow:0 0 0 6px rgba(124,196,184,0);} }
+@keyframes pulse-info { 0%,100%{ box-shadow:0 0 0 0 rgba(107,156,240,.5);} 50%{ box-shadow:0 0 0 6px rgba(107,156,240,0);} }
+@keyframes pulse-warn { 0%,100%{ box-shadow:0 0 0 0 rgba(212,160,86,.5); } 50%{ box-shadow:0 0 0 6px rgba(212,160,86,0); } }
+@keyframes pulse-err  { 0%,100%{ box-shadow:0 0 0 0 rgba(217,106,106,.5);} 50%{ box-shadow:0 0 0 6px rgba(217,106,106,0);} }
+.pulse-a    { animation: pulse-a    2.2s ease-out infinite; }
+.pulse-b    { animation: pulse-b    2.2s ease-out infinite; }
+.pulse-info { animation: pulse-info 2.2s ease-out infinite; }
+.pulse-warn { animation: pulse-warn 1.6s ease-out infinite; }
+.pulse-err  { animation: pulse-err  1.6s ease-out infinite; }
+
+/* ── Newly streamed segment fade-in ─────────────────── */
+@keyframes seg-in { from{ opacity:0; transform:translateY(2px);} to{opacity:1; transform:none;} }
+.seg-in { animation: seg-in var(--m-base) var(--ease) both; }
+
+/* ── Click-to-anchor flash highlight ────────────────── */
+@keyframes dr-flash {
+  0%   { background-color: rgba(212,160,86,0.42); }
+  100% { background-color: rgba(212,160,86,0.00); }
+}
+.dr-flash { animation: dr-flash 1.5s ease-out 1 both; border-radius: var(--r-2); }
+
+/* ── Modal overlay fade ─────────────────────────────── */
+@keyframes dr-modal-in { from{opacity:0;} to{opacity:1;} }
+.dr-modal-in { animation: dr-modal-in var(--m-base) var(--ease) both; }
+
+/* ── Reduced motion contract ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .caret::after { animation: none; opacity: 0.6; }
+  .pulse-a, .pulse-b, .pulse-info, .pulse-warn, .pulse-err { animation: none; }
+}
+
+/* ── Selection ──────────────────────────────────────── */
+::selection { background: rgba(124,196,184,0.35); }
+
+/* ── Helpers ────────────────────────────────────────── */
+.dashed-divider {
+  background-image: linear-gradient(to right, var(--border-2) 50%, transparent 50%);
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+  background-position: left center;
+  height: 1px;
+}
+.hr { height: 1px; background: var(--border-1); }
+
+/* ── Markdown rendering — tightened to V1 scale ─────── */
+/* Agent-produced markdown content uses the serif family
+   (Newsreader). Code blocks and inline code stay sans + tabular
+   for alignment. Hard rule: prose breathes, IDs/numbers align. */
+.md {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--fg-1);
+  letter-spacing: 0;
+}
+.md > :first-child { margin-top: 0; }
+.md > :last-child  { margin-bottom: 0; }
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+  color: var(--fg-0);
+  font-family: var(--serif);
+  font-weight: var(--w-semi);
+  letter-spacing: -0.005em;
+  line-height: var(--lh-snug);
+  margin: var(--s-4) 0 var(--s-2);
+}
+.md h1 { font-size: 22px; }
+.md h2 { font-size: 18px; }
+.md h3 {
+  font-family: var(--sans);
+  font-weight: var(--w-semi);
+  font-size: var(--t-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  margin-top: var(--s-4);
+}
+.md h4, .md h5, .md h6 { font-size: var(--t-body); font-weight: var(--w-medium); }
+.md p { margin: var(--s-2) 0; }
+.md ul, .md ol { margin: var(--s-2) 0; padding-left: var(--s-5); }
+.md li { margin: 3px 0; }
+.md ul li::marker { color: var(--fg-3); }
+.md ol li::marker { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.md code {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: 0.88em;
+  padding: 1px 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-1);
+  color: var(--fg-0);
+  letter-spacing: -0.005em;
+}
+.md pre {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  margin: var(--s-2) 0;
+  padding: var(--s-3) var(--s-3);
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  overflow-x: auto;
+  line-height: 1.55;
+  color: var(--fg-0);
+  letter-spacing: -0.005em;
+}
+.md pre code { padding: 0; background: none; border: 0; font-size: inherit; }
+.md strong { color: var(--fg-0); font-weight: var(--w-semi); }
+.md em     { color: var(--fg-0); font-weight: var(--w-medium); font-style: normal; }
+.md blockquote {
+  margin: var(--s-2) 0;
+  padding: var(--s-1) 0 var(--s-1) var(--s-3);
+  border-left: 2px solid var(--border-3);
+  color: var(--fg-2);
+  font-style: normal;
+}
+.md hr { border: 0; border-top: 1px solid var(--border-1); margin: var(--s-4) 0; }
+.md table { border-collapse: collapse; margin: var(--s-2) 0; font-size: var(--t-meta); }
+.md th, .md td { padding: 6px 10px; border: 1px solid var(--border-1); text-align: left; }
+.md th { background: var(--bg-2); color: var(--fg-1); font-weight: var(--w-semi); }
+.md del { color: var(--fg-3); text-decoration: line-through; }

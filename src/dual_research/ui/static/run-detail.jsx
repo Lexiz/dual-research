@@ -365,15 +365,15 @@ function RunSearchSummary({ onJump }) {
         fontSize: 11, color: 'var(--fg-1)',
         whiteSpace: 'nowrap', flexShrink: 0,
       }}>
-      <span>🔎</span>
+      <Mdi name="magnify" size={11} />
       <span className="mono">{totalQueries}</span>
       <span style={{ color: 'var(--fg-3)' }}>·</span>
       <span className="mono">{totalUrls} URLs</span>
       {warnings > 0 && (
         <>
           <span style={{ color: 'var(--fg-3)' }}>·</span>
-          <span className="mono" style={{ color: COLORS.warn }}>
-            ⚠ {warnings} unmatched
+          <span className="mono" style={{ color: COLORS.warn, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Mdi name="alert" size={11} /> {warnings} unmatched
           </span>
         </>
       )}
@@ -524,11 +524,11 @@ function ReconcileChip({ run, localCost }) {
   const providersSkipped = report.providersSkipped || report.providers_skipped || {};
 
   const palette = {
-    verified:                { glyph: '✓', color: COLORS.ok,   bg: COLORS.ok + '14',   border: COLORS.ok + '55' },
-    drift:                   { glyph: '⚠', color: COLORS.warn, bg: COLORS.warn + '14', border: COLORS.warn + '55' },
-    partial:                 { glyph: '◐', color: COLORS.info, bg: COLORS.info + '14', border: COLORS.info + '55' },
-    unverified:              { glyph: '·', color: 'var(--fg-3)', bg: 'var(--bg-2)', border: 'var(--border-1)' },
-    awaiting_provider_data:  { glyph: '⏳', color: COLORS.info, bg: COLORS.info + '0a', border: COLORS.info + '33' },
+    verified:                { icon: 'check',        color: COLORS.ok,   bg: COLORS.ok + '14',   border: COLORS.ok + '55' },
+    drift:                   { icon: 'alert',        color: COLORS.warn, bg: COLORS.warn + '14', border: COLORS.warn + '55' },
+    partial:                 { icon: 'circle-half',  color: COLORS.info, bg: COLORS.info + '14', border: COLORS.info + '55' },
+    unverified:              { icon: 'circle',       color: 'var(--fg-3)', bg: 'var(--bg-2)', border: 'var(--border-1)' },
+    awaiting_provider_data:  { icon: 'timer',        color: COLORS.info, bg: COLORS.info + '0a', border: COLORS.info + '33' },
   };
   const p = palette[status] || palette.unverified;
 
@@ -553,7 +553,7 @@ function ReconcileChip({ run, localCost }) {
   if (status === 'verified') {
     body = (
       <>
-        <span style={{ color: p.color }}>{p.glyph}</span>
+        <Mdi name={p.icon} size={11} color={p.color} />
         <span style={{ color: 'var(--fg-1)' }}>verified</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
         <span className="num">{fmt.cost(cost)}</span>
@@ -562,7 +562,7 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'drift') {
     body = (
       <>
-        <span style={{ color: p.color }}>{p.glyph}</span>
+        <Mdi name={p.icon} size={11} color={p.color} />
         <span style={{ color: 'var(--fg-1)' }}>Δ</span>
         <span className="num" style={{ color: 'var(--fg-1)' }}>
           {totalDelta >= 0 ? '+' : ''}{fmt.cost(totalDelta)}
@@ -576,16 +576,18 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'partial') {
     body = (
       <>
-        <span style={{ color: p.color }}>{p.glyph}</span>
+        <Mdi name={p.icon} size={11} color={p.color} />
         <span style={{ color: 'var(--fg-2)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
         {providersChecked.map((prov) => (
-          <span key={prov} style={{ color: COLORS.ok }}>✓ {prov}</span>
+          <span key={prov} style={{ color: COLORS.ok, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Mdi name="check" size={10} /> {prov}
+          </span>
         ))}
         {Object.keys(providersSkipped).map((prov) => (
-          <span key={prov} style={{ color: COLORS.warn, marginLeft: 4 }}>
-            ⚠ {prov}
+          <span key={prov} style={{ color: COLORS.warn, marginLeft: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <Mdi name="alert" size={10} /> {prov}
           </span>
         ))}
       </>
@@ -593,7 +595,7 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'awaiting_provider_data') {
     body = (
       <>
-        <span style={{ color: p.color }}>{p.glyph}</span>
+        <Mdi name={p.icon} size={11} color={p.color} />
         <span style={{ color: 'var(--fg-2)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
@@ -1167,7 +1169,9 @@ function ProviderBilledLine({ report, agent, modelId }) {
       </span>
       {flagged && (
         <span title="Per-row delta exceeds reconcile tolerance threshold."
-              style={{ color: COLORS.warn }}>⚠</span>
+              style={{ color: COLORS.warn, display: 'inline-flex', alignItems: 'center' }}>
+          <Mdi name="alert" size={11} />
+        </span>
       )}
     </div>
   );
@@ -2272,7 +2276,7 @@ function SearchChip({ turnKey }) {
   const s = summary.get(turnKey);
   if (!s || s.queries === 0) return null;
   const tip = `${s.queries} web search${s.queries === 1 ? '' : 'es'} · ${s.consulted} URL${s.consulted === 1 ? '' : 's'} retrieved`
-    + (s.hasWarning ? ' · ⚠ unmatched citation' : '');
+    + (s.hasWarning ? ' · unmatched citation' : '');
   return (
     <span title={tip} style={{
       display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -2284,10 +2288,10 @@ function SearchChip({ turnKey }) {
       fontFamily: 'var(--mono)',
       whiteSpace: 'nowrap',
     }}>
-      <span style={{ fontSize: 10 }}>🔎</span>
+      <Mdi name="magnify" size={10} />
       {s.queries}
       {s.hasWarning && (
-        <span style={{ color: COLORS.warn, fontWeight: 700 }}>⚠</span>
+        <Mdi name="alert" size={10} color={COLORS.warn} />
       )}
     </span>
   );
@@ -2320,8 +2324,9 @@ function SearchGistLine({ turnKey, onOpen }) {
         fontSize: 11.5,
         color: hasWarning ? COLORS.warn : 'var(--fg-2)',
       }}>
-      <span style={{ fontSize: 11 }}>🔎</span>
-      <span>{hasWarning ? '⚠ ' : ''}{base} · click to inspect</span>
+      <Mdi name="magnify" size={11} />
+      {hasWarning && <Mdi name="alert" size={10} color={COLORS.warn} />}
+      <span>{base} · click to inspect</span>
       <Icon.Arrow style={{ width: 10, height: 10 }} />
     </button>
   );
@@ -2945,7 +2950,7 @@ function ConvergedChip({ phase }) {
       letterSpacing: '0.02em',
       fontWeight: 500,
     }}>
-      <span>✓</span>
+      <Mdi name="check" size={11} />
       <span>{label}</span>
     </span>
   );
@@ -3250,7 +3255,7 @@ function useWebSearchTab(turnKey) {
   const summary = ctx?.summary;
   if (!hasWebSearchData(summary, turnKey)) return null;
   const s = summary.get(turnKey);
-  const badge = s && s.hasWarning ? '⚠' : null;
+  const badge = s && s.hasWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null;
   return {
     id: 'webSearch',
     label: 'Web Search',
@@ -3613,7 +3618,7 @@ function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearc
     { id: 'original',  label: 'Original' },
     { id: 'input',     label: 'Input' },
     showWebSearch && { id: 'webSearch', label: 'Web Search',
-                       badge: hasSearchWarning ? '⚠' : null },
+                       badge: hasSearchWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null },
   ].filter(Boolean);
   return (
     <div style={{
@@ -3801,7 +3806,7 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
       if (!text) return;
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = '🔗 brief';
+      btn.textContent = 'brief';
       btn.title = 'Find the closest matching block in the brief';
       btn.className = 'dr-section-brief-btn';
       btn.addEventListener('click', (e) => {
@@ -3867,7 +3872,7 @@ function DraftRightSubTabs({ active, onChange, hasSearchWarning, showWebSearch }
   const tabs = [
     { id: 'draft',     label: 'Draft' },
     showWebSearch && { id: 'webSearch', label: 'Web Search',
-                       badge: hasSearchWarning ? '⚠' : null },
+                       badge: hasSearchWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null },
   ].filter(Boolean);
   return (
     <div style={{
@@ -4470,7 +4475,7 @@ function HallucinationBanner({ unmatched }) {
         display: 'flex', alignItems: 'center', gap: 8,
         fontSize: 12, color: COLORS.warn, fontWeight: 600,
       }}>
-        <span>⚠</span>
+        <Mdi name="alert" size={12} />
         <span>
           {unmatched.length} citation{unmatched.length === 1 ? '' : 's'} reference{unmatched.length === 1 ? 's' : ''} a URL that wasn't in any retrieval set
         </span>
@@ -4575,7 +4580,9 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
         </span>
         {groupWarning && (
           <span title="A citation pinned to this query references a URL not in its retrieval set"
-                style={{ color: COLORS.warn, fontSize: 12 }}>⚠</span>
+                style={{ color: COLORS.warn, display: 'inline-flex', alignItems: 'center' }}>
+            <Mdi name="alert" size={12} />
+          </span>
         )}
       </button>
       {open && (
@@ -5002,7 +5009,7 @@ function FileCard({ attachment, runId }) {
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
             color: 'var(--fg-3)', padding: 12, textAlign: 'center',
           }}>
-            <span style={{ fontSize: 28 }}>{kind === 'pdf' ? '📄' : '📎'}</span>
+            <Mdi name="file-document" size={28} />
             <span className="mono" style={{
               fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
             }}>{kind}</span>
@@ -5451,8 +5458,9 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
         <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
           <div className="mono" style={{ fontSize: 12 }}>no questions or disagreements in this phase</div>
           {suspectedMiss && (
-            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85 }}>
-              ⚠ couldn't reconstruct disagreements from this run — open the round files directly
+            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Mdi name="alert" size={11} />
+              <span>couldn't reconstruct disagreements from this run — open the round files directly</span>
             </div>
           )}
         </div>
@@ -6011,7 +6019,7 @@ function GhostedRoundsBadge({ ghostedRounds }) {
         whiteSpace: 'nowrap',
       }}
     >
-      <span>⚠</span>
+      <Mdi name="alert" size={10} />
       <span>ghosted {ghostedRounds}r</span>
     </span>
   );
@@ -6088,7 +6096,7 @@ function LedgerDriftChip({ drifts, phaseId }) {
         cursor: 'help',
       }}
     >
-      <span>⚠</span>
+      <Mdi name="alert" size={10} />
       <span className="num" style={{ fontWeight: 500 }}>{phaseDrifts.length}</span>
       <span style={{ color: 'var(--fg-3)' }}>drift</span>
     </span>
@@ -6116,7 +6124,7 @@ function GhostedAnnotation({ run, phaseId, itemId }) {
         cursor: 'help',
       }}
     >
-      <span>⚠</span>
+      <Mdi name="alert" size={10} />
       <span>ghosted {entry.ghostedRounds}r</span>
     </span>
   );
@@ -6200,8 +6208,9 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
         <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
           <div className="mono" style={{ fontSize: 12 }}>no disagreements in this phase</div>
           {suspectedMiss && (
-            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85 }}>
-              ⚠ couldn't reconstruct disagreements from this run — open the round files directly
+            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Mdi name="alert" size={11} />
+              <span>couldn't reconstruct disagreements from this run — open the round files directly</span>
             </div>
           )}
         </div>
@@ -6637,9 +6646,10 @@ function ProgressionStep({ step, last, pending }) {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 15, height: 15, borderRadius: 4,
             background: COLORS.ok, color: 'var(--bg-0)',
-            fontSize: 9, fontWeight: 700, fontFamily: 'var(--mono)',
             lineHeight: 1,
-          }}>✓</span>
+          }}>
+            <Mdi name="check" size={11} />
+          </span>
         ) : (
           <span style={{
             display: 'inline-block', width: 9, height: 9, borderRadius: '50%',

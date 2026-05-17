@@ -126,12 +126,12 @@
         <circle cx="60" cy="60" r="32"
                 fill="var(--agent-a-bg-strong)" stroke="var(--agent-a-border)" strokeWidth="1.25" />
         <text x="60" y="68" textAnchor="middle"
-              fontFamily="Geist, system-ui, sans-serif" fontWeight="600" fontSize="26"
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontWeight="600" fontSize="26"
               fill="var(--agent-a)">C</text>
         <circle cx="220" cy="60" r="32"
                 fill="var(--agent-b-bg-strong)" stroke="var(--agent-b-border)" strokeWidth="1.25" />
         <text x="220" y="68" textAnchor="middle"
-              fontFamily="Geist, system-ui, sans-serif" fontWeight="600" fontSize="26"
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontWeight="600" fontSize="26"
               fill="var(--agent-b)">G</text>
       </svg>
     );
