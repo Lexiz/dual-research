@@ -1,12 +1,12 @@
 ---
 spec: 0050
 title: Design-system foundation — tokens, base, a11y, MDI icons, emoji removal
-label: refactoring
+label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.48.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/53"
 ---
 
 # Spec 0050 — Design-system foundation
