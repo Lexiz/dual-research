@@ -3,10 +3,10 @@ spec: 0049
 title: Reconcile-costs reads run-cost data from Supabase (re-enable daily cron)
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.47.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/51"
 ---
 
 # Spec 0049 — Reconcile-costs reads run-cost data from Supabase
