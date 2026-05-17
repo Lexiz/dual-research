@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.43.0',
+      date: '2026-05-17',
+      summary: 'Full-view shell standardisation + model pill layout.',
+      items: [
+        "Tabs on every full-view modal now render in a canonical order: `Content | Input | Web Search | Sources | Files`. Open two different modals back-to-back and the tabs stay in the same slot — no more re-finding `Input` next to the right edge in one modal and next to `Content` in another. Tabs whose content is empty are hidden entirely (Web Search isn't rendered on turns that ran no searches; Files isn't rendered on briefs that attached none); the hallucination ⚠ badge stays as a tab-label exception when there's real search data to flag.",
+        "Input full-view drops the 'not used in this turn' rows. Only pieces the orchestrator actually inlined for THIS turn render — absence is the signal. The wire bundle still carries the full piece vocabulary (with empty strings for absent pieces), but the frontend filters them out, so a Phase 2 round-1 turn no longer renders 'Prior Phase 4 review turns (not used in this turn)' as visual noise.",
+        "The brief is now labelled 'User prompt: Brief' and floats to the top of the input bundle. The brief IS the user-supplied research prompt for the run today (the CLI doesn't have a separate `--prompt` field yet), so the label tells the reader what role this section plays.",
+        "Side-by-side modals (Phase 1 plan-draft, Phase 2 / Phase 4 turn modals) now use equal-width columns. `NegotiateReviewModal` was 1.5fr / 1fr (left-biased); `DraftReviewModal` was 1fr / 1.3fr (right-biased). Both move to 1fr / 1fr so the two panes read as parallel surfaces — neither is the 'primary'.",
+        "Timeline-header model pills (Claude, GPT) are now equal-width with identity left-aligned (logo · provider · model) and metrics right-aligned (tokens · cost · ● status). The Claude pill grew ≈20% to give both pills room to breathe at the new alignment; GPT matches Claude. The metric strings sit at the right edge regardless of how long the model name is.",
+      ],
+    },
+    {
       version: '0.42.0',
       date: '2026-05-17',
       summary: 'Turn-input semantics + per-turn badge redesign + side-by-side framing.',

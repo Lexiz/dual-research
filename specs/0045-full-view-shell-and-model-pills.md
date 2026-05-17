@@ -3,7 +3,7 @@ spec: 0045
 title: Full-view shell standardisation + model pill layout
 label: refactoring
 version-bump: MINOR
-status: proposed
+status: in-progress
 target-version: 0.43.0
 created: 2026-05-17
 pr: ""
