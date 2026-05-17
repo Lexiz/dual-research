@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.59.1] — 2026-05-17
+
+### Fixed
+
+- **Onboarding crash on first hosted-mode sign-in (white screen)** — `OnboardingScreen` from SPEC-0061 referenced `<AgentDuoVisual />`, but `AgentDuoVisual` was defined inside `auth.jsx`'s IIFE and never exposed on `window`, so the cross-file reference threw `ReferenceError`. Symptom: brief flash of the run list ("no results" while data loads) followed by a blank white screen, repeating on every reload — because `showOnboarding` defaults to `true` until `localStorage.dr_onboarded === 'true'` and the OnboardingScreen crashed silently. Fix: added `AgentDuoVisual` to `auth.jsx`'s `Object.assign(window, …)` export block. Cache-bust query bumped to `?v=0591` so browsers refetch the fixed `auth.jsx`.
+
 ## [0.59.0] — 2026-05-17
 
 ### Added
