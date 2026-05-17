@@ -9,6 +9,10 @@
 // on the right (connection state, theme toggle, design-language button).
 // The Run-detail view is reachable only by clicking a row; the detail
 // view has its own `← All runs` back chip (rendered by run-detail.jsx).
+//
+// SPEC-0059: Global keyboard contract (A11Y-03/04).
+// `?` → shortcuts overlay, `Cmd+K` → search palette, `/` → run-list search.
+// Input/textarea/contentEditable exempt from single-key bindings.
 
 function App() {
   const { route, navigate } = useRoute();
@@ -26,6 +30,38 @@ function App() {
   const { session, ready: sessionReady } = useSession(client);
   const [notApproved, setNotApproved] = React.useState(false);
   const me = useMe();  // null until first /api/me resolves
+
+  // SPEC-0059: overlay state for keyboard-accessible chrome surfaces.
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
+
+  // SPEC-0059: Global keyboard contract (A11Y-03/04).
+  React.useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target.tagName || '').toUpperCase();
+      const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
+
+      // Cmd+K / Ctrl+K — always fires, even when typing.
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+        return;
+      }
+
+      // All other single-key bindings are exempt when typing.
+      if (isTyping) return;
+
+      // Don't intercept when a modal/dialog is open (let per-modal handlers work).
+      if (document.querySelector('[role="dialog"]')) return;
+
+      if (e.key === '?') {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Listen for the global "not-approved" event that authedFetch raises when
   // the server returns 403. Any /api call can trigger this; we swap to the
@@ -60,6 +96,10 @@ function App() {
         {route.view === 'settings'      && <SettingsScreen me={me} />}
         {route.view === 'how-it-works'  && <HowItWorks />}
       </div>
+
+      {/* SPEC-0059: keyboard-accessible overlays */}
+      <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <SearchPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
