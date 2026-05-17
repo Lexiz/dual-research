@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.40.0',
+      date: '2026-05-17',
+      summary: 'Critique data integrity — Phase 1 sections parsed, badges reconcile, markdown rendering fixed.',
+      items: [
+        "Phase 1 plan-draft cards now show real chip counts. The parser learned to recognise the protocol's Phase 1 sections — `## N. Claims I Expect the Other Agent Might Dispute` and `## N. Open Questions` — that previously slipped through unparsed. Cards now display `claims · questions` chips when the agent emits them, and the misleading `disagreements` tag never appears on a Phase 1 card again (Phase 1 doesn't emit disagreements; only Phase 2 R≥2's `## Substantive disagreements I'm holding` does).",
+        "Phase 2 round-1 `## Diff vs … Phase 1` content re-categorised from `disagreement` to `claim`. Semantic correction — R1 enumerates contested points being *raised*, only R≥2 turns them into held disagreements. Claude turn 1 now reads `6 questions · 10 claims · r1` instead of `6 questions · negotiating · r1`. Side-by-side modal gains a Claims group on the right pane.",
+        "Timeline chip counts no longer trust the agent's `OPEN_QUESTIONS:` / `OPEN_ISSUES:` / `BLOCKING_DISAGREEMENTS:` self-counters as the source of truth. They now read from `run.{questions,disagreements,claims,issues,comments}` filtered by `raisedTurnKey`. Self-counters become a sanity-check (logged at debug when mismatched). Per-phase chip allowlist: P0/P3/P5 = none; P1 = claims + questions; P2 = questions + disagreements + claims; P4 = issues + comments + disagreements.",
+        "Phase 2 / Phase 4 side-by-side modal's right pane stopped silently dropping rounds with no items. Aggregator always creates the `phase{N}_round{R}_<agent>` bucket — an empty list means 'we looked and parsed nothing'; a missing key means 'the turn file doesn't exist.' Phase 4 modal's left pane reliably resolves `currentDraftPath` now that the aggregator surfaces it on `Run`.",
+        "Critique header math reconciles. `99 introduced · 15 open · 21 resolved` was reading `introduced` as a cross-phase total while `open / resolved` were phase-filtered. Both are phase-scoped now — switch phase tab, the math adds up within the selected tab.",
+        "Brief content's first paragraph no longer renders as a bold heading. The brief uses `---` as a section divider; CommonMark setext headings treat `---` immediately following a paragraph as an H2 underline, which silently wrapped the prior paragraph in `<h2>`. New pre-pass adds blank lines around bare `---` / `===` dividers so they render as `<hr>` thematic breaks. Headings (`## 1. Origin and Context`) stay headings; paragraphs stay paragraphs.",
+        "Foundation for the next spec: the new `Run.claims` array, `kind=\"claim\"` wire type, and `current_draft_path` field are what the upcoming cross-round ledger (spec 0043) will build on. This release stops short of ledger semantics — closure between rounds is still agent-self-managed until 0043 lands.",
+      ],
+    },
+    {
       version: '0.39.0',
       date: '2026-05-16',
       summary: 'Critique classification fix + load-time resilience + sentiment paragraph + tighter cards.',

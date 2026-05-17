@@ -405,7 +405,11 @@ def _walk_section_items(body: str, *, kind: str = "question") -> list[ReviewItem
     # Both should be treated as discrete entries. We detect either a
     # numbered prefix or a bold-prefixed ID-token line as a new entry.
     for line in lines:
-        if _NUMBERED_RE.match(line) or _BOLD_ID_HEADING_RE.match(line):
+        if (
+            _NUMBERED_RE.match(line)
+            or _BOLD_ID_HEADING_RE.match(line)
+            or _BOLD_QID_HEADING_RE.match(line)
+        ):
             _flush()
             current = [line]
         elif current is not None:
@@ -420,6 +424,14 @@ def _walk_section_items(body: str, *, kind: str = "question") -> list[ReviewItem
 # the Claude-style Issue ledger that's bold-prefixed but not numbered.
 _BOLD_ID_HEADING_RE = re.compile(
     r"^\s*\*\*\s*(?:[A-Z]{1,4}-)+(?:[A-Z]+-)?\d+\b",
+)
+
+
+# Spec 0042 — Phase 1 ``Open Questions`` entries are bold-prefixed with
+# a single-letter id and no hyphen (``**Q1: …**``). The numbered/dashed
+# regexes above don't match these.
+_BOLD_QID_HEADING_RE = re.compile(
+    r"^\s*\*\*\s*[A-Z]\d+\b",
 )
 
 
@@ -499,17 +511,48 @@ def extract_review_items(turn_text: str) -> list[ReviewItem]:
     out: list[ReviewItem] = []
 
     # Open questions section — heading text is "Open questions for <name>".
-    # Match the heading prefix only; agent name varies.
+    # Match the heading prefix only; agent name varies. Phase 2 uses this
+    # form with a "for X" suffix.
     open_q_match = re.search(r"^##\s+Open questions for .+?$", turn_text, re.MULTILINE)
     if open_q_match:
         body = _section_body_at(turn_text, open_q_match.end())
         out.extend(_walk_section_items(body, kind="question"))
 
-    # Round-1 difference inventory (numbered list, similar shape).
+    # Spec 0042 D1 — Phase 1 draft "Open Questions" section. Heading text
+    # has no "for X" suffix and may carry a leading numeric prefix
+    # (``## 5. Open Questions``). Skip if the Phase 2 form already matched
+    # so we don't double-extract on a malformed transcript.
+    if not open_q_match:
+        open_q_p1 = re.search(
+            r"^##\s+(?:\d+\.\s+)?Open Questions\s*$",
+            turn_text,
+            re.MULTILINE,
+        )
+        if open_q_p1:
+            body = _section_body_at(turn_text, open_q_p1.end())
+            out.extend(_walk_section_items(body, kind="question"))
+
+    # Spec 0042 D1 — Phase 1 draft "Claims I Expect the Other Agent Might
+    # Dispute" section. Tolerates a leading numeric prefix.
+    claims_p1 = re.search(
+        r"^##\s+(?:\d+\.\s+)?Claims I Expect the Other Agent Might Dispute\s*$",
+        turn_text,
+        re.MULTILINE,
+    )
+    if claims_p1:
+        body = _section_body_at(turn_text, claims_p1.end())
+        out.extend(_walk_section_items(body, kind="claim"))
+
+    # Spec 0042 D6 — Round-1 difference inventory parses as ``kind="claim"``
+    # (was ``"disagreement"``). Semantically these are contested points
+    # being raised; only the items that survive into R≥2's
+    # ``## Substantive disagreements I'm holding`` section harden into
+    # held disagreements. Spec 0043's cross-round ledger tracks the
+    # transition explicitly.
     diff_match = re.search(r"^##\s+Diff vs .+?Phase 1\s*$", turn_text, re.MULTILINE)
     if diff_match:
         body = _section_body_at(turn_text, diff_match.end())
-        out.extend(_walk_section_items(body, kind="disagreement"))
+        out.extend(_walk_section_items(body, kind="claim"))
 
     # Spec 0041 D1 — Phase 4 ``Issue ledger`` and ``Comments on the
     # current draft`` no longer get bucketed as "question". They have
