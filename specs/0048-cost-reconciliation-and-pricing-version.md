@@ -3,10 +3,10 @@ spec: 0048
 title: Always-on cost verification against provider invoices + pricing-version snapshot
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.46.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/49"
 ---
 
 # Spec 0048 — Always-on cost verification + pricing-version snapshot
