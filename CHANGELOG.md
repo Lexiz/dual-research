@@ -12,6 +12,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.56.0] — 2026-05-17
+
+### Added
+
+- **CSS-class-backed Modal primitive** ([spec 0058](specs/0058-modal-and-roundscrubber.md)) — CMP-06. New `.dr-modal` / `.dr-backdrop` CSS classes replace inline-styled Modal. Two variants: `single` (max 1100px) and `split` (max 1300px). Agent-color 3px left border via `.is-a` / `.is-b`. Theme-aware backdrop. Focus trap with tab cycling.
+- **RoundScrubber** — SUR-12. Horizontal round-stepping bar at the bottom of split modals. Click round pills or prev/next arrows to walk through rounds without closing the modal.
+- **Provider-symmetric SourceCard** — SUR-13. Both Anthropic and OpenAI source cards now render title (or URL fallback), host chip, page_age chip (or "(no age)" placeholder), cited_text block, and [cited] tag. Missing fields show muted placeholders instead of being hidden.
+
+### Changed
+
+- **Modal tab strips migrated to TabGroup line variant** — All modal sub-tabs (NegotiateLeftSubTabs, DraftRightSubTabs, NegotiateDocTabs, top-level modal tabs) now render via `<TabGroup variant="line">` + `<Tab>` from SPEC-0053 instead of inline-styled button rows.
+- **All modals use `agent` prop** — DocumentModal, NegotiateReviewModal, DraftReviewModal, PreflightResponseModal now pass agent='a'/'b' for correct left-border tinting.
+- **NegotiateReviewModal uses `variant="split"`** with CSS grid instead of inline grid styles.
+- **ConsultedSourceCard and CitationOnlyCard** use Chip primitives for host, page_age, [cited], and citation badges.
+
 ## [0.55.0] — 2026-05-17
 
 ### Added

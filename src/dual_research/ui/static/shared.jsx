@@ -331,26 +331,33 @@ function Markdown({ text, className, style }) {
   );
 }
 
-// ───────────────────────── modal ─────────────────────────
-// Big centred surface over a dimmed overlay. Spec 0025.
+// ───────────────────────── modal (SPEC-0058 — CSS-class-backed) ─────────────────────────
+// Class-backed modal using `.dr-modal` / `.dr-backdrop` from components.css.
+// Replaces the original inline-styled Modal from spec 0025.
 //
 // Props:
 //   open      bool     — render or not.
 //   onClose   fn       — called on overlay click, X button, or Esc.
 //   title     node     — header content (left-aligned).
 //   subtitle  node     — optional small text under the title.
-//   tabs      [{id,label,content,count?}]  — optional tab strip. When
-//              provided the surface body renders only the active tab's
-//              `content`; the `children` prop is ignored.
-//   accent    color    — left-rail color (defaults to var(--info)).
-//   width     px       — max surface width (default 1100).
-function Modal({ open, onClose, title, subtitle, tabs, accent, children, width = 1100 }) {
+//   tabs      [{id,label,content,count?,badge?}] — optional tab strip (rendered
+//              via TabGroup line variant). When provided the body renders only
+//              the active tab's `content`; `children` is ignored.
+//   agent     'a'|'b'|null — controls the 3 px left-border color.
+//   variant   'single'|'split' — default 'single'.
+//   footer    node     — optional fixed footer below the body (e.g. RoundScrubber).
+//   children  node     — body content (ignored when `tabs` is provided).
+function Modal({ open, onClose, title, subtitle, tabs, agent, variant = 'single', footer, children }) {
   const [activeId, setActiveId] = React.useState(null);
+  const modalRef = React.useRef(null);
+  const previousFocusRef = React.useRef(null);
+
   // Re-seed active tab when tabs change.
   React.useEffect(() => {
     if (tabs && tabs.length) setActiveId(tabs[0].id);
   }, [tabs ? tabs.map((t) => t.id).join('|') : null]);
 
+  // Esc to close + body overflow lock.
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose && onClose(); };
@@ -363,132 +370,105 @@ function Modal({ open, onClose, title, subtitle, tabs, accent, children, width =
     };
   }, [open, onClose]);
 
+  // Focus trap: capture on mount, return on unmount.
+  React.useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current = document.activeElement;
+    const timer = setTimeout(() => {
+      if (modalRef.current) {
+        const first = modalRef.current.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (first) first.focus();
+      }
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [open]);
+
+  // Tab cycling within modal.
+  React.useEffect(() => {
+    if (!open || !modalRef.current) return;
+    const onKeyTrap = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = modalRef.current.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    window.addEventListener('keydown', onKeyTrap);
+    return () => window.removeEventListener('keydown', onKeyTrap);
+  }, [open]);
+
   if (!open) return null;
 
   const activeTab = tabs && tabs.find ? tabs.find((t) => t.id === activeId) : null;
   const body = tabs ? (activeTab ? activeTab.content : null) : children;
+  const modalCls = _cn('dr-modal', variant === 'split' && 'is-split', agent && `is-${agent}`);
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.55)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-        animation: 'dr-modal-in 120ms ease-out',
-      }}>
+    <div className="dr-backdrop" onClick={onClose}>
       <div
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
+        className={modalCls}
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--bg-1)',
-          border: '1px solid var(--border-2)',
-          borderLeft: `3px solid ${accent || COLORS.info}`,
-          borderRadius: 'var(--r-3)',
-          width: '100%', maxWidth: width,
-          maxHeight: '92vh',
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35)',
-          overflow: 'hidden',
-        }}>
+      >
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border-1)',
-          background: 'var(--bg-0)',
-          flexShrink: 0,
-        }}>
+        <div className="dr-modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: 14, color: 'var(--fg-0)', fontWeight: 600,
-              letterSpacing: '-0.005em',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{title}</div>
-            {subtitle && (
-              <div className="mono" style={{
-                fontSize: 11, color: 'var(--fg-3)', marginTop: 2,
-              }}>{subtitle}</div>
-            )}
+            <div className="dr-modal-title">{title}</div>
+            {subtitle && <div className="dr-modal-sub">{subtitle}</div>}
           </div>
           <button
+            className="dr-modal-close"
             onClick={onClose}
             title="Close (Esc)"
             aria-label="Close"
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 28, height: 28,
-              background: 'transparent', border: '1px solid var(--border-1)',
-              borderRadius: 'var(--r-2)',
-              color: 'var(--fg-2)',
-              cursor: 'pointer',
-            }}>
+          >
             <Icon.X />
           </button>
         </div>
 
-        {/* Tab strip */}
+        {/* Tab strip — uses TabGroup line variant (SPEC-0053) */}
         {tabs && tabs.length > 0 && (
-          <div role="tablist" style={{
-            display: 'flex', alignItems: 'stretch',
-            padding: '0 16px',
-            borderBottom: '1px solid var(--border-1)',
-            background: 'var(--bg-0)',
-            gap: 0,
-            flexShrink: 0,
-          }}>
-            {tabs.map((t) => {
-              const active = t.id === activeId;
-              return (
-                <button
+          <div className="dr-modal-tabs">
+            <TabGroup variant="line">
+              {tabs.map((t) => (
+                <Tab
                   key={t.id}
-                  role="tab"
-                  aria-selected={active}
+                  size="sm"
+                  active={t.id === activeId}
                   onClick={() => setActiveId(t.id)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '10px 14px',
-                    background: 'transparent', border: 'none',
-                    color: active ? 'var(--fg-0)' : 'var(--fg-3)',
-                    fontWeight: active ? 600 : 500,
-                    fontSize: 12.5,
-                    cursor: 'pointer',
-                    borderBottom: `2px solid ${active ? (accent || COLORS.info) : 'transparent'}`,
-                    marginBottom: -1,
-                  }}>
-                  <span>{t.label}</span>
-                  {t.count != null && (
-                    <span className="mono" style={{
-                      fontSize: 10.5,
-                      padding: '1px 6px',
-                      background: active ? (accent || COLORS.info) + '20' : 'var(--bg-2)',
-                      color: active ? (accent || COLORS.info) : 'var(--fg-3)',
-                      borderRadius: 999,
-                    }}>{t.count}</span>
-                  )}
+                  count={t.count}
+                >
+                  {t.label}
                   {t.badge && (
-                    <span style={{
-                      fontSize: 10.5,
-                      color: COLORS.warn,
-                      fontWeight: 700,
-                    }}>{t.badge}</span>
+                    <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center' }}>
+                      {t.badge}
+                    </span>
                   )}
-                </button>
-              );
-            })}
+                </Tab>
+              ))}
+            </TabGroup>
           </div>
         )}
 
         {/* Body */}
-        <div style={{
-          flex: 1, minHeight: 0, overflow: 'auto',
-          padding: '18px 22px 22px',
-          background: 'var(--bg-1)',
-        }}>
+        <div className="dr-modal-body">
           {body}
         </div>
+
+        {/* Footer (e.g. RoundScrubber) */}
+        {footer}
       </div>
     </div>
   );
@@ -959,6 +939,54 @@ function ChipCluster({ max = 5, children, className }) {
   );
 }
 
+// ── SPEC-0058 — RoundScrubber ──────────────────────────────────────────────────
+// Horizontal round-stepping bar for split modals (SUR-12).
+// rounds: array of round numbers available (e.g. [1,2,3,4,5]).
+// current: the currently selected round number.
+// onChange(roundNum): called when user clicks a round or arrow.
+function RoundScrubber({ rounds, current, onChange }) {
+  if (!rounds || rounds.length <= 1) return null;
+  const idx = rounds.indexOf(current);
+  const hasPrev = idx > 0;
+  const hasNext = idx < rounds.length - 1;
+  return (
+    <div className="round-scrubber">
+      <button
+        type="button"
+        className="round-scrubber-btn"
+        disabled={!hasPrev}
+        onClick={() => hasPrev && onChange(rounds[idx - 1])}
+        title="Previous round"
+        aria-label="Previous round"
+      >
+        <Mdi name="chevron-left" size={14} />
+      </button>
+      <span className="round-scrubber-label">round</span>
+      {rounds.map((r) => (
+        <button
+          key={r}
+          type="button"
+          className={_cn('round-scrubber-pill', r === current && 'is-active')}
+          onClick={() => onChange(r)}
+          title={`Round ${r}`}
+        >
+          r{r}
+        </button>
+      ))}
+      <button
+        type="button"
+        className="round-scrubber-btn"
+        disabled={!hasNext}
+        onClick={() => hasNext && onChange(rounds[idx + 1])}
+        title="Next round"
+        aria-label="Next round"
+      >
+        <Mdi name="chevron-right" size={14} />
+      </button>
+    </div>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
@@ -971,4 +999,6 @@ Object.assign(window, {
   parseQId, QuestionRef, QuestionThread,
   // SPEC-0057 primitives
   ChipCluster,
+  // SPEC-0058 primitives
+  RoundScrubber,
 });

@@ -3653,13 +3653,14 @@ function DocumentModal({ item, meta, onClose, accent }) {
     },
     webSearch,
   ].filter(Boolean));
+  const agentSlot = item.agent === 'claude' ? 'a' : item.agent === 'gpt' ? 'b' : null;
   return (
     <Modal
       open={true}
       onClose={onClose}
       title={title}
       subtitle={subtitle}
-      accent={accent}
+      agent={agentSlot}
       tabs={tabs}
     />
   );
@@ -3809,6 +3810,34 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
   const subtitle = item.statsPhase === 4
     ? `round ${item.round} · reviewing the converged document`
     : `round ${item.round} · reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+  const agentSlot = item.agent === 'claude' ? 'a' : 'b';
+
+  // SPEC-0058 SUR-12: RoundScrubber — find available rounds for this agent+phase.
+  const timeline = React.useMemo(() => buildTimeline(run), [run]);
+  const roundsForPhase = React.useMemo(() => {
+    const seen = new Set();
+    for (const t of timeline) {
+      if (t.agent === item.agent && t.statsPhase === item.statsPhase && t.round != null) {
+        seen.add(Number(t.round));
+      }
+    }
+    return Array.from(seen).sort((a, b) => a - b);
+  }, [timeline, item.agent, item.statsPhase]);
+  const [scrubRound, setScrubRound] = React.useState(Number(item.round) || 1);
+  // Find the timeline item for the scrubbed round.
+  const scrubItem = React.useMemo(() => {
+    if (Number(item.round) === scrubRound) return item;
+    return timeline.find(
+      (t) => t.agent === item.agent && t.statsPhase === item.statsPhase && Number(t.round) === scrubRound
+    ) || item;
+  }, [timeline, item, scrubRound]);
+  // Recompute data when scrubbing to a different round.
+  const scrubOtherFilePath = priorContentPathFor(scrubItem, otherAgent, run);
+  const scrubReviewItems = reviewItemsFor(run, scrubItem);
+
+  const scrubber = roundsForPhase.length > 1 ? (
+    <RoundScrubber rounds={roundsForPhase} current={scrubRound} onChange={setScrubRound} />
+  ) : null;
 
   return (
     <Modal
@@ -3816,27 +3845,20 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
       onClose={onClose}
       title={title}
       subtitle={subtitle}
-      accent={accent}
-      width={1300}
+      agent={agentSlot}
+      variant="split"
+      footer={scrubber}
     >
-      <div style={{
-        display: 'grid',
-        // Spec 0045 D5 — equal-width panes; both columns now read as
-        // parallel surfaces (was 1.5fr / 1fr, biased toward the left).
-        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-        gap: 18,
-        minHeight: 0,
-        height: '100%',
-      }}>
+      <div className="dr-modal-split">
         {/* Left: prior content + Input sub-tab (spec 0033).
             Spec 0044 D4: ``docTabs`` exposes the per-turn document
             context (other's prior turn / other's draft / brief / your
             draft / current converged draft). */}
         <NegotiateLeftPane
-          item={item}
+          item={scrubItem}
           otherAgent={otherAgent}
-          priorFilePath={priorFilePath}
-          docTabs={leftPaneTabsFor(item, otherAgent, run)}
+          priorFilePath={scrubOtherFilePath}
+          docTabs={leftPaneTabsFor(scrubItem, otherAgent, run)}
           leftRef={leftRef}
         />
 
@@ -3848,11 +3870,11 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           overflow: 'auto',
           paddingRight: 4,
         }}>
-          <ReviewKeyboardHint hasItems={items.length > 0} />
+          <ReviewKeyboardHint hasItems={scrubReviewItems.length > 0} />
           <ReviewGroup
             label="Open questions"
             color={COLORS.info}
-            items={items}
+            items={scrubReviewItems}
             kinds={['question']}
             activeIdx={activeIdx}
             onSelect={handleSelect}
@@ -3864,7 +3886,7 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           <ReviewGroup
             label="Claims"
             color={COLORS.info}
-            items={items}
+            items={scrubReviewItems}
             kinds={['claim']}
             activeIdx={activeIdx}
             onSelect={handleSelect}
@@ -3872,7 +3894,7 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           <ReviewGroup
             label="Disagreements"
             color={COLORS.warn}
-            items={items}
+            items={scrubReviewItems}
             kinds={['disagreement']}
             activeIdx={activeIdx}
             onSelect={handleSelect}
@@ -3880,12 +3902,12 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           <ReviewGroup
             label="Resolved / non-blocking"
             color={COLORS.ok}
-            items={items}
+            items={scrubReviewItems}
             kinds={['resolved']}
             activeIdx={activeIdx}
             onSelect={handleSelect}
           />
-          {items.length === 0 && (
+          {scrubReviewItems.length === 0 && (
             <div style={{
               padding: '20px 14px', textAlign: 'center',
               color: 'var(--fg-3)', fontSize: 12.5,
@@ -3894,7 +3916,7 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
               background: 'var(--bg-2)',
             }}>
               {/* Spec 0044 D5 — action-specific empty-state copy. */}
-              {emptyStateCopy(item, run)}
+              {emptyStateCopy(scrubItem, run)}
             </div>
           )}
         </div>
@@ -4001,35 +4023,21 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }
 // Spec 0044 D4 — small horizontal chip strip naming each document
 // the agent had as input. Active chip is highlighted; click switches
 // the left-pane content.
+// Spec 0058 D4 — migrated to TabGroup line variant for doc strip.
 function NegotiateDocTabs({ tabs, active, onChange }) {
   return (
-    <>
-      {tabs.map((t) => {
-        const isActive = t.id === active;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            title={t.path || ''}
-            style={{
-              appearance: 'none',
-              border: `1px solid ${isActive ? 'var(--border-3)' : 'var(--border-1)'}`,
-              background: isActive ? 'var(--bg-3)' : 'var(--bg-0)',
-              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
-              fontSize: 11,
-              fontWeight: isActive ? 600 : 500,
-              padding: '3px 10px',
-              borderRadius: 999,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t.label}
-          </button>
-        );
-      })}
-    </>
+    <TabGroup variant="line">
+      {tabs.map((t) => (
+        <Tab
+          key={t.id}
+          size="sm"
+          active={t.id === active}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+        </Tab>
+      ))}
+    </TabGroup>
   );
 }
 
@@ -4038,6 +4046,7 @@ function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearc
   // (Original ≡ Content slot, then Input, then Web Search); the Web
   // Search sub-tab only renders when the turn actually has search data
   // (the ⚠ hallucination badge of D8 still shows when present).
+  // Spec 0058 D4 — migrated to TabGroup line variant.
   const tabs = [
     { id: 'original',  label: 'Original' },
     { id: 'input',     label: 'Input' },
@@ -4045,44 +4054,23 @@ function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearc
                        badge: hasSearchWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null },
   ].filter(Boolean);
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'stretch',
-      borderRadius: 999, overflow: 'hidden',
-      border: '1px solid var(--border-1)',
-      background: 'var(--bg-1)',
-      flexShrink: 0,
-    }}>
-      {tabs.map((t, i) => {
-        const isActive = t.id === active;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            style={{
-              appearance: 'none',
-              border: 'none',
-              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
-              background: isActive ? 'var(--bg-3)' : 'transparent',
-              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
-              fontSize: 11,
-              fontWeight: isActive ? 600 : 500,
-              padding: '3px 10px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontFamily: 'inherit',
-            }}
-          >
-            {t.label}
-            {t.badge && (
-              <span style={{ marginLeft: 4, color: COLORS.warn, fontWeight: 700 }}>
-                {t.badge}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+    <TabGroup variant="line">
+      {tabs.map((t) => (
+        <Tab
+          key={t.id}
+          size="sm"
+          active={t.id === active}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+          {t.badge && (
+            <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center' }}>
+              {t.badge}
+            </span>
+          )}
+        </Tab>
+      ))}
+    </TabGroup>
   );
 }
 
@@ -4134,6 +4122,7 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
 
   const title = `${meta?.name || 'Agent'} — Phase 1 draft`;
   const subtitle = 'side-by-side with the brief';
+  const agentSlot = item.agent === 'claude' ? 'a' : item.agent === 'gpt' ? 'b' : null;
 
   return (
     <Modal
@@ -4141,25 +4130,15 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
       onClose={onClose}
       title={title}
       subtitle={subtitle}
-      accent={accent}
-      width={1300}
+      agent={agentSlot}
+      variant="split"
     >
-      <div style={{
-        display: 'grid',
-        // Spec 0045 D5 — equal-width panes (was 1fr / 1.3fr, biased
-        // toward the draft on the right).
-        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-        gap: 18,
-        minHeight: 0,
-        height: '100%',
-      }}>
+      <div className="dr-modal-split">
         {/* Left: brief (with Original | Input sub-tabs, spec 0033). */}
-        <div style={{
-          minHeight: 0, minWidth: 0,
+        <div className="dr-modal-pane" style={{
           background: 'var(--bg-0)',
           border: '1px solid var(--border-1)',
           borderRadius: 'var(--r-2)',
-          display: 'flex', flexDirection: 'column',
         }}>
           <div style={{
             padding: '6px 12px',
@@ -4293,50 +4272,30 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
 function DraftRightSubTabs({ active, onChange, hasSearchWarning, showWebSearch }) {
   // Spec 0045 D2 — hide the Web Search sub-tab when the draft turn
   // had no searches.
+  // Spec 0058 D4 — migrated to TabGroup line variant.
   const tabs = [
     { id: 'draft',     label: 'Draft' },
     showWebSearch && { id: 'webSearch', label: 'Web Search',
                        badge: hasSearchWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null },
   ].filter(Boolean);
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'stretch',
-      borderRadius: 999, overflow: 'hidden',
-      border: '1px solid var(--border-1)',
-      background: 'var(--bg-1)',
-      flexShrink: 0,
-    }}>
-      {tabs.map((t, i) => {
-        const isActive = t.id === active;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            style={{
-              appearance: 'none',
-              border: 'none',
-              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
-              background: isActive ? 'var(--bg-3)' : 'transparent',
-              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
-              fontSize: 11,
-              fontWeight: isActive ? 600 : 500,
-              padding: '3px 10px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontFamily: 'inherit',
-            }}
-          >
-            {t.label}
-            {t.badge && (
-              <span style={{ marginLeft: 4, color: COLORS.warn, fontWeight: 700 }}>
-                {t.badge}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+    <TabGroup variant="line">
+      {tabs.map((t) => (
+        <Tab
+          key={t.id}
+          size="sm"
+          active={t.id === active}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+          {t.badge && (
+            <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center' }}>
+              {t.badge}
+            </span>
+          )}
+        </Tab>
+      ))}
+    </TabGroup>
   );
 }
 
@@ -5053,6 +5012,11 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
   );
 }
 
+// Spec 0058 SUR-13 — provider-symmetric ConsultedSourceCard.
+// Both Anthropic and OpenAI sources render the same layout:
+// title (or URL fallback) + host chip + page_age chip (when available)
+// + cited_text block (when available) + [cited] tag.
+// Missing fields render as muted placeholders instead of being hidden.
 function ConsultedSourceCard({ source, isCited, citationsForSource }) {
   const url = source.url || '';
   let host = '';
@@ -5071,35 +5035,29 @@ function ConsultedSourceCard({ source, isCited, citationsForSource }) {
         <a href={url} target="_blank" rel="noopener noreferrer"
            title={url}
            style={{
-             color: 'var(--fg-0)', fontSize: 12.5, fontWeight: 500,
+             color: title ? 'var(--fg-0)' : 'var(--fg-3)',
+             fontSize: 12.5, fontWeight: 500,
              textDecoration: 'none', wordBreak: 'break-word', minWidth: 0,
+             fontStyle: title ? 'normal' : 'italic',
            }}>
-          {title || host || url}
+          {title || host || url || '(no title)'}
         </a>
-        {host && title && (
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{host}</span>
+        {/* Host chip — always rendered when extractable */}
+        {host && (
+          <Chip tone="muted" style={{ height: 18, fontSize: '10.5px' }}>{host}</Chip>
         )}
-        {pageAge && (
-          <span className="mono" style={{
-            fontSize: 10, color: 'var(--fg-3)',
-            padding: '0 6px',
-            background: 'var(--bg-2)',
-            border: '1px solid var(--border-1)',
-            borderRadius: 999,
-          }}>{pageAge}</span>
+        {/* Page age chip — rendered when available, placeholder when not */}
+        {pageAge ? (
+          <Chip tone="muted" style={{ height: 18, fontSize: '10px' }}>{pageAge}</Chip>
+        ) : (
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>(no age)</span>
         )}
         <span style={{ flex: 1 }} />
         {isCited && (
-          <span style={{
-            fontSize: 10, color: COLORS.info, fontWeight: 600,
-            padding: '0 6px',
-            background: 'rgba(107,156,240,0.10)',
-            border: '1px solid rgba(107,156,240,0.30)',
-            borderRadius: 999,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>[cited]</span>
+          <Chip tone="info" style={{ height: 18, fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>[cited]</Chip>
         )}
       </div>
+      {/* Cited text blocks — always show the section, with placeholder if no text */}
       {citationsForSource && citationsForSource.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
           {citationsForSource.map((c, i) => (
@@ -5144,10 +5102,12 @@ function CitedTextBlock({ citation }) {
   );
 }
 
+// Spec 0058 SUR-13 — symmetric CitationOnlyCard.
 function CitationOnlyCard({ citation }) {
   const url = citation.url || '';
   let host = '';
   try { host = new URL(url).hostname; } catch { host = ''; }
+  const title = citation.title || null;
   return (
     <div style={{
       padding: '8px 10px',
@@ -5160,23 +5120,18 @@ function CitationOnlyCard({ citation }) {
         <a href={url} target="_blank" rel="noopener noreferrer"
            title={url}
            style={{
-             color: 'var(--fg-0)', fontSize: 12.5, fontWeight: 500,
+             color: title ? 'var(--fg-0)' : 'var(--fg-3)',
+             fontSize: 12.5, fontWeight: 500,
              textDecoration: 'none', wordBreak: 'break-word',
+             fontStyle: title ? 'normal' : 'italic',
            }}>
-          {citation.title || host || url}
+          {title || host || url || '(no title)'}
         </a>
-        {host && citation.title && (
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{host}</span>
+        {host && (
+          <Chip tone="muted" style={{ height: 18, fontSize: '10.5px' }}>{host}</Chip>
         )}
         <span style={{ flex: 1 }} />
-        <span style={{
-          fontSize: 10, color: COLORS.info, fontWeight: 600,
-          padding: '0 6px',
-          background: 'rgba(107,156,240,0.10)',
-          border: '1px solid rgba(107,156,240,0.30)',
-          borderRadius: 999,
-          letterSpacing: '0.06em', textTransform: 'uppercase',
-        }}>citation</span>
+        <Chip tone="info" style={{ height: 18, fontSize: '10px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>citation</Chip>
       </div>
       {citation.cited_text && (
         <CitedTextBlock citation={citation} />
@@ -5266,7 +5221,6 @@ function InputBriefModal({ item, run, onClose, accent }) {
       onClose={onClose}
       title="Input — brief"
       subtitle={item.topic || ''}
-      accent={accent}
       tabs={tabs}
     />
   );
@@ -5291,13 +5245,14 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
     },
     webSearch,
   ].filter(Boolean));
+  const agentSlot = item.agent === 'claude' ? 'a' : item.agent === 'gpt' ? 'b' : null;
   return (
     <Modal
       open={true}
       onClose={onClose}
       title={`${meta?.name || 'Agent'} — brief critique`}
       subtitle={item.topic || ''}
-      accent={accent}
+      agent={agentSlot}
       tabs={tabs}
     />
   );
