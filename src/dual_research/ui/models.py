@@ -280,6 +280,44 @@ class Comment:
     raised_turn_key: str = ""
 
 
+# ─── Claim (spec 0042) ────────────────────────────────────────────────────────
+
+
+ClaimStatus = Literal["open", "resolved"]
+
+
+@dataclass
+class Claim:
+    """Spec 0042 D2 — items extracted from Phase 1's ``Claims I Expect the
+    Other Agent Might Dispute`` section and from Phase 2 round-1's
+    ``Diff vs … Phase 1`` difference inventory.
+
+    A Claim is a contested point being raised — distinct from a held
+    disagreement (which only forms in R≥2 when the agent re-asserts the
+    point as a position in ``## Substantive disagreements I'm holding``).
+    The protocol doesn't number Phase 1 claims; the parser assigns IDs
+    deterministically (``Cl-{agent}-p1-{idx}`` for Phase 1 entries,
+    ``Cl-{agent}-r{round}-{idx}`` for Phase 2 R1 difference entries).
+
+    Status: ``open`` while the claim is in play, ``resolved`` once the
+    other agent addresses it (the cross-round transition to a disagreement
+    OR to a resolved-difference). Spec 0042 leaves the status default at
+    ``open`` for all claims — proper lifecycle inference is spec 0043's
+    cross-round ledger.
+    """
+
+    id: str  # "Cl-c-p1-01" or "Cl-c-r1-04"
+    phase: int  # 1 | 2
+    raised_by: str  # "claude" | "gpt"
+    raised_round: int  # 0 for Phase 1 drafts; 1 for Phase 2 R1
+    status: ClaimStatus = "open"
+    body: str = ""
+    quote: str | None = None
+    after: str | None = None
+    block_id: str | None = None
+    raised_turn_key: str = ""
+
+
 # ─── RunError ─────────────────────────────────────────────────────────────────
 
 
@@ -452,6 +490,10 @@ class Run:
     # by the drafter's revision; comments are non-blocking).
     issues: list[Issue] = field(default_factory=list)
     comments: list[Comment] = field(default_factory=list)
+    # Spec 0042 D2 — first-class claims, parallel to disagreements. Sourced
+    # from Phase 1's ``Claims I Expect the Other Agent Might Dispute`` and
+    # Phase 2 R1's ``Diff vs … Phase 1`` difference inventory.
+    claims: list[Claim] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)

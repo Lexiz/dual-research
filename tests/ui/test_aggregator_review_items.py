@@ -112,9 +112,17 @@ def test_empty_phase2_directory_means_empty_review_items(tmp_path: Path) -> None
     assert run.phase_review_items == {}
 
 
-def test_turn_with_no_anchored_sections_yields_no_key(tmp_path: Path) -> None:
-    """If a turn file has no Open questions / Disagreements sections at all,
-    the aggregator doesn't synthesise an empty key."""
+def test_turn_with_no_anchored_sections_yields_empty_bucket(tmp_path: Path) -> None:
+    """Spec 0042 D7 — the aggregator ALWAYS creates a bucket for every
+    turn file it walks, even when the parser finds no items. This
+    resolves the prior absence-as-empty ambiguity: an empty list now
+    means "we looked and there's nothing there"; a missing key now
+    means "the turn file doesn't exist on disk."
+
+    Pre-spec the same condition silently skipped key creation, which
+    made it impossible for the frontend to distinguish "parser found
+    nothing" from "never parsed."
+    """
     session = tmp_path / "20260516-100000-no-sections"
     session.mkdir()
     _minimal_session(session)
@@ -124,7 +132,7 @@ def test_turn_with_no_anchored_sections_yields_no_key(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     run = load_run_snapshot(session)
-    assert "phase2_round1_claude" not in run.phase_review_items
+    assert run.phase_review_items.get("phase2_round1_claude") == []
 
 
 def test_malformed_round_files_skipped(tmp_path: Path) -> None:

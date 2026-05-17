@@ -99,7 +99,12 @@ def test_resolved_section_is_classified_as_resolved() -> None:
     assert {r.item_id for r in resolved} == {"D-1", "D-2"}
 
 
-def test_round_1_diff_section_treated_as_disagreements() -> None:
+def test_round_1_diff_section_treated_as_claims() -> None:
+    """Spec 0042 D6 — Round-1 difference inventory parses as ``claim``,
+    not ``disagreement``. Pre-spec they bucketed as disagreement; the
+    semantic shift is that R1 enumerates contested points being raised,
+    only R≥2's ``## Substantive disagreements I'm holding`` holds them.
+    """
     text = dedent(
         """
         ## Diff vs openai's Phase 1
@@ -111,7 +116,7 @@ def test_round_1_diff_section_treated_as_disagreements() -> None:
         """
     ).strip()
     items = extract_review_items(text)
-    assert [i.kind for i in items] == ["disagreement", "disagreement"]
+    assert [i.kind for i in items] == ["claim", "claim"]
     assert items[0].quote and "SQLite is fine" in items[0].quote
     assert items[1].after == "5. Reliability"
 
@@ -256,3 +261,87 @@ def test_phase4_substantive_disagreements_extracted() -> None:
     assert items[0].kind == "disagreement"
     assert items[0].item_id == "D-5"
     assert items[0].quote and "cohort to single-family" in items[0].quote
+
+
+# ─── Spec 0042 — Phase 1 sections + Diff vs re-bucketing ──────────────
+
+
+def test_spec0042_phase1_claims_section_extracted() -> None:
+    """Phase 1 drafts use ``## N. Claims I Expect the Other Agent Might
+    Dispute`` (with optional leading numeric prefix). Items extract as
+    ``kind="claim"``."""
+    text = dedent(
+        """
+        ## 4. Claims I Expect the Other Agent Might Dispute
+
+        1. **First claim.** Body of first.
+
+        2. **Second claim.** Body of second.
+
+        ## 5. Open Questions
+
+        **Q1: A question?**
+        - Specific question: foo
+        """
+    ).strip()
+    items = extract_review_items(text)
+    claims = [i for i in items if i.kind == "claim"]
+    qs = [i for i in items if i.kind == "question"]
+    assert len(claims) == 2
+    assert len(qs) == 1
+    assert claims[0].body.startswith("**First claim.**")
+    assert qs[0].body.startswith("**Q1:")
+
+
+def test_spec0042_phase1_open_questions_without_for_suffix() -> None:
+    """Phase 1 uses ``## Open Questions`` (no ``for X`` suffix). Numeric
+    prefix tolerated. Falls back when Phase 2's ``Open questions for X``
+    form is also present (avoids double-extracting)."""
+    text = dedent(
+        """
+        ## Open Questions
+
+        **Q1: First question?**
+        - body
+        **Q2: Second question?**
+        - body
+        """
+    ).strip()
+    items = extract_review_items(text)
+    questions = [i for i in items if i.kind == "question"]
+    assert len(questions) == 2
+
+
+def test_spec0042_diff_vs_is_claim_not_disagreement() -> None:
+    """Spec 0042 D6 — ``## Diff vs … Phase 1`` items bucket as ``claim``,
+    not ``disagreement``. The R≥2 ``## Substantive disagreements I'm
+    holding`` section is the only source of ``disagreement`` items."""
+    text = dedent(
+        """
+        ## Diff vs openai's Phase 1
+
+        **D-1** — **A contested point.** body.
+
+        **D-2** — **Another contested point.** body.
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 2
+    assert all(i.kind == "claim" for i in items)
+
+
+def test_spec0042_substantive_disagreements_still_kind_disagreement() -> None:
+    """R≥2 ``## Substantive disagreements I'm holding`` still produces
+    ``kind="disagreement"`` (unchanged)."""
+    text = dedent(
+        """
+        ## Substantive disagreements I'm holding
+
+        - **D-1**: a contested point — status: open
+          > quote: source
+        """
+    ).strip()
+    items = extract_review_items(text)
+    assert len(items) == 1
+    assert items[0].kind == "disagreement"
+    assert items[0].item_id == "D-1"

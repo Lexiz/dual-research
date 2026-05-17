@@ -27,6 +27,7 @@ from dual_research.protocol.parse import (
     synthesise_brief_tldr,
 )
 from dual_research.ui.disagreements import mark_deadlocked_open, reconstruct
+from dual_research.ui.claims import reconstruct_claims
 from dual_research.ui.comments import reconstruct_comments
 from dual_research.ui.issues import reconstruct_issues
 from dual_research.ui.questions import reconstruct_questions
@@ -126,6 +127,10 @@ def load_run_snapshot(session_dir: Path) -> Run:
         reconstruct_comments(session_dir, phase=2)
         + reconstruct_comments(session_dir, phase=4)
     )
+    # Spec 0042 D2 + D3: first-class Claim objects from Phase 1 drafts and
+    # Phase 2 R1 difference inventories. ``reconstruct_claims`` walks both
+    # sources in one pass and returns them ordered by (phase, agent, idx).
+    run.claims = reconstruct_claims(session_dir)
     # Anchor pre-resolution for questions: same prior-content lookup as
     # used by ``_read_phase_review_items``.
     _resolve_question_anchors(session_dir, run.questions)
@@ -982,6 +987,8 @@ def _set_body_if_present(
 
 _DASH_DIGIT_RE = re.compile(r"\bD-\d+\b")
 _ROUND_FILE_RE = re.compile(r"^round-(\d+)-(claude|openai)\.md$")
+# Spec 0042 — Phase 1 draft files have one per agent, no round.
+_PHASE1_DRAFT_RE = re.compile(r"^draft-(claude|openai)\.md$")
 
 
 def _read_brief_summary(session_dir: Path) -> str | None:
@@ -1099,7 +1106,11 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
     def _resolve_prior_blocks(phase_n: int, round_n: int, agent_be: str):
         nonlocal cached_current_draft
         # Mirror ``ui/static/run-detail.jsx::priorContentPathFor``.
-        if phase_n == 4:
+        if phase_n == 1:
+            # Spec 0042 — Phase 1 draft claims/questions anchor against
+            # the brief (the agent's only input at that point).
+            prior_path = session_dir / "brief.md"
+        elif phase_n == 4:
             # Phase 4 anchors are against the current converged draft.
             if cached_current_draft is None:
                 cached_current_draft = _find_current_draft_path(session_dir) or ""
@@ -1122,6 +1133,31 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
         _, records = assign_block_ids(prior_text)
         return records
 
+    # Spec 0042 D3 — Phase 1 walked alongside Phase 2 + Phase 4 so the
+    # side-by-side modal can render structured items for plan-draft cards.
+    # Phase 1 has one draft per agent and no rounds; the bucket key drops
+    # the round component (``phase1_<agent>``).
+    phase1_dir = session_dir / "phase1"
+    if phase1_dir.is_dir():
+        for entry in sorted(phase1_dir.iterdir()):
+            if not entry.is_file() or not entry.name.endswith(".md"):
+                continue
+            m = _PHASE1_DRAFT_RE.match(entry.name)
+            if not m:
+                continue
+            agent = m.group(1)
+            try:
+                text = entry.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            prior_blocks = _resolve_prior_blocks(1, 1, agent)
+            items = resolve_review_items(text, prior_blocks)
+            # Spec 0042 D7 — always create the bucket so absence-as-empty
+            # ambiguity is resolved. An empty list means "we looked; nothing
+            # there" instead of "we never looked."
+            key = f"phase1_{_ui_agent(agent)}"
+            out[key] = [asdict(i) for i in items]
+
     for phase_n in (2, 4):
         phase_dir = session_dir / f"phase{phase_n}"
         if not phase_dir.exists():
@@ -1142,8 +1178,10 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
                 continue
             prior_blocks = _resolve_prior_blocks(phase_n, round_n, agent)
             items = resolve_review_items(text, prior_blocks)
-            if not items:
-                continue
+            # Spec 0042 D7 — always create the bucket, even when items
+            # is empty, so the frontend can distinguish "parsed and got
+            # nothing" from "never parsed" (the latter is now impossible
+            # for any agent's turn file that exists on disk).
             key = f"phase{phase_n}_round{round_n}_{_ui_agent(agent)}"
             out[key] = [asdict(i) for i in items]
     return out

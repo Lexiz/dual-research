@@ -273,6 +273,33 @@ function _applyBackendBlockIds(html, ids) {
   return _injectBlockIds(container.innerHTML);
 }
 
+// Spec 0042 D9/D10 — prose like ``**Purpose:** ...\n---\n## 1. Foo`` was
+// rendering as an H2 wrapping the entire ``**Purpose:**`` paragraph
+// (which then displayed bold). Root cause: CommonMark setext headings
+// use ``---`` IMMEDIATELY following a paragraph as an H2 underline, so
+// a bare ``---`` divider line without a blank line above it gets eaten
+// as a heading marker for the previous paragraph. The brief content
+// uses ``---`` as a section divider without blank-line padding.
+//
+// Fix: pre-process the source so every bare ``---`` line is surrounded
+// by blank lines. Marked then interprets it as a thematic break
+// (``<hr>``) instead of a heading underline. Same fix covers
+// ``===`` (setext H1).
+function _padSetextDividers(text) {
+  if (!text) return text;
+  // Match a line that is exactly 3+ dashes (or 3+ equals) optionally
+  // followed by trailing whitespace, anywhere in the source. Insert
+  // blank lines on either side if they're missing.
+  return text.replace(
+    /(^|[^\n])\n(---+|===+)[ \t]*\n([^\n]|$)/g,
+    (m, before, divider, after) => {
+      const lead = before === '\n' || before === '' ? before + '\n' : before + '\n\n';
+      const tail = after === '\n' || after === '' ? '\n' + after : '\n\n' + after;
+      return lead + divider + tail;
+    }
+  );
+}
+
 function Markdown({ text, className, style }) {
   const html = React.useMemo(() => {
     if (typeof window === 'undefined' || typeof window.marked === 'undefined') return null;
@@ -281,7 +308,9 @@ function Markdown({ text, className, style }) {
       // source BEFORE parsing — marked can otherwise inline them as raw
       // HTML or drop them depending on the gfm setting.
       const { stripped, ids } = _extractBackendBlockIds(text || '');
-      const raw = window.marked.parse(stripped, { gfm: true, breaks: false });
+      // Spec 0042: normalise setext-heading-triggering dividers.
+      const padded = _padSetextDividers(stripped);
+      const raw = window.marked.parse(padded, { gfm: true, breaks: false });
       if (ids.length > 0) return _applyBackendBlockIds(raw, ids);
       return _injectBlockIds(raw);
     } catch (e) {

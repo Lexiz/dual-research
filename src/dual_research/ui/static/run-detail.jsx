@@ -1610,7 +1610,7 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
   const sentiment = !isLive ? composeSentiment(item, run) : '';
   const canExpand = !isLive && (hasSummary || gist || sentiment);
 
-  const header = <ArtifactHeader item={item} meta={meta} hover={hover} />;
+  const header = <ArtifactHeader item={item} meta={meta} hover={hover} run={run} />;
 
   // Spec 0034: cross-axis click-to-highlight. If this card's turnKey is
   // in the highlight set (from the CritiqueExplorer), apply a ring +
@@ -2158,57 +2158,123 @@ function capitalise(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Spec 0042 D5 — per-phase chip allowlist. Each phase only renders the
+// chip kinds its protocol actually emits. Phase 0 (preflight) + Phase 3
+// (silent drafter) + Phase 5 (final) have no structured turn items and
+// render no chips. Phase 1 (plan draft) renders claims + questions.
+// Phase 2 (negotiate) renders questions + disagreements + claims (R1
+// only). Phase 4 (review) renders issues + comments + disagreements.
+const PHASE_CHIP_ALLOWLIST = {
+  0: [],
+  1: ['claims', 'questions'],
+  2: ['questions', 'disagreements', 'claims'],
+  3: [],
+  4: ['issues', 'comments', 'disagreements'],
+  5: [],
+};
+
 // Small mono chips surfacing parsed protocol stats on a turn/plan row.
 // Stays out of the way: nothing rendered when stats are absent.
 // Spec 0034: ``prevStats`` enables round-over-round delta annotations
 // (e.g. ``4 Q (-2)`` for "two questions answered since prior round").
-function StatsChips({ stats, phase, prevStats }) {
-  if (!stats) return null;
-  const chips = [];
-  // Phase 4 surfaces OPEN_ISSUES; Phases 1/2 surface OPEN_QUESTIONS + BLOCKING.
-  // Labels are full words so they read naturally and match the right-pane
-  // Disagreement explorer's vocabulary (spec 0014).
-  if (phase === 4) {
-    if (stats.openIssues != null) {
-      chips.push({
-        value: stats.openIssues,
-        label: stats.openIssues === 1 ? 'issue' : 'issues',
-        tint: stats.openIssues > 0 ? 'warn' : 'ok',
-        delta: prevStats?.openIssues != null
-          ? stats.openIssues - prevStats.openIssues
-          : null,
-      });
-    }
-  } else {
-    if (stats.openQuestions != null) {
-      chips.push({
-        value: stats.openQuestions,
-        label: stats.openQuestions === 1 ? 'question' : 'questions',
-        tint: stats.openQuestions > 0 ? 'info' : 'ok',
-        delta: prevStats?.openQuestions != null
-          ? stats.openQuestions - prevStats.openQuestions
-          : null,
-      });
-    }
-    if (stats.blocking != null && stats.blocking > 0) {
-      chips.push({
-        value: stats.blocking,
-        label: stats.blocking === 1 ? 'disagreement' : 'disagreements',
-        tint: 'warn',
-        delta: prevStats?.blocking != null
-          ? stats.blocking - prevStats.blocking
-          : null,
-      });
+// Spec 0042 D4 + D5: when ``run`` + ``turnKey`` are available, chip
+// counts come from parsed-item arrays filtered by ``raisedTurnKey``
+// (the typed lists on ``run`` — ``questions`` / ``disagreements`` /
+// ``claims`` / ``issues`` / ``comments``). The agent's self-reported
+// ``OPEN_QUESTIONS:`` / ``OPEN_ISSUES:`` / ``BLOCKING_DISAGREEMENTS:``
+// counters become a sanity-check (logged when mismatched) but are not
+// the source of truth. When ``run`` or ``turnKey`` is missing (older
+// callers, or transcripts without parsed items), the function falls
+// back to the legacy self-counter path.
+function StatsChips({ stats, phase, prevStats, run, turnKey }) {
+  // Per-phase chip allowlist (D5). Phase 0/3/5 → no chips even if the
+  // parser found something stray.
+  const allowed = PHASE_CHIP_ALLOWLIST[phase] || [];
+
+  // D4 — derive counts from parsed-item arrays when the modern data is
+  // wired. Filter each list by ``raisedTurnKey``. Fall back to
+  // self-counters when ``run`` or ``turnKey`` is absent.
+  const useParsed = run != null && turnKey != null && allowed.length > 0;
+  let parsedCounts = null;
+  if (useParsed) {
+    const filt = (arr) => (arr || []).filter((it) => it.raisedTurnKey === turnKey).length;
+    parsedCounts = {
+      questions:     filt(run.questions),
+      disagreements: filt(run.disagreements),
+      claims:        filt(run.claims),
+      issues:        filt(run.issues),
+      comments:      filt(run.comments),
+    };
+    // Sanity-check the self-counter when both are present (logs once
+    // per render mismatch; no UI surface — that's spec 0043's job).
+    if (stats) {
+      if (stats.openQuestions != null && stats.openQuestions !== parsedCounts.questions) {
+        // eslint-disable-next-line no-console
+        console.debug(
+          `[stats] turn ${turnKey}: agent reported OPEN_QUESTIONS=${stats.openQuestions} but parser found ${parsedCounts.questions}`
+        );
+      }
+      if (stats.openIssues != null && stats.openIssues !== parsedCounts.issues) {
+        // eslint-disable-next-line no-console
+        console.debug(
+          `[stats] turn ${turnKey}: agent reported OPEN_ISSUES=${stats.openIssues} but parser found ${parsedCounts.issues}`
+        );
+      }
     }
   }
-  // Render a pill for every protocol-defined turn status, not just the
-  // terminal-agreed ones. Mid-state values (NEGOTIATING / REVIEWING /
-  // DISAGREED) used to be silently dropped, leaving the user unable to
-  // tell at a glance whether a round agreed.
+
+  const chips = [];
+
+  // Spec 0042 — emit one chip per allowed kind whose count is > 0. The
+  // delta annotation (round-over-round) still reads from ``prevStats``
+  // for Phase 2/4 turns; for Phase 1 plan drafts there is no prior round
+  // so no deltas are emitted.
+  const pushChip = (kind, label, tint, value, prevValue) => {
+    if (value <= 0) return;
+    chips.push({
+      value,
+      label: value === 1 ? label : `${label}s`,
+      tint,
+      delta: prevValue != null ? value - prevValue : null,
+    });
+  };
+
+  if (allowed.includes('claims')) {
+    const value = useParsed ? parsedCounts.claims : 0;
+    pushChip('claims', 'claim', 'info', value, null);
+  }
+  if (allowed.includes('questions')) {
+    const value = useParsed
+      ? parsedCounts.questions
+      : (stats && stats.openQuestions != null ? stats.openQuestions : 0);
+    const prev = prevStats?.openQuestions != null ? prevStats.openQuestions : null;
+    pushChip('questions', 'question', 'info', value, prev);
+  }
+  if (allowed.includes('disagreements')) {
+    const value = useParsed
+      ? parsedCounts.disagreements
+      : (stats && stats.blocking != null && stats.blocking > 0 ? stats.blocking : 0);
+    const prev = prevStats?.blocking != null ? prevStats.blocking : null;
+    pushChip('disagreements', 'disagreement', 'warn', value, prev);
+  }
+  if (allowed.includes('issues')) {
+    const value = useParsed
+      ? parsedCounts.issues
+      : (stats && stats.openIssues != null ? stats.openIssues : 0);
+    const prev = prevStats?.openIssues != null ? prevStats.openIssues : null;
+    pushChip('issues', 'issue', 'warn', value, prev);
+  }
+  if (allowed.includes('comments')) {
+    const value = useParsed ? parsedCounts.comments : 0;
+    pushChip('comments', 'comment', 'info', value, null);
+  }
+
+  if (chips.length === 0 && !(stats && stats.status)) return null;
+
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
       {chips.map((c, i) => <StatChip key={i} {...c} />)}
-      {stats.status && <StatusInline label={stats.status} />}
+      {stats && stats.status && <StatusInline label={stats.status} />}
     </span>
   );
 }
@@ -2304,7 +2370,7 @@ function PreflightChip({ stats }) {
   return null;
 }
 
-function ArtifactHeader({ item, meta, hover }) {
+function ArtifactHeader({ item, meta, hover, run }) {
   if (item.kind === 'input') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
@@ -2392,7 +2458,13 @@ function ArtifactHeader({ item, meta, hover }) {
         <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 52 }}>{meta.name}</span>
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 76 }}>{kindLabel}</span>
         <span style={{ flex: 1 }} />
-        <StatsChips stats={item.stats} phase={item.statsPhase} prevStats={item.prevStats} />
+        <StatsChips
+          stats={item.stats}
+          phase={item.statsPhase}
+          prevStats={item.prevStats}
+          run={run}
+          turnKey={item.turnKey}
+        />
         <SearchChip turnKey={item.turnKey} />
         {isLive ? (
           <AgentStatusInline status={item.status} />
@@ -2683,6 +2755,18 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
             activeIdx={activeIdx}
             onSelect={handleSelect}
           />
+          {/* Spec 0042 D6 — round-1 difference inventory now parses as
+              "claim" not "disagreement"; render claims as their own
+              group so the badge counts on the timeline card reconcile
+              with what the modal shows. */}
+          <ReviewGroup
+            label="Claims"
+            color={COLORS.info}
+            items={items}
+            kinds={['claim']}
+            activeIdx={activeIdx}
+            onSelect={handleSelect}
+          />
           <ReviewGroup
             label="Disagreements"
             color={COLORS.warn}
@@ -2707,9 +2791,8 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
               borderRadius: 'var(--r-2)',
               background: 'var(--bg-2)',
             }}>
-              No structured questions or disagreements were anchored in
-              this turn. Open the document modal from the timeline card
-              header to read the full markdown body.
+              No structured items in this turn — open the document
+              modal from the card header to read the full markdown body.
             </div>
           )}
         </div>
@@ -3179,6 +3262,9 @@ function ReviewCard({ item, color, active, onClick }) {
 
 // Resolve which file the left pane should render for a side-by-side modal.
 //
+// Phase 1 (spec 0042 — plan-draft modal):
+//   - The brief; the agent's only input at that point. Claims and
+//     ``## Open Questions`` items anchor against brief blocks.
 // Phase 2:
 //   - Round 1: the OTHER agent's Phase 1 draft.
 //   - Round N≥2: the OTHER agent's round N-1 turn file.
@@ -3188,6 +3274,9 @@ function ReviewCard({ item, color, active, onClick }) {
 //     server-side; null when neither file exists yet.
 function priorContentPathFor(item, otherUiAgent, run) {
   const phase = item.statsPhase || 2;
+  if (phase === 1) {
+    return 'brief.md';
+  }
   if (phase === 4) {
     return run?.currentDraftPath || null;
   }
@@ -3200,7 +3289,17 @@ function priorContentPathFor(item, otherUiAgent, run) {
 
 function reviewItemsFor(run, item) {
   const phase = item.statsPhase || 2;
-  const key = `phase${phase}_round${item.round}_${item.agent}`;
+  // Spec 0042 D7 — bucket keys arrive camelCased from the server
+  // (``_to_camel`` walks every string dict key). Phase 1 plan-draft
+  // cards have no round dimension; the aggregator keys their bucket
+  // as ``phase1_<agent>`` → ``phase1Claude`` / ``phase1Gpt`` on the
+  // wire. Pre-spec the frontend looked up snake_case keys and always
+  // got ``undefined`` — that's why the right pane reported "no
+  // structured items" even for turns that emitted them.
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const key = phase === 1
+    ? `phase1${cap(item.agent)}`
+    : `phase${phase}Round${item.round}${cap(item.agent)}`;
   const bucket = (run.phaseReviewItems || {})[key];
   return Array.isArray(bucket) ? bucket : [];
 }
@@ -4233,7 +4332,11 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   };
   const tabs = [phaseInfo(2), phaseInfo(4)];
 
-  const totalIntroduced = issues.length + questions.length + disagreements.length + comments.length;
+  // Spec 0042 D11 — ``totalIntroduced`` is the phase-scoped sum, not a
+  // global one across both phases. Previously read all phases' totals
+  // here, which then didn't reconcile with ``totalOpen + totalResolved``
+  // (which ARE phase-scoped). Math now adds up within the selected tab.
+  const totalIntroduced = introduced;
 
   const handleHighlight = React.useCallback((keys, variant) => {
     if (onHighlightTurns) onHighlightTurns(keys, variant);
