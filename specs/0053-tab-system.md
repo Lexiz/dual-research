@@ -3,10 +3,10 @@ spec: 0053
 title: Tab system (3 variants) + table header
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.51.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/57"
 ---
 
 # Spec 0053 -- Tab system (3 variants) + table header
