@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.42.0',
+      date: '2026-05-17',
+      summary: 'Turn-input semantics + per-turn badge redesign + side-by-side framing.',
+      items: [
+        "Per-turn count chips redesigned: explicit `+raised  −resolved` per kind instead of a single number with a cryptic `⤴` glyph. `+5 Q  −1` reads as `raised 5 questions, closed 1 prior` at a glance. Closed-only chips render as `−3 prior Q` in green. Zero-on-both chips are omitted so quiet turns stay sparse.",
+        "The per-turn `negotiating` / `reviewing` status pill is gone — the phase-section header already labels the phase, the pill was noise. `✓ agreed` / `✓ approved` chips now appear only on the LAST turn of a phase whose system-derived ledger reports zero open blocking items (system view, not the agent's mid-loop self-claim). On runs where spec 0043's ledger surfaces ghosted items the pill correctly stays hidden.",
+        "Side-by-side modal left pane gets phase-aware document tabs: Phase 2 R1 = `[Other's draft | Brief | Your draft]`, R2+ adds `[Other's prior turn]` (default), Phase 4 = `[Current draft | Other's prior turn | Brief]`. Click a tab to see what the agent had as input — no more guessing. Phase 1 plan-draft modal gets a `[Brief]` tab.",
+        "Phase 1 plan-draft modal gains a structured-items strip above the draft body. Each Phase 1 claim or open question (extracted by spec 0042) renders as a clickable chip; clicking jumps the left brief pane to the referenced block — the click-to-highlight wiring spec 0034 added for Phase 2/4 is now active for Phase 1 too.",
+        "Right-pane empty-state copy is action-specific: distinguishes 'no activity at all', 'only-closed' (closed N prior items but raised nothing new), and 'raised-but-unanchored' (items exist but lack quote/after markers). Previously all three read the same.",
+        "Sentiment paragraph on Phase 2 / Phase 4 timeline cards now reads the ledger for phase-wide open counts. 'Standing across the phase:' line is system-derived, not agent-self-reported.",
+      ],
+    },
+    {
       version: '0.41.0',
       date: '2026-05-17',
       summary: 'Cross-round ledger + standing-items input + conservative convergence.',
