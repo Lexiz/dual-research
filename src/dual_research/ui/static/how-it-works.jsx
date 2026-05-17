@@ -15,6 +15,22 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.44.0',
+      date: '2026-05-17',
+      summary: 'Critique panel + Summary + Consumption rework + design unification.',
+      items: [
+        "Critique pane header restructured. The three buttons — `Phase 2 Negotiate`, `Phase 4 Review`, `∑ Summary` — are the primary navigation on the left; the count cluster (`introduced · open · resolved · ⚠ drift`) sits right-aligned. Pre-spec the header led with `Critique · N introduced` and the buttons sat as a secondary toolbar; now the navigation is at the visual anchor.",
+        "Per-phase filter chips are context-aware. Phase 2 → `[All | Questions | Disagreements | Claims]`. Phase 4 → `[All | Issues | Comments | Disagreements]`. Kinds the phase doesn't emit don't render as zero-count chips. Switching phase auto-resets the filter if the previous selection isn't allowed in the new phase.",
+        "Critique cards render human-readable headlines: `Issue C-1 · open · Mutation testing gate lacks a concrete enforcement mechanism…` instead of `**C-1** — open — Mutation testing gate…`. The round range + the cryptic internal IDs (`I-c-r1-01`) move into the expanded body — visible when you click the card, gone from the always-visible headline.",
+        "Per-card ghosted-rounds annotation. When the system-derived ledger (spec 0043) shows a critique item was open for N rounds without an explicit addressing signal, the card headline carries a small `⚠ ghosted Nr` badge with a tooltip explaining what it means. Spec 0043 defined the component but didn't wire it; spec 0046 finishes the wiring.",
+        "Summary tab redesigned as per-kind, per-model tables. Pre-spec was one 11-column table where most cells were `—`; spec 0046 splits it into one table per kind the phase emits (Phase 2 → Questions / Disagreements / Claims; Phase 4 → Issues / Comments). Columns are `Round | Claude raised | Claude {closed} | GPT raised | GPT {closed} | Open` — per-model surfaces who carried what. Empty kinds dropped entirely.",
+        "Consumption tab rebuilt as single-row cards. Each phase-round is one card; expanding it now reveals the per-piece breakdowns INSIDE the same card. Pre-spec the expand opened a separate full-width grid row below the lanes; the eye kept reorienting left/right. The new card keeps the flow linear top-to-bottom.",
+        "Consumption tab drops the 'not used in this turn: …' footer. Same rule as the input full-view (spec 0045 D3) — empty pieces simply don't render. Absence is the signal.",
+        "Consumption tab web-search cluster cleaned up. Replaces the confusing `web searches: N · of which web search: $X` (there was no parent total for 'of which' to refer to) with a two-line `Tokens: $A · Web search: $B · Total: $T` + `Searches: N · Queries: M` cluster. The counts line only renders on turns that ran a search.",
+        "All toggle / tab / filter buttons across the run-detail view use one shared `PaneButton` component. Pre-spec the Critique phase tabs, the Summary button, the filter chips, and the Conversation/Consumption pair each had their own border, padding, font, and hover/active styling. One design language now; differences are semantic (active / hover / disabled), not cosmetic.",
+      ],
+    },
+    {
       version: '0.43.0',
       date: '2026-05-17',
       summary: 'Full-view shell standardisation + model pill layout.',
