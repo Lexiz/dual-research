@@ -32,3 +32,4 @@ reconcile/
 .claude/*
 !.claude/skills/
 !.claude/skills/**
+supabase/.temp/

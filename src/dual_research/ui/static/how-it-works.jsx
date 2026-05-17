@@ -15,6 +15,17 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.47.0',
+      date: '2026-05-17',
+      summary: 'Daily reconciliation cron, powered by Supabase-source run-cost data.',
+      items: [
+        "`reconcile-costs` learned a new flag: `--source supabase` queries the hosted `runs` table (where runs persist via spec 0020) instead of walking the local `runs/` directory. Same `LocalTotals` shape as the local source; same delta math downstream. Default stays `local` (no behaviour change for laptop use).",
+        "GitHub Actions daily cron is back on (was disabled in 0.46.1). Runs at 02:00 UTC with `--source supabase --push`, so the CI runner's empty `runs/` directory no longer breaks anything — daily snapshots upsert into the `reconcile_results` Supabase table and the run-detail verification chip picks them up automatically.",
+        "0.46.0 (a few hours earlier) shipped the rest of the always-on system: `ReconcileChip` in run-detail header (`✓ verified` / `⚠ drift` / `partial` / `unverified` / `awaiting`), Consumption-tab provider-billed annotation, `pricing_version` snapshot. With 0.47.0 the cron-driven path actually works end-to-end without manual intervention.",
+        "Anthropic side stays graceful-degraded — admin keys are still unavailable in this org's Console UI. The cron will report `partial · ✓ OpenAI · ⚠ Anthropic missing` until that's resolved out-of-band.",
+      ],
+    },
+    {
       version: '0.46.0',
       date: '2026-05-17',
       summary: 'Always-on cost verification against provider invoices.',

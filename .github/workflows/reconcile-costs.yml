@@ -18,16 +18,12 @@ name: Reconcile costs (daily)
 # orchestrator pipeline — reconciliation is observation, not mutation.
 
 on:
-  # 0.46.1: daily schedule disabled. The CI runner has no local runs/
-  # directory (gitignored), so the cron would reconcile $0 local vs $X
-  # billed daily and report spurious drift — eroding trust in the
-  # verification chip. Re-enable when reconcile-costs grows a
-  # --source supabase mode that reads run-cost data from the hosted
-  # backend (follow-up spec). The workflow_dispatch trigger is kept so
-  # manual runs from the Actions tab still work for one-off checks.
-  #
-  # schedule:
-  #   - cron: "0 2 * * *"   # 02:00 UTC daily
+  # Spec 0049: daily cron re-enabled. ``reconcile-costs --source supabase``
+  # reads run-cost data from the hosted ``runs`` table (where runs persist
+  # via spec 0020) instead of the CI runner's empty ``runs/`` directory.
+  # 02:00 UTC = ≥2h after the daily provider data settles (~5min lag).
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC daily
   workflow_dispatch:       # manual trigger from Actions tab
 
 jobs:
@@ -61,5 +57,6 @@ jobs:
         run: |
           uv run dual-research reconcile-costs \
             --since-yesterday \
+            --source supabase \
             --push \
             --tolerance 1.0

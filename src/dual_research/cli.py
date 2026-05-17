@@ -700,6 +700,11 @@ def _run_reconcile(argv: list[str]) -> int:
     sub.add_argument("--push", action="store_true",
                      help="Upsert each ReconcileReport into Supabase "
                           "(reconcile_results table). Requires Supabase creds in env.")
+    sub.add_argument("--source", choices=("local", "supabase"), default="local",
+                     help="Where to gather run-cost data from. ``local`` "
+                          "(default) walks --runs-dir on disk. ``supabase`` "
+                          "queries the hosted ``runs`` table (requires "
+                          "Supabase creds in env). Spec 0049.")
 
     args = sub.parse_args(argv)
 
@@ -709,7 +714,8 @@ def _run_reconcile(argv: list[str]) -> int:
     # path is meaningful even with zero local runs — provider-side billing
     # data still surfaces, and ``gather_local_totals`` already returns an
     # empty dict for a missing directory. Honest report > spurious exit.
-    if not runs_dir.exists():
+    # Spec 0049: when --source supabase, runs_dir is unused; skip the warn.
+    if args.source == "local" and not runs_dir.exists():
         print(
             f"warning: runs dir not found ({runs_dir}); proceeding with "
             "empty local totals — report will reflect provider-side data only",
@@ -729,16 +735,36 @@ def _run_reconcile(argv: list[str]) -> int:
     config = ProviderConfig.from_env()
     client = _httpx.Client(timeout=30.0)
 
+    # Spec 0049 — Supabase-source path. Both `--source supabase` and
+    # `--push` need credentials; load once and reuse the client.
+    supabase_client = None
     remote = None
-    if args.push:
+    if args.source == "supabase" or args.push:
         from dual_research.config import load_supabase_credentials
         from dual_research.persistence.remote import RemoteSession
         try:
             sb = load_supabase_credentials()
         except MissingCredentialError as e:
-            print(f"--push requested but: {e}", file=sys.stderr)
+            verb = "--source supabase" if args.source == "supabase" else "--push"
+            print(f"{verb} requested but: {e}", file=sys.stderr)
             return 1
         remote = RemoteSession.from_credentials(sb.url, sb.service_role_key)
+        if args.source == "supabase":
+            from supabase import create_client
+            supabase_client = create_client(sb.url, sb.service_role_key)
+
+    # Spec 0049 — gather local totals once per source, over the whole date
+    # range. This lets the supabase branch make a single SQL query for
+    # multi-date reconciliations instead of one per date.
+    if args.source == "supabase":
+        from dual_research.audit.reconcile import gather_supabase_totals
+        gather_start = min(dates)
+        gather_end = max(dates) + _dt.timedelta(days=1)
+        local_totals = gather_supabase_totals(
+            supabase_client, start_date=gather_start, end_date=gather_end,
+        )
+    else:
+        local_totals = None  # reconcile_day will gather per-date from runs_dir
 
     try:
         reports = []
@@ -747,6 +773,7 @@ def _run_reconcile(argv: list[str]) -> int:
                 date,
                 client=client, runs_dir=runs_dir,
                 config=config, tolerance_pct=args.tolerance,
+                local_totals=local_totals,
             )
             if args.write_snapshots:
                 write_reconcile_json(report, project_root=project_root)
