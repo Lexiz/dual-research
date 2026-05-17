@@ -190,6 +190,7 @@
           {error && (
             <div style={{ fontSize: 12, color: 'var(--warn)' }}>{error}</div>
           )}
+          <DemoRunCapsule />
         </div>
       </div>
     );
@@ -244,6 +245,135 @@
     return me;
   }
 
+  // ─── Demo run capsule (SPEC-0061, NEW-05) ──────────────────────────────
+  // Read-only mini-render of a canonical run, shown on the auth-free landing.
+
+  function DemoRunCapsule() {
+    const [demo, setDemo] = React.useState(null);
+    React.useEffect(() => {
+      fetch('demo-run.json')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => setDemo(d))
+        .catch(() => {});
+    }, []);
+    if (!demo) return null;
+
+    const cardStyle = {
+      background: 'var(--bg-1)', border: '1px solid var(--border-2)',
+      borderRadius: 'var(--r-3)', padding: '10px 14px',
+      fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.5,
+    };
+    const labelStyle = { fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase',
+                         letterSpacing: '0.05em', marginBottom: 4 };
+    const agentColor = (a) => a === 'claude' ? 'var(--agent-a)' : 'var(--agent-b)';
+
+    return (
+      <div style={{
+        maxWidth: 460, width: '100%', textAlign: 'left',
+        border: '1px solid var(--border-2)', borderRadius: 'var(--r-3)',
+        background: 'var(--bg-1)', overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '12px 16px', borderBottom: '1px solid var(--border-1)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>
+              Demo run
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, maxWidth: 280 }}>
+              {demo.topic}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+              ${demo.total_cost_usd.toFixed(2)}
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>
+              {demo.duration_display}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Phases */}
+          <div>
+            <div style={labelStyle}>Phases</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {demo.phases.map((p, i) => (
+                <div key={i} style={{
+                  padding: '3px 8px', borderRadius: 'var(--r-1)',
+                  background: 'var(--bg-2)', border: '1px solid var(--border-1)',
+                  fontSize: 10.5, color: 'var(--fg-2)', fontFamily: 'var(--mono)',
+                }}>
+                  {i}. {p.name.split(' \u2014 ')[1]} ({p.turns})
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Timeline samples */}
+          <div>
+            <div style={labelStyle}>Timeline</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {demo.timeline_samples.map((t, i) => (
+                <div key={i} style={cardStyle}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: agentColor(t.agent) }}>
+                      {t.label}
+                    </span>
+                    <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>
+                      ${t.cost_usd.toFixed(2)}
+                      {t.searches > 0 && ` \u00b7 ${t.searches} searches`}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{t.summary}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Critique samples */}
+          <div>
+            <div style={labelStyle}>Critique items</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {demo.critique_samples.map((c, i) => (
+                <div key={i} style={cardStyle}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{
+                      fontFamily: 'var(--mono)', fontSize: 10,
+                      padding: '1px 6px', borderRadius: 'var(--r-1)',
+                      background: c.status === 'resolved' ? 'var(--ok-bg)' : 'var(--warn-bg)',
+                      color: c.status === 'resolved' ? 'var(--ok)' : 'var(--warn)',
+                      border: `1px solid ${c.status === 'resolved' ? 'var(--ok-border)' : 'var(--warn-border)'}`,
+                    }}>
+                      {c.id}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.kind}</span>
+                    <span style={{ fontSize: 10, color: agentColor(c.agent) }}>{c.agent}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.body}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Outcome */}
+          <div style={{
+            textAlign: 'center', padding: '8px 0 4px',
+            borderTop: '1px solid var(--border-1)',
+          }}>
+            <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{demo.outcome}</div>
+            <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>
+              Confidence: {demo.confidence}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ─── Window exports ─────────────────────────────────────────────────────
   Object.assign(window, {
     useSupabaseClient,
@@ -253,5 +383,6 @@
     SignInScreen,        // alias of LandingScreen for backwards-compat
     LandingScreen,
     NotApprovedScreen,
+    DemoRunCapsule,
   });
 })();

@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.59.0] — 2026-05-17
+
+### Added
+
+- **3-screen onboarding flow** ([spec 0061](specs/0061-onboarding-and-landing.md)) — NEW-03. New `onboarding.jsx` with a 3-screen carousel for first-time users: "What is dual-research?", "How a run works", and "Start exploring". Shows after first sign-in in hosted mode; completion persisted to localStorage. Reset via `?reset_onboarding=1` for testing.
+- **Landing demo capsule** — NEW-05. The auth-free landing screen now shows a read-only capsule of the partner-vetting run below the sign-in CTA. Displays topic, cost, phases, timeline samples, and critique items — demonstrating the product before sign-in.
+- **Demo run fixture** — new `demo-run.json` static fixture with a curated subset of the partner-vetting run data for the landing capsule.
+
 ## [0.58.0] — 2026-05-17
 
 ### Added

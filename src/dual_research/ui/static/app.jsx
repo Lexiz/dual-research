@@ -31,6 +31,22 @@ function App() {
   const [notApproved, setNotApproved] = React.useState(false);
   const me = useMe();  // null until first /api/me resolves
 
+  // SPEC-0061: onboarding gate for first-time users.
+  const [showOnboarding, setShowOnboarding] = React.useState(() => {
+    // Check for reset param.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reset_onboarding') === '1') {
+        localStorage.removeItem('dr_onboarded');
+        // Clean the URL.
+        const url = new URL(window.location);
+        url.searchParams.delete('reset_onboarding');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch (e) {}
+    try { return localStorage.getItem('dr_onboarded') !== 'true'; } catch (e) { return false; }
+  });
+
   // SPEC-0059: overlay state for keyboard-accessible chrome surfaces.
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
@@ -80,6 +96,11 @@ function App() {
   }
   if (hostedMode && notApproved) {
     return <NotApprovedScreen session={session} client={client} />;
+  }
+
+  // SPEC-0061: show onboarding for first-time users (after auth resolves).
+  if (showOnboarding && hostedMode && session) {
+    return <OnboardingScreen onComplete={() => setShowOnboarding(false)} />;
   }
 
   return (
