@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.55.0',
+      date: '2026-05-17',
+      summary: 'Timeline + critique restructure -- PhaseRail, ChipCluster, 3-axis filter, DriftCluster, Summary enhancement, CardHeadline migration.',
+      items: [
+        'Ship 2 surface spec #3. Sticky PhaseRail down the timeline pane left edge shows phase progress with click-to-scroll navigation. Completed phases show green dots, current phase pulses blue.',
+        'ChipCluster discipline: chip rows that exceed 5 items collapse into a +N overflow button. Prevents long unreadable chip clusters on dense turns.',
+        'Three-axis critique filter: filter by kind (Questions/Disagreements/etc.), agent (Claude/GPT), and status (Open/Resolved/Drift). All axes combine with AND logic for precise drill-down.',
+        'DriftCluster: ghosted items that went unanswered for multiple rounds now render in a dedicated Drift group above Open and Resolved, surfacing neglected items at scan distance.',
+        'Summary tab now opens with the highest-leverage open item (most ghosted rounds) as a full QuestionThread. Immediate deadlock visibility on the post-mortem view.',
+        'CardHeadline badges migrated from inline styles to Chip primitives. PaneButton/PaneButtonGroup dead code removed.',
+      ],
+    },
+    {
       version: '0.54.0',
       date: '2026-05-17',
       summary: 'Run detail header restructure + chrome unification + ActiveRunChip + blocking callout.',

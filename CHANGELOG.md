@@ -12,6 +12,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.55.0] — 2026-05-17
+
+### Added
+
+- **Sticky PhaseRail** ([spec 0057](specs/0057-timeline-critique.md)) — SUR-09. Vertical phase indicator rail down the left edge of the timeline pane. Shows completed/current/upcoming phases with click-to-scroll navigation.
+- **ChipCluster primitive** — SUR-10. New `<ChipCluster max={5}>` wrapper collapses overflow chips into a `+N` button. Applied to StatsChips in timeline cards.
+- **Three-axis critique filter** — SUR-11. Kind (existing), agent (All/Claude/GPT), and status (All/Open/Resolved/Drift) filter axes on the critique pane. All three combine with AND logic.
+- **DriftCluster group** — SUR-11. Ghosted/drift items now render in a dedicated "Drift" group above Open/Resolved in the critique pane.
+- **Summary panel highest-leverage thread** — SUR-14. The summary tab now opens with the highest-leverage open item (most ghosted rounds) rendered as a full QuestionThread.
+
+### Changed
+
+- **ArtifactCard -> Card primitive** — SUR-09. Timeline cards migrated from inline-styled `<div>` to the class-backed `Card`/`CardBody` primitives from SPEC-0052. Live cards use Card.live variant.
+- **CardHeadline -> Chip migration** — Kind badge and status badge in critique card headlines migrated from inline `<span>` to `<Chip tone>` primitives via `toneFromColor` mapper. Resolves SPEC-0052 D10 carve-out.
+
+### Removed
+
+- **PaneButton / PaneButtonGroup** — dead code since SPEC-0053 migrated all call sites to Tab/TabGroup. Definitions removed from run-detail.jsx.
+
+### Tests
+
+- 725 passing (no change).
+
 ## [0.54.0] — 2026-05-17
 
 ### Changed

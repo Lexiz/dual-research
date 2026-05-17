@@ -929,6 +929,36 @@ function QuestionThread({ id, status = 'open', question, turns = [], footer, sta
   );
 }
 
+// ── SPEC-0057 — ChipCluster ───────────────────────────────────────────────────
+// Wraps a list of chip children and collapses overflow beyond `max` into a +N
+// button. Clicking the overflow toggles showing all chips.
+function ChipCluster({ max = 5, children, className }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const items = React.Children.toArray(children).filter(Boolean);
+  if (items.length <= max || expanded) {
+    return (
+      <span className={_cn('cc', className)}>
+        {items}
+        {expanded && items.length > max && (
+          <button type="button" className="cc-overflow" onClick={() => setExpanded(false)}>
+            collapse
+          </button>
+        )}
+      </span>
+    );
+  }
+  const visible = items.slice(0, max);
+  const overflow = items.length - max;
+  return (
+    <span className={_cn('cc', className)}>
+      {visible}
+      <button type="button" className="cc-overflow" onClick={() => setExpanded(true)}>
+        +{overflow}
+      </button>
+    </span>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
@@ -939,4 +969,6 @@ Object.assign(window, {
   Tab, TabGroup,
   // SPEC-0054 primitives
   parseQId, QuestionRef, QuestionThread,
+  // SPEC-0057 primitives
+  ChipCluster,
 });

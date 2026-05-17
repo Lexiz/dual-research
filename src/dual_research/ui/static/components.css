@@ -681,3 +681,81 @@ body.light .tab-group.tabs-solid .tab.is-active,
    ───────────────────────────────────────────────────────────── */
 .sentp { font-family: var(--serif); font-size: 14px; color: var(--fg-1); line-height: 1.6; letter-spacing: 0; }
 .sentp strong { color: var(--fg-0); font-weight: var(--w-semi); }
+
+/* ─────────────────────────────────────────────────────────────
+   ChipCluster (.cc) — wraps multiple chips into a constrained row
+   with +N overflow button. SPEC-0057 (SUR-10).
+   ───────────────────────────────────────────────────────────── */
+.cc { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cc-overflow {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  font-family: var(--sans);
+  font-size: var(--t-mono);
+  font-weight: var(--w-semi);
+  color: var(--fg-2);
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-1);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--m-fast) var(--ease), color var(--m-fast) var(--ease);
+}
+.cc-overflow:hover { background: var(--bg-3); color: var(--fg-0); }
+
+/* ─────────────────────────────────────────────────────────────
+   PhaseRail (.phase-rail) — sticky vertical indicator for timeline
+   SPEC-0057 (SUR-09).
+   ───────────────────────────────────────────────────────────── */
+.phase-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: var(--s-3) 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-shrink: 0;
+}
+.phase-rail-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-2);
+  transition: background var(--m-fast) var(--ease);
+}
+.phase-rail-node:hover { background: var(--bg-2); }
+.phase-rail-node .pr-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border-3);
+  transition: background var(--m-fast) var(--ease);
+  flex-shrink: 0;
+}
+.phase-rail-node.is-completed .pr-dot { background: var(--ok); }
+.phase-rail-node.is-current .pr-dot { background: var(--info); }
+.phase-rail-node.is-failed .pr-dot { background: var(--err); }
+.phase-rail-node .pr-label {
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: var(--w-semi);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.phase-rail-node.is-current .pr-label { color: var(--fg-0); }
+.phase-rail-connector {
+  width: 1px;
+  height: 12px;
+  background: var(--border-2);
+  flex-shrink: 0;
+}
+.phase-rail-node.is-completed + .phase-rail-connector,
+.phase-rail-connector + .phase-rail-node.is-completed { background: var(--ok); opacity: 0.5; }
