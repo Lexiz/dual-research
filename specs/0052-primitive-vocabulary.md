@@ -3,10 +3,10 @@ spec: 0052
 title: Primitive vocabulary — Button, StatusBadge, Chip, RunIDChip, ThemeToggle, Card, AgentStrip + today's-component migration
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.49.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/56"
 ---
 
 # Spec 0052 — Primitive vocabulary
