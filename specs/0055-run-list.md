@@ -3,10 +3,10 @@ spec: 0055
 title: "Run list -- sort + attention promotion + filter Tabs + URL state + /-bound search"
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.53.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/59"
 ---
 
 # Spec 0055 -- Run list rework
