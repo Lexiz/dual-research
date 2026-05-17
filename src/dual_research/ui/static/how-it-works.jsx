@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.59.0',
+      date: '2026-05-17',
+      summary: 'Onboarding flow + landing demo capsule -- final design-system arc spec.',
+      items: [
+        'Ship 4 spec #2 (final). 3-screen onboarding carousel for first-time users: what dual-research is, how a run works, and how to start exploring.',
+        'Auth-free landing page now shows a read-only demo capsule of a real research run (partner-vetting). Topic, cost, phases, timeline entries, and critique items visible before sign-in.',
+        'Onboarding completion persisted to localStorage. Skip or complete to dismiss. Reset with ?reset_onboarding=1 for testing.',
+        'Demo run fixture committed as demo-run.json -- curated subset of partner-vetting data, no PII.',
+        'Design-system migration arc complete (SPEC-0050 through SPEC-0061).',
+      ],
+    },
+    {
       version: '0.58.0',
       date: '2026-05-17',
       summary: 'Cross-run dashboards -- /compare + /search.',
