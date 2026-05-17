@@ -37,6 +37,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - 725 baseline pytest green (no Python changes; pure asset shuffle).
 - Preview-verified on `localhost:6173` against the partner-vetting run (`3a4a`) — all surfaces render in both themes, ReconcileChip `unverified` state intact, GhostedAnnotation / RepairChip / cost chips functional, 88 MDI SVGs rendering on run-detail, zero console errors.
 
+## [0.47.1] — 2026-05-17
+
+### Fixed
+
+- **Consumption tab now shows the *effective* input Claude actually saw, including cache reads and cache writes.** Pre-fix the per-turn bars and "User prompt: Brief" sub-bars sized themselves on the provider's raw `input_tokens` field, which for Claude only covers the *uncached* suffix after the `CACHE_BREAKPOINT` marker. The cached prefix (brief + Phase-1 drafts + agreed plan, depending on the phase) rides in via `cache_creation_input_tokens` on the first turn and `cache_read_input_tokens` thereafter — neither was being counted in the Consumption-tab display, so P0 Preflight showed `Claude: 400t in` vs `GPT: 59.6kt in` even though both agents received the same brief. The mismatch widened with phase round depth (Round 1 ~120× off) and shrank back as fresh history accumulated past the cache breakpoint (Round 2+ ~7× off). The bug only affected the display layer — the orchestrator was sending identical content to both agents the whole time, and cost reconciliation continued to work against the per-bucket numbers correctly. New `effectiveTokensIn(usage)` helper in `run-detail.jsx` sums `in + cacheRead + cacheWrite`; `computeConsumptionScale`, `ConsumptionCard`, and `TokenBar` all read from it now. Headline + tooltip on each card surface the breakdown (`60.0kt in · 1.2kt out · 50.0kt cached` + hover) so the cached vs fresh split stays auditable. Cost columns + ProviderBilledLine + ReconcileChip unchanged — those continue to use the per-bucket fields against the per-bucket pricing.
+
 ## [0.47.0] — 2026-05-17
 
 ### Added
