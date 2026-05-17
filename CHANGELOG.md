@@ -12,6 +12,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.46.0] — 2026-05-17
+
+### Added
+
+- **Always-on cost verification against provider invoices** ([spec 0048](specs/0048-cost-reconciliation-and-pricing-version.md) C1) — new `dual-research reconcile-costs` CLI subcommand pulls daily cost aggregates from the OpenAI Organization Costs API and the Anthropic Admin Cost Report API, joins to local `metrics.json` totals over the same UTC date range, computes per-(provider, model) deltas, and writes a `ReconcileReport` to `reconcile/<date>.json`. Five `verification_status` states (`verified` / `drift` / `partial` / `unverified` / `awaiting_provider_data`) honestly reflect what was checked. **Each provider's admin key is independently optional**: set `OPENAI_ADMIN_KEY` and/or `ANTHROPIC_ADMIN_KEY` in env (plus optional `OPENAI_PROJECT_ID` / `ANTHROPIC_WORKSPACE_ID` for scoping); a missing key surfaces as `providers_skipped`, never crashes. CLI modes: `--day` · `--from/--to` · `--all` · `--run RUN_ID` · `--since-yesterday`. Output: human-readable text (default) or `--format json`. `--push` upserts each report into the new Supabase `reconcile_results` table (hosted-mode storage); `--write-snapshots` (default true) persists `reconcile/<date>.json` locally. Exit code 0 = within tolerance, 1 = any flagged row (CI-friendly).
+- **Run-detail verification chip** ([spec 0048](specs/0048-cost-reconciliation-and-pricing-version.md) D13) — new `<ReconcileChip>` in the run-detail header reads `/api/reconcile/<date>` and renders one of five visual states: `✓ verified $X.XX`, `⚠ Δ $Y.YY (billed $Z.ZZ)`, `local $X.XX · ✓ OpenAI · ⚠ Anthropic`, `local $X.XX · unverified`, `local $X.XX · awaiting provider data`. Hover tooltip lists checked providers, skipped reasons, exact local vs billed totals, and the snapshot timestamp.
+- **Consumption-tab "provider-billed" annotation** ([spec 0048](specs/0048-cost-reconciliation-and-pricing-version.md) D14) — each `ConsumptionCard` whose `(provider, model_id)` matches a per-model delta on the day's `ReconcileReport` shows a `Provider-billed: $X · Δ $Y (Z%)` line under the costs cluster. Flagged rows (delta exceeds tolerance) get a warn-tinted ⚠.
+- **`/api/reconcile/{date}` server endpoint** — returns the latest `ReconcileReport` for the date; 404 when no snapshot exists. Local mode reads from `<project>/reconcile/<date>.json`; hosted mode reads from the Supabase `reconcile_results` table. `/api/reconcile/index` lists available dates.
+- **GitHub Actions daily cron** — `.github/workflows/reconcile-costs.yml` runs `reconcile-costs --since-yesterday --push` at 02:00 UTC daily. Manual `workflow_dispatch` available. Provider keys + Supabase creds via repository secrets.
+- **Supabase `reconcile_results` table** — `supabase/migrations/0004_reconcile_results.sql`: `(date PK, payload JSONB, checked_at TIMESTAMPTZ)` with index on `checked_at DESC`. Re-running upserts so the latest snapshot wins.
+- **`pricing_version` snapshot on `metrics.json`** ([spec 0048](specs/0048-cost-reconciliation-and-pricing-version.md) F8) — new `PRICING_VERSION` constant in `src/dual_research/agents/pricing.py` (initial value `"2026-05-17"`, human-bumped when any `ModelPricing` entry changes). `Metrics.to_json()` records it on every save; `Metrics.load()` reads back tolerantly (defaults to `""` on pre-0048 files). A snapshot regression test (`tests/agents/test_pricing_version.py::test_version_tracks_table`) hashes the `PRICING` dict so a rate-table edit can't ship without a matching version bump.
+
+### Changed
+
+- **`recompute-costs` stamps the rewritten `metrics.json` with the live `PRICING_VERSION`** and surfaces the before/after transition on the CLI per-run diff line (`↳ pricing table: (unknown) → 2026-05-17`). `RecomputeReport` gains `pricing_version_before` / `_after` fields. Lets reconcile distinguish rate-table mismatches from accounting drift.
+
+### Added (tests)
+
+- 9 new test files / ~45 new tests across `tests/agents/`, `tests/persistence/`, `tests/audit/`. Reconcile module tested against the real OpenAI cost-report response (captured 2026-05-17 against the dual-search project, saved as `tests/audit/fixtures/openai_cost_report_2026_05_15_to_17.json`) and against a canonical Anthropic docs-shape fixture (revalidated when an admin key becomes available). Five-state status machine pure-function tests; persistence round-trip; CLI orchestration with `httpx.MockTransport`; pricing-version snapshot regression.
+
 ## [0.45.0] — 2026-05-17
 
 ### Fixed

@@ -215,6 +215,15 @@ def main(argv: list[str] | None = None) -> int:
     if raw and raw[0] == "recompute-costs":
         return _run_recompute(raw[1:])
 
+    # Spec 0048: `dual-research reconcile-costs [--day YYYY-MM-DD | --from/--to
+    # | --all | --run RUN_ID | --since-yesterday]` compares local cost
+    # accounting against provider invoices (Anthropic + OpenAI admin APIs)
+    # and writes a per-day snapshot to reconcile/<date>.json. Each provider's
+    # admin key is independently optional (env vars ANTHROPIC_ADMIN_KEY +
+    # OPENAI_ADMIN_KEY); missing key → that side reported as "skipped".
+    if raw and raw[0] == "reconcile-costs":
+        return _run_reconcile(raw[1:])
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 
@@ -502,6 +511,10 @@ def _run_recompute(argv: list[str]) -> int:
             + ("  [backed up]" if r.backed_up else "")
             + ("  [written]" if r.metrics_written else "")
         )
+        # Spec 0048: surface pricing-table transitions; quiet on no-op.
+        if r.pricing_version_before != r.pricing_version_after:
+            before = r.pricing_version_before or "(unknown)"
+            print(f"  ↳ pricing table: {before} → {r.pricing_version_after}")
     print(
         f"--- {len(reports)} run(s) | "
         f"${grand_old:.4f} → ${grand_new:.4f} ({grand_new - grand_old:+.4f})"
@@ -625,6 +638,178 @@ def _print_brief_report(*, brief: BriefResult, brief_path: Path) -> None:
     for line in preview_lines:
         print(f"  | {line}")
     print("  --- end preview ---")
+
+
+def _run_reconcile(argv: list[str]) -> int:
+    """Spec 0048: ``dual-research reconcile-costs`` — verify local cost
+    accounting against provider invoices. Each provider's admin key is
+    independently optional via env vars; missing key ⇒ that side
+    surfaces as ``skipped`` in the report.
+    """
+    import datetime as _dt
+
+    import httpx as _httpx
+
+    from dual_research.audit.reconcile import (
+        ProviderConfig,
+        format_json,
+        format_text,
+        reconcile_day,
+        write_reconcile_json,
+    )
+
+    sub = argparse.ArgumentParser(
+        prog="dual-research reconcile-costs",
+        description=(
+            "Verify local cost accounting against provider invoices. "
+            "Pulls daily aggregates from Anthropic + OpenAI admin APIs, "
+            "compares to local metrics.json totals, writes "
+            "reconcile/<date>.json. Each provider's admin key is "
+            "independently optional (env: ANTHROPIC_ADMIN_KEY, "
+            "OPENAI_ADMIN_KEY)."
+        ),
+    )
+    mode = sub.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--day", metavar="YYYY-MM-DD",
+                      help="Reconcile a single UTC date.")
+    mode.add_argument("--from", dest="from_date", metavar="YYYY-MM-DD",
+                      help="Start date (inclusive); requires --to.")
+    mode.add_argument("--all", action="store_true",
+                      help="Every UTC date with at least one local run.")
+    mode.add_argument("--run", metavar="RUN_ID",
+                      help="The UTC date containing this run's started_at.")
+    mode.add_argument("--since-yesterday", action="store_true",
+                      help="Yesterday + today (recommended cron entry).")
+
+    sub.add_argument("--to", dest="to_date", metavar="YYYY-MM-DD",
+                     help="End date (inclusive); used with --from.")
+    sub.add_argument("--runs-dir", metavar="PATH",
+                     help="Override runs/ directory (default: <project>/runs).")
+    sub.add_argument("--format", choices=("text", "json"), default="text",
+                     help="Report format (default: text).")
+    sub.add_argument("--out", metavar="PATH",
+                     help="Write report to PATH instead of stdout.")
+    sub.add_argument("--tolerance", type=float, default=1.0,
+                     help="Per-row delta %% above which to flag (default: 1.0).")
+    sub.add_argument("--write-snapshots", dest="write_snapshots",
+                     action="store_true", default=True,
+                     help="Persist ReconcileReport to reconcile/<date>.json (default true).")
+    sub.add_argument("--no-write-snapshots", dest="write_snapshots",
+                     action="store_false",
+                     help="Skip persistence; print only.")
+    sub.add_argument("--push", action="store_true",
+                     help="Upsert each ReconcileReport into Supabase "
+                          "(reconcile_results table). Requires Supabase creds in env.")
+
+    args = sub.parse_args(argv)
+
+    project_root = Path(__file__).resolve().parents[2]
+    runs_dir = Path(args.runs_dir).expanduser() if args.runs_dir else project_root / "runs"
+    if not runs_dir.exists():
+        print(f"error: runs dir not found: {runs_dir}", file=sys.stderr)
+        return 2
+
+    # Resolve mode → list of UTC dates.
+    try:
+        dates = _resolve_reconcile_dates(args, runs_dir=runs_dir)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    if not dates:
+        print("error: no dates resolved from mode flags", file=sys.stderr)
+        return 2
+
+    config = ProviderConfig.from_env()
+    client = _httpx.Client(timeout=30.0)
+
+    remote = None
+    if args.push:
+        from dual_research.config import load_supabase_credentials
+        from dual_research.persistence.remote import RemoteSession
+        try:
+            sb = load_supabase_credentials()
+        except MissingCredentialError as e:
+            print(f"--push requested but: {e}", file=sys.stderr)
+            return 1
+        remote = RemoteSession.from_credentials(sb.url, sb.service_role_key)
+
+    try:
+        reports = []
+        for date in dates:
+            report = reconcile_day(
+                date,
+                client=client, runs_dir=runs_dir,
+                config=config, tolerance_pct=args.tolerance,
+            )
+            if args.write_snapshots:
+                write_reconcile_json(report, project_root=project_root)
+            if remote is not None:
+                from dataclasses import asdict
+                remote.push_reconcile_report(
+                    date=report.date, payload=asdict(report),
+                )
+            reports.append(report)
+    finally:
+        client.close()
+
+    body = format_json(reports) if args.format == "json" else format_text(reports)
+    if args.out:
+        Path(args.out).expanduser().write_text(body, encoding="utf-8")
+        print(f"report written to {args.out}", file=sys.stderr)
+    else:
+        print(body)
+
+    return 0 if all(r.within_tolerance for r in reports) else 1
+
+
+def _resolve_reconcile_dates(args, *, runs_dir: Path) -> list:
+    """Translate the CLI mode flags into a list of ``datetime.date`` UTC dates."""
+    import datetime as _dt
+    import json as _json
+
+    if args.day:
+        return [_dt.date.fromisoformat(args.day)]
+    if args.from_date:
+        if not args.to_date:
+            raise ValueError("--from requires --to")
+        start = _dt.date.fromisoformat(args.from_date)
+        end = _dt.date.fromisoformat(args.to_date)
+        if end < start:
+            raise ValueError("--to must be >= --from")
+        return [start + _dt.timedelta(days=i) for i in range((end - start).days + 1)]
+    if args.run:
+        session_dir = runs_dir / args.run
+        metrics_path = session_dir / "metrics.json"
+        if not metrics_path.exists():
+            raise ValueError(f"run not found or missing metrics.json: {session_dir}")
+        payload = _json.loads(metrics_path.read_text(encoding="utf-8"))
+        started_at = payload.get("started_at")
+        if not started_at:
+            raise ValueError(f"run has no started_at: {args.run}")
+        run_date = _dt.datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+        return [run_date.astimezone(_dt.timezone.utc).date()]
+    if args.since_yesterday:
+        today = _dt.datetime.now(_dt.timezone.utc).date()
+        return [today - _dt.timedelta(days=1), today]
+    if args.all:
+        dates: set[_dt.date] = set()
+        for entry in runs_dir.iterdir():
+            if not entry.is_dir():
+                continue
+            metrics_path = entry / "metrics.json"
+            if not metrics_path.exists():
+                continue
+            try:
+                payload = _json.loads(metrics_path.read_text(encoding="utf-8"))
+                started_at = payload.get("started_at")
+                if not started_at:
+                    continue
+                run_date = _dt.datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+                dates.add(run_date.astimezone(_dt.timezone.utc).date())
+            except (ValueError, OSError, json.JSONDecodeError):
+                continue
+        return sorted(dates)
+    raise ValueError("no mode flag provided")
 
 
 if __name__ == "__main__":

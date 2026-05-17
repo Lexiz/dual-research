@@ -15,6 +15,17 @@ CACHE_WRITE_1H_MULTIPLIER = 2.0
 CACHE_READ_MULTIPLIER = 0.1
 
 
+# Spec 0048 — human-bumped marker for "which pricing table is in effect."
+# Bump this date whenever any ``ModelPricing`` entry below changes.
+# ``Metrics.to_json()`` records it so future ``recompute-costs`` /
+# ``reconcile-costs`` can tell when an old run was priced under a
+# now-superseded rate table. A regression test
+# (``tests/agents/test_pricing_version.py::test_version_tracks_table``)
+# snapshots the ``PRICING`` dict alongside this version string so a rate
+# change can't ship without bumping the date.
+PRICING_VERSION = "2026-05-17"
+
+
 @dataclass(frozen=True)
 class ModelPricing:
     """USD per 1M tokens. Best-effort, not an invoice. Update as vendors change rates.

@@ -1,0 +1,56 @@
+name: Reconcile costs (daily)
+
+# Spec 0048 — daily cost reconciliation against provider invoices.
+#
+# Runs every day at 02:00 UTC (after provider data has settled — typically
+# <5min lag, occasionally longer). Walks runs/* on the deploy branch +
+# pulls per-day totals from the Anthropic Admin Cost Report API and the
+# OpenAI Organization Costs API, upserts each day's ReconcileReport to
+# the Supabase reconcile_results table.
+#
+# Provider keys are independently optional. Missing key ⇒ provider
+# reported as "skipped" in the upserted snapshot; the day's report still
+# ships. When ANTHROPIC_ADMIN_KEY arrives, set it as a repository secret
+# and the Anthropic side activates automatically — no workflow edit.
+#
+# Failure modes (network 5xx, transient auth, partial provider error)
+# log and exit non-zero. The next 24h tick retries. Never fails any
+# orchestrator pipeline — reconciliation is observation, not mutation.
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC daily
+  workflow_dispatch:       # allow manual trigger from Actions tab
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python from pyproject.toml
+        run: uv python install
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Reconcile yesterday + today
+        env:
+          ANTHROPIC_ADMIN_KEY: ${{ secrets.ANTHROPIC_ADMIN_KEY }}
+          OPENAI_ADMIN_KEY: ${{ secrets.OPENAI_ADMIN_KEY }}
+          ANTHROPIC_WORKSPACE_ID: ${{ secrets.ANTHROPIC_WORKSPACE_ID }}
+          OPENAI_PROJECT_ID: ${{ secrets.OPENAI_PROJECT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          uv run dual-research reconcile-costs \
+            --since-yesterday \
+            --push \
+            --tolerance 1.0

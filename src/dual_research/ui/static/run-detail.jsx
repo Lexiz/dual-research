@@ -203,10 +203,11 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
       flexShrink: 0,
       gap: 4,
     }}>
-      {/* Row 1: topic + cost + status/errors */}
+      {/* Row 1: topic + cost + reconcile-status + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         <Topic text={run.topic} />
         <CostBadge cost={total} tokens={totalTokens} searchCost={totalSearchCost} />
+        <ReconcileChip run={run} localCost={total} />
         <RunSearchSummary onJump={onJumpToFirstSearch} />
         <StatusErrorsBadge
           status={run.status}
@@ -423,6 +424,209 @@ function Topic({ text }) {
     </div>
   );
 }
+
+// ─────────────────── Spec 0048 — Reconcile verification chip ──────────
+//
+// Reads /api/reconcile/<run's UTC date>. Renders one of five visual
+// states based on the report's ``verification_status``:
+//
+//   verified                → ✓ verified $X.XX
+//   drift                   → ⚠ Δ $Y.YY (billed $Z.ZZ)
+//   partial                 → local $X.XX · ✓ OpenAI · ⚠ Anthropic missing
+//   unverified              → local $X.XX · unverified
+//   awaiting_provider_data  → local $X.XX · awaiting provider data
+//
+// 404 from the endpoint (no reconciliation run yet for that date) ⇒
+// "unverified" — the user hasn't asked for verification.
+//
+// Run id format is ``YYYYMMDD-HHMMSS-<slug>`` (see ``slugify_run_id``
+// in the orchestrator); the leading 8 chars give us the UTC date.
+function dateFromRunId(runId) {
+  if (typeof runId !== 'string' || runId.length < 8) return null;
+  const ymd = runId.slice(0, 8);
+  if (!/^\d{8}$/.test(ymd)) return null;
+  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
+}
+
+function useReconcileReport(runId) {
+  const [state, setState] = React.useState({ loading: true, report: null, error: null });
+  React.useEffect(() => {
+    const date = dateFromRunId(runId);
+    if (!date) {
+      setState({ loading: false, report: null, error: 'bad-run-id' });
+      return;
+    }
+    let cancelled = false;
+    setState({ loading: true, report: null, error: null });
+    fetch(`/api/reconcile/${date}`)
+      .then((r) => {
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error(`http ${r.status}`);
+        return r.json();
+      })
+      .then((report) => {
+        if (cancelled) return;
+        setState({ loading: false, report, error: null });
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setState({ loading: false, report: null, error: String(e) });
+      });
+    return () => { cancelled = true; };
+  }, [runId]);
+  return state;
+}
+
+function ReconcileChip({ run, localCost }) {
+  const { loading, report, error } = useReconcileReport(run.id);
+  const cost = Number(localCost) || 0;
+
+  // Loading: show a quiet placeholder so layout doesn't shift.
+  if (loading) {
+    return (
+      <span className="mono" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '3px 9px', borderRadius: 999,
+        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        fontSize: 11, color: 'var(--fg-3)', flexShrink: 0, whiteSpace: 'nowrap',
+      }}>checking…</span>
+    );
+  }
+
+  // No snapshot OR fetch error → render as "unverified" (404 is the
+  // common case: the day's reconciliation hasn't run yet).
+  if (!report) {
+    return (
+      <span
+        className="mono"
+        title={
+          error
+            ? `Reconciliation endpoint unreachable: ${error}`
+            : "No reconciliation snapshot for this date. Run `dual-research reconcile-costs --run <id>` to verify."
+        }
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '3px 9px', borderRadius: 999,
+          background: 'var(--bg-2)', border: '1px solid var(--border-1)',
+          fontSize: 11, color: 'var(--fg-2)', flexShrink: 0, whiteSpace: 'nowrap',
+        }}>
+        local <span className="num">{fmt.cost(cost)}</span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span style={{ color: 'var(--fg-3)' }}>unverified</span>
+      </span>
+    );
+  }
+
+  const status = report.verificationStatus || report.verification_status || 'unverified';
+  const totalProvider = Number(report.totalProviderUsd || report.total_provider_usd || 0);
+  const totalDelta = Number(report.totalDeltaUsd || report.total_delta_usd || 0);
+  const providersChecked = report.providersChecked || report.providers_checked || [];
+  const providersSkipped = report.providersSkipped || report.providers_skipped || {};
+
+  const palette = {
+    verified:                { glyph: '✓', color: COLORS.ok,   bg: COLORS.ok + '14',   border: COLORS.ok + '55' },
+    drift:                   { glyph: '⚠', color: COLORS.warn, bg: COLORS.warn + '14', border: COLORS.warn + '55' },
+    partial:                 { glyph: '◐', color: COLORS.info, bg: COLORS.info + '14', border: COLORS.info + '55' },
+    unverified:              { glyph: '·', color: 'var(--fg-3)', bg: 'var(--bg-2)', border: 'var(--border-1)' },
+    awaiting_provider_data:  { glyph: '⏳', color: COLORS.info, bg: COLORS.info + '0a', border: COLORS.info + '33' },
+  };
+  const p = palette[status] || palette.unverified;
+
+  const skippedLines = Object.entries(providersSkipped)
+    .map(([prov, reason]) => `  • ${prov}: ${reason}`).join('\n');
+  const tooltip = (() => {
+    const lines = [`Verification: ${status}`];
+    if (providersChecked.length) lines.push(`Checked: ${providersChecked.join(', ')}`);
+    if (skippedLines) lines.push(`Skipped:\n${skippedLines}`);
+    lines.push(`Local: ${cost.toFixed(4)} USD`);
+    if (totalProvider > 0) lines.push(`Provider-billed: ${totalProvider.toFixed(4)} USD`);
+    if (Math.abs(totalDelta) > 1e-9) {
+      lines.push(`Δ: ${totalDelta >= 0 ? '+' : ''}${totalDelta.toFixed(4)} USD`);
+    }
+    if (report.checkedAt || report.checked_at) {
+      lines.push(`Checked at: ${report.checkedAt || report.checked_at}`);
+    }
+    return lines.join('\n');
+  })();
+
+  let body;
+  if (status === 'verified') {
+    body = (
+      <>
+        <span style={{ color: p.color }}>{p.glyph}</span>
+        <span style={{ color: 'var(--fg-1)' }}>verified</span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span className="num">{fmt.cost(cost)}</span>
+      </>
+    );
+  } else if (status === 'drift') {
+    body = (
+      <>
+        <span style={{ color: p.color }}>{p.glyph}</span>
+        <span style={{ color: 'var(--fg-1)' }}>Δ</span>
+        <span className="num" style={{ color: 'var(--fg-1)' }}>
+          {totalDelta >= 0 ? '+' : ''}{fmt.cost(totalDelta)}
+        </span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span style={{ color: 'var(--fg-3)' }}>
+          billed <span className="num">{fmt.cost(totalProvider)}</span>
+        </span>
+      </>
+    );
+  } else if (status === 'partial') {
+    body = (
+      <>
+        <span style={{ color: p.color }}>{p.glyph}</span>
+        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span className="num">{fmt.cost(cost)}</span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        {providersChecked.map((prov) => (
+          <span key={prov} style={{ color: COLORS.ok }}>✓ {prov}</span>
+        ))}
+        {Object.keys(providersSkipped).map((prov) => (
+          <span key={prov} style={{ color: COLORS.warn, marginLeft: 4 }}>
+            ⚠ {prov}
+          </span>
+        ))}
+      </>
+    );
+  } else if (status === 'awaiting_provider_data') {
+    body = (
+      <>
+        <span style={{ color: p.color }}>{p.glyph}</span>
+        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span className="num">{fmt.cost(cost)}</span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span style={{ color: 'var(--fg-3)' }}>awaiting provider data</span>
+      </>
+    );
+  } else {
+    body = (
+      <>
+        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span className="num">{fmt.cost(cost)}</span>
+        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span style={{ color: 'var(--fg-3)' }}>unverified</span>
+      </>
+    );
+  }
+
+  return (
+    <span
+      title={tooltip}
+      className="mono"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '3px 9px', borderRadius: 999,
+        background: p.bg, border: `1px solid ${p.border}`,
+        fontSize: 11, color: 'var(--fg-1)', flexShrink: 0, whiteSpace: 'nowrap',
+      }}
+    >
+      {body}
+    </span>
+  );
+}
+
 
 function CostBadge({ cost, tokens, searchCost }) {
   // Spec 0039: ``cost`` is now the full invoice (tokens + web search).
@@ -899,7 +1103,59 @@ const PHASE_NAMES = {
   4: 'P4 Review',
 };
 
+// Spec 0048 — per-row provider-billed annotation.
+//
+// Given the reconcile report (fetched once at ConsumptionView level) +
+// a card's (agent, model_id), find the matching ProviderDelta and
+// render a small line: "Provider-billed: $X.XX · Δ $Y.YY (Z.Z%)".
+// Hidden when no reconcile exists, when this provider wasn't checked,
+// or when the row matches nothing in the report.
+function ProviderBilledLine({ report, agent, modelId }) {
+  if (!report || !modelId) return null;
+  const status = report.verificationStatus || report.verification_status;
+  if (status === 'unverified') return null;
+
+  const provider = agent === 'claude' ? 'anthropic' : 'openai';
+  const deltas = report.perModelDeltas || report.per_model_deltas || [];
+  const match = deltas.find(
+    (d) => (d.provider === provider) && (d.modelId === modelId || d.model_id === modelId)
+  );
+  if (!match) return null;
+
+  const providerUsd = Number(match.providerUsd ?? match.provider_usd ?? 0);
+  const deltaUsd = Number(match.deltaUsd ?? match.delta_usd ?? 0);
+  const deltaPct = Number(match.deltaPct ?? match.delta_pct ?? 0);
+  if (providerUsd === 0 && deltaUsd === 0) return null;
+
+  const flagged = Boolean(match.flagged);
+  const c = flagged ? COLORS.warn : 'var(--fg-3)';
+  return (
+    <div className="mono" style={{
+      paddingTop: 4, marginTop: 2,
+      fontSize: 10.5, color: c,
+      display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+    }}>
+      <span style={{ color: 'var(--fg-3)' }}>Provider-billed:{' '}
+        <span className="num" style={{ color: 'var(--fg-2)' }}>
+          {fmt.cost(providerUsd)}
+        </span>
+      </span>
+      <span style={{ color: 'var(--fg-4)' }}>·</span>
+      <span style={{ color: c }}>
+        Δ <span className="num">{deltaUsd >= 0 ? '+' : ''}{fmt.cost(deltaUsd)}</span>
+        {' '}({deltaPct.toFixed(1)}%)
+      </span>
+      {flagged && (
+        <span title="Per-row delta exceeds reconcile tolerance threshold."
+              style={{ color: COLORS.warn }}>⚠</span>
+      )}
+    </div>
+  );
+}
+
 function ConsumptionView({ run }) {
+  const reconcileState = useReconcileReport(run.id);
+  const reconcileReport = reconcileState.report;
   const rows = React.useMemo(() => buildConsumptionRows(run), [run.phaseTokenUsage]);
   // Spec 0031: per-row click-to-expand. Set of row ids currently open.
   // Resets implicitly when navigating runs (Timeline component remounts
@@ -967,6 +1223,7 @@ function ConsumptionView({ run }) {
               showPhaseTitle={isFirstOfPhase}
               expanded={expanded.has(row.id)}
               onToggle={() => toggleRow(row.id)}
+              reconcileReport={reconcileReport}
             />
           );
         })}
@@ -977,7 +1234,7 @@ function ConsumptionView({ run }) {
   );
 }
 
-function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle }) {
+function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle, reconcileReport }) {
   // Spec 0046 D6 — single-row card with inline expand. The entire top
   // bar is one clickable surface; expanded detail renders INSIDE the
   // same card so the width never jumps. Pre-spec the expand-body sat
@@ -1046,7 +1303,7 @@ function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle })
         <CardChevron open={expanded} hover={false} />
       </button>
       {expanded && (
-        <ConsumptionRowExpanded row={row} run={run} scale={scale} />
+        <ConsumptionRowExpanded row={row} run={run} scale={scale} reconcileReport={reconcileReport} />
       )}
     </article>
   );
@@ -1056,7 +1313,7 @@ function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle })
 // `ConsumptionRow`'s card (no `gridColumn: 1 / 4` escape); the two
 // per-agent breakdowns sit side-by-side at the same width as the
 // lane bars above. Visual flow stays linear top-to-bottom.
-function ConsumptionRowExpanded({ row, run, scale }) {
+function ConsumptionRowExpanded({ row, run, scale, reconcileReport }) {
   return (
     <div style={{
       padding: '0 14px 14px',
@@ -1070,8 +1327,8 @@ function ConsumptionRowExpanded({ row, run, scale }) {
         borderTop: '1px dashed var(--border-1)',
         paddingTop: 12,
       }}>
-        <ConsumptionCard usage={row.claude} agent="claude" run={run} scale={scale} />
-        <ConsumptionCard usage={row.gpt}    agent="gpt"    run={run} scale={scale} />
+        <ConsumptionCard usage={row.claude} agent="claude" run={run} scale={scale} reconcileReport={reconcileReport} />
+        <ConsumptionCard usage={row.gpt}    agent="gpt"    run={run} scale={scale} reconcileReport={reconcileReport} />
       </div>
     </div>
   );
@@ -1083,7 +1340,7 @@ function ConsumptionRowExpanded({ row, run, scale }) {
 // input piece's contribution at the same scale. Sort toggle flips
 // between size-descending (default) and canonical Tk order. Web-search
 // count + cost (spec 0031) survive at the bottom.
-function ConsumptionCard({ usage, agent, run, scale }) {
+function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
   const meta = AGENT_META[agent];
   const [sortMode, setSortMode] = React.useState('size'); // 'size' | 'order'
 
@@ -1217,6 +1474,18 @@ function ConsumptionCard({ usage, agent, run, scale }) {
           search; comma/dot separators stay consistent with the rest
           of the metrics cluster. */}
       <CostsCluster usage={usage} />
+
+      {/* Spec 0048 — when reconciliation has run for this date and a
+          per-model delta matches this (agent, model_id), surface a
+          "Provider-billed: $X · Δ $Y (Z%)" line so the user can see
+          the gap between local accounting and provider invoice on the
+          same card. Hidden when no reconcile snapshot exists or when
+          the provider for this agent wasn't checked. */}
+      <ProviderBilledLine
+        report={reconcileReport}
+        agent={agent}
+        modelId={usage?.modelId || usage?.model_id}
+      />
     </div>
   );
 }

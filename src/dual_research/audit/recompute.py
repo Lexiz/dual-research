@@ -25,6 +25,7 @@ from typing import Any, Iterable
 
 from dual_research.agents.base import TokenUsage
 from dual_research.agents.pricing import (
+    PRICING_VERSION,
     compute_full_cost,
     compute_search_cost,
     compute_token_cost,
@@ -56,6 +57,13 @@ class RecomputeReport:
     diffs: list[TurnDiff] = field(default_factory=list)
     backed_up: bool = False
     metrics_written: bool = False
+    # Spec 0048 — pricing-table version before / after this recompute.
+    # ``before`` is "" on pre-0048 metrics.json files; ``after`` is always
+    # the live PRICING_VERSION constant (since recompute reprices under
+    # today's table by definition). The CLI surfaces the transition when
+    # before != after.
+    pricing_version_before: str = ""
+    pricing_version_after: str = ""
 
     @property
     def delta(self) -> float:
@@ -70,6 +78,8 @@ class RecomputeReport:
             "diffs": [dataclasses.asdict(d) for d in self.diffs],
             "backed_up": self.backed_up,
             "metrics_written": self.metrics_written,
+            "pricing_version_before": self.pricing_version_before,
+            "pricing_version_after": self.pricing_version_after,
         }
 
 
@@ -139,14 +149,15 @@ def recompute_run(session_dir: Path, *, write: bool = True) -> RecomputeReport:
     metrics_path = session_dir / "metrics.json"
 
     old_total = 0.0
+    old_pricing_version = ""
     if metrics_path.exists():
         try:
-            old_total = float(
-                json.loads(metrics_path.read_text(encoding="utf-8")).get("total_cost_usd", 0.0)
-                or 0.0
-            )
+            original_payload = json.loads(metrics_path.read_text(encoding="utf-8"))
+            old_total = float(original_payload.get("total_cost_usd", 0.0) or 0.0)
+            old_pricing_version = str(original_payload.get("pricing_version", "") or "")
         except (json.JSONDecodeError, OSError, TypeError, ValueError):
             old_total = 0.0
+            old_pricing_version = ""
 
     events = _read_transcript(transcript_path)
     canonical = _dedup_turn_events(events)
@@ -188,11 +199,15 @@ def recompute_run(session_dir: Path, *, write: bool = True) -> RecomputeReport:
         )
 
     new_total = rebuilt.total_cost_usd()
+    # Spec 0048: stamp the recompute with today's pricing table.
+    rebuilt.pricing_version = PRICING_VERSION
     report = RecomputeReport(
         run_id=session_dir.name,
         old_total=old_total,
         new_total=new_total,
         diffs=diffs,
+        pricing_version_before=old_pricing_version,
+        pricing_version_after=PRICING_VERSION,
     )
 
     if not write:

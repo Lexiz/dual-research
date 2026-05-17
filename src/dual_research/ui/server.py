@@ -114,6 +114,32 @@ def _make_app(runs_dir: Path) -> FastAPI:
         session = _resolve_session(runs_dir, run_id)
         return EventSourceResponse(_run_event_stream(session, request))
 
+    # ─── Spec 0048 — reconcile snapshots ──────────────────────────────────
+    # GET /api/reconcile/index   → list of dates with snapshots
+    # GET /api/reconcile/{date}  → latest ReconcileReport for date, or 404
+
+    @app.get("/api/reconcile/index")
+    async def list_reconcile_fs() -> JSONResponse:
+        from dual_research.audit.reconcile import reconcile_dir as _rdir
+        rdir = _rdir(runs_dir.parent)
+        if not rdir.exists():
+            return JSONResponse([])
+        dates = sorted(
+            p.stem for p in rdir.glob("*.json") if len(p.stem) == 10
+        )
+        return JSONResponse(dates)
+
+    @app.get("/api/reconcile/{date}")
+    async def get_reconcile_fs(date: str) -> JSONResponse:
+        # Date validation — only accept YYYY-MM-DD to avoid path tricks.
+        if len(date) != 10 or date[4] != "-" or date[7] != "-":
+            raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+        from dual_research.audit.reconcile import read_reconcile_json
+        report = read_reconcile_json(runs_dir.parent, date)
+        if report is None:
+            raise HTTPException(status_code=404, detail=f"no reconcile snapshot for {date}")
+        return JSONResponse(_to_camel(dataclasses.asdict(report)))
+
     @app.get("/api/runs/{run_id}/files/{path:path}")
     async def get_file(run_id: str, path: str) -> PlainTextResponse:
         session = _resolve_session(runs_dir, run_id)
@@ -328,6 +354,42 @@ def _make_supabase_app(
     async def stream_run(run_id: str, request: Request) -> EventSourceResponse:
         _require_run_exists(client, run_id)
         return EventSourceResponse(_supabase_event_stream(client, run_id, request))
+
+    # ─── Spec 0048 — reconcile snapshots (hosted mode) ────────────────────
+
+    @app.get("/api/reconcile/index")
+    async def list_reconcile_supabase() -> JSONResponse:
+        try:
+            res = (
+                client.table("reconcile_results")
+                .select("date")
+                .order("date", desc=True)
+                .execute()
+            )
+        except Exception:
+            return JSONResponse([])
+        rows = res.data or []
+        return JSONResponse([r["date"] for r in rows])
+
+    @app.get("/api/reconcile/{date}")
+    async def get_reconcile_supabase(date: str) -> JSONResponse:
+        if len(date) != 10 or date[4] != "-" or date[7] != "-":
+            raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+        try:
+            res = (
+                client.table("reconcile_results")
+                .select("payload")
+                .eq("date", date)
+                .limit(1)
+                .execute()
+            )
+        except Exception:
+            raise HTTPException(status_code=404, detail=f"no reconcile snapshot for {date}")
+        rows = res.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail=f"no reconcile snapshot for {date}")
+        payload = rows[0].get("payload") or {}
+        return JSONResponse(_to_camel(payload))
 
     @app.get("/api/runs/{run_id}/files/{path:path}")
     async def get_file(run_id: str, path: str) -> PlainTextResponse:
