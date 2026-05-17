@@ -2074,17 +2074,35 @@ function composeSentiment(item, run) {
     }
 
     const standingParts = [];
-    if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
-      standingParts.push(plur(stats.openQuestions, 'open question'));
-    }
-    if (typeof stats.blocking === 'number' && stats.blocking > 0) {
-      standingParts.push(plur(stats.blocking, 'open disagreement'));
+    // Spec 0044 D7 — when the ledger is wired (spec 0043), pull
+    // phase-wide open counts from it so the standing line reflects
+    // the system's authoritative view rather than the agent's
+    // self-counter. Falls back to the agent counters when the ledger
+    // isn't populated (legacy runs / kill-switch).
+    const ledgerEntries = (run?.phaseLedgers && run.phaseLedgers[2]) || null;
+    if (ledgerEntries) {
+      const openCount = (kind) => ledgerEntries.filter(
+        (e) => e.kind === kind && e.currentStatus === 'open'
+      ).length;
+      const openQ = openCount('question');
+      const openD = openCount('disagreement');
+      const openC = openCount('claim');
+      if (openQ > 0) standingParts.push(plur(openQ, 'open question'));
+      if (openD > 0) standingParts.push(plur(openD, 'open disagreement'));
+      if (openC > 0) standingParts.push(plur(openC, 'open claim'));
+    } else {
+      if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
+        standingParts.push(plur(stats.openQuestions, 'open question'));
+      }
+      if (typeof stats.blocking === 'number' && stats.blocking > 0) {
+        standingParts.push(plur(stats.blocking, 'open disagreement'));
+      }
     }
     if (typeof stats.fsd === 'number' && stats.fsd > 0) {
       standingParts.push(`${stats.fsd} final-surfaced`);
     }
     if (standingParts.length > 0) {
-      sentences.push(`Standing: ${standingParts.join(' · ')}.`);
+      sentences.push(`Standing across the phase: ${standingParts.join(' · ')}.`);
     }
 
     return sentences.join(' ');
@@ -2141,7 +2159,21 @@ function composeSentiment(item, run) {
       sentences.push(`${capitalise(movements.join(', '))}.`);
     }
 
-    if (openIssuesNow > 0) {
+    // Spec 0044 D7 — prefer ledger-derived phase-wide open count for
+    // the standing line. The legacy `openIssuesNow` reads the agent's
+    // self-counter which can drift from the system view (cf. spec 0043
+    // drift signal).
+    const p4Ledger = (run?.phaseLedgers && run.phaseLedgers[4]) || null;
+    if (p4Ledger) {
+      const openIssuesLedger = p4Ledger.filter(
+        (e) => e.kind === 'issue' && e.currentStatus === 'open'
+      ).length;
+      if (openIssuesLedger > 0) {
+        sentences.push(`${plur(openIssuesLedger, 'issue')} open against the current draft.`);
+      } else if (status === 'APPROVED') {
+        sentences.push('No open issues across the phase.');
+      }
+    } else if (openIssuesNow > 0) {
       sentences.push(`${plur(openIssuesNow, 'issue')} open against the current draft.`);
     } else if (status === 'APPROVED') {
       sentences.push('No open issues this round.');
@@ -2173,126 +2205,184 @@ const PHASE_CHIP_ALLOWLIST = {
   5: [],
 };
 
-// Small mono chips surfacing parsed protocol stats on a turn/plan row.
-// Stays out of the way: nothing rendered when stats are absent.
-// Spec 0034: ``prevStats`` enables round-over-round delta annotations
-// (e.g. ``4 Q (-2)`` for "two questions answered since prior round").
-// Spec 0042 D4 + D5: when ``run`` + ``turnKey`` are available, chip
-// counts come from parsed-item arrays filtered by ``raisedTurnKey``
-// (the typed lists on ``run`` — ``questions`` / ``disagreements`` /
-// ``claims`` / ``issues`` / ``comments``). The agent's self-reported
-// ``OPEN_QUESTIONS:`` / ``OPEN_ISSUES:`` / ``BLOCKING_DISAGREEMENTS:``
-// counters become a sanity-check (logged when mismatched) but are not
-// the source of truth. When ``run`` or ``turnKey`` is missing (older
-// callers, or transcripts without parsed items), the function falls
-// back to the legacy self-counter path.
-function StatsChips({ stats, phase, prevStats, run, turnKey }) {
-  // Per-phase chip allowlist (D5). Phase 0/3/5 → no chips even if the
-  // parser found something stray.
-  const allowed = PHASE_CHIP_ALLOWLIST[phase] || [];
-
-  // D4 — derive counts from parsed-item arrays when the modern data is
-  // wired. Filter each list by ``raisedTurnKey``. Fall back to
-  // self-counters when ``run`` or ``turnKey`` is absent.
-  const useParsed = run != null && turnKey != null && allowed.length > 0;
-  let parsedCounts = null;
-  if (useParsed) {
-    const filt = (arr) => (arr || []).filter((it) => it.raisedTurnKey === turnKey).length;
-    parsedCounts = {
-      questions:     filt(run.questions),
-      disagreements: filt(run.disagreements),
-      claims:        filt(run.claims),
-      issues:        filt(run.issues),
-      comments:      filt(run.comments),
+// Spec 0044 D3 + D8 — compute per-turn ``+raised  −resolved`` deltas
+// per kind, derived from the spec-0043 ledger. ``raised`` counts entries
+// whose ``raisedTurnKey`` matches; ``resolved`` walks each entry's
+// ``statusHistory`` for non-``open`` transitions whose ``turnKey``
+// matches. Returns an object keyed by kind; absent kinds produce zero.
+//
+// When the ledger isn't available (legacy snapshots without
+// ``phaseLedgers``), falls back to the spec-0042 parsed-item arrays
+// for the raised-count only (resolved is treated as 0 — without
+// transition history we have no signal).
+function computeChipDeltas(run, item) {
+  const phase = item.statsPhase || 2;
+  const turnKey = item.turnKey;
+  if (!turnKey) {
+    return {
+      question: { raised: 0, resolved: 0 },
+      disagreement: { raised: 0, resolved: 0 },
+      claim: { raised: 0, resolved: 0 },
+      issue: { raised: 0, resolved: 0 },
+      comment: { raised: 0, resolved: 0 },
     };
-    // Sanity-check the self-counter when both are present (logs once
-    // per render mismatch; no UI surface — that's spec 0043's job).
-    if (stats) {
-      if (stats.openQuestions != null && stats.openQuestions !== parsedCounts.questions) {
-        // eslint-disable-next-line no-console
-        console.debug(
-          `[stats] turn ${turnKey}: agent reported OPEN_QUESTIONS=${stats.openQuestions} but parser found ${parsedCounts.questions}`
-        );
-      }
-      if (stats.openIssues != null && stats.openIssues !== parsedCounts.issues) {
-        // eslint-disable-next-line no-console
-        console.debug(
-          `[stats] turn ${turnKey}: agent reported OPEN_ISSUES=${stats.openIssues} but parser found ${parsedCounts.issues}`
-        );
+  }
+  const entries = (run?.phaseLedgers && run.phaseLedgers[phase]) || null;
+
+  if (entries) {
+    const raised = (kind) => entries.filter(
+      (e) => e.kind === kind && e.raisedTurnKey === turnKey
+    ).length;
+    const resolved = (kind) => entries.filter((e) => {
+      if (e.kind !== kind) return false;
+      const hist = e.statusHistory || [];
+      return hist.some((t) => t.turnKey === turnKey && t.status !== 'open');
+    }).length;
+    return {
+      question:     { raised: raised('question'),     resolved: resolved('question') },
+      disagreement: { raised: raised('disagreement'), resolved: resolved('disagreement') },
+      claim:        { raised: raised('claim'),        resolved: resolved('claim') },
+      issue:        { raised: raised('issue'),        resolved: resolved('issue') },
+      comment:      { raised: raised('comment'),      resolved: 0 },
+    };
+  }
+
+  // Legacy fallback — parsed-item arrays, raised-count only.
+  const filt = (arr) => (arr || []).filter((it) => it.raisedTurnKey === turnKey).length;
+  return {
+    question:     { raised: filt(run?.questions),     resolved: 0 },
+    disagreement: { raised: filt(run?.disagreements), resolved: 0 },
+    claim:        { raised: filt(run?.claims),        resolved: 0 },
+    issue:        { raised: filt(run?.issues),        resolved: 0 },
+    comment:      { raised: filt(run?.comments),      resolved: 0 },
+  };
+}
+
+// Spec 0044 D2 + D9 — return ``true`` iff this card represents the
+// LAST turn of a phase whose ledger has zero open entries (i.e. the
+// phase converged cleanly). The chip layer + sentiment composer
+// share this decision so they always agree on when to display the
+// ``✓ agreed`` / ``✓ approved`` marker.
+function isFinalConvergedTurn(item, run) {
+  if (!item) return false;
+  if (item.kind !== 'turn' && item.kind !== 'turn-live') return false;
+  const phase = item.statsPhase;
+  if (phase !== 2 && phase !== 4) return false;
+  if (!run || !run.phaseTimings) return false;
+  if (run.phaseTimings[phase] == null) return false;  // phase not yet exited
+  const entries = (run.phaseLedgers && run.phaseLedgers[phase]) || [];
+  // Phase 2 convergence considers questions + disagreements + claims;
+  // Phase 4 gates on issues. Mirrors orchestrator/convergence semantics.
+  const blockingOpen = entries.filter((e) => {
+    if (e.currentStatus !== 'open') return false;
+    if (phase === 4) return e.kind === 'issue';
+    return e.kind === 'question' || e.kind === 'disagreement' || e.kind === 'claim';
+  }).length;
+  if (blockingOpen > 0) return false;
+  // Must be the last round observed in this phase.
+  const maxRound = entries.reduce(
+    (acc, e) => Math.max(acc, e.raisedRound || 0), 0
+  );
+  return (item.round || 0) >= maxRound;
+}
+
+// Spec 0044 D5 — action-specific right-pane empty-state copy.
+// Distinguishes three cases the user reads as the same thing today:
+//  (a) zero activity at all — turn was prose-only
+//  (b) only-closed — turn productive but no new items
+//  (c) raised-but-unanchored — items exist but lack quote/after
+//      markers so the side-by-side jump can't fire
+function emptyStateCopy(item, run) {
+  const deltas = computeChipDeltas(run, item);
+  const raisedTotal   = Object.values(deltas).reduce((s, d) => s + d.raised, 0);
+  const resolvedTotal = Object.values(deltas).reduce((s, d) => s + d.resolved, 0);
+
+  if (raisedTotal === 0 && resolvedTotal === 0) {
+    return (
+      'This turn raised no new items and closed no prior ones. ' +
+      'Open the document modal from the card header for the full markdown body.'
+    );
+  }
+  if (raisedTotal === 0 && resolvedTotal > 0) {
+    const parts = [];
+    for (const [kind, d] of Object.entries(deltas)) {
+      if (d.resolved > 0) {
+        parts.push(`${d.resolved} ${kind}${d.resolved === 1 ? '' : 's'}`);
       }
     }
+    return `This turn closed ${parts.join(' + ')} from prior rounds. No new items raised.`;
   }
+  // raisedTotal > 0 + items.length == 0 → raised but none anchored.
+  return (
+    `This turn raised ${raisedTotal} item(s), but none had quote/after anchors for ` +
+    'cross-reference. Open the document modal for the inline detail.'
+  );
+}
 
+// Spec 0044 — kind metadata: chip label glyph + colour tint. The
+// chip strip omits any kind with both raised=0 and resolved=0 so
+// quiet turns stay sparse.
+const CHIP_KIND_META = {
+  question:     { label: 'Q',  tint: 'info' },
+  disagreement: { label: 'D',  tint: 'warn' },
+  claim:        { label: 'Cl', tint: 'info' },
+  issue:        { label: 'I',  tint: 'warn' },
+  comment:      { label: 'C',  tint: 'info' },
+};
+
+// Spec 0042 D5 + Spec 0044 D1 — per-phase chip allowlist. The
+// ``negotiating`` / ``reviewing`` status pill is no longer rendered
+// per-turn (Spec 0044 D1) — the phase-section header already labels
+// the phase.
+function StatsChips({ phase, run, item }) {
+  const allowed = PHASE_CHIP_ALLOWLIST[phase] || [];
+  if (allowed.length === 0 && !isFinalConvergedTurn(item, run)) return null;
+
+  const deltas = computeChipDeltas(run, item);
   const chips = [];
 
-  // Spec 0042 — emit one chip per allowed kind whose count is > 0. The
-  // delta annotation (round-over-round) still reads from ``prevStats``
-  // for Phase 2/4 turns; for Phase 1 plan drafts there is no prior round
-  // so no deltas are emitted.
-  const pushChip = (kind, label, tint, value, prevValue) => {
-    if (value <= 0) return;
-    chips.push({
-      value,
-      label: value === 1 ? label : `${label}s`,
-      tint,
-      delta: prevValue != null ? value - prevValue : null,
-    });
-  };
-
-  if (allowed.includes('claims')) {
-    const value = useParsed ? parsedCounts.claims : 0;
-    pushChip('claims', 'claim', 'info', value, null);
-  }
-  if (allowed.includes('questions')) {
-    const value = useParsed
-      ? parsedCounts.questions
-      : (stats && stats.openQuestions != null ? stats.openQuestions : 0);
-    const prev = prevStats?.openQuestions != null ? prevStats.openQuestions : null;
-    pushChip('questions', 'question', 'info', value, prev);
-  }
-  if (allowed.includes('disagreements')) {
-    const value = useParsed
-      ? parsedCounts.disagreements
-      : (stats && stats.blocking != null && stats.blocking > 0 ? stats.blocking : 0);
-    const prev = prevStats?.blocking != null ? prevStats.blocking : null;
-    pushChip('disagreements', 'disagreement', 'warn', value, prev);
-  }
-  if (allowed.includes('issues')) {
-    const value = useParsed
-      ? parsedCounts.issues
-      : (stats && stats.openIssues != null ? stats.openIssues : 0);
-    const prev = prevStats?.openIssues != null ? prevStats.openIssues : null;
-    pushChip('issues', 'issue', 'warn', value, prev);
-  }
-  if (allowed.includes('comments')) {
-    const value = useParsed ? parsedCounts.comments : 0;
-    pushChip('comments', 'comment', 'info', value, null);
+  for (const allowedKey of allowed) {
+    // ``allowed`` uses plurals (``questions``); deltas keyed by singular.
+    const kind = allowedKey === 'questions' ? 'question'
+              : allowedKey === 'disagreements' ? 'disagreement'
+              : allowedKey === 'claims' ? 'claim'
+              : allowedKey === 'issues' ? 'issue'
+              : allowedKey === 'comments' ? 'comment'
+              : null;
+    if (!kind) continue;
+    const d = deltas[kind];
+    if (!d || (d.raised === 0 && d.resolved === 0)) continue;
+    chips.push({ kind, ...CHIP_KIND_META[kind], raised: d.raised, resolved: d.resolved });
   }
 
-  if (chips.length === 0 && !(stats && stats.status)) return null;
+  // Spec 0044 D2 — ``✓ agreed`` / ``✓ approved`` only on the LAST
+  // turn of a phase that converged with zero open ledger items.
+  const showAgreed = isFinalConvergedTurn(item, run);
+
+  if (chips.length === 0 && !showAgreed) return null;
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
       {chips.map((c, i) => <StatChip key={i} {...c} />)}
-      {stats && stats.status && <StatusInline label={stats.status} />}
+      {showAgreed && <ConvergedChip phase={phase} />}
     </span>
   );
 }
 
-function StatChip({ label, value, tint, delta }) {
+// Spec 0044 D3 — chip displaying ``+raised  −resolved`` per kind.
+// Cases:
+//   raised > 0, resolved == 0   → ``+5 Q``        (info/warn tint)
+//   raised == 0, resolved > 0   → ``−3 prior Q``  (ok tint, "closed-only")
+//   raised > 0, resolved > 0    → ``+5 Q  −1``    (info/warn tint, "+raised  −resolved")
+function StatChip({ label, raised, resolved, tint }) {
   const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
-  const c = colorMap[tint] || 'var(--fg-3)';
-  // Spec 0034 + 0040: small delta annotations.
-  //   negative delta = answered/resolved since last round → render as
-  //   `↩ N` glyph (clearly readable as "answered this round")
-  //   positive delta = new this round → render as `+N`
-  //   zero delta is hidden
-  const answeredCount = (delta != null && delta < 0) ? -delta : 0;
-  const newCount      = (delta != null && delta > 0) ?  delta : 0;
-  const tooltip =
-    answeredCount > 0 ? `${answeredCount} answered or resolved since last round`
-    : newCount > 0    ? `${newCount} new this round`
-    : undefined;
+  const isClosedOnly = raised === 0 && resolved > 0;
+  const c = isClosedOnly ? COLORS.ok : (colorMap[tint] || 'var(--fg-3)');
+  const tooltip = isClosedOnly
+    ? `Closed ${resolved} prior ${label}${resolved === 1 ? '' : 's'} this turn.`
+    : raised > 0 && resolved > 0
+      ? `Raised ${raised}, closed ${resolved} prior ${label}${raised === 1 ? '' : 's'} this turn.`
+      : `Raised ${raised} ${label}${raised === 1 ? '' : 's'} this turn.`;
   return (
     <span className="mono"
           title={tooltip}
@@ -2305,20 +2395,46 @@ function StatChip({ label, value, tint, delta }) {
       fontSize: 10.5, color: c,
       letterSpacing: '0.02em',
     }}>
-      <span className="num" style={{ color: c, fontWeight: 500 }}>{value}</span>
-      <span style={{ color: 'var(--fg-3)' }}>{label}</span>
-      {answeredCount > 0 && (
-        <span className="num"
-              style={{ color: COLORS.ok, fontWeight: 500, marginLeft: 2 }}>
-          ↩ {answeredCount}
-        </span>
+      {isClosedOnly ? (
+        <>
+          <span className="num" style={{ color: COLORS.ok, fontWeight: 500 }}>−{resolved} prior</span>
+          <span style={{ color: 'var(--fg-3)' }}>{label}</span>
+        </>
+      ) : (
+        <>
+          <span className="num" style={{ color: c, fontWeight: 500 }}>+{raised}</span>
+          <span style={{ color: 'var(--fg-3)' }}>{label}</span>
+          {resolved > 0 && (
+            <span className="num" style={{ color: COLORS.ok, fontWeight: 500, marginLeft: 2 }}>
+              −{resolved}
+            </span>
+          )}
+        </>
       )}
-      {newCount > 0 && (
-        <span className="num"
-              style={{ color: c, fontWeight: 500, marginLeft: 2 }}>
-          +{newCount}
-        </span>
-      )}
+    </span>
+  );
+}
+
+// Spec 0044 D2 — Phase-converged marker. Renders as `✓ agreed` for
+// Phase 2 / `✓ approved` for Phase 4. Only shown by ``StatsChips``
+// when ``isFinalConvergedTurn`` returns true.
+function ConvergedChip({ phase }) {
+  const label = phase === 4 ? 'approved' : 'agreed';
+  return (
+    <span className="mono"
+          title="Phase converged with zero open ledger items."
+          style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '1px 8px',
+      background: 'transparent',
+      border: `1px solid ${COLORS.ok}55`,
+      borderRadius: 4,
+      fontSize: 10.5, color: COLORS.ok,
+      letterSpacing: '0.02em',
+      fontWeight: 500,
+    }}>
+      <span>✓</span>
+      <span>{label}</span>
     </span>
   );
 }
@@ -2459,11 +2575,9 @@ function ArtifactHeader({ item, meta, hover, run }) {
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 76 }}>{kindLabel}</span>
         <span style={{ flex: 1 }} />
         <StatsChips
-          stats={item.stats}
           phase={item.statsPhase}
-          prevStats={item.prevStats}
           run={run}
-          turnKey={item.turnKey}
+          item={item}
         />
         <SearchChip turnKey={item.turnKey} />
         {isLive ? (
@@ -2730,11 +2844,15 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
         minHeight: 0,
         height: '100%',
       }}>
-        {/* Left: prior content + Input sub-tab (spec 0033). */}
+        {/* Left: prior content + Input sub-tab (spec 0033).
+            Spec 0044 D4: ``docTabs`` exposes the per-turn document
+            context (other's prior turn / other's draft / brief / your
+            draft / current converged draft). */}
         <NegotiateLeftPane
           item={item}
           otherAgent={otherAgent}
           priorFilePath={priorFilePath}
+          docTabs={leftPaneTabsFor(item, otherAgent, run)}
           leftRef={leftRef}
         />
 
@@ -2791,8 +2909,8 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
               borderRadius: 'var(--r-2)',
               background: 'var(--bg-2)',
             }}>
-              No structured items in this turn — open the document
-              modal from the card header to read the full markdown body.
+              {/* Spec 0044 D5 — action-specific empty-state copy. */}
+              {emptyStateCopy(item, run)}
             </div>
           )}
         </div>
@@ -2805,8 +2923,20 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 // is the prior agent's content (unchanged from spec 0027); ``Input`` is the
 // per-turn input bundle for THIS agent's turn — exactly what they were
 // handed before generating the right-pane critique.
-function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
+function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }) {
   const [sub, setSub] = React.useState('original');
+  // Spec 0044 D4 — when in "Original" sub-mode, track which document
+  // the user has selected. Defaults to the first docTabs entry
+  // (= the "thing being responded to" per phase). Note: clicking a
+  // right-pane review item still anchors against ``priorFilePath`` —
+  // jump-against-active-tab is a future enhancement (see spec 0044
+  // Risks).
+  const fallbackDocs = docTabs && docTabs.length > 0
+    ? docTabs
+    : [{ id: 'fallback', label: 'Original', path: priorFilePath }];
+  const [docId, setDocId] = React.useState(fallbackDocs[0].id);
+  const activeDoc = fallbackDocs.find((d) => d.id === docId) || fallbackDocs[0];
+
   const ctx = React.useContext(SearchIndexContext);
   const summary = ctx?.summary;
   const hasWarning = !!(item.turnKey && summary && summary.get(item.turnKey)?.hasWarning);
@@ -2829,19 +2959,9 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
         <NegotiateLeftSubTabs active={sub} onChange={setSub} hasSearchWarning={hasWarning} />
         <span style={{ flex: 1 }} />
         {sub === 'original' && (
-          <>
-            {item.statsPhase === 4 ? (
-              <span className="mono" style={{
-                fontSize: 10, color: 'var(--fg-2)',
-                letterSpacing: '0.06em', textTransform: 'uppercase',
-              }}>current draft</span>
-            ) : (
-              <AgentIcon agent={otherAgent} size={14} />
-            )}
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
-              {priorFilePath || '— no draft yet —'}
-            </span>
-          </>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+            {activeDoc.path || '— no document available —'}
+          </span>
         )}
         {sub === 'input' && (
           <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
@@ -2854,15 +2974,64 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, leftRef }) {
           </span>
         )}
       </div>
+      {/* Spec 0044 D4 — document strip: one chip per document the
+          agent had as input for this turn. Only rendered in the
+          "Original" sub-mode (Input / Web Search are per-turn). */}
+      {sub === 'original' && fallbackDocs.length > 1 && (
+        <div style={{
+          padding: '6px 12px',
+          borderBottom: '1px solid var(--border-1)',
+          background: 'var(--bg-1)',
+          display: 'flex', alignItems: 'center', gap: 6,
+          flexShrink: 0, overflow: 'auto',
+        }}>
+          <NegotiateDocTabs tabs={fallbackDocs} active={activeDoc.id} onChange={setDocId} />
+        </div>
+      )}
       <div ref={leftRef} style={{
         flex: 1, minHeight: 0, overflow: 'auto',
         padding: '14px 16px',
       }}>
-        {sub === 'original' && <LazyMarkdownBody filePath={priorFilePath} />}
+        {sub === 'original' && <LazyMarkdownBody filePath={activeDoc.path} />}
         {sub === 'input' && <InputTabContent turnKey={item.turnKey} />}
         {sub === 'webSearch' && <WebSearchTabContent turnKey={item.turnKey} />}
       </div>
     </div>
+  );
+}
+
+// Spec 0044 D4 — small horizontal chip strip naming each document
+// the agent had as input. Active chip is highlighted; click switches
+// the left-pane content.
+function NegotiateDocTabs({ tabs, active, onChange }) {
+  return (
+    <>
+      {tabs.map((t) => {
+        const isActive = t.id === active;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            title={t.path || ''}
+            style={{
+              appearance: 'none',
+              border: `1px solid ${isActive ? 'var(--border-3)' : 'var(--border-1)'}`,
+              background: isActive ? 'var(--bg-3)' : 'var(--bg-0)',
+              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
+              fontSize: 11,
+              fontWeight: isActive ? 600 : 500,
+              padding: '3px 10px',
+              borderRadius: 999,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </>
   );
 }
 
@@ -2935,6 +3104,31 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
     }
   }, [sub]);
 
+  // Spec 0044 D6 — structured items (Phase 1 claims + open questions
+  // extracted by spec 0042 D1) get clickable cards that jump-to-brief
+  // on the left pane. Anchors flow from each item's ``quote`` / ``after``
+  // / ``blockId`` to ``scrollAndFlash`` on the left pane's brief view.
+  const items = reviewItemsFor(run, item);
+  const onItemClick = React.useCallback((it) => {
+    if (!leftRef.current || sub !== 'original') return;
+    if (it.blockId) {
+      const node = leftRef.current.querySelector(`#${it.blockId}`);
+      if (node) {
+        node.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        const tx = (node.textContent || '').trim().slice(0, 80);
+        if (tx && window.scrollAndFlash) window.scrollAndFlash(leftRef.current, { text: tx });
+        return;
+      }
+    }
+    if (it.after && window.scrollAndFlash) {
+      window.scrollAndFlash(leftRef.current, { afterHeading: it.after });
+      return;
+    }
+    if (it.quote && window.scrollAndFlash) {
+      window.scrollAndFlash(leftRef.current, { text: it.quote });
+    }
+  }, [sub]);
+
   const title = `${meta?.name || 'Agent'} — Phase 1 draft`;
   const subtitle = 'side-by-side with the brief';
 
@@ -2987,24 +3181,29 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
 
         {/* Right: the draft + per-section "🔗 brief" affordance.
             Spec 0038: a Draft|Web Search sub-tab strip surfaces the
-            draft turn's audit bundle without changing the modal frame. */}
+            draft turn's audit bundle without changing the modal frame.
+            Spec 0044 D6: structured items strip lets the user click
+            into each Phase 1 claim/question and jump-to-brief. */}
         <DraftRightPane
           filePath={item.filePath}
           turnKey={item.turnKey}
           onSectionClick={onSectionAnchorClick}
+          items={items}
+          onItemClick={onItemClick}
         />
       </div>
     </Modal>
   );
 }
 
-function DraftRightPane({ filePath, turnKey, onSectionClick }) {
+function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick }) {
   const { body, loading } = window.useFileBody(filePath);
   const containerRef = React.useRef(null);
   const [sub, setSub] = React.useState('draft');
   const ctx = React.useContext(SearchIndexContext);
   const summary = ctx?.summary;
   const hasWarning = !!(turnKey && summary && summary.get(turnKey)?.hasWarning);
+  const anchoredItems = (items || []).filter((it) => it.quote || it.after || it.blockId);
 
   // Walk the rendered DOM after each render and inject a "🔗 brief"
   // button into every section heading. Best-effort — the markdown
@@ -3056,6 +3255,9 @@ function DraftRightPane({ filePath, turnKey, onSectionClick }) {
             : `searches/${turnKey || '—'}.json`}
         </span>
       </div>
+      {sub === 'draft' && anchoredItems.length > 0 && (
+        <Phase1ItemStrip items={anchoredItems} onItemClick={onItemClick} />
+      )}
       <div ref={containerRef} style={{
         flex: 1, minHeight: 0, overflow: 'auto',
         padding: '14px 16px',
@@ -3112,6 +3314,72 @@ function DraftRightSubTabs({ active, onChange, hasSearchWarning }) {
                 {t.badge}
               </span>
             )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Spec 0044 D6 — compact strip of structured Phase 1 items (claims +
+// open questions) above the draft body. Each chip click jumps the
+// left-pane brief to the item's anchored block. Hidden when no
+// anchored items exist (turns rendering this strip only on drafts
+// the agent actually anchored).
+function Phase1ItemStrip({ items, onItemClick }) {
+  return (
+    <div style={{
+      padding: '6px 12px',
+      borderBottom: '1px solid var(--border-1)',
+      background: 'var(--bg-1)',
+      display: 'flex', alignItems: 'center', gap: 6,
+      flexShrink: 0, overflow: 'auto',
+    }}>
+      <span className="mono" style={{
+        fontSize: 10, color: 'var(--fg-3)',
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+        flexShrink: 0,
+      }}>
+        Items ({items.length}) →
+      </span>
+      {items.map((it, i) => {
+        const tint = it.kind === 'claim' ? COLORS.info
+                   : it.kind === 'question' ? COLORS.info
+                   : COLORS.warn;
+        const glyph = it.kind === 'claim' ? 'Cl'
+                    : it.kind === 'question' ? 'Q'
+                    : it.kind.slice(0, 1).toUpperCase();
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onItemClick && onItemClick(it)}
+            title={(it.body || '').slice(0, 200)}
+            style={{
+              appearance: 'none',
+              border: `1px solid ${tint}55`,
+              background: 'var(--bg-0)',
+              color: tint,
+              fontSize: 11,
+              padding: '2px 8px',
+              borderRadius: 999,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+              maxWidth: 240,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <span className="mono num" style={{ fontWeight: 600 }}>{glyph}-{i + 1}</span>
+            <span style={{
+              color: 'var(--fg-2)',
+              overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180,
+            }}>
+              {(it.body || '').replace(/[*`]/g, '').slice(0, 60)}
+            </span>
+            <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>↗</span>
           </button>
         );
       })}
@@ -3285,6 +3553,56 @@ function priorContentPathFor(item, otherUiAgent, run) {
   if (round <= 1) return `phase1/draft-${beAgent}.md`;
   const rr = String(round - 1).padStart(2, '0');
   return `phase2/round-${rr}-${beAgent}.md`;
+}
+
+// Spec 0044 D4 — phase-aware list of document tabs for the
+// side-by-side modal's left pane. Each tab is a document the agent
+// had as input for that turn (or a contextual reference like the
+// brief). The default tab — first entry — is the most-likely-relevant
+// "thing being responded to": other's prior turn for P2 R≥2, other's
+// draft for P2 R1, current converged draft for P4.
+//
+// Returns: list of ``{id, label, path}``. Empty list signals no
+// document context (caller falls back to the legacy ``priorFilePath``
+// rendering).
+function leftPaneTabsFor(item, otherUiAgent, run) {
+  const phase = item.statsPhase || 2;
+  const otherBe = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
+  const ownBe   = otherBe === 'openai' ? 'claude' : 'openai';
+  const round   = Number(item.round) || 1;
+
+  if (phase === 4) {
+    const tabs = [];
+    if (run?.currentDraftPath) {
+      tabs.push({ id: 'current', label: 'Current draft', path: run.currentDraftPath });
+    }
+    if (round >= 2) {
+      const rr = String(round - 1).padStart(2, '0');
+      tabs.push({ id: 'priorTurn', label: "Other's prior turn",
+                  path: `phase4/round-${rr}-${otherBe}.md` });
+    }
+    tabs.push({ id: 'brief', label: 'Brief', path: 'brief.md' });
+    return tabs;
+  }
+
+  if (phase === 1) {
+    // Phase 1 plan-draft modal — only input is the brief.
+    return [{ id: 'brief', label: 'Brief', path: 'brief.md' }];
+  }
+
+  // Phase 2 — default tab is what's being responded to.
+  const tabs = [];
+  if (round >= 2) {
+    const rr = String(round - 1).padStart(2, '0');
+    tabs.push({ id: 'priorTurn', label: "Other's prior turn",
+                path: `phase2/round-${rr}-${otherBe}.md` });
+  }
+  tabs.push({ id: 'otherDraft', label: "Other's draft",
+              path: `phase1/draft-${otherBe}.md` });
+  tabs.push({ id: 'brief', label: 'Brief', path: 'brief.md' });
+  tabs.push({ id: 'ownDraft', label: 'Your draft',
+              path: `phase1/draft-${ownBe}.md` });
+  return tabs;
 }
 
 function reviewItemsFor(run, item) {

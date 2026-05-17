@@ -12,6 +12,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.42.0] — 2026-05-17
+
+### Added / Changed
+
+- **Turn-input semantics + per-turn badge redesign + side-by-side framing** ([spec 0044](specs/0044-turn-input-semantics-and-badge-redesign.md)) — pulls the spec-0043 ledger up into the timeline + side-by-side modal so chip counts, sentiment, and the modal's left-pane match what the system actually tracks instead of what each agent self-reports.
+
+  **(1) Per-turn badge redesign.** The `negotiating` / `reviewing` status pill is removed from `StatsChips` — the phase-section header already labels the phase, so the per-turn pill was noise. Count chips now render as explicit `+raised  −resolved` per kind (e.g. `+5 Q  −1`, `−3 prior Q`, `+10 Cl`) instead of a single number with a cryptic `⤴` glyph. Values come from the ledger: `raised` = entries with `raisedTurnKey === turnKey`; `resolved` = entries whose `statusHistory` includes a non-`open` transition with `turnKey === turnKey`. Zero-on-both-sides chips are omitted (quiet turns stay sparse).
+
+  **(2) `✓ agreed` / `✓ approved` pill semantics fixed.** Previously the per-turn `agreed` pill fired on each agent's per-turn `STATUS: AGREED` self-report, which can fire mid-phase before the other side agrees. Spec 0044 ties it to the phase-wide convergence state via `isFinalConvergedTurn(item, run)`: only renders on the LAST turn of a phase whose ledger reports zero open blocking entries AND whose `phaseTimings[phase]` is populated. Phase 2 gates on questions + disagreements + claims; Phase 4 gates on issues — mirrors the orchestrator's convergence check.
+
+  **(3) Side-by-side modal left pane gets phase-aware document tabs.** `NegotiateReviewModal` now renders a `NegotiateDocTabs` strip listing every document the agent actually had as input for the turn: **P2 R1** = `[Other's draft | Brief | Your draft]`; **P2 R≥2** = `[Other's prior turn | Other's draft | Brief | Your draft]`; **P4** = `[Current draft | Other's prior turn | Brief]`; **P1 plan-draft** = `[Brief]`. The default tab is the most-likely-relevant "thing being responded to" (first entry). The existing `Input` and `Web Search` sub-tabs stay (per-turn, not per-document). Right-pane review-item clicks still anchor against the first tab — switching tabs is a manual user action; jump-against-active-tab is a deferred enhancement.
+
+  **(4) Right-pane empty-state copy is action-specific.** Distinguishes three cases that previously read identically: "no activity at all" → "raised no new items and closed no prior ones"; "only-closed" → "closed N {kinds} from prior rounds"; "raised-but-unanchored" → "raised N item(s) but none had quote/after anchors." Reads ledger deltas to pick the right copy.
+
+  **(5) Click-to-highlight wired on `DraftReviewModal` (Phase 1 plan-draft).** Spec 0042 D1 extracted Phase 1 claims + open questions as structured items in `phase1_<agent>` ledger buckets, but the Phase 1 modal had no UI surface for them. Spec 0044 adds a `Phase1ItemStrip` above the draft body showing one chip per anchored item; click jumps the left brief pane to the matching block via `scrollAndFlash`. Reuses the same anchor-resolution logic as `NegotiateReviewModal`.
+
+  **(6) `composeSentiment` ledger-aware.** Phase 2's "Standing:" line now reads `run.phaseLedgers[2]` for per-phase open counts (questions + disagreements + claims) instead of the agent's `OPEN_QUESTIONS:` / `BLOCKING_DISAGREEMENTS:` self-counters. Phase 4 similarly reads the ledger's open-issue count. Falls back to self-counters when the ledger isn't populated (legacy snapshots). The sentiment word picker stays status-driven.
+
+  **3 new tests** in `tests/ui/test_aggregator_ledger.py` guarding the wire-format shape the frontend consumes (`statusHistory[].turnKey`, `raised_turn_key` field presence + >80% populated, `phaseTimings` populated on completed runs). 655 total green (was 652). No backend behavioural changes — pure consumption of spec 0043's wire surface.
+
+### Deferred to future specs
+
+- Per-card ghosted-N-rounds annotation in critique cards (`GhostedAnnotation` is defined in spec 0043 but not yet wired into `QuestionCard` / `IssueCard`) — spec 0046 visual rework.
+- Critique panel header rework (P2/P4/Summary buttons + filter-chip relabeling + Summary tab redesign) — spec 0046.
+- Full-view shell standardisation (tab order, hide-unused-sections, equal-width Original vs Draft columns, model pill equal-width + alignment + size) — spec 0045.
+- Drift event drill-down UI — chip + tooltip remain v1 surface; deferred until drift becomes common enough to warrant.
+- Jump-against-active-tab on the side-by-side modal (right-pane click currently anchors to the first tab; switching tabs doesn't rebind anchors).
+
 ## [0.41.0] — 2026-05-17
 
 ### Added
