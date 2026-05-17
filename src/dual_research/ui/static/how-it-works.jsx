@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.48.0',
+      date: '2026-05-17',
+      summary: 'Design-system foundation — new fonts, retuned contrast, MDI icons, no emoji, focus ring, reduced-motion contract.',
+      items: [
+        "First spec of the 11-spec Claude Design migration arc. Invisible-but-everywhere refactor that underwrites Ship 2+. No surface restructure yet — fonts, colors, spacing, and icon system change; layout stays put.",
+        "Typography swap. JetBrains Mono and Geist are gone. IBM Plex Sans handles UI chrome + data (tabular figures via `font-variant-numeric: tabular-nums` on the `.num`/`.mono` utilities). IBM Plex Serif handles agent-produced prose, hero, headings. Designed-together IBM pair — same x-height, blends without sacrificing distinction. 17 hardcoded SVG font-family attributes across how-it-works, auth, and design-language swept to the new families.",
+        "Token & contrast retune. Foreground tier brightened in dark mode and darkened in light to clear WCAG-AA at 12 px (the small-label tier was the load-bearing fix). Status-background tokens land (`--ok-bg`, `--info-bg`, `--warn-bg`, `--err-bg` + matching borders); banners no longer inline rgba. 4-px spacing grid enforced; radii collapsed 10 → 4 named + pill; 3 elevation levels + 3 motion durations; agent-color rgba bumped in light mode for visibility on warm white.",
+        "Accessibility. Global `:focus-visible` ring (2 px `--info` at 2 px offset) lands in `base.css` — no component opts out. `@media (prefers-reduced-motion: reduce)` forces all durations ≤1 ms and disables halos / caret blink / scroll-behavior.",
+        "Material Design Icons. New `icons.jsx` (~60 MDI icons inlined as path data) exposes `<Mdi name size color />` on window. The legacy `Icon` object in `shared.jsx` becomes a thin shim — 14 keys (`Activity` / `List` / `Palette` / `Chevron` / `Dot` / `Check` / `X` / `Arrow` / `ArrowLeft` / `Spark` / `Warn` / `Gear` / `SignOut` / `Help`) forward to `<Mdi>` so call sites keep working through the migration. Future specs move call sites onto `<Mdi>` directly.",
+        "Emoji eliminated. 13 emoji swept across 4 surfaces: 🔎 → `magnify`, ⚠ → `alert`, 🔗 stripped from DOM text, 📄/📎 → `file-document`, ⏳ → `timer`, ✓ → `check`. The 5-state ReconcileChip palette migrated from `{glyph: '✓'}` to `{icon: 'check'}` while preserving every visual state (verified / drift / partial / unverified / awaiting_provider_data). Three carve-outs deferred to later specs — see spec 0050 for rationale.",
+        "File layout. New `tokens.css` (authoritative tokens), new `base.css` (body + reset + type utilities + focus + motion + markdown), new `icons.jsx`. `theme.css` slimmed from 383 → 109 lines (legacy component classes only — drains spec-by-spec in Ship 2). `index.html` swaps font links and adds the new stylesheets + icons script in load order.",
+      ],
+    },
+    {
       version: '0.47.0',
       date: '2026-05-17',
       summary: 'Daily reconciliation cron, powered by Supabase-source run-cost data.',
@@ -163,11 +177,11 @@
       date: '2026-05-16',
       summary: 'Web search audit UI + agent-pill alignment fix.',
       items: [
-        'Every turn that fired web search now carries a 🔎 N chip on its timeline card (next to the existing token + cost chips). Tooltip reports "N web searches · M URLs retrieved"; quiet on turns where search didn\'t happen.',
+        'Every turn that fired web search now carries a search-count chip on its timeline card (next to the existing token + cost chips). Tooltip reports "N web searches · M URLs retrieved"; quiet on turns where search didn\'t happen.',
         'Expanding a card surfaces a one-line audit affordance below the sentiment paragraph: "Pulled M results across N queries · click to inspect →". Click opens the full-view modal pre-positioned to the Web Search tab. Provider-aware copy: OpenAI without sources gets "M citations · click to inspect →" instead.',
         'New Web Search tab on every full-view modal — joins Content / Input on one-pane modals (Phase 0 critique, Phase 3 doc, Phase 5 final), as a sub-tab on the Phase 2/4 side-by-side left pane (Original | Input | Web Search), and on the Phase 1 draft modal\'s right pane (Draft | Web Search). The tab renders a per-query accordion: each query group lists every retrieved URL, with Anthropic carrying title + host + page_age chip + monospace cited_text block per citation, OpenAI carrying URL-only. Results that the model actually cited get a [cited] tag.',
         'Hallucinated citations — a citation referencing a URL that wasn\'t in any retrieval set — surface in three places: a ⚠ badge on the Web Search tab strip, a ⚠ dot on the per-query group header (when relevant), and a banner inside the tab body listing every offending URL + title. Pre-existing validator data; the UI just reads Citation.matched_query_id.',
-        'New run-header chip: 🔎 N · M URLs (total searches across all turns · total consulted URLs). When any turn has an unmatched citation, appends "· ⚠ K unmatched"; click jumps the timeline to the first flagged card. Hidden entirely on pre-0036 transcripts so older runs stay clean.',
+        'New run-header chip: total searches across all turns · total consulted URLs. When any turn has an unmatched citation, appends an unmatched-count flag; click jumps the timeline to the first flagged card. Hidden entirely on pre-0036 transcripts so older runs stay clean.',
         'Agent-pill alignment fix (spec-0035 follow-up): Claude\'s pill sits on the right of the Timeline header row; GPT\'s used to sit on the LEFT of the toolbar row below, breaking the visual column. They now both right-align — toolbar order is now [live-count] [flex] [Conversation | Consumption] [GPT pill]. Pure JSX reorder, no CSS changes.',
         'Server: /api/runs/<id>/searches/index gains an optional ?include=summary query param returning a per-key {queries, consulted, has_warning} map so the chip layer reads counts from one per-run fetch instead of fetching every bundle. Backward-compatible — default response shape unchanged.',
       ],
@@ -208,7 +222,7 @@
         'The right-pane explorer is renamed Critique — phase tabs show "Phase 2 · 3 Q · 4 D"-shape counts, and a new filter strip toggles between All / Questions / Disagreements. Each card has a Q or D left-rail tag.',
         'Click any Q or D card in the explorer → the matching turn-cards in the timeline flash for 2s (blue ring for questions, amber for disagreements). Lets you walk a critique\'s history from the explorer side.',
         'Side-by-side viewer reliability fix. Block IDs are now assigned at parse time on the backend (protocol/blocks.py), embedded as HTML comments in served markdown, lifted onto rendered DOM nodes by the frontend, and pre-resolved by the parser against the prior content. NegotiateReviewModal\'s jumpToItem uses the resolved ID via getElementById — fastest + most reliable. Falls back to the legacy text-scan only when the agent paraphrased the quote.',
-        'Phase 1 plan cards open a new DraftReviewModal with the brief on the left (carrying the spec-0033 Original | Input sub-tabs) and the draft on the right. Each draft section heading has a 🔗 brief affordance that scans the brief for the closest matching block.',
+        'Phase 1 plan cards open a new DraftReviewModal with the brief on the left (carrying the spec-0033 Original | Input sub-tabs) and the draft on the right. Each draft section heading has a "brief" affordance that scans the brief for the closest matching block.',
         'Cards on the timeline now show a sentiment paragraph when unfolded — "Claude still negotiating in round 3. Raised 1 new question, answered 3 prior questions, resolved 1 disagreement. Standing: 2 open disagreements." Replaces the single-line gist.',
         'Card chips gain round-over-round deltas: 4 Q (-2) means "two answered since last round"; 5 D (+1, -2) means "one new this round, two resolved". The chip tooltip explains.',
       ],
@@ -394,7 +408,7 @@
       <g>
         <circle cx={cx} cy={cy} r={r} fill={bg} stroke={border} strokeWidth="1.25" />
         <text x={cx} y={cy + r * 0.32} textAnchor="middle"
-              fontFamily="Geist, system-ui, sans-serif" fontWeight="600"
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontWeight="600"
               fontSize={r * 0.95} fill={color}>{letter}</text>
       </g>
     );
@@ -440,7 +454,7 @@
       { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'plan convergence' },
       { tag: 'single-shot', color: 'var(--fg-2)',    label: 'P3 · Draft',      sub: 'drafter writes doc' },
       { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P4 · Review',     sub: 'cross-review + revise' },
-      { tag: 'output',      color: 'var(--ok)',      label: '✓ final.md',       sub: 'single document' },
+      { tag: 'output',      color: 'var(--ok)',      label: 'final.md',         sub: 'single document' },
     ];
     return (
       <div style={{
@@ -465,7 +479,7 @@
             {i < cells.length - 1 && (
               <span style={{
                 position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',
-                color: 'var(--border-3)', fontFamily: 'JetBrains Mono, monospace',
+                color: 'var(--border-3)', fontFamily: 'IBM Plex Sans, ui-monospace, monospace',
                 fontSize: 14, zIndex: 1,
               }}>▶</span>
             )}
@@ -484,23 +498,23 @@
         <rect x={30} y={20} width={200} height={80} rx={8}
               fill="var(--bg-2)" stroke="var(--border-2)" />
         <text x={130} y={44} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={11}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
               fill="var(--fg-1)">disk: prior turns inlined</text>
         <text x={130} y={62} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={9.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
               fill="var(--fg-3)">round 1..N-1, both agents</text>
         <text x={130} y={76} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={9.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
               fill="var(--fg-3)">+ brief + phase-1 drafts</text>
         <text x={130} y={92} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={9.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
               fill="var(--fg-3)">+ CACHE_BREAKPOINT</text>
 
         <text x={370} y={50} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={11}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
               fill="var(--fg-1)">orchestrator assembles</text>
         <text x={370} y={66} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
               fill="var(--fg-3)">a fresh prompt</text>
 
         <Arrow x1={230} y1={60} x2={510} y2={60} />
@@ -508,13 +522,13 @@
         <rect x={510} y={20} width={180} height={80} rx={8}
               fill="var(--bg-2)" stroke="var(--border-2)" />
         <text x={600} y={44} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={11}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
               fill="var(--fg-1)">round N prompt</text>
         <text x={600} y={62} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={9.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
               fill="var(--fg-3)">identical to both, except</text>
         <text x={600} y={78} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={9.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
               fill="var(--fg-3)">agent_name substitution</text>
 
         <Arrow x1={560} y1={108} x2={180} y2={170} />
@@ -524,7 +538,7 @@
         <GptDisc    cx={580} cy={195} r={30} />
 
         <text x={365} y={200} textAnchor="middle"
-              fontSize={11} fill="var(--fg-3)" fontFamily="JetBrains Mono, monospace">
+              fontSize={11} fill="var(--fg-3)" fontFamily="IBM Plex Sans, ui-monospace, monospace">
           asyncio.gather
         </text>
 
@@ -534,19 +548,19 @@
         <rect x={50} y={258} width={200} height={28} rx={6}
               fill="var(--agent-a-bg)" stroke="var(--agent-a-border)" />
         <text x={150} y={276} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10.5}
               fill="var(--agent-a)">phase2/round-NN-claude.md</text>
 
         <rect x={480} y={258} width={200} height={28} rx={6}
               fill="var(--agent-b-bg)" stroke="var(--agent-b-border)" />
         <text x={580} y={276} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10.5}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10.5}
               fill="var(--agent-b)">phase2/round-NN-openai.md</text>
 
         <rect x={260} y={294} width={200} height={22} rx={6}
               fill="var(--bg-1)" stroke="var(--border-2)" />
         <text x={360} y={309} textAnchor="middle"
-              fontFamily="JetBrains Mono, monospace" fontSize={10}
+              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
               fill="var(--fg-1)">both AGREED + plan-hash match?</text>
       </svg>
     );
@@ -835,10 +849,11 @@
                        fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>
             What we actually do
             <span className="mono" style={{
-              fontSize: 10, padding: '1px 7px', borderRadius: 999,
+              display: 'inline-flex', alignItems: 'center',
+              padding: '1px 7px', borderRadius: 999,
               background: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)',
               border: '1px solid var(--agent-b-border)',
-            }}>✓</span>
+            }}><Mdi name="check" size={10} /></span>
           </h3>
           <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
             Stateless re-inlining. Each turn rebuilds the entire prompt from disk + run state.
@@ -856,7 +871,7 @@
   // ─── Context-growth stacked bars ──────────────────────────────────────
 
   const codeS = {
-    fontFamily: 'JetBrains Mono, monospace', fontSize: '0.88em',
+    fontFamily: 'IBM Plex Sans, ui-monospace, monospace', fontSize: '0.88em',
     padding: '1px 5px', background: 'var(--bg-2)',
     border: '1px solid var(--border-1)', borderRadius: 4, color: 'var(--fg-0)',
   };

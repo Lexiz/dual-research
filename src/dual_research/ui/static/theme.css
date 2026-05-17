@@ -1,131 +1,25 @@
-/* dual-research dashboard theme tokens */
-:root {
-  /* Surfaces — deep neutral with a touch of warm */
-  --bg-0: #08090b;          /* page */
-  --bg-1: #0d0f12;          /* panel */
-  --bg-2: #131519;          /* elevated panel */
-  --bg-3: #191c21;          /* row hover / chip */
-  --bg-4: #1f2329;          /* high contrast surface */
+/* =============================================================
+   dual-research — Legacy component sheet (post-SPEC-0050)
+   --------------------------------------------------------------
+   Tokens + reset + body + type utilities + markdown + scrollbars
+   + focus ring + reduced-motion + caret + pulse keyframes +
+   selection + flash + dashed-divider + modal fade now live in
+   `tokens.css` + `base.css` (copied verbatim from the
+   Claude Design brief in SPEC-0050).
 
-  /* Borders */
-  --border-1: #1c1f24;      /* hairline */
-  --border-2: #262a31;      /* medium */
-  --border-3: #343941;      /* strong */
+   Everything left here is a per-component class that hasn't been
+   moved onto a new primitive yet. These will drain spec-by-spec
+   in Ship 2 (SPEC-0051..0056). Do not add new rules here.
+   ============================================================= */
 
-  /* Foreground */
-  --fg-0: #f2f4f7;          /* primary */
-  --fg-1: #c8ccd3;          /* high body */
-  --fg-2: #8c929c;          /* secondary */
-  --fg-3: #5e636d;          /* muted */
-  --fg-4: #3f444c;          /* very muted */
-
-  /* Agent A — Claude track (warm sable) */
-  --agent-a: #d4a574;
-  --agent-a-dim: #8a6d4e;
-  --agent-a-bg: rgba(212, 165, 116, 0.08);
-  --agent-a-bg-strong: rgba(212, 165, 116, 0.16);
-  --agent-a-border: rgba(212, 165, 116, 0.22);
-
-  /* Agent B — GPT track (cool sage) */
-  --agent-b: #7cc4b8;
-  --agent-b-dim: #4f8079;
-  --agent-b-bg: rgba(124, 196, 184, 0.08);
-  --agent-b-bg-strong: rgba(124, 196, 184, 0.16);
-  --agent-b-border: rgba(124, 196, 184, 0.22);
-
-  /* Status */
-  --ok:    #6fb380;
-  --warn:  #d4a056;
-  --err:   #d96a6a;
-  --info:  #6b9cf0;
-  --idle:  #5e636d;
-
-  /* Type */
-  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-
-  /* Scale */
-  --r-1: 4px;
-  --r-2: 6px;
-  --r-3: 8px;
-  --r-4: 10px;
-  --r-5: 14px;
-
-  /* Theme-independent — text color on top of agent-colored fills */
-  --on-accent: #14110a;
-}
-
-/* ─────────────────── Light mode overrides ─────────────────── */
-body.light {
-  --bg-0: #faf9f6;
-  --bg-1: #ffffff;
-  --bg-2: #f3f0e9;
-  --bg-3: #e8e4db;
-  --bg-4: #d6d1c4;
-
-  --border-1: #e7e3d9;
-  --border-2: #d2cdc0;
-  --border-3: #aaa599;
-
-  --fg-0: #14171c;
-  --fg-1: #2d3138;
-  --fg-2: #585c64;
-  --fg-3: #898d95;
-  --fg-4: #b6b9bf;
-
-  /* Agent tints — bumped a touch for visibility on warm white */
-  --agent-a-bg:        rgba(212, 165, 116, 0.14);
-  --agent-a-bg-strong: rgba(212, 165, 116, 0.26);
-  --agent-a-border:    rgba(212, 165, 116, 0.42);
-
-  --agent-b-bg:        rgba(124, 196, 184, 0.14);
-  --agent-b-bg-strong: rgba(124, 196, 184, 0.26);
-  --agent-b-border:    rgba(124, 196, 184, 0.42);
-
-  /* Slightly darker glyph for solid agent tiles in light mode */
-  --on-accent: #1a160d;
-}
-
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  background: var(--bg-0);
-  color: var(--fg-1);
-  font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "ss01", "cv11";
-}
-
-#root { min-height: 100vh; }
-
-/* Scrollbars */
-*::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb {
+/* Phase chip strip — used in run-detail timeline phase headers. */
+.phase-step-line {
+  height: 1px;
   background: var(--border-2);
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--border-3);
-  border: 2px solid transparent;
-  background-clip: content-box;
 }
 
-/* Reset */
-button { font-family: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-input { font-family: inherit; color: inherit; }
-
-/* Type utilities */
-.mono { font-family: var(--mono); font-feature-settings: "ss01", "ss02", "cv02"; }
-.num  { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-
-/* Generic helpers */
+/* Generic uppercase label helper — superseded by .t-label in base.css
+   but kept until call sites migrate in SPEC-0051. */
 .uppercase-label {
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -134,63 +28,9 @@ input { font-family: inherit; color: inherit; }
   font-weight: 500;
 }
 
-/* Streaming text caret */
-.caret::after {
-  content: "▍";
-  display: inline-block;
-  margin-left: 1px;
-  animation: caret-blink 1.05s steps(1) infinite;
-  opacity: 0.8;
-  font-weight: 400;
-}
-@keyframes caret-blink {
-  0%, 50% { opacity: 0.9; }
-  51%, 100% { opacity: 0; }
-}
-
-/* Status pulse */
-@keyframes pulse-a { 0%, 100% { box-shadow: 0 0 0 0 rgba(212, 165, 116, 0.5); } 50% { box-shadow: 0 0 0 6px rgba(212, 165, 116, 0); } }
-@keyframes pulse-b { 0%, 100% { box-shadow: 0 0 0 0 rgba(124, 196, 184, 0.5); } 50% { box-shadow: 0 0 0 6px rgba(124, 196, 184, 0); } }
-@keyframes pulse-warn { 0%, 100% { box-shadow: 0 0 0 0 rgba(212, 160, 86, 0.5); } 50% { box-shadow: 0 0 0 6px rgba(212, 160, 86, 0); } }
-@keyframes pulse-err { 0%, 100% { box-shadow: 0 0 0 0 rgba(217, 106, 106, 0.5); } 50% { box-shadow: 0 0 0 6px rgba(217, 106, 106, 0); } }
-
-.pulse-a    { animation: pulse-a 2.2s ease-out infinite; }
-.pulse-b    { animation: pulse-b 2.2s ease-out infinite; }
-.pulse-warn { animation: pulse-warn 1.6s ease-out infinite; }
-.pulse-err  { animation: pulse-err  1.6s ease-out infinite; }
-
-/* Phase chip strip */
-.phase-step-line {
-  height: 1px;
-  background: var(--border-2);
-}
-
-/* Soft fade-in for newly streamed segments */
-@keyframes seg-in {
-  from { opacity: 0; transform: translateY(2px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.seg-in { animation: seg-in 180ms ease-out both; }
-
-/* Modal overlay entrance (spec 0025) */
-@keyframes dr-modal-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* Click-to-anchor flash highlight (spec 0027) — applied to a block when a
-   review comment card jumps to it. Soft amber tint that fades over 1.5s. */
-@keyframes dr-flash {
-  0%   { background-color: rgba(212, 160, 86, 0.42); }
-  100% { background-color: rgba(212, 160, 86, 0.00); }
-}
-.dr-flash {
-  animation: dr-flash 1.5s ease-out 1 both;
-  border-radius: var(--r-2);
-}
-
-/* Ghost-block placeholder for "missing X" / `> after:` review items. Rendered
-   underneath the anchored heading on jump; auto-dismissed on next click. */
+/* Ghost-block placeholder for "missing X" / "> after:" review items.
+   Rendered underneath the anchored heading on jump; auto-dismissed
+   on next click. */
 .dr-ghost-block {
   border: 1px dashed var(--warn);
   border-radius: var(--r-2);
@@ -203,7 +43,7 @@ input { font-family: inherit; color: inherit; }
   position: relative;
 }
 .dr-ghost-block::before {
-  content: '‸';                /* proofreader's caret — "insert here" */
+  content: '\2038';                /* proofreader's caret — "insert here" */
   position: absolute; left: -14px; top: 6px;
   color: var(--warn); font-weight: 700; font-size: 13px;
 }
@@ -216,7 +56,7 @@ input { font-family: inherit; color: inherit; }
   margin-bottom: 4px;
 }
 
-/* Spec 0034 — "🔗 brief" affordance injected next to Phase 1 draft section
+/* Spec 0034 — brief affordance injected next to Phase 1 draft section
    headings in DraftReviewModal. Quiet by default; hover-darkens. */
 .dr-section-brief-btn {
   display: inline-flex;
@@ -241,7 +81,7 @@ input { font-family: inherit; color: inherit; }
   border-color: var(--border-2);
 }
 
-/* Cap meter */
+/* Cap meter — used by run-detail / consumption cards. */
 .cap-bar {
   position: relative;
   height: 4px;
@@ -261,7 +101,7 @@ input { font-family: inherit; color: inherit; }
   background: var(--border-3);
 }
 
-/* Subtle grid background for streaming areas */
+/* Subtle grid background for streaming areas. */
 .bg-grid {
   background-image:
     linear-gradient(var(--border-1) 1px, transparent 1px),
@@ -269,114 +109,3 @@ input { font-family: inherit; color: inherit; }
   background-size: 24px 24px;
   background-position: -1px -1px;
 }
-
-/* Lines connector */
-.dashed-divider {
-  background-image: linear-gradient(to right, var(--border-2) 50%, transparent 50%);
-  background-size: 6px 1px;
-  background-repeat: repeat-x;
-  background-position: left center;
-  height: 1px;
-}
-
-/* Selection */
-::selection { background: rgba(124, 196, 184, 0.35); }
-
-/* ─────────────────── Markdown preview ─────────────────── */
-/* Used by the <Markdown> component (shared.jsx) to render orchestrator-
-   ingested markdown into the timeline and disagreement panes. */
-.md {
-  font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--fg-1);
-}
-.md > :first-child { margin-top: 0; }
-.md > :last-child { margin-bottom: 0; }
-.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
-  color: var(--fg-0);
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  line-height: 1.3;
-  margin: 14px 0 6px;
-}
-.md h1 { font-size: 17px; }
-.md h2 { font-size: 14.5px; }
-.md h3 {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-2);
-  font-weight: 600;
-  margin-top: 16px;
-}
-.md h4, .md h5, .md h6 { font-size: 12.5px; }
-.md p { margin: 6px 0; }
-.md ul, .md ol { margin: 6px 0; padding-left: 22px; }
-.md li { margin: 3px 0; }
-.md ul li::marker { color: var(--fg-3); }
-.md ol li::marker { color: var(--fg-3); font-variant-numeric: tabular-nums; }
-.md code {
-  font-family: var(--mono);
-  font-size: 0.88em;
-  padding: 1px 5px;
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: 4px;
-  color: var(--fg-0);
-}
-.md pre {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  margin: 8px 0;
-  padding: 10px 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: var(--r-2);
-  overflow-x: auto;
-  line-height: 1.55;
-  color: var(--fg-0);
-}
-.md pre code {
-  padding: 0;
-  background: none;
-  border: 0;
-  font-size: inherit;
-}
-.md strong { color: var(--fg-0); font-weight: 600; }
-.md em { color: var(--fg-0); font-style: italic; }
-.md a {
-  color: #6b9cf0;
-  text-decoration: underline;
-  text-decoration-color: rgba(107, 156, 240, 0.45);
-  text-underline-offset: 2px;
-}
-.md a:hover { text-decoration-color: #6b9cf0; }
-.md blockquote {
-  margin: 8px 0;
-  padding: 4px 0 4px 12px;
-  border-left: 2px solid var(--border-3);
-  color: var(--fg-2);
-}
-.md blockquote p { margin: 2px 0; }
-.md hr {
-  border: 0;
-  border-top: 1px solid var(--border-1);
-  margin: 14px 0;
-}
-.md table {
-  border-collapse: collapse;
-  margin: 8px 0;
-  font-size: 12px;
-}
-.md th, .md td {
-  padding: 6px 10px;
-  border: 1px solid var(--border-1);
-  text-align: left;
-}
-.md th {
-  background: var(--bg-2);
-  color: var(--fg-1);
-  font-weight: 600;
-}
-.md del { color: var(--fg-3); text-decoration: line-through; }
