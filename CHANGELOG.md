@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.57.0] — 2026-05-17
+
+### Added
+
+- **Global keyboard contract** ([spec 0059](specs/0059-keyboard-and-shortcuts.md)) — A11Y-03. Document-level keydown handler in `app.jsx` with input/textarea/contentEditable exemption. Single-key bindings suppressed when user is typing; modifier chords (Cmd+K) fire everywhere.
+- **Shortcuts overlay** — A11Y-04. Press `?` to open a full-screen overlay listing all keyboard shortcuts by context (global, negotiate review modal). Uses the Modal primitive from SPEC-0058.
+- **Search palette** — A11Y-04. Press `Cmd+K` / `Ctrl+K` to open a command palette with client-side run search and navigation. Arrow keys walk results, Enter selects, Esc closes. Filters runs by topic, ID, status, and phase. Also lists navigation targets (All runs, How it works, Design language).
+
 ## [0.56.0] — 2026-05-17
 
 ### Added

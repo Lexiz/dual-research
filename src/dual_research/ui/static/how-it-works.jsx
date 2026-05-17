@@ -15,6 +15,17 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.57.0',
+      date: '2026-05-17',
+      summary: 'Keyboard contract + shortcuts overlay + search palette.',
+      items: [
+        'Ship 3 spec #2. Global keyboard contract wired at the document level. Input/textarea exempt from single-key bindings; modifier chords (Cmd+K) fire everywhere.',
+        'Press ? to open a shortcuts overlay listing every keyboard binding by context (global shortcuts, negotiate review modal). Built on the Modal primitive from SPEC-0058.',
+        'Press Cmd+K (or Ctrl+K) to open a search palette. Type to filter runs by topic, ID, status, or phase. Arrow keys walk results, Enter navigates, Esc closes. Also surfaces navigation targets like All runs, How it works, and Design language.',
+        'Existing / shortcut for focusing run-list search (SPEC-0055) preserved and documented in the overlay.',
+      ],
+    },
+    {
       version: '0.56.0',
       date: '2026-05-17',
       summary: 'Modal primitive + RoundScrubber + provider-symmetric SourceCard + sub-tab migration.',
