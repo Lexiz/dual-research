@@ -168,3 +168,77 @@ class TestPhase0Synthesis:
         assert "UNIQUE_BRIEF_42" not in bundle["pieces"]["system"]
         # System has the epistemic-duty preamble.
         assert "epistemic" in bundle["pieces"]["system"]
+
+
+class TestSpec0045InputBundleFiltering:
+    """Spec 0045 D3+D4 — the frontend hides per-turn input pieces that
+    have empty bodies, and floats the brief to the top labelled as the
+    user prompt.
+
+    These tests pin the wire-format contract the frontend filter
+    depends on: the persisted bundle preserves empty-string entries for
+    pieces a turn didn't inline (rather than omitting the keys), and
+    the brief piece is non-empty for runs whose brief text reached the
+    orchestrator. The frontend then filters out empty pieces via the
+    INPUT_PIECE_ORDER walk in ``run-detail.jsx``.
+    """
+
+    def test_persisted_bundle_preserves_empty_piece_strings(self, tmp_path: Path) -> None:
+        """The orchestrator emits the full piece vocabulary with empty
+        strings for absent pieces; the aggregator MUST preserve those
+        as-is so the frontend's truthiness filter is the canonical
+        switch. If the aggregator started dropping empty keys, the
+        frontend filter would still work — but the wire shape would
+        silently shift and existing snapshots would render slightly
+        differently. Lock the current contract.
+        """
+        run = _empty_run()
+        # Simulate a Phase 2 R1 negotiation turn: brief + both drafts
+        # are populated; plan / hist / draft / histp are not used yet.
+        apply_event(
+            run,
+            _turn_inputs(
+                agent="claude",
+                phase="phase2",
+                label="phase2-r1-claude",
+                pieces={
+                    "system": "SYS",
+                    "brief": "BRIEF_TEXT",
+                    "d1": "CLAUDE_DRAFT",
+                    "d2": "OPENAI_DRAFT",
+                    "plan": "",
+                    "hist": "",
+                    "draft": "",
+                    "histp": "",
+                },
+            ),
+            tmp_path,
+        )
+        path = tmp_path / "inputs" / "phase2_round1_claude.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        pieces = data["pieces"]
+        # Used pieces survive with content.
+        assert pieces["brief"] == "BRIEF_TEXT"
+        assert pieces["d1"] == "CLAUDE_DRAFT"
+        assert pieces["d2"] == "OPENAI_DRAFT"
+        # Unused pieces survive with empty strings (NOT dropped). The
+        # spec-0045 frontend filters these out; the wire keeps them so
+        # callers can detect "this turn had these slots but nothing
+        # went in" vs "this turn's bundle pre-dates the slot."
+        for absent in ("plan", "hist", "draft", "histp"):
+            assert absent in pieces
+            assert pieces[absent] == ""
+
+    def test_phase0_synthesis_brief_is_nonempty_when_brief_md_present(
+        self, tmp_path: Path
+    ) -> None:
+        """Spec 0045 D4 — the user-prompt section (= brief) is the
+        most-relevant input piece. The synthesised Phase 0 bundle MUST
+        carry the brief text in ``pieces['brief']`` so the frontend's
+        floats-to-top render has something to show.
+        """
+        (tmp_path / "brief.md").write_text("THIS IS THE USER PROMPT", encoding="utf-8")
+        bundle = build_phase0_input_bundle(tmp_path)
+        assert bundle is not None
+        assert bundle["pieces"]["brief"]
+        assert bundle["pieces"]["brief"] == "THIS IS THE USER PROMPT"

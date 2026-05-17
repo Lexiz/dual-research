@@ -154,6 +154,13 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
 // missed the live-activity sentence). Pill border picks up the agent's
 // color — that's the "rail" cue; no separate left-border-rail like the
 // header variant had.
+//
+// Spec 0045 D6 — equal-width pills (shared `min-width` via the
+// AGENT_PILL_MIN_WIDTH constant below); internal layout is identity
+// left-aligned (logo · provider · model), spacer, metrics right-aligned
+// (tokens · cost · ● status). The shared min-width is hard-coded for v1
+// — sized so the wider of the two model-id strings (Claude's longer one)
+// fits comfortably without truncation; v2 can measure dynamically.
 function AgentStrip({ agent, run }) {
   const meta = AGENT_META[agent];
   const ag = run.agents?.[agent] || {};
@@ -168,45 +175,70 @@ function AgentStrip({ agent, run }) {
 
   return (
     <span
-      title={`${meta.name} · ${modelId} · ${totalTokens.toLocaleString()} tokens · ${cost.toFixed(4)} USD`}
+      title={`${meta.name} · ${modelId} · ${totalTokens.toLocaleString()} tokens · ${cost.toFixed(4)} USD · ${phrase}`}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        padding: '3px 10px',
+        padding: '4px 12px',
         background: 'var(--bg-2)',
         border: `1px solid ${meta.border}`,
         borderRadius: 999,
         whiteSpace: 'nowrap',
-        minWidth: 0,
+        // Spec 0045 D6 — shared min-width turns the two pills into a
+        // matched pair; combined with the flex spacer below, identity
+        // sits at the left edge and metrics anchor to the right.
+        minWidth: AGENT_PILL_MIN_WIDTH,
         flexShrink: 1,
       }}>
-      <AgentIcon agent={agent} size={14} />
-      <span style={{ fontSize: 11.5, color: 'var(--fg-1)', fontWeight: 500 }}>
-        {meta.name}
-      </span>
-      <span className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-3)',
-        maxWidth: 160,
-        overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
-        {modelId}
-      </span>
-      <span className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-2)',
-      }}>
-        {fmt.tokens(totalTokens)}t · {fmt.cost(cost)}
-      </span>
-      <span style={{ color: 'var(--border-2)', fontSize: 11 }}>│</span>
-      <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
+      {/* Left zone — identity (logo · provider · model). */}
       <span style={{
-        fontSize: 11, color: phraseColor,
-        maxWidth: 180,
-        overflow: 'hidden', textOverflow: 'ellipsis',
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        flexShrink: 0,
       }}>
-        {phrase}
+        <AgentIcon agent={agent} size={14} />
+        <span style={{ fontSize: 11.5, color: 'var(--fg-1)', fontWeight: 500 }}>
+          {meta.name}
+        </span>
+        <span className="mono" style={{
+          fontSize: 10.5, color: 'var(--fg-3)',
+          maxWidth: 160,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {modelId}
+        </span>
+      </span>
+      {/* Spacer — pushes metrics to the right edge. */}
+      <span style={{ flex: 1 }} />
+      {/* Right zone — metrics (tokens · cost · ● status). */}
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        flexShrink: 0,
+      }}>
+        <span className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
+          {fmt.tokens(totalTokens)}t
+        </span>
+        <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>·</span>
+        <span className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
+          {fmt.cost(cost)}
+        </span>
+        <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>·</span>
+        <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
+        <span style={{
+          fontSize: 11, color: phraseColor,
+          maxWidth: 140,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {phrase}
+        </span>
       </span>
     </span>
   );
 }
+
+// Spec 0045 D6 — shared min-width for the two timeline-header model
+// pills. Hard-coded v1 (≈20% above the wider Claude pill's pre-spec
+// width, so identity/metrics breathe at the new alignment); dynamic
+// measurement is a v2 follow-up.
+const AGENT_PILL_MIN_WIDTH = 480;
 
 // ─────────────────── Spec 0038 — RunSearchSummary header chip ───────────────
 //
@@ -2621,6 +2653,36 @@ function LazyMarkdownBody({ filePath }) {
   return <Markdown text={body || '— body unavailable —'} />;
 }
 
+// ─────────────────── Spec 0045 — canonical tab order + hide-empty helpers ───
+//
+// D1 — every full-view modal builds its tabs list, then sorts by this
+// index. Tabs whose `id` isn't in the canon keep their author-declared
+// order at the end (no tab ever silently disappears just because its
+// id was misspelled).
+//
+// D2 — modals filter falsy entries out of their tabs list BEFORE
+// passing into `sortByCanon`, so a tab whose content is empty simply
+// isn't rendered. Absence is the signal.
+const TABS_CANON = ['content', 'input', 'webSearch', 'sources', 'files'];
+function sortByCanon(tabs) {
+  return [...tabs].sort((a, b) => {
+    const ia = TABS_CANON.indexOf(a.id);
+    const ib = TABS_CANON.indexOf(b.id);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+}
+
+// Spec 0045 D2 helper — returns true when the per-turn web-search
+// summary records at least one query or consulted source. Hallucination
+// flags alone don't qualify (there's nothing for the tab to render
+// without an event).
+function hasWebSearchData(summary, turnKey) {
+  if (!summary || !turnKey) return false;
+  const s = summary.get(turnKey);
+  if (!s) return false;
+  return (s.queries || 0) > 0 || (s.consulted || 0) > 0;
+}
+
 // ─────────────────── Modal dispatch ───────────────────
 // Spec 0025 owns title + accent + body shape per artifact kind.
 // Spec 0027 layers the side-by-side review modal on top of phase 2 turn cards.
@@ -2662,20 +2724,23 @@ function DocumentModal({ item, meta, onClose, accent }) {
   // Spec 0033: every output modal gains an Input tab. The bundle key
   // is plumbed through ``item.turnKey`` by ``buildLiveTimeline``.
   // Spec 0038: a Web Search tab joins as the last default tab.
+  // Spec 0045 D1+D2: tabs render in canonical order; empty tabs are
+  // hidden entirely (Input absent → no `inputs/<key>.json`; Web Search
+  // absent → summary has no queries/consulted for this turn).
   const webSearch = useWebSearchTab(item.turnKey);
-  const tabs = [
+  const tabs = sortByCanon([
     {
       id: 'content',
       label: 'Content',
       content: <LazyMarkdownBody filePath={item.filePath} />,
     },
-    {
+    item.turnKey && {
       id: 'input',
       label: 'Input',
       content: <InputTabContent turnKey={item.turnKey} />,
     },
     webSearch,
-  ];
+  ].filter(Boolean));
   return (
     <Modal
       open={true}
@@ -2693,10 +2758,15 @@ function DocumentModal({ item, meta, onClose, accent }) {
 // when this turn has a hallucinated-citation flag, the tab label
 // renders a small `⚠` to match the per-card chip and the run-header
 // summary.
+// Spec 0045 D2 — returns ``null`` when this turn ran no searches /
+// retrieved no sources; callers ``.filter(Boolean)`` the result so the
+// tab simply isn't rendered (count was never in the label, only the
+// hallucination ⚠ exception of D8 carries through).
 function useWebSearchTab(turnKey) {
   const ctx = React.useContext(SearchIndexContext);
   const summary = ctx?.summary;
-  const s = turnKey && summary ? summary.get(turnKey) : null;
+  if (!hasWebSearchData(summary, turnKey)) return null;
+  const s = summary.get(turnKey);
   const badge = s && s.hasWarning ? '⚠' : null;
   return {
     id: 'webSearch',
@@ -2839,7 +2909,9 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
+        // Spec 0045 D5 — equal-width panes; both columns now read as
+        // parallel surfaces (was 1.5fr / 1fr, biased toward the left).
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
         gap: 18,
         minHeight: 0,
         height: '100%',
@@ -2940,6 +3012,15 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }
   const ctx = React.useContext(SearchIndexContext);
   const summary = ctx?.summary;
   const hasWarning = !!(item.turnKey && summary && summary.get(item.turnKey)?.hasWarning);
+  // Spec 0045 D2 — hide the Web Search sub-tab when this turn did no
+  // searches. The hallucination ⚠ exception (D8) is moot in that case.
+  const hasSearch = hasWebSearchData(summary, item.turnKey);
+  // If the user had Web Search selected and the data disappears (e.g.
+  // hot-reload), reset back to Original so we don't render an orphan
+  // empty pane.
+  React.useEffect(() => {
+    if (sub === 'webSearch' && !hasSearch) setSub('original');
+  }, [sub, hasSearch]);
 
   return (
     <div style={{
@@ -2956,7 +3037,12 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0,
       }}>
-        <NegotiateLeftSubTabs active={sub} onChange={setSub} hasSearchWarning={hasWarning} />
+        <NegotiateLeftSubTabs
+          active={sub}
+          onChange={setSub}
+          hasSearchWarning={hasWarning}
+          showWebSearch={hasSearch}
+        />
         <span style={{ flex: 1 }} />
         {sub === 'original' && (
           <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
@@ -3035,12 +3121,17 @@ function NegotiateDocTabs({ tabs, active, onChange }) {
   );
 }
 
-function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning }) {
+function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearch }) {
+  // Spec 0045 D1+D2 — declared in canonical order
+  // (Original ≡ Content slot, then Input, then Web Search); the Web
+  // Search sub-tab only renders when the turn actually has search data
+  // (the ⚠ hallucination badge of D8 still shows when present).
   const tabs = [
     { id: 'original',  label: 'Original' },
     { id: 'input',     label: 'Input' },
-    { id: 'webSearch', label: 'Web Search', badge: hasSearchWarning ? '⚠' : null },
-  ];
+    showWebSearch && { id: 'webSearch', label: 'Web Search',
+                       badge: hasSearchWarning ? '⚠' : null },
+  ].filter(Boolean);
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'stretch',
@@ -3143,7 +3234,9 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.3fr)',
+        // Spec 0045 D5 — equal-width panes (was 1fr / 1.3fr, biased
+        // toward the draft on the right).
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
         gap: 18,
         minHeight: 0,
         height: '100%',
@@ -3203,6 +3296,12 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
   const ctx = React.useContext(SearchIndexContext);
   const summary = ctx?.summary;
   const hasWarning = !!(turnKey && summary && summary.get(turnKey)?.hasWarning);
+  // Spec 0045 D2 — Web Search sub-tab is hidden when this draft turn
+  // ran no searches. Reset selection if it disappears while open.
+  const hasSearch = hasWebSearchData(summary, turnKey);
+  React.useEffect(() => {
+    if (sub === 'webSearch' && !hasSearch) setSub('draft');
+  }, [sub, hasSearch]);
   const anchoredItems = (items || []).filter((it) => it.quote || it.after || it.blockId);
 
   // Walk the rendered DOM after each render and inject a "🔗 brief"
@@ -3247,7 +3346,12 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0,
       }}>
-        <DraftRightSubTabs active={sub} onChange={setSub} hasSearchWarning={hasWarning} />
+        <DraftRightSubTabs
+          active={sub}
+          onChange={setSub}
+          hasSearchWarning={hasWarning}
+          showWebSearch={hasSearch}
+        />
         <span style={{ flex: 1 }} />
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
           {sub === 'draft'
@@ -3274,11 +3378,14 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
   );
 }
 
-function DraftRightSubTabs({ active, onChange, hasSearchWarning }) {
+function DraftRightSubTabs({ active, onChange, hasSearchWarning, showWebSearch }) {
+  // Spec 0045 D2 — hide the Web Search sub-tab when the draft turn
+  // had no searches.
   const tabs = [
     { id: 'draft',     label: 'Draft' },
-    { id: 'webSearch', label: 'Web Search', badge: hasSearchWarning ? '⚠' : null },
-  ];
+    showWebSearch && { id: 'webSearch', label: 'Web Search',
+                       badge: hasSearchWarning ? '⚠' : null },
+  ].filter(Boolean);
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'stretch',
@@ -3626,9 +3733,14 @@ function reviewItemsFor(run, item) {
 //
 // Friendly labels per Tk-vocab key. Stays in sync with KIND_COLORS.label
 // from the Consumption tab.
+//
+// Spec 0045 D4 — the brief IS the user-supplied research prompt for the
+// run (today's CLI has no separate ``--prompt`` argument). Labelled
+// "User prompt: Brief" to make that role legible; if a future spec
+// adds a distinct prompt field, this label re-points to it.
 const INPUT_PIECE_LABEL = {
   system: 'System prompt',
-  brief:  'Brief',
+  brief:  'User prompt: Brief',
   d1:     "Claude's Phase 1 draft",
   d2:     "GPT's Phase 1 draft",
   plan:   'Agreed plan',
@@ -3637,8 +3749,11 @@ const INPUT_PIECE_LABEL = {
   histp:  'Prior Phase 4 review turns',
 };
 
-// Canonical render order — mirrors ``protocol/prompts.py::INPUT_BUNDLE_KEY_ORDER``.
-const INPUT_PIECE_ORDER = ['system', 'brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
+// Spec 0045 D4 — `brief` floats to the top (it's always the most-relevant
+// input piece). Then the system template, then the rest in canonical
+// content order. Mirrors ``protocol/prompts.py::INPUT_BUNDLE_KEY_ORDER``
+// with `brief` re-promoted above `system`.
+const INPUT_PIECE_ORDER = ['brief', 'system', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
 
 // Pieces collapsed by default. The `system` template is long boilerplate
 // the user can drill into if they care; the substantive content (brief,
@@ -3665,9 +3780,19 @@ function InputTabContent({ turnKey }) {
     );
   }
   const pieces = bundle.pieces || {};
-  // Render the canonical order; any unknown keys append at the end.
-  const renderKeys = INPUT_PIECE_ORDER.filter(k => k in pieces)
-    .concat(Object.keys(pieces).filter(k => !INPUT_PIECE_ORDER.includes(k)));
+  // Spec 0045 D3 — render only the pieces the turn actually used. The
+  // wire bundle (per `protocol/prompts.py`) carries empty strings for
+  // pieces a turn didn't inline; absent pieces don't render at all
+  // here. The "not used in this turn" footer is gone — absence is the
+  // signal. System template is always informational and renders when
+  // present.
+  const renderKeys = INPUT_PIECE_ORDER
+    .filter((k) => k in pieces && pieces[k])
+    .concat(Object.keys(pieces).filter((k) => !INPUT_PIECE_ORDER.includes(k) && pieces[k]));
+
+  if (renderKeys.length === 0) {
+    return <InputEmptyState label="This turn's input bundle is empty." />;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -3684,9 +3809,11 @@ function InputTabContent({ turnKey }) {
 }
 
 function InputSection({ piece, text, defaultCollapsed }) {
+  // Spec 0045 D3 — InputTabContent filters out empty pieces upstream,
+  // so the "(not used in this turn)" branch this section used to render
+  // is gone (the section itself wouldn't have been built).
   const [open, setOpen] = React.useState(!defaultCollapsed);
   const label = INPUT_PIECE_LABEL[piece] || piece;
-  const isEmpty = !text;
   const chars = text ? text.length : 0;
   const approxTokens = text ? Math.max(1, Math.round(text.length / 3.5)) : 0;
 
@@ -3721,17 +3848,11 @@ function InputSection({ piece, text, defaultCollapsed }) {
           ({piece})
         </span>
         <span style={{ flex: 1 }} />
-        {isEmpty ? (
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-            (not used in this turn)
-          </span>
-        ) : (
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-            {chars.toLocaleString()} chars · ~{approxTokens.toLocaleString()}t
-          </span>
-        )}
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+          {chars.toLocaleString()} chars · ~{approxTokens.toLocaleString()}t
+        </span>
       </button>
-      {open && !isEmpty && (
+      {open && (
         <div style={{
           borderTop: '1px solid var(--border-1)',
           padding: '10px 12px',
@@ -4194,34 +4315,36 @@ function InputBriefModal({ item, run, onClose, accent }) {
   const { attachments, loading } = window.useAttachments(run.id);
 
   // Split attachments into Sources (links) vs Files (image/pdf/file).
+  // Spec 0045 D7 — canonicalised on the same `sources`/`files` ids
+  // every full-view modal uses; D2 hides whichever bucket is empty.
   const fileKinds = new Set(['image', 'pdf', 'file']);
   const sources = (attachments || []).filter((a) => a.kind === 'link');
   const files = (attachments || []).filter((a) => fileKinds.has(a.kind));
 
-  const tabs = [
-    {
-      id: 'input',
-      label: 'Input',
-      content: <InputTabContent turnKey={item.turnKey || 'input'} />,
-    },
+  // Spec 0045 D1+D2+D8 — canonical order, hide empties, drop counts
+  // from tab labels (the body header carries the count instead).
+  const tabs = sortByCanon([
     {
       id: 'content',
       label: 'Content',
       content: <PreflightContentTab item={item} />,
     },
     {
+      id: 'input',
+      label: 'Input',
+      content: <InputTabContent turnKey={item.turnKey || 'input'} />,
+    },
+    sources.length > 0 && {
       id: 'sources',
       label: 'Sources',
-      count: sources.length,
       content: <PreflightSourcesTab sources={sources} loading={loading} />,
     },
-    {
+    files.length > 0 && {
       id: 'files',
       label: 'Files',
-      count: files.length,
       content: <PreflightFilesTab files={files} loading={loading} runId={run.id} />,
     },
-  ];
+  ].filter(Boolean));
 
   return (
     <Modal
@@ -4238,8 +4361,10 @@ function InputBriefModal({ item, run, onClose, accent }) {
 function PreflightResponseModal({ item, run, onClose, accent }) {
   const meta = AGENT_META[item.agent];
   const turnKey = item.turnKey || `phase0_${item.agent}`;
+  // Spec 0045 D1+D2 — canonical tab order; hide Web Search when the
+  // critique didn't actually search.
   const webSearch = useWebSearchTab(turnKey);
-  const tabs = [
+  const tabs = sortByCanon([
     {
       id: 'content',
       label: 'Content',
@@ -4251,7 +4376,7 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
       content: <InputTabContent turnKey={turnKey} />,
     },
     webSearch,
-  ];
+  ].filter(Boolean));
   return (
     <Modal
       open={true}
