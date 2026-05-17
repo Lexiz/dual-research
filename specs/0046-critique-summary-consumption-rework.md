@@ -3,10 +3,10 @@ spec: 0046
 title: Critique panel + Summary tab + Consumption tab rework + design unification
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.44.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/47"
 ---
 
 # Spec 0046 — Critique panel + Summary + Consumption rework + design unification
