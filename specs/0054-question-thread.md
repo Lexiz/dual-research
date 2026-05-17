@@ -3,10 +3,10 @@ spec: 0054
 title: QuestionThread + QuestionRef + AP-01 enforcement
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.52.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/58"
 ---
 
 # Spec 0054 — QuestionThread + QuestionRef + AP-01
