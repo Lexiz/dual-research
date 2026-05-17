@@ -3,10 +3,10 @@ spec: 0057
 title: Timeline + critique restructure (PhaseRail + ChipCluster + 3-axis filter + DriftCluster + Summary panel + CardHeadline migration)
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.55.0
 created: 2026-05-17
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/61
 ---
 
 # Spec 0057 — Timeline + critique restructure
