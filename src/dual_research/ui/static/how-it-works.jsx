@@ -15,6 +15,27 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.49.0',
+      date: '2026-05-17',
+      summary: 'Primitive vocabulary — Button, StatusBadge, Chip, RunIDChip, Card, AgentStrip, segmented ThemeToggle.',
+      items: [
+        "Ship 2 spec #1 of the design-system arc. New components.css lands the V1 component classes (.btn, .sb, .chip, .rid, .card, .as / .ai, .tt) on top of SPEC-0050's tokens + base. Class-only — no hex codes anywhere in components.",
+        "Five legacy primitives → three: StatusBadge (state), Chip (data), RunIDChip (identity). The Tab primitive that subsumes the rest (PaneButton / PhaseTab / FilterChip / ViewSwitcher) arrives in SPEC-0053. Legacy Pill + StatusBadge stay unchanged in shared.jsx; surface specs sweep call sites onto the new primitives one by one.",
+        "ThemeToggle restored to segmented with sliding thumb. Same sun/moon two-cell shape you already had, plus a small thumb element that animates between cells in 180 ms ease-out (the prior implementation had the segmented shape but the thumb was just an active-cell background flip).",
+        "Today's-component migration — four of the components introduced in specs 0046-0048 (ReconcileChip, RepairChip, GhostedAnnotation, GhostedRoundsBadge) now consume the new primitives. ReconcileChip is the load-bearing one: all 5 visual states preserved (verified / drift / partial / unverified / awaiting_provider_data); body composition stays bespoke; tone classes drive color. CardHeadline + ProviderBilledLine defer to later specs (see CHANGELOG for reasons).",
+        "AgentStrip min-width 480 → 320 (CMP-07). The strip no longer dominates the header after the upcoming chrome restructure (SPEC-0056).",
+        "Cache-bust query strings (`?v=NNNN`) added to every local stylesheet and JSX script in index.html. Bumps each spec so browsers refetch fresh code after deploy — addresses a real verification pain point where stale CSS/JSX masked the new behaviour locally.",
+      ],
+    },
+    {
+      version: '0.48.1',
+      date: '2026-05-17',
+      summary: 'CI fixture check-in — partner-vetting run committed so tests.yml passes on CI runners.',
+      items: [
+        "Hotfix between SPEC-0050 (design foundation) and SPEC-0052 (primitive vocabulary). Pure ops change; no UI behaviour change.",
+      ],
+    },
+    {
       version: '0.48.0',
       date: '2026-05-17',
       summary: 'Design-system foundation — new fonts, retuned contrast, MDI icons, no emoji, focus ring, reduced-motion contract.',

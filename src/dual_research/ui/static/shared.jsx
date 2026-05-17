@@ -645,8 +645,167 @@ function scrollAndFlash(container, { blockId, text, afterHeading } = {}) {
   return target;
 }
 
+// ─────────────────────────── SPEC-0052 — new primitive vocabulary ───────────────────────────
+// Class-backed wrappers around `components.css`. These coexist with the legacy
+// inline-styled `Pill`, `StatusBadge`, `MetricRow`, etc. (kept as-is so existing
+// surfaces don't break); future surface specs migrate call sites onto these.
+// Naming uses the brief's React API ([scripts/primitives.jsx]).
+//
+// agent='a' = Claude, agent='b' = GPT (matches CSS .ai-a / .ai-b classes).
+
+function _cn(...parts) { return parts.filter(Boolean).join(' '); }
+
+// Button — three sizes (sm/md/lg), four variants (primary/secondary/ghost/danger).
+function Button({ size = 'md', variant = 'secondary', leadingIcon, trailingIcon, children, onClick, disabled, className, type = 'button', title }) {
+  const variantClass = variant === 'secondary' ? null : `btn-${variant}`;
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} title={title}
+            className={_cn('btn', `btn-${size}`, variantClass, className)}>
+      {leadingIcon && <Mdi name={leadingIcon} size={14} />}
+      {children && <span>{children}</span>}
+      {trailingIcon && <Mdi name={trailingIcon} size={14} />}
+    </button>
+  );
+}
+
+// SB — class-backed StatusBadge primitive. Renamed to avoid shadowing the
+// legacy inline-styled `StatusBadge` that run-list and other surfaces still
+// consume; SPEC-0055..0057 will sweep call sites onto this and retire the old.
+// tone: 'idle' | 'ok' | 'info' | 'warn' | 'err' | 'a' | 'b' | 'running'
+function SB({ tone = 'idle', size = 'md', children, live = false, className }) {
+  const sizeClass = size === 'sm' ? 'sb-sm' : null;
+  return (
+    <span className={_cn('sb', tone && `sb-${tone}`, sizeClass, live && 'sb-running', className)}>
+      <i className="dot" />
+      <span>{children}</span>
+    </span>
+  );
+}
+
+// Chip — count + label, eight tones, two shape modifiers.
+// tone: 'info' | 'ok' | 'warn' | 'err' | 'a' | 'b' | 'muted' (optional)
+function Chip({ tone, pill, lg, icon, children, asButton, onClick, className, title, style }) {
+  const cls = _cn('chip', tone && `tone-${tone}`, pill && 'chip-pill', lg && 'chip-lg', className);
+  const content = (
+    <>
+      {icon && <Mdi name={icon} size={12} className="ico" />}
+      {children}
+    </>
+  );
+  if (asButton) {
+    return <button type="button" className={cls} onClick={onClick} title={title} style={style}>{content}</button>;
+  }
+  return <span className={cls} title={title} style={style}>{content}</span>;
+}
+
+// RunIDChip — pure identity, pill-shaped 4-char hex. Size sm or md.
+function RunIDChip({ id, size = 'md', className, onClick, title }) {
+  const sizeClass = size === 'sm' ? 'rid-sm' : null;
+  const cls = _cn('rid', sizeClass, className);
+  if (onClick) {
+    return <button type="button" className={cls} onClick={onClick} title={title || id}>{id}</button>;
+  }
+  return <span className={cls} title={title || id}>{id}</span>;
+}
+
+// Card — base + variants. Wrap in `<CardBody>` for the expanded body region
+// (the `.card-body` margin/padding kicks in when the parent has `.card-expanded`).
+function Card({ live, agent, expanded, interactive, onClick, className, children, role, ariaLabel }) {
+  const Tag = interactive ? 'button' : 'div';
+  return (
+    <Tag
+      onClick={interactive ? onClick : undefined}
+      type={interactive ? 'button' : undefined}
+      role={role}
+      aria-label={ariaLabel}
+      className={_cn('card', interactive && 'is-interactive', expanded && 'card-expanded', live && 'card-live', live && agent === 'b' && 'is-b', className)}
+    >
+      {children}
+    </Tag>
+  );
+}
+function CardBody({ children, className }) {
+  return <div className={_cn('card-body', className)}>{children}</div>;
+}
+
+// AgentStrip — uses brief's 'a'/'b' agent convention.
+// `name` defaults to 'Claude'/'GPT' based on agent.
+function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', live, right, className }) {
+  const displayName = name || (agent === 'a' ? 'Claude' : 'GPT');
+  return (
+    <div className={_cn('as', `is-${agent}`, className)}>
+      <span className="as-left">
+        <span className={`ai ai-md ai-${agent}`} role="img" aria-label={displayName}>
+          {agent === 'a' ? <ClaudeMonogram /> : <OpenAIMonogram />}
+        </span>
+        <span className="as-name">{displayName}</span>
+        {model && <span className="as-model mono">{model}</span>}
+      </span>
+      <span className="as-right mono">
+        {tokens != null && (
+          <>
+            <span className="num v">{fmt.tokens(tokens)}</span>
+            <span className="sep">·</span>
+          </>
+        )}
+        {cost != null && (
+          <>
+            <span className="num v">{fmt.cost(cost)}</span>
+            <span className="sep">·</span>
+          </>
+        )}
+        {right != null ? right : <SB tone={status} size="sm" live={live}>{status}</SB>}
+      </span>
+    </div>
+  );
+}
+
+// Brand monograms used inside .ai tile (single-letter glyph; brief uses
+// inline SVGs but for parity with the existing AgentIcon usage we render
+// the full-stylised path from this file's CLAUDE_PATH/OPENAI_PATH constants
+// already defined above).
+function ClaudeMonogram() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={CLAUDE_PATH} fill="currentColor" /></svg>;
+}
+function OpenAIMonogram() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={OPENAI_PATH} fill="currentColor" /></svg>;
+}
+
+// ThemeToggle — segmented two-cell sun/moon with sliding thumb (CMP-02).
+// Accepts either `onChange(newTheme)` (brief's API) or `onToggle()` (legacy).
+function ThemeToggleSegmented({ theme = 'dark', onChange, onToggle }) {
+  const setTheme = (next) => {
+    if (next === theme) return;
+    if (onChange) onChange(next);
+    else if (onToggle) onToggle();
+  };
+  return (
+    <div className="tt" data-theme={theme} role="group" aria-label="Theme">
+      <span className="tt-thumb" aria-hidden="true" />
+      <button type="button"
+              className={_cn('tt-cell', theme === 'light' && 'is-active')}
+              onClick={() => setTheme('light')}
+              aria-label="Switch to light theme"
+              aria-pressed={theme === 'light' ? 'true' : 'false'}
+              title="Switch to light theme">
+        <Mdi name="white-balance-sunny" size={12} />
+      </button>
+      <button type="button"
+              className={_cn('tt-cell', theme === 'dark' && 'is-active')}
+              onClick={() => setTheme('dark')}
+              aria-label="Switch to dark theme"
+              aria-pressed={theme === 'dark' ? 'true' : 'false'}
+              title="Switch to dark theme">
+        <Mdi name="weather-night" size={12} />
+      </button>
+    </div>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
   scrollAndFlash,
+  // SPEC-0052 primitives
+  Button, SB, Chip, RunIDChip, Card, CardBody, AgentStrip, ThemeToggleSegmented,
 });
