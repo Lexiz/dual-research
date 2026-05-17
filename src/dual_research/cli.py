@@ -705,9 +705,16 @@ def _run_reconcile(argv: list[str]) -> int:
 
     project_root = Path(__file__).resolve().parents[2]
     runs_dir = Path(args.runs_dir).expanduser() if args.runs_dir else project_root / "runs"
+    # Spec 0048 follow-up: don't exit when runs/ is missing. The reconcile
+    # path is meaningful even with zero local runs — provider-side billing
+    # data still surfaces, and ``gather_local_totals`` already returns an
+    # empty dict for a missing directory. Honest report > spurious exit.
     if not runs_dir.exists():
-        print(f"error: runs dir not found: {runs_dir}", file=sys.stderr)
-        return 2
+        print(
+            f"warning: runs dir not found ({runs_dir}); proceeding with "
+            "empty local totals — report will reflect provider-side data only",
+            file=sys.stderr,
+        )
 
     # Resolve mode → list of UTC dates.
     try:

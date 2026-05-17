@@ -12,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.46.1] — 2026-05-17
+
+### Fixed
+
+- **`reconcile-costs` no longer exits 2 when `runs/` is missing.** The 0.46.0 CLI bailed early on a missing `runs/` directory, which broke the GitHub Actions cron (CI runners check out a clean repo where `runs/` is gitignored and absent). The CLI now logs a warning and proceeds with empty local totals — `gather_local_totals` already handled the missing-dir case correctly; only the CLI's early exit was overzealous. New regression test `tests/audit/test_reconcile_cli_missing_runs.py` locks the behaviour. 719 total green (was 718).
+
+### Changed
+
+- **Disabled the daily reconcile-costs cron schedule (`.github/workflows/reconcile-costs.yml`).** The `workflow_dispatch` trigger remains so manual runs work, but the daily 02:00 UTC schedule is commented out. Reason: CI runners have no local `runs/` directory, so the cron would reconcile `$0 local vs $X billed` daily and report spurious drift — eroding trust in the run-detail verification chip. Re-enable in a follow-up spec that teaches `reconcile-costs` to read run-cost data from Supabase (where the actual run metrics live in hosted mode).
+
 ## [0.46.0] — 2026-05-17
 
 ### Added

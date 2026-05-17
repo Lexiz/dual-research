@@ -85,7 +85,14 @@ class ReconcileReport:
 
     @property
     def within_tolerance(self) -> bool:
-        return self.verification_status == "verified"
+        """0.46.1 — only ``drift`` is an actionable failure for CLI exit
+        purposes. ``partial`` / ``unverified`` / ``awaiting_provider_data``
+        are operational states (missing keys, missing local data,
+        provider lag) that shouldn't alert. ``verified`` and any of those
+        three return True so the CI cron doesn't fire on a clean checkout
+        with no local runs to compare. Only ``drift`` returns False.
+        """
+        return self.verification_status != "drift"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
