@@ -3,10 +3,10 @@ spec: 0060
 title: Cross-run dashboards — /compare (two-run side-by-side) + /search (cross-run query)
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.58.0
 created: 2026-05-17
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/64
 ---
 
 # Spec 0060 — Cross-run dashboards
