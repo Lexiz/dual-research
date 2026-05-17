@@ -12,6 +12,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.51.0] — 2026-05-17
+
+### Added
+
+- **Tab system — 3 variants** ([spec 0053](specs/0053-tab-system.md)) — Ship 2 spec #2 of the design-system arc. New `.tab` + `.tab-group` CSS sections in `components.css` (~160 lines from brief): default bordered pill, `tabs-line` (underline stripe for modal sub-tabs), `tabs-solid` (segmented control for pane switchers). Filter-chip variant with leading dot + filterTone color classes. React `Tab` + `TabGroup` primitives in `shared.jsx` exposed on `window`. Implements CMP-01, CMP-08.
+- **Table header distinction** (CMP-11) — `.tbl thead th` gains `--bg-2` background, `--border-2` bottom border, semibold weight, `--fg-2` text. Run-list bespoke grid header also upgraded.
+
+### Changed
+
+- **PaneButton call sites migrated to Tab** — Critique pane phase buttons (Phase 2/4/Summary) and filter chips now render via `<TabGroup variant="solid">` + `<Tab>`. Conversation/Consumption toggle also migrated.
+- **FilterChip (errors.jsx) migrated to Tab** — error-log filter strip uses `<Tab dot filterTone count>` instead of the legacy inline-styled `FilterChip` component.
+- **Run-list filter strip migrated to Tab** — inline-styled filter buttons replaced with `<Tab dot filterTone count size="sm">`.
+- **ChromeTab (app.jsx) migrated to Tab** — top chrome "All runs" button uses the `<Tab>` primitive with MDI icon prop.
+- **Dead `PhaseTab` function removed** from run-detail.jsx — was defined but never called since spec 0046 migrated phase tabs to PaneButton.
+
+### Tests
+
+- 725 baseline pytest green (no Python changes; pure JSX/CSS).
+
 ## [0.50.0] — 2026-05-17
 
 ### Added

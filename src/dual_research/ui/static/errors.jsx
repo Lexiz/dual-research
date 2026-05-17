@@ -213,10 +213,10 @@ function ErrorsView() {
         background: 'var(--bg-1)',
         flexShrink: 0,
       }}>
-        <FilterChip label="all" count={ERRORS_LOG.length} active={filter === 'all'} onClick={() => setFilter('all')} />
-        <FilterChip label="critical" count={counts.critical || 0} color={COLORS.err}  active={filter === 'critical'} onClick={() => setFilter('critical')} />
-        <FilterChip label="error"    count={counts.error || 0}    color={COLORS.err}  active={filter === 'error'}    onClick={() => setFilter('error')} />
-        <FilterChip label="warning"  count={counts.warning || 0}  color={COLORS.warn} active={filter === 'warning'}  onClick={() => setFilter('warning')} />
+        <Tab active={filter === 'all'} onClick={() => setFilter('all')} count={ERRORS_LOG.length}>all</Tab>
+        <Tab active={filter === 'critical'} onClick={() => setFilter('critical')} dot filterTone="errored" count={counts.critical || 0}>critical</Tab>
+        <Tab active={filter === 'error'}    onClick={() => setFilter('error')}    dot filterTone="errored" count={counts.error || 0}>error</Tab>
+        <Tab active={filter === 'warning'}  onClick={() => setFilter('warning')}  dot filterTone="deadlocked" count={counts.warning || 0}>warning</Tab>
         <span style={{ flex: 1 }} />
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
           newest first · click row to expand

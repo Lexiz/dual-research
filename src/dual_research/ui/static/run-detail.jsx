@@ -844,27 +844,24 @@ function Timeline({ run, highlightedTurnKeys }) {
 // padding and add a 1px accent underline on the active tab so the
 // control reads as primary chrome.
 function TimelineTabs({ active, onChange, prominent = false }) {
-  // Spec 0046 D9 — adopts the shared `PaneButton`. Pre-spec this was a
-  // pill-shaped segmented control with its own border + padding;
-  // converging on `PaneButton` lines the Conversation/Consumption pair
-  // up with the Critique pane buttons (D1) + filter chips (D2).
+  // Spec 0053 D4 — migrated from PaneButton to Tab (tabs-solid variant).
   const tabs = [
     { id: 'conversation', label: 'Conversation' },
     { id: 'consumption',  label: 'Consumption'  },
   ];
   return (
-    <PaneButtonGroup>
+    <TabGroup variant="solid">
       {tabs.map((t) => (
-        <PaneButton
+        <Tab
           key={t.id}
           size={prominent ? 'md' : 'sm'}
           active={t.id === active}
           onClick={() => onChange(t.id)}
         >
           {t.label}
-        </PaneButton>
+        </Tab>
       ))}
-    </PaneButtonGroup>
+    </TabGroup>
   );
 }
 
@@ -5727,18 +5724,18 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
         title="Critique"
         accentColor={COLORS.info}
         left={
-          <PaneButtonGroup>
+          <TabGroup variant="solid">
             {tabs.map((t) => {
               const pInfo = t;
               const counts = phaseCountLabel(pInfo);
               return (
-                <PaneButton
+                <Tab
                   key={t.pid}
                   active={selectedPhase === t.pid}
                   onClick={() => setSelectedPhase(t.pid)}
-                  leftAccent={t.active ? COLORS.info : null}
-                  title={t.pending ? 'Phase has not started yet' : null}
+                  disabled={false}
                 >
+                  {t.active && <i className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', display: 'inline-block', flexShrink: 0 }} />}
                   <span className="mono" style={{
                     fontSize: 10.5, letterSpacing: '0.06em',
                     textTransform: 'uppercase', color: 'var(--fg-3)',
@@ -5751,19 +5748,19 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
                       · {counts}
                     </span>
                   )}
-                </PaneButton>
+                </Tab>
               );
             })}
             {isTerminal && (
-              <PaneButton
+              <Tab
                 active={selectedPhase === 'summary'}
                 onClick={() => setSelectedPhase('summary')}
               >
                 <span style={{ marginRight: 2 }}>∑</span>
                 <span>Summary</span>
-              </PaneButton>
+              </Tab>
             )}
-          </PaneButtonGroup>
+          </TabGroup>
         }
         right={
           <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -5838,24 +5835,22 @@ function filterChipsFor(phaseId) {
   ];
 }
 function CritiqueTypeFilter({ active, onChange, phaseId }) {
-  // Spec 0046 D2 + D9 — adopts the shared `PaneButton`. The pre-spec
-  // pill-segmented control is gone; chips read as a row of buttons
-  // that match the phase-button design language.
+  // Spec 0053 D4 — migrated from PaneButton to Tab (tabs-solid sm).
   const items = filterChipsFor(phaseId);
   if (items.length === 0) return null;
   return (
-    <PaneButtonGroup>
+    <TabGroup variant="solid">
       {items.map((t) => (
-        <PaneButton
+        <Tab
           key={t.id}
           size="sm"
           active={t.id === active}
           onClick={() => onChange(t.id)}
         >
           {t.label}
-        </PaneButton>
+        </Tab>
       ))}
-    </PaneButtonGroup>
+    </TabGroup>
   );
 }
 
@@ -6541,54 +6536,6 @@ function GhostedAnnotation({ run, phaseId, itemId }) {
           style={{ marginLeft: 8, cursor: 'help' }}>
       ghosted {entry.ghostedRounds}r
     </Chip>
-  );
-}
-
-function PhaseTab({ tab, active, onSelect }) {
-  const [hover, setHover] = React.useState(false);
-  return (
-    <button
-      onClick={onSelect}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        height: 28,
-        padding: '0 12px',
-        background: active ? 'var(--bg-3)' : hover ? 'var(--bg-2)' : 'var(--bg-1)',
-        border: `1px solid ${active ? 'var(--border-3)' : 'var(--border-1)'}`,
-        borderRadius: 'var(--r-2)',
-        transition: 'background 120ms, border-color 120ms',
-        whiteSpace: 'nowrap',
-        position: 'relative',
-        boxShadow: active ? `inset 0 -2px 0 ${COLORS.info}` : 'none',
-      }}>
-      {tab.active && <Dot color={COLORS.info} pulse="pulse-a" size={6} />}
-      <span className="mono" style={{
-        fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: active ? 'var(--fg-2)' : 'var(--fg-3)',
-      }}>
-        Phase&nbsp;{tab.pid}
-      </span>
-      <span style={{
-        fontSize: 12.5,
-        color: active ? 'var(--fg-0)' : 'var(--fg-2)',
-        fontWeight: active ? 600 : 400,
-      }}>
-        {tab.label}
-      </span>
-      <span style={{ color: 'var(--fg-4)' }}>·</span>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-        {tab.pending ? 'pending'
-          : tab.total === 0 ? 'no items'
-          : <>
-              <span style={{ color: tab.open > 0 ? COLORS.warn : 'var(--fg-3)' }}>{tab.open} open</span>
-              <span style={{ color: 'var(--fg-4)' }}> · </span>
-              <span style={{ color: tab.resolved > 0 ? COLORS.ok : 'var(--fg-3)' }}>{tab.resolved} resolved</span>
-            </>
-        }
-      </span>
-    </button>
   );
 }
 

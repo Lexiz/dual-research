@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.51.0',
+      date: '2026-05-17',
+      summary: 'Tab system (3 variants) + table header distinction.',
+      items: [
+        "Ship 2 spec #2 of the design-system arc. Unified Tab primitive with three variants: default bordered pill (filter chips, chrome buttons), tabs-line (underline stripe for modal sub-tabs), tabs-solid (segmented control for pane switchers). One component subsumes four legacy inline-styled components.",
+        "Critique pane phase buttons (Phase 2/4/Summary) and filter chips now render via the new tabs-solid segmented control. Conversation/Consumption toggle also migrated. Visually identical intent, class-backed instead of inline-styled.",
+        "Run-list filter strip (all/running/converged/deadlocked/errored/completed) migrated to Tab with leading dot + filterTone color classes + count badges. Same data, new chrome.",
+        "Table headers (CMP-11) now visually distinct from body rows: elevated background, stronger border, semibold weight, lifted text color. Applies to both the generic .tbl primitive and the bespoke run-list grid header.",
+        "Dead PhaseTab function removed from run-detail.jsx (defined but never called since spec 0046).",
+      ],
+    },
+    {
       version: '0.50.0',
       date: '2026-05-17',
       summary: 'Primitive vocabulary — Button, StatusBadge, Chip, RunIDChip, Card, AgentStrip, segmented ThemeToggle.',

@@ -771,6 +771,36 @@ function OpenAIMonogram() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={OPENAI_PATH} fill="currentColor" /></svg>;
 }
 
+// ─── SPEC-0053 — Tab + TabGroup ───────────────────────────────
+// variant: undefined (bordered pill — chrome, filter chips)
+//        | 'line'   (minimal underline stripe — modal sub-tabs, narrow rails)
+//        | 'solid'  (segmented control — primary pane switchers)
+function TabGroup({ children, className, variant }) {
+  const variantClass = variant === 'line' ? 'tabs-line' : variant === 'solid' ? 'tabs-solid' : null;
+  return (
+    <div className={_cn('tab-group', variantClass, className)} role="tablist">
+      {children}
+    </div>
+  );
+}
+function Tab({ active, onClick, size = 'md', icon, children, count, disabled, dot, filterTone, className }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active ? 'true' : 'false'}
+      onClick={onClick}
+      disabled={disabled}
+      className={_cn('tab', size === 'sm' && 'tab-sm', active && 'is-active', dot && 'tab-filter', filterTone && `tab-${filterTone}`, count === 0 && 'is-zero', className)}
+    >
+      {dot && <i className="dot" />}
+      {icon && <Mdi name={icon} size={14} />}
+      <span>{children}</span>
+      {count != null && <span className="count num">{count}</span>}
+    </button>
+  );
+}
+
 // ThemeToggle — segmented two-cell sun/moon with sliding thumb (CMP-02).
 // Accepts either `onChange(newTheme)` (brief's API) or `onToggle()` (legacy).
 function ThemeToggleSegmented({ theme = 'dark', onChange, onToggle }) {
@@ -808,4 +838,6 @@ Object.assign(window, {
   scrollAndFlash,
   // SPEC-0052 primitives
   Button, SB, Chip, RunIDChip, Card, CardBody, AgentStrip, ThemeToggleSegmented,
+  // SPEC-0053 primitives
+  Tab, TabGroup,
 });
