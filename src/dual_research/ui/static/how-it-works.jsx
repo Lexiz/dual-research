@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.58.0',
+      date: '2026-05-17',
+      summary: 'Cross-run dashboards -- /compare + /search.',
+      items: [
+        'Ship 4 spec #1. Two new surfaces: a cross-run search dashboard and a two-run side-by-side comparison view.',
+        'Cross-run search (#/search): type to search across all runs by topic, brief content, and final documents. Results grouped by run with match-type chips and snippets. Click any result to jump to that run.',
+        'Compare runs (#/compare): select any two runs from dropdown pickers. Synced-scroll side-by-side panels show each run\'s phases and turns. A delta column highlights differences in drafter, phase count, status, cost, and per-phase turn counts.',
+        'New /api/search server endpoint with substring matching (both local fs and Supabase hosted modes). Results capped at 50.',
+        'Chrome bar gains Compare and Search tabs. SearchPalette and ShortcutsOverlay updated with the new navigation targets.',
+      ],
+    },
+    {
       version: '0.57.0',
       date: '2026-05-17',
       summary: 'Keyboard contract + shortcuts overlay + search palette.',

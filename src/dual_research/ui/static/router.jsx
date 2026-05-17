@@ -16,6 +16,8 @@ function parseHash(hash) {
   if (h === '/language') return { view: 'language' };
   if (h === '/settings') return { view: 'settings' };
   if (h === '/how-it-works') return { view: 'how-it-works' };
+  if (h === '/compare') return { view: 'compare' };
+  if (h === '/search') return { view: 'search' };
   const m = h.match(/^\/runs\/([^/?#]+)/);
   if (m) return { view: 'detail', runId: decodeURIComponent(m[1]) };
   // Unknown hash — fall back to list.
@@ -29,6 +31,8 @@ function buildHash(route) {
   if (route.view === 'language') return '#/language';
   if (route.view === 'settings') return '#/settings';
   if (route.view === 'how-it-works') return '#/how-it-works';
+  if (route.view === 'compare') return '#/compare';
+  if (route.view === 'search') return '#/search';
   return '#/';
 }
 

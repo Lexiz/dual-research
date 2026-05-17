@@ -14,6 +14,13 @@ const SHORTCUT_GROUPS = [
     ],
   },
   {
+    title: 'Navigation (via search palette)',
+    shortcuts: [
+      { keys: ['\u2318K', 'compare'], desc: 'Compare runs (side-by-side)' },
+      { keys: ['\u2318K', 'search'], desc: 'Cross-run search' },
+    ],
+  },
+  {
     title: 'Negotiate review modal',
     shortcuts: [
       { keys: ['j', '\u2193'], desc: 'Next item' },
