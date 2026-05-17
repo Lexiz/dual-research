@@ -465,3 +465,219 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .tbl thead tr:first-child th:last-child  { border-top-right-radius: var(--r-3); }
 .tbl tbody tr:last-child td { border-bottom: 0; }
 .tbl tbody tr:hover td { background: var(--bg-1); }
+
+/* ─────────────────────────────────────────────────────────────
+   QuestionThread (.qthread)
+   Turn-by-turn conversation timeline for a critique item.
+   ───────────────────────────────────────────────────────────── */
+.qthread {
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+  padding: var(--s-4);
+  display: grid;
+  gap: var(--s-3);
+}
+.qthread.is-open     { border-left: 2px solid var(--warn); }
+.qthread.is-resolved { border-left: 2px solid var(--ok); }
+.qthread.is-drift    { border-left: 2px solid var(--err); }
+
+.qt-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-2); flex-wrap: wrap;
+}
+.qt-head-l { display: inline-flex; align-items: center; gap: var(--s-2); }
+
+/* QuestionRef (.qref) — decoded reference for a critique question.
+   Replaces the legacy cryptic "Q-g-r1-04" text spans. Two shapes:
+     .qref         — compact "Q · 04". Used inside QuestionThread
+                     where the timeline already shows raised-by + round.
+     .qref-full    — adds the raised-by agent chip + round.
+                     Used in question lists / cards / standalone refs. */
+.qref {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  font-family: var(--sans);
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--fg-1);
+}
+.qref-full { height: 26px; padding: 0 4px 0 10px; }
+.qref .qref-k {
+  font-size: var(--t-label);
+  font-weight: var(--w-semi);
+  color: var(--fg-3);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.qref .qref-n {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  font-weight: var(--w-semi);
+  color: var(--fg-0);
+  letter-spacing: -0.005em;
+}
+.qref .qref-sep { color: var(--fg-4); font-size: 10px; line-height: 1; }
+.qref .qref-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--bg-1);
+  border: 1px solid var(--border-2);
+}
+.qref .qref-by.is-a { background: var(--agent-a-bg); border-color: var(--agent-a-border); }
+.qref .qref-by.is-b { background: var(--agent-b-bg); border-color: var(--agent-b-border); }
+.qref .qref-by .ai { flex: 0 0 auto; }
+.qref .qref-by-n {
+  font-size: var(--t-mono);
+  font-weight: var(--w-semi);
+  color: var(--fg-1);
+}
+.qref .qref-by.is-a .qref-by-n { color: var(--agent-a); }
+.qref .qref-by.is-b .qref-by-n { color: var(--agent-b); }
+.qref .qref-round {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  font-weight: var(--w-medium);
+  color: var(--fg-3);
+  padding-right: 2px;
+}
+
+.qt-question {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fg-0);
+  letter-spacing: 0;
+}
+
+.qt-timeline {
+  position: relative;
+  display: grid;
+  gap: 0;
+  padding: 0;
+}
+.qt-row {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding-bottom: var(--s-3);
+}
+.qt-row:last-child { padding-bottom: 0; }
+.qt-row:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  bottom: 0;
+  width: 1px;
+  background-image: linear-gradient(to bottom, var(--border-2) 50%, transparent 50%);
+  background-size: 1px 5px;
+  background-repeat: repeat-y;
+  z-index: 0;
+}
+
+/* ── The pill — one shape carries identity (icon + agent), round, and verdict. */
+.qt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  width: fit-content;
+  height: 26px;
+  padding: 0 10px 0 4px;
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  font-size: var(--t-meta);
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+.qt-row.is-a .qt-pill { background: var(--agent-a-bg); border-color: var(--agent-a-border); }
+.qt-row.is-b .qt-pill { background: var(--agent-b-bg); border-color: var(--agent-b-border); }
+
+.qt-pill .ai { flex: 0 0 auto; }
+.qt-pill .qt-agent {
+  font-family: var(--sans);
+  font-weight: var(--w-semi);
+  font-size: var(--t-meta);
+  color: var(--fg-0);
+  letter-spacing: -0.005em;
+}
+.qt-row.is-a .qt-pill .qt-agent { color: var(--agent-a); }
+.qt-row.is-b .qt-pill .qt-agent { color: var(--agent-b); }
+
+.qt-pill .qt-sep {
+  color: var(--fg-4);
+  font-size: 11px;
+  line-height: 1;
+}
+.qt-pill .qt-round {
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  font-weight: var(--w-medium);
+  color: var(--fg-3);
+}
+.qt-pill .qt-verdict {
+  font-family: var(--sans);
+  font-size: var(--t-mono);
+  font-weight: var(--w-semi);
+  color: var(--fg-1);
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+/* Verdict tint mirrors the row kind. */
+.qt-row.is-origin   .qt-pill .qt-verdict { color: var(--info); }
+.qt-row.is-resolved .qt-pill .qt-verdict { color: var(--ok); }
+.qt-row.is-ghosted  .qt-pill .qt-verdict { color: var(--warn); }
+.qt-row.is-pushback .qt-pill .qt-verdict { color: var(--warn); }
+
+.qt-quote {
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg-1);
+  margin: 2px 0 0;
+  margin-left: 12px;
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--border-1);
+  letter-spacing: 0;
+}
+.qt-row.is-a .qt-quote { border-left-color: var(--agent-a-border); }
+.qt-row.is-b .qt-quote { border-left-color: var(--agent-b-border); }
+.qt-row.is-ghosted .qt-quote {
+  color: var(--fg-3);
+  border-left-color: var(--warn);
+  border-left-style: dashed;
+}
+
+.qt-drift, .qt-resolved-foot {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-2);
+  font-size: var(--t-meta);
+}
+.qt-drift          { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn); }
+.qt-resolved-foot  { background: var(--ok-bg);   border: 1px solid var(--ok-border);   color: var(--ok); }
+
+/* ─────────────────────────────────────────────────────────────
+   Sentiment paragraph (.sentp) — first word bold = mood
+   Rendered in serif for editorial weight.
+   ───────────────────────────────────────────────────────────── */
+.sentp { font-family: var(--serif); font-size: 14px; color: var(--fg-1); line-height: 1.6; letter-spacing: 0; }
+.sentp strong { color: var(--fg-0); font-weight: var(--w-semi); }

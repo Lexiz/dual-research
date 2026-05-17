@@ -6230,11 +6230,57 @@ function QuestionCard({ q, onHighlight, run }) {
   const [hover, setHover] = React.useState(false);
   const isAnswered = q.status === 'answered';
   const accentColor = COLORS.info;
-  const raisedMeta = AGENT_META[q.raisedBy];
-  const answerMeta = q.answeredBy ? AGENT_META[q.answeredBy] : null;
   // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
   const ledgerEntry = findLedgerEntry(run, q.phase, q.id);
   const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
+
+  // Spec 0054 D7 — AP-01 enforcement: decode legacy Q-c-r1-01 into "01".
+  const parsed = parseQId(q.id);
+  const decodedNum = typeof parsed.number === 'number' ? String(parsed.number).padStart(2, '0') : q.id;
+
+  // Spec 0054 D6 — derive turns from flat question fields.
+  const turns = React.useMemo(() => {
+    const t = [];
+    t.push({
+      agent: q.raisedBy,
+      round: q.raisedRound,
+      verdict: 'raised',
+      quote: q.body || null,
+      kind: 'origin',
+    });
+    if (isAnswered && q.answeredBy) {
+      t.push({
+        agent: q.answeredBy,
+        round: q.answeredRound,
+        verdict: 'answered',
+        quote: q.answerBody || null,
+        kind: 'resolved',
+      });
+    }
+    if (ghostedRounds > 0 && !isAnswered) {
+      // Ghosted turn: the question has been open for N rounds
+      // without an explicit answer. Show as a ghosted marker.
+      t.push({
+        agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
+        round: q.raisedRound + ghostedRounds,
+        verdict: `ghosted ${ghostedRounds}r`,
+        kind: 'ghosted',
+      });
+    }
+    return t;
+  }, [q, isAnswered, ghostedRounds]);
+
+  // Determine thread status from question state.
+  const threadStatus = ghostedRounds > 0 && !isAnswered ? 'drift'
+                     : isAnswered ? 'resolved'
+                     : 'open';
+
+  // Footer text for drift/resolved.
+  const footerText = threadStatus === 'drift'
+    ? `Drift detected — not addressed for ${ghostedRounds} round(s).`
+    : threadStatus === 'resolved'
+    ? `Answered by ${AGENT_META[q.answeredBy]?.name || q.answeredBy} in round ${q.answeredRound}${q.match === 'positional' ? ' (positional match)' : ''}.`
+    : null;
 
   const onCardClick = React.useCallback(() => {
     if (onHighlight) {
@@ -6267,13 +6313,10 @@ function QuestionCard({ q, onHighlight, run }) {
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        {/* Spec 0046 D3 — `{Kind} {Public ID} · {status} · {body}`.
-            Pre-spec the round range + the internal ID sat in the
-            collapsed headline; both move into the expanded body so
-            the headline reads as one human-readable sentence. */}
+        {/* Spec 0054 D7 — AP-01: decoded number replaces raw Q-c-r1-NN ID. */}
         <CardHeadline
           kind="question"
-          publicId={q.id}
+          publicId={decodedNum}
           statusLabel={isAnswered ? 'answered' : 'open'}
           statusColor={isAnswered ? COLORS.ok : COLORS.warn}
           body={q.body}
@@ -6287,48 +6330,25 @@ function QuestionCard({ q, onHighlight, run }) {
           padding: '10px 14px 14px',
           borderTop: '1px solid var(--border-1)',
           background: 'var(--bg-0)',
-          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
-          display: 'flex', flexDirection: 'column', gap: 8,
         }}>
-          {/* Spec 0040 D2 — full body lives in the expanded surface so
-              the collapsed header can stay a single readable line. */}
-          <div style={{
-            fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55,
-            whiteSpace: 'pre-wrap',
-          }}>
-            {q.body || '(no body)'}
-          </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
-          }}>
-            <span>raised by {raisedMeta?.name || q.raisedBy} · R{q.raisedRound}</span>
-            {isAnswered && (
-              <>
-                <span>·</span>
-                <span>answered by {answerMeta?.name || q.answeredBy} · R{q.answeredRound}</span>
-                {q.match === 'positional' && (
-                  <span style={{ color: COLORS.warn, opacity: 0.85 }}>· positional match</span>
-                )}
-              </>
-            )}
-          </div>
+          {/* Spec 0054 D5 — QuestionThread replaces the flat body + metadata. */}
+          <QuestionThread
+            id={q.id}
+            status={threadStatus}
+            question={q.body || '(no body)'}
+            turns={turns}
+            footer={footerText}
+          />
           {q.quote && (
-            <div>
+            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--fg-1)' }}>
               <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
               <span style={{ fontStyle: 'italic' }}>"{q.quote}"</span>
             </div>
           )}
           {q.after && (
-            <div>
+            <div style={{ marginTop: 4, fontSize: 12, color: 'var(--fg-1)' }}>
               <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
               <span style={{ fontStyle: 'italic' }}>{q.after}</span>
-            </div>
-          )}
-          {isAnswered && q.answerBody && (
-            <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed var(--border-1)' }}>
-              <div className="mono" style={{ color: COLORS.ok, fontSize: 10.5, marginBottom: 4 }}>answer</div>
-              <div style={{ whiteSpace: 'pre-wrap' }}>{q.answerBody}</div>
             </div>
           )}
         </div>
