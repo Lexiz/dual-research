@@ -121,12 +121,13 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
       display: 'flex', alignItems: 'stretch',
       paddingLeft: 8,
     }}>
-      <ChromeTab
-        label="All runs"
-        icon={route.view === 'detail' ? Icon.ArrowLeft : Icon.List}
+      <Tab
         active={onList}
         onClick={() => navigate('list')}
-      />
+        icon={route.view === 'detail' ? 'arrow-left' : 'menu'}
+      >
+        All runs
+      </Tab>
       <div style={{ flex: 1 }} />
       <RightCluster
         theme={theme}

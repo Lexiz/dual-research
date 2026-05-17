@@ -279,3 +279,189 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
 .tt[data-theme="light"] .tt-thumb { transform: translateX(0); }
 .tt[data-theme="dark"]  .tt-thumb { transform: translateX(100%); }
 .tt-cell svg { width: 12px; height: 12px; }
+
+/* ─────────────────────────────────────────────────────────────
+   Tab (.tab) — unified primitive for PaneButton, ChromeTab, segmented control
+   Sizes: .tab-sm | .tab-md (default)
+   States: .is-active
+   Wrap in .tab-group for spacing.
+
+   Two visual variants — pick one per surface:
+     .tab-group.tabs-line   — minimal underline stripe (modal sub-tabs,
+                              narrow rails, hover overlays). No chrome around
+                              the tab itself; the rail is a hairline under
+                              the group, the active stripe sits on the rail.
+     .tab-group.tabs-solid  — prominent segmented control (primary pane
+                              switchers, top chrome). Filled container, raised
+                              active pill.
+
+   Default .tab (no variant) is the bordered pill — kept for standalone
+   buttons in the chrome cluster and for the .tab-filter chip configuration.
+   ───────────────────────────────────────────────────────────── */
+.tab-group { display: inline-flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 28px;
+  padding: 0 var(--s-3);
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+  font-weight: var(--w-medium);
+  color: var(--fg-2);
+  background: transparent;
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  transition: color var(--m-fast) var(--ease), background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease), box-shadow var(--m-fast) var(--ease);
+}
+.tab-sm { height: 22px; padding: 0 10px; font-size: var(--t-mono); }
+.tab:hover { color: var(--fg-1); background: var(--bg-2); }
+.tab.is-active {
+  color: var(--fg-0);
+  background: var(--bg-2);
+  border-color: var(--border-2);
+  font-weight: var(--w-semi);
+}
+.tab[disabled] { color: var(--fg-4); cursor: not-allowed; }
+.tab .count {
+  font-family: var(--mono);
+  font-size: var(--t-label);
+  color: var(--fg-3);
+  font-weight: var(--w-medium);
+}
+.tab.is-active .count { color: var(--fg-1); }
+
+/* Filter chip variant — adds a leading dot, dimmer when zero. */
+.tab.tab-filter > .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--idle); }
+.tab.tab-filter.tab-running  > .dot { background: var(--info); animation: pulse-info 2.2s ease-out infinite; }
+.tab.tab-filter.tab-completed > .dot { background: var(--ok); }
+.tab.tab-filter.tab-converged > .dot { background: var(--ok); }
+.tab.tab-filter.tab-deadlocked > .dot { background: var(--warn); }
+.tab.tab-filter.tab-errored   > .dot { background: var(--err); }
+.tab.tab-filter.is-zero .count { opacity: 0.5; }
+
+/* ─── Variant 1 · tabs-line — minimal underline stripe ─────────
+   Used in: modal sub-tabs, split-pane left pane, hover overlays,
+   any narrow row where chrome would crowd the content. The group
+   carries the hairline rail; each tab paints a 2 px stripe over it
+   when active.
+*/
+.tab-group.tabs-line {
+  display: flex;
+  gap: var(--s-4);
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-1);
+  flex-wrap: wrap;
+  padding: 0;
+}
+.tab-group.tabs-line .tab {
+  height: 34px;
+  padding: 0 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--fg-2);
+  font-weight: var(--w-medium);
+  font-size: var(--t-body);
+  transition: color var(--m-fast) var(--ease), border-color var(--m-base) var(--ease);
+}
+.tab-group.tabs-line .tab.tab-sm {
+  height: 30px;
+  font-size: var(--t-meta);
+}
+.tab-group.tabs-line .tab:hover {
+  background: transparent;
+  color: var(--fg-1);
+  border-bottom-color: var(--border-2);
+}
+.tab-group.tabs-line .tab.is-active {
+  color: var(--fg-0);
+  background: transparent;
+  border-bottom-color: var(--fg-0);
+  font-weight: var(--w-semi);
+}
+.tab-group.tabs-line .tab .count {
+  color: var(--fg-3);
+}
+.tab-group.tabs-line .tab.is-active .count {
+  color: var(--fg-1);
+}
+
+/* ─── Variant 2 · tabs-solid — segmented control ───────────────
+   Used in: primary pane switcher (Conversation / Consumption),
+   top chrome navigation. The container is a filled track; the
+   active tab is a raised pill on bg-0 with a soft elevation.
+*/
+.tab-group.tabs-solid {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  flex-wrap: nowrap;
+}
+.tab-group.tabs-solid .tab {
+  height: 30px;
+  padding: 0 var(--s-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-1);
+  color: var(--fg-2);
+  font-weight: var(--w-medium);
+}
+.tab-group.tabs-solid .tab.tab-sm {
+  height: 24px;
+  padding: 0 10px;
+}
+.tab-group.tabs-solid .tab:hover {
+  background: var(--bg-3);
+  color: var(--fg-1);
+}
+.tab-group.tabs-solid .tab.is-active {
+  color: var(--fg-0);
+  background: var(--bg-4);
+  border: 0;
+  font-weight: var(--w-semi);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 0 1px var(--border-2);
+}
+body.light .tab-group.tabs-solid .tab.is-active,
+.light .tab-group.tabs-solid .tab.is-active {
+  background: var(--bg-1);
+  box-shadow: 0 1px 2px rgba(20,23,28,0.10), 0 0 0 1px var(--border-2);
+}
+.tab-group.tabs-solid .tab .count {
+  color: var(--fg-3);
+}
+.tab-group.tabs-solid .tab.is-active .count {
+  color: var(--fg-1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tables — generic baseline + CMP-11 table header distinction
+   ───────────────────────────────────────────────────────────── */
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; }
+.tbl th, .tbl td {
+  text-align: left;
+  padding: 10px var(--s-3);
+  border-bottom: 1px solid var(--border-1);
+}
+.tbl thead th {
+  font-family: var(--sans);
+  font-size: var(--t-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  font-weight: var(--w-semi);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border-2);
+}
+.tbl thead tr:first-child th:first-child { border-top-left-radius: var(--r-3); }
+.tbl thead tr:first-child th:last-child  { border-top-right-radius: var(--r-3); }
+.tbl tbody tr:last-child td { border-bottom: 0; }
+.tbl tbody tr:hover td { background: var(--bg-1); }

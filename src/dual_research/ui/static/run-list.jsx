@@ -48,46 +48,30 @@ function RunListView({ runs, onSelect }) {
         </div>
       </header>
 
-      {/* Filter strip */}
+      {/* Filter strip — SPEC-0053 D6: migrated to Tab primitives */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 18px',
         background: 'var(--bg-1)',
         borderBottom: '1px solid var(--border-1)',
       }}>
-        {[
-          ['all',        'all',        runs.length,        null],
-          ['running',    'running',    counts.running||0,  COLORS.info],
-          ['converged',  'converged',  counts.converged||0,COLORS.ok],
-          ['deadlocked', 'deadlocked', counts.deadlocked||0, COLORS.warn],
-          ['errored',    'errored',    counts.errored||0,  COLORS.err],
-          ['completed',  'completed',  counts.completed||0,COLORS.ok],
-        ].map(([k, label, n, color]) => (
-          <button key={k} onClick={() => setFilter(k)} style={{
-            padding: '4px 10px',
-            background: filter === k ? 'var(--bg-3)' : 'var(--bg-2)',
-            color: filter === k ? 'var(--fg-0)' : 'var(--fg-2)',
-            border: '1px solid var(--border-1)',
-            borderRadius: 4,
-            fontSize: 11,
-            fontFamily: 'var(--mono)',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-          }}>
-            {color && <Dot color={color} size={5} />}
-            <span>{label}</span>
-            <span style={{ color: 'var(--fg-4)' }}>{n}</span>
-          </button>
-        ))}
+        <Tab active={filter === 'all'} onClick={() => setFilter('all')} count={runs.length} size="sm">all</Tab>
+        <Tab active={filter === 'running'} onClick={() => setFilter('running')} dot filterTone="running" count={counts.running||0} size="sm">running</Tab>
+        <Tab active={filter === 'converged'} onClick={() => setFilter('converged')} dot filterTone="converged" count={counts.converged||0} size="sm">converged</Tab>
+        <Tab active={filter === 'deadlocked'} onClick={() => setFilter('deadlocked')} dot filterTone="deadlocked" count={counts.deadlocked||0} size="sm">deadlocked</Tab>
+        <Tab active={filter === 'errored'} onClick={() => setFilter('errored')} dot filterTone="errored" count={counts.errored||0} size="sm">errored</Tab>
+        <Tab active={filter === 'completed'} onClick={() => setFilter('completed')} dot filterTone="completed" count={counts.completed||0} size="sm">completed</Tab>
       </div>
 
-      {/* Column headers */}
+      {/* Column headers — SPEC-0053 D8 CMP-11: table header distinction */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
         padding: '8px 18px',
-        background: 'var(--bg-1)',
-        borderBottom: '1px solid var(--border-1)',
-        fontSize: 10, color: 'var(--fg-3)',
+        background: 'var(--bg-2)',
+        borderBottom: '1px solid var(--border-2)',
+        fontSize: 10, color: 'var(--fg-2)',
+        fontWeight: 600,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
       }}>
