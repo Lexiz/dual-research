@@ -3,10 +3,10 @@ spec: 0061
 title: Onboarding (3-screen first-time flow) + landing demo capsule
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.59.0
 created: 2026-05-17
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/65
 ---
 
 # Spec 0061 — Onboarding + landing demo capsule
