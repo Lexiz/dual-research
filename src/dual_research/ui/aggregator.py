@@ -27,6 +27,7 @@ from dual_research.protocol.parse import (
     synthesise_brief_tldr,
 )
 from dual_research.ui.disagreements import mark_deadlocked_open, reconstruct
+from dual_research.ledger import build_phase_ledger
 from dual_research.ui.claims import reconstruct_claims
 from dual_research.ui.comments import reconstruct_comments
 from dual_research.ui.issues import reconstruct_issues
@@ -131,6 +132,7 @@ def load_run_snapshot(session_dir: Path) -> Run:
     # Phase 2 R1 difference inventories. ``reconstruct_claims`` walks both
     # sources in one pass and returns them ordered by (phase, agent, idx).
     run.claims = reconstruct_claims(session_dir)
+
     # Anchor pre-resolution for questions: same prior-content lookup as
     # used by ``_read_phase_review_items``.
     _resolve_question_anchors(session_dir, run.questions)
@@ -159,6 +161,20 @@ def load_run_snapshot(session_dir: Path) -> Run:
     # Latest converged-document path — used by the Phase 4 side-by-side
     # modal's left pane.
     run.current_draft_path = _find_current_draft_path(session_dir)
+
+    # Spec 0043 D10/D11 — build the per-phase cross-round ledger from the
+    # existing reconstructors + claim-escalation linkage + ghosted-rounds
+    # bookkeeping. Idempotent: rebuilt on every snapshot from disk. Runs
+    # AFTER phase_stats is set so the drift computation can compare
+    # ledger counts to agent self-counters.
+    from dataclasses import asdict as _asdict
+    run.phase_ledgers = {
+        2: [_asdict(e) for e in build_phase_ledger(session_dir, phase=2).entries],
+        4: [_asdict(e) for e in build_phase_ledger(session_dir, phase=4).entries],
+    }
+    # Spec 0043 D8 — drift events: end-of-phase self-counter ↔ ledger
+    # open-count mismatches, surfaced in the UI as a small ⚠ chip.
+    run.drifts = _compute_ledger_drifts(run)
 
     # started_at_ago is "now" relative to the earliest event.
     run.started_at_ago = _seconds_since(run.started_at)
@@ -1334,3 +1350,67 @@ def _resolve_question_anchors(session_dir: Path, questions: list) -> None:
                 if hay == needle:
                     q.block_id = b.id
                     break
+
+
+# ─── Spec 0043 — ledger drift signal ──────────────────────────────────
+
+
+def _compute_ledger_drifts(run: Run) -> list[dict]:
+    """Emit one drift event per (turn, kind) where the agent's
+    self-reported counter disagrees with the ledger's count of items
+    in the same state.
+
+    The check runs against each turn's terminal counter:
+    - ``stats.openQuestions`` vs the ledger's count of open questions
+      RAISED in or BEFORE this turn that are still open after it.
+    - ``stats.blocking`` (BLOCKING_DISAGREEMENTS) vs the ledger's count
+      of open disagreements at the same point.
+    - ``stats.openIssues`` (Phase 4 only) vs the ledger's count of open
+      issues at the same point.
+
+    For v1 the comparison is end-of-phase only: if the final round's
+    agent counter says 0 but the ledger has open entries, that's a
+    drift event for the (phase, kind). Per-turn granularity would
+    require replaying the ledger up to each turn — deferred to a
+    follow-up if the end-of-phase signal proves insufficient.
+    """
+    drifts: list[dict] = []
+    # Phase 2 + Phase 4 end-of-phase check.
+    for phase, kind, counter_attr in (
+        (2, "question", "open_questions"),
+        (2, "disagreement", "blocking"),
+        (4, "issue", "open_issues"),
+    ):
+        ledger_entries = run.phase_ledgers.get(phase, [])
+        ledger_open = sum(
+            1 for e in ledger_entries
+            if e.get("kind") == kind and e.get("current_status") == "open"
+        )
+        # Find the latest round's stats per agent.
+        stats_dict = (
+            run.phase_stats.phase2 if phase == 2 else run.phase_stats.phase4
+        )
+        if not stats_dict:
+            continue
+        last_round = max(stats_dict.keys())
+        per_agent = stats_dict.get(last_round, {})
+        # Aggregate the agents' counters — the convergence check treats
+        # them as "both must report 0", so we compare the sum (which
+        # is 0 iff both are 0 individually).
+        agent_total = 0
+        for ts in per_agent.values():
+            val = getattr(ts, counter_attr, None)
+            if val is not None:
+                agent_total += val
+        if agent_total == ledger_open:
+            continue
+        # Drift recorded.
+        turn_key = f"phase{phase}_round{last_round}_summary"
+        drifts.append({
+            "turn_key": turn_key,
+            "kind": kind,
+            "agent_count": agent_total,
+            "ledger_count": ledger_open,
+            "severity": "warn" if ledger_open > agent_total else "info",
+        })
+    return drifts

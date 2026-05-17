@@ -4352,6 +4352,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
           <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <SmallStat label="open"     value={totalOpen} color={totalOpen > 0 ? COLORS.warn : 'var(--fg-3)'} />
             <SmallStat label="resolved" value={totalResolved} color={totalResolved > 0 ? COLORS.ok : 'var(--fg-3)'} />
+            <LedgerDriftChip drifts={run.drifts} phaseId={selectedPhase} />
           </span>
         }
       />
@@ -4941,6 +4942,71 @@ function SmallStat({ label, value, color }) {
     }}>
       <span className="mono num" style={{ fontSize: 13, color, fontWeight: 600 }}>{value}</span>
       <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{label}</span>
+    </span>
+  );
+}
+
+// Spec 0043 D8 — small ⚠ chip surfacing per-phase drift events. A drift
+// is a mismatch between the agents' final self-counter (`OPEN_QUESTIONS:
+// N` etc.) and what the system-derived ledger counted for the same
+// (phase, kind). Renders nothing when there are no drifts for the
+// selected phase. Tooltip lists the per-kind breakdown.
+function LedgerDriftChip({ drifts, phaseId }) {
+  if (!drifts || drifts.length === 0) return null;
+  // Drift turn-keys are shaped `phase{N}_round{R}_summary` (end-of-phase
+  // events emitted by the aggregator). Filter to the selected phase.
+  const phasePrefix = `phase${phaseId}_`;
+  const phaseDrifts = drifts.filter((d) => (d.turnKey || '').startsWith(phasePrefix));
+  if (phaseDrifts.length === 0) return null;
+  const tooltip = phaseDrifts
+    .map((d) => `${d.kind}: agent=${d.agentCount} · ledger=${d.ledgerCount}`)
+    .join('\n');
+  return (
+    <span
+      className="mono"
+      title={tooltip}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        padding: '1px 8px',
+        background: 'transparent',
+        border: `1px solid ${COLORS.warn}55`,
+        borderRadius: 4,
+        fontSize: 10.5,
+        color: COLORS.warn,
+        letterSpacing: '0.02em',
+        cursor: 'help',
+      }}
+    >
+      <span>⚠</span>
+      <span className="num" style={{ fontWeight: 500 }}>{phaseDrifts.length}</span>
+      <span style={{ color: 'var(--fg-3)' }}>drift</span>
+    </span>
+  );
+}
+
+// Spec 0043 D5 — small "ghosted" annotation rendered below a critique
+// card's headline when the corresponding ledger entry shows
+// `ghostedRounds > 0`. Pulls from `run.phaseLedgers[phaseId]` keyed by
+// item id. Renders nothing when the ledger doesn't track the item or
+// the entry has no ghost annotations.
+function GhostedAnnotation({ run, phaseId, itemId }) {
+  const entries = (run && run.phaseLedgers && run.phaseLedgers[phaseId]) || [];
+  const entry = entries.find((e) => e.id === itemId);
+  if (!entry || !entry.ghostedRounds) return null;
+  return (
+    <span
+      className="mono"
+      title={`Open for ${entry.ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        marginLeft: 8,
+        fontSize: 10,
+        color: COLORS.warn,
+        cursor: 'help',
+      }}
+    >
+      <span>⚠</span>
+      <span>ghosted {entry.ghostedRounds}r</span>
     </span>
   );
 }

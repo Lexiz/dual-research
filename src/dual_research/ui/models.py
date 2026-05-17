@@ -494,6 +494,20 @@ class Run:
     # from Phase 1's ``Claims I Expect the Other Agent Might Dispute`` and
     # Phase 2 R1's ``Diff vs … Phase 1`` difference inventory.
     claims: list[Claim] = field(default_factory=list)
+    # Spec 0043 D10 — per-phase cross-round ledger snapshots, derived
+    # from disk on every load_run_snapshot. Keys are int phase numbers
+    # (2 or 4). Each value is the serialised list of LedgerEntry
+    # objects. Empty until the corresponding phase has at least one
+    # turn file. The wire surface is a thin pass-through over the
+    # ledger package (``src/dual_research/ledger/``); the UI binds
+    # ``run.phaseLedgers[2|4]`` as the canonical source for cross-
+    # round display.
+    phase_ledgers: dict[int, list[dict[str, Any]]] = field(default_factory=dict)
+    # Spec 0043 D8 — drift events: per-turn mismatches between an
+    # agent's self-reported counter (``stats.openQuestions`` etc.)
+    # and the ledger's count for the same turn. Surfaced as a small
+    # ``⚠ drift`` badge on the timeline card.
+    drifts: list[dict[str, Any]] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)

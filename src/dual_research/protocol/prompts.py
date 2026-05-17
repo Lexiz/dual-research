@@ -274,6 +274,7 @@ def negotiation_turn_prompt(
     round: int,
     soft_cap: int,
     hard_cap: int,
+    standing_items: str = "",
 ) -> str:
     return (
         COMMON_PREAMBLE
@@ -302,6 +303,7 @@ This is **round {round}** of Phase 2 (soft cap {soft_cap}, hard cap {hard_cap}).
 
 """
         + _inline_prior_turns(prior_turns, "Prior Phase 2 conversation turns (in order)")
+        + (("\n" + standing_items + "\n") if standing_items else "")
         + f"""
 ## Task
 Produce your turn for round {round} with these sections (headings verbatim):
@@ -556,6 +558,7 @@ def review_turn_prompt(
     round: int,
     soft_cap: int,
     hard_cap: int,
+    standing_items: str = "",
 ) -> str:
     role = "DRAFTER" if agent_name == drafter_name else "REVIEWER"
     return (
@@ -584,6 +587,7 @@ This is **round {round}** of Phase 4 (soft cap {soft_cap}, hard cap {hard_cap}).
 
 """
         + _inline_prior_turns(prior_turns, "Prior Phase 4 review turns (in order)")
+        + (("\n" + standing_items + "\n") if standing_items else "")
         + f"""
 ## Task
 Produce your turn for round {round} with these sections (headings verbatim):

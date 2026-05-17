@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.41.0',
+      date: '2026-05-17',
+      summary: 'Cross-round ledger + standing-items input + conservative convergence.',
+      items: [
+        "The orchestrator now maintains an authoritative cross-round ledger of every claim / question / disagreement / issue / comment, derived from the existing parsed sections in each turn file. Built deterministically on every snapshot. Per-kind closure detection: questions via `## Answers to:` positional + verbatim-match; disagreements via D-N appearance in resolved or final-surfaced sections; claims via D-N escalation match against substantive disagreements; issues via latest-round body markers; comments terminal `noted`.",
+        "Round-N (N≥2) prompts now include a `## Standing items from prior rounds` section built from the ledger. The agent sees structured prior-state as input — items raised by the other agent listed first ('still on them'), items they raised second ('still on you'). Soft instruction (no new mandatory output section); items left unaddressed surface as ghosted in the UI. Capped at 30 items / 3000 chars with a truncation footnote so prompt growth stays bounded.",
+        "Convergence is now conservative: a phase terminates only when both the agent self-counters (OPEN_QUESTIONS / OPEN_ISSUES / BLOCKING_DISAGREEMENTS) AND the system-derived ledger agree the open-set is empty. If they disagree, the phase keeps running and the agent is told (via the standing-items input next round) which items they ghosted. Drift signal surfaces in the UI as a small `⚠ drift` badge on the Critique pane header.",
+        "Kill-switch built in: set `DR_LEDGER_MODE=legacy` in the environment to roll back to self-counter-only convergence and omit the standing-items section, without a code revert. The ledger is still built (UI uses it) but doesn't affect orchestrator behaviour. Default mode is `enforce`.",
+        "Backfill is automatic — the aggregator rebuilds the ledger on every page-load from existing on-disk turn files. Hosted runs see ledger data + drift signal on next refresh, no migration needed.",
+      ],
+    },
+    {
       version: '0.40.0',
       date: '2026-05-17',
       summary: 'Critique data integrity — Phase 1 sections parsed, badges reconcile, markdown rendering fixed.',

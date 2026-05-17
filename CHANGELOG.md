@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.41.0] — 2026-05-17
+
+### Added
+
+- **Authoritative cross-round ledger + standing-items input + conservative convergence** ([spec 0043](specs/0043-cross-round-ledger-and-conservative-convergence.md)) — the system now maintains a programmatic record of every claim / question / disagreement / issue / comment raised across each phase's rounds, derived from the existing parsed sections in each turn file. **No new agent output required** — the ledger is built by parsing what agents already write. Three changes that work together: **(1) Ledger package (`src/dual_research/ledger/`)** — `LedgerEntry` / `LedgerState` / `LedgerStatusTransition` / `LedgerDrift` dataclasses; `build_phase_ledger(session_dir, phase)` walks turn files chronologically and applies per-kind closure detection (questions: `## Answers to:` positional + verbatim-match; disagreements: D-N appearance in `## Resolved or non-blocking differences` / `## Final-surfaced disagreements`; claims: D-N suffix match against substantive-disagreements / resolved / final sections for escalation; issues: latest-round body-marker semantics; comments: terminal `noted`). Ghosted-rounds counter accumulates each round an open item received no addressing signal. **(2) `## Standing items from prior rounds` injected into R≥2 prompts** via `negotiation_turn_prompt` + `review_turn_prompt`. The orchestrator (`phase2.py` / `phase4.py`) builds the section per-agent before composing each round's prompt; items raised by the other agent surface first (grouped "what's still on them" vs "what you still hold"). Soft instruction — items left unaddressed surface as ghosted in the UI. Bounded at 30 entries / 3000 chars with a truncation footnote. **(3) Conservative convergence cross-check** — `is_plan_agreed` + `is_review_approved` accept an optional `ledger_open_count` parameter; convergence terminates only when both the agent self-counters AND the ledger open-set agree. Drift signal surfaced on `Run.drifts: list[LedgerDrift]` for end-of-phase mismatches between agent counters and ledger counts. **(4) Wire surface** — `Run.phase_ledgers: dict[int, list[LedgerEntry]]` keyed by phase (2, 4). UI binds `run.phaseLedgers[2|4]` as the canonical source for cross-round display. **(5) Kill-switch** — env flag `DR_LEDGER_MODE=legacy` falls back to self-counter-only convergence (skips ledger check; omits standing-items section). Default `enforce`. **(6) Frontend** — small `LedgerDriftChip` on the Critique pane header surfaces per-phase drift events with a tooltip breakdown; `GhostedAnnotation` component added (forward-compatible for spec 0046's visual rework). **33 new tests** across `tests/ledger/` (models, build transitions, prompt composer, kill-switch) + `tests/protocol/test_convergence_ledger.py` + `tests/ui/test_aggregator_ledger.py`. 652 total green (was 619). The wire-format additions (`Run.phase_ledgers`, `Run.drifts`) are foundational for spec 0046's Critique pane redesign; 0043 itself ships the data + a minimal drift indicator.
+
+### Deferred to future specs
+
+- Per-card ghosted-N-rounds annotations in the critique panel (spec 0046 visual rework will wire `GhostedAnnotation` into `QuestionCard` / `IssueCard` / etc.).
+- Removing the `OPEN_QUESTIONS:` / `OPEN_ISSUES:` self-counters from the protocol prompts (kept as sanity-signal; future spec can deprecate once drift is rare).
+- Cross-phase ledger queries (e.g. "which Phase 2 claim hardened into a Phase 4 issue?"). Phase 2 and Phase 4 ledgers are independent.
+
 ## [0.40.0] — 2026-05-17
 
 ### Fixed / Added

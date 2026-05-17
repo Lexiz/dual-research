@@ -140,6 +140,23 @@ async def run_phase2(
             )
         else:
             prior = list_turns(ctx.session, phase="phase2", up_to_round=r)
+            # Spec 0043 D6 — build the per-agent standing-items section
+            # from the cross-round ledger, derived from the existing
+            # parsed sections. Empty string when DR_LEDGER_MODE=legacy,
+            # OR when no items are open. Each agent sees a perspective-
+            # specific view (items raised by the other surface first).
+            from dual_research.ledger import (
+                build_phase_ledger,
+                build_standing_items_section,
+                ledger_mode,
+            )
+            if ledger_mode() == "legacy":
+                claude_standing = ""
+                openai_standing = ""
+            else:
+                _ledger = build_phase_ledger(ctx.session.root, phase=2)
+                claude_standing = build_standing_items_section(_ledger, perspective="claude")
+                openai_standing = build_standing_items_section(_ledger, perspective="gpt")
             claude_prompt = negotiation_turn_prompt(
                 brief_content=brief_content,
                 own_draft=claude_draft,
@@ -150,6 +167,7 @@ async def run_phase2(
                 round=r,
                 soft_cap=soft_cap,
                 hard_cap=hard_cap,
+                standing_items=claude_standing,
             )
             openai_prompt = negotiation_turn_prompt(
                 brief_content=brief_content,
@@ -161,6 +179,7 @@ async def run_phase2(
                 round=r,
                 soft_cap=soft_cap,
                 hard_cap=hard_cap,
+                standing_items=openai_standing,
             )
             validator = assert_well_formed_plan_turn
             # Spec 0030: rounds 2+ also carry the growing P2 history.
@@ -283,8 +302,28 @@ async def run_phase2(
         agreed = False
         tiebreak_passes = False
         if r > 1:
+            # Spec 0043 D7 — ledger cross-check: build the ledger from
+            # the just-written turn files and pass the open count to
+            # is_plan_agreed. When DR_LEDGER_MODE=legacy, skip the
+            # check entirely (pass None).
+            from dual_research.ledger import build_phase_ledger as _build_pl
+            from dual_research.ledger import ledger_mode as _ledger_mode
+            ledger_open = None
+            if _ledger_mode() != "legacy":
+                _ledger = _build_pl(ctx.session.root, phase=2)
+                # Phase 2 convergence considers questions + held disagreements
+                # + claims (claims that haven't escalated yet remain "open"
+                # contested points the agents haven't moved on).
+                ledger_open = (
+                    _ledger.open_count(kind="question")
+                    + _ledger.open_count(kind="disagreement")
+                    + _ledger.open_count(kind="claim")
+                )
             try:
-                agreed = is_plan_agreed(claude_text, openai_text)
+                agreed = is_plan_agreed(
+                    claude_text, openai_text,
+                    ledger_open_count=ledger_open,
+                )
             except ProtocolParseError:
                 agreed = False
             if not agreed:
@@ -513,7 +552,24 @@ async def run_phase2(
                     else:
                         claude_text = repair_result.text
                     try:
-                        agreed_after_repair = is_plan_agreed(claude_text, openai_text)
+                        # Spec 0043 — reuse the same conservative
+                        # ledger check post-repair.
+                        from dual_research.ledger import (
+                            build_phase_ledger as _build_pl2,
+                            ledger_mode as _ledger_mode2,
+                        )
+                        ledger_open_post = None
+                        if _ledger_mode2() != "legacy":
+                            _l = _build_pl2(ctx.session.root, phase=2)
+                            ledger_open_post = (
+                                _l.open_count(kind="question")
+                                + _l.open_count(kind="disagreement")
+                                + _l.open_count(kind="claim")
+                            )
+                        agreed_after_repair = is_plan_agreed(
+                            claude_text, openai_text,
+                            ledger_open_count=ledger_open_post,
+                        )
                     except ProtocolParseError:
                         agreed_after_repair = False
                 except Exception as e:  # network error, agent error, etc.

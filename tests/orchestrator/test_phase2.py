@@ -19,6 +19,18 @@ from tests.protocol.fixtures import (
 )
 
 
+# Spec 0043 — these tests exercise the orchestrator's convergence
+# detection with synthetic fixtures whose disagreement-section format
+# predates the spec-0042 / spec-0043 parser conventions. The ledger
+# cross-check would block convergence on D-N tokens parsed from the
+# fixture text that don't match the canonical resolved format. Force
+# legacy mode so these tests assert pre-spec convergence semantics;
+# real-run integration is covered by dedicated ledger tests.
+@pytest.fixture(autouse=True)
+def _force_legacy_ledger(monkeypatch):
+    monkeypatch.setenv("DR_LEDGER_MODE", "legacy")
+
+
 # ---------- stub agent that can return per-call canned responses ----------
 
 

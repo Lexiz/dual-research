@@ -111,9 +111,20 @@ async def run_phase4(
                     ctx.session.save_state(ctx.state)
                     revisions += 1
 
+                # Spec 0043 D7 — same ledger gate on resume-replay.
+                from dual_research.ledger import (
+                    build_phase_ledger as _build_pl_resume,
+                    ledger_mode as _ledger_mode_resume,
+                )
+                ledger_open_resume = None
+                if _ledger_mode_resume() != "legacy":
+                    _l_resume = _build_pl_resume(ctx.session.root, phase=4)
+                    ledger_open_resume = _l_resume.open_count(kind="issue")
                 try:
                     approved = is_review_approved(
-                        claude_text_existing, openai_text_existing, round=r
+                        claude_text_existing, openai_text_existing,
+                        round=r,
+                        ledger_open_count=ledger_open_resume,
                     )
                 except ProtocolParseError:
                     approved = False
@@ -130,6 +141,20 @@ async def run_phase4(
         prior = list_turns(ctx.session, phase="phase4", up_to_round=r)
         print(f"\n[phase 4] round {r}/{hard_cap}  (current draft = v{ctx.state.draft_round})\n", flush=True)
 
+        # Spec 0043 D6 — standing items input for R≥2 review turns.
+        from dual_research.ledger import (
+            build_phase_ledger as _build_pl,
+            build_standing_items_section as _build_si,
+            ledger_mode as _ledger_mode,
+        )
+        if r > 1 and _ledger_mode() != "legacy":
+            _ledger = _build_pl(ctx.session.root, phase=4)
+            claude_standing = _build_si(_ledger, perspective="claude")
+            openai_standing = _build_si(_ledger, perspective="gpt")
+        else:
+            claude_standing = ""
+            openai_standing = ""
+
         claude_prompt = review_turn_prompt(
             brief_content=brief_content,
             draft_content=current_draft,
@@ -140,6 +165,7 @@ async def run_phase4(
             round=r,
             soft_cap=soft_cap,
             hard_cap=hard_cap,
+            standing_items=claude_standing,
         )
         openai_prompt = review_turn_prompt(
             brief_content=brief_content,
@@ -151,6 +177,7 @@ async def run_phase4(
             round=r,
             soft_cap=soft_cap,
             hard_cap=hard_cap,
+            standing_items=openai_standing,
         )
         # Spec 0030: per-piece sizes for the Consumption tab. Both agents
         # share the same input shape this round (same brief + same draft
@@ -292,8 +319,24 @@ async def run_phase4(
             )
             print(f"[phase 4] {drafter} revised: draft v{new_round} ({len(revised):,} chars)", flush=True)
 
+        # Spec 0043 D7 — ledger cross-check on Phase 4 termination.
+        from dual_research.ledger import (
+            build_phase_ledger as _build_pl_p4,
+            ledger_mode as _ledger_mode_p4,
+        )
+        ledger_open_p4 = None
+        if _ledger_mode_p4() != "legacy":
+            _l4 = _build_pl_p4(ctx.session.root, phase=4)
+            # Phase 4 termination gates on issues (open issues block
+            # approval); comments are non-blocking; disagreements
+            # are surface-only at this point.
+            ledger_open_p4 = _l4.open_count(kind="issue")
         try:
-            approved = is_review_approved(claude_text, openai_text, round=r)
+            approved = is_review_approved(
+                claude_text, openai_text,
+                round=r,
+                ledger_open_count=ledger_open_p4,
+            )
         except ProtocolParseError:
             approved = False
 

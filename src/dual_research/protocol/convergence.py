@@ -115,8 +115,23 @@ def assert_well_formed_review_turn(
         raise ProtocolParseError(agent, errs)
 
 
-def is_plan_agreed(claude_turn: str, openai_turn: str) -> bool:
-    """v3 convergence gate. Throws ProtocolParseError on malformed turns."""
+def is_plan_agreed(
+    claude_turn: str,
+    openai_turn: str,
+    *,
+    ledger_open_count: int | None = None,
+) -> bool:
+    """v3 convergence gate. Throws ProtocolParseError on malformed turns.
+
+    Spec 0043 D7 — when ``ledger_open_count`` is provided (int), the
+    convergence check additionally requires it to be 0. This is the
+    conservative cross-check: agents must self-report AGREED + 0
+    counters AND the system-derived ledger must also show 0 open
+    items. If they disagree, convergence is blocked and the phase
+    keeps running. When ``ledger_open_count`` is None (legacy mode
+    or no ledger available), the ledger check is skipped — behaviour
+    matches pre-spec.
+    """
     c = parse_turn(claude_turn)
     o = parse_turn(openai_turn)
     assert_well_formed_plan_turn(c, "claude")
@@ -149,20 +164,38 @@ def is_plan_agreed(claude_turn: str, openai_turn: str) -> bool:
         if not _sets_equal(c_ids, _extract_fsd_ids(canonical)):
             return False
 
+    # Spec 0043 D7 — ledger cross-check. None means "ledger not
+    # available or kill-switch active" → skip. Otherwise both signals
+    # must agree the open-set is empty.
+    if ledger_open_count is not None and ledger_open_count > 0:
+        return False
+
     return True
 
 
-def is_review_approved(claude_turn: str, openai_turn: str, *, round: int | None = None) -> bool:
+def is_review_approved(
+    claude_turn: str,
+    openai_turn: str,
+    *,
+    round: int | None = None,
+    ledger_open_count: int | None = None,
+) -> bool:
+    """Phase 4 termination check. Spec 0043 D7 adds an optional
+    ledger cross-check — same semantics as ``is_plan_agreed``."""
     c = parse_turn(claude_turn)
     o = parse_turn(openai_turn)
     assert_well_formed_review_turn(c, "claude", round=round)
     assert_well_formed_review_turn(o, "openai", round=round)
-    return (
+    if not (
         c.status == Status.APPROVED
         and o.status == Status.APPROVED
         and c.open_issues == 0
         and o.open_issues == 0
-    )
+    ):
+        return False
+    if ledger_open_count is not None and ledger_open_count > 0:
+        return False
+    return True
 
 
 @dataclass(frozen=True)
