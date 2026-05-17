@@ -1,0 +1,281 @@
+/* =============================================================
+   dual-research — V1 Component vocabulary
+   --------------------------------------------------------------
+   Sections landed in SPEC-0052 (primitive vocabulary):
+     · Button (.btn)
+     · StatusBadge (.sb)
+     · Chip (.chip)
+     · RunIDChip (.rid)
+     · AgentStrip + AgentIcon (.as / .ai)
+     · Card + variants (.card / .card-expandable / .card-live)
+     · ThemeToggle (.tt)
+   Other sections (Tab, QuestionThread, Modal, etc.) arrive in
+   their respective specs (SPEC-0053..0058).
+
+   Copied verbatim from the Claude Design brief's
+   `styles/components.css`. No hex codes — tokens only.
+   ============================================================= */
+
+/* ─────────────────────────────────────────────────────────────
+   Button (.btn)
+   sizes: .btn-sm | .btn-md (default) | .btn-lg
+   variants: .btn-primary | .btn-secondary (default) | .btn-ghost | .btn-danger
+   ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  height: 28px;
+  font-family: var(--sans);
+  font-size: var(--t-meta);
+  font-weight: var(--w-medium);
+  line-height: 1;
+  color: var(--fg-0);
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease), color var(--m-fast) var(--ease);
+}
+.btn:hover    { background: var(--bg-3); border-color: var(--border-2); }
+.btn:active   { background: var(--bg-4); }
+.btn[disabled], .btn.is-disabled { cursor: not-allowed; opacity: 0.55; color: var(--fg-4); }
+.btn[disabled]:hover, .btn.is-disabled:hover { background: var(--bg-2); border-color: var(--border-1); }
+
+.btn-sm { height: 24px; padding: 0 var(--s-3); font-size: var(--t-mono); }
+.btn-md { height: 28px; padding: 0 var(--s-3); }
+.btn-lg { height: 32px; padding: 0 14px; font-size: var(--t-body); }
+
+.btn-primary  { background: var(--fg-0); color: var(--bg-0); border-color: var(--fg-0); }
+.btn-primary:hover { background: var(--fg-1); border-color: var(--fg-1); }
+.btn-primary:active { background: var(--fg-1); }
+
+.btn-ghost    { background: transparent; border-color: transparent; color: var(--fg-1); }
+.btn-ghost:hover { background: var(--bg-2); border-color: transparent; color: var(--fg-0); }
+
+.btn-danger   { color: var(--err); border-color: var(--err-border); background: var(--err-bg); }
+.btn-danger:hover { background: var(--err-bg); border-color: var(--err); color: var(--err); }
+
+/* ─────────────────────────────────────────────────────────────
+   StatusBadge (.sb) — chrome data, sans + tabular
+   anatomy: dot + label. Sizes: sm (16h) | md (20h, default)
+   ───────────────────────────────────────────────────────────── */
+.sb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 10px;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  font-weight: var(--w-medium);
+  letter-spacing: -0.005em;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-1);
+  color: var(--fg-1);
+  white-space: nowrap;
+}
+.sb-sm { height: 16px; padding: 0 8px; font-size: var(--t-label); }
+.sb > .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--idle); flex: 0 0 auto; }
+.sb-ok      > .dot { background: var(--ok); }
+.sb-info    > .dot { background: var(--info); }
+.sb-warn    > .dot { background: var(--warn); }
+.sb-err     > .dot { background: var(--err); }
+.sb-running > .dot { background: var(--info); }
+.sb-running > .dot { animation: pulse-info 2.2s ease-out infinite; }
+.sb-a > .dot { background: var(--agent-a); }
+.sb-b > .dot { background: var(--agent-b); }
+
+/* ─────────────────────────────────────────────────────────────
+   Chip (.chip)
+   For counts, +N/-N deltas, single-data badges.
+   Variants: default | .tone-info | .tone-ok | .tone-warn | .tone-err |
+             .tone-a (agent-a) | .tone-b (agent-b) | .tone-muted
+   Shapes:   default (r-1) | .chip-pill (r-pill)
+   ───────────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  font-weight: var(--w-medium);
+  letter-spacing: -0.005em;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-1);
+  color: var(--fg-1);
+  white-space: nowrap;
+  line-height: 1;
+}
+.chip-pill { border-radius: var(--r-pill); padding: 0 10px; }
+.chip-lg   { height: 22px; padding: 0 10px; }
+.chip .unit { color: var(--fg-3); }
+.chip .ico  { width: 12px; height: 12px; flex: 0 0 auto; }
+
+.chip.tone-info { color: var(--info); border-color: var(--info-border); background: var(--info-bg); }
+.chip.tone-ok   { color: var(--ok);   border-color: var(--ok-border);   background: var(--ok-bg); }
+.chip.tone-warn { color: var(--warn); border-color: var(--warn-border); background: var(--warn-bg); }
+.chip.tone-err  { color: var(--err);  border-color: var(--err-border);  background: var(--err-bg); }
+.chip.tone-a    { color: var(--agent-a); border-color: var(--agent-a-border); background: var(--agent-a-bg); }
+.chip.tone-b    { color: var(--agent-b); border-color: var(--agent-b-border); background: var(--agent-b-bg); }
+.chip.tone-muted { color: var(--fg-3); }
+
+button.chip { cursor: pointer; transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease); }
+button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
+
+/* ─────────────────────────────────────────────────────────────
+   RunIDChip (.rid)
+   Pill-shaped, weight 500. No state — pure identity.
+   ───────────────────────────────────────────────────────────── */
+.rid {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--t-mono);
+  font-weight: var(--w-medium);
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  color: var(--fg-0);
+  letter-spacing: 0.01em;
+}
+.rid-sm { height: 18px; padding: 0 8px; font-size: var(--t-label); }
+
+/* ─────────────────────────────────────────────────────────────
+   AgentStrip (.as) — equal-width pill identifying an agent + key metrics
+   min-width 320 (was 480 — CMP-07)
+   ───────────────────────────────────────────────────────────── */
+.as {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-width: 320px;
+  padding: var(--s-2) var(--s-3);
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+}
+.as-left  { display: inline-flex; align-items: center; gap: var(--s-2); }
+.as-right { display: inline-flex; align-items: center; gap: var(--s-3); color: var(--fg-2); }
+.as-right .num { color: var(--fg-1); }
+.as.is-a { border-left: 2px solid var(--agent-a); }
+.as.is-b { border-left: 2px solid var(--agent-b); }
+.as .as-name { color: var(--fg-0); font-weight: var(--w-medium); }
+.as .as-model { font-family: var(--mono); font-size: var(--t-mono); color: var(--fg-2); }
+
+/* AgentIcon (.ai) — agent logo tile */
+.ai {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: var(--agent-a);
+  color: var(--on-accent);
+  flex: 0 0 auto;
+}
+.ai-sm { width: 14px; height: 14px; border-radius: 3px; }
+.ai-md { width: 18px; height: 18px; border-radius: 4px; }
+.ai-lg { width: 24px; height: 24px; border-radius: 5px; }
+.ai-xl { width: 32px; height: 32px; border-radius: 7px; }
+.ai-a  { background: var(--agent-a); color: var(--on-accent); }
+.ai-b  { background: var(--agent-b); color: var(--on-accent); }
+.ai-ghost-a { background: var(--agent-a-bg-strong); color: var(--agent-a); }
+.ai-ghost-b { background: var(--agent-b-bg-strong); color: var(--agent-b); }
+.ai svg { width: 60%; height: 60%; }
+
+/* ─────────────────────────────────────────────────────────────
+   Card (.card) — base | .card-expandable | .card-live
+   ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+  padding: var(--s-3) var(--s-4);
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 100%; }
+.card.is-interactive:hover { background: var(--bg-2); }
+.card-expanded { border-color: var(--border-2); }
+.card-expanded .card-body {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border-1);
+}
+.card-live  { border-left: 2px solid var(--agent-a); }
+.card-live.is-b { border-left-color: var(--agent-b); }
+.card-streaming-box {
+  margin-top: var(--s-3);
+  padding: var(--s-3);
+  background: var(--bg-0);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  font-family: var(--serif);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg-1);
+  white-space: pre-wrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ThemeToggle (.tt) — segmented two-cell sun/moon
+   Restores the original product's segmented pattern with the
+   sliding thumb (current implementation has the segmented shape
+   but no thumb animation — this swap adds the thumb).
+   ───────────────────────────────────────────────────────────── */
+.tt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  width: 56px;
+  height: 26px;
+}
+.tt-cell {
+  flex: 1 1 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--fg-3);
+  border: 0;
+  background: transparent;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  z-index: 1;
+  transition: color var(--m-fast) var(--ease);
+}
+.tt-cell:hover { color: var(--fg-1); }
+.tt-cell.is-active { color: var(--fg-0); }
+.tt-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  background: var(--bg-0);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-pill);
+  transition: transform var(--m-base) var(--ease);
+  z-index: 0;
+}
+.tt[data-theme="light"] .tt-thumb { transform: translateX(0); }
+.tt[data-theme="dark"]  .tt-thumb { transform: translateX(100%); }
+.tt-cell svg { width: 12px; height: 12px; }

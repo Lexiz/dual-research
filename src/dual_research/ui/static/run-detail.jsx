@@ -484,12 +484,7 @@ function ReconcileChip({ run, localCost }) {
   // Loading: show a quiet placeholder so layout doesn't shift.
   if (loading) {
     return (
-      <span className="mono" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '3px 9px', borderRadius: 999,
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
-        fontSize: 11, color: 'var(--fg-3)', flexShrink: 0, whiteSpace: 'nowrap',
-      }}>checking…</span>
+      <Chip tone="muted" pill lg>checking…</Chip>
     );
   }
 
@@ -497,23 +492,15 @@ function ReconcileChip({ run, localCost }) {
   // common case: the day's reconciliation hasn't run yet).
   if (!report) {
     return (
-      <span
-        className="mono"
-        title={
-          error
-            ? `Reconciliation endpoint unreachable: ${error}`
-            : "No reconciliation snapshot for this date. Run `dual-research reconcile-costs --run <id>` to verify."
-        }
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '3px 9px', borderRadius: 999,
-          background: 'var(--bg-2)', border: '1px solid var(--border-1)',
-          fontSize: 11, color: 'var(--fg-2)', flexShrink: 0, whiteSpace: 'nowrap',
-        }}>
-        local <span className="num">{fmt.cost(cost)}</span>
+      <Chip tone="muted" pill lg icon="circle"
+            title={error
+              ? `Reconciliation endpoint unreachable: ${error}`
+              : "No reconciliation snapshot for this date. Run `dual-research reconcile-costs --run <id>` to verify."}>
+        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span className="num">{fmt.cost(cost)}</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
         <span style={{ color: 'var(--fg-3)' }}>unverified</span>
-      </span>
+      </Chip>
     );
   }
 
@@ -523,12 +510,15 @@ function ReconcileChip({ run, localCost }) {
   const providersChecked = report.providersChecked || report.providers_checked || [];
   const providersSkipped = report.providersSkipped || report.providers_skipped || {};
 
+  // SPEC-0052 D7 — migrate to Chip primitive. Each state's tone maps to a
+  // chip.tone-X class (ok/warn/info/muted); icon ships via Chip's `icon`
+  // prop. Body composition stays bespoke (5 different bodies).
   const palette = {
-    verified:                { icon: 'check',        color: COLORS.ok,   bg: COLORS.ok + '14',   border: COLORS.ok + '55' },
-    drift:                   { icon: 'alert',        color: COLORS.warn, bg: COLORS.warn + '14', border: COLORS.warn + '55' },
-    partial:                 { icon: 'circle-half',  color: COLORS.info, bg: COLORS.info + '14', border: COLORS.info + '55' },
-    unverified:              { icon: 'circle',       color: 'var(--fg-3)', bg: 'var(--bg-2)', border: 'var(--border-1)' },
-    awaiting_provider_data:  { icon: 'timer',        color: COLORS.info, bg: COLORS.info + '0a', border: COLORS.info + '33' },
+    verified:                { icon: 'check',        tone: 'ok'    },
+    drift:                   { icon: 'alert',        tone: 'warn'  },
+    partial:                 { icon: 'circle-half',  tone: 'info'  },
+    unverified:              { icon: 'circle',       tone: 'muted' },
+    awaiting_provider_data:  { icon: 'timer',        tone: 'info'  },
   };
   const p = palette[status] || palette.unverified;
 
@@ -553,8 +543,7 @@ function ReconcileChip({ run, localCost }) {
   if (status === 'verified') {
     body = (
       <>
-        <Mdi name={p.icon} size={11} color={p.color} />
-        <span style={{ color: 'var(--fg-1)' }}>verified</span>
+        <span>verified</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
         <span className="num">{fmt.cost(cost)}</span>
       </>
@@ -562,9 +551,8 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'drift') {
     body = (
       <>
-        <Mdi name={p.icon} size={11} color={p.color} />
-        <span style={{ color: 'var(--fg-1)' }}>Δ</span>
-        <span className="num" style={{ color: 'var(--fg-1)' }}>
+        <span>Δ</span>
+        <span className="num">
           {totalDelta >= 0 ? '+' : ''}{fmt.cost(totalDelta)}
         </span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
@@ -576,7 +564,6 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'partial') {
     body = (
       <>
-        <Mdi name={p.icon} size={11} color={p.color} />
         <span style={{ color: 'var(--fg-2)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
@@ -595,7 +582,6 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'awaiting_provider_data') {
     body = (
       <>
-        <Mdi name={p.icon} size={11} color={p.color} />
         <span style={{ color: 'var(--fg-2)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
         <span style={{ color: 'var(--fg-3)' }}>·</span>
@@ -613,19 +599,15 @@ function ReconcileChip({ run, localCost }) {
     );
   }
 
+  // SPEC-0052 D7 — Chip primitive wraps the 5-state body. tone class drives
+  // background/border/text-color; `icon` prop renders the per-state Mdi; `pill`
+  // modifier preserves the pill shape; `chip-lg` matches the prior 22-ish-px
+  // height. Body's inline color spans override Chip's tone color where the
+  // copy needs to be neutral (var(--fg-1/2/3)) rather than tone-colored.
   return (
-    <span
-      title={tooltip}
-      className="mono"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '3px 9px', borderRadius: 999,
-        background: p.bg, border: `1px solid ${p.border}`,
-        fontSize: 11, color: 'var(--fg-1)', flexShrink: 0, whiteSpace: 'nowrap',
-      }}
-    >
+    <Chip tone={p.tone} pill lg icon={p.icon} title={tooltip}>
       {body}
-    </span>
+    </Chip>
   );
 }
 
@@ -1187,23 +1169,17 @@ function hasRepairSibling(run, snakeTurnKey) {
 // (and on timeline turns whose parent has a repair sibling) to mark the
 // row as a protocol-repair re-prompt rather than the original turn.
 function RepairChip({ compact = false }) {
+  // SPEC-0052 D8 — Chip primitive with tone-warn. `compact` modifier preserved
+  // via inline style (Chip doesn't have a built-in compact size — the chip-lg
+  // modifier goes the other direction). Uppercase + letter-spacing kept inline.
+  const compactStyle = compact ? { fontSize: 9.5, padding: '0 5px' } : null;
   return (
-    <span
-      className="mono"
-      title="Re-prompted turn after the original failed protocol parse — see the matching parent row for the original."
-      style={{
-        display: 'inline-flex', alignItems: 'center',
-        padding: compact ? '0 5px' : '1px 6px',
-        background: COLORS.warn + '14',
-        border: `1px solid ${COLORS.warn}55`,
-        borderRadius: 4,
-        fontSize: compact ? 9.5 : 10, color: COLORS.warn,
-        letterSpacing: '0.04em', textTransform: 'uppercase',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <Chip tone="warn"
+          title="Re-prompted turn after the original failed protocol parse — see the matching parent row for the original."
+          className="rep"
+          style={{ textTransform: 'uppercase', letterSpacing: '0.04em', ...compactStyle }}>
       repair
-    </span>
+    </Chip>
   );
 }
 
@@ -6458,25 +6434,15 @@ function CardHeadline({
 // Renders nothing when ``ghostedRounds === 0``.
 function GhostedRoundsBadge({ ghostedRounds }) {
   if (!ghostedRounds) return null;
+  // SPEC-0052 D9 — Chip primitive with tone-warn + alert icon. Used inside
+  // CardHeadline; near-duplicate of `GhostedAnnotation`. Both use the same
+  // primitive, both render identically now.
   return (
-    <span
-      className="mono"
-      title={`Open for ${ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 3,
-        padding: '1px 6px', borderRadius: 4,
-        fontSize: 10,
-        color: COLORS.warn,
-        background: 'rgba(212,160,86,0.10)',
-        border: `1px solid ${COLORS.warn}55`,
-        cursor: 'help',
-        flexShrink: 0,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <Mdi name="alert" size={10} />
-      <span>ghosted {ghostedRounds}r</span>
-    </span>
+    <Chip tone="warn" icon="alert"
+          title={`Open for ${ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
+          style={{ flexShrink: 0, cursor: 'help' }}>
+      ghosted {ghostedRounds}r
+    </Chip>
   );
 }
 
@@ -6567,21 +6533,14 @@ function GhostedAnnotation({ run, phaseId, itemId }) {
   const entries = (run && run.phaseLedgers && run.phaseLedgers[phaseId]) || [];
   const entry = entries.find((e) => e.id === itemId);
   if (!entry || !entry.ghostedRounds) return null;
+  // SPEC-0052 D9 — Chip primitive with tone-warn + alert icon. Outer marginLeft
+  // + cursor:help preserved via style pass-through (caller context expects them).
   return (
-    <span
-      className="mono"
-      title={`Open for ${entry.ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
-        marginLeft: 8,
-        fontSize: 10,
-        color: COLORS.warn,
-        cursor: 'help',
-      }}
-    >
-      <Mdi name="alert" size={10} />
-      <span>ghosted {entry.ghostedRounds}r</span>
-    </span>
+    <Chip tone="warn" icon="alert"
+          title={`Open for ${entry.ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
+          style={{ marginLeft: 8, cursor: 'help' }}>
+      ghosted {entry.ghostedRounds}r
+    </Chip>
   );
 }
 

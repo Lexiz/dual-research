@@ -12,8 +12,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
-## [0.49.0] — 2026-05-17
+## [0.50.0] — 2026-05-17
 
+### Added
+
+- **Primitive vocabulary** ([spec 0052](specs/0052-primitive-vocabulary.md)) — Ship 2 spec #1 of the Claude Design migration arc. New `src/dual_research/ui/static/components.css` (~280 lines, copied verbatim from the brief for the 7 sections landed in this spec) introduces the V1 component classes: `.btn` (Button — three sizes / four variants), `.sb` (StatusBadge — eight tones + live), `.chip` (Chip — eight tones, pill + lg modifiers), `.rid` (RunIDChip), `.as` + `.ai` (AgentStrip + AgentIcon, min-width 480 → 320), `.card` + `.card-expandable` / `.card-live`, `.tt` (segmented ThemeToggle with sliding thumb). Component CSS rides on `tokens.css` + `base.css` (from SPEC-0050); no hex codes. Tokens implement CMP-02 / CMP-04 / CMP-05 / CMP-07.
+- **React wrappers in `shared.jsx`** for every new class: `Button`, `SB` (renamed to avoid shadowing the legacy `StatusBadge` export), `Chip`, `RunIDChip`, `Card`, `CardBody`, `AgentStrip`, `ThemeToggleSegmented`. Each is a thin functional component applying the corresponding class + variant props; exposed on `window` for cross-file consumption. API mirrors the brief's [`scripts/primitives.jsx`](../Downloads/Dual-research%20dashboard/scripts/primitives.jsx) with one extension: `Chip` accepts a `style` pass-through prop (used by `RepairChip` for its `compact` mode and `GhostedAnnotation` for `marginLeft`).
+- **Cache-bust query strings (`?v=0052b`) on every local `<link>` and `<script>` src in `index.html`** so subsequent CSS/JSX edits aren't masked by stale browser caches (a verification pain point during this spec's preview-verify cycle). Bump the value each spec; the dev server treats `foo.css?v=N` as a fresh resource and the browser re-fetches.
+
+### Changed
+
+- **Today's-component migration** — four of the five components introduced after the SPEC-0050 brief snapshot now consume the new primitives:
+  - **`ReconcileChip`** → `<Chip tone={...} pill lg icon={...}>` with all 5 visual states preserved by mapping the existing palette to chip tones (`verified` → `tone-ok`, `drift` → `tone-warn`, `partial` → `tone-info`, `unverified` → `tone-muted`, `awaiting_provider_data` → `tone-info`). The `loading` and `no-report` early-return paths also migrate, so every render path goes through the primitive. Body composition (per-state numeric content) stays bespoke. Real-world: partner-vetting run (`3a4a`) renders the `unverified` state through the new Chip in preview-verify.
+  - **`RepairChip`** → `<Chip tone-warn>` with `repair` label; `compact` mode preserved via `style` pass-through (smaller font + padding for tight rows).
+  - **`GhostedAnnotation`** AND its near-duplicate **`GhostedRoundsBadge`** → `<Chip tone-warn icon="alert">`. Two-for-one migration; both now render identically via the single primitive.
+- **`ThemeToggle` in app chrome** swapped to the new `<ThemeToggleSegmented>` from `shared.jsx`. Same segmented two-cell sun/moon shape, plus the brief's sliding `.tt-thumb` element that animates between cells in 180 ms ease-out (the prior implementation had the segmented shape but no thumb animation).
+
+### Deliberately deferred (with reason)
+
+- **`CardHeadline` (spec D10)** — its two inline-styled internal badges use dynamic `accentColor` / `statusColor` props that don't fit `Chip`'s static tone system cleanly. Defer to SPEC-0057 (timeline + critique surface rework) where `Card.expandable` is the proper wrapper.
+- **`ProviderBilledLine` (spec D11)** — the parallel spec 0051 (now merged as 0.49.0) reworked the Consumption-card region this lived in; the `ConsumptionCard` is rebuilt and the old `ProviderBilledLine` is gone. Sweep is moot — fold into a later Consumption-surface spec if a new equivalent surfaces.
+- **Legacy `Pill` + `StatusBadge` in `shared.jsx` (spec D4)** — kept unchanged (no auto-forwarding shims) so existing surfaces (run list, errors view, settings, etc.) don't all re-render at once with the new chrome. Call-site sweep happens per surface in SPEC-0055..0057.
+
+### Tests
+
+- 725 baseline pytest green (no Python changes; pure JSX/CSS).
+- Preview-verified on `localhost:6173` against the partner-vetting run (`3a4a`): the segmented ThemeToggle renders with `.tt` class + sliding thumb; 20 `.chip` instances on the run-detail page (1 `tone-muted.chip-pill.chip-lg` for ReconcileChip, 4 RepairChips, 15 ghosted-annotation chips); zero console errors; both themes work; existing legacy `Pill`/`StatusBadge` call sites (run-list status pills, errors view) render unchanged via cascade.
+
+## [0.49.0] — 2026-05-17
 ### Changed
 
 - **Consumption tab: content-vs-billing split + output bar + cross-turn slot naming** ([spec 0051](specs/0051-consumption-content-vs-billing-and-output.md)). The 0.47.1 hotfix made cached tokens visible (`in + cache_read + cache_write`), which exposed two new problems on the Consumption tab: Claude's "Brief" sub-bar was 3–4× GPT's in P1/P2 because Anthropic's Messages API bills `cache_read_input_tokens` across every internal turn of a tool-use loop (6 web searches → ~7 re-reads of the cached prefix → ~420kt of cache_read for a 60kt brief), and the expanded card had no output bar even though output is the more expensive per-token rate. Spec 0051 fixes both.

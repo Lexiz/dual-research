@@ -179,7 +179,9 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
       <AppVersionChip onClick={() => navigate('how-it-works')} />
       <HowItWorksLink onClick={() => navigate('how-it-works')}
                       active={route.view === 'how-it-works'} />
-      <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-1)', padding: '0 10px' }}>
+        <ThemeToggleSegmented theme={theme} onToggle={onToggleTheme} />
+      </div>
       {session
         ? <AvatarMenu navigate={navigate} route={route}
                       client={client} session={session} me={me} />
