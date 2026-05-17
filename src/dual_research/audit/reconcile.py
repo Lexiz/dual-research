@@ -363,6 +363,57 @@ _AGENT_TO_PROVIDER = {
 }
 
 
+def _ingest_run_metrics(
+    out: LocalTotals,
+    *,
+    payload: dict[str, Any],
+    run_id: str,
+    start_date: dt.date,
+    end_date: dt.date,
+) -> None:
+    """Spec 0049 — shared per-run aggregation step used by both
+    ``gather_local_totals`` (file source) and ``gather_supabase_totals``
+    (database source). Reads ``payload['started_at']`` to pick the
+    bucket date; walks ``payload['calls']`` to accumulate per-(provider,
+    model) USD into ``out``.
+
+    Mutates ``out`` in place. ``end_date`` exclusive.
+    """
+    started_at = str(payload.get("started_at") or "")
+    if not started_at:
+        return
+    try:
+        run_date = dt.datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+    except ValueError:
+        return
+    run_date_utc = run_date.astimezone(dt.timezone.utc).date()
+    if run_date_utc < start_date or run_date_utc >= end_date:
+        return
+    date_key = run_date_utc.isoformat()
+    day = out.setdefault(date_key, {})
+    pricing_version = str(payload.get("pricing_version") or "")
+    for call in payload.get("calls") or []:
+        agent_raw = str(call.get("agent") or "").lower()
+        provider = _AGENT_TO_PROVIDER.get(agent_raw)
+        if not provider:
+            continue
+        model_id = str(call.get("model_id") or "")
+        if not model_id:
+            continue
+        cost = float(call.get("cost_usd", 0.0) or 0.0)
+        search_cost = float(call.get("search_cost", 0.0) or 0.0)
+        # Token cost lands on the model bucket; search cost is broken
+        # out into <provider>-web-search to match how OpenAI's
+        # cost-report line-itemizes "web search tool calls".
+        token_cost = cost - search_cost
+        _accumulate_local(day, provider, model_id, token_cost, run_id, pricing_version)
+        if search_cost:
+            _accumulate_local(
+                day, provider, f"{provider}-web-search", search_cost,
+                run_id, pricing_version,
+            )
+
+
 def gather_local_totals(
     runs_dir: Path,
     *,
@@ -390,40 +441,51 @@ def gather_local_totals(
             payload = json.loads(metrics_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
-        started_at = str(payload.get("started_at") or "")
-        if not started_at:
+        _ingest_run_metrics(
+            out, payload=payload, run_id=entry.name,
+            start_date=start_date, end_date=end_date,
+        )
+    return out
+
+
+def gather_supabase_totals(
+    client: Any,
+    *,
+    start_date: dt.date,
+    end_date: dt.date,
+) -> LocalTotals:
+    """Spec 0049 — Supabase mirror of ``gather_local_totals``. Queries the
+    ``runs`` table for runs whose ``created_at`` (top-level indexed column)
+    falls in the date range, then verifies each row's ``metrics.started_at``
+    matches before aggregating. ``end_date`` exclusive.
+
+    The ``created_at`` filter is a fast SQL-side prefilter; the
+    Python-side ``metrics.started_at`` check is what produces the
+    canonical bucket date (the two timestamps differ by milliseconds in
+    practice, but ``started_at`` is the spec-0048 contract).
+    """
+    out: LocalTotals = {}
+    start_iso = start_date.isoformat()
+    # Pad end by 1 day to catch runs whose created_at slightly precedes
+    # started_at across the midnight boundary; the Python-side date
+    # check in ``_ingest_run_metrics`` enforces the canonical window.
+    end_iso = (end_date + dt.timedelta(days=1)).isoformat()
+    res = (
+        client.table("runs")
+        .select("id,metrics")
+        .gte("created_at", start_iso)
+        .lt("created_at", end_iso)
+        .execute()
+    )
+    rows = getattr(res, "data", None) or []
+    for row in rows:
+        metrics = row.get("metrics") or {}
+        if not isinstance(metrics, dict):
             continue
-        try:
-            run_date = dt.datetime.fromisoformat(started_at.replace("Z", "+00:00"))
-        except ValueError:
-            continue
-        run_date_utc = run_date.astimezone(dt.timezone.utc).date()
-        if run_date_utc < start_date or run_date_utc >= end_date:
-            continue
-        date_key = run_date_utc.isoformat()
-        day = out.setdefault(date_key, {})
-        run_id = entry.name
-        pricing_version = str(payload.get("pricing_version") or "")
-        for call in payload.get("calls") or []:
-            agent_raw = str(call.get("agent") or "").lower()
-            provider = _AGENT_TO_PROVIDER.get(agent_raw)
-            if not provider:
-                continue
-            model_id = str(call.get("model_id") or "")
-            if not model_id:
-                continue
-            cost = float(call.get("cost_usd", 0.0) or 0.0)
-            search_cost = float(call.get("search_cost", 0.0) or 0.0)
-            # Token cost lands on the model bucket; search cost is broken
-            # out into <provider>-web-search to match how OpenAI's
-            # cost-report line-itemizes "web search tool calls".
-            token_cost = cost - search_cost
-            _accumulate_local(day, provider, model_id, token_cost, run_id, pricing_version)
-            if search_cost:
-                _accumulate_local(
-                    day, provider, f"{provider}-web-search", search_cost,
-                    run_id, pricing_version,
-                )
+        _ingest_run_metrics(
+            out, payload=metrics, run_id=str(row.get("id") or ""),
+            start_date=start_date, end_date=end_date,
+        )
     return out
 
 
@@ -581,12 +643,19 @@ def reconcile_day(
     runs_dir: Path,
     config: ProviderConfig,
     tolerance_pct: float = 1.0,
+    local_totals: LocalTotals | None = None,
 ) -> ReconcileReport:
     """Reconcile a single UTC date. Each provider independently optional.
 
     Errors fetching a single provider become a ``providers_skipped``
     entry (so the day's report still ships) rather than raising. Only
     truly unrecoverable issues (filesystem, JSON corruption) bubble up.
+
+    Spec 0049 — optional ``local_totals`` override lets a caller (CLI
+    in ``--source supabase`` mode) precompute totals from a different
+    source (e.g. ``gather_supabase_totals``) and pass them in. When
+    ``None`` (default), local totals are gathered from ``runs_dir`` on
+    disk — preserves the spec-0048 behaviour.
     """
     next_day = date + dt.timedelta(days=1)
     checked_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -624,7 +693,8 @@ def reconcile_day(
     else:
         providers_skipped["openai"] = "OPENAI_ADMIN_KEY not set"
 
-    local_totals = gather_local_totals(runs_dir, start_date=date, end_date=next_day)
+    if local_totals is None:
+        local_totals = gather_local_totals(runs_dir, start_date=date, end_date=next_day)
     local_day = local_totals.get(date.isoformat(), {})
 
     return compare_day(
@@ -646,8 +716,15 @@ def reconcile_range(
     runs_dir: Path,
     config: ProviderConfig,
     tolerance_pct: float = 1.0,
+    local_totals: LocalTotals | None = None,
 ) -> list[ReconcileReport]:
-    """Reconcile every day in [start_date, end_date] inclusive."""
+    """Reconcile every day in [start_date, end_date] inclusive.
+
+    Spec 0049 — optional ``local_totals`` is passed through to each
+    per-day ``reconcile_day`` call. A caller that has already gathered
+    totals from an alternative source (Supabase) for the whole range
+    can pass them once instead of paying the gather cost per-day.
+    """
     reports: list[ReconcileReport] = []
     current = start_date
     while current <= end_date:
@@ -658,6 +735,7 @@ def reconcile_range(
                 runs_dir=runs_dir,
                 config=config,
                 tolerance_pct=tolerance_pct,
+                local_totals=local_totals,
             )
         )
         current += dt.timedelta(days=1)
@@ -769,6 +847,7 @@ __all__ = [
     "compare_day",
     "fetch_anthropic_daily_costs",
     "fetch_openai_daily_costs",
+    "gather_supabase_totals",
     "format_json",
     "format_text",
     "gather_local_totals",

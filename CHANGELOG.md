@@ -12,6 +12,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.47.0] — 2026-05-17
+
+### Added
+
+- **`reconcile-costs --source {local,supabase}` flag** ([spec 0049](specs/0049-reconcile-from-supabase.md)) — new `gather_supabase_totals(client, *, start_date, end_date)` in `audit/reconcile.py` queries the hosted `runs` table (where runs persist via spec 0020) and produces the same `LocalTotals` shape `gather_local_totals` produces from disk. Default remains `local` (backward compatible); `--source supabase` requires Supabase creds in env. SQL-side prefilter on the indexed `created_at` column with a Python-side `metrics.started_at` check for canonical bucket attribution. `reconcile_day` / `reconcile_range` gain an optional `local_totals` kwarg so callers can precompute totals from any source once over a range.
+- **GitHub Actions daily cron re-enabled** — `.github/workflows/reconcile-costs.yml` `schedule: "0 2 * * *"` line restored; command updated to `reconcile-costs --since-yesterday --source supabase --push --tolerance 1.0`. The CI runner's empty local `runs/` directory no longer matters; the cron reads from Supabase (where runs actually live). Daily snapshots upserted into the `reconcile_results` table for the run-detail verification chip to consume.
+
+### Changed
+
+- **`reconcile-costs` CLI does not warn about missing `runs/` when `--source supabase`** — `runs/` is unused in that mode; the warning was only meaningful for `--source local`.
+
+### Added (tests)
+
+- `tests/audit/test_reconcile_supabase_source.py` — 6 new tests cover `gather_supabase_totals`'s shape parity with `gather_local_totals`, SQL prefilter contract, window-boundary handling, missing-metrics tolerance, pricing-version collection. 725 total green (was 719).
+
 ## [0.46.1] — 2026-05-17
 
 ### Fixed
