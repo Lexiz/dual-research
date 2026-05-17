@@ -3,10 +3,10 @@ spec: 0047
 title: Run-detail resilience + Phase 4 sibling-key separation for repair turns
 label: bug
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.45.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/48"
 ---
 
 # Spec 0047 — Run-detail resilience + Phase 4 sibling-key separation for repair turns
