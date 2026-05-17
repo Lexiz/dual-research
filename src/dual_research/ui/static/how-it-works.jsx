@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.53.0',
+      date: '2026-05-17',
+      summary: 'Run list rework -- sortable columns, attention promotion, search, URL state.',
+      items: [
+        'Ship 2 surface spec #1. Sortable columns: click any column header to toggle ascending/descending sort with arrow indicator. Default sort is newest-first. Sort state persists in the URL so bookmarks and page reloads preserve your view.',
+        'Attention-first section: errored and deadlocked runs surface at the top of the list in a dedicated "Needs attention" group with an inline summary (phase, rounds, status). No more scanning the full list to find broken runs.',
+        'Search input in the header bar. Press / from anywhere on the page to jump to search. Filters runs by ID, topic, status, or phase. Search term persists in the URL.',
+        'Visual attention borders: errored runs get a red left border, deadlocked runs get a warning-amber left border. Visible at scan distance in both themes.',
+        'Filter tabs now wrapped in the design-system TabGroup primitive. URL filter state persists across page loads.',
+      ],
+    },
+    {
       version: '0.52.0',
       date: '2026-05-17',
       summary: 'QuestionThread + QuestionRef primitives — AP-01 enforcement.',

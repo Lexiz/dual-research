@@ -12,6 +12,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.53.0] — 2026-05-17
+
+### Added
+
+- **Sortable columns** ([spec 0055](specs/0055-run-list.md)) — SUR-02. Click any column header (Run ID, Status, Topic, Phase, Started, Duration, Cost) to toggle ascending/descending sort. Active column shows arrow indicator via `sort-ascending`/`sort-descending` MDI icons. Default sort: Started DESC (newest first).
+- **URL-persisted state** — SUR-02. Sort, filter, and search state encoded as `?sort=started:desc&filter=running&q=foo` query params. Mount-time read + `history.replaceState` on change. Search writes debounced at 250ms.
+- **Search input + `/`-bound focus** — search input in header bar with magnify icon and clear button. Press `/` from anywhere on the page (except input/textarea) to focus the search. Filters runs by ID, topic, status, phase.
+- **Errored/deadlocked row attention borders** — SUR-03. Rows with `errored` status get a 2px `--err` left border; `deadlocked` rows get `--warn`. Visible at scan distance in both themes.
+- **Attention-first section** — SUR-04. When errored or deadlocked runs exist, they render in a leading "Needs attention (N)" section at the top with an inline summary (phase + rounds + status). Other runs follow below under an "Other runs" divider.
+- **TabGroup wrapper** — filter strip now wrapped in `<TabGroup>` per SPEC-0053's Tab system.
+
+### Verified
+
+- SUR-01 (PHASE column header overlap) — confirmed already fixed by SPEC-0053's CMP-11 table header distinction. No additional fix needed.
+
+### Tests
+
+- 725 baseline pytest green (no Python changes; pure JSX/CSS).
+
 ## [0.52.0] — 2026-05-17
 
 ### Added
