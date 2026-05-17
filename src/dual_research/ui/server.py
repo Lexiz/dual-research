@@ -103,6 +103,15 @@ def _make_app(runs_dir: Path) -> FastAPI:
                     continue
         return JSONResponse(rows)
 
+    # ─── Spec 0060 — cross-run search ───────────────────────────────────
+    @app.get("/api/search")
+    async def search_runs_fs(request: Request) -> JSONResponse:
+        q = (request.query_params.get("q") or "").strip().lower()
+        if not q:
+            return JSONResponse([])
+        results = _search_runs_fs(runs_dir, q)
+        return JSONResponse(results)
+
     @app.get("/api/runs/{run_id}")
     async def get_run(run_id: str) -> JSONResponse:
         session = _resolve_session(runs_dir, run_id)
@@ -339,6 +348,15 @@ def _make_supabase_app(
     async def list_runs() -> JSONResponse:
         rows = _supabase_list_runs(client)
         return JSONResponse([_to_camel(dataclasses.asdict(r)) for r in rows])
+
+    # ─── Spec 0060 — cross-run search (hosted) ──────────────────────────
+    @app.get("/api/search")
+    async def search_runs_sb(request: Request) -> JSONResponse:
+        q = (request.query_params.get("q") or "").strip().lower()
+        if not q:
+            return JSONResponse([])
+        results = _search_runs_supabase(client, q)
+        return JSONResponse(results)
 
     @app.get("/api/runs/{run_id}")
     async def get_run(run_id: str) -> JSONResponse:
@@ -1077,6 +1095,180 @@ def _snapshot_frame(session: Path) -> dict:
         "event": "snapshot",
         "data": json.dumps(_to_camel(to_jsonable(run))),
     }
+
+
+# ─── Spec 0060 — cross-run search helpers ─────────────────────────────────────
+
+_MAX_SEARCH_RESULTS = 50
+
+
+def _search_runs_fs(runs_dir: Path, query: str) -> list[dict[str, Any]]:
+    """Substring search across all runs on disk. Returns camelCase dicts."""
+    results: list[dict[str, Any]] = []
+    if not runs_dir.exists():
+        return results
+    for entry in sorted(runs_dir.iterdir(), reverse=True):
+        if not entry.is_dir():
+            continue
+        if not (entry / "state.json").exists() and not (entry / "brief.md").exists():
+            continue
+        run_id = entry.name
+        did = display_id(run_id)
+        try:
+            _search_run_dir(entry, run_id, did, query, results)
+        except Exception:
+            continue
+        if len(results) >= _MAX_SEARCH_RESULTS:
+            break
+    return results[:_MAX_SEARCH_RESULTS]
+
+
+def _search_run_dir(
+    session: Path,
+    run_id: str,
+    did: str,
+    query: str,
+    results: list[dict[str, Any]],
+) -> None:
+    """Search a single run directory for matches and append to results."""
+    brief_path = session / "brief.md"
+    brief_text = ""
+    if brief_path.is_file():
+        try:
+            brief_text = brief_path.read_text(encoding="utf-8")
+        except OSError:
+            pass
+
+    # Extract topic from H1.
+    topic = ""
+    for line in brief_text.splitlines():
+        s = line.strip()
+        if s.startswith("# "):
+            topic = s[2:].strip()
+            break
+    if not topic:
+        for line in brief_text.splitlines():
+            s = line.strip()
+            if s:
+                topic = s[:200]
+                break
+
+    # 1. Topic match.
+    if topic and query in topic.lower():
+        results.append({
+            "runId": run_id,
+            "displayId": did,
+            "topic": topic,
+            "matchType": "topic",
+            "snippet": topic,
+        })
+
+    # 2. Brief body match (beyond H1).
+    for line in brief_text.splitlines():
+        s = line.strip()
+        if s.startswith("# "):
+            continue
+        if s and query in s.lower():
+            results.append({
+                "runId": run_id,
+                "displayId": did,
+                "topic": topic,
+                "matchType": "brief",
+                "snippet": s[:200],
+            })
+            break
+
+    # 3. Final doc match (final.md).
+    final_path = session / "final.md"
+    if final_path.is_file():
+        try:
+            final_text = final_path.read_text(encoding="utf-8")
+        except OSError:
+            final_text = ""
+        for line in final_text.splitlines():
+            s = line.strip()
+            if s and query in s.lower():
+                results.append({
+                    "runId": run_id,
+                    "displayId": did,
+                    "topic": topic,
+                    "matchType": "final",
+                    "snippet": s[:200],
+                })
+                break
+
+
+def _search_runs_supabase(client: Any, query: str) -> list[dict[str, Any]]:
+    """Substring search across all runs in Supabase."""
+    results: list[dict[str, Any]] = []
+
+    # Get all run IDs and their briefs.
+    try:
+        runs_res = (
+            client.table("runs")
+            .select("id,slug")
+            .order("created_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+    except Exception:
+        return results
+    run_rows = runs_res.data or []
+    if not run_rows:
+        return results
+
+    run_ids = [r["id"] for r in run_rows]
+
+    # Fetch briefs for topic search.
+    try:
+        briefs_res = (
+            client.table("session_files")
+            .select("run_id,content")
+            .in_("run_id", run_ids)
+            .eq("path", "brief.md")
+            .execute()
+        )
+    except Exception:
+        briefs_res = None
+    briefs: dict[str, str] = {}
+    if briefs_res and briefs_res.data:
+        briefs = {row["run_id"]: row["content"] for row in briefs_res.data}
+
+    for r in run_rows:
+        rid = r["id"]
+        did = display_id(rid)
+        brief_text = briefs.get(rid, "")
+        topic = _extract_h1(brief_text)
+
+        # Topic match.
+        if topic and query in topic.lower():
+            results.append({
+                "runId": rid,
+                "displayId": did,
+                "topic": topic,
+                "matchType": "topic",
+                "snippet": topic,
+            })
+
+        # Brief body match.
+        for line in brief_text.splitlines():
+            s = line.strip()
+            if s.startswith("# "):
+                continue
+            if s and query in s.lower():
+                results.append({
+                    "runId": rid,
+                    "displayId": did,
+                    "topic": topic,
+                    "matchType": "brief",
+                    "snippet": s[:200],
+                })
+                break
+
+        if len(results) >= _MAX_SEARCH_RESULTS:
+            break
+
+    return results[:_MAX_SEARCH_RESULTS]
 
 
 # ─── snake_case → camelCase translation ──────────────────────────────────────

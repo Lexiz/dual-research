@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.58.0] — 2026-05-17
+
+### Added
+
+- **Cross-run search dashboard** ([spec 0060](specs/0060-cross-run-dashboards.md)) — NEW-02. New `#/search` route with full-page search surface. Server-side `GET /api/search?q=<query>` endpoint performs substring matching across run topics, brief bodies, and final documents. Results grouped by run with match type and snippet. Both fs and Supabase modes supported. 10 new backend tests.
+- **Two-run comparison dashboard** — NEW-01. New `#/compare` route with side-by-side run comparison. Select any two runs via dropdown pickers. Synced proportional scroll between left and right panels. Delta column highlights differences: drafter, phase count, status, cost, and per-phase turn counts.
+- **Chrome bar navigation** — Compare and Search tabs added to the chrome bar alongside "All runs". SearchPalette nav items updated; ShortcutsOverlay documents new navigation targets.
+
 ## [0.57.0] — 2026-05-17
 
 ### Added

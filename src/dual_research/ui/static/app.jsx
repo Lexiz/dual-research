@@ -95,6 +95,8 @@ function App() {
         {route.view === 'language'      && <DesignLanguageView />}
         {route.view === 'settings'      && <SettingsScreen me={me} />}
         {route.view === 'how-it-works'  && <HowItWorks />}
+        {route.view === 'compare'       && <CompareScreen navigate={navigate} />}
+        {route.view === 'search'        && <CrossRunSearchScreen navigate={navigate} />}
       </div>
 
       {/* SPEC-0059: keyboard-accessible overlays */}
@@ -167,6 +169,22 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
         icon={route.view === 'detail' ? 'arrow-left' : 'menu'}
       >
         All runs
+      </Tab>
+      <Tab
+        active={route.view === 'compare'}
+        onClick={() => navigate('compare')}
+        icon="compare"
+        size="sm"
+      >
+        Compare
+      </Tab>
+      <Tab
+        active={route.view === 'search'}
+        onClick={() => navigate('search')}
+        icon="magnify"
+        size="sm"
+      >
+        Search
       </Tab>
       <div style={{ flex: 1 }} />
       <RightCluster

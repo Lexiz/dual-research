@@ -5,6 +5,8 @@
 
 const NAV_ITEMS = [
   { type: 'nav', label: 'All runs', view: 'list', icon: 'menu' },
+  { type: 'nav', label: 'Compare runs', view: 'compare', icon: 'compare' },
+  { type: 'nav', label: 'Cross-run search', view: 'search', icon: 'magnify' },
   { type: 'nav', label: 'How it works', view: 'how-it-works', icon: 'help-circle-outline' },
   { type: 'nav', label: 'Design language', view: 'language', icon: 'palette' },
 ];
