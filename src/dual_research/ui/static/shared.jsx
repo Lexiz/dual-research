@@ -832,6 +832,103 @@ function ThemeToggleSegmented({ theme = 'dark', onChange, onToggle }) {
   );
 }
 
+// ── SPEC-0054 primitives ─────────────────────────────────────────────────────
+
+// parseQId — decode legacy "Q-g-r1-04" string into structured fields.
+// c = Claude (maps to 'claude'), g = GPT (maps to 'gpt').
+function parseQId(legacy) {
+  if (typeof legacy !== 'string') return { number: legacy };
+  const m = /^Q-([cg])-r(\d+)-(\d+)$/.exec(legacy);
+  if (!m) return { number: legacy };
+  return {
+    number: parseInt(m[3], 10),
+    raisedBy: m[1] === 'c' ? 'claude' : 'gpt',
+    round: parseInt(m[2], 10),
+  };
+}
+
+// agentSlot — map "claude"/"gpt" to "a"/"b" for CSS class names.
+function _agentSlot(agent) { return agent === 'claude' ? 'a' : agent === 'gpt' ? 'b' : agent; }
+
+// QuestionRef — decoded reference for a critique question.
+// format='compact' (default): "Q · 04"
+// format='full': "Q · 04 · [Claude] · r1"
+function QuestionRef({ id, number, raisedBy, round, format = 'compact', className }) {
+  if (id != null && (number == null || raisedBy == null || round == null)) {
+    const p = parseQId(id);
+    if (number == null)   number   = p.number;
+    if (raisedBy == null) raisedBy = p.raisedBy;
+    if (round == null)    round    = p.round;
+  }
+  const num = typeof number === 'number' ? String(number).padStart(2, '0') : (number || '');
+  const agentLabel = raisedBy === 'claude' ? 'Claude' : raisedBy === 'gpt' ? 'GPT' : null;
+  const slot = _agentSlot(raisedBy);
+  const title = ['Question ' + num, agentLabel && 'raised by ' + agentLabel, round != null && 'in round ' + round].filter(Boolean).join(' — ');
+  const wantsAuthor = format === 'full' && agentLabel;
+  const wantsRound  = format === 'full' && round != null;
+  return (
+    <span className={_cn('qref', format === 'full' && 'qref-full', className)} title={title}>
+      <span className="qref-k">Q</span>
+      <span className="qref-n num">{num}</span>
+      {wantsAuthor && <>
+        <span className="qref-sep" aria-hidden="true">·</span>
+        <span className={_cn('qref-by', `is-${slot}`)}>
+          <AgentIcon agent={raisedBy} size={14} />
+          <span className="qref-by-n">{agentLabel}</span>
+        </span>
+      </>}
+      {wantsRound && <>
+        <span className="qref-sep" aria-hidden="true">·</span>
+        <span className="qref-round num">r{round}</span>
+      </>}
+    </span>
+  );
+}
+
+// QuestionThread — turn-by-turn conversation timeline for a critique item.
+// status: 'open' | 'resolved' | 'drift'
+// turns: [{ agent: 'claude'|'gpt', round, verdict?, quote?, kind? }]
+function QuestionThread({ id, status = 'open', question, turns = [], footer, statusChips }) {
+  return (
+    <article className={_cn('qthread', `is-${status}`)}>
+      <header className="qt-head">
+        <div className="qt-head-l">
+          <QuestionRef id={id} />
+          {statusChips || (
+            status === 'open'     ? <Chip tone="warn">open</Chip> :
+            status === 'resolved' ? <Chip tone="ok">resolved</Chip> :
+            <Chip tone="err">drift</Chip>
+          )}
+        </div>
+        <div className="t-meta" style={{ color: 'var(--fg-3)' }}>{turns.length} turn{turns.length === 1 ? '' : 's'}</div>
+      </header>
+      <div className="qt-question">{question}</div>
+      <ol className="qt-timeline" style={{ listStyle: 'none', margin: 0 }}>
+        {turns.map((t, i) => {
+          const kind = t.kind || (i === 0 ? 'origin' : 'response');
+          const slot = _agentSlot(t.agent);
+          const agentLabel = t.agent === 'claude' ? 'Claude' : 'GPT';
+          return (
+            <li key={i} className={_cn('qt-row', `is-${slot}`, `is-${kind}`)}>
+              <span className="qt-pill" aria-label={agentLabel + ' round ' + t.round + (t.verdict ? ' — ' + t.verdict : '')}>
+                <AgentIcon agent={t.agent} size={14} />
+                <span className="qt-agent">{agentLabel}</span>
+                <span className="qt-sep" aria-hidden="true">·</span>
+                <span className="qt-round num">r{t.round}</span>
+                {t.verdict && <span className="qt-sep" aria-hidden="true">·</span>}
+                {t.verdict && <span className="qt-verdict">{t.verdict}</span>}
+              </span>
+              {t.quote && <blockquote className="qt-quote">{t.quote}</blockquote>}
+            </li>
+          );
+        })}
+      </ol>
+      {footer && status === 'drift'    && <div className="qt-drift"><Mdi name="shimmer" size={14} />{footer}</div>}
+      {footer && status === 'resolved' && <div className="qt-resolved-foot"><Mdi name="check" size={14} />{footer}</div>}
+    </article>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
@@ -840,4 +937,6 @@ Object.assign(window, {
   Button, SB, Chip, RunIDChip, Card, CardBody, AgentStrip, ThemeToggleSegmented,
   // SPEC-0053 primitives
   Tab, TabGroup,
+  // SPEC-0054 primitives
+  parseQId, QuestionRef, QuestionThread,
 });

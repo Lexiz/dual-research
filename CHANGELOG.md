@@ -12,6 +12,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.52.0] — 2026-05-17
+
+### Added
+
+- **QuestionThread primitive** ([spec 0054](specs/0054-question-thread.md)) — CMP-03, CMP-09. New `.qthread` CSS section in `components.css` (~170 lines from brief): vertical turn-by-turn conversation timeline with dashed-rail `::before` trick, per-turn-kind dot styling (origin / response / pushback / resolved / ghosted), agent-tinted pills with round + verdict, serif quote blocks, drift/resolved footer banners. React `QuestionThread` component in `shared.jsx` exposed on `window`.
+- **QuestionRef primitive** — CMP-10, AP-01 enforcement. New `.qref` CSS section (~70 lines): compact `Q · 04` format for inside threads, full `Q · 04 · [GPT] · r1` format for standalone references. `parseQId()` decodes legacy `Q-g-r1-04` database keys into structured `{ number, raisedBy, round }`. React `QuestionRef` component in `shared.jsx`.
+- **Sentiment paragraph** — `.sentp` CSS class for serif editorial-weight paragraphs (from brief).
+
+### Changed
+
+- **QuestionCard expanded body** now renders `<QuestionThread>` instead of flat text + metadata. Turns derived from existing question fields (raisedBy/raisedRound + answeredBy/answeredRound). Ghosted rounds from ledger become drift-status threads with footer banner.
+- **AP-01 — cryptic ID removal** — `CardHeadline` for questions now shows decoded number (`01`) instead of raw database key (`Q-c-r1-01`).
+
+### Tests
+
+- 725 baseline pytest green (no Python changes; pure JSX/CSS).
+
 ## [0.51.0] — 2026-05-17
 
 ### Added

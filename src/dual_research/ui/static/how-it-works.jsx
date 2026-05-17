@@ -15,6 +15,17 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.52.0',
+      date: '2026-05-17',
+      summary: 'QuestionThread + QuestionRef primitives — AP-01 enforcement.',
+      items: [
+        'Ship 2 spec #3. QuestionThread: vertical turn-by-turn conversation timeline for critique items. Shows who raised the question, who responded in which round, with what verdict. Dashed-rail timeline with agent-tinted pills, serif quote blocks, drift/resolved footer banners.',
+        'QuestionRef: decoded reference replaces legacy cryptic Q-g-r1-04 database keys. Compact format (Q . 04) inside threads; full format (Q . 04 . [GPT] . r1) for standalone references. AP-01 anti-pattern enforcement — no database shape leaks into the UI chrome.',
+        'Question cards now expand into full QuestionThread views with origin + response turns derived from the existing question data. Ghosted questions show drift status with warning banner.',
+        'CardHeadline for questions shows decoded number (01) instead of raw database key (Q-c-r1-01).',
+      ],
+    },
+    {
       version: '0.51.0',
       date: '2026-05-17',
       summary: 'Tab system (3 variants) + table header distinction.',
