@@ -15,7 +15,7 @@
 (function () {
   const VERSION_NOTES = [
     {
-      version: '0.49.0',
+      version: '0.50.0',
       date: '2026-05-17',
       summary: 'Primitive vocabulary — Button, StatusBadge, Chip, RunIDChip, Card, AgentStrip, segmented ThemeToggle.',
       items: [
@@ -25,6 +25,19 @@
         "Today's-component migration — four of the components introduced in specs 0046-0048 (ReconcileChip, RepairChip, GhostedAnnotation, GhostedRoundsBadge) now consume the new primitives. ReconcileChip is the load-bearing one: all 5 visual states preserved (verified / drift / partial / unverified / awaiting_provider_data); body composition stays bespoke; tone classes drive color. CardHeadline + ProviderBilledLine defer to later specs (see CHANGELOG for reasons).",
         "AgentStrip min-width 480 → 320 (CMP-07). The strip no longer dominates the header after the upcoming chrome restructure (SPEC-0056).",
         "Cache-bust query strings (`?v=NNNN`) added to every local stylesheet and JSX script in index.html. Bumps each spec so browsers refetch fresh code after deploy — addresses a real verification pain point where stale CSS/JSX masked the new behaviour locally.",
+      ],
+    },
+    {
+      version: '0.49.0',
+      date: '2026-05-17',
+      summary: 'Consumption tab — content-vs-billing split, output bar, cross-turn slot naming.',
+      items: [
+        "Follow-up to the 0.47.1 cached-token fix. The fix made cache_read tokens visible but exposed two new problems: Claude's 'Brief' sub-bar was 3-4× GPT's in P1/P2 (because Anthropic's Messages API bills cache_read across every internal turn of a tool-use loop), and the expanded Consumption card had no output bar even though output is the more expensive rate.",
+        "Card headline now reads `60kt seen · 411kt billed · 7.2kt out` with a `× 7 reuse` chip when there's measurable cache amplification. When there's no reuse, collapses to the simple `71kt in · 1.2kt out` form. Same split appears under the collapsed-row segmented bar.",
+        "Per-piece sub-bars (`User prompt: Brief`, `Claude's Phase 1 draft`, etc.) sized to raw content heuristic counts instead of being renormalised to billed `tokensIn`. Sums to roughly content size now, matching distinct content the model saw.",
+        "New `OutputBar` in the expanded card, colored by the **destination input slot** (`d1` / `d2` / `hist` / `draft` / `histp`) — not the agent color. So P1 Claude's output bar uses the same ochre as the `d1` segment on every later card's input. Scroll-trace an artifact through the run by color alone.",
+        "Cost cluster gains the output split: `Input: $A · Output: $B · Web search: $C · Total: $T`. Output cost computed client-side from a small rate table mirroring `agents/pricing.py`. Models not in the table fall back to $10/MTok and the figure is marked with `~`.",
+        "Pure frontend, no backend changes. 725 pytest baseline preserved.",
       ],
     },
     {

@@ -923,24 +923,164 @@ const KIND_COLORS = {
 // even when keys arrive in a different order from the wire.
 const KIND_ORDER = ['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
 
-// Effective input tokens = fresh input + cache reads + cache writes. The
-// provider's `input_tokens` covers only the *uncached* portion of the
-// prompt, so for Claude (which uses an explicit CACHE_BREAKPOINT to cache
-// the brief / drafts / plan prefix) `usage.in` collapses to whatever
-// remained after the marker — typically a few hundred tokens of trailing
-// protocol scaffolding. The cached prefix the model actually saw rides
-// in via `cache_read_tokens` (subsequent turns) or
-// `cache_creation_tokens` (first turn). Both are present on the wire as
-// `usage.cacheRead` / `usage.cacheWrite`. The Consumption tab tells a
-// "what the model saw" story, so totals + bar widths + renormalisation
-// denominators all sum the three buckets. Cost / pricing surfaces keep
-// reading the per-bucket numbers separately (cache-read is billed at
-// 0.1× input, cache-write at 1.25× or 2× depending on TTL).
+// Spec 0051 — billed vs content split.
+//
+// Two quantities matter for a turn's input on the Consumption tab:
+//
+//   • billed   = `in + cache_read + cache_write`. What the provider charged
+//                for. For Anthropic this can far exceed the unique content
+//                in the prompt — the Messages API re-reads the cached
+//                prefix on every internal turn of a tool-use loop, and
+//                each re-read counts as `cache_read_tokens`. Six web
+//                searches with a 60kt cached prefix → ~420kt of cache_read.
+//   • content  = the unique prompt content the model actually saw, once.
+//                The frontend approximates this as the sum of the heuristic
+//                `promptPieces` estimates (char ÷ 3.5 per piece).
+//
+// Pre-0051 the Consumption tab conflated these — it sized every input bar
+// on `billed` and renormalised the pieces breakdown to sum to `billed`,
+// which inflated the "Brief" sub-bar to 411kt on P1 Claude even though the
+// brief is 60kt of distinct content. Spec 0051 separates the two:
+//
+//   • The total bar fills to `billed` (what we paid for; matches
+//     context-window pressure too — each cache_read does occupy context
+//     for that internal turn).
+//   • The pieces sub-bars fill to their raw `promptPieces` size (content,
+//     no renormalisation). They sum to roughly `content`, leaving a visible
+//     gap inside the total bar.
+//   • That gap = `billed - content` = the cache-reuse overlay. A small
+//     "× N reuse" chip surfaces the multiplier in the card headline.
+//
+// `effectiveTokensIn` keeps its 0.47.1 hotfix semantic — it returns billed
+// tokens — because every place that used it before (the shared
+// denominator, the headline number, the percent-of-cap calculation) wants
+// the billed number. New code uses `contentTokensIn` / `reuseInfo` when
+// the question is "what unique content did the model see."
 function effectiveTokensIn(usage) {
   if (!usage) return 0;
   return (Number(usage.in) || 0)
        + (Number(usage.cacheRead) || 0)
        + (Number(usage.cacheWrite) || 0);
+}
+
+// Sum of the heuristic `promptPieces` estimates — the unique content size,
+// before any per-turn re-read inflation. Falls back to `effectiveTokensIn`
+// when pieces are missing (pre-0030 transcripts) so older runs still show
+// a sensible "content" number rather than zero.
+function contentTokensIn(usage) {
+  if (!usage) return 0;
+  const pieces = usage.promptPieces || {};
+  let sum = 0;
+  for (const k of Object.keys(pieces)) {
+    sum += Number(pieces[k]) || 0;
+  }
+  if (sum > 0) return sum;
+  return effectiveTokensIn(usage);
+}
+
+// Returns the content / billed / reuse breakdown for a turn. `reused` is
+// the amount of billed-but-not-unique content (the cache-amplification
+// overlay). `hasReuse` is true when the reuse overlay is large enough to
+// be worth surfacing — guards against tiny rounding-driven multipliers.
+function reuseInfo(usage) {
+  const billed  = effectiveTokensIn(usage);
+  const content = contentTokensIn(usage);
+  // Clamp content to billed defensively: the heuristic char ÷ 3.5
+  // estimate occasionally overshoots tokeniser truth on symbol-heavy
+  // text; we never want the bar to underflow.
+  const contentClamped = Math.min(content, billed);
+  const reused = Math.max(0, billed - contentClamped);
+  const multiplier = contentClamped > 0 ? billed / contentClamped : 1;
+  // Surface the chip only when reuse is materially > 1x. A 1.05x multiplier
+  // would just be heuristic-vs-truth noise; 1.5x means real cache reuse.
+  const hasReuse = reused > 0 && multiplier >= 1.5;
+  return { content: contentClamped, billed, reused, multiplier, hasReuse };
+}
+
+// Spec 0051 B2 — protocol-slot mapping for each turn's output.
+//
+// Each turn's output lands in exactly one input slot in some later turn.
+// The Consumption tab's output bar uses this to label the bar (`→ d1`,
+// `→ hist`, etc.) and to colour it in the destination slot's colour, so
+// the same artifact reads visually identical on this card (as output)
+// and on later cards (as input).
+//
+//   phase 0 → null (preflight critique consumed by orchestrator for
+//                   go/no-go; never inlined into a later turn's input)
+//   phase 1 / claude → 'd1' (Claude's Phase 1 draft → P2 R1+, P3)
+//   phase 1 / gpt    → 'd2' (GPT's Phase 1 draft → P2 R1+, P3)
+//   phase 2          → 'hist' (every P2 round contributes to the
+//                              accumulated history of later P2 rounds + P3)
+//   phase 3          → 'draft' (drafter's converged document → P4 R1+).
+//                              The non-drafter is silent in P3; we still
+//                              return 'draft' here since the wire only
+//                              records the drafter's TurnTokenUsage row.
+//   phase 4          → 'histp' (every P4 round contributes to the
+//                               accumulated review history of later P4
+//                               rounds; P5 finalisation reads it).
+function outputSlotFor(phase, agent) {
+  const p = Number(phase);
+  if (p === 0) return null;
+  if (p === 1) return agent === 'gpt' ? 'd2' : 'd1';
+  if (p === 2) return 'hist';
+  if (p === 3) return 'draft';
+  if (p === 4) return 'histp';
+  return null;
+}
+
+// Label for the output bar. P0 is the only turn whose output doesn't fold
+// into a later input slot (the orchestrator reads the preflight critique
+// for go/no-go but never inlines it), so it gets a descriptive label
+// instead of a `→ slot` arrow.
+function outputBarLabel(phase, agent) {
+  const slot = outputSlotFor(phase, agent);
+  if (slot == null) return '→ preflight critique';
+  const slotLabel = INPUT_PIECE_LABEL[slot] || slot;
+  return `→ ${slot} · ${slotLabel}`;
+}
+
+// Spec 0051 B4 — output cost is the biggest per-token rate (output is
+// priced ~5× input on most models) and was previously hidden inside the
+// "Tokens" aggregate. The Consumption tab now surfaces the input/output
+// split so users can see *why* a turn was expensive.
+//
+// This client-side rate table mirrors `output_per_mtok` from
+// `src/dual_research/agents/pricing.py::PRICING`. Kept as a small
+// frontend constant rather than a wire-shipped field because (a) the
+// table is short and changes rarely, (b) avoiding a schema bump keeps
+// this spec frontend-only, (c) when a new model is added, this table
+// gets updated alongside `pricing.py` — same pattern already in place
+// for context-window tiers (`_CONTEXT_WINDOW_BY_MODEL` further down).
+//
+// If a model isn't in the table we fall back to a conservative $10/MTok
+// (~Sonnet 4 ballpark) and mark the cost with a "~" in the tooltip so
+// the user knows it's approximate. Backfill the table when a new model
+// ships rather than chase silently.
+const OUTPUT_RATE_PER_MTOK = {
+  'claude-sonnet-4-6': 15.00,
+  'claude-haiku-4-5':  5.00,
+  'gpt-5.5':           10.00,
+  'gpt-5.5-mini':      2.00,
+  'gpt-5.5-nano':      0.50,
+};
+const OUTPUT_RATE_FALLBACK = 10.00;
+
+function outputCostFor(usage) {
+  if (!usage) return { cost: 0, approx: false };
+  const out = Number(usage.out) || 0;
+  if (out <= 0) return { cost: 0, approx: false };
+  const modelId = usage.modelId || '';
+  // Match server-side `lookup_pricing` semantics: exact key match first,
+  // then prefix-match. Live model IDs include dated revision suffixes
+  // (e.g. `gpt-5.5-2026-04-23`) that the pricing table doesn't carry.
+  let rate = OUTPUT_RATE_PER_MTOK[modelId];
+  if (rate == null) {
+    for (const key of Object.keys(OUTPUT_RATE_PER_MTOK)) {
+      if (modelId.startsWith(key)) { rate = OUTPUT_RATE_PER_MTOK[key]; break; }
+    }
+  }
+  const effectiveRate = rate != null ? rate : OUTPUT_RATE_FALLBACK;
+  return { cost: (out / 1_000_000) * effectiveRate, approx: rate == null };
 }
 
 // Spec 0035 — distinct palette for the expanded-card sub-input bars.
@@ -1327,8 +1467,8 @@ function ConsumptionRowExpanded({ row, run, scale, reconcileReport }) {
         borderTop: '1px dashed var(--border-1)',
         paddingTop: 12,
       }}>
-        <ConsumptionCard usage={row.claude} agent="claude" run={run} scale={scale} reconcileReport={reconcileReport} />
-        <ConsumptionCard usage={row.gpt}    agent="gpt"    run={run} scale={scale} reconcileReport={reconcileReport} />
+        <ConsumptionCard usage={row.claude} agent="claude" phase={row.phase} run={run} scale={scale} reconcileReport={reconcileReport} />
+        <ConsumptionCard usage={row.gpt}    agent="gpt"    phase={row.phase} run={run} scale={scale} reconcileReport={reconcileReport} />
       </div>
     </div>
   );
@@ -1340,7 +1480,7 @@ function ConsumptionRowExpanded({ row, run, scale, reconcileReport }) {
 // input piece's contribution at the same scale. Sort toggle flips
 // between size-descending (default) and canonical Tk order. Web-search
 // count + cost (spec 0031) survive at the bottom.
-function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
+function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
   const meta = AGENT_META[agent];
   const [sortMode, setSortMode] = React.useState('size'); // 'size' | 'order'
 
@@ -1368,22 +1508,24 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
   const ctxWindow = contextWindowFor(usage, run, agent);
   const piecesRaw = usage.promptPieces || {};
 
-  // Renormalise piece counts so they sum to the provider's input_tokens.
-  const renormalised = (() => {
+  // Spec 0051 A2/A4 — pieces use their raw heuristic estimates, no
+  // renormalisation against `tokensIn`. The pre-spec scale step inflated
+  // every piece proportionally to absorb cache-read tokens, which made
+  // the "Brief" bar read as 411kt on P1 Claude even though the brief is
+  // 60kt of distinct content. Now the bar reflects content size; the
+  // gap between piece-sum and `tokensIn` is the reuse overlay on the
+  // total bar (see § total bar below).
+  const pieces = (() => {
     const present = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0);
-    if (present.length === 0 || tokensIn <= 0) return [];
-    const rawSum = present.reduce((acc, k) => acc + Number(piecesRaw[k] || 0), 0);
-    if (rawSum <= 0) return [];
-    const s = tokensIn / rawSum;
     return present.map((k) => ({
       kind: k,
-      tokens: Math.max(0, Math.round(Number(piecesRaw[k] || 0) * s)),
+      tokens: Number(piecesRaw[k]) || 0,
     }));
   })();
 
   // Sort.
   const sorted = (() => {
-    const copy = renormalised.slice();
+    const copy = pieces.slice();
     if (sortMode === 'size') {
       copy.sort((a, b) => b.tokens - a.tokens);
     } else {
@@ -1392,6 +1534,9 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
     return copy;
   })();
 
+  const reuse = reuseInfo(usage);
+  const outputCost = outputCostFor(usage);
+  const outputSlot = outputSlotFor(phase, agent);
   const pctOfCap = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
 
   return (
@@ -1411,21 +1556,41 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
         <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
           {meta.name}
         </span>
-        <span
-          className="mono num"
-          style={{ fontSize: 11, color: 'var(--fg-2)' }}
-          title={(cacheRead + cacheWrite) > 0
-            ? `${fmt.tokens(freshIn)}t fresh`
-              + ` + ${fmt.tokens(cacheRead)}t cache read`
-              + (cacheWrite ? ` + ${fmt.tokens(cacheWrite)}t cache write` : '')
-              + ` = ${fmt.tokens(tokensIn)}t seen by the model`
-            : null}
-        >
-          {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
-          {(cacheRead + cacheWrite) > 0
-            ? ` · ${fmt.tokens(cacheRead + cacheWrite)}t cached`
-            : ''}
-        </span>
+        {/* Spec 0051 A1 — content vs billed split.
+            When there's measurable cache reuse: `60kt seen · 411kt billed · 1.2kt out`
+            with a small `× 7 reuse` chip alongside.
+            When there's no reuse: collapse to the simple `71kt in · 1.2kt out`. */}
+        {reuse.hasReuse ? (
+          <>
+            <span
+              className="mono num"
+              style={{ fontSize: 11, color: 'var(--fg-2)' }}
+              title={
+                `${fmt.tokens(reuse.content)}t unique content seen by the model.\n`
+                + `${fmt.tokens(reuse.billed)}t total billed by the provider:\n`
+                + `  ${fmt.tokens(freshIn)}t fresh input\n`
+                + (cacheWrite ? `  ${fmt.tokens(cacheWrite)}t cache write\n` : '')
+                + (cacheRead ? `  ${fmt.tokens(cacheRead)}t cache read (${reuse.multiplier.toFixed(1)}× the unique content)\n` : '')
+                + `Anthropic re-reads the cached prefix on every internal turn of a tool-use loop, so cache_read_tokens accumulates per search.`
+              }
+            >
+              {fmt.tokens(reuse.content)}t seen
+              {' · '}
+              <span style={{ color: 'var(--fg-3)' }}>{fmt.tokens(reuse.billed)}t billed</span>
+              {' · '}
+              {fmt.tokens(tokensOut)}t out
+            </span>
+            <ReuseChip multiplier={reuse.multiplier} />
+          </>
+        ) : (
+          <span
+            className="mono num"
+            style={{ fontSize: 11, color: 'var(--fg-2)' }}
+            title={`${fmt.tokens(tokensIn)}t input · ${fmt.tokens(tokensOut)}t output`}
+          >
+            {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
+          </span>
+        )}
         <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
           ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
         </span>
@@ -1448,16 +1613,25 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
         )}
       </div>
 
-      {/* Total bar (agent color, against shared scale). */}
-      <SubInputBar
+      {/* Spec 0051 A — total input bar with content / reuse split.
+          The solid segment is the unique content (`reuse.content`); the
+          striped segment is the cache-reuse overlay (`reuse.reused`).
+          When there's no reuse the bar fills solid edge-to-edge at
+          `tokensIn`. */}
+      <TotalInputBar
         label="total input"
-        tokens={tokensIn}
+        content={reuse.content}
+        reused={reuse.reused}
+        billed={reuse.billed}
         scale={scale}
         color={meta.color}
-        accent={true}
       />
 
-      {/* Stacked sub-bars per piece. Empty when no pieces (pre-0030 turn). */}
+      {/* Stacked sub-bars per piece — RAW heuristic counts now (spec 0051
+          A2/A4). Empty when no pieces (pre-0030 turn). Pieces sum to
+          roughly `reuse.content`; the gap between piece-sum and
+          `tokensIn` reads as the striped overlay on the total bar
+          above. */}
       {sorted.length > 0 && (
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 4,
@@ -1476,6 +1650,31 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
         </div>
       )}
 
+      {/* Spec 0051 B1–B3 — output bar.
+          Sits below the input cluster, on the same shared scale. Coloured
+          by the destination input-slot (so P1 Claude's `→ d1` bar uses
+          the same ochre as the `d1` segment in every later card's input).
+          Labelled `→ slot · slot label` for slots that feed later turns;
+          P0 cards get `→ preflight critique` since the orchestrator
+          consumes that output for go/no-go and never inlines it. */}
+      {tokensOut > 0 && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 4,
+          paddingTop: 6,
+          borderTop: '1px dashed var(--border-2)',
+        }}>
+          <OutputBar
+            label={outputBarLabel(phase, agent)}
+            tokens={tokensOut}
+            scale={scale}
+            color={outputSlot ? (SUBINPUT_COLORS[outputSlot] || 'var(--fg-3)') : 'var(--fg-3)'}
+            outputCost={outputCost}
+            modelId={usage.modelId || null}
+            slot={outputSlot}
+          />
+        </div>
+      )}
+
       {/* Spec 0046 D7 — the pre-spec "not used in this turn: …" footnote
           is gone. Empty pieces simply don't render; absence is the
           signal (same rule as spec 0045 D3 for the input full-view). */}
@@ -1488,7 +1687,7 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
           The Web-search column only renders when this turn ran a
           search; comma/dot separators stay consistent with the rest
           of the metrics cluster. */}
-      <CostsCluster usage={usage} />
+      <CostsCluster usage={usage} outputCost={outputCost} />
 
       {/* Spec 0048 — when reconciliation has run for this date and a
           per-model delta matches this (agent, model_id), surface a
@@ -1508,13 +1707,30 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
 // Spec 0046 D8 — clean per-card costs/counts cluster. Renders even on
 // turns with zero searches (tokens + total only); the searches line is
 // hidden when the turn used no web search.
-function CostsCluster({ usage }) {
+//
+// Spec 0051 B4 — the previously-aggregate "Tokens: $X" line is split
+// into "Input: $A · Output: $B" so the output cost (often the dominant
+// per-token rate — output is 5× input on most models) is visible.
+// `outputCost` is computed client-side via the per-model rate table
+// (see `outputCostFor`); when the model isn't in the table we fall back
+// to a conservative rate and mark the figure with a "~" indicator in
+// the tooltip. Input cost is `tokenCost - outputCost` so the two
+// always sum to `tokenCost`, which preserves the existing invariant
+// `tokenCost + searchCost == cost` end-to-end.
+function CostsCluster({ usage, outputCost }) {
   const tokenCost = Number(usage?.tokenCost ?? usage?.cost ?? 0) || 0;
   const searchCost = Number(usage?.searchCost) || 0;
   const total = Number(usage?.cost ?? tokenCost) || 0;
   const searches = Number(usage?.searches) || 0;
   const queries  = Number(usage?.searchQueries) || 0;
   const hasSearches = searches > 0 || queries > 0 || searchCost > 0;
+  // Split tokenCost into input + output. `outputCost` is approximate
+  // when the model isn't in the rate table; `inputCost` is the residual
+  // so the sum always reconciles to `tokenCost` exactly.
+  const outCostUsd = Number(outputCost?.cost) || 0;
+  const outApprox  = Boolean(outputCost?.approx);
+  const inputCost  = Math.max(0, tokenCost - outCostUsd);
+  const hasOutputCost = outCostUsd > 0;
   return (
     <div className="mono" style={{
       paddingTop: 6, borderTop: '1px solid var(--border-1)',
@@ -1522,11 +1738,25 @@ function CostsCluster({ usage }) {
       display: 'flex', flexDirection: 'column', gap: 2,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span>Tokens:{' '}
+        <span>Input:{' '}
           <span className="num" style={{ color: 'var(--fg-2)' }}>
-            {fmt.cost(tokenCost)}
+            {fmt.cost(inputCost)}
           </span>
         </span>
+        {hasOutputCost && (
+          <>
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <span
+              title={outApprox
+                ? 'Output cost approximated — model not in the frontend rate table; falling back to $10/MTok. Update OUTPUT_RATE_PER_MTOK in run-detail.jsx when a new model ships.'
+                : 'Output cost computed from the model\'s output_per_mtok rate (mirrors src/dual_research/agents/pricing.py).'}
+            >Output:{' '}
+              <span className="num" style={{ color: 'var(--fg-2)' }}>
+                {outApprox ? '~' : ''}{fmt.cost(outCostUsd)}
+              </span>
+            </span>
+          </>
+        )}
         {hasSearches && (
           <>
             <span style={{ color: 'var(--fg-4)' }}>·</span>
@@ -1620,6 +1850,191 @@ function SubInputBar({ label, tokens, scale, color, accent }) {
   );
 }
 
+// Spec 0051 A — total input bar with content / reuse split.
+//
+// Layout: a solid-colour fill from 0 to `content` (the unique prompt
+// content the model saw, the same amount the piece sub-bars sum to);
+// then a striped overlay from `content` to `billed` (the cache-reuse
+// region — same content re-read once or more by the provider). When
+// `reused == 0` the bar fills solid edge-to-edge at `content` (which
+// equals `billed`).
+//
+// The label cell + numeric cell match `SubInputBar` exactly so the new
+// bar lines up with the piece breakdown directly underneath. The
+// numeric cell shows `billed` since that's the headline number the
+// percent-of-cap is computed against; the tooltip explains the
+// content/billed split.
+function TotalInputBar({ label, content, reused, billed, scale, color }) {
+  const denom = scale?.denom || 1;
+  const contentPct = denom > 0 ? Math.min(100, (content / denom) * 100) : 0;
+  const reusedPct  = denom > 0
+    ? Math.min(Math.max(0, 100 - contentPct), (reused / denom) * 100)
+    : 0;
+  const markerPct = (scale?.window > 0 && scale.window <= scale.denom)
+    ? (scale.window / scale.denom) * 100
+    : null;
+  const tooltip = reused > 0
+    ? `${fmt.tokens(content)}t unique content seen by the model\n`
+      + `+ ${fmt.tokens(reused)}t cache reuse (same content, re-read)\n`
+      + `= ${fmt.tokens(billed)}t total billed`
+    : `${fmt.tokens(content)}t input`;
+  return (
+    <div title={tooltip} style={{
+      display: 'grid',
+      gridTemplateColumns: '140px 1fr 80px',
+      alignItems: 'center', gap: 10,
+      minWidth: 0,
+    }}>
+      <span style={{
+        fontSize: 11, color: 'var(--fg-1)', fontWeight: 500,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {label}
+      </span>
+      <div style={{
+        position: 'relative',
+        width: '100%', height: 14,
+        background: 'var(--bg-3)',
+        borderRadius: 3, overflow: 'hidden',
+        border: '1px solid rgba(0,0,0,0.10)',
+      }}>
+        {/* Solid content fill */}
+        {contentPct > 0 && (
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0, left: 0,
+            width: `${contentPct}%`,
+            background: color,
+            opacity: 0.9,
+          }} />
+        )}
+        {/* Striped reuse overlay — same hue, diagonal stripes to read
+            as "same content, repeated". Stripes use the agent colour at
+            reduced opacity so the eye still groups the two segments. */}
+        {reusedPct > 0 && (
+          <div
+            title="cache reuse — Anthropic's tool-use loop re-reads the cached prefix on every internal turn"
+            style={{
+              position: 'absolute', top: 0, bottom: 0,
+              left: `${contentPct}%`,
+              width: `${reusedPct}%`,
+              backgroundImage:
+                `repeating-linear-gradient(`
+                + `45deg,`
+                + ` ${color} 0px,`
+                + ` ${color} 4px,`
+                + ` rgba(0,0,0,0) 4px,`
+                + ` rgba(0,0,0,0) 8px)`,
+              opacity: 0.55,
+            }}
+          />
+        )}
+        {markerPct != null && markerPct < 100 && (
+          <ContextWindowMarker pct={markerPct} label={_fmtCapLabel(scale.window)} />
+        )}
+      </div>
+      <span className="mono num" style={{
+        fontSize: 10.5, color: 'var(--fg-2)',
+        textAlign: 'right', whiteSpace: 'nowrap',
+      }}>
+        {fmt.tokens(billed)}t
+      </span>
+    </div>
+  );
+}
+
+// Spec 0051 B — output bar.
+//
+// Mirrors `SubInputBar` (same 3-column grid: label, bar, numeric) so it
+// stacks cleanly under the input piece bars. The arrow prefix in the
+// label (`→ d1`) cues that the output FEEDS the named slot in later
+// turns' inputs — open the next round's card and the same colour shows
+// up as a sub-bar by the same name. The bar fill is the destination
+// slot's colour, not the agent colour, so the lineage reads visually
+// regardless of which agent produced it.
+function OutputBar({ label, tokens, scale, color, outputCost, modelId, slot }) {
+  const denom = scale?.denom || 1;
+  const widthPct = denom > 0 ? Math.min(100, (tokens / denom) * 100) : 0;
+  const rateLine = outputCost?.cost > 0
+    ? (outputCost.approx
+        ? `~${fmt.cost(outputCost.cost)} (rate approximated — model not in OUTPUT_RATE_PER_MTOK; defaulting to $10/MTok)`
+        : `${fmt.cost(outputCost.cost)} at the model's published output rate`)
+    : '';
+  const tooltip = [
+    `${tokens.toLocaleString()}t output`,
+    slot ? `→ feeds the \`${slot}\` slot in later turns' inputs` : '→ preflight critique (consumed by orchestrator for go/no-go)',
+    rateLine,
+    modelId ? `model: ${modelId}` : null,
+  ].filter(Boolean).join('\n');
+  return (
+    <div
+      data-output-slot={slot || undefined}
+      title={tooltip}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '140px 1fr 80px',
+        alignItems: 'center', gap: 10,
+        minWidth: 0,
+      }}
+    >
+      <span style={{
+        fontSize: 10.5,
+        color: 'var(--fg-2)',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {label}
+      </span>
+      <div style={{
+        position: 'relative',
+        width: '100%', height: 10,
+        background: 'var(--bg-3)',
+        borderRadius: 3, overflow: 'hidden',
+      }}>
+        {widthPct > 0 && (
+          <div style={{
+            position: 'absolute', top: 0, bottom: 0, left: 0,
+            width: `${widthPct}%`,
+            background: color,
+            opacity: 0.75,
+          }} />
+        )}
+      </div>
+      <span className="mono num" style={{
+        fontSize: 10.5, color: 'var(--fg-2)',
+        textAlign: 'right', whiteSpace: 'nowrap',
+      }}>
+        {fmt.tokens(tokens)}t
+      </span>
+    </div>
+  );
+}
+
+// Spec 0051 A3 — small chip alongside the card headline when the
+// turn's billed input exceeds its content size by a meaningful
+// multiplier. The chip says "× N reuse" where N is the round-trip
+// multiplier (billed / content). Reads as informational, not warning:
+// neutral fg-3 tone, matches the existing chip-radius vocabulary.
+function ReuseChip({ multiplier }) {
+  const n = multiplier >= 10 ? Math.round(multiplier) : multiplier.toFixed(1);
+  return (
+    <span
+      className="mono"
+      title="cache reuse multiplier: the cached prompt prefix was read this many times across internal tool-use turns. Same content; provider bills each re-read."
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '1px 6px',
+        background: 'var(--info-bg, rgba(107,156,240,0.15))',
+        border: `1px solid var(--info, rgba(107,156,240,0.55))`,
+        borderRadius: 4,
+        fontSize: 10, color: 'var(--info, #9ab6e8)',
+        letterSpacing: '0.04em',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      × {n} reuse
+    </span>
+  );
+}
+
 // Spec 0035 — tiny vertical tick + label at the context-window position
 // on a bar that's been zoomed-in to data scale. Tells the user where the
 // budget cap is without re-sizing the bar to the cap.
@@ -1694,26 +2109,23 @@ function TokenBar({ usage, agent, run, scale }) {
   // Falls back to the cap when no scale is supplied (older render paths).
   const denom     = (scale && scale.denom) || ctxWindow;
   const piecesRaw = usage.promptPieces || {};
+  const reuse = reuseInfo(usage);
 
-  // Renormalise heuristic piece counts so they sum to the provider's
-  // input_tokens. Skip zero-valued entries; preserve KIND_ORDER for
-  // visual stability.
-  const renormalised = (() => {
+  // Spec 0051 A2/A4 — pieces use raw heuristic counts (no renormalisation
+  // against billed `tokensIn`). The cache-reuse overlay is drawn as a
+  // striped segment after the per-piece segments end.
+  const piecesList = (() => {
     const present = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0);
-    if (present.length === 0 || tokensIn <= 0) return [];
-    const rawSum = present.reduce((acc, k) => acc + Number(piecesRaw[k] || 0), 0);
-    if (rawSum <= 0) return [];
-    const scale = tokensIn / rawSum;
     return present.map((k) => ({
       kind: k,
-      raw: Number(piecesRaw[k] || 0),
-      tokens: Math.max(0, Math.round(Number(piecesRaw[k] || 0) * scale)),
+      tokens: Number(piecesRaw[k]) || 0,
     }));
   })();
-  const hasPieces = renormalised.length > 0;
+  const hasPieces = piecesList.length > 0;
 
   const inputPct  = Math.min(100, (tokensIn  / denom) * 100);
   const outputPct = Math.min(100 - inputPct, (tokensOut / denom) * 100);
+  const reusedPct = Math.max(0, Math.min(100, (reuse.reused / denom) * 100));
   // Marker position for the context-window cap on a data-relative scale.
   // Only render the marker when the cap sits inside the visible bar range
   // (scale denom <= window) — when the bar IS sized to the cap, the
@@ -1722,27 +2134,27 @@ function TokenBar({ usage, agent, run, scale }) {
     && ctxWindow <= denom && (ctxWindow / denom) < 0.99;
   const markerPct = showMarker ? (ctxWindow / denom) * 100 : null;
 
-  // Build tooltip — lead with model + window, then per-kind sizes if any.
-  // `tokensIn` is the *effective* input: fresh + cache_read + cache_write.
-  // The breakdown line makes it auditable so users can tell which slice is
-  // actually billed at the input rate vs cache_read (0.1×) vs cache_write
-  // (1.25×–2× depending on TTL).
-  const cachedSubtotal = cacheRead + cacheWrite;
-  const inputBreakdown = cachedSubtotal > 0
-    ? `  (${freshIn.toLocaleString()} fresh + ${cacheRead.toLocaleString()} cache read`
-        + (cacheWrite ? ` + ${cacheWrite.toLocaleString()} cache write` : '')
-        + `)`
-    : '';
+  // Spec 0051 — tooltip splits content (unique input the model saw) from
+  // billed (what the provider charged), so the asymmetry between the two
+  // is auditable on hover without expanding the row.
   const tooltipLines = [
     `${meta.name} · ${modelId || 'unknown model'}`,
-    `input:  ${tokensIn.toLocaleString()}t${inputBreakdown}`,
+    reuse.hasReuse
+      ? `input:  ${reuse.content.toLocaleString()}t seen · ${reuse.billed.toLocaleString()}t billed (× ${reuse.multiplier.toFixed(1)} reuse)`
+      : `input:  ${tokensIn.toLocaleString()}t`,
+  ];
+  if (reuse.hasReuse) {
+    tooltipLines.push(`  ${freshIn.toLocaleString()}t fresh + ${cacheRead.toLocaleString()}t cache read`
+      + (cacheWrite ? ` + ${cacheWrite.toLocaleString()}t cache write` : ''));
+  }
+  tooltipLines.push(
     `output: ${tokensOut.toLocaleString()}t`,
     `cost:   ${fmt.cost(cost)}`,
     `window: ${ctxWindow.toLocaleString()}t (${inputPct.toFixed(1)}% used)`,
-  ];
+  );
   if (hasPieces) {
     tooltipLines.push('', 'inputs:');
-    for (const p of renormalised) {
+    for (const p of piecesList) {
       const lbl = KIND_COLORS[p.kind]?.label || p.kind;
       tooltipLines.push(`  ${lbl.padEnd(18, ' ')} ${p.tokens.toLocaleString()}t`);
     }
@@ -1764,11 +2176,16 @@ function TokenBar({ usage, agent, run, scale }) {
         borderRadius: 4, overflow: 'hidden',
       }}>
         {hasPieces ? (
-          // Per-piece segments (spec 0030). Each segment's width is its
-          // share of the bar's denominator (spec 0035: data-relative).
+          // Per-piece segments (spec 0030, now raw counts under spec 0051
+          // A2/A4 — no renormalisation against billed tokens). Each
+          // segment's width is its share of the shared denominator.
+          // The cache-reuse overlay (striped segment) trails the pieces
+          // when `reuse.reused > 0` so the bar still fills end-to-end at
+          // `tokensIn` even though the solid segments sum only to
+          // `content`.
           (() => {
             let offsetPct = 0;
-            return renormalised.map((p) => {
+            const segments = piecesList.map((p) => {
               const colour = KIND_COLORS[p.kind]?.bg || 'var(--fg-3)';
               const widthPct = Math.min(100 - offsetPct, (p.tokens / denom) * 100);
               const segment = (
@@ -1784,6 +2201,24 @@ function TokenBar({ usage, agent, run, scale }) {
               offsetPct += widthPct;
               return segment;
             });
+            if (reusedPct > 0) {
+              const stripeWidthPct = Math.min(100 - offsetPct, reusedPct);
+              segments.push(
+                <div key="__reuse__" style={{
+                  position: 'absolute', top: 0, bottom: 0,
+                  left: `${offsetPct}%`, width: `${stripeWidthPct}%`,
+                  backgroundImage:
+                    `repeating-linear-gradient(`
+                    + `45deg,`
+                    + ` ${meta.color} 0px,`
+                    + ` ${meta.color} 4px,`
+                    + ` rgba(0,0,0,0) 4px,`
+                    + ` rgba(0,0,0,0) 8px)`,
+                  opacity: 0.5,
+                }} />
+              );
+            }
+            return segments;
           })()
         ) : (
           // Fallback: spec-0029 single-fill rendering for pre-0030 data.
@@ -1823,17 +2258,37 @@ function TokenBar({ usage, agent, run, scale }) {
       </div>
       {/* Numeric row underneath. Spec 0035: percent is now against the
           context-window cap (the budget number that matters), not the
-          bar's data-relative denominator. */}
+          bar's data-relative denominator.
+          Spec 0051 A1/A3: when there's measurable cache reuse, the "in"
+          number shows content seen (not billed) and a small reuse chip
+          surfaces the multiplier — matches the expanded card's headline
+          semantic so the two views agree at a glance. */}
       <div className="mono" style={{
         display: 'flex', alignItems: 'center', gap: 8,
         marginTop: 5,
         fontSize: 10, color: 'var(--fg-3)',
       }}>
-        <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensIn)}t</span>
-        <span>in</span>
-        <span>·</span>
-        <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
-        <span>out</span>
+        {reuse.hasReuse ? (
+          <>
+            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(reuse.content)}t</span>
+            <span>seen</span>
+            <span>·</span>
+            <span style={{ color: 'var(--fg-3)' }}>{fmt.tokens(reuse.billed)}t</span>
+            <span>billed</span>
+            <span>·</span>
+            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
+            <span>out</span>
+            <ReuseChip multiplier={reuse.multiplier} />
+          </>
+        ) : (
+          <>
+            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensIn)}t</span>
+            <span>in</span>
+            <span>·</span>
+            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
+            <span>out</span>
+          </>
+        )}
         <span style={{ flex: 1 }} />
         <span>{((tokensIn / ctxWindow) * 100).toFixed(1)}% of {_fmtCapLabel(ctxWindow)}</span>
       </div>

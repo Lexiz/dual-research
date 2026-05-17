@@ -4,7 +4,7 @@ title: Primitive vocabulary — Button, StatusBadge, Chip, RunIDChip, ThemeToggl
 label: new-feature
 version-bump: MINOR
 status: merged
-target-version: 0.49.0
+target-version: 0.50.0
 created: 2026-05-17
 pr: "https://github.com/Lexiz/dual-research/pull/56"
 ---
