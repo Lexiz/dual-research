@@ -18,9 +18,17 @@ name: Reconcile costs (daily)
 # orchestrator pipeline — reconciliation is observation, not mutation.
 
 on:
-  schedule:
-    - cron: "0 2 * * *"   # 02:00 UTC daily
-  workflow_dispatch:       # allow manual trigger from Actions tab
+  # 0.46.1: daily schedule disabled. The CI runner has no local runs/
+  # directory (gitignored), so the cron would reconcile $0 local vs $X
+  # billed daily and report spurious drift — eroding trust in the
+  # verification chip. Re-enable when reconcile-costs grows a
+  # --source supabase mode that reads run-cost data from the hosted
+  # backend (follow-up spec). The workflow_dispatch trigger is kept so
+  # manual runs from the Actions tab still work for one-off checks.
+  #
+  # schedule:
+  #   - cron: "0 2 * * *"   # 02:00 UTC daily
+  workflow_dispatch:       # manual trigger from Actions tab
 
 jobs:
   reconcile:
