@@ -3,10 +3,10 @@ spec: 0042
 title: Critique data integrity — parser coverage, badge wiring, modal load paths, count reconciliation
 label: bug
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.40.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/43"
 ---
 
 # Spec 0042 — Critique data integrity
