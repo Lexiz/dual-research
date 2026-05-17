@@ -3,10 +3,10 @@ spec: 0044
 title: Turn-input semantics + per-turn badges + side-by-side framing
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.42.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/45"
 ---
 
 # Spec 0044 — Turn-input semantics + per-turn badge redesign + side-by-side framing
