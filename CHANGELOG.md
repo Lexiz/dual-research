@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.48.1] — 2026-05-17
+
+### Fixed
+
+- **CI `tests.yml` workflow no longer red on every commit.** Four tests in `tests/ui/test_aggregator_ledger.py` (`test_partner_vetting_fixture_populates_phase_ledgers`, `test_phase_ledgers_entries_carry_raised_turn_key_field`, `test_phase_timings_exposed_for_isFinalConvergedTurn`, `test_phase_ledgers_entries_carry_ghosted_rounds_field`) called `load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))`. The `runs/` directory is gitignored (run artifacts are local-only), so on CI runners the snapshot loaded as an empty `Run` and every non-trivial assertion failed. Locally the tests passed because the fixture happened to exist on disk. Same class of bug as the 0.46.1 hotfix fixed for `reconcile-costs` (commit `b15b88e`) — CI runner ↔ developer-machine state divergence — on a different code path. Fix: checked in the partner-vetting snapshot to `tests/fixtures/partner_vetting_arch_critique/` (excluding the `_corrupted-backup/` scratch dir and `metrics.json.pre-0039.bak` — 1.2 MB, 34 files) and pointed the tests at the fixture path via a module-level `FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "partner_vetting_arch_critique"` constant. All 8 tests in the file now run end-to-end against checked-in data; 725 baseline pytest green preserved (703 passed + 22 skipped, was already 725 in 0.48.0).
+
 ## [0.48.0] — 2026-05-17
 
 ### Changed

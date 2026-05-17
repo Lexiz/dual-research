@@ -6,11 +6,13 @@ from pathlib import Path
 
 from dual_research.ui.aggregator import load_run_snapshot
 
+FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "partner_vetting_arch_critique"
+
 
 def test_partner_vetting_fixture_populates_phase_ledgers() -> None:
     """The canonical partner-vetting fixture must produce non-empty
     ledger arrays for Phase 2 and Phase 4 on every snapshot load."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     assert 2 in run.phase_ledgers
     assert 4 in run.phase_ledgers
     assert len(run.phase_ledgers[2]) > 0
@@ -20,7 +22,7 @@ def test_partner_vetting_fixture_populates_phase_ledgers() -> None:
 def test_partner_vetting_fixture_phase4_zero_open_issues() -> None:
     """Partner-vetting Phase 4 ends with all issues resolved; the
     ledger should report 0 open issues post-build."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     open_issues = [
         e for e in run.phase_ledgers[4]
         if e["kind"] == "issue" and e["current_status"] == "open"
@@ -35,7 +37,7 @@ def test_partner_vetting_drifts_surface_questions_gap() -> None:
     surfacing that gap. Just assert that drifts is a list — the
     exact count depends on the matcher; the value is in the signal
     being present, not its specific cardinality."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     assert isinstance(run.drifts, list)
     # At least one drift kind should fire on this fixture (the
     # questions gap surfaced during the spec design); a clean run
@@ -56,7 +58,7 @@ def test_phase_ledgers_entries_carry_status_history_with_turn_key() -> None:
     derive the per-turn ``resolved`` count. Each entry's status_history
     must include ``turnKey`` on every transition so the frontend can
     filter by ``raisedTurnKey === item.turnKey`` style equality."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     for entry in run.phase_ledgers[2]:
         history = entry.get("status_history") or []
         for t in history:
@@ -76,7 +78,7 @@ def test_phase_ledgers_entries_carry_raised_turn_key_field() -> None:
     Additionally, the bulk of entries DO have a populated key (most
     disagreements get theirs via spec 0034's turn-key population pass);
     we assert >80% populated as a regression guard."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     for entry in run.phase_ledgers[2] + run.phase_ledgers[4]:
         assert "raised_turn_key" in entry, (
             f"ledger entry {entry.get('id')} missing raised_turn_key field"
@@ -95,7 +97,7 @@ def test_phase_timings_exposed_for_isFinalConvergedTurn() -> None:
     """Spec 0044 D9 — ``isFinalConvergedTurn`` reads
     ``run.phaseTimings[phase]`` to verify the phase has actually
     exited. Wire shape must populate it on completed runs."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     assert run.phase_timings.get(2) is not None
     assert run.phase_timings.get(4) is not None
 
@@ -112,7 +114,7 @@ def test_phase_ledgers_entries_carry_ghosted_rounds_field() -> None:
     (``ghostedRounds > 0``) is reliable. The frontend ``findLedgerEntry``
     helper resolves a card to its ledger entry via ``entry.id ===
     itemId``; the round count then flows from the resolved entry."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     all_entries = run.phase_ledgers[2] + run.phase_ledgers[4]
     assert len(all_entries) > 0, "fixture should have at least some ledger entries"
     for entry in all_entries:
@@ -146,7 +148,7 @@ def test_phase_ledgers_entry_ids_match_critique_item_ids() -> None:
     drifts away from the ledger builder's id scheme, every card
     silently shows ``ghostedRounds = 0`` even when the ledger tracks
     a non-zero value."""
-    run = load_run_snapshot(Path("runs/20260516-035048-partner-vetting-arch-critique"))
+    run = load_run_snapshot(FIXTURE)
     for phase in (2, 4):
         ledger_ids = {e["id"] for e in run.phase_ledgers[phase] if e.get("id")}
         critique_items = (
