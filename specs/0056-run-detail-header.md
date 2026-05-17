@@ -3,10 +3,10 @@ spec: 0056
 title: Run detail header + chrome restructure + ActiveRunChip
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.54.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/60"
 ---
 
 # Spec 0056 — Run detail header + chrome restructure
