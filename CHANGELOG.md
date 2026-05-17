@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.54.0] — 2026-05-17
+
+### Changed
+
+- **Chrome bar right cluster visual unification** ([spec 0056](specs/0056-run-detail-header.md)) — SUR-05. HowItWorksLink replaced with the design-system `Tab` primitive. ConnectionPill, AppVersionChip, ThemeToggle, and AvatarMenu retain their utility-control styling with unified padding and border patterns.
+- **ActiveRunChip in chrome** — SUR-06. When viewing a run detail, a chip showing the short run ID (e.g. "3a4a") with an arrow-left icon appears in the chrome right cluster. Click navigates back to the run list.
+- **Run-detail header restructure** — SUR-07. Equal-row padding (12px vertical, 20px horizontal). Drafter callout pill with agent-tinted Chip + AgentIcon replaces the inline "drafter: X" text in the metadata row. Hidden when drafter is null.
+- **Blocking-item callout** — SUR-08. New attention bar between header and main content area. Shows "N open . M ghosted" when the run has open standing items in phaseLedgers (phases 2 and 4). Click scrolls to the first open item in the critique pane. Hidden when no open items.
+- **AgentStrip primitive adoption** — Timeline pane's bespoke inline-styled agent pills (Claude/GPT) migrated to the class-backed `AgentStrip` from SPEC-0052's shared.jsx. Activity phrase (dot + sentence) preserved via the `right` prop.
+
+### Tests
+
+- 725 passing (no change).
+
 ## [0.53.0] — 2026-05-17
 
 ### Added
