@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "starting_at": "2026-05-15T00:00:00Z",
+      "ending_at": "2026-05-16T00:00:00Z",
+      "results": [
+        {
+          "amount": {"value": "1.2345", "currency": "usd"},
+          "model": "claude-sonnet-4-6",
+          "description": "claude-sonnet-4-6 input tokens",
+          "workspace_id": "wrkspc_test"
+        },
+        {
+          "amount": {"value": "3.5000", "currency": "usd"},
+          "model": "claude-sonnet-4-6",
+          "description": "claude-sonnet-4-6 output tokens",
+          "workspace_id": "wrkspc_test"
+        },
+        {
+          "amount": {"value": "0.1500", "currency": "usd"},
+          "description": "claude-haiku-4-5 input tokens",
+          "workspace_id": "wrkspc_test"
+        }
+      ]
+    },
+    {
+      "starting_at": "2026-05-16T00:00:00Z",
+      "ending_at": "2026-05-17T00:00:00Z",
+      "results": [
+        {
+          "amount": {"value": "5.5000", "currency": "usd"},
+          "model": "claude-sonnet-4-6",
+          "description": "claude-sonnet-4-6 input tokens",
+          "workspace_id": "wrkspc_test"
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "next_page": null
+}

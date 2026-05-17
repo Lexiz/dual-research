@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dual_research.agents.base import AgentResult, TokenUsage
-from dual_research.agents.pricing import compute_search_cost
+from dual_research.agents.pricing import PRICING_VERSION, compute_search_cost
 from dual_research.persistence.state import write_atomic
 
 
@@ -43,6 +43,11 @@ class Metrics:
     calls: list[CallRecord] = field(default_factory=list)
     started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     ended_at: str | None = None
+    # Spec 0048 — snapshot of which pricing table was in effect when these
+    # costs were computed. Empty on pre-0048 files; ``to_json`` writes the
+    # live ``PRICING_VERSION`` constant. Lets reconcile / recompute detect
+    # rate-table mismatches as a separate axis from counting errors.
+    pricing_version: str = ""
 
     def record(self, *, label: str, result: AgentResult) -> None:
         u = result.usage
@@ -109,6 +114,7 @@ class Metrics:
         payload = {
             "started_at": self.started_at,
             "ended_at": self.ended_at,
+            "pricing_version": self.pricing_version or PRICING_VERSION,
             "calls": [asdict(c) for c in self.calls],
             "totals_by_agent": self.totals_by_agent(),
             "total_cost_usd": self.total_cost_usd(),
@@ -144,6 +150,7 @@ class Metrics:
         ended_at = payload.get("ended_at")
         m = cls(calls=calls, started_at=started_at)
         m.ended_at = ended_at
+        m.pricing_version = payload.get("pricing_version", "")
         return m
 
     @classmethod

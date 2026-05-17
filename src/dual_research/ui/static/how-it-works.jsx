@@ -15,6 +15,20 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.46.0',
+      date: '2026-05-17',
+      summary: 'Always-on cost verification against provider invoices.',
+      items: [
+        "New `dual-research reconcile-costs` CLI compares local `metrics.json` totals against the providers' billing APIs (OpenAI Organization Costs + Anthropic Admin Cost Report) at daily granularity. Five honest states: `verified` / `drift` / `partial` / `unverified` / `awaiting provider data`. CLI modes: `--day` · `--from/--to` · `--all` · `--run RUN_ID` · `--since-yesterday`. Exit code 0 within tolerance, 1 if any row exceeds — CI/cron friendly.",
+        "Each provider's admin key is independently optional. Set `OPENAI_ADMIN_KEY` and/or `ANTHROPIC_ADMIN_KEY` (plus optional `OPENAI_PROJECT_ID` / `ANTHROPIC_WORKSPACE_ID` for scoping) in env or via Fly secrets. A missing key surfaces as `providers_skipped` on the report; the system reports honestly what was checked vs not. When a key is later added, restart and that side activates — zero code changes.",
+        "New `<ReconcileChip>` in the run-detail header reads `/api/reconcile/<date>` and tells you, at a glance, whether the run's day was verified, drifted, partially-checked, unverified, or awaiting provider data. Tooltip shows local vs billed totals, which providers contributed, and which were skipped with why.",
+        "Consumption-tab cards gain a `Provider-billed: $X · Δ $Y (Z%)` line under the costs cluster when the day's reconciliation has matched per-(provider, model) numbers. Flagged rows (delta exceeds tolerance, default 1.0%) get a warn-tinted ⚠.",
+        "Daily reconciliation runs automatically via GitHub Actions at 02:00 UTC (manual `workflow_dispatch` also available); reports upsert into the new Supabase `reconcile_results` table so hosted-mode UI reads them. Local CLI invocations write `reconcile/<date>.json` snapshots beside the runs/ directory.",
+        "`metrics.json` now records a `pricing_version` string (initial value `2026-05-17`, human-bumped when rates change). `recompute-costs` stamps the rewritten file with the live constant and surfaces the before/after transition on its per-run diff. A snapshot regression test ensures no rate-table edit can ship without a version bump.",
+        "Anthropic side ships built but currently inactive: the Console's admin-keys page is no longer present in our account (Service Accounts only mint workspace-scoped `sk-ant-api03-` keys which 401 on `/v1/organizations/*`). Code path is complete + tested against a canonical docs-shape fixture; when an admin key becomes available the Anthropic half lights up automatically with zero changes.",
+      ],
+    },
+    {
       version: '0.45.0',
       date: '2026-05-17',
       summary: 'Run-detail resilience + repair-turn visibility.',

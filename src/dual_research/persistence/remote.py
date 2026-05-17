@@ -130,6 +130,25 @@ class RemoteSession:
             duration_ms=duration_ms,
         )
 
+    # ─── Spec 0048 — reconcile snapshots ──────────────────────────────────
+
+    def push_reconcile_report(self, *, date: str, payload: dict[str, Any]) -> None:
+        """Upsert a single ReconcileReport into the reconcile_results table.
+
+        The table is keyed by ``date`` (UTC ISO ``YYYY-MM-DD``); re-running
+        reconciliation for the same date overwrites the row, so the latest
+        snapshot always wins.
+        """
+        row = {
+            "date": date,
+            "payload": payload,
+            "checked_at": payload.get("checked_at")
+                or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        self._client.table("reconcile_results").upsert(
+            [row], on_conflict="date"
+        ).execute()
+
 
 def _build_run_row(
     run_id: str,

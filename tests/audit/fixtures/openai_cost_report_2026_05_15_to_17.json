@@ -1,0 +1,249 @@
+{
+    "object": "page",
+    "has_more": false,
+    "next_page": null,
+    "data": [
+        {
+            "object": "bucket",
+            "start_time": 1778803200,
+            "end_time": 1778889600,
+            "start_time_iso": "2026-05-15T00:00:00",
+            "end_time_iso": "2026-05-16T00:00:00",
+            "results": [
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.02579200000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 51584.0,
+                    "line_item": "gpt-5.5-2026-04-23, cached input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "2.193950000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 438790.0,
+                    "line_item": "gpt-5.5-2026-04-23, input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "1.516740000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 50558.0,
+                    "line_item": "gpt-5.5-2026-04-23, output",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.004064000000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 162560.0,
+                    "line_item": "gpt-5-mini-2025-08-07, cached input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.2560415000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 1024166.0,
+                    "line_item": "gpt-5-mini-2025-08-07, input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.4879700000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 243985.0,
+                    "line_item": "gpt-5-mini-2025-08-07, output",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "1.010000000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 101.0,
+                    "line_item": "web search tool calls",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                }
+            ]
+        },
+        {
+            "object": "bucket",
+            "start_time": 1778889600,
+            "end_time": 1778976000,
+            "start_time_iso": "2026-05-16T00:00:00",
+            "end_time_iso": "2026-05-17T00:00:00",
+            "results": [
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0E-6176",
+                        "currency": "usd"
+                    },
+                    "quantity": 0.0,
+                    "line_item": "gpt-4.1-2025-04-14, cached input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.1372800000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 68640.0,
+                    "line_item": "gpt-4.1-2025-04-14, input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.01369600000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 1712.0,
+                    "line_item": "gpt-4.1-2025-04-14, output",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.5265920000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 1053184.0,
+                    "line_item": "gpt-5.5-2026-04-23, cached input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "8.436850000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 1687370.0,
+                    "line_item": "gpt-5.5-2026-04-23, input",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "4.767840000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 158928.0,
+                    "line_item": "gpt-5.5-2026-04-23, output",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                },
+                {
+                    "object": "organization.costs.result",
+                    "amount": {
+                        "value": "0.4900000000000000000000000000000000",
+                        "currency": "usd"
+                    },
+                    "quantity": 49.0,
+                    "line_item": "web search tool calls",
+                    "user_id": null,
+                    "api_key_id": null,
+                    "project_id": "proj_0W823hZF68Md05LXB3iCXRx7",
+                    "organization_id": "org-5YUJBomvPJGWgXhwzjNHk5Ix",
+                    "project_name": "dual-search",
+                    "organization_name": "Xelabyte",
+                    "user_email": null
+                }
+            ]
+        }
+    ]
+}
