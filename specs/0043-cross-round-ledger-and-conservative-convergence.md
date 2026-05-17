@@ -3,10 +3,10 @@ spec: 0043
 title: Cross-round ledger + standing-items input + conservative convergence
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.41.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/44"
 ---
 
 # Spec 0043 — Cross-round ledger + standing-items input + conservative convergence
