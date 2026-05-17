@@ -3,10 +3,10 @@ spec: 0059
 title: Keyboard contract + shortcuts overlay + search palette
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.57.0
 created: 2026-05-17
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/63"
 ---
 
 # Spec 0059 — Keyboard contract + shortcuts overlay + search palette
