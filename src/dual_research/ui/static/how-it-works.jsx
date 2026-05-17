@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.45.0',
+      date: '2026-05-17',
+      summary: 'Run-detail resilience + repair-turn visibility.',
+      items: [
+        "Run-detail page no longer crashes on historical runs that reached `completed` without a drafter (five local runs hit this — anything killed before Phase 3 but marked complete by an older orchestrator). `ArtifactHeader` now guards `meta` defensively in its `doc` / `doc-live` branches (matching the pattern already used in `DocumentModal`); `buildLiveTimeline` skips the `doc-final` push when there's no drafter, so the artifact strip just doesn't include a 'Final document by null' card for those runs.",
+        "Finalize path hardened against the resume scenario where `phase2_outcome` is `None` on disk. The original spec-0036 guards on `confidence_tag` + `render_metadata_header` covered the APPROVED branch; spec 0047 adds the DEADLOCKED + None Phase 2 regression test so future regressions don't slip the guard.",
+        "Phase 4 (and Phase 2) protocol-repair turns now appear as their own cards on the Consumption tab, adjacent to the original turn with a small `repair` chip and slightly muted background. Pre-spec the per-turn aggregator collapsed `phase4-r1-claude` + `phase4-r1-claude-repair` siblings onto one key (last-write-wins), so the Consumption tab under-reported repair cost. New behaviour: each LLM call is its own card. Agent-level totals are unchanged (still sum every event — matches the bill).",
+        "Timeline turns whose parent has a repair sibling carry a small `+repair` discoverability chip on the `StatsChips` strip, so the user knows to look at the Consumption tab for the per-call breakdown.",
+        "Per-turn key on the wire gains a `_repair` suffix for sibling labels (`phase4_round1_claude_repair`, `phase2_round4_gpt_repair`). Matches the suffix convention already used by the per-turn input bundles and search audit files. No transcript / on-disk schema changes.",
+      ],
+    },
+    {
       version: '0.44.0',
       date: '2026-05-17',
       summary: 'Critique panel + Summary + Consumption rework + design unification.',

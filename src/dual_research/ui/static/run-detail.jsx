@@ -800,39 +800,88 @@ function consumptionKey(phase, round, agent) {
   return `phase${phase}${Ag}`;
 }
 
+// Spec 0047 — given an `item.turnKey` from the live timeline
+// (snake_case, e.g. `phase4_round1_claude`), check whether the per-turn
+// usage dict carries a repair sibling under the camelCase
+// `phase4Round1ClaudeRepair` key. Used by `StatsChips` to surface a
+// `+repair` hint on the parent timeline turn so the user knows to look
+// at the Consumption tab for the breakdown.
+function hasRepairSibling(run, snakeTurnKey) {
+  if (!snakeTurnKey) return false;
+  const usage = run?.phaseTokenUsage;
+  if (!usage) return false;
+  const camel = snakeTurnKey.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+  return Object.prototype.hasOwnProperty.call(usage, `${camel}Repair`);
+}
+
 // Walk the per-turn usage dict and produce ordered rows for rendering.
 // Each row: { id, phase, round, label, claude, gpt }. `claude`/`gpt`
 // is the `TurnTokenUsage`-shaped value or `null` (silent lane).
+// Spec 0047 — small chip surfaced on Consumption-tab repair-sibling rows
+// (and on timeline turns whose parent has a repair sibling) to mark the
+// row as a protocol-repair re-prompt rather than the original turn.
+function RepairChip({ compact = false }) {
+  return (
+    <span
+      className="mono"
+      title="Re-prompted turn after the original failed protocol parse — see the matching parent row for the original."
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: compact ? '0 5px' : '1px 6px',
+        background: COLORS.warn + '14',
+        border: `1px solid ${COLORS.warn}55`,
+        borderRadius: 4,
+        fontSize: compact ? 9.5 : 10, color: COLORS.warn,
+        letterSpacing: '0.04em', textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      repair
+    </span>
+  );
+}
+
 function buildConsumptionRows(run) {
   const usage = run.phaseTokenUsage || {};
-  // Parse the camelized keys back into (phase, round, agent).
+  // Parse the camelized keys back into (phase, round, agent, isRepair).
+  // Spec 0047: repair siblings (`-repair` / `-hashdrift-repair` turns) are
+  // keyed `phase{N}Round{R}{Agent}Repair` server-side; they render as
+  // their own row adjacent to the parent on the Consumption tab so each
+  // LLM call gets its own card.
   const parsed = [];
   for (const k of Object.keys(usage)) {
-    const m = /^phase(\d+)(?:Round(\d+))?(Claude|Gpt)$/.exec(k);
+    const m = /^phase(\d+)(?:Round(\d+))?(Claude|Gpt)(Repair)?$/.exec(k);
     if (!m) continue;
     parsed.push({
       key: k,
       phase: Number(m[1]),
       round: m[2] ? Number(m[2]) : 0,
       agent: m[3] === 'Gpt' ? 'gpt' : 'claude',
+      isRepair: Boolean(m[4]),
     });
   }
-  // Group by (phase, round). Use a Map keyed `${phase}:${round}` to
-  // preserve insertion-order; we'll re-sort below.
+  // Group by (phase, round, isRepair). Use a Map keyed `${phase}:${round}:${repairFlag}`
+  // to preserve insertion-order; we'll re-sort below.
   const grouped = new Map();
   for (const p of parsed) {
-    const k = `${p.phase}:${p.round}`;
-    if (!grouped.has(k)) grouped.set(k, { phase: p.phase, round: p.round, claude: null, gpt: null });
+    const k = `${p.phase}:${p.round}:${p.isRepair ? 'r' : ''}`;
+    if (!grouped.has(k)) {
+      grouped.set(k, {
+        phase: p.phase, round: p.round, isRepair: p.isRepair,
+        claude: null, gpt: null,
+      });
+    }
     grouped.get(k)[p.agent] = usage[p.key];
   }
-  // Sort by phase then round.
+  // Sort by phase, then round, then originals before their repair siblings.
   const rows = Array.from(grouped.values()).sort((a, b) => {
     if (a.phase !== b.phase) return a.phase - b.phase;
-    return a.round - b.round;
+    if (a.round !== b.round) return a.round - b.round;
+    return Number(a.isRepair) - Number(b.isRepair);
   });
   // Attach human labels.
   for (const r of rows) {
-    r.id = `${r.phase}:${r.round}`;
+    r.id = `${r.phase}:${r.round}${r.isRepair ? ':repair' : ''}`;
     if (r.round > 0) {
       r.label = `Round ${r.round}`;
     } else {
@@ -934,9 +983,12 @@ function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle })
   // same card so the width never jumps. Pre-spec the expand-body sat
   // as a separate full-width grid row below; the visual flow kept
   // reorienting left/right between the lanes and the detail.
+  // Spec 0047 — repair-sibling rows use a slightly muted background +
+  // a `repair` chip in the label cell so they visually cluster with
+  // their parent row but stay individually addressable.
   return (
     <article style={{
-      background: 'var(--bg-1)',
+      background: row.isRepair ? 'var(--bg-0)' : 'var(--bg-1)',
       border: `1px solid ${expanded ? 'var(--border-2)' : 'var(--border-1)'}`,
       borderRadius: 8,
       overflow: 'hidden',
@@ -968,7 +1020,18 @@ function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle })
             <div className="mono" style={{
               fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
               textTransform: 'uppercase',
-            }}>{row.label}</div>
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span>{row.label}</span>
+              {row.isRepair && <RepairChip />}
+            </div>
+          )}
+          {!row.label && row.isRepair && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <RepairChip />
+            </div>
           )}
         </div>
         {/* Claude lane */}
@@ -2466,7 +2529,11 @@ const CHIP_KIND_META = {
 // the phase.
 function StatsChips({ phase, run, item }) {
   const allowed = PHASE_CHIP_ALLOWLIST[phase] || [];
-  if (allowed.length === 0 && !isFinalConvergedTurn(item, run)) return null;
+  // Spec 0047 — discoverability hint when this turn has a `_repair`
+  // sibling on the wire; user knows to look at the Consumption tab for
+  // the per-call breakdown.
+  const showRepairHint = hasRepairSibling(run, item?.turnKey);
+  if (allowed.length === 0 && !isFinalConvergedTurn(item, run) && !showRepairHint) return null;
 
   const deltas = computeChipDeltas(run, item);
   const chips = [];
@@ -2489,12 +2556,13 @@ function StatsChips({ phase, run, item }) {
   // turn of a phase that converged with zero open ledger items.
   const showAgreed = isFinalConvergedTurn(item, run);
 
-  if (chips.length === 0 && !showAgreed) return null;
+  if (chips.length === 0 && !showAgreed && !showRepairHint) return null;
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
       {chips.map((c, i) => <StatChip key={i} {...c} />)}
       {showAgreed && <ConvergedChip phase={phase} />}
+      {showRepairHint && <RepairChip compact />}
     </span>
   );
 }
@@ -2676,12 +2744,15 @@ function ArtifactHeader({ item, meta, hover, run }) {
         <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
           {item.completed ? 'Final document' : 'Converged document'}
         </span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>by {meta.name}</span>
+        {meta && (
+          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>by {meta.name}</span>
+        )}
         <span style={{ flex: 1 }} />
       </div>
     );
   }
   if (item.kind === 'doc-live') {
+    if (!meta) return null;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
         <AgentIcon agent={item.agent} size={14} />
