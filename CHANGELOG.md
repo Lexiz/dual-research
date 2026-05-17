@@ -12,6 +12,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.45.0] — 2026-05-17
+
+### Fixed
+
+- **Run-detail page no longer crashes on `drafter=null + completed` runs** ([spec 0047](specs/0047-run-detail-resilience.md) F1) — five historical local runs (anything killed before Phase 3 but marked complete by an older orchestrator path) rendered a blank page with React error `Cannot read properties of null (reading 'name')`. `ArtifactHeader`'s `kind === 'doc'` and `kind === 'doc-live'` branches now guard `meta` defensively (matching the pattern already established in `DocumentModal`); `buildLiveTimeline` skips the `doc-final` push entirely when `run.drafter` is null, so the artifact strip just doesn't include a "Final document by null" card for those runs.
+- **Finalize-path None-Phase-2 + deadlocked combination** ([spec 0047](specs/0047-run-detail-resilience.md) F2) — the resume-with-`phase2_outcome=None` path had test coverage (spec 0036) for the APPROVED branch but not for the DEADLOCKED branch. New regression test in `tests/orchestrator/test_emit_final_resume.py` exercises the deadlock appendix while Phase 2 is None to lock the guard against future regressions. Sweep of `finalize.py` confirmed no remaining unguarded `phase{N}_outcome.<attr>` accesses on `Foo | None` parameters.
+
+### Changed
+
+- **Phase 4 (and Phase 2) protocol-repair turns appear as their own Consumption-tab cards** ([spec 0047](specs/0047-run-detail-resilience.md) F5) — per-turn key on the wire gains a `_repair` suffix for sibling labels (`phase4-r1-claude-repair`, `phase2-r4-gpt-hashdrift-repair`). Pre-spec the aggregator's `_on_turn_ended` collided original + repair onto the same `phase4_round1_claude` key and the per-turn dict overwrite hid the repair cost; agent-level totals were correct but the Consumption tab under-reported. The new behaviour matches the suffix convention already used by `_on_turn_inputs` and `_on_turn_searches` for the input bundle and search audit. Consumption-tab `buildConsumptionRows` regex extended to capture the `Repair` suffix; repair rows sort immediately after their parent with a slightly muted background + small `repair` chip in the label cell. Timeline `StatsChips` gains a `+repair` discoverability chip on the parent turn so the user knows to look at the Consumption tab for the per-call breakdown. Agent-level rollups unchanged (still sum every event — matches the billing aggregate). 665 total green (was 659).
+
 ## [0.44.0] — 2026-05-17
 
 ### Added / Changed

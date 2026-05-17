@@ -656,11 +656,18 @@ function buildLiveTimeline(run) {
 
   if (ph >= 5 || st === 'completed') {
     items.push({ id: 'phase-5', kind: 'phase-divider', phaseId: 5, duration: run.phaseTimings?.['4'] });
-    items.push({
-      id: 'doc-final', kind: 'doc', agent: run.drafter, completed: true,
-      summary: 'Final document — emitted.',
-      filePath: 'final.md',
-    });
+    // Spec 0047: historical runs that reached `completed` without a drafter
+    // (e.g. orchestrator versions that marked the run complete before Phase 3
+    // ran) would otherwise emit `agent: null` here and crash ArtifactHeader
+    // downstream. Skip the final artifact entirely when there's no drafter to
+    // attribute it to.
+    if (run.drafter) {
+      items.push({
+        id: 'doc-final', kind: 'doc', agent: run.drafter, completed: true,
+        summary: 'Final document — emitted.',
+        filePath: 'final.md',
+      });
+    }
   }
 
   if (st === 'errored' && run.error) items.push({ id: 'error', kind: 'error', error: run.error });

@@ -98,3 +98,56 @@ async def test_emit_final_succeeds_when_phase2_outcome_is_none(
     text = final_path.read_text()
     assert "**APPROVED**" in text
     assert "replayed from prior run" in text
+
+
+@pytest.mark.asyncio
+async def test_emit_final_succeeds_when_phase2_outcome_is_none_and_deadlocked(tmp_path: Path):
+    """Spec 0047 — the DEADLOCKED + None Phase 2 combination must also degrade
+    cleanly. The finalize path was previously audited only for the APPROVED
+    branch (test above); the deadlock branch builds an appendix from the
+    Phase 4 last-turn texts and shouldn't touch Phase 2 attributes."""
+    session = SessionDirectory(root=tmp_path).ensure()
+    session.brief_path.write_text("# Topic\n", encoding="utf-8")
+    phase3 = session.root / "phase3"
+    phase3.mkdir()
+    (phase3 / "draft-v1.md").write_text("# Doc\n\nbody\n", encoding="utf-8")
+
+    state = session.load_state()
+    state.drafter = "claude"
+    state.draft_round = 1
+    session.save_state(state)
+
+    transcript = session.open_transcript()
+    metrics = Metrics()
+    ctx = SessionContext(session=session, state=state, transcript=transcript, metrics=metrics)
+
+    deadlocked = Phase4Outcome(
+        approved=False,
+        rounds=8,
+        final_draft_round=1,
+        revisions=0,
+        hard_capped=True,
+        last_claude_text="claude's last review",
+        last_openai_text="openai's last review",
+    )
+
+    bus = EventBus()
+
+    final_path = await emit_final(
+        ctx=ctx,
+        event_bus=bus,
+        out_path=None,
+        phase2_outcome=None,
+        phase4_outcome=deadlocked,
+        soft_cap=6,
+        hard_cap=12,
+        claude_model="claude-haiku-4-5",
+        openai_model="gpt-4.1",
+    )
+    assert final_path.is_file()
+    text = final_path.read_text()
+    assert "**DEADLOCKED**" in text
+    assert "replayed from prior run" in text
+    assert "Reviewer disagreements" in text
+    assert "claude's last review" in text
+    assert "openai's last review" in text

@@ -393,6 +393,14 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         key = f"phase{phase_int}_round{idx}_{ag}"
     else:
         key = f"phase{phase_int}_{ag}"
+    # Spec 0047 — repair siblings (`-repair` / `-hashdrift-repair`) get
+    # their own per-turn key so the Consumption tab shows each LLM call
+    # individually instead of collapsing original + repair into one card.
+    # Matches the suffix convention already established by
+    # ``_on_turn_inputs`` and ``_on_turn_searches`` for the input bundle
+    # and search audit files.
+    if "-repair" in label or "-hashdrift" in label:
+        key = f"{key}_repair"
     # Spec 0030: per-piece sizes and the real context-window cap travel with
     # each turn. The frontend renormalises piece widths against `input_tokens`
     # (the provider's count) for honest segment proportions.
@@ -418,14 +426,14 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     input_path = prev.input_path if prev is not None else None
     search_audit_path = prev.search_audit_path if prev is not None else None
 
-    # Spec 0039 — same-label dedup (parse-error retries) is handled
-    # upstream by ``_dedup_turn_ended_by_label`` so by the time we get
-    # here the event stream is canonical. The agent-level totals
-    # accumulate every event unconditionally; the per-turn dict
-    # overwrites when sibling labels share a key (e.g. ``phase4-r1-claude``
-    # and ``phase4-r1-claude-repair`` both → ``phase4_round1_claude``)
-    # — the LAST sibling wins on the Consumption tab card but BOTH
-    # contribute to the agent rollup, which matches the real billing.
+    # Spec 0039 → Spec 0047 — same-label dedup (pre-0039 transcripts
+    # with literal duplicate labels) is handled upstream by
+    # ``_dedup_turn_ended_by_label``. Sibling labels (original turn +
+    # its ``-repair`` / ``-hashdrift-repair`` sibling) now derive
+    # DIFFERENT per-turn keys via the ``_repair`` suffix above, so each
+    # LLM call gets its own Consumption-tab card. The agent-level
+    # totals (state.tokens.*, state.cost) still accumulate every event
+    # unconditionally — they match the billing aggregate.
     state.tokens.in_ += in_tokens
     state.tokens.out += out_tokens
     state.cost += cost
