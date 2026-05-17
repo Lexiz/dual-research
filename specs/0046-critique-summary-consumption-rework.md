@@ -3,7 +3,7 @@ spec: 0046
 title: Critique panel + Summary tab + Consumption tab rework + design unification
 label: new-feature
 version-bump: MINOR
-status: proposed
+status: in-progress
 target-version: 0.44.0
 created: 2026-05-17
 pr: ""

@@ -91,6 +91,86 @@ function composeAgentActivity(agent, run) {
   }
 }
 
+// ─────────────────── Spec 0046 D9 — shared PaneButton ──────────────────────
+//
+// One uniform toggle/tab/filter button used across every in-pane control
+// in the run-detail view:
+//   - Critique pane phase buttons (`Phase 2` / `Phase 4` / `Summary`) — D1
+//   - Critique pane filter chips (`All` / `Questions` / `Disagreements` /
+//     `Claims` / `Issues` / `Comments`) — D2
+//   - Timeline pane's `Conversation` / `Consumption` segmented control
+//   - Future: any toolbar segmented control on the Critique / Consumption
+//     surfaces
+//
+// Pre-spec each of these had its own border, padding, font, hover/active
+// styling. Spec 0046 D9 collapses them onto one component so the eye reads
+// the buttons as one design language across the panes.
+function PaneButton({
+  active, onClick, children, leftAccent,
+  size = 'md',         // 'sm' | 'md' — sm is the filter-chip variant
+  variant = 'default', // 'default' | 'subtle' — subtle drops the border
+                       // for inline segmented use
+  title,
+  disabled,
+}) {
+  const [hover, setHover] = React.useState(false);
+  const padV = size === 'sm' ? 3 : 5;
+  const padH = size === 'sm' ? 10 : 12;
+  const fontSize = size === 'sm' ? 11 : 12;
+  const borderColor = variant === 'subtle'
+    ? 'transparent'
+    : (active ? 'var(--border-3)' : 'var(--border-1)');
+  const bg = active
+    ? 'var(--bg-3)'
+    : hover ? 'var(--bg-2)' : (variant === 'subtle' ? 'transparent' : 'var(--bg-1)');
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      disabled={disabled}
+      style={{
+        appearance: 'none',
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        border: `1px solid ${borderColor}`,
+        background: bg,
+        color: active ? 'var(--fg-0)' : disabled ? 'var(--fg-4)' : 'var(--fg-2)',
+        fontSize,
+        fontWeight: active ? 600 : 500,
+        padding: `${padV}px ${padH}px`,
+        borderRadius: 'var(--r-2)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit',
+        whiteSpace: 'nowrap',
+        transition: 'background 120ms, border-color 120ms, color 120ms',
+        boxShadow: active && variant === 'default' ? `inset 0 -2px 0 ${COLORS.info}` : 'none',
+        opacity: disabled ? 0.55 : 1,
+      }}
+    >
+      {leftAccent && (
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: leftAccent, flexShrink: 0,
+        }} />
+      )}
+      {children}
+    </button>
+  );
+}
+
+// Spec 0046 D9 — small grouping wrapper that keeps a row of `PaneButton`s
+// tightly packed with a single shared gap. Used everywhere we render a
+// segmented control (filter chips, phase buttons, etc.).
+function PaneButtonGroup({ children, gap = 6 }) {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap, flexShrink: 0 }}>
+      {children}
+    </div>
+  );
+}
+
 // ─────────────────── Compact run-detail header (spec 0024 pass 3) ────────────
 // Spec 0035 reverts the spec-0033 four-row layout back to two rows:
 //   row 1: topic · cost · status/errors
@@ -576,48 +656,27 @@ function Timeline({ run, highlightedTurnKeys }) {
 // padding and add a 1px accent underline on the active tab so the
 // control reads as primary chrome.
 function TimelineTabs({ active, onChange, prominent = false }) {
+  // Spec 0046 D9 — adopts the shared `PaneButton`. Pre-spec this was a
+  // pill-shaped segmented control with its own border + padding;
+  // converging on `PaneButton` lines the Conversation/Consumption pair
+  // up with the Critique pane buttons (D1) + filter chips (D2).
   const tabs = [
     { id: 'conversation', label: 'Conversation' },
     { id: 'consumption',  label: 'Consumption'  },
   ];
-  const fontSize = prominent ? 12.5 : 11.5;
-  const padV = prominent ? 4 : 3;
-  const padH = prominent ? 14 : 12;
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'stretch',
-      borderRadius: 999, overflow: 'hidden',
-      border: '1px solid var(--border-1)',
-      background: 'var(--bg-2)',
-      flexShrink: 0,
-    }}>
-      {tabs.map((t, i) => {
-        const isActive = t.id === active;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            style={{
-              appearance: 'none',
-              border: 'none',
-              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
-              borderBottom: prominent && isActive ? `2px solid ${COLORS.info}` : 'none',
-              background: isActive ? 'var(--bg-3)' : 'transparent',
-              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
-              fontSize,
-              fontWeight: isActive ? 600 : 500,
-              padding: `${padV}px ${padH}px`,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontFamily: 'inherit',
-            }}
-          >
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
+    <PaneButtonGroup>
+      {tabs.map((t) => (
+        <PaneButton
+          key={t.id}
+          size={prominent ? 'md' : 'sm'}
+          active={t.id === active}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+        </PaneButton>
+      ))}
+    </PaneButtonGroup>
   );
 }
 
@@ -841,31 +900,14 @@ function ConsumptionView({ run }) {
           </span>
         )}
       </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: '120px 1fr 1fr',
-        gap: 10, alignItems: 'stretch',
-        padding: 14, background: 'var(--bg-1)',
-        border: '1px solid var(--border-1)', borderRadius: 8,
-      }}>
-        {/* Header strip — phase / Claude / OpenAI labels. Matches the
-            how-it-works ChatLifecycle visual exactly. */}
-        <div className="mono" style={{
-          fontSize: 10.5, color: 'transparent', letterSpacing: '0.08em',
-          textTransform: 'uppercase', padding: '6px 0',
-        }}>phase</div>
-        <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--agent-a)', letterSpacing: '0.08em',
-          textTransform: 'uppercase', padding: '6px 0',
-        }}>Claude lane</div>
-        <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--agent-b)', letterSpacing: '0.08em',
-          textTransform: 'uppercase', padding: '6px 0',
-        }}>OpenAI lane</div>
-
+      {/* Spec 0046 D6 — column of single-row cards. Each card carries its
+          own top bar (phase + round label + per-agent lane bars) and an
+          inline-expanded detail body rendered inside the same card.
+          Pre-spec the expand opened a separate full-width grid row below
+          the lane row; the eye kept reorienting between the lanes and
+          the detail panels. The new card keeps the visual flow linear. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rows.map((row, i) => {
-          // Group rounds of the same phase under a single phase label —
-          // only print the phase title on the first row of each phase
-          // block. Sub-rows show their round label inside the same cell.
           const isFirstOfPhase = i === 0 || rows[i - 1].phase !== row.phase;
           return (
             <ConsumptionRow
@@ -887,80 +929,83 @@ function ConsumptionView({ run }) {
 }
 
 function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle }) {
-  // Spec 0031: whole row is clickable to toggle the expanded body. The
-  // expanded body sits below as a 4th grid row spanning all 3 columns
-  // (so the 3-col rhythm of the grid keeps working).
+  // Spec 0046 D6 — single-row card with inline expand. The entire top
+  // bar is one clickable surface; expanded detail renders INSIDE the
+  // same card so the width never jumps. Pre-spec the expand-body sat
+  // as a separate full-width grid row below; the visual flow kept
+  // reorienting left/right between the lanes and the detail.
   return (
-    <React.Fragment>
-      {/* Phase / round label cell */}
-      <div
+    <article style={{
+      background: 'var(--bg-1)',
+      border: `1px solid ${expanded ? 'var(--border-2)' : 'var(--border-1)'}`,
+      borderRadius: 8,
+      overflow: 'hidden',
+      transition: 'border-color 120ms',
+    }}>
+      <button
+        type="button"
         onClick={onToggle}
         style={{
-          display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          padding: '10px',
-          background: showPhaseTitle ? 'var(--bg-2)' : 'transparent',
-          border: showPhaseTitle ? '1px solid var(--border-2)' : '1px solid transparent',
-          borderRadius: 6,
-          minHeight: 56,
-          cursor: 'pointer',
+          appearance: 'none', border: 'none', background: 'transparent',
+          width: '100%', textAlign: 'left',
+          cursor: 'pointer', fontFamily: 'inherit',
+          padding: '12px 14px',
+          display: 'grid',
+          gridTemplateColumns: '160px 1fr 1fr 24px',
+          gap: 14, alignItems: 'center',
         }}>
-        {showPhaseTitle && (
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>
-            {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
-          </div>
-        )}
-        {row.label && (
-          <div className="mono" style={{
-            fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
-            textTransform: 'uppercase', marginTop: showPhaseTitle ? 3 : 0,
-          }}>{row.label}</div>
-        )}
-        <div className="mono" style={{
-          fontSize: 9, color: 'var(--fg-4)', marginTop: 4,
-          letterSpacing: '0.04em',
-        }}>{expanded ? '▾ click to collapse' : '▸ click to expand'}</div>
-      </div>
-      {/* Claude lane */}
-      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
-        <TokenLaneCell usage={row.claude} agent="claude" run={run} scale={scale} />
-      </div>
-      {/* OpenAI lane */}
-      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
-        <TokenLaneCell usage={row.gpt} agent="gpt" run={run} scale={scale} />
-      </div>
+        {/* Phase + round label cell */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 2,
+          minHeight: 48,
+        }}>
+          {showPhaseTitle && (
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+              {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
+            </div>
+          )}
+          {row.label && (
+            <div className="mono" style={{
+              fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}>{row.label}</div>
+          )}
+        </div>
+        {/* Claude lane */}
+        <div>
+          <TokenLaneCell usage={row.claude} agent="claude" run={run} scale={scale} />
+        </div>
+        {/* OpenAI lane */}
+        <div>
+          <TokenLaneCell usage={row.gpt} agent="gpt" run={run} scale={scale} />
+        </div>
+        {/* Chevron */}
+        <CardChevron open={expanded} hover={false} />
+      </button>
       {expanded && (
         <ConsumptionRowExpanded row={row} run={run} scale={scale} />
       )}
-    </React.Fragment>
+    </article>
   );
 }
 
-// Per-row expanded body — spec 0035 rework. Two per-agent
-// ``ConsumptionCard``s side-by-side, each carrying its agent's total
-// bar at top + stacked sub-bars per input piece below. Spans all 3
-// columns of the parent grid.
+// Spec 0046 D6 — per-row expanded body. Now lives INSIDE the parent
+// `ConsumptionRow`'s card (no `gridColumn: 1 / 4` escape); the two
+// per-agent breakdowns sit side-by-side at the same width as the
+// lane bars above. Visual flow stays linear top-to-bottom.
 function ConsumptionRowExpanded({ row, run, scale }) {
   return (
     <div style={{
-      gridColumn: '1 / 4',
-      padding: '12px 14px',
-      background: 'var(--bg-2)',
-      border: '1px solid var(--border-2)', borderRadius: 6,
-      marginTop: -4,  // hug the row above
+      padding: '0 14px 14px',
+      background: 'var(--bg-1)',
     }}>
-      <div className="mono" style={{
-        fontSize: 10, color: 'var(--fg-3)',
-        textTransform: 'uppercase', letterSpacing: '0.06em',
-        marginBottom: 10,
-      }}>
-        per-input breakdown · {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
-        {row.label && ` · ${row.label}`}
-      </div>
       <div style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: 14,
         alignItems: 'stretch',
+        borderTop: '1px dashed var(--border-1)',
+        paddingTop: 12,
       }}>
         <ConsumptionCard usage={row.claude} agent="claude" run={run} scale={scale} />
         <ConsumptionCard usage={row.gpt}    agent="gpt"    run={run} scale={scale} />
@@ -1024,13 +1069,7 @@ function ConsumptionCard({ usage, agent, run, scale }) {
     return copy;
   })();
 
-  // Pieces that the protocol could have inlined here but didn't (zero
-  // count in `promptPieces`) — surfaced as a footnote.
-  const presentKinds = new Set(renormalised.map((p) => p.kind));
-  const missingKinds = KIND_ORDER.filter((k) => !presentKinds.has(k));
-
   const pctOfCap = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
-  const hasSearches = Number(usage.searches) > 0;
 
   return (
     <div style={{
@@ -1102,38 +1141,79 @@ function ConsumptionCard({ usage, agent, run, scale }) {
         </div>
       )}
 
-      {/* Empty-piece footnote — friendly labels, not raw Tk keys. */}
-      {missingKinds.length > 0 && (
-        <div className="mono" style={{
-          fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
-          paddingLeft: 8,
-        }}>
-          not used in this turn:{' '}
-          {missingKinds.map((k) => INPUT_PIECE_LABEL[k] || KIND_COLORS[k]?.label || k).join(', ')}
-        </div>
-      )}
+      {/* Spec 0046 D7 — the pre-spec "not used in this turn: …" footnote
+          is gone. Empty pieces simply don't render; absence is the
+          signal (same rule as spec 0045 D3 for the input full-view). */}
 
-      {/* Web-search row — spec 0031 carry-forward. Spec 0039 relabels
-          "tool cost" to "of which web search" since the per-turn ``cost``
-          field now includes search fees in the headline (no longer a
-          separate side-channel that needs to be added on top). */}
+      {/* Spec 0046 D8 — costs + counts cluster. Replaces the confusing
+          "web searches: N · of which web search: $X" wording (there was
+          no parent total for "of which" to refer to). New layout:
+              line 1 — Tokens: $A · Web search: $B · Total: $T
+              line 2 — Searches: N · Queries: M   (only when present)
+          The Web-search column only renders when this turn ran a
+          search; comma/dot separators stay consistent with the rest
+          of the metrics cluster. */}
+      <CostsCluster usage={usage} />
+    </div>
+  );
+}
+
+// Spec 0046 D8 — clean per-card costs/counts cluster. Renders even on
+// turns with zero searches (tokens + total only); the searches line is
+// hidden when the turn used no web search.
+function CostsCluster({ usage }) {
+  const tokenCost = Number(usage?.tokenCost ?? usage?.cost ?? 0) || 0;
+  const searchCost = Number(usage?.searchCost) || 0;
+  const total = Number(usage?.cost ?? tokenCost) || 0;
+  const searches = Number(usage?.searches) || 0;
+  const queries  = Number(usage?.searchQueries) || 0;
+  const hasSearches = searches > 0 || queries > 0 || searchCost > 0;
+  return (
+    <div className="mono" style={{
+      paddingTop: 6, borderTop: '1px solid var(--border-1)',
+      fontSize: 10.5, color: 'var(--fg-3)',
+      display: 'flex', flexDirection: 'column', gap: 2,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span>Tokens:{' '}
+          <span className="num" style={{ color: 'var(--fg-2)' }}>
+            {fmt.cost(tokenCost)}
+          </span>
+        </span>
+        {hasSearches && (
+          <>
+            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <span>Web search:{' '}
+              <span className="num" style={{ color: 'var(--fg-2)' }}>
+                {fmt.cost(searchCost)}
+              </span>
+            </span>
+          </>
+        )}
+        <span style={{ color: 'var(--fg-4)' }}>·</span>
+        <span>Total:{' '}
+          <span className="num" style={{ color: 'var(--fg-1)', fontWeight: 500 }}>
+            {fmt.cost(total)}
+          </span>
+        </span>
+      </div>
       {hasSearches && (
-        <div className="mono" style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          paddingTop: 6, borderTop: '1px solid var(--border-1)',
-          fontSize: 10.5, color: 'var(--fg-3)',
-        }}>
-          <span>web searches:{' '}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span>Searches:{' '}
             <span className="num" style={{ color: 'var(--fg-1)' }}>
-              {Number(usage.searches).toLocaleString()}
+              {searches.toLocaleString()}
             </span>
           </span>
-          <span>·</span>
-          <span>of which web search:{' '}
-            <span className="num" style={{ color: 'var(--fg-2)' }}>
-              {fmt.cost(Number(usage.searchCost) || 0)}
-            </span>
-          </span>
+          {queries > 0 && (
+            <>
+              <span style={{ color: 'var(--fg-4)' }}>·</span>
+              <span>Queries:{' '}
+                <span className="num" style={{ color: 'var(--fg-1)' }}>
+                  {queries.toLocaleString()}
+                </span>
+              </span>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -1478,7 +1558,7 @@ function ConsumptionEmptyState() {
 
 // Pane header — fixed 52px, with a colored accent bar at top.
 // `accentGradient` for multi-color, `accentColor` for solid.
-function PaneHeader({ title, count, right, accentGradient, accentColor }) {
+function PaneHeader({ title, count, left, right, accentGradient, accentColor }) {
   const accent = accentGradient
     ? { background: accentGradient }
     : { background: accentColor || COLORS.info };
@@ -1491,14 +1571,26 @@ function PaneHeader({ title, count, right, accentGradient, accentColor }) {
       padding: '0 24px',
       background: 'var(--bg-1)',
       borderBottom: '1px solid var(--border-1)',
+      gap: 14,
     }}>
       {/* 2px accent at top */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0,
         height: 2, ...accent,
       }} />
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flex: 1, minWidth: 0, whiteSpace: 'nowrap' }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)', letterSpacing: '-0.005em' }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', gap: 10,
+        minWidth: 0, whiteSpace: 'nowrap', flexShrink: 0,
+      }}>
+        {/* Spec 0046 D1 — title kept as small chrome (so the pane is
+            still labelled) but loses its visual primacy when ``left``
+            carries the navigation. */}
+        <span style={{
+          fontSize: left ? 11.5 : 14,
+          fontWeight: left ? 500 : 600,
+          color: left ? 'var(--fg-3)' : 'var(--fg-0)',
+          letterSpacing: '-0.005em',
+        }}>
           {title}
         </span>
         {count != null && (
@@ -1507,6 +1599,12 @@ function PaneHeader({ title, count, right, accentGradient, accentColor }) {
           </span>
         )}
       </div>
+      {left && (
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          {left}
+        </div>
+      )}
+      <span style={{ flex: 1 }} />
       {right}
     </div>
   );
@@ -4680,6 +4778,15 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const [selectedPhase, setSelectedPhase] = React.useState(initial);
   const [typeFilter, setTypeFilter] = React.useState('all'); // 'all' | 'questions' | 'disagreements'
   React.useEffect(() => { setSelectedPhase(initial); setTypeFilter('all'); }, [run.id, initial]);
+  // Spec 0046 D2 — when the user switches phase, reset to ``all`` if the
+  // previous filter isn't in the new phase's allowlist. Without this an
+  // ``issues`` selection persists into Phase 2 and quietly renders no
+  // matching cards.
+  React.useEffect(() => {
+    if (typeFilter === 'all') return;
+    const allowed = PHASE_CHIP_ALLOWLIST[selectedPhase] || [];
+    if (!allowed.includes(typeFilter)) setTypeFilter('all');
+  }, [selectedPhase, typeFilter]);
   // If the user had selected Summary but the run later regressed out of
   // a terminal state (rare — e.g. a resume), fall back to a phase view.
   React.useEffect(() => {
@@ -4787,43 +4894,72 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+      {/* Spec 0046 D1 — header rewrite. Three primary buttons on the
+          left (Phase 2 / Phase 4 / Summary) ARE the navigation; the
+          count cluster is right-aligned. Drop the "Critique · 99
+          introduced" lead so the buttons sit at the visual anchor of
+          the pane. The small "Critique" label stays as PaneHeader's
+          title so the pane is still labelled. */}
       <PaneHeader
         title="Critique"
-        count={`${totalIntroduced} introduced`}
         accentColor={COLORS.info}
+        left={
+          <PaneButtonGroup>
+            {tabs.map((t) => {
+              const pInfo = t;
+              const counts = phaseCountLabel(pInfo);
+              return (
+                <PaneButton
+                  key={t.pid}
+                  active={selectedPhase === t.pid}
+                  onClick={() => setSelectedPhase(t.pid)}
+                  leftAccent={t.active ? COLORS.info : null}
+                  title={t.pending ? 'Phase has not started yet' : null}
+                >
+                  <span className="mono" style={{
+                    fontSize: 10.5, letterSpacing: '0.06em',
+                    textTransform: 'uppercase', color: 'var(--fg-3)',
+                  }}>
+                    Phase&nbsp;{t.pid}
+                  </span>
+                  <span>{t.label}</span>
+                  {counts && (
+                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+                      · {counts}
+                    </span>
+                  )}
+                </PaneButton>
+              );
+            })}
+            {isTerminal && (
+              <PaneButton
+                active={selectedPhase === 'summary'}
+                onClick={() => setSelectedPhase('summary')}
+              >
+                <span style={{ marginRight: 2 }}>∑</span>
+                <span>Summary</span>
+              </PaneButton>
+            )}
+          </PaneButtonGroup>
+        }
         right={
           <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <SmallStat label="open"     value={totalOpen} color={totalOpen > 0 ? COLORS.warn : 'var(--fg-3)'} />
-            <SmallStat label="resolved" value={totalResolved} color={totalResolved > 0 ? COLORS.ok : 'var(--fg-3)'} />
+            <SmallStat label="introduced" value={totalIntroduced} color={totalIntroduced > 0 ? 'var(--fg-1)' : 'var(--fg-3)'} />
+            <SmallStat label="open"       value={totalOpen}       color={totalOpen > 0 ? COLORS.warn : 'var(--fg-3)'} />
+            <SmallStat label="resolved"   value={totalResolved}   color={totalResolved > 0 ? COLORS.ok : 'var(--fg-3)'} />
             <LedgerDriftChip drifts={run.drifts} phaseId={selectedPhase} />
           </span>
         }
       />
-      <PaneToolbar>
-        {tabs.map((t) => (
-          <CritiquePhaseTab
-            key={t.pid}
-            tab={t}
-            active={selectedPhase === t.pid}
-            onSelect={() => setSelectedPhase(t.pid)}
+      {!isSummary && (
+        <PaneToolbar>
+          <CritiqueTypeFilter
+            active={typeFilter}
+            onChange={setTypeFilter}
+            phaseId={selectedPhase}
           />
-        ))}
-        {/* Spec 0040 D5 — Summary tab joins as the rightmost choice once
-            the run reaches a terminal state. */}
-        {isTerminal && (
-          <CritiquePhaseTab
-            tab={{
-              pid: 'summary', label: 'Summary',
-              qTotal: questions.length, dTotal: disagreements.length,
-              pending: false, active: false, summary: true,
-            }}
-            active={selectedPhase === 'summary'}
-            onSelect={() => setSelectedPhase('summary')}
-          />
-        )}
-        <span style={{ flex: 1 }} />
-        {!isSummary && <CritiqueTypeFilter active={typeFilter} onChange={setTypeFilter} />}
-      </PaneToolbar>
+        </PaneToolbar>
+      )}
       {isSummary ? (
         <CritiqueSummaryView run={run} questions={questions} disagreements={disagreements} />
       ) : (
@@ -4840,135 +4976,63 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   );
 }
 
+// Spec 0046 D1 — phase-button count label, kept concise so the button
+// stays a tight chip. Format mirrors the pre-spec `Phase 2 Negotiate ·
+// 26 Q · 10 D` glyph cluster but only includes kinds that fired.
+function phaseCountLabel(p) {
+  if (p.pending) return 'pending';
+  const parts = [];
+  if (p.iTotal > 0) parts.push(`${p.iTotal} I`);
+  if (p.qTotal > 0) parts.push(`${p.qTotal} Q`);
+  if (p.dTotal > 0) parts.push(`${p.dTotal} D`);
+  if (p.cTotal > 0) parts.push(`${p.cTotal} C`);
+  return parts.length ? parts.join(' · ') : 'no items';
+}
+
 // Keep the old export name as an alias for backwards-compat in case any
 // other module references it (no external links to break, but defensive).
 const DisagreementExplorer = CritiqueExplorer;
 
-function CritiqueTypeFilter({ active, onChange }) {
-  // Spec 0041 D5 — four typed groups instead of two. Order is the
-  // visual hierarchy: Issues + Questions are the items that gate
-  // approval; Disagreements are blocking stances; Comments are
-  // non-blocking commentary at the end.
-  const items = [
-    { id: 'all',           label: 'All' },
-    { id: 'issues',        label: 'Issues' },
-    { id: 'questions',     label: 'Questions' },
-    { id: 'disagreements', label: 'Disagreements' },
-    { id: 'comments',      label: 'Comments' },
+// Spec 0046 D2 — per-phase context-aware filter chips. The Phase 2
+// negotiation surface never has Issues; Phase 4 review never has Claims.
+// Pre-spec the filter strip rendered all five kinds regardless of which
+// phase tab was active; spec 0046 drops the kinds the phase doesn't
+// emit so the user only sees filters that can actually match.
+const FILTER_KIND_LABEL = {
+  claims: 'Claims',
+  questions: 'Questions',
+  disagreements: 'Disagreements',
+  issues: 'Issues',
+  comments: 'Comments',
+};
+function filterChipsFor(phaseId) {
+  if (phaseId === 'summary') return [];
+  const allowed = PHASE_CHIP_ALLOWLIST[phaseId] || [];
+  if (allowed.length === 0) return [];
+  return [
+    { id: 'all', label: 'All' },
+    ...allowed.map((k) => ({ id: k, label: FILTER_KIND_LABEL[k] || k })),
   ];
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'stretch',
-      borderRadius: 999, overflow: 'hidden',
-      border: '1px solid var(--border-1)',
-      background: 'var(--bg-2)',
-      flexShrink: 0,
-    }}>
-      {items.map((t, i) => {
-        const isActive = t.id === active;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            style={{
-              appearance: 'none',
-              border: 'none',
-              borderLeft: i === 0 ? 'none' : '1px solid var(--border-1)',
-              background: isActive ? 'var(--bg-3)' : 'transparent',
-              color: isActive ? 'var(--fg-0)' : 'var(--fg-2)',
-              fontSize: 11,
-              fontWeight: isActive ? 600 : 500,
-              padding: '3px 10px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              fontFamily: 'inherit',
-            }}
-          >
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
-
-function CritiquePhaseTab({ tab, active, onSelect }) {
-  const [hover, setHover] = React.useState(false);
+function CritiqueTypeFilter({ active, onChange, phaseId }) {
+  // Spec 0046 D2 + D9 — adopts the shared `PaneButton`. The pre-spec
+  // pill-segmented control is gone; chips read as a row of buttons
+  // that match the phase-button design language.
+  const items = filterChipsFor(phaseId);
+  if (items.length === 0) return null;
   return (
-    <button
-      onClick={onSelect}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        height: 28,
-        padding: '0 12px',
-        background: active ? 'var(--bg-3)' : hover ? 'var(--bg-2)' : 'var(--bg-1)',
-        border: `1px solid ${active ? 'var(--border-3)' : 'var(--border-1)'}`,
-        borderRadius: 'var(--r-2)',
-        transition: 'background 120ms, border-color 120ms',
-        whiteSpace: 'nowrap',
-        position: 'relative',
-        boxShadow: active ? `inset 0 -2px 0 ${COLORS.info}` : 'none',
-      }}>
-      {tab.active && <Dot color={COLORS.info} pulse="pulse-a" size={6} />}
-      {!tab.summary && (
-        <>
-          <span className="mono" style={{
-            fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: active ? 'var(--fg-2)' : 'var(--fg-3)',
-          }}>
-            Phase&nbsp;{tab.pid}
-          </span>
-          <span style={{
-            fontSize: 12.5,
-            color: active ? 'var(--fg-0)' : 'var(--fg-2)',
-            fontWeight: active ? 600 : 400,
-          }}>
-            {tab.label}
-          </span>
-          <span style={{ color: 'var(--fg-4)' }}>·</span>
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-            {tab.pending ? 'pending'
-              : ((tab.iTotal || 0) + (tab.qTotal || 0) + (tab.dTotal || 0) + (tab.cTotal || 0) === 0) ? 'no items'
-              : <>
-                  {tab.iTotal > 0 && (
-                    <>
-                      <span style={{ color: COLORS.warn }}>{tab.iTotal} I</span>
-                      <span style={{ color: 'var(--fg-4)' }}> · </span>
-                    </>
-                  )}
-                  {tab.qTotal > 0 && (
-                    <>
-                      <span style={{ color: COLORS.info }}>{tab.qTotal} Q</span>
-                      <span style={{ color: 'var(--fg-4)' }}> · </span>
-                    </>
-                  )}
-                  {tab.dTotal > 0 && (
-                    <>
-                      <span style={{ color: COLORS.warn }}>{tab.dTotal} D</span>
-                      {tab.cTotal > 0 && <span style={{ color: 'var(--fg-4)' }}> · </span>}
-                    </>
-                  )}
-                  {tab.cTotal > 0 && (
-                    <span style={{ color: 'var(--fg-3)' }}>{tab.cTotal} C</span>
-                  )}
-                </>
-            }
-          </span>
-        </>
-      )}
-      {tab.summary && (
-        <span style={{
-          fontSize: 12.5,
-          color: active ? 'var(--fg-0)' : 'var(--fg-2)',
-          fontWeight: active ? 600 : 500,
-        }}>
-          ∑ {tab.label}
-        </span>
-      )}
-    </button>
+    <PaneButtonGroup>
+      {items.map((t) => (
+        <PaneButton
+          key={t.id}
+          size="sm"
+          active={t.id === active}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+        </PaneButton>
+      ))}
+    </PaneButtonGroup>
   );
 }
 
@@ -5013,10 +5077,10 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
 
   const renderItem = (item) => {
     switch (item._critiqueKind) {
-      case 'q': return <QuestionCard key={item.id} q={item} onHighlight={onHighlight} />;
-      case 'd': return <DisagreementCard key={item.id} d={item} onHighlight={onHighlight} />;
-      case 'i': return <IssueCard key={item.id} issue={item} onHighlight={onHighlight} />;
-      case 'c': return <CommentCard key={item.id} comment={item} onHighlight={onHighlight} />;
+      case 'q': return <QuestionCard     key={item.id} q={item}        onHighlight={onHighlight} run={run} />;
+      case 'd': return <DisagreementCard key={item.id} d={item}        onHighlight={onHighlight} run={run} />;
+      case 'i': return <IssueCard        key={item.id} issue={item}    onHighlight={onHighlight} run={run} />;
+      case 'c': return <CommentCard      key={item.id} comment={item}  onHighlight={onHighlight} run={run} />;
       default:  return null;
     }
   };
@@ -5036,67 +5100,146 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, introduc
   );
 }
 
-// Spec 0040 — Summary view. Post-mortem aggregate of the critique
-// journey: one row per (phase, round) tuple, columns for Q raised /
-// answered / open + D raised / resolved / open. Rounds with zero
-// activity in both kinds are omitted to keep the surface compact.
+// Spec 0046 D5 — Summary view, redesigned as per-round × per-model
+// breakdown. Each phase section shows one table per kind the phase
+// actually emits (Phase 2 → Question / Disagreement / Claim; Phase 4 →
+// Issue / Comment); empty kinds are excluded entirely. Columns are
+// `Round` / `Claude raised` / `Claude resolved` / `GPT raised` /
+// `GPT resolved` / `Open`. Pre-spec the table rendered ten columns
+// (I/Q/D × raised/resolved/open + C noted) with most cells empty;
+// the user's complaint was "most of this table is empty, and models
+// are not there." Per-kind tables drop the empty columns; the
+// per-model split surfaces who carried what.
+//
+// Helpers below shape each item kind into a uniform `{ round, raisedBy,
+// closedRound, closedBy, isOpen }` envelope so one ``buildKindRows``
+// function builds every table.
+function _envelopesForKind(kind, items) {
+  return items.map((it) => {
+    switch (kind) {
+      case 'question':
+        return {
+          raisedRound: it.raisedRound,
+          raisedBy: it.raisedBy,
+          closedRound: it.answeredRound,
+          closedBy: it.answeredBy,
+          isOpen: it.status === 'open',
+        };
+      case 'disagreement':
+        return {
+          raisedRound: it.openedRound,
+          // Disagreements with ``raisedBy === 'both'`` count toward
+          // both lanes; surface as a third bucket so the per-model
+          // column is honest about co-raisers.
+          raisedBy: it.raisedBy === 'both' ? 'both' : it.raisedBy,
+          closedRound: it.closedRound,
+          // ``status`` is ``resolved-claude``/``resolved-gpt``/``resolved-both``
+          // — the closer is the side that yielded.
+          closedBy: (it.status || '').startsWith('resolved-')
+            ? (it.status.split('-')[1] === 'gpt' ? 'gpt'
+              : it.status.split('-')[1] === 'claude' ? 'claude'
+              : 'both')
+            : null,
+          isOpen: it.status === 'open',
+        };
+      case 'claim':
+        return {
+          raisedRound: it.raisedRound || 1,
+          raisedBy: it.raisedBy,
+          closedRound: null,
+          closedBy: null,
+          isOpen: it.status === 'open',
+        };
+      case 'issue':
+        return {
+          raisedRound: it.roundFirstSeen,
+          raisedBy: it.raisedBy,
+          closedRound: it.status === 'resolved' ? it.roundLastSeen : null,
+          closedBy: it.status === 'resolved' ? it.raisedBy : null,
+          isOpen: it.status === 'open',
+        };
+      case 'comment':
+        return {
+          raisedRound: it.raisedRound,
+          raisedBy: it.raisedBy,
+          closedRound: null,
+          closedBy: null,
+          isOpen: false,  // comments are always "noted"
+        };
+      default:
+        return null;
+    }
+  }).filter(Boolean);
+}
+
+function _buildKindRows(envelopes) {
+  const rounds = new Set();
+  for (const e of envelopes) {
+    if (e.raisedRound) rounds.add(e.raisedRound);
+    if (e.closedRound) rounds.add(e.closedRound);
+  }
+  const sorted = Array.from(rounds).sort((a, b) => a - b);
+  return sorted.map((r) => {
+    const claudeRaised = envelopes.filter((e) => e.raisedRound === r && (e.raisedBy === 'claude' || e.raisedBy === 'both')).length;
+    const gptRaised    = envelopes.filter((e) => e.raisedRound === r && (e.raisedBy === 'gpt'    || e.raisedBy === 'both')).length;
+    const claudeResolved = envelopes.filter((e) => e.closedRound === r && (e.closedBy === 'claude' || e.closedBy === 'both')).length;
+    const gptResolved    = envelopes.filter((e) => e.closedRound === r && (e.closedBy === 'gpt'    || e.closedBy === 'both')).length;
+    const stillOpen = envelopes.filter((e) =>
+      (e.raisedRound ?? 0) <= r
+      && (e.isOpen || (e.closedRound != null && e.closedRound > r))
+    ).length;
+    return { round: r, claudeRaised, gptRaised, claudeResolved, gptResolved, stillOpen };
+  });
+}
+
+// Spec 0046 D5 — pluralised kind labels for the per-section header.
+const KIND_PLURAL = {
+  question: 'Questions',
+  disagreement: 'Disagreements',
+  claim: 'Claims',
+  issue: 'Issues',
+  comment: 'Comments',
+};
+
 function CritiqueSummaryView({ run, questions, disagreements }) {
-  // Spec 0041 — extend the summary with Issues + Comments alongside
-  // Questions + Disagreements. The full Run carries all four lists.
   const issues = Array.isArray(run?.issues) ? run.issues : [];
   const comments = Array.isArray(run?.comments) ? run.comments : [];
+  const claims = Array.isArray(run?.claims) ? run.claims : [];
 
-  const collect = (pid) => {
-    const qs = questions.filter(q => q.phase === pid);
-    const ds = disagreements.filter(d => d.phase === pid);
-    const is_ = issues.filter(i => i.phase === pid);
-    const cs = comments.filter(c => c.phase === pid);
-    const rounds = new Set();
-    for (const q of qs) {
-      if (q.raisedRound) rounds.add(q.raisedRound);
-      if (q.answeredRound) rounds.add(q.answeredRound);
-    }
-    for (const d of ds) {
-      if (d.openedRound) rounds.add(d.openedRound);
-      if (d.closedRound) rounds.add(d.closedRound);
-    }
-    for (const i of is_) {
-      if (i.roundFirstSeen) rounds.add(i.roundFirstSeen);
-      if (i.roundLastSeen) rounds.add(i.roundLastSeen);
-    }
-    for (const c of cs) {
-      if (c.raisedRound) rounds.add(c.raisedRound);
-    }
-    const rows = Array.from(rounds).sort((a, b) => a - b).map((r) => ({
-      round: r,
-      iRaised: is_.filter(i => i.roundFirstSeen === r).length,
-      iResolved: is_.filter(i =>
-        i.status === 'resolved' && i.roundLastSeen === r
-      ).length,
-      iStillOpen: is_.filter(i =>
-        i.roundFirstSeen <= r
-        && (i.status === 'open' || i.roundLastSeen > r)
-      ).length,
-      qRaised: qs.filter(q => q.raisedRound === r).length,
-      qAnswered: qs.filter(q => q.answeredRound === r).length,
-      qStillOpen: qs.filter(q =>
-        q.raisedRound <= r && (q.status === 'open' || (q.answeredRound != null && q.answeredRound > r))
-      ).length,
-      dRaised: ds.filter(d => d.openedRound === r).length,
-      dResolved: ds.filter(d => d.closedRound === r).length,
-      dStillOpen: ds.filter(d =>
-        (d.openedRound ?? 0) <= r && (d.status === 'open' || (d.closedRound != null && d.closedRound > r))
-      ).length,
-      cNoted: cs.filter(c => c.raisedRound === r).length,
-    }));
-    return { qs, ds, is_, cs, rows };
+  // Per spec 0046 D5 + PHASE_CHIP_ALLOWLIST — only render kinds the
+  // phase actually emits, so Phase 2 doesn't get an empty Issues
+  // table and Phase 4 doesn't get an empty Questions table.
+  const PHASE_KIND_ORDER = {
+    2: ['question', 'disagreement', 'claim'],
+    4: ['issue', 'comment', 'disagreement'],
   };
-  const p2 = collect(2);
-  const p4 = collect(4);
 
-  const renderPhase = (label, phaseInfo) => {
-    if (phaseInfo.qs.length === 0 && phaseInfo.ds.length === 0
-        && phaseInfo.is_.length === 0 && phaseInfo.cs.length === 0) {
+  const _itemsFor = (kind, pid) => {
+    const src = kind === 'question'     ? questions
+              : kind === 'disagreement' ? disagreements
+              : kind === 'claim'        ? claims
+              : kind === 'issue'        ? issues
+              : kind === 'comment'      ? comments
+              : [];
+    return src.filter((it) => it.phase === pid);
+  };
+
+  const renderPhase = (label, pid) => {
+    const kinds = PHASE_KIND_ORDER[pid] || [];
+    // Build per-kind table data; drop kinds that emitted no items at all.
+    const sections = kinds
+      .map((kind) => {
+        const items = _itemsFor(kind, pid);
+        if (items.length === 0) return null;
+        const envelopes = _envelopesForKind(kind, items);
+        const rows = _buildKindRows(envelopes);
+        const totalOpen = envelopes.filter((e) => e.isOpen).length;
+        const totalResolved = envelopes.length - totalOpen;
+        return { kind, items, rows, totalOpen, totalResolved };
+      })
+      .filter(Boolean);
+
+    if (sections.length === 0) {
       return (
         <section style={{ marginBottom: 22 }}>
           <h3 style={{
@@ -5116,93 +5259,23 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
         </section>
       );
     }
-    const totalQOpen = phaseInfo.qs.filter(q => q.status === 'open').length;
-    const totalQAnswered = phaseInfo.qs.length - totalQOpen;
-    const totalDOpen = phaseInfo.ds.filter(d => d.status === 'open').length;
-    const totalDResolved = phaseInfo.ds.length - totalDOpen;
-    const totalIOpen = phaseInfo.is_.filter(i => i.status === 'open').length;
-    const totalIResolved = phaseInfo.is_.length - totalIOpen;
     return (
       <section style={{ marginBottom: 22 }}>
         <h3 style={{
           fontSize: 12, fontWeight: 600, color: 'var(--fg-2)',
           letterSpacing: '0.04em', textTransform: 'uppercase',
-          margin: '0 0 8px',
-          display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
-        }}>
-          <span>{label}</span>
-          <span className="mono" style={{
-            fontSize: 10.5, letterSpacing: '0.02em', color: 'var(--fg-3)',
-            textTransform: 'none', fontWeight: 400,
-          }}>
-            {phaseInfo.is_.length > 0 && (
-              <>{phaseInfo.is_.length} I ({totalIResolved} resolved · {totalIOpen} open) · </>
-            )}
-            {phaseInfo.qs.length} Q ({totalQAnswered} answered · {totalQOpen} open) ·{' '}
-            {phaseInfo.ds.length} D ({totalDResolved} resolved · {totalDOpen} open)
-            {phaseInfo.cs.length > 0 && <> · {phaseInfo.cs.length} C</>}
-          </span>
-        </h3>
-        <table style={{
-          width: '100%', borderCollapse: 'collapse',
-          fontSize: 12, color: 'var(--fg-1)',
-          background: 'var(--bg-1)',
-          border: '1px solid var(--border-1)',
-          borderRadius: 'var(--r-2)',
-          overflow: 'hidden',
-          fontFamily: 'var(--mono)',
-        }}>
-          <thead>
-            <tr style={{ background: 'var(--bg-2)', textAlign: 'left' }}>
-              <th style={_summaryTh}>Round</th>
-              <th style={_summaryTh}>I raised</th>
-              <th style={_summaryTh}>I resolved</th>
-              <th style={_summaryTh}>I still open</th>
-              <th style={_summaryTh}>Q raised</th>
-              <th style={_summaryTh}>Q answered</th>
-              <th style={_summaryTh}>Q still open</th>
-              <th style={_summaryTh}>D raised</th>
-              <th style={_summaryTh}>D resolved</th>
-              <th style={_summaryTh}>D still open</th>
-              <th style={_summaryTh}>C noted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {phaseInfo.rows.map((r) => (
-              <tr key={r.round} style={{ borderTop: '1px solid var(--border-1)' }}>
-                <td style={_summaryTd}>R{r.round}</td>
-                <td style={_summaryTd}>{r.iRaised || '—'}</td>
-                <td style={{
-                  ..._summaryTd,
-                  color: r.iResolved > 0 ? COLORS.ok : 'var(--fg-3)',
-                }}>{r.iResolved || '—'}</td>
-                <td style={{
-                  ..._summaryTd,
-                  color: r.iStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
-                }}>{r.iStillOpen || '—'}</td>
-                <td style={_summaryTd}>{r.qRaised || '—'}</td>
-                <td style={{
-                  ..._summaryTd,
-                  color: r.qAnswered > 0 ? COLORS.ok : 'var(--fg-3)',
-                }}>{r.qAnswered || '—'}</td>
-                <td style={{
-                  ..._summaryTd,
-                  color: r.qStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
-                }}>{r.qStillOpen || '—'}</td>
-                <td style={_summaryTd}>{r.dRaised || '—'}</td>
-                <td style={{
-                  ..._summaryTd,
-                  color: r.dResolved > 0 ? COLORS.ok : 'var(--fg-3)',
-                }}>{r.dResolved || '—'}</td>
-                <td style={{
-                  ..._summaryTd,
-                  color: r.dStillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
-                }}>{r.dStillOpen || '—'}</td>
-                <td style={_summaryTd}>{r.cNoted || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          margin: '0 0 10px',
+        }}>{label}</h3>
+        {sections.map((s) => (
+          <SummaryKindTable
+            key={s.kind}
+            kind={s.kind}
+            items={s.items}
+            rows={s.rows}
+            totalOpen={s.totalOpen}
+            totalResolved={s.totalResolved}
+          />
+        ))}
       </section>
     );
   };
@@ -5213,13 +5286,110 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
         <div style={{
           fontSize: 11.5, color: 'var(--fg-3)', lineHeight: 1.55, marginBottom: 16,
         }}>
-          Post-mortem aggregate of the critique journey across both phases.
-          Click a phase tab above to drill into the individual questions and
-          disagreements.
+          Post-mortem aggregate of the critique journey, split per round and per model.
+          Click a phase tab above to drill into the individual cards.
         </div>
-        {renderPhase('Phase 2 — Negotiate', p2)}
-        {renderPhase('Phase 4 — Review', p4)}
+        {renderPhase('Phase 2 — Negotiate', 2)}
+        {renderPhase('Phase 4 — Review', 4)}
       </div>
+    </div>
+  );
+}
+
+// Spec 0046 D5 — one table per kind. Per-row counts split by agent;
+// the Open column carries the cumulative still-open count after the
+// round in question.
+function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
+  const closedLabel = kind === 'question' ? 'answered'
+                   : kind === 'comment'   ? 'noted'
+                   : 'resolved';
+  // Comments don't have a closure protocol — drop the resolved
+  // columns + Open column to keep the table honest.
+  const isStateless = kind === 'comment';
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div className="mono" style={{
+        fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
+        marginBottom: 6,
+      }}>
+        <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{KIND_PLURAL[kind] || kind}</span>
+        <span>·</span>
+        <span>{items.length} total</span>
+        {!isStateless && (
+          <>
+            <span>·</span>
+            <span style={{ color: totalResolved > 0 ? COLORS.ok : 'var(--fg-3)' }}>
+              {totalResolved} {closedLabel}
+            </span>
+            <span>·</span>
+            <span style={{ color: totalOpen > 0 ? COLORS.warn : 'var(--fg-3)' }}>
+              {totalOpen} open
+            </span>
+          </>
+        )}
+      </div>
+      <table style={{
+        width: '100%', borderCollapse: 'collapse',
+        fontSize: 12, color: 'var(--fg-1)',
+        background: 'var(--bg-1)',
+        border: '1px solid var(--border-1)',
+        borderRadius: 'var(--r-2)',
+        overflow: 'hidden',
+        fontFamily: 'var(--mono)',
+      }}>
+        <thead>
+          <tr style={{ background: 'var(--bg-2)', textAlign: 'left' }}>
+            <th style={_summaryTh}>Round</th>
+            <th style={_summaryTh}>
+              <span style={{ color: 'var(--agent-a)' }}>Claude</span> raised
+            </th>
+            {!isStateless && (
+              <th style={_summaryTh}>
+                <span style={{ color: 'var(--agent-a)' }}>Claude</span> {closedLabel}
+              </th>
+            )}
+            <th style={_summaryTh}>
+              <span style={{ color: 'var(--agent-b)' }}>GPT</span> raised
+            </th>
+            {!isStateless && (
+              <th style={_summaryTh}>
+                <span style={{ color: 'var(--agent-b)' }}>GPT</span> {closedLabel}
+              </th>
+            )}
+            {!isStateless && <th style={_summaryTh}>Open</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.round} style={{ borderTop: '1px solid var(--border-1)' }}>
+              <td style={_summaryTd}>R{r.round}</td>
+              <td style={_summaryTd}>{r.claudeRaised || '—'}</td>
+              {!isStateless && (
+                <td style={{
+                  ..._summaryTd,
+                  color: r.claudeResolved > 0 ? COLORS.ok : 'var(--fg-3)',
+                }}>{r.claudeResolved || '—'}</td>
+              )}
+              <td style={_summaryTd}>{r.gptRaised || '—'}</td>
+              {!isStateless && (
+                <td style={{
+                  ..._summaryTd,
+                  color: r.gptResolved > 0 ? COLORS.ok : 'var(--fg-3)',
+                }}>{r.gptResolved || '—'}</td>
+              )}
+              {!isStateless && (
+                <td style={{
+                  ..._summaryTd,
+                  color: r.stillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
+                }}>{r.stillOpen || '—'}</td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -5236,13 +5406,16 @@ const _summaryTd = {
 };
 
 // Spec 0034: Question card in the explorer.
-function QuestionCard({ q, onHighlight }) {
+function QuestionCard({ q, onHighlight, run }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
   const isAnswered = q.status === 'answered';
   const accentColor = COLORS.info;
   const raisedMeta = AGENT_META[q.raisedBy];
   const answerMeta = q.answeredBy ? AGENT_META[q.answeredBy] : null;
+  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
+  const ledgerEntry = findLedgerEntry(run, q.phase, q.id);
+  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
 
   const onCardClick = React.useCallback(() => {
     if (onHighlight) {
@@ -5275,53 +5448,20 @@ function QuestionCard({ q, onHighlight }) {
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        {/* Spec 0040 D2 — header row is a single line: type pill,
-            one-line truncated body, round + status badges.  Click expands. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span className="mono" style={{
-            fontSize: 10, color: COLORS.info, letterSpacing: '0.06em',
-            padding: '1px 6px', borderRadius: 4,
-            background: 'rgba(107,156,240,0.10)',
-            border: '1px solid rgba(107,156,240,0.30)',
-            flexShrink: 0,
-          }}>Q</span>
-          <span className="mono" style={{
-            fontSize: 10, color: 'var(--fg-3)', flexShrink: 0,
-          }}>
-            R{q.raisedRound}{isAnswered ? `→R${q.answeredRound}` : ''}
-          </span>
-          <span style={{
-            flex: 1, minWidth: 0,
-            fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {truncateBody(q.body, 70) || '(no body)'}
-          </span>
-          <span className="mono" style={{
-            fontSize: 10, color: 'var(--fg-3)', flexShrink: 0,
-          }}>{q.id}</span>
-          <span className="mono" style={{
-            fontSize: 10.5,
-            padding: '1px 6px', borderRadius: 999,
-            border: `1px solid ${isAnswered ? COLORS.ok + '55' : COLORS.warn + '55'}`,
-            color: isAnswered ? COLORS.ok : COLORS.warn,
-            background: isAnswered ? 'rgba(111,179,128,0.08)' : 'rgba(212,160,86,0.08)',
-            flexShrink: 0,
-          }}>
-            {isAnswered ? 'answered' : 'open'}
-          </span>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--fg-2)',
-            transform: open ? 'rotate(90deg)' : 'none',
-            flexShrink: 0,
-          }}>
-            <Icon.Chevron />
-          </span>
-        </div>
+        {/* Spec 0046 D3 — `{Kind} {Public ID} · {status} · {body}`.
+            Pre-spec the round range + the internal ID sat in the
+            collapsed headline; both move into the expanded body so
+            the headline reads as one human-readable sentence. */}
+        <CardHeadline
+          kind="question"
+          publicId={q.id}
+          statusLabel={isAnswered ? 'answered' : 'open'}
+          statusColor={isAnswered ? COLORS.ok : COLORS.warn}
+          body={q.body}
+          ghostedRounds={ghostedRounds}
+          accentColor={accentColor}
+          trailing={<CardChevron open={open} hover={hover} />}
+        />
       </button>
       {open && (
         <div style={{
@@ -5376,6 +5516,149 @@ function QuestionCard({ q, onHighlight }) {
       )}
     </article>
   );
+}
+
+// Spec 0046 D3 — shared headline for every critique card type
+// (Question / Disagreement / Issue / Comment / Claim).
+//
+// Pre-spec each card type shot its own one-line header with a
+// single-letter glyph (`Q`, `D`, `I`, `C`), a round range token
+// (`R1`/`R1→R2`), the truncated body, the internal ID, and a status
+// pill. The user's feedback flagged this as "cryptic" + duplicated;
+// spec 0046 D3 collapses the visible signal to `{Kind label} {Public
+// ID} · {status} · {body snippet}`. The round range + the cryptic
+// internal IDs (`I-c-r1-01` etc.) move into the expanded body.
+const KIND_LABELS = {
+  question:     'Question',
+  disagreement: 'Disagreement',
+  issue:        'Issue',
+  comment:      'Comment',
+  claim:        'Claim',
+};
+
+// Spec 0046 D3 — strip the markdown formatting we render plain-text in
+// a headline. The agents commonly emit `**C-1** — \`open\` — body` or
+// `**Q1:** body`; we already render the public ID + status in their
+// own spans, so the leading prefix doubles up. Strip:
+//   - `**bold**` markers
+//   - backtick spans (`open`/`resolved`)
+//   - a leading `Cx-N`/`Q-x-rY-NN`/etc. plus the dash/em-dash separator
+//   - a leading status word followed by a dash
+function stripMarkdown(text) {
+  if (!text) return '';
+  let s = String(text);
+  // Drop bold/italic/backtick markers.
+  s = s.replace(/`+/g, '').replace(/\*\*/g, '').replace(/(?<!\\)_/g, '');
+  // Drop a leading public/internal ID prefix (e.g. ``C-1 — `` or
+  // ``Q1: ``) so the body snippet starts at the substantive content.
+  s = s.replace(/^\s*[A-Z]+-?[a-z]?-?\d+[a-z]?(?:\s*[—:–-]\s*)/i, '');
+  // Drop a leading status word + dash (``open — body``).
+  s = s.replace(/^\s*(open|resolved|noted|answered|deferred|non-blocking)\s*[—:–-]\s*/i, '');
+  return s.trim();
+}
+
+function CardHeadline({
+  kind, publicId, statusLabel, statusColor, body,
+  ghostedRounds, accentColor, trailing,
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <span className="mono" style={{
+        fontSize: 10.5, letterSpacing: '0.04em',
+        padding: '1px 6px', borderRadius: 4,
+        color: accentColor,
+        background: `${accentColor}14`,
+        border: `1px solid ${accentColor}44`,
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+      }}>
+        {KIND_LABELS[kind] || kind}{publicId ? ` ${publicId}` : ''}
+      </span>
+      {statusLabel && (
+        <>
+          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
+          <span className="mono" style={{
+            fontSize: 10.5,
+            padding: '1px 6px', borderRadius: 999,
+            border: `1px solid ${statusColor}55`,
+            color: statusColor,
+            background: `${statusColor}14`,
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
+          }}>
+            {statusLabel}
+          </span>
+        </>
+      )}
+      <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
+      <span style={{
+        flex: 1, minWidth: 0,
+        fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {truncateBody(stripMarkdown(body), 70) || '(no body)'}
+      </span>
+      {ghostedRounds > 0 && <GhostedRoundsBadge ghostedRounds={ghostedRounds} />}
+      {trailing}
+    </div>
+  );
+}
+
+// Spec 0046 D4 — inline ghosted-rounds badge, rendered inside the
+// per-card headline. Same visual idiom as the `LedgerDriftChip`
+// header chip — small warn-tinted ⚠ glyph + integer + tooltip.
+// Renders nothing when ``ghostedRounds === 0``.
+function GhostedRoundsBadge({ ghostedRounds }) {
+  if (!ghostedRounds) return null;
+  return (
+    <span
+      className="mono"
+      title={`Open for ${ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 3,
+        padding: '1px 6px', borderRadius: 4,
+        fontSize: 10,
+        color: COLORS.warn,
+        background: 'rgba(212,160,86,0.10)',
+        border: `1px solid ${COLORS.warn}55`,
+        cursor: 'help',
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span>⚠</span>
+      <span>ghosted {ghostedRounds}r</span>
+    </span>
+  );
+}
+
+// Spec 0046 D3 — shared chevron used by every critique card. Pre-spec
+// each card type rendered its own copy; consolidating keeps the
+// expand/collapse animation consistent.
+function CardChevron({ open, hover }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 16, height: 16,
+      opacity: open ? 0.6 : hover ? 0.5 : 0.25,
+      transition: 'opacity 120ms, transform 120ms',
+      color: 'var(--fg-2)',
+      transform: open ? 'rotate(90deg)' : 'none',
+      flexShrink: 0,
+    }}>
+      <Icon.Chevron />
+    </span>
+  );
+}
+
+// Spec 0046 D4 — resolve a ledger entry by id. Wires ``GhostedAnnotation``
+// + ``CardHeadline.ghostedRounds`` to the system-derived ledger built
+// by spec 0043. Returns ``null`` when the ledger isn't populated for
+// this phase (legacy snapshots).
+function findLedgerEntry(run, phaseId, itemId) {
+  if (!run || !run.phaseLedgers || !itemId) return null;
+  const entries = run.phaseLedgers[phaseId] || [];
+  return entries.find((e) => e.id === itemId) || null;
 }
 
 function SmallStat({ label, value, color }) {
@@ -5556,7 +5839,7 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
   );
 }
 
-function DisagreementCard({ d, onHighlight }) {
+function DisagreementCard({ d, onHighlight, run }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
 
@@ -5576,6 +5859,9 @@ function DisagreementCard({ d, onHighlight }) {
   const which = isResolved ? d.status.split('-')[1] : null;
   const exchanges = d.progression?.length || 0;
   const raisedMeta = d.raisedBy && d.raisedBy !== 'both' ? AGENT_META[d.raisedBy] : null;
+  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
+  const ledgerEntry = findLedgerEntry(run, d.phase, d.id);
+  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
 
   // Card accent (left edge) color by status
   let accentColor;
@@ -5585,12 +5871,13 @@ function DisagreementCard({ d, onHighlight }) {
   else if (which === 'gpt')                accentColor = COLORS.agentB;
   else if (which === 'both')               accentColor = COLORS.ok;
 
-  let statusPill;
-  if (d.status === 'open' && d.deadlocked) statusPill = <StatusPill color={COLORS.warn} label="deadlocked" />;
-  else if (d.status === 'open')            statusPill = <StatusPill color={COLORS.warn} label="open" />;
-  else if (which === 'claude')             statusPill = <StatusPill color={COLORS.agentA} label="→ claude" />;
-  else if (which === 'gpt')                statusPill = <StatusPill color={COLORS.agentB} label="→ gpt" />;
-  else if (which === 'both')               statusPill = <StatusPill color={COLORS.ok} label="aligned" />;
+  // Spec 0046 D3 — status label + colour for the unified headline.
+  let statusLabel, statusColor;
+  if (d.status === 'open' && d.deadlocked) { statusLabel = 'deadlocked'; statusColor = COLORS.warn; }
+  else if (d.status === 'open')            { statusLabel = 'open';       statusColor = COLORS.warn; }
+  else if (which === 'claude')             { statusLabel = '→ claude';   statusColor = COLORS.agentA; }
+  else if (which === 'gpt')                { statusLabel = '→ gpt';      statusColor = COLORS.agentB; }
+  else if (which === 'both')               { statusLabel = 'aligned';    statusColor = COLORS.ok; }
 
   const roundRange = d.closedRound
     ? `R${d.openedRound} → R${d.closedRound}`
@@ -5618,42 +5905,18 @@ function DisagreementCard({ d, onHighlight }) {
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        {/* Spec 0040 D2 — single-line header. Expanded surface below
-            carries the full point, progression, positions, resolution. */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span className="mono" style={{
-            fontSize: 10, color: COLORS.warn, letterSpacing: '0.06em',
-            padding: '1px 6px', borderRadius: 4,
-            background: 'rgba(212,160,86,0.10)',
-            border: '1px solid rgba(212,160,86,0.30)',
-            flexShrink: 0,
-          }}>D</span>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
-            {roundRange.replace(' · still open', '')}
-          </span>
-          <span style={{
-            flex: 1, minWidth: 0,
-            fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {truncateBody(d.shortLabel || d.point, 70)}
-          </span>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
-            {exchanges} ex
-          </span>
-          {statusPill}
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--fg-2)',
-            transform: open ? 'rotate(90deg)' : 'none',
-            flexShrink: 0,
-          }}>
-            <Icon.Chevron />
-          </span>
-        </div>
+        {/* Spec 0046 D3 — unified headline. The round range + exchange
+            count move into the expanded body below. */}
+        <CardHeadline
+          kind="disagreement"
+          publicId={d.id}
+          statusLabel={statusLabel}
+          statusColor={statusColor}
+          body={d.shortLabel || d.point}
+          ghostedRounds={ghostedRounds}
+          accentColor={COLORS.warn}
+          trailing={<CardChevron open={open} hover={hover} />}
+        />
       </button>
 
       {open && (
@@ -5741,12 +6004,15 @@ function DisagreementCard({ d, onHighlight }) {
 // left-rail color is the warn-amber issue color (matches the timeline
 // chip's "issues" tint). Click flashes the timeline turn-card where
 // the issue was first raised.
-function IssueCard({ issue, onHighlight }) {
+function IssueCard({ issue, onHighlight, run }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
   const isOpen = issue.status === 'open';
   const accentColor = isOpen ? COLORS.warn : COLORS.ok;
   const raisedMeta = AGENT_META[issue.raisedBy];
+  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
+  const ledgerEntry = findLedgerEntry(run, issue.phase, issue.id);
+  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
 
   const onCardClick = React.useCallback(() => {
     if (onHighlight && issue.raisedTurnKey) {
@@ -5754,10 +6020,6 @@ function IssueCard({ issue, onHighlight }) {
     }
     setOpen(o => !o);
   }, [issue, onHighlight]);
-
-  const roundLabel = issue.roundFirstSeen === issue.roundLastSeen
-    ? `R${issue.roundFirstSeen}`
-    : `R${issue.roundFirstSeen}→R${issue.roundLastSeen}`;
 
   return (
     <article
@@ -5780,49 +6042,17 @@ function IssueCard({ issue, onHighlight }) {
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span className="mono" style={{
-            fontSize: 10, color: COLORS.warn, letterSpacing: '0.06em',
-            padding: '1px 6px', borderRadius: 4,
-            background: 'rgba(212,160,86,0.10)',
-            border: '1px solid rgba(212,160,86,0.30)',
-            flexShrink: 0,
-          }}>I</span>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
-            {roundLabel}
-          </span>
-          <span style={{
-            flex: 1, minWidth: 0,
-            fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {truncateBody(issue.body, 70)}
-          </span>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
-            {issue.id}
-          </span>
-          <span className="mono" style={{
-            fontSize: 10.5,
-            padding: '1px 6px', borderRadius: 999,
-            border: `1px solid ${isOpen ? COLORS.warn + '55' : COLORS.ok + '55'}`,
-            color: isOpen ? COLORS.warn : COLORS.ok,
-            background: isOpen ? 'rgba(212,160,86,0.08)' : 'rgba(111,179,128,0.08)',
-            flexShrink: 0,
-          }}>
-            {isOpen ? 'open' : 'resolved'}
-          </span>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--fg-2)',
-            transform: open ? 'rotate(90deg)' : 'none',
-            flexShrink: 0,
-          }}>
-            <Icon.Chevron />
-          </span>
-        </div>
+        {/* Spec 0046 D3 — unified headline; round range moves to expanded body. */}
+        <CardHeadline
+          kind="issue"
+          publicId={issue.id}
+          statusLabel={isOpen ? 'open' : 'resolved'}
+          statusColor={isOpen ? COLORS.warn : COLORS.ok}
+          body={issue.body}
+          ghostedRounds={ghostedRounds}
+          accentColor={COLORS.warn}
+          trailing={<CardChevron open={open} hover={hover} />}
+        />
       </button>
       {open && (
         <div style={{
@@ -5872,10 +6102,13 @@ function IssueCard({ issue, onHighlight }) {
 // closure protocol; always renders as ``noted``. The left-rail is
 // neutral grey so it's visually de-prioritised next to issues +
 // questions + disagreements.
-function CommentCard({ comment, onHighlight }) {
+function CommentCard({ comment, onHighlight, run }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
   const raisedMeta = AGENT_META[comment.raisedBy];
+  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
+  const ledgerEntry = findLedgerEntry(run, comment.phase, comment.id);
+  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
 
   const onCardClick = React.useCallback(() => {
     if (onHighlight && comment.raisedTurnKey) {
@@ -5905,47 +6138,17 @@ function CommentCard({ comment, onHighlight }) {
         background: hover && !open ? 'var(--bg-2)' : 'transparent',
         transition: 'background 120ms',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span className="mono" style={{
-            fontSize: 10, color: 'var(--fg-2)', letterSpacing: '0.06em',
-            padding: '1px 6px', borderRadius: 4,
-            background: 'var(--bg-2)',
-            border: '1px solid var(--border-1)',
-            flexShrink: 0,
-          }}>C</span>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
-            R{comment.raisedRound}
-          </span>
-          <span style={{
-            flex: 1, minWidth: 0,
-            fontSize: 12.5, color: 'var(--fg-1)', fontWeight: 500, lineHeight: 1.4,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {truncateBody(comment.body, 70)}
-          </span>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
-            {comment.id}
-          </span>
-          <span className="mono" style={{
-            fontSize: 10.5,
-            padding: '1px 6px', borderRadius: 999,
-            border: '1px solid var(--border-1)',
-            color: 'var(--fg-3)',
-            background: 'var(--bg-2)',
-            flexShrink: 0,
-          }}>noted</span>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--fg-2)',
-            transform: open ? 'rotate(90deg)' : 'none',
-            flexShrink: 0,
-          }}>
-            <Icon.Chevron />
-          </span>
-        </div>
+        {/* Spec 0046 D3 — unified headline; round + raiser move to expanded body. */}
+        <CardHeadline
+          kind="comment"
+          publicId={comment.id}
+          statusLabel="noted"
+          statusColor="var(--fg-3)"
+          body={comment.body}
+          ghostedRounds={ghostedRounds}
+          accentColor="var(--fg-3)"
+          trailing={<CardChevron open={open} hover={hover} />}
+        />
       </button>
       {open && (
         <div style={{
