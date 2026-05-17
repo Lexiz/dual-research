@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.56.0',
+      date: '2026-05-17',
+      summary: 'Modal primitive + RoundScrubber + provider-symmetric SourceCard + sub-tab migration.',
+      items: [
+        'Ship 3 spec #1. CSS-class-backed Modal replaces the inline-styled modal. Two variants: single (standard) and split (side-by-side). Agent-color left border (sable for Claude, sage for GPT). Theme-aware backdrop with focus trap.',
+        'RoundScrubber at the bottom of split modals. Walk through negotiation rounds without closing the modal -- click round pills or prev/next arrows to switch content in place.',
+        'Provider-symmetric SourceCard: Anthropic and OpenAI web search results now render identically. Title, host chip, page age chip, cited text blocks, and [cited] tags show for both providers. Missing data renders as muted placeholders instead of hiding rows.',
+        'All modal sub-tabs migrated from inline-styled button rows to the TabGroup line variant (underline stripe). Consistent typography and interaction across all modal contexts.',
+        'Source cards and citation cards now use Chip primitives for host, page age, cited, and citation badges.',
+      ],
+    },
+    {
       version: '0.55.0',
       date: '2026-05-17',
       summary: 'Timeline + critique restructure -- PhaseRail, ChipCluster, 3-axis filter, DriftCluster, Summary enhancement, CardHeadline migration.',
