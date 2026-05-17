@@ -15,6 +15,17 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.54.0',
+      date: '2026-05-17',
+      summary: 'Run detail header restructure + chrome unification + ActiveRunChip + blocking callout.',
+      items: [
+        'Ship 2 surface spec #2. Chrome bar right cluster unified: HowItWorksLink migrated to Tab primitive, ActiveRunChip shows the short run ID when viewing a run detail for single-click back navigation.',
+        'Run-detail header restructured with equal-row padding. Drafter callout pill with agent-tinted Chip + icon replaces the inline metadata text. Claude drafter shows sable, GPT shows sage.',
+        'Blocking-item callout bar between header and content. Shows open + ghosted item counts from phases 2 and 4. Click jumps to the first open item in the critique pane.',
+        'Timeline agent pills (Claude/GPT) migrated from bespoke inline styles to the design-system AgentStrip primitive. Activity phrase preserved via custom right prop.',
+      ],
+    },
+    {
       version: '0.53.0',
       date: '2026-05-17',
       summary: 'Run list rework -- sortable columns, attention promotion, search, URL state.',

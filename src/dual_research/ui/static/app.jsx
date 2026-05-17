@@ -168,18 +168,26 @@ function ChromeTab({ label, icon, active, onClick }) {
   );
 }
 
-// ─────────────────── Right cluster — three sibling controls ───────────────────
+// ─────────────────── Right cluster — unified chrome controls ───────────────────
+// Spec 0056 SUR-05: unified visual styling across all chrome-right controls.
+// SUR-06: ActiveRunChip — shows short run ID when viewing a run detail.
 
 function RightCluster({ theme, onToggleTheme, navigate, route, client, session, me }) {
   return (
     <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <ConnectionPill />
-      {/* Spec 0035: app-version chip — fetched once from /api/health,
-          cached on window.__appMeta. Clicking opens the how-it-works
-          page anchored at the VERSION_NOTES section. */}
       <AppVersionChip onClick={() => navigate('how-it-works')} />
-      <HowItWorksLink onClick={() => navigate('how-it-works')}
-                      active={route.view === 'how-it-works'} />
+      {route.view === 'detail' && route.runId && (
+        <ActiveRunChip runId={route.runId} onClick={() => navigate('list')} />
+      )}
+      <Tab
+        active={route.view === 'how-it-works'}
+        onClick={() => navigate('how-it-works')}
+        icon="help-circle-outline"
+        size="sm"
+      >
+        How it works
+      </Tab>
       <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-1)', padding: '0 10px' }}>
         <ThemeToggleSegmented theme={theme} onToggle={onToggleTheme} />
       </div>
@@ -189,6 +197,34 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
         : <DesignLanguageButton onClick={() => navigate('language')}
                                 active={route.view === 'language'} />}
     </div>
+  );
+}
+
+// Spec 0056 SUR-06: ActiveRunChip — pill showing the short run ID in the
+// chrome bar when viewing a run detail. Click navigates back to run list.
+function ActiveRunChip({ runId, onClick }) {
+  const shortId = window.splitRunId ? window.splitRunId(runId).id : runId.slice(0, 4);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`Back to run list (viewing ${shortId})`}
+      className="rid rid-sm"
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '0 12px',
+        borderLeft: '1px solid var(--border-1)',
+        background: 'transparent',
+        cursor: 'pointer',
+        border: 'none', borderLeftWidth: 1, borderLeftStyle: 'solid',
+        borderLeftColor: 'var(--border-1)',
+        fontFamily: 'var(--mono)', fontSize: 11,
+        color: 'var(--fg-1)',
+      }}
+    >
+      <Mdi name="arrow-left" size={12} />
+      <span>{shortId}</span>
+    </button>
   );
 }
 
@@ -226,29 +262,7 @@ function AppVersionChip({ onClick }) {
   );
 }
 
-function HowItWorksLink({ onClick, active }) {
-  const [hover, setHover] = React.useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title="How dual-research works"
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        padding: '0 14px',
-        borderLeft: '1px solid var(--border-1)',
-        background: active ? 'var(--bg-1)' : (hover ? 'var(--bg-2)' : 'transparent'),
-        color: active ? 'var(--fg-0)' : 'var(--fg-2)',
-        fontSize: 12, cursor: 'pointer',
-        fontFamily: 'inherit', border: 'none',
-        borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: 'var(--border-1)',
-      }}>
-      <Icon.Help style={{ color: active ? 'var(--fg-1)' : 'var(--fg-3)' }} />
-      <span>How it works</span>
-    </button>
-  );
-}
+// HowItWorksLink removed in spec 0056 — replaced by Tab primitive in RightCluster.
 
 // ─────────────────── Avatar dropdown ───────────────────
 

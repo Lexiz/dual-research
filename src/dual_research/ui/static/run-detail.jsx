@@ -175,10 +175,8 @@ function PaneButtonGroup({ children, gap = 6 }) {
 // Spec 0035 reverts the spec-0033 four-row layout back to two rows:
 //   row 1: topic · cost · status/errors
 //   row 2: phase dots + dot labels + run metadata (started · drafter · elapsed · round)
-// The per-agent activity strips moved into the Timeline pane (where they
-// replace the deleted `AgentLegendChip`s) and the Conversation/Consumption
-// tabs moved back into the Timeline `PaneToolbar`. The header is chrome
-// only — global run identity + state — not per-agent or per-pane.
+// Spec 0056 SUR-07: equal-row padding (12/16), drafter callout pill replaces
+// inline drafter label. ReconcileChip 5-state preserved in row 1.
 function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpToFirstSearch }) {
   const total = run.agents.claude.cost + run.agents.gpt.cost;
   // Spec 0039: ``cost`` is now the full invoice (tokens + web search).
@@ -189,7 +187,6 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
   const startedClock = idParts.time || '—';
   const elapsedTotal = Object.values(run.phaseTimings || {}).filter(Boolean).reduce((a, b) => a + b, 0);
   const elapsedLabel = elapsedTotal > 0 ? fmt.duration(elapsedTotal) : '—';
-  const drafterLabel = run.drafter ? (AGENT_META[run.drafter]?.name || run.drafter) : '—';
   const totalTokens =
     (run.agents.claude.tokens?.in || 0) + (run.agents.claude.tokens?.out || 0) +
     (run.agents.gpt.tokens?.in || 0) + (run.agents.gpt.tokens?.out || 0);
@@ -197,11 +194,11 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
   return (
     <header style={{
       display: 'flex', flexDirection: 'column',
-      padding: '8px 20px',
+      padding: '12px 20px',
       borderBottom: '1px solid var(--border-1)',
       background: 'var(--bg-0)',
       flexShrink: 0,
-      gap: 4,
+      gap: 6,
     }}>
       {/* Row 1: topic + cost + reconcile-status + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -216,33 +213,21 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
           onToggleErrors={onToggleErrors}
         />
       </div>
-      {/* Row 2: phase dots + dot labels on the left; run metadata on the right. */}
+      {/* Row 2: phase dots + drafter callout pill + run metadata */}
       <PhaseDotsRow
         run={run}
         startedClock={startedClock}
         elapsedLabel={elapsedLabel}
-        drafterLabel={drafterLabel}
       />
     </header>
   );
 }
 
 // ─────────────────── Spec 0035 — per-agent pill (Timeline toolbar) ──────────
-//
-// Single-line inline-flex pill carrying the same payload as spec 0033's
-// full-row `AgentStrip` (icon · name · model · tokens·cost · ● phrase).
-// Replaces the deleted `AgentLegendChip` (which lived in the toolbar but
-// missed the live-activity sentence). Pill border picks up the agent's
-// color — that's the "rail" cue; no separate left-border-rail like the
-// header variant had.
-//
-// Spec 0045 D6 — equal-width pills (shared `min-width` via the
-// AGENT_PILL_MIN_WIDTH constant below); internal layout is identity
-// left-aligned (logo · provider · model), spacer, metrics right-aligned
-// (tokens · cost · ● status). The shared min-width is hard-coded for v1
-// — sized so the wider of the two model-id strings (Claude's longer one)
-// fits comfortably without truncation; v2 can measure dynamically.
-function AgentStrip({ agent, run }) {
+// Spec 0056 D7: migrated to the class-backed AgentStrip from shared.jsx
+// (SPEC-0052). The `right` prop carries the live-activity phrase (dot +
+// sentence) that the bespoke version rendered inline.
+function TimelineAgentPill({ agent, run }) {
   const meta = AGENT_META[agent];
   const ag = run.agents?.[agent] || {};
   const tokensIn = ag.tokens?.in || 0;
@@ -251,75 +236,34 @@ function AgentStrip({ agent, run }) {
   const cost = ag.cost || 0;
   const modelId = ag.modelId || ag.model_id || meta?.name || agent;
   const { live, phrase } = composeAgentActivity(agent, run);
+  const slot = agent === 'claude' ? 'a' : 'b';
   const dotColor = live ? meta.color : 'var(--border-3)';
   const phraseColor = live ? 'var(--fg-1)' : 'var(--fg-3)';
 
-  return (
-    <span
-      title={`${meta.name} · ${modelId} · ${totalTokens.toLocaleString()} tokens · ${cost.toFixed(4)} USD · ${phrase}`}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        padding: '4px 12px',
-        background: 'var(--bg-2)',
-        border: `1px solid ${meta.border}`,
-        borderRadius: 999,
-        whiteSpace: 'nowrap',
-        // Spec 0045 D6 — shared min-width turns the two pills into a
-        // matched pair; combined with the flex spacer below, identity
-        // sits at the left edge and metrics anchor to the right.
-        minWidth: AGENT_PILL_MIN_WIDTH,
-        flexShrink: 1,
-      }}>
-      {/* Left zone — identity (logo · provider · model). */}
+  const activityRight = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
       <span style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        flexShrink: 0,
+        fontSize: 11, color: phraseColor,
+        maxWidth: 140,
+        overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
-        <AgentIcon agent={agent} size={14} />
-        <span style={{ fontSize: 11.5, color: 'var(--fg-1)', fontWeight: 500 }}>
-          {meta.name}
-        </span>
-        <span className="mono" style={{
-          fontSize: 10.5, color: 'var(--fg-3)',
-          maxWidth: 160,
-          overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {modelId}
-        </span>
-      </span>
-      {/* Spacer — pushes metrics to the right edge. */}
-      <span style={{ flex: 1 }} />
-      {/* Right zone — metrics (tokens · cost · ● status). */}
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        flexShrink: 0,
-      }}>
-        <span className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
-          {fmt.tokens(totalTokens)}t
-        </span>
-        <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>·</span>
-        <span className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>
-          {fmt.cost(cost)}
-        </span>
-        <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>·</span>
-        <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
-        <span style={{
-          fontSize: 11, color: phraseColor,
-          maxWidth: 140,
-          overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {phrase}
-        </span>
+        {phrase}
       </span>
     </span>
   );
-}
 
-// Spec 0045 D6 — shared min-width for the two timeline-header model
-// pills. Hard-coded v1 (≈20% above the wider Claude pill's pre-spec
-// width, so identity/metrics breathe at the new alignment); dynamic
-// measurement is a v2 follow-up.
-const AGENT_PILL_MIN_WIDTH = 480;
+  return (
+    <AgentStrip
+      agent={slot}
+      name={meta.name}
+      model={modelId}
+      tokens={totalTokens}
+      cost={cost}
+      right={activityRight}
+    />
+  );
+}
 
 // ─────────────────── Spec 0038 — RunSearchSummary header chip ───────────────
 //
@@ -382,7 +326,8 @@ function RunSearchSummary({ onJump }) {
 }
 
 // ─────────────────── Spec 0033 — phase dots row with labels ─────────────────
-function PhaseDotsRow({ run, startedClock, elapsedLabel, drafterLabel }) {
+// Spec 0056 SUR-07: drafter callout pill replaces inline "drafter: X" text.
+function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -394,13 +339,14 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel, drafterLabel }) {
       }}>
         preflight · drafts · negotiate · drafting · review
       </span>
+      {/* Spec 0056 D4: drafter callout pill — agent-tinted Chip with icon. */}
+      {run.drafter && <DrafterCalloutPill drafter={run.drafter} />}
       <span style={{ flex: 1 }} />
       <span className="mono" style={{
         fontSize: 10.5, color: 'var(--fg-3)',
         whiteSpace: 'nowrap',
       }}>
         started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span>
-        &nbsp;·&nbsp;drafter <span style={{ color: 'var(--fg-1)' }}>{drafterLabel}</span>
         &nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed
         {run.status === 'running' && (run.phase === 2 || run.phase === 4) && run.round && (
           <>&nbsp;·&nbsp;round <span style={{ color: 'var(--fg-1)' }}>
@@ -409,6 +355,92 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel, drafterLabel }) {
         )}
       </span>
     </div>
+  );
+}
+
+// Spec 0056 D4 — drafter callout pill. Agent-tinted Chip with AgentIcon.
+// Shows "Claude drafter" or "GPT drafter". Hidden when run.drafter is null.
+function DrafterCalloutPill({ drafter }) {
+  const meta = AGENT_META[drafter];
+  if (!meta) return null;
+  const slot = drafter === 'claude' ? 'a' : 'b';
+  return (
+    <Chip tone={slot} pill title={`Drafter: ${meta.name}`}>
+      <AgentIcon agent={drafter} size={14} />
+      <span>{meta.name} drafter</span>
+    </Chip>
+  );
+}
+
+// Spec 0056 D5 SUR-08 — blocking-item callout bar. Renders between header
+// and main content when the run has open standing items in phaseLedgers.
+// Shows "N open . M ghosted" with a click-to-jump action.
+function BlockingItemCallout({ run }) {
+  const counts = React.useMemo(() => {
+    if (!run?.phaseLedgers) return { open: 0, ghosted: 0 };
+    let open = 0;
+    let ghosted = 0;
+    for (const phase of [2, 4]) {
+      const entries = run.phaseLedgers[phase] || [];
+      for (const e of entries) {
+        if (e.currentStatus === 'open') open++;
+        if (e.ghostedRounds > 0) ghosted++;
+      }
+    }
+    return { open, ghosted };
+  }, [run?.phaseLedgers]);
+
+  if (counts.open === 0 && counts.ghosted === 0) return null;
+
+  const parts = [];
+  if (counts.open > 0) parts.push(`${counts.open} open`);
+  if (counts.ghosted > 0) parts.push(`${counts.ghosted} ghosted`);
+
+  const onJump = () => {
+    // Find the first open item in the critique pane and scroll to it.
+    const card = document.querySelector('[data-critique-status="open"]');
+    if (card) {
+      card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      card.classList.add('dr-flash');
+      setTimeout(() => card.classList.remove('dr-flash'), 1600);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onJump}
+      title={`${parts.join(' · ')} — click to jump to first`}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        padding: '6px 20px',
+        background: counts.ghosted > 0 ? `${COLORS.warn}0d` : `${COLORS.info}0d`,
+        borderBottom: '1px solid var(--border-1)',
+        border: 'none',
+        borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: 'var(--border-1)',
+        cursor: 'pointer',
+        fontFamily: 'inherit', fontSize: 11.5, color: 'var(--fg-1)',
+        flexShrink: 0,
+        width: '100%',
+      }}
+    >
+      <Mdi name={counts.ghosted > 0 ? 'alert-circle-outline' : 'information-outline'} size={14}
+           style={{ color: counts.ghosted > 0 ? COLORS.warn : COLORS.info }} />
+      <span className="mono" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+        {counts.open > 0 && (
+          <span><span className="num" style={{ fontWeight: 600 }}>{counts.open}</span> open</span>
+        )}
+        {counts.open > 0 && counts.ghosted > 0 && (
+          <span style={{ color: 'var(--fg-3)' }}>·</span>
+        )}
+        {counts.ghosted > 0 && (
+          <span style={{ color: COLORS.warn }}>
+            <span className="num" style={{ fontWeight: 600 }}>{counts.ghosted}</span> ghosted
+          </span>
+        )}
+      </span>
+      <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>click to jump</span>
+    </button>
   );
 }
 
@@ -784,7 +816,7 @@ function Timeline({ run, highlightedTurnKeys }) {
         title="Timeline"
         count={`${artifactCount} artifacts`}
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
-        right={<AgentStrip agent="claude" run={run} />}
+        right={<TimelineAgentPill agent="claude" run={run} />}
       />
       {/* Row 2 — PaneToolbar: Conversation/Consumption tabs on the LEFT,
           directly under the "Timeline" title in the row above (spec 0040 D6 —
@@ -810,7 +842,7 @@ function Timeline({ run, highlightedTurnKeys }) {
           </span>
         )}
         <span style={{ flex: 1 }} />
-        <AgentStrip agent="gpt" run={run} />
+        <TimelineAgentPill agent="gpt" run={run} />
       </PaneToolbar>
       {tab === 'conversation' ? (
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '8px 16px 24px', background: 'var(--bg-0)' }}>
@@ -7249,6 +7281,7 @@ function RunDetail({ run }) {
           onToggleErrors={() => setShowErrors(s => !s)}
           onJumpToFirstSearch={onJumpToFirstSearch}
         />
+        <BlockingItemCallout run={run} />
         <main style={{
           flex: 1, minHeight: 0,
           display: 'grid',
