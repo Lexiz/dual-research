@@ -939,6 +939,26 @@ const KIND_COLORS = {
 // even when keys arrive in a different order from the wire.
 const KIND_ORDER = ['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
 
+// Effective input tokens = fresh input + cache reads + cache writes. The
+// provider's `input_tokens` covers only the *uncached* portion of the
+// prompt, so for Claude (which uses an explicit CACHE_BREAKPOINT to cache
+// the brief / drafts / plan prefix) `usage.in` collapses to whatever
+// remained after the marker — typically a few hundred tokens of trailing
+// protocol scaffolding. The cached prefix the model actually saw rides
+// in via `cache_read_tokens` (subsequent turns) or
+// `cache_creation_tokens` (first turn). Both are present on the wire as
+// `usage.cacheRead` / `usage.cacheWrite`. The Consumption tab tells a
+// "what the model saw" story, so totals + bar widths + renormalisation
+// denominators all sum the three buckets. Cost / pricing surfaces keep
+// reading the per-bucket numbers separately (cache-read is billed at
+// 0.1× input, cache-write at 1.25× or 2× depending on TTL).
+function effectiveTokensIn(usage) {
+  if (!usage) return 0;
+  return (Number(usage.in) || 0)
+       + (Number(usage.cacheRead) || 0)
+       + (Number(usage.cacheWrite) || 0);
+}
+
 // Spec 0035 — distinct palette for the expanded-card sub-input bars.
 // Stays explicitly out of the agent-color space (Claude amber / GPT
 // green) so the TOTAL bar in agent color reads as the aggregate and
@@ -967,7 +987,7 @@ function computeConsumptionScale(rows, run) {
     for (const ag of ['claude', 'gpt']) {
       const u = row[ag];
       if (!u) continue;
-      const tokensIn = Number(u.in) || 0;
+      const tokensIn = effectiveTokensIn(u);
       if (tokensIn > maxConsumption) maxConsumption = tokensIn;
       const w = contextWindowFor(u, run, ag);
       if (w > maxWindow) maxWindow = w;
@@ -1359,8 +1379,11 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
     );
   }
 
-  const tokensIn  = Number(usage.in)  || 0;
+  const tokensIn  = effectiveTokensIn(usage);
   const tokensOut = Number(usage.out) || 0;
+  const cacheRead = Number(usage.cacheRead) || 0;
+  const cacheWrite = Number(usage.cacheWrite) || 0;
+  const freshIn   = Number(usage.in) || 0;
   const cost      = Number(usage.cost) || 0;
   const ctxWindow = contextWindowFor(usage, run, agent);
   const piecesRaw = usage.promptPieces || {};
@@ -1408,8 +1431,20 @@ function ConsumptionCard({ usage, agent, run, scale, reconcileReport }) {
         <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
           {meta.name}
         </span>
-        <span className="mono num" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+        <span
+          className="mono num"
+          style={{ fontSize: 11, color: 'var(--fg-2)' }}
+          title={(cacheRead + cacheWrite) > 0
+            ? `${fmt.tokens(freshIn)}t fresh`
+              + ` + ${fmt.tokens(cacheRead)}t cache read`
+              + (cacheWrite ? ` + ${fmt.tokens(cacheWrite)}t cache write` : '')
+              + ` = ${fmt.tokens(tokensIn)}t seen by the model`
+            : null}
+        >
           {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
+          {(cacheRead + cacheWrite) > 0
+            ? ` · ${fmt.tokens(cacheRead + cacheWrite)}t cached`
+            : ''}
         </span>
         <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
           ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
@@ -1665,7 +1700,8 @@ function TokenLaneCell({ usage, agent, run, scale }) {
 // transcripts) we fall back to the spec-0029 single-fill rendering.
 function TokenBar({ usage, agent, run, scale }) {
   const meta = AGENT_META[agent];
-  const tokensIn  = Number(usage.in)  || 0;
+  const tokensIn  = effectiveTokensIn(usage);
+  const freshIn   = Number(usage.in)  || 0;
   const tokensOut = Number(usage.out) || 0;
   const cacheRead = Number(usage.cacheRead) || 0;
   const cacheWrite = Number(usage.cacheWrite) || 0;
@@ -1707,11 +1743,20 @@ function TokenBar({ usage, agent, run, scale }) {
   const markerPct = showMarker ? (ctxWindow / denom) * 100 : null;
 
   // Build tooltip — lead with model + window, then per-kind sizes if any.
+  // `tokensIn` is the *effective* input: fresh + cache_read + cache_write.
+  // The breakdown line makes it auditable so users can tell which slice is
+  // actually billed at the input rate vs cache_read (0.1×) vs cache_write
+  // (1.25×–2× depending on TTL).
+  const cachedSubtotal = cacheRead + cacheWrite;
+  const inputBreakdown = cachedSubtotal > 0
+    ? `  (${freshIn.toLocaleString()} fresh + ${cacheRead.toLocaleString()} cache read`
+        + (cacheWrite ? ` + ${cacheWrite.toLocaleString()} cache write` : '')
+        + `)`
+    : '';
   const tooltipLines = [
     `${meta.name} · ${modelId || 'unknown model'}`,
-    `input:  ${tokensIn.toLocaleString()}t  (cache read ${cacheRead.toLocaleString()}t)`,
+    `input:  ${tokensIn.toLocaleString()}t${inputBreakdown}`,
     `output: ${tokensOut.toLocaleString()}t`,
-    cacheWrite ? `cache write: ${cacheWrite.toLocaleString()}t` : null,
     `cost:   ${fmt.cost(cost)}`,
     `window: ${ctxWindow.toLocaleString()}t (${inputPct.toFixed(1)}% used)`,
   ];
