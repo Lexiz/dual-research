@@ -41,13 +41,32 @@ def _turn_key(phase: int, round_n: int, agent_ui: str) -> str:
 #   **Description (C-7):** ...            (parenthesised ID; round 1 Claude)
 #   **OAI-1 / D-OAI-1 — resolved — ...**  (compound; signature uses first)
 #   **D-5** — `open` (non-blocking)       (Phase-2-carried disagreement)
-# We scan the first ~120 chars for the FIRST occurrence of a token that
-# looks like `C-N` / `OAI-N` / `D-N` / `D-OAI-N`. The agents use that
-# as the stable cross-round handle; the body wording around it shifts
-# as the resolution lands. Fall back to a normalised body-prefix when
-# no ID can be found.
+#   **[I-g-r1-01]** — resolved — ...      (spec 0090 — cross-round system ID)
+#   **OAI-P4-3** — open — ...             (phased-suffix form: OAI-P{n}-N)
+# We scan the first ~200 chars for the FIRST occurrence of an ID-shaped
+# token. The agents use it as the stable cross-round handle; the body
+# wording around it shifts as the resolution lands. Fall back to a
+# normalised body-prefix when no ID can be found.
+#
+# Spec 0090 § A.2 — broadened to also match lowercase-initial system
+# IDs (``I-g-r1-01``, ``Cl-c-p1-04``, ``Q-c-r2-03``). Pre-spec the
+# regex required all-uppercase initials, which silently dropped every
+# claude-side cross-round ID and forced dedup to fall back to
+# body-prefix matching — which then failed when the body rewording
+# changed across rounds. This narrowed the catch but also masked
+# the asymmetric ghosting visible in real production runs (the
+# investigation under spec 0090's context section).
 _ID_TOKEN_RE = re.compile(
-    r"\b([A-Z]{1,4}-(?:[A-Z]{2,4}-)?\d+)\b",
+    r"\b("
+    # System-generated cross-round IDs (lowercase initial):
+    r"I-[cg]-r\d+-\d+"
+    r"|Q-[cg]-r\d+-\d+"
+    r"|Cl-[cg]-[pr]\d+-\d+"
+    # Agent-emitted human-readable IDs (uppercase):
+    r"|OAI-P\d+-\d+"
+    r"|D-OAI-\d+"
+    r"|[A-Z]{1,4}-(?:[A-Z]{2,4}-)?\d+"
+    r")\b"
 )
 
 
