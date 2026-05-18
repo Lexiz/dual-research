@@ -164,6 +164,39 @@ function DnaOnePager() {
             </div>
           </Spotlight>
 
+          <Spotlight label="Consumption card" caption="Three-zone agent card: data header (metrics + costs) at top, divider, bars zone (total + breakdown) at bottom. Equal-height paired cards via grid stretch. SPEC-0075.">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="consumption-card" style={{ border: '1px solid var(--agent-a-border)', flex: 1 }}>
+                <div className="consumption-data-zone">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                    <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>Claude</span>
+                    <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>86.5kt seen</span>
+                  </div>
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.56 · Total: $0.72</div>
+                </div>
+                <hr className="consumption-divider" />
+                <div className="consumption-bars-zone">
+                  <div style={{ height: 10, background: 'var(--agent-a)', borderRadius: 3, opacity: 0.8, width: '70%' }} />
+                  <div style={{ height: 6, background: 'var(--agent-a)', borderRadius: 2, opacity: 0.5, width: '40%', marginLeft: 8 }} />
+                </div>
+              </div>
+              <div className="consumption-card" style={{ border: '1px solid var(--agent-b-border)', flex: 1 }}>
+                <div className="consumption-data-zone">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                    <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>GPT</span>
+                    <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>42.1kt seen</span>
+                  </div>
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.21 · Total: $0.35</div>
+                </div>
+                <hr className="consumption-divider" />
+                <div className="consumption-bars-zone">
+                  <div style={{ height: 10, background: 'var(--agent-b)', borderRadius: 3, opacity: 0.8, width: '45%' }} />
+                  <div style={{ height: 6, background: 'var(--agent-b)', borderRadius: 2, opacity: 0.5, width: '25%', marginLeft: 8 }} />
+                </div>
+              </div>
+            </div>
+          </Spotlight>
+
           {/* M1: subsequent specs add their new primitives here.
                Format: <Spotlight label="<Foo>" caption="...">{live <Foo .../>}</Spotlight>
           */}

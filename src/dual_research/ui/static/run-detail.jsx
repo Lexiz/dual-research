@@ -1413,7 +1413,7 @@ function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle, r
           cursor: 'pointer', fontFamily: 'inherit',
           padding: '12px 14px',
           display: 'grid',
-          gridTemplateColumns: '160px 1fr 1fr 24px',
+          gridTemplateColumns: 'var(--consumption-label-w) 1fr 1fr 24px',
           gap: 14, alignItems: 'center',
         }}>
         {/* Phase + round label cell */}
@@ -1553,166 +1553,134 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
   const pctOfCap = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
 
   return (
-    <div style={{
-      padding: '12px 14px',
-      background: 'var(--bg-1)',
-      border: `1px solid ${meta.border}`, borderRadius: 6,
-      display: 'flex', flexDirection: 'column', gap: 10,
-      minWidth: 0,
+    <div className="consumption-card" style={{
+      border: `1px solid ${meta.border}`,
     }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        flexWrap: 'wrap',
-      }}>
-        <AgentIcon agent={agent} size={14} />
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
-          {meta.name}
-        </span>
-        {/* Spec 0051 A1 — content vs billed split.
-            When there's measurable cache reuse: `60kt seen · 411kt billed · 1.2kt out`
-            with a small `× 7 reuse` chip alongside.
-            When there's no reuse: collapse to the simple `71kt in · 1.2kt out`. */}
-        {reuse.hasReuse ? (
-          <>
+      {/* Zone 1: data header — agent name + metrics + costs (grouped at top) */}
+      <div className="consumption-data-zone">
+        {/* Header row — agent + token metrics + sort */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          flexWrap: 'wrap',
+        }}>
+          <AgentIcon agent={agent} size={14} />
+          <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
+            {meta.name}
+          </span>
+          {reuse.hasReuse ? (
+            <>
+              <span
+                className="mono num"
+                style={{ fontSize: 11, color: 'var(--fg-2)' }}
+                title={
+                  `${fmt.tokens(reuse.content)}t unique content seen by the model.\n`
+                  + `${fmt.tokens(reuse.billed)}t total billed by the provider:\n`
+                  + `  ${fmt.tokens(freshIn)}t fresh input\n`
+                  + (cacheWrite ? `  ${fmt.tokens(cacheWrite)}t cache write\n` : '')
+                  + (cacheRead ? `  ${fmt.tokens(cacheRead)}t cache read (${reuse.multiplier.toFixed(1)}× the unique content)\n` : '')
+                  + `Anthropic re-reads the cached prefix on every internal turn of a tool-use loop, so cache_read_tokens accumulates per search.`
+                }
+              >
+                {fmt.tokens(reuse.content)}t seen
+                {' · '}
+                <span style={{ color: 'var(--fg-3)' }}>{fmt.tokens(reuse.billed)}t billed</span>
+                {' · '}
+                {fmt.tokens(tokensOut)}t out
+              </span>
+              <ReuseChip multiplier={reuse.multiplier} />
+            </>
+          ) : (
             <span
               className="mono num"
               style={{ fontSize: 11, color: 'var(--fg-2)' }}
-              title={
-                `${fmt.tokens(reuse.content)}t unique content seen by the model.\n`
-                + `${fmt.tokens(reuse.billed)}t total billed by the provider:\n`
-                + `  ${fmt.tokens(freshIn)}t fresh input\n`
-                + (cacheWrite ? `  ${fmt.tokens(cacheWrite)}t cache write\n` : '')
-                + (cacheRead ? `  ${fmt.tokens(cacheRead)}t cache read (${reuse.multiplier.toFixed(1)}× the unique content)\n` : '')
-                + `Anthropic re-reads the cached prefix on every internal turn of a tool-use loop, so cache_read_tokens accumulates per search.`
-              }
+              title={`${fmt.tokens(tokensIn)}t input · ${fmt.tokens(tokensOut)}t output`}
             >
-              {fmt.tokens(reuse.content)}t seen
-              {' · '}
-              <span style={{ color: 'var(--fg-3)' }}>{fmt.tokens(reuse.billed)}t billed</span>
-              {' · '}
-              {fmt.tokens(tokensOut)}t out
+              {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
             </span>
-            <ReuseChip multiplier={reuse.multiplier} />
-          </>
-        ) : (
-          <span
-            className="mono num"
-            style={{ fontSize: 11, color: 'var(--fg-2)' }}
-            title={`${fmt.tokens(tokensIn)}t input · ${fmt.tokens(tokensOut)}t output`}
-          >
-            {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
+          )}
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+            ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
           </span>
-        )}
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-          ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
-        </span>
-        <span style={{ flex: 1 }} />
-        {sorted.length > 1 && (
-          <button
-            type="button"
-            onClick={() => setSortMode(m => m === 'size' ? 'order' : 'size')}
-            title="Toggle sort: by size / canonical Tk order"
-            style={{
-              appearance: 'none', border: '1px solid var(--border-1)',
-              background: 'var(--bg-2)', color: 'var(--fg-3)',
-              borderRadius: 999, padding: '1px 8px',
-              fontSize: 10.5, fontFamily: 'var(--mono)',
-              cursor: 'pointer',
-            }}
-          >
-            sort: {sortMode === 'size' ? '↓ size' : '↘ order'}
-          </button>
-        )}
+          <span style={{ flex: 1 }} />
+          {sorted.length > 1 && (
+            <button
+              type="button"
+              onClick={() => setSortMode(m => m === 'size' ? 'order' : 'size')}
+              title="Toggle sort: by size / canonical Tk order"
+              style={{
+                appearance: 'none', border: '1px solid var(--border-1)',
+                background: 'var(--bg-2)', color: 'var(--fg-3)',
+                borderRadius: 999, padding: '1px 8px',
+                fontSize: 10.5, fontFamily: 'var(--mono)',
+                cursor: 'pointer',
+              }}
+            >
+              sort: {sortMode === 'size' ? '↓ size' : '↘ order'}
+            </button>
+          )}
+        </div>
+
+        {/* Cost row — grouped with metrics at top per SPEC-0075 D3 */}
+        <CostsCluster usage={usage} outputCost={outputCost} />
+
+        {/* Provider-billed reconciliation line */}
+        <ProviderBilledLine
+          report={reconcileReport}
+          agent={agent}
+          modelId={usage?.modelId || usage?.model_id}
+        />
       </div>
 
-      {/* Spec 0051 A — total input bar with content / reuse split.
-          The solid segment is the unique content (`reuse.content`); the
-          striped segment is the cache-reuse overlay (`reuse.reused`).
-          When there's no reuse the bar fills solid edge-to-edge at
-          `tokensIn`. */}
-      <TotalInputBar
-        label="total input"
-        content={reuse.content}
-        reused={reuse.reused}
-        billed={reuse.billed}
-        scale={scale}
-        color={meta.color}
-      />
+      {/* Divider between data zone and bars zone */}
+      <hr className="consumption-divider" />
 
-      {/* Stacked sub-bars per piece — RAW heuristic counts now (spec 0051
-          A2/A4). Empty when no pieces (pre-0030 turn). Pieces sum to
-          roughly `reuse.content`; the gap between piece-sum and
-          `tokensIn` reads as the striped overlay on the total bar
-          above. */}
-      {sorted.length > 0 && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 4,
-          paddingLeft: 8,
-          borderLeft: `1px dashed var(--border-2)`,
-        }}>
-          {sorted.map((p) => (
-            <SubInputBar
-              key={p.kind}
-              label={INPUT_PIECE_LABEL[p.kind] || KIND_COLORS[p.kind]?.label || p.kind}
-              tokens={p.tokens}
+      {/* Zone 2: bars (total bar always visible; breakdown bars below) */}
+      <div className="consumption-bars-zone">
+        <TotalInputBar
+          label="total input"
+          content={reuse.content}
+          reused={reuse.reused}
+          billed={reuse.billed}
+          scale={scale}
+          color={meta.color}
+        />
+
+        {sorted.length > 0 && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 4,
+            paddingLeft: 8,
+            borderLeft: `1px dashed var(--border-2)`,
+          }}>
+            {sorted.map((p) => (
+              <SubInputBar
+                key={p.kind}
+                label={INPUT_PIECE_LABEL[p.kind] || KIND_COLORS[p.kind]?.label || p.kind}
+                tokens={p.tokens}
+                scale={scale}
+                color={SUBINPUT_COLORS[p.kind] || 'var(--fg-3)'}
+              />
+            ))}
+          </div>
+        )}
+
+        {tokensOut > 0 && (
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 4,
+            paddingTop: 6,
+            borderTop: '1px dashed var(--border-2)',
+          }}>
+            <OutputBar
+              label={outputBarLabel(phase, agent)}
+              tokens={tokensOut}
               scale={scale}
-              color={SUBINPUT_COLORS[p.kind] || 'var(--fg-3)'}
+              color={outputSlot ? (SUBINPUT_COLORS[outputSlot] || 'var(--fg-3)') : 'var(--fg-3)'}
+              outputCost={outputCost}
+              modelId={usage.modelId || null}
+              slot={outputSlot}
             />
-          ))}
-        </div>
-      )}
-
-      {/* Spec 0051 B1–B3 — output bar.
-          Sits below the input cluster, on the same shared scale. Coloured
-          by the destination input-slot (so P1 Claude's `→ d1` bar uses
-          the same ochre as the `d1` segment in every later card's input).
-          Labelled `→ slot · slot label` for slots that feed later turns;
-          P0 cards get `→ preflight critique` since the orchestrator
-          consumes that output for go/no-go and never inlines it. */}
-      {tokensOut > 0 && (
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 4,
-          paddingTop: 6,
-          borderTop: '1px dashed var(--border-2)',
-        }}>
-          <OutputBar
-            label={outputBarLabel(phase, agent)}
-            tokens={tokensOut}
-            scale={scale}
-            color={outputSlot ? (SUBINPUT_COLORS[outputSlot] || 'var(--fg-3)') : 'var(--fg-3)'}
-            outputCost={outputCost}
-            modelId={usage.modelId || null}
-            slot={outputSlot}
-          />
-        </div>
-      )}
-
-      {/* Spec 0046 D7 — the pre-spec "not used in this turn: …" footnote
-          is gone. Empty pieces simply don't render; absence is the
-          signal (same rule as spec 0045 D3 for the input full-view). */}
-
-      {/* Spec 0046 D8 — costs + counts cluster. Replaces the confusing
-          "web searches: N · of which web search: $X" wording (there was
-          no parent total for "of which" to refer to). New layout:
-              line 1 — Tokens: $A · Web search: $B · Total: $T
-              line 2 — Searches: N · Queries: M   (only when present)
-          The Web-search column only renders when this turn ran a
-          search; comma/dot separators stay consistent with the rest
-          of the metrics cluster. */}
-      <CostsCluster usage={usage} outputCost={outputCost} />
-
-      {/* Spec 0048 — when reconciliation has run for this date and a
-          per-model delta matches this (agent, model_id), surface a
-          "Provider-billed: $X · Δ $Y (Z%)" line so the user can see
-          the gap between local accounting and provider invoice on the
-          same card. Hidden when no reconcile snapshot exists or when
-          the provider for this agent wasn't checked. */}
-      <ProviderBilledLine
-        report={reconcileReport}
-        agent={agent}
-        modelId={usage?.modelId || usage?.model_id}
-      />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1824,7 +1792,7 @@ function SubInputBar({ label, tokens, scale, color, accent }) {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '140px 1fr 80px',
+      gridTemplateColumns: 'var(--consumption-label-w) 1fr 80px',
       alignItems: 'center', gap: 10,
       minWidth: 0,
     }}>
@@ -1894,7 +1862,7 @@ function TotalInputBar({ label, content, reused, billed, scale, color }) {
   return (
     <div title={tooltip} style={{
       display: 'grid',
-      gridTemplateColumns: '140px 1fr 80px',
+      gridTemplateColumns: 'var(--consumption-label-w) 1fr 80px',
       alignItems: 'center', gap: 10,
       minWidth: 0,
     }}>
@@ -1984,7 +1952,7 @@ function OutputBar({ label, tokens, scale, color, outputCost, modelId, slot }) {
       title={tooltip}
       style={{
         display: 'grid',
-        gridTemplateColumns: '140px 1fr 80px',
+        gridTemplateColumns: 'var(--consumption-label-w) 1fr 80px',
         alignItems: 'center', gap: 10,
         minWidth: 0,
       }}

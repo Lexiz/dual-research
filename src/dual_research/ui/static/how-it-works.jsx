@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.68.0',
+      date: '2026-05-18',
+      summary: 'Consumption tab agent-card restructure -- data at top, bars at bottom, wider bars, equal-height cards.',
+      items: [
+        'Expanded agent cards reorganized: metrics + costs grouped at top, bars zone (total + breakdown) at bottom with divider.',
+        'Cards grow downward on expand; total bar stays put as visual anchor, breakdown bars cascade below.',
+        'Phase-label column narrowed from 160px to 100px; bar-label columns narrowed from 140px to 100px for wider bars.',
+        'New --consumption-label-w token and .consumption-card CSS class codified in the design system.',
+        'Consumption card spotlight added to Design Language page.',
+      ],
+    },
+    {
       version: '0.67.0',
       date: '2026-05-18',
       summary: 'Agent Input tab rework -- renamed, reordered to first position, structural improvements with CollapsibleSection and Markdown rendering.',
