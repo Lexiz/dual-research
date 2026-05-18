@@ -187,17 +187,30 @@ OPEN_ISSUES: 0
 
 
 @pytest.mark.asyncio
-async def test_phase4_converges_in_round_1(tmp_path: Path) -> None:
+async def test_phase4_cannot_converge_in_round_1_but_converges_in_round_2(
+    tmp_path: Path,
+) -> None:
+    """Spec 0091 § A — Phase 4 round 1 cannot terminate the loop, even
+    when both agents emit STATUS: APPROVED with OPEN_ISSUES: 0. The
+    orchestrator downgrades the r1 approval to ``approved=False`` and
+    continues to r2, where convergence is allowed.
+
+    Pre-spec-0091 this test asserted r1 termination was OK. Post-spec
+    it asserts the opposite: r1 APPROVED is silently ignored and
+    convergence lands in r2 at the earliest."""
     ctx, bus = _make_ctx(tmp_path, drafter="claude")
     ctx.state.phase = "phase4"
     # Seed phase3 draft (current draft at round 1)
     (ctx.session.phase_dir("phase3") / "draft-v1.md").write_text("INITIAL DRAFT")
 
+    # Each agent emits APPROVED twice — r1 gets ignored, r2 terminates.
     claude_agent = ScriptedAgent(
-        label="claude", model_id="claude-sonnet-4-6", script=[REVIEW_APPROVED_TURN]
+        label="claude", model_id="claude-sonnet-4-6",
+        script=[REVIEW_APPROVED_TURN, REVIEW_APPROVED_TURN],
     )
     openai_agent = ScriptedAgent(
-        label="openai", model_id="gpt-5.5", script=[REVIEW_APPROVED_TURN]
+        label="openai", model_id="gpt-5.5",
+        script=[REVIEW_APPROVED_TURN, REVIEW_APPROVED_TURN],
     )
 
     outcome = await run_phase4(
@@ -211,7 +224,8 @@ async def test_phase4_converges_in_round_1(tmp_path: Path) -> None:
     )
 
     assert outcome.approved is True
-    assert outcome.rounds == 1
+    # Convergence lands in r2, NOT r1.
+    assert outcome.rounds == 2
     assert outcome.revisions == 0
     assert outcome.final_draft_round == 1
     assert ctx.state.phase == "done"

@@ -1,6 +1,6 @@
 [project]
 name = "dual-research"
-version = "0.71.0"
+version = "0.72.0"
 description = "Two-agent (Claude + GPT) research convergence orchestrator with real-time monitoring UI."
 readme = "README.md"
 authors = [

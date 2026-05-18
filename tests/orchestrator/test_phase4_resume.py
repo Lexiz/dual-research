@@ -93,7 +93,11 @@ None.
 
 @pytest.mark.asyncio
 async def test_phase4_skips_round_when_turn_files_exist(tmp_path: Path) -> None:
-    """Pre-populate round-01 turn files; assert no API call for round 1."""
+    """Pre-populate round-01 AND round-02 turn files with APPROVED;
+    assert no API calls happen because both rounds are skipped via
+    the resume replay. Spec 0091 § A applies to r1 even in the resume
+    path: r1 APPROVED is downgraded, the loop continues to r2, which
+    then converges via the pre-populated r2 files."""
     session = SessionDirectory(root=tmp_path).ensure()
     session.brief_path.write_text("# T\n", encoding="utf-8")
 
@@ -108,11 +112,15 @@ async def test_phase4_skips_round_when_turn_files_exist(tmp_path: Path) -> None:
     state.phase = "phase4"
     session.save_state(state)
 
-    # Pre-populate round 1 with approved turns.
+    # Pre-populate both round 1 and round 2 with approved turns.
+    # Round 1 is skipped (resume) then downgraded by spec 0091 § A;
+    # round 2 is also skipped (resume) and its APPROVED terminates.
     phase4 = session.root / "phase4"
     phase4.mkdir()
     (phase4 / "round-01-claude.md").write_text(_APPROVED_TURN_BODY, encoding="utf-8")
     (phase4 / "round-01-openai.md").write_text(_APPROVED_TURN_BODY, encoding="utf-8")
+    (phase4 / "round-02-claude.md").write_text(_APPROVED_TURN_BODY, encoding="utf-8")
+    (phase4 / "round-02-openai.md").write_text(_APPROVED_TURN_BODY, encoding="utf-8")
 
     transcript = session.open_transcript()
     metrics = Metrics()
@@ -131,17 +139,21 @@ async def test_phase4_skips_round_when_turn_files_exist(tmp_path: Path) -> None:
         hard_cap=5,
     )
 
-    # Round 1's turn files already existed — no API calls expected.
+    # Both rounds had files on disk → no API calls. Convergence lands
+    # in r2 (the earliest round that's allowed to terminate).
     assert claude.call_count == 0
     assert openai.call_count == 0
-    # The replay path detected approval and broke the loop.
     assert outcome.approved is True
-    assert outcome.rounds == 1
+    assert outcome.rounds == 2
 
 
 @pytest.mark.asyncio
 async def test_phase4_runs_normally_when_files_missing(tmp_path: Path) -> None:
-    """Without pre-populated files, the agent IS called."""
+    """Without pre-populated files, the agent IS called.
+
+    Spec 0091 § A: r1 APPROVED is silently downgraded, so the agent
+    is called in r2 too. Convergence lands in r2 at the earliest.
+    """
     session = SessionDirectory(root=tmp_path).ensure()
     session.brief_path.write_text("# T\n", encoding="utf-8")
     phase3 = session.root / "phase3"
@@ -170,7 +182,8 @@ async def test_phase4_runs_normally_when_files_missing(tmp_path: Path) -> None:
         soft_cap=3,
         hard_cap=5,
     )
-    # Round 1's files didn't exist → one call to each agent.
-    assert claude.call_count == 1
-    assert openai.call_count == 1
+    # No files → agents are called for r1, but r1 APPROVED is downgraded
+    # so the loop continues to r2, agents called again, r2 terminates.
+    assert claude.call_count == 2
+    assert openai.call_count == 2
     assert outcome.approved is True

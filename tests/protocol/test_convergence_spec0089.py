@@ -359,25 +359,25 @@ class TestSpec0089IsReviewApprovedLenient:
     def test_passes_when_strict_passes(self) -> None:
         assert is_review_approved(
             REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED,
-            round=1, ledger_open_count=0,
+            round=2, ledger_open_count=0,
         )
         assert is_review_approved_lenient(
-            REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED, round=1,
+            REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED, round=2,
         )
 
     def test_passes_when_only_ledger_blocks(self) -> None:
         # Strict blocks because ledger_open_count > 0; lenient ignores it.
         assert not is_review_approved(
             REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED,
-            round=1, ledger_open_count=5,
+            round=2, ledger_open_count=5,
         )
         assert is_review_approved_lenient(
-            REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED, round=1,
+            REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED, round=2,
         )
 
     def test_fails_when_one_side_reviewing(self) -> None:
         assert not is_review_approved_lenient(
-            REVIEW_TURN_APPROVED, REVIEW_TURN_REVIEWING, round=1,
+            REVIEW_TURN_APPROVED, REVIEW_TURN_REVIEWING, round=2,
         )
 
 
