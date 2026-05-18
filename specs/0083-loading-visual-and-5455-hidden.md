@@ -3,10 +3,10 @@ spec: 0083
 title: Robust run-list loading state + spinner visual + hide 5455
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.69.7
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/83"
 ---
 
 # Spec 0083 — Robust loading state + spinner + hide 5455
