@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.2] — 2026-05-18
+
+### Fixed
+
+- **Hosted UI OOM-on-boot** — `dual-research serve` was being SIGKILLed (exit 137) by the Fly machine's OOM-killer during Python import on `shared-cpu-1x:256MB`. Peak import memory (`fastapi` + `supabase-py` + transitive `pyiceberg` + `uvicorn`) reached ~290 MB vs. the 256 MB cap, producing the "silent hang after `Installed 5 packages`" symptom and 502/503s across `/api/*`. Bumped `fly.toml` VM memory to 512 MB and widened the health-check `grace_period` from 10 s to 30 s. Config-only; no code change. SPEC-0078.
+
 ## [0.69.1] — 2026-05-18
 
 ### Fixed
