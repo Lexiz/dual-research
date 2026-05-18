@@ -3,10 +3,10 @@ spec: 0077
 title: "Hotfix: run-detail.jsx parse error (white-screen regression)"
 label: bug
 version-bump: PATCH
-status: in-progress
+status: merged
 target-version: 0.69.1
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/77"
 ---
 
 # Spec 0077 — Hotfix: run-detail.jsx parse error
