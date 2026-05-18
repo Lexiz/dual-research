@@ -3,10 +3,10 @@ spec: 0080
 title: "Hotfix: disable Fly auto_stop_machines to stop the proxy flap"
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.69.4
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/80"
 ---
 
 # Spec 0080 — Disable Fly auto_stop to stop the proxy flap
