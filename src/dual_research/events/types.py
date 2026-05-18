@@ -259,6 +259,47 @@ class DrafterCanonicalPromoted(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class CanonicalFsdSynthesized(Event):
+    """Spec 0089 § A — Phase 2 escaped a stuck-AGREED loop where every
+    convergence gate passed except the canonical FSD sub-section was
+    missing from the AGREED_PLAN block.
+
+    The orchestrator synthesised the canonical sub-section from the
+    drafter's standalone Final-surfaced disagreements section (which
+    is a strict superset of the canonical fields), spliced it into
+    the drafter's AGREED_PLAN, and exited Phase 2 converged. No
+    repair turn fired; the synthesis is a pure transformation of
+    existing on-disk content.
+    """
+
+    round: int
+    drafter: str
+    fsd_ids: list[str]
+    kind: str = "canonical_fsd_synthesized"
+
+
+@dataclass(frozen=True, kw_only=True)
+class StuckAgreedPromoted(Event):
+    """Spec 0089 § B — Phase 2 or Phase 4 escaped a stuck-AGREED loop
+    where the agents were fully aligned on the protocol surface
+    (status, drafter, hash, FSDs) for K consecutive rounds but the
+    system-derived ledger cross-check kept blocking convergence.
+
+    The orchestrator accepts the agents' judgment after the K-round
+    streak and exits converged via the stuck-AGREED escape valve.
+    `phase` is 2 or 4. `streak` is the number of consecutive
+    lenient-True / strict-False rounds (≥ K). `ledger_open_count`
+    is the ledger's count at the round when the escape fired.
+    """
+
+    phase: int
+    round: int
+    streak: int
+    ledger_open_count: int
+    kind: str = "stuck_agreed_promoted"
+
+
+@dataclass(frozen=True, kw_only=True)
 class Phase2Complete(Event):
     rounds: int
     converged: bool
@@ -268,6 +309,12 @@ class Phase2Complete(Event):
     # Spec 0032: set when Phase 2 converged via canonical promotion
     # rather than clean hash-match agreement.
     via_canonical_promotion: bool = False
+    # Spec 0089 § A: set when Phase 2 converged via canonical-FSD
+    # sub-section synthesis.
+    via_canonical_fsd_synthesis: bool = False
+    # Spec 0089 § B: set when Phase 2 converged via the stuck-AGREED
+    # escape valve (ledger kept blocking, agents stayed aligned).
+    via_stuck_agreed: bool = False
     kind: str = "phase2_complete"
 
 
@@ -304,6 +351,9 @@ class Phase4Complete(Event):
     approved: bool
     final_draft_round: int
     revisions: int
+    # Spec 0089 § B: set when Phase 4 converged via the stuck-AGREED
+    # (stuck-APPROVED) escape valve.
+    via_stuck_agreed: bool = False
     kind: str = "phase4_complete"
 
 

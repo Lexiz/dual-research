@@ -44,7 +44,10 @@ from dual_research.ledger.models import (
     LedgerState,
     LedgerStatusTransition,
 )
-from dual_research.ledger.prompt import build_standing_items_section
+from dual_research.ledger.prompt import (
+    build_blocked_convergence_warning,
+    build_standing_items_section,
+)
 
 
 __all__ = (
@@ -59,6 +62,7 @@ __all__ = (
     "COMMENT_STATUSES",
     "build_phase_ledger",
     "build_standing_items_section",
+    "build_blocked_convergence_warning",
     "ledger_mode",
 )
 

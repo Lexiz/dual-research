@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dual_research.events.bus import EventBus, Subscriber
 from dual_research.events.types import (
+    CanonicalFsdSynthesized,
     CostUpdate,
     DrafterCanonicalPromoted,
     DrafterTiebreakResolved,
@@ -23,6 +24,7 @@ from dual_research.events.types import (
     RunFailed,
     RunStarted,
     SoftCapHit,
+    StuckAgreedPromoted,
     TurnEnded,
     TurnInputs,
     TurnSearches,
@@ -30,6 +32,7 @@ from dual_research.events.types import (
 )
 
 __all__ = [
+    "CanonicalFsdSynthesized",
     "CostUpdate",
     "DrafterCanonicalPromoted",
     "DrafterTiebreakResolved",
@@ -52,6 +55,7 @@ __all__ = [
     "RunFailed",
     "RunStarted",
     "SoftCapHit",
+    "StuckAgreedPromoted",
     "Subscriber",
     "TurnEnded",
     "TurnInputs",

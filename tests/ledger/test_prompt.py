@@ -90,3 +90,61 @@ def test_phase1_seed_claim_shows_p1_label() -> None:
     ])
     out = build_standing_items_section(s, perspective="gpt")
     assert "raised in p1" in out
+
+
+# ─── Spec 0089 § C — strengthened instruction + blocked-convergence warning ──
+
+
+def test_spec0089_instruction_carries_hard_convergence_language() -> None:
+    """The instruction text was loosened to soft in spec 0043 — spec 0089
+    tightens it back so agents understand the standing-items list IS a
+    hard convergence gate, not informational."""
+    from dual_research.ledger.prompt import _INSTRUCTION
+    assert "Convergence will be blocked" in _INSTRUCTION
+    # Should NOT carry the old soft framing.
+    assert "informational, not output-required" not in _INSTRUCTION
+    # Mentions both acceptable resolutions (address vs explicitly close out).
+    assert "Resolved or non-blocking differences" in _INSTRUCTION
+
+
+class TestSpec0089BuildBlockedConvergenceWarning:
+    def test_empty_when_prior_round_not_blocked(self) -> None:
+        from dual_research.ledger.prompt import build_blocked_convergence_warning
+        assert build_blocked_convergence_warning(
+            prior_round_was_blocked=False,
+            ledger_open_count=10,
+        ) == ""
+
+    def test_empty_when_ledger_open_zero(self) -> None:
+        from dual_research.ledger.prompt import build_blocked_convergence_warning
+        assert build_blocked_convergence_warning(
+            prior_round_was_blocked=True,
+            ledger_open_count=0,
+        ) == ""
+
+    def test_emits_warning_with_count_and_round(self) -> None:
+        from dual_research.ledger.prompt import build_blocked_convergence_warning
+        out = build_blocked_convergence_warning(
+            prior_round_was_blocked=True,
+            ledger_open_count=12,
+            prior_round_number=4,
+        )
+        assert "## ⚠ Convergence blocked in prior round" in out
+        assert "round 4" in out
+        assert "12 items still open" in out
+        # Should NOT mis-pluralise on count=1.
+        out_one = build_blocked_convergence_warning(
+            prior_round_was_blocked=True,
+            ledger_open_count=1,
+            prior_round_number=3,
+        )
+        assert "1 item still open" in out_one
+        assert "1 items" not in out_one
+
+    def test_handles_unknown_prior_round_number(self) -> None:
+        from dual_research.ledger.prompt import build_blocked_convergence_warning
+        out = build_blocked_convergence_warning(
+            prior_round_was_blocked=True,
+            ledger_open_count=2,
+        )
+        assert "the prior round" in out

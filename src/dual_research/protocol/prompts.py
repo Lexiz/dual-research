@@ -275,6 +275,7 @@ def negotiation_turn_prompt(
     soft_cap: int,
     hard_cap: int,
     standing_items: str = "",
+    blocked_warning: str = "",
 ) -> str:
     return (
         COMMON_PREAMBLE
@@ -303,6 +304,11 @@ This is **round {round}** of Phase 2 (soft cap {soft_cap}, hard cap {hard_cap}).
 
 """
         + _inline_prior_turns(prior_turns, "Prior Phase 2 conversation turns (in order)")
+        # Spec 0089 § C — high-salience warning when the prior round emitted
+        # AGREED but the ledger cross-check blocked convergence. Rendered
+        # BEFORE the standing-items section so the agent reads the
+        # explanation, then the concrete item list right after.
+        + (("\n" + blocked_warning + "\n") if blocked_warning else "")
         + (("\n" + standing_items + "\n") if standing_items else "")
         + f"""
 ## Task
@@ -559,6 +565,7 @@ def review_turn_prompt(
     soft_cap: int,
     hard_cap: int,
     standing_items: str = "",
+    blocked_warning: str = "",
 ) -> str:
     role = "DRAFTER" if agent_name == drafter_name else "REVIEWER"
     return (
@@ -587,6 +594,9 @@ This is **round {round}** of Phase 4 (soft cap {soft_cap}, hard cap {hard_cap}).
 
 """
         + _inline_prior_turns(prior_turns, "Prior Phase 4 review turns (in order)")
+        # Spec 0089 § C — high-salience warning when the prior review round
+        # emitted APPROVED but the ledger cross-check blocked convergence.
+        + (("\n" + blocked_warning + "\n") if blocked_warning else "")
         + (("\n" + standing_items + "\n") if standing_items else "")
         + f"""
 ## Task
