@@ -187,9 +187,14 @@ function RunListView({ runs, onSelect }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <div style={{
               width: 16, height: 16, borderRadius: 4,
-              background: 'linear-gradient(135deg, var(--agent-a) 0%, var(--agent-a) 50%, var(--agent-b) 50%, var(--agent-b) 100%)',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', overflow: 'hidden',
+              background: 'var(--bg-3)',
               flexShrink: 0,
-            }} />
+            }}>
+              <BrandMark name="claude" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', top: 1, left: 1 }} />
+              <BrandMark name="openai" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', bottom: 1, right: 1 }} />
+            </div>
             <span className="mono" style={{ fontSize: 12, color: 'var(--fg-1)', letterSpacing: '0.02em' }}>
               dual&#8209;research
             </span>

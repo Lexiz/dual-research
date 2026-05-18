@@ -12,6 +12,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.61.0] — 2026-05-18
+
+### Added
+
+- **Brand-icon system + Design-page DNA reskin** ([spec 0068](specs/0068-brand-icon-system.md)) — New `<BrandMark>` primitive renders official Anthropic sunburst and OpenAI hexagonal rosette at any size in solid or ghost variants. `BRAND_SVGS` dict is the single source of truth for both glyphs.
+- **Agent-icon migration** — `AgentIcon` now delegates to `BRAND_SVGS`. `AgentStrip` monograms use the same dict. `CodeCluster` agent chips render `<BrandMark>` inline glyphs.
+- **Run-list brand composition** — The dual-color gradient square replaced with two `<BrandMark>` glyphs (Claude top-left, OpenAI bottom-right) on a subtle background.
+- **Design page DNA reskin** — Default Design Language page restructured as a curated DNA one-pager with five sections: Hero, Palette, Brand marks, Component spotlights, and Construction principles. Full reference preserved at `?full=1`.
+- **Component spotlight scaffolding** — Four live spotlights (Chip, Card, Tab, AgentStrip) with a clearly marked block for future specs to add their primitives (M1 mandate operationalized).
+- **Construction principles codified** — Token-only colors, full-word vocabulary discipline (from SPEC-0067), brand fidelity rule.
+
 ## [0.60.0] — 2026-05-18
 
 ### Added

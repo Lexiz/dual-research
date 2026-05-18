@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.61.0',
+      date: '2026-05-18',
+      summary: 'Brand-icon system + Design-page DNA reskin -- official brand marks everywhere agents are identified.',
+      items: [
+        'New BrandMark primitive renders official Anthropic sunburst (Claude) and OpenAI hexagonal rosette (GPT) at any size with solid or ghost variants.',
+        'Agent-icon migration: AgentIcon, AgentStrip, and CodeCluster agent chips now use the brand SVG paths from a single BRAND_SVGS dictionary.',
+        'Run-list dual-color gradient square replaced with two composed BrandMark glyphs.',
+        'Design Language page restructured as a curated DNA one-pager (Hero, Palette, Brand marks, Component spotlights, Construction). Full reference at ?full=1.',
+        'Component spotlight scaffolding: four live showcases with a marked block for future specs to add their primitives.',
+      ],
+    },
+    {
       version: '0.60.0',
       date: '2026-05-18',
       summary: 'Chip vocabulary + code-cluster expansion -- full-word labels replace cryptic codes.',
