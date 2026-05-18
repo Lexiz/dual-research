@@ -5674,13 +5674,13 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
           introduced" lead so the buttons sit at the visual anchor of
           the pane. The small "Critique" label stays as PaneHeader's
           title so the pane is still labelled. */}
+      {/* Spec 0070 D6-D9: phase tab strip restructured with chip clusters.
+          Each tab shows structured chips: [Phase N] [Label] [X questions] [Y disagreements]
+          using full words (not abbreviations). Count chips show 0 explicitly (D8). */}
       <PaneHeader
         title="Critique"
         accentColor={COLORS.info}
         left={
-          {/* Spec 0070 D6-D9: phase tab strip restructured with chip clusters.
-              Each tab shows structured chips: [Phase N] [Label] [X questions] [Y disagreements]
-              using full words (not abbreviations). Count chips show 0 explicitly (D8). */}
           <TabGroup variant="solid">
             {tabs.map((t) => {
               const isActive = selectedPhase === t.pid;
