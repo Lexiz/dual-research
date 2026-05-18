@@ -12,6 +12,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.64.0] — 2026-05-18
+
+### Added
+
+- **CollapsibleSection primitive** ([spec 0071](specs/0071-timeline-structural.md)) — new `<CollapsibleSection>` disclosure primitive in shared.jsx. Persists open/closed state to localStorage. Exposed on `window`. Spotlight added to Design Language DNA page.
+- **Timeline phase collapsibility** — Phase headers (PhaseDivider) are now clickable to collapse/expand their cards. State persisted per run+phase to localStorage.
+- **Critique pane section collapsibility** — DRIFT, OPEN, and RESOLVED sections are now collapsible. State persisted per run+phase+section.
+
+### Changed
+
+- **PhaseRail completed-label contrast** — Completed phase labels now use `--ok` color instead of `--fg-3` for readability in both themes.
+- **Phase header visual standout** — Border upgraded from `--border-1` to `--border-2`, label weight bumped to 700, headers slightly wider than card stack (-4px margin each side).
+- **Card padding reduced** — Base card padding reduced from `var(--s-3) var(--s-4)` (12px 16px) to `var(--s-2) var(--s-3)` (8px 12px) for denser timeline.
+- **Small badge sizing unified** — Inline status badges (ok/issues/preflight) bumped from fontSize 10-10.5 / padding 1px 6px to fontSize 11 / padding 2px 7px for consistency and readability.
+
 ## [0.63.0] — 2026-05-18
 
 ### Changed

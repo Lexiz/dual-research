@@ -131,9 +131,14 @@ function DnaOnePager() {
             </div>
           </Spotlight>
 
+          <Spotlight label="<CollapsibleSection>" caption="Generic disclosure primitive. Persists open/closed state to localStorage. Used by timeline phase headers and critique pane sections.">
+            <CollapsibleSection title="Example section" count={3} countColor="var(--fg-2)">
+              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--fg-2)' }}>Collapsed content appears here. Click the header to toggle.</div>
+            </CollapsibleSection>
+          </Spotlight>
+
           {/* M1: subsequent specs add their new primitives here.
                Format: <Spotlight label="<Foo>" caption="...">{live <Foo .../>}</Spotlight>
-               SPEC-0071: <CollapsibleSection>
                SPEC-0073: <QuoteCallout>, <QuestionThread kind=disagreement>
           */}
         </div>
