@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.67.0] — 2026-05-18
+
+### Added
+
+- **Agent Input tab rework** ([spec 0074](specs/0074-agent-input-tab.md)) — Renamed "Input" to "Agent Input" across all modal tabs and sub-tabs. Reordered modal tabs so Agent Input appears first (before Content). Entry ordering changed: System Prompt first (collapsed), User Prompt second (expanded), then remaining entries in canonical order.
+- **CollapsibleSection for input entries** — Input bundle entries now use the `<CollapsibleSection>` primitive (from SPEC-0071) instead of a hand-rolled disclosure widget, providing consistent disclosure UX across the app.
+- **Markdown rendering for input bodies** — Input piece bodies now render via `<Markdown>` instead of raw `<pre>`, improving readability of markdown-formatted briefs and system prompts.
+- **`.agent-input-entry`** CSS class — New component class in `components.css` for input entry card styling.
+- **Agent Input panel spotlight** — Added to Design Language page Component Spotlights section (SPEC-0074 M1 alignment).
+- **Improved empty state** — When an input bundle is unavailable, the message now reads "Agent input bundle was not recorded for this run" instead of referencing internal spec numbers.
+- **Modal sub-tab ordering rule** — "Agent Input first" codified in `TABS_CANON` as the canonical tab ordering convention for all modals.
+
 ## [0.66.0] — 2026-05-18
 
 ### Added

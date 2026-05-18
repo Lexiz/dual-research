@@ -141,6 +141,29 @@ function DnaOnePager() {
             <QuoteCallout text="The architecture should prioritize horizontal scaling over vertical scaling for the ingestion layer." />
           </Spotlight>
 
+          <Spotlight label="Agent Input panel" caption="Collapsible entry list for agent input bundles. System prompt collapsed, user prompt expanded. Uses CollapsibleSection + Markdown rendering. SPEC-0074.">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
+              <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
+                <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)' }}>&#9654;</span>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>System prompt</span>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>(system)</span>
+                  <span style={{ flex: 1 }} />
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>4,915 chars</span>
+                </div>
+              </div>
+              <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
+                <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)', transform: 'rotate(90deg)' }}>&#9654;</span>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>User prompt: Brief</span>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>(brief)</span>
+                  <span style={{ flex: 1 }} />
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>245,378 chars</span>
+                </div>
+              </div>
+            </div>
+          </Spotlight>
+
           {/* M1: subsequent specs add their new primitives here.
                Format: <Spotlight label="<Foo>" caption="...">{live <Foo .../>}</Spotlight>
           */}

@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.67.0',
+      date: '2026-05-18',
+      summary: 'Agent Input tab rework -- renamed, reordered to first position, structural improvements with CollapsibleSection and Markdown rendering.',
+      items: [
+        '"Input" tab renamed to "Agent Input" across all modal contexts (top-level tabs and left-pane sub-tabs).',
+        'Agent Input now appears first in modal tab order, before Content.',
+        'Entry ordering: System Prompt first (collapsed), User Prompt second (expanded), then remaining entries.',
+        'Input entries now use the CollapsibleSection primitive for consistent disclosure UX.',
+        'Input piece bodies render via Markdown instead of raw preformatted text.',
+        'Improved empty state messaging when input bundles are unavailable.',
+      ],
+    },
+    {
       version: '0.66.0',
       date: '2026-05-18',
       summary: 'Critique detail unification -- disagreement cards now use QuestionThread-style turns, Issue/Comment bodies render Markdown, new QuoteCallout primitive.',
