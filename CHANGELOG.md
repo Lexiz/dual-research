@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.66.0] — 2026-05-18
+
+### Added
+
+- **Disagreement detail via QuestionThread** ([spec 0073](specs/0073-question-disagreement-render-and-markdown.md)) — Expanded disagreement cards now render using the `<QuestionThread kind="disagreement">` pattern: contested point as header, progression entries as agent turn cards with action chips (raised / conceded / aligned / pushed back), resolution footer. Replaces the old `CONTESTED POINT` + `PROGRESSION` vertical-rail rendering.
+- **Markdown rendering for Issue/Comment bodies** — Issue and Comment card bodies now render via `<Markdown>` instead of raw text. Bold, italic, blockquotes, and other formatting now display correctly.
+- **`<QuoteCallout>` primitive** (CMP-09) — New styled callout block for `.quote` fields on critique cards: left border + italic + muted background. Exposed on `window`. Spotlight added to Design Language page.
+- **`<QuestionThread>` `kind` prop** — Accepts `'question'` (default) or `'disagreement'`. When `kind='disagreement'`, turns render `step.action` as verdict and `step.note` as quote body (via Markdown). Handles `agent: 'both'` turns.
+
+### Changed
+
+- **Disagreement progression notes** — Step notes now render via `<Markdown>` for consistent formatting within QuestionThread turn quotes.
+- **QuestionThread question body** — Now renders string questions through `<Markdown>` for consistent treatment.
+
 ## [0.65.0] — 2026-05-18
 
 ### Added

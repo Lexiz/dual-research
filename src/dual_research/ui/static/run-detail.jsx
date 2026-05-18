@@ -7027,72 +7027,42 @@ function DisagreementCard({ d, onHighlight, run }) {
         />
       </button>
 
+      {/* SPEC-0073 D1-D2 — QuestionThread-based disagreement detail */}
       {open && (
         <div style={{
           padding: '14px',
           borderTop: '1px dashed var(--border-1)',
           background: 'var(--bg-0)',
         }}>
-          {/* Meta row — restored from the (now-compact) collapsed header. */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-            marginBottom: 12,
-            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ color: 'var(--fg-4)' }}>raised by</span>
-              {raisedMeta ? (
-                <>
-                  <AgentIcon agent={d.raisedBy} size={12} variant="ghost" />
-                  <span style={{ color: 'var(--fg-1)' }}>{raisedMeta.name.toLowerCase()}</span>
-                </>
-              ) : (
-                <span style={{ color: 'var(--fg-1)' }}>both</span>
-              )}
-            </span>
-            <span style={{ color: 'var(--fg-4)' }}>·</span>
-            <span style={{ color: isResolved ? 'var(--fg-2)' : COLORS.warn }}>{roundRange}</span>
-            <span style={{ color: 'var(--fg-4)' }}>·</span>
-            <span>
-              <span style={{ color: 'var(--fg-1)' }}>{exchanges}</span>
-              {' '}exchange{exchanges === 1 ? '' : 's'}
-            </span>
-          </div>
-          {/* Full point statement */}
-          <div style={{ marginBottom: 16 }}>
-            <SmallLabel>Contested point</SmallLabel>
-            <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.5 }}>{d.point}</div>
-          </div>
+          <QuestionThread
+            id={d.id}
+            kind="disagreement"
+            status={isResolved ? 'resolved' : 'open'}
+            question={d.point}
+            turns={(d.progression || []).map((step, i) => ({
+              agent: step.agent || 'claude',
+              round: step.round,
+              verdict: step.action,
+              quote: step.note,
+              kind: i === 0 ? 'origin' : 'response',
+            }))}
+            footer={isResolved ? statusLabel : null}
+          />
 
-          {/* Progression */}
-          {d.progression && d.progression.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <SmallLabel>Progression</SmallLabel>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {d.progression.map((step, i) => (
-                  <ProgressionStep key={i} step={step} last={i === d.progression.length - 1} />
-                ))}
-                {!isResolved && (
-                  <ProgressionStep step={{ round: null, agent: null, action: 'open', note: 'No movement yet from either agent.' }} last pending />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Current positions (only if not aligned/single-exchange) */}
+          {/* Current positions (only if multiple exchanges + not both-raised) */}
           {d.progression && d.progression.length > 1 && d.raisedBy !== 'both' && (
-            <div style={{ marginBottom: isResolved ? 16 : 0 }}>
+            <div style={{ marginTop: 14 }}>
               <SmallLabel>Current positions</SmallLabel>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Position agent="claude" text={d.claude} />
-                <Position agent="gpt" text={d.gpt} />
+                <Position agent="claude" text={d.claudePosition || d.claude} />
+                <Position agent="gpt" text={d.gptPosition || d.gpt} />
               </div>
             </div>
           )}
 
-          {/* Resolution */}
+          {/* Resolution detail (when available beyond the footer) */}
           {d.resolution && (
-            <div>
+            <div style={{ marginTop: 14 }}>
               <SmallLabel color={COLORS.ok}>Resolution</SmallLabel>
               <div style={{
                 paddingLeft: 10,
@@ -7170,11 +7140,9 @@ function IssueCard({ issue, onHighlight, run }) {
           fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
           display: 'flex', flexDirection: 'column', gap: 8,
         }}>
-          <div style={{
-            fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55,
-            whiteSpace: 'pre-wrap',
-          }}>
-            {issue.body || '(no body)'}
+          {/* SPEC-0073 D3 — render body via Markdown instead of raw text */}
+          <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
+            <Markdown text={issue.body || '(no body)'} />
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
@@ -7188,12 +7156,8 @@ function IssueCard({ issue, onHighlight, run }) {
               </>
             )}
           </div>
-          {issue.quote && (
-            <div>
-              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
-              <span style={{ fontStyle: 'italic' }}>"{issue.quote}"</span>
-            </div>
-          )}
+          {/* SPEC-0073 D4 — QuoteCallout for quote fields */}
+          {issue.quote && <QuoteCallout text={issue.quote} />}
           {issue.after && (
             <div>
               <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
@@ -7266,11 +7230,9 @@ function CommentCard({ comment, onHighlight, run }) {
           fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
           display: 'flex', flexDirection: 'column', gap: 8,
         }}>
-          <div style={{
-            fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55,
-            whiteSpace: 'pre-wrap',
-          }}>
-            {comment.body || '(no body)'}
+          {/* SPEC-0073 D3 — render body via Markdown instead of raw text */}
+          <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
+            <Markdown text={comment.body || '(no body)'} />
           </div>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
@@ -7278,12 +7240,8 @@ function CommentCard({ comment, onHighlight, run }) {
           }}>
             <span>noted by {raisedMeta?.name || comment.raisedBy} · R{comment.raisedRound}</span>
           </div>
-          {comment.quote && (
-            <div>
-              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
-              <span style={{ fontStyle: 'italic' }}>"{comment.quote}"</span>
-            </div>
-          )}
+          {/* SPEC-0073 D4 — QuoteCallout for quote fields */}
+          {comment.quote && <QuoteCallout text={comment.quote} />}
           {comment.after && (
             <div>
               <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>

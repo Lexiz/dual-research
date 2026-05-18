@@ -902,14 +902,17 @@ function QuestionRef({ id, number, raisedBy, round, format = 'compact', classNam
 }
 
 // QuestionThread — turn-by-turn conversation timeline for a critique item.
+// kind: 'question' (default) | 'disagreement' — SPEC-0073 D2
 // status: 'open' | 'resolved' | 'drift'
-// turns: [{ agent: 'claude'|'gpt', round, verdict?, quote?, kind? }]
-function QuestionThread({ id, status = 'open', question, turns = [], footer, statusChips }) {
+// turns: [{ agent: 'claude'|'gpt'|'both', round, verdict?, quote?, kind? }]
+function QuestionThread({ id, kind: threadKind = 'question', status = 'open', question, turns = [], footer, statusChips }) {
   return (
     <article className={_cn('qthread', `is-${status}`)}>
       <header className="qt-head">
         <div className="qt-head-l">
-          <QuestionRef id={id} />
+          {threadKind === 'question' ? <QuestionRef id={id} /> : (
+            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)', fontWeight: 600 }}>{id}</span>
+          )}
           {statusChips || (
             status === 'open'     ? <Chip tone="warn">open</Chip> :
             status === 'resolved' ? <Chip tone="ok">resolved</Chip> :
@@ -918,23 +921,30 @@ function QuestionThread({ id, status = 'open', question, turns = [], footer, sta
         </div>
         <div className="t-meta" style={{ color: 'var(--fg-3)' }}>{turns.length} turn{turns.length === 1 ? '' : 's'}</div>
       </header>
-      <div className="qt-question">{question}</div>
+      {question && <div className="qt-question">{typeof question === 'string' ? <Markdown text={question} /> : question}</div>}
       <ol className="qt-timeline" style={{ listStyle: 'none', margin: 0 }}>
         {turns.map((t, i) => {
-          const kind = t.kind || (i === 0 ? 'origin' : 'response');
-          const slot = _agentSlot(t.agent);
-          const agentLabel = t.agent === 'claude' ? 'Claude' : 'GPT';
+          const turnKind = t.kind || (i === 0 ? 'origin' : 'response');
+          const agent = t.agent === 'both' ? 'claude' : (t.agent || 'claude');
+          const slot = _agentSlot(agent);
+          const agentLabel = t.agent === 'both' ? 'Both' : (agent === 'claude' ? 'Claude' : 'GPT');
           return (
-            <li key={i} className={_cn('qt-row', `is-${slot}`, `is-${kind}`)}>
+            <li key={i} className={_cn('qt-row', `is-${slot}`, `is-${turnKind}`)}>
               <span className="qt-pill" aria-label={agentLabel + ' round ' + t.round + (t.verdict ? ' — ' + t.verdict : '')}>
-                <AgentIcon agent={t.agent} size={14} />
+                <AgentIcon agent={agent} size={14} />
                 <span className="qt-agent">{agentLabel}</span>
-                <span className="qt-sep" aria-hidden="true">·</span>
-                <span className="qt-round num">r{t.round}</span>
+                {t.round != null && <>
+                  <span className="qt-sep" aria-hidden="true">·</span>
+                  <span className="qt-round num">r{t.round}</span>
+                </>}
                 {t.verdict && <span className="qt-sep" aria-hidden="true">·</span>}
                 {t.verdict && <span className="qt-verdict">{t.verdict}</span>}
               </span>
-              {t.quote && <blockquote className="qt-quote">{t.quote}</blockquote>}
+              {t.quote && <blockquote className="qt-quote">
+                {typeof t.quote === 'string' && threadKind === 'disagreement'
+                  ? <Markdown text={t.quote} />
+                  : t.quote}
+              </blockquote>}
             </li>
           );
         })}
@@ -942,6 +952,18 @@ function QuestionThread({ id, status = 'open', question, turns = [], footer, sta
       {footer && status === 'drift'    && <div className="qt-drift"><Mdi name="shimmer" size={14} />{footer}</div>}
       {footer && status === 'resolved' && <div className="qt-resolved-foot"><Mdi name="check" size={14} />{footer}</div>}
     </article>
+  );
+}
+
+// ── SPEC-0073 — QuoteCallout ──────────────────────────────────────────────────
+// Styled callout for .quote fields on critique cards (issues, comments).
+// Replaces inline italic rendering with a visually distinct callout block.
+function QuoteCallout({ text, children }) {
+  if (!text && !children) return null;
+  return (
+    <div className="quote-callout">
+      {text ? `"${text}"` : children}
+    </div>
   );
 }
 
@@ -1160,4 +1182,6 @@ Object.assign(window, {
   parseCodeId, CodeCluster, CODE_KIND_LABELS,
   // SPEC-0071 primitives
   CollapsibleSection,
+  // SPEC-0073 primitives
+  QuoteCallout,
 });
