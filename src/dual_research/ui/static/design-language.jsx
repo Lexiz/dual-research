@@ -137,9 +137,12 @@ function DnaOnePager() {
             </CollapsibleSection>
           </Spotlight>
 
+          <Spotlight label="<QuoteCallout>" caption="Styled callout for quote fields on critique cards. Left border + italic + muted background. SPEC-0073.">
+            <QuoteCallout text="The architecture should prioritize horizontal scaling over vertical scaling for the ingestion layer." />
+          </Spotlight>
+
           {/* M1: subsequent specs add their new primitives here.
                Format: <Spotlight label="<Foo>" caption="...">{live <Foo .../>}</Spotlight>
-               SPEC-0073: <QuoteCallout>, <QuestionThread kind=disagreement>
           */}
         </div>
       </DnaSection>

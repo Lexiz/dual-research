@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.66.0',
+      date: '2026-05-18',
+      summary: 'Critique detail unification -- disagreement cards now use QuestionThread-style turns, Issue/Comment bodies render Markdown, new QuoteCallout primitive.',
+      items: [
+        'Disagreement detail rebuilt: progression entries now render as agent turn cards with action chips (raised/conceded/aligned) instead of vertical rail.',
+        'QuestionThread extended with kind="disagreement" for unified turn-card rendering across questions and disagreements.',
+        'Issue and Comment bodies now render via Markdown -- bold, italic, blockquotes, and code display correctly.',
+        'New QuoteCallout primitive for styled quote fields on critique cards (left border + italic + muted background).',
+        'Disagreement step notes and question bodies now render through Markdown for consistent formatting.',
+      ],
+    },
+    {
       version: '0.65.0',
       date: '2026-05-18',
       summary: 'Critique pane structural pass -- filter strip overflow fix, Phase 4 Issues/Comments split, three-sentence summary, disabled-Drift UX.',
