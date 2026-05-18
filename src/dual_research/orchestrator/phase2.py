@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 
 from dual_research.agents.base import AgentCall
 from dual_research.events import (
+    CanonicalFsdSynthesized,
     DrafterCanonicalPromoted,
     DrafterTiebreakResolved,
     EventBus,
@@ -15,6 +16,7 @@ from dual_research.events import (
     PhaseEntered,
     PhaseExited,
     SoftCapHit,
+    StuckAgreedPromoted,
 )
 from dual_research.orchestrator._call import run_one_call
 from dual_research.orchestrator._turns import list_turns, turn_path
@@ -35,6 +37,20 @@ from dual_research.protocol import (
     parse_turn,
     pick_drafter,
 )
+# Spec 0089 — new convergence escapes.
+from dual_research.protocol.convergence import (
+    all_substantive_gates_pass_except_canonical_fsd,
+    compose_full_agreed_plan,
+    is_plan_agreed_lenient,
+    splice_canonical_into_agreed_plan,
+)
+
+
+# Spec 0089 § B — number of consecutive lenient-True / strict-False rounds
+# before the stuck-AGREED escape valve fires. K=2 gives the strengthened
+# § C standing-items prompt one round of nudging before the orchestrator
+# accepts agent judgment over the ledger cross-check.
+STUCK_AGREED_K = 2
 from dual_research.protocol.prompt_pieces import (
     pieces_for_negotiation_round1,
     pieces_for_negotiation_turn,
@@ -83,6 +99,10 @@ async def run_phase2(
     converged = False
     via_tiebreak = False
     via_canonical_promotion = False
+    # Spec 0089 § A — set when the canonical-FSD synthesis escape fired.
+    via_canonical_fsd_synthesis = False
+    # Spec 0089 § B — set when the stuck-AGREED escape valve fired.
+    via_stuck_agreed = False
     rounds_done = 0
     last_claude_text: str | None = None
     last_openai_text: str | None = None
@@ -94,6 +114,16 @@ async def run_phase2(
     # already ≥ 1, we escape via canonical promotion. Per-agent because
     # only one side ever needs repairing (the non-drafter).
     hash_drift_repair_attempts: dict[str, int] = {"claude": 0, "gpt": 0}
+    # Spec 0089 § B — consecutive rounds where agents are fully aligned
+    # on the protocol surface (lenient check passes) but the strict
+    # ledger-cross-check rejects. After STUCK_AGREED_K such rounds in
+    # a row, accept the lenient convergence.
+    stuck_agreed_streak: int = 0
+    # Spec 0089 § C — track whether the prior round was blocked by the
+    # ledger cross-check, so the next round's prompt carries the
+    # high-salience warning section explaining what's happening.
+    prior_round_blocked_ledger_open: int = 0
+    prior_round_blocked: bool = False
 
     for r in range(1, hard_cap + 1):
         rounds_done = r
@@ -146,6 +176,7 @@ async def run_phase2(
             # OR when no items are open. Each agent sees a perspective-
             # specific view (items raised by the other surface first).
             from dual_research.ledger import (
+                build_blocked_convergence_warning,
                 build_phase_ledger,
                 build_standing_items_section,
                 ledger_mode,
@@ -157,6 +188,14 @@ async def run_phase2(
                 _ledger = build_phase_ledger(ctx.session.root, phase=2)
                 claude_standing = build_standing_items_section(_ledger, perspective="claude")
                 openai_standing = build_standing_items_section(_ledger, perspective="gpt")
+            # Spec 0089 § C — when the prior round emitted AGREED but the
+            # ledger blocked, surface a high-salience warning section so
+            # the agents understand what's actually gating them.
+            blocked_warning = build_blocked_convergence_warning(
+                prior_round_was_blocked=prior_round_blocked,
+                ledger_open_count=prior_round_blocked_ledger_open,
+                prior_round_number=r - 1,
+            )
             claude_prompt = negotiation_turn_prompt(
                 brief_content=brief_content,
                 own_draft=claude_draft,
@@ -168,6 +207,7 @@ async def run_phase2(
                 soft_cap=soft_cap,
                 hard_cap=hard_cap,
                 standing_items=claude_standing,
+                blocked_warning=blocked_warning,
             )
             openai_prompt = negotiation_turn_prompt(
                 brief_content=brief_content,
@@ -180,6 +220,7 @@ async def run_phase2(
                 soft_cap=soft_cap,
                 hard_cap=hard_cap,
                 standing_items=openai_standing,
+                blocked_warning=blocked_warning,
             )
             validator = assert_well_formed_plan_turn
             # Spec 0030: rounds 2+ also carry the growing P2 history.
@@ -301,6 +342,12 @@ async def run_phase2(
         # Convergence checks (round 1 cannot agree)
         agreed = False
         tiebreak_passes = False
+        # Spec 0089 § B — lenient check (no ledger gate). True when agents
+        # are fully aligned on the protocol surface; orchestrator tracks
+        # streak of lenient-True / strict-False rounds and escapes via
+        # stuck-AGREED promotion after STUCK_AGREED_K consecutive rounds.
+        lenient_agreed = False
+        ledger_open = None
         if r > 1:
             # Spec 0043 D7 — ledger cross-check: build the ledger from
             # the just-written turn files and pass the open count to
@@ -308,7 +355,6 @@ async def run_phase2(
             # check entirely (pass None).
             from dual_research.ledger import build_phase_ledger as _build_pl
             from dual_research.ledger import ledger_mode as _ledger_mode
-            ledger_open = None
             if _ledger_mode() != "legacy":
                 _ledger = _build_pl(ctx.session.root, phase=2)
                 # Phase 2 convergence considers questions + held disagreements
@@ -329,6 +375,22 @@ async def run_phase2(
             if not agreed:
                 tb = all_substantive_gates_pass_except_drafter(claude_text, openai_text)
                 tiebreak_passes = tb.passes
+                # Spec 0089 § B — track lenient agreement.
+                try:
+                    lenient_agreed = is_plan_agreed_lenient(claude_text, openai_text)
+                except ProtocolParseError:
+                    lenient_agreed = False
+
+        # Spec 0089 § B — update the stuck-AGREED streak counter.
+        if lenient_agreed and not agreed:
+            stuck_agreed_streak += 1
+        else:
+            stuck_agreed_streak = 0
+        # Spec 0089 § C — propagate the blocked-warning state into the
+        # NEXT round's prompt. "Blocked" means agents emitted aligned
+        # AGREED but the ledger cross-check rejected.
+        prior_round_blocked = lenient_agreed and not agreed
+        prior_round_blocked_ledger_open = ledger_open or 0
 
         await event_bus.publish(
             Phase2RoundComplete(
@@ -374,11 +436,107 @@ async def run_phase2(
 
         if agreed:
             ctx.state.drafter = claude_parsed.drafter
-            ctx.state.agreed_plan = claude_parsed.agreed_plan
-            fsd_items = extract_canonical_fsd_items(claude_parsed.agreed_plan)
+            # Spec 0089 — splice the top-level canonical FSD sub-section
+            # back into the plan so Phase 3 + extract_canonical_fsd_items
+            # see a self-contained plan+canonical block.
+            ctx.state.agreed_plan = compose_full_agreed_plan(
+                claude_text, claude_parsed.agreed_plan
+            )
+            fsd_items = extract_canonical_fsd_items(ctx.state.agreed_plan)
             ctx.state.final_surfaced_disagreements = [asdict(i) for i in fsd_items]
             converged = True
             print(f"\n[phase 2] AGREED. Drafter = {ctx.state.drafter}.", flush=True)
+            break
+
+        # ─── Spec 0089 § A — canonical-FSD synthesis escape ─────────────
+        # Fires when every substantive gate passes AND plan hashes match
+        # AND standalone FSD IDs match across agents, but the canonical
+        # ## Final-surfaced disagreements (canonical) sub-section is
+        # missing from the AGREED_PLAN. The orchestrator synthesises the
+        # sub-section deterministically from the drafter's standalone
+        # section (a strict superset of the canonical fields), splices
+        # it into the drafter's plan, and exits converged. No repair
+        # turn fired; this is pure on-disk transformation.
+        if r > 1:
+            fsd_gap = all_substantive_gates_pass_except_canonical_fsd(
+                claude_text, openai_text
+            )
+            if fsd_gap.detected:
+                new_plan = splice_canonical_into_agreed_plan(
+                    fsd_gap.canonical_plan or "",
+                    fsd_gap.synthesized_section or "",
+                )
+                ctx.state.drafter = fsd_gap.drafter
+                ctx.state.agreed_plan = new_plan
+                fsd_items = extract_canonical_fsd_items(new_plan)
+                ctx.state.final_surfaced_disagreements = [asdict(i) for i in fsd_items]
+                converged = True
+                via_canonical_fsd_synthesis = True
+                await event_bus.publish(
+                    CanonicalFsdSynthesized(
+                        round=r,
+                        drafter=fsd_gap.drafter or "",
+                        fsd_ids=list(fsd_gap.fsd_ids),
+                    )
+                )
+                ctx.transcript.write(
+                    "canonical_fsd_synthesized",
+                    round=r,
+                    drafter=fsd_gap.drafter,
+                    fsd_ids=list(fsd_gap.fsd_ids),
+                )
+                print(
+                    f"\n[phase 2] AGREED (canonical-FSD synthesis). "
+                    f"Drafter = {fsd_gap.drafter}. "
+                    f"Synthesised canonical sub-section for FSDs: "
+                    f"{', '.join(fsd_gap.fsd_ids)}.",
+                    flush=True,
+                )
+                break
+
+        # ─── Spec 0089 § B — stuck-AGREED escape valve ─────────────────
+        # Fires when agents have emitted substantively-equivalent AGREED
+        # for STUCK_AGREED_K consecutive rounds while only the ledger
+        # cross-check (or some other secondary gate) was blocking. After
+        # two such rounds the agents have demonstrated alignment beyond
+        # any reasonable doubt; the orchestrator accepts their judgment.
+        if (
+            lenient_agreed
+            and not agreed
+            and stuck_agreed_streak >= STUCK_AGREED_K
+        ):
+            ctx.state.drafter = claude_parsed.drafter
+            # Spec 0089 — same compose dance as the normal success branch.
+            ctx.state.agreed_plan = compose_full_agreed_plan(
+                claude_text, claude_parsed.agreed_plan
+            )
+            fsd_items = extract_canonical_fsd_items(ctx.state.agreed_plan)
+            ctx.state.final_surfaced_disagreements = [asdict(i) for i in fsd_items]
+            converged = True
+            via_stuck_agreed = True
+            await event_bus.publish(
+                StuckAgreedPromoted(
+                    phase=2,
+                    round=r,
+                    streak=stuck_agreed_streak,
+                    ledger_open_count=ledger_open or 0,
+                )
+            )
+            ctx.transcript.write(
+                "stuck_agreed_promoted",
+                phase=2,
+                round=r,
+                streak=stuck_agreed_streak,
+                ledger_open_count=ledger_open or 0,
+            )
+            print(
+                f"\n[phase 2] AGREED (stuck-AGREED escape valve). "
+                f"Drafter = {ctx.state.drafter}. Agents stayed aligned "
+                f"for {stuck_agreed_streak} consecutive rounds while "
+                f"the ledger reported {ledger_open or 0} open items; "
+                f"accepting agent judgment.",
+                flush=True,
+            )
             break
 
         if tiebreak_passes:
@@ -659,6 +817,8 @@ async def run_phase2(
             fsd_count=len(ctx.state.final_surfaced_disagreements),
             via_tiebreak=via_tiebreak,
             via_canonical_promotion=via_canonical_promotion,
+            via_canonical_fsd_synthesis=via_canonical_fsd_synthesis,
+            via_stuck_agreed=via_stuck_agreed,
         )
     )
     ctx.transcript.write(
@@ -669,6 +829,8 @@ async def run_phase2(
         fsd_count=len(ctx.state.final_surfaced_disagreements),
         via_tiebreak=via_tiebreak,
         via_canonical_promotion=via_canonical_promotion,
+        via_canonical_fsd_synthesis=via_canonical_fsd_synthesis,
+        via_stuck_agreed=via_stuck_agreed,
         parse_failure=parse_failure,
     )
 

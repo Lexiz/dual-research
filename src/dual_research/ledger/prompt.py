@@ -1,16 +1,20 @@
 """Spec 0043 — compose the ``## Standing items from prior rounds``
 section that the orchestrator injects into round-N (N≥2) prompts.
+Spec 0089 § C — tightened the instruction tone so agents understand
+that convergence is *actually* blocked while these items are open, and
+added ``build_blocked_convergence_warning`` for the case where the
+prior round was an AGREED-but-ledger-blocked one.
 
 This is the LLM-facing surface of the ledger. The agent reads
 structured prior-state alongside the existing prior-turn dump, so
 they don't have to re-derive "what's still open" from prose every
 round.
 
-The instruction is intentionally soft — the section is informational,
-not output-required. Agents naturally address each standing item in
-their reply (the protocol already provides ``## Answers to:``,
-``## Substantive disagreements I'm holding``, etc.); items left
-unaddressed surface as ``⚠ ghosted`` in the UI.
+The instruction is **not** soft: as of spec 0089 the orchestrator
+reflects the standing-items list back to the agents as a hard
+convergence gate. Items the agents leave silent surface in two
+places — as ``⚠ ghosted`` in the UI *and* as a blocker on
+``STATUS: AGREED`` no matter what the agents self-report.
 """
 
 from __future__ import annotations
@@ -21,10 +25,18 @@ from dual_research.ledger.models import LedgerEntry, LedgerState
 _HEADER = "## Standing items from prior rounds"
 _INSTRUCTION = (
     "These items were raised in earlier rounds and remain open as of "
-    "this point. Address each in your reply: answer it directly (for "
-    "questions), resolve or hold the position (for disagreements / "
-    "claims), incorporate the fix (for issues). Items you leave "
-    "unaddressed will be flagged to the user as ghosted."
+    "this point. **Convergence will be blocked while any item below is "
+    "still open**, even if you emit `OPEN_QUESTIONS: 0` / "
+    "`BLOCKING_DISAGREEMENTS: 0`. To make progress this round, either:\n"
+    "  (a) **Answer or address** the item directly in your reply "
+    "(answer the question, resolve or hold the disagreement, "
+    "incorporate the fix), OR\n"
+    "  (b) **Explicitly close it out** by listing the item ID in the "
+    "`## Resolved or non-blocking differences` section with a brief "
+    "rationale (e.g., `dropped_as_immaterial`, `resolved` with "
+    "citation, or `non_blocking_limitation`).\n"
+    "Items left silent will be flagged to the user as ghosted and will "
+    "continue to block convergence."
 )
 
 
@@ -138,3 +150,51 @@ def _format_entry_line(e: LedgerEntry) -> str:
     """
     where = "p1" if e.raised_round == 0 else f"r{e.raised_round}"
     return f"- [{e.id}] {e.kind} raised in {where}: {e.body_snippet} — status: {e.current_status}"
+
+
+# ─── Spec 0089 § C — blocked-convergence warning ────────────────────────────
+
+
+def build_blocked_convergence_warning(
+    *,
+    prior_round_was_blocked: bool,
+    ledger_open_count: int,
+    prior_round_number: int | None = None,
+) -> str:
+    """Spec 0089 § C — return a prominent warning section when the prior
+    round emitted AGREED with `OPEN_QUESTIONS: 0` but the ledger still
+    reported open items, so the orchestrator blocked convergence.
+
+    Empty string when ``prior_round_was_blocked`` is False or
+    ``ledger_open_count`` is 0 (nothing to warn about).
+
+    Designed to be rendered just BEFORE the standing-items section so
+    the agent sees the high-salience explanation first, then the
+    concrete list of items below.
+    """
+    if not prior_round_was_blocked or ledger_open_count <= 0:
+        return ""
+
+    where = f"round {prior_round_number}" if prior_round_number is not None else "the prior round"
+    chunks = [
+        "## ⚠ Convergence blocked in prior round",
+        "",
+        (
+            f"In {where} you and the other agent both emitted "
+            f"`STATUS: AGREED` with `OPEN_QUESTIONS: 0`, but the "
+            f"system-derived ledger reported "
+            f"{ledger_open_count} item{'s' if ledger_open_count != 1 else ''} "
+            f"still open. Convergence was blocked."
+        ),
+        "",
+        (
+            "The standing-items section below lists every open item. "
+            "To converge this round, address or explicitly close out "
+            "every item on that list (see the section's instructions "
+            "for the two acceptable resolutions). Repeating an AGREED "
+            "turn without addressing those items will continue to "
+            "block convergence."
+        ),
+        "",
+    ]
+    return "\n".join(chunks)

@@ -12,6 +12,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.70.0] — 2026-05-18
+
+### Added
+
+- **Spec 0089 — Convergence escape hatches for stuck-AGREED loops** ([spec 0089](specs/0089-convergence-escape-hatches-for-stuck-agreed.md)). Closes the class of failure where both agents declare `STATUS: AGREED` for many consecutive rounds yet the orchestrator's secondary gates keep blocking — observed in run `2c4f` (10 rounds of mutual AGREED → hard-cap deadlock at the 12-round cap) and `27de` (3 extra Phase 2 rounds before spec-0032 promotion fired). Three coordinated additions:
+  - **§ A — canonical-FSD synthesis escape.** New `all_substantive_gates_pass_except_canonical_fsd()` + `synthesize_canonical_fsd_section_from_standalone()` + `splice_canonical_into_agreed_plan()` + `compose_full_agreed_plan()` helpers in `protocol/convergence.py`. When every substantive gate passes AND plan hashes match AND standalone FSD IDs match across agents but the `## Final-surfaced disagreements (canonical)` sub-section is missing from the turn body, the orchestrator synthesises the canonical sub-section deterministically from the drafter's standalone section (a strict superset of the canonical fields per `prompts.py:374-388` vs `prompts.py:410-421`) and splices it in. No repair turn fires; pure on-disk transformation. New event `CanonicalFsdSynthesized`. Phase 2 only (Phase 4 reviews don't carry FSDs).
+  - **§ B — stuck-AGREED escape valve.** New `is_plan_agreed_lenient()` + `is_review_approved_lenient()` (mirrors of the existing strict checks minus the ledger cross-check). Orchestrator tracks consecutive rounds where `lenient_agreed = True` and `strict_agreed = False`; after `STUCK_AGREED_K = 2` rounds in a row, accepts the lenient convergence on the rationale that two consecutive rounds of substantively-equivalent AGREED is sufficient evidence the agents won't change behaviour. New event `StuckAgreedPromoted` (carries `phase`, `round`, `streak`, `ledger_open_count`). Symmetric across Phase 2 and Phase 4.
+  - **§ C — hard ledger feedback.** Rewrote `_INSTRUCTION` in `ledger/prompt.py` from soft ("informational, not output-required") to hard ("convergence will be blocked while any item below is still open"). Added `build_blocked_convergence_warning()` which renders a high-salience `## ⚠ Convergence blocked in prior round` section when the prior round emitted AGREED but the ledger blocked. Wired the warning into `negotiation_turn_prompt` and `review_turn_prompt` via a new optional `blocked_warning` kwarg.
+- **Phase 2/4 success-path agreed-plan composition.** All convergence paths that store `ctx.state.agreed_plan` now invoke the new `compose_full_agreed_plan()` helper to splice the top-level canonical FSD sub-section back into the plan body, so `extract_canonical_fsd_items` and Phase 3's drafting prompt see a self-contained plan-plus-canonical block. Closes a latent bug where parse_turn's AGREED_PLAN extraction truncated at the canonical sub-section's `##` heading, leaving `state.agreed_plan` as just the fence opener for every FSD>0 turn.
+
+### Fixed
+
+- **`is_plan_agreed` canonical FSD scope.** Corrected the canonical FSD sub-section lookup from `c.agreed_plan` (which is structurally truncated before the canonical heading by `parse_turn`'s `extract_fenced_section` semantics) to the full turn body. This was a latent bug that always blocked convergence for FSD>0 turns — exposed by run `2c4f` where the ledger cross-check happened to also block, masking the underlying gate failure. Same correction applied to the new `is_plan_agreed_lenient` and `all_substantive_gates_pass_except_canonical_fsd` helpers.
+
+### Changed
+
+- **Cache-bust** bumped `v=0090` → `v=0091` across `index.html` defensively (no static-asset changes in this release).
+
 ## [0.69.14] — 2026-05-18
 
 ### Fixed

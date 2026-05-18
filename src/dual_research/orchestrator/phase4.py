@@ -14,6 +14,7 @@ from dual_research.events import (
     PhaseEntered,
     PhaseExited,
     SoftCapHit,
+    StuckAgreedPromoted,
 )
 from dual_research.orchestrator._call import run_one_call
 from dual_research.orchestrator._turns import list_turns, turn_path
@@ -29,6 +30,12 @@ from dual_research.protocol import (
     parse_turn,
     review_turn_prompt,
 )
+from dual_research.protocol.convergence import is_review_approved_lenient
+
+# Spec 0089 § B — symmetric with phase2.STUCK_AGREED_K. After this many
+# consecutive rounds where agents have emitted aligned APPROVED but the
+# ledger cross-check kept blocking, the stuck-AGREED escape valve fires.
+STUCK_AGREED_K = 2
 from dual_research.protocol.prompt_pieces import pieces_for_review
 from dual_research.protocol.prompts import review_input_bundle
 
@@ -71,6 +78,15 @@ async def run_phase4(
     parse_failure_agent: str | None = None
     last_claude_text: str | None = None
     last_openai_text: str | None = None
+    # Spec 0089 § B — consecutive rounds where agents emitted aligned
+    # APPROVED but the ledger cross-check rejected. After STUCK_AGREED_K
+    # such rounds the stuck-AGREED escape valve fires.
+    stuck_agreed_streak: int = 0
+    via_stuck_agreed = False
+    # Spec 0089 § C — propagate the blocked-warning state into the next
+    # round's prompt.
+    prior_round_blocked_ledger_open: int = 0
+    prior_round_blocked: bool = False
 
     for r in range(1, hard_cap + 1):
         rounds_done = r
@@ -142,7 +158,10 @@ async def run_phase4(
         print(f"\n[phase 4] round {r}/{hard_cap}  (current draft = v{ctx.state.draft_round})\n", flush=True)
 
         # Spec 0043 D6 — standing items input for R≥2 review turns.
+        # Spec 0089 § C — blocked-convergence warning when the prior
+        # round was an AGREED-but-ledger-blocked one.
         from dual_research.ledger import (
+            build_blocked_convergence_warning as _build_warn,
             build_phase_ledger as _build_pl,
             build_standing_items_section as _build_si,
             ledger_mode as _ledger_mode,
@@ -154,6 +173,11 @@ async def run_phase4(
         else:
             claude_standing = ""
             openai_standing = ""
+        blocked_warning = _build_warn(
+            prior_round_was_blocked=prior_round_blocked,
+            ledger_open_count=prior_round_blocked_ledger_open,
+            prior_round_number=r - 1,
+        )
 
         claude_prompt = review_turn_prompt(
             brief_content=brief_content,
@@ -166,6 +190,7 @@ async def run_phase4(
             soft_cap=soft_cap,
             hard_cap=hard_cap,
             standing_items=claude_standing,
+            blocked_warning=blocked_warning,
         )
         openai_prompt = review_turn_prompt(
             brief_content=brief_content,
@@ -178,6 +203,7 @@ async def run_phase4(
             soft_cap=soft_cap,
             hard_cap=hard_cap,
             standing_items=openai_standing,
+            blocked_warning=blocked_warning,
         )
         # Spec 0030: per-piece sizes for the Consumption tab. Both agents
         # share the same input shape this round (same brief + same draft
@@ -340,6 +366,24 @@ async def run_phase4(
         except ProtocolParseError:
             approved = False
 
+        # Spec 0089 § B — lenient approval check (no ledger gate).
+        lenient_approved = False
+        if not approved:
+            try:
+                lenient_approved = is_review_approved_lenient(
+                    claude_text, openai_text, round=r,
+                )
+            except ProtocolParseError:
+                lenient_approved = False
+        if lenient_approved and not approved:
+            stuck_agreed_streak += 1
+        else:
+            stuck_agreed_streak = 0
+        # Spec 0089 § C — propagate blocked-warning state for the next
+        # round's prompt.
+        prior_round_blocked = lenient_approved and not approved
+        prior_round_blocked_ledger_open = ledger_open_p4 or 0
+
         await event_bus.publish(
             Phase4RoundComplete(
                 round=r,
@@ -372,6 +416,42 @@ async def run_phase4(
             print("\n[phase 4] APPROVED. ", flush=True)
             break
 
+        # ─── Spec 0089 § B — Phase 4 stuck-AGREED escape valve ─────────
+        # Same pattern as phase 2: when agents have emitted aligned
+        # APPROVED for STUCK_AGREED_K consecutive rounds but the ledger
+        # cross-check kept blocking, accept agent judgment.
+        if (
+            lenient_approved
+            and not approved
+            and stuck_agreed_streak >= STUCK_AGREED_K
+        ):
+            approved = True
+            via_stuck_agreed = True
+            await event_bus.publish(
+                StuckAgreedPromoted(
+                    phase=4,
+                    round=r,
+                    streak=stuck_agreed_streak,
+                    ledger_open_count=ledger_open_p4 or 0,
+                )
+            )
+            ctx.transcript.write(
+                "stuck_agreed_promoted",
+                phase=4,
+                round=r,
+                streak=stuck_agreed_streak,
+                ledger_open_count=ledger_open_p4 or 0,
+            )
+            print(
+                f"\n[phase 4] APPROVED (stuck-AGREED escape valve). "
+                f"Agents stayed aligned for {stuck_agreed_streak} "
+                f"consecutive rounds while the ledger reported "
+                f"{ledger_open_p4 or 0} open issue(s); accepting "
+                f"agent judgment.",
+                flush=True,
+            )
+            break
+
         if r == soft_cap:
             await event_bus.publish(SoftCapHit(phase="phase4", round=r, cap=soft_cap))
             ctx.transcript.write("soft_cap_hit", phase="phase4", round=r, cap=soft_cap)
@@ -395,6 +475,7 @@ async def run_phase4(
             approved=approved,
             final_draft_round=ctx.state.draft_round,
             revisions=revisions,
+            via_stuck_agreed=via_stuck_agreed,
         )
     )
     ctx.transcript.write(
@@ -403,6 +484,7 @@ async def run_phase4(
         approved=approved,
         final_draft_round=ctx.state.draft_round,
         revisions=revisions,
+        via_stuck_agreed=via_stuck_agreed,
         parse_failure=parse_failure,
     )
 
