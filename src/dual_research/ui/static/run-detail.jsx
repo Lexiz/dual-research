@@ -2435,14 +2435,15 @@ function PaneHeader({ title, count, left, right, accentGradient, accentColor }) 
   );
 }
 
-// Pane toolbar — fixed 44px, subtle bg to differentiate from content.
+// Pane toolbar — min 44px, subtle bg to differentiate from content.
+// SPEC-0072 D1: use minHeight so multi-row filter strips expand naturally.
 function PaneToolbar({ children }) {
   return (
     <div style={{
-      height: 44,
+      minHeight: 44,
       flexShrink: 0,
       display: 'flex', alignItems: 'center', gap: 10,
-      padding: '0 24px',
+      padding: '6px 24px',
       background: 'var(--bg-1)',
       borderBottom: '1px solid var(--border-1)',
     }}>{children}</div>
@@ -5596,6 +5597,11 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     const allowed = PHASE_CHIP_ALLOWLIST[selectedPhase] || [];
     if (!allowed.includes(typeFilter)) setTypeFilter('all');
   }, [selectedPhase, typeFilter]);
+  // SPEC-0072 D12 — auto-reset status to 'all' if drift is selected but
+  // kind switched to 'questions' (drift doesn't apply to questions).
+  React.useEffect(() => {
+    if (typeFilter === 'questions' && statusFilter === 'drift') setStatusFilter('all');
+  }, [typeFilter, statusFilter]);
   // If the user had selected Summary but the run later regressed out of
   // a terminal state (rare — e.g. a resume), fall back to a phase view.
   React.useEffect(() => {
@@ -5655,10 +5661,28 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
       resolvedItems.push(item);
     }
   };
-  if (showI) for (const i of phaseIssues) pushItem(i, 'i');
+  // SPEC-0072 D6 — In Phase 4, issues and comments render in their own
+  // CollapsibleSections instead of being mixed into OPEN/RESOLVED.
+  const issueItems = [];
+  const commentItems = [];
+  if (showI) {
+    for (const i of phaseIssues) {
+      if (selectedPhase === 4) {
+        if (!matchesAgent(i)) continue;
+        issueItems.push({ ...i, _critiqueKind: 'i' });
+      } else {
+        pushItem(i, 'i');
+      }
+    }
+  }
   if (showD) for (const d of phaseDisagreements) pushItem(d, 'd');
   if (showQ) for (const q of phaseQuestions) pushItem(q, 'q');
-  if (showC) for (const c of phaseComments) resolvedItems.push({ ...c, _critiqueKind: 'c' });
+  if (showC) {
+    for (const c of phaseComments) {
+      if (!matchesAgent(c)) continue;
+      commentItems.push({ ...c, _critiqueKind: 'c' });
+    }
+  }
 
   // Sort: by round ascending so the user reads chronological history.
   const sortRound = (it) => {
@@ -5674,6 +5698,8 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   openItems.sort(byRound);
   resolvedItems.sort(byRound);
   driftItems.sort(byRound);
+  issueItems.sort(byRound);
+  commentItems.sort(byRound);
 
   const totalOpen = openItems.length;
   const totalResolved = resolvedItems.length;
@@ -5786,31 +5812,39 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
       />
       {!isSummary && (
         <PaneToolbar>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
+            {/* SPEC-0072 D2 — top row (kind axis) anchored left */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
               <CritiqueTypeFilter
                 active={typeFilter}
                 onChange={setTypeFilter}
                 phaseId={selectedPhase}
               />
             </div>
-            {/* SPEC-0057 D4 — agent + status filter axes */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* SPEC-0072 D3/D5 — bottom row (agent + status) centered, tightened spacing */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
               <TabGroup>
-                <Tab size="sm" active={agentFilter === 'all'} onClick={() => setAgentFilter('all')}>All</Tab>
-                <Tab size="sm" active={agentFilter === 'claude'} onClick={() => setAgentFilter('claude')}>
+                <Tab size="sm" active={agentFilter === 'all'} onClick={() => setAgentFilter('all')} title="Show items from all agents">All</Tab>
+                <Tab size="sm" active={agentFilter === 'claude'} onClick={() => setAgentFilter('claude')} title="Show only items raised by Claude">
                   <AgentIcon agent="claude" size={12} /> Claude
                 </Tab>
-                <Tab size="sm" active={agentFilter === 'gpt'} onClick={() => setAgentFilter('gpt')}>
+                <Tab size="sm" active={agentFilter === 'gpt'} onClick={() => setAgentFilter('gpt')} title="Show only items raised by GPT">
                   <AgentIcon agent="gpt" size={12} /> GPT
                 </Tab>
               </TabGroup>
               <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>·</span>
               <TabGroup>
-                <Tab size="sm" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</Tab>
-                <Tab size="sm" active={statusFilter === 'open'} onClick={() => setStatusFilter('open')}>Open</Tab>
-                <Tab size="sm" active={statusFilter === 'resolved'} onClick={() => setStatusFilter('resolved')}>Resolved</Tab>
-                <Tab size="sm" active={statusFilter === 'drift'} onClick={() => setStatusFilter('drift')}>Drift</Tab>
+                <Tab size="sm" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} title="Show items in all statuses">All</Tab>
+                <Tab size="sm" active={statusFilter === 'open'} onClick={() => setStatusFilter('open')} title="Show only open (unresolved) items">Open</Tab>
+                <Tab size="sm" active={statusFilter === 'resolved'} onClick={() => setStatusFilter('resolved')} title="Show only resolved / answered items">Resolved</Tab>
+                {/* SPEC-0072 D12 — disable Drift when kind=questions (drift only applies to disagreements) */}
+                <Tab
+                  size="sm"
+                  active={statusFilter === 'drift'}
+                  onClick={typeFilter === 'questions' ? undefined : () => setStatusFilter('drift')}
+                  title={typeFilter === 'questions' ? 'Drift does not apply to questions' : 'Show only drift items (unaddressed for multiple rounds)'}
+                  style={typeFilter === 'questions' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                >Drift</Tab>
               </TabGroup>
             </div>
           </div>
@@ -5825,6 +5859,8 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
           openItems={openItems}
           resolvedItems={resolvedItems}
           driftItems={driftItems}
+          issueItems={issueItems}
+          commentItems={commentItems}
           introduced={introduced}
           onHighlight={handleHighlight}
         />
@@ -5871,6 +5907,15 @@ function filterChipsFor(phaseId) {
     ...allowed.map((k) => ({ id: k, label: FILTER_KIND_LABEL[k] || k })),
   ];
 }
+// SPEC-0072 D4 — tooltip for each kind filter chip.
+const KIND_FILTER_TOOLTIP = {
+  all: 'Show all critique item types',
+  questions: 'Show only Questions',
+  disagreements: 'Show only Disagreements',
+  claims: 'Show only Claims',
+  issues: 'Show only Issues',
+  comments: 'Show only Comments',
+};
 function CritiqueTypeFilter({ active, onChange, phaseId }) {
   // Spec 0053 D4 — migrated from PaneButton to Tab (tabs-solid sm).
   const items = filterChipsFor(phaseId);
@@ -5883,6 +5928,7 @@ function CritiqueTypeFilter({ active, onChange, phaseId }) {
           size="sm"
           active={t.id === active}
           onClick={() => onChange(t.id)}
+          title={KIND_FILTER_TOOLTIP[t.id] || `Show only ${t.label}`}
         >
           {t.label}
         </Tab>
@@ -5891,7 +5937,7 @@ function CritiqueTypeFilter({ active, onChange, phaseId }) {
   );
 }
 
-function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftItems = [], introduced, onHighlight }) {
+function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftItems = [], issueItems = [], commentItems = [], introduced, onHighlight }) {
   const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
   if (pending) {
     return (
@@ -5914,7 +5960,7 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
     );
   }
 
-  const totalVisible = openItems.length + resolvedItems.length + driftItems.length;
+  const totalVisible = openItems.length + resolvedItems.length + driftItems.length + issueItems.length + commentItems.length;
   if (introduced === 0 && totalVisible === 0) {
     const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
     return (
@@ -6019,6 +6065,56 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
             )}
           >
             {resolvedItems.map(renderItem)}
+          </CollapsibleSection>
+        )}
+        {/* SPEC-0072 D6 — Issues as a separate CollapsibleSection in Phase 4 */}
+        {issueItems.length > 0 && (
+          <CollapsibleSection
+            title="Issues" count={issueItems.length} countColor={COLORS.warn}
+            persistKey={`dr_crit_${run.id}_${phaseId}_issues`}
+            renderTitle={({ open }) => (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '8px 12px',
+                marginTop: (openItems.length || resolvedItems.length || driftItems.length) ? 20 : 16, marginBottom: 8,
+                background: COLORS.warn + '14',
+                border: `1px solid ${COLORS.warn}44`,
+                borderRadius: 'var(--r-2)',
+                whiteSpace: 'nowrap',
+              }}>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.warn, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Issues</span>
+                <span style={{ flex: 1 }} />
+                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.warn, fontWeight: 600 }}>{issueItems.length}</span>
+              </div>
+            )}
+          >
+            {issueItems.map(renderItem)}
+          </CollapsibleSection>
+        )}
+        {/* SPEC-0072 D6 — Comments as a separate CollapsibleSection */}
+        {commentItems.length > 0 && (
+          <CollapsibleSection
+            title="Comments" count={commentItems.length} countColor={'var(--fg-2)'}
+            persistKey={`dr_crit_${run.id}_${phaseId}_comments`}
+            renderTitle={({ open }) => (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '8px 12px',
+                marginTop: (openItems.length || resolvedItems.length || driftItems.length) ? 20 : 16, marginBottom: 8,
+                background: 'var(--bg-2)',
+                border: '1px solid var(--border-2)',
+                borderRadius: 'var(--r-2)',
+                whiteSpace: 'nowrap',
+              }}>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Comments</span>
+                <span style={{ flex: 1 }} />
+                <span className="mono num" style={{ fontSize: 11.5, color: 'var(--fg-2)', fontWeight: 600 }}>{commentItems.length}</span>
+              </div>
+            )}
+          >
+            {commentItems.map(renderItem)}
           </CollapsibleSection>
         )}
       </div>
@@ -6241,9 +6337,79 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     return { question: best, turns, threadStatus, footer, ghostedRounds: bestGhost };
   }, [questions, run]);
 
+  // SPEC-0072 D7-D10 — three-sentence summary copy generation.
+  const summaryCopy = React.useMemo(() => {
+    const totalQ = questions.length;
+    const resolvedQ = questions.filter(q => q.status !== 'open').length;
+    const totalD = disagreements.length;
+    const resolvedD = disagreements.filter(d => (d.status || '').startsWith('resolved')).length;
+    const totalI = issues.length;
+    const resolvedI = issues.filter(i => i.status !== 'open').length;
+    const totalC = comments.length;
+    const totalClaims = claims.length;
+
+    const totalItems = totalQ + totalD + totalI;
+    const totalResolved = resolvedQ + resolvedD + resolvedI;
+    const resolveRatio = totalItems > 0 ? totalResolved / totalItems : 1;
+
+    // Count drift items across all phases.
+    const ledgers = (run && run.phaseLedgers) || {};
+    let driftCount = 0;
+    for (const phaseId of Object.keys(ledgers)) {
+      for (const entry of ledgers[phaseId]) {
+        if (entry.ghostedRounds > 0) driftCount++;
+      }
+    }
+    const driftRatio = totalItems > 0 ? driftCount / totalItems : 0;
+
+    // D9: sentiment verdict vocabulary.
+    let verdict;
+    if (totalItems === 0) {
+      verdict = 'Inconclusive';
+    } else if (resolveRatio >= 0.7 && driftRatio < 0.2) {
+      verdict = 'Mostly positive';
+    } else if (resolveRatio < 0.4 || driftRatio >= 0.4) {
+      verdict = 'Mostly negative';
+    } else {
+      verdict = 'Mixed';
+    }
+
+    // Sentence 1: sentiment verdict.
+    const s1Parts = [`**${verdict}**`];
+    if (totalItems > 0) {
+      const pct = Math.round(resolveRatio * 100);
+      s1Parts.push(` \u2014 ${pct}% of critique items resolved across both agents.`);
+    } else {
+      s1Parts.push(' \u2014 no critique items were raised in this run.');
+    }
+    const sentence1 = s1Parts.join('');
+
+    // Sentence 2: qualitative line.
+    const qualParts = [];
+    if (totalQ > 0) qualParts.push(`${totalQ} question${totalQ !== 1 ? 's' : ''} raised (${resolvedQ} answered)`);
+    if (totalD > 0) qualParts.push(`${totalD} disagreement${totalD !== 1 ? 's' : ''} raised (${resolvedD} resolved)`);
+    if (totalI > 0) qualParts.push(`${totalI} issue${totalI !== 1 ? 's' : ''} flagged (${resolvedI} resolved)`);
+    if (totalC > 0) qualParts.push(`${totalC} comment${totalC !== 1 ? 's' : ''} noted`);
+    if (totalClaims > 0) qualParts.push(`${totalClaims} claim${totalClaims !== 1 ? 's' : ''} tracked`);
+    const sentence2 = qualParts.length > 0 ? qualParts.join(', ') + '.' : '';
+
+    // Sentence 3: drift note if any.
+    const sentence3 = driftCount > 0
+      ? `${driftCount} item${driftCount !== 1 ? 's' : ''} drifted without response for multiple rounds.`
+      : '';
+
+    return [sentence1, sentence2, sentence3].filter(Boolean).join(' ');
+  }, [questions, disagreements, issues, comments, claims, run]);
+
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
       <div style={{ padding: '16px 24px 28px' }}>
+        {/* SPEC-0072 D7-D10 — three-sentence summary */}
+        {summaryCopy && (
+          <div style={{ marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: 'var(--fg-1)' }}>
+            <Markdown text={summaryCopy} />
+          </div>
+        )}
         {/* SPEC-0057 D6 — highest-leverage thread as opening artifact */}
         {highestLeverageThread && (
           <div style={{ marginBottom: 20 }}>
