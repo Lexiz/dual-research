@@ -707,8 +707,16 @@ function PhaseDots({ run }) {
 // ─────────────────── PhaseRail (SPEC-0057 D1) ───────────────────
 // Sticky vertical rail down the timeline pane left edge showing phase progress.
 // Click a phase node to scroll the timeline to that phase's divider card.
+//
+// SPEC-0087 § D.2 — pill anchoring. Each pill's vertical position
+// tracks its corresponding phase header's y-position in the timeline
+// (was: evenly spaced down a column). Implemented via IntersectionObserver
+// on the header bands + a RAF-throttled position update on scroll.
 function PhaseRail({ run, scrollContainerRef }) {
   const { phase, status } = run;
+  const railRef = React.useRef(null);
+  const [pillTops, setPillTops] = React.useState({});
+
   const handleClick = React.useCallback((phaseId) => {
     if (!scrollContainerRef?.current) return;
     const container = scrollContainerRef.current;
@@ -719,9 +727,54 @@ function PhaseRail({ run, scrollContainerRef }) {
     }
   }, [scrollContainerRef]);
 
+  // Measure each phase header's y-offset within the scroll container
+  // and translate it to a `top` value for the matching pill. RAF-throttled
+  // so it stays smooth on fast scrolls. Re-runs when the timeline
+  // re-renders (artifact-card mounts / unmounts shift header positions).
+  React.useEffect(() => {
+    const container = scrollContainerRef?.current;
+    const rail = railRef.current;
+    if (!container || !rail) return;
+
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const containerRect = container.getBoundingClientRect();
+      const next = {};
+      for (const p of PHASES) {
+        const header = container.querySelector(`[data-phase-id="${p.id}"]`);
+        if (!header) continue;
+        const headerRect = header.getBoundingClientRect();
+        // Pin to the visible region of the scroll container — the rail
+        // is sticky to the top of the scroll container, so the y-offset
+        // is relative to the container's top edge plus scrollTop.
+        const top = headerRect.top - containerRect.top + container.scrollTop;
+        next[p.id] = Math.max(0, top);
+      }
+      setPillTops(next);
+    };
+    const schedule = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(measure);
+    };
+
+    // Initial measurement + on scroll.
+    schedule();
+    container.addEventListener('scroll', schedule, { passive: true });
+    // Re-measure when the timeline content changes via ResizeObserver
+    // (header positions shift as cards expand / collapse / load).
+    const ro = new ResizeObserver(schedule);
+    ro.observe(container);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      container.removeEventListener('scroll', schedule);
+      ro.disconnect();
+    };
+  }, [scrollContainerRef, run.phase, run.status]);
+
   return (
-    <div className="phase-rail">
-      {PHASES.map((p, i) => {
+    <div ref={railRef} className="phase-rail">
+      {PHASES.map((p) => {
         const completed = p.id < phase || (status === 'completed' && p.id <= 5);
         const current = p.id === phase && status !== 'completed';
         const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
@@ -729,21 +782,24 @@ function PhaseRail({ run, scrollContainerRef }) {
                          : current ? 'is-current'
                          : completed ? 'is-completed'
                          : '';
-        const isLast = i === PHASES.length - 1;
+        // When we've measured a y-offset for this phase header, position
+        // the pill absolutely at that offset. Otherwise fall back to the
+        // natural stack flow (initial paint, before measurement runs).
+        const measuredTop = pillTops[p.id];
+        const anchored = measuredTop != null;
         return (
-          <React.Fragment key={p.id}>
-            <div
-              className={`phase-rail-node ${stateClass}`}
-              onClick={() => handleClick(p.id)}
-              title={`Phase ${p.id} — ${p.label}`}
-            >
-              <span className="pr-dot">
-                {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
-              </span>
-              <span className="pr-label">{p.short}</span>
-            </div>
-            {!isLast && <span className="phase-rail-connector" />}
-          </React.Fragment>
+          <div
+            key={p.id}
+            className={`phase-rail-node ${stateClass} ${anchored ? 'is-anchored' : ''}`}
+            onClick={() => handleClick(p.id)}
+            title={`Phase ${p.id} — ${p.label}`}
+            style={anchored ? { position: 'absolute', top: measuredTop } : undefined}
+          >
+            <span className="pr-dot">
+              {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
+            </span>
+            <span className="pr-label">{p.short}</span>
+          </div>
         );
       })}
     </div>
@@ -2636,7 +2692,10 @@ function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
       onMouseLeave={() => setHover(false)}
       data-turn-key={item.turnKey || undefined}
       style={{
-        marginBottom: 6,
+        // SPEC-0087 § G.3 — row gap trimmed from 6 → 4 px to match the
+        // tightened card padding. Cumulative density improvement is
+        // ~6 px per row.
+        marginBottom: 4,
         ...(flashColor ? {
           boxShadow: `0 0 0 2px ${flashColor}, 0 0 24px ${flashColor}55`,
           borderColor: flashColor,
@@ -6849,7 +6908,7 @@ function _toneFromColor(color) {
 
 function CardHeadline({
   kind, publicId, statusLabel, statusColor, body,
-  ghostedRounds, accentColor, trailing,
+  ghostedRounds, accentColor, trailing, extraChips,
 }) {
   const kindTone = _toneFromColor(accentColor);
   const statusTone = _toneFromColor(statusColor);
@@ -6872,6 +6931,22 @@ function CardHeadline({
           </Chip>
         </>
       )}
+      {/* SPEC-0087 § K.1 — extra attribution chips (e.g., `raised by X`)
+          render after the primary statusLabel chip. Each entry is
+          `{ label, color, tone }` — `label` may be a React node so
+          callers can embed a `<BrandMark>` icon (per § K.2). */}
+      {Array.isArray(extraChips) && extraChips.map((c, i) => (
+        <React.Fragment key={i}>
+          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
+          <Chip
+            tone={c.tone || _toneFromColor(c.color)}
+            pill
+            style={!c.tone && c.color ? { color: c.color, borderColor: `${c.color}55`, background: `${c.color}14` } : undefined}
+          >
+            {c.label}
+          </Chip>
+        </React.Fragment>
+      ))}
       <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
       <span style={{
         flex: 1, minWidth: 0,
@@ -7091,12 +7166,49 @@ function DisagreementCard({ d, onHighlight, run }) {
 
   // Spec 0046 D3 + SPEC-0067 D7 — status label + colour for the unified headline.
   // D7: drop ambiguous arrow notation; use descriptive labels.
-  let statusLabel, statusColor;
-  if (d.status === 'open' && d.deadlocked) { statusLabel = 'deadlocked'; statusColor = COLORS.warn; }
-  else if (d.status === 'open')            { statusLabel = 'open';       statusColor = COLORS.warn; }
-  else if (which === 'claude')             { statusLabel = 'conceded by Claude'; statusColor = COLORS.agentA; }
-  else if (which === 'gpt')                { statusLabel = 'conceded by GPT';    statusColor = COLORS.agentB; }
-  else if (which === 'both')               { statusLabel = 'both aligned';       statusColor = COLORS.ok; }
+  // SPEC-0087 § K.2 — embed `<BrandMark>` icons inside the agent-
+  // attribution chips so the brand glyph (Claude burst / OpenAI knot)
+  // sits beside the agent name. We keep TWO copies of the label:
+  // a plain string for footer interpolation (`QuestionThread.footer`)
+  // and a JSX node for the visual chip so it can carry the icon.
+  let statusLabel, statusColor, statusLabelPlain;
+  const _conceded = (agentName, brandName) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <BrandMark name={brandName} size={11} variant="solid" aria-hidden="true" />
+      conceded by {agentName}
+    </span>
+  );
+  if (d.status === 'open' && d.deadlocked) {
+    statusLabel = 'deadlocked'; statusLabelPlain = 'deadlocked'; statusColor = COLORS.warn;
+  } else if (d.status === 'open') {
+    statusLabel = 'open'; statusLabelPlain = 'open'; statusColor = COLORS.warn;
+  } else if (which === 'claude') {
+    statusLabel = _conceded('Claude', 'claude'); statusLabelPlain = 'conceded by Claude'; statusColor = COLORS.agentA;
+  } else if (which === 'gpt') {
+    statusLabel = _conceded('GPT', 'openai'); statusLabelPlain = 'conceded by GPT'; statusColor = COLORS.agentB;
+  } else if (which === 'both') {
+    statusLabel = 'both aligned'; statusLabelPlain = 'both aligned'; statusColor = COLORS.ok;
+  }
+
+  // SPEC-0087 § K.1 — `raised by X` attribution chip. Resolves the
+  // long-standing audit gap (delta 18.47) where the chip pair was
+  // collapsed into a single `conceded by Y` chip and the originator
+  // was lost. Shown when `d.raisedBy` is known; defaults to skipping
+  // the `both` case (rendering `raised by both` adds little signal).
+  const raisedBy = d.raisedBy;
+  const _raisedBrand = raisedBy === 'claude' ? 'claude'
+                     : raisedBy === 'gpt' ? 'openai' : null;
+  const _raisedName = raisedBy === 'claude' ? 'Claude'
+                    : raisedBy === 'gpt' ? 'GPT' : null;
+  const extraChips = (raisedBy === 'claude' || raisedBy === 'gpt') ? [{
+    tone: 'muted',
+    label: (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <BrandMark name={_raisedBrand} size={11} variant="solid" aria-hidden="true" />
+        raised by {_raisedName}
+      </span>
+    ),
+  }] : null;
 
   // SPEC-0067 D8 — replace arrow notation with descriptive labels.
   const roundRange = d.closedRound
@@ -7132,6 +7244,7 @@ function DisagreementCard({ d, onHighlight, run }) {
           publicId={d.id}
           statusLabel={statusLabel}
           statusColor={statusColor}
+          extraChips={extraChips}
           body={d.shortLabel || d.point}
           ghostedRounds={ghostedRounds}
           accentColor={COLORS.warn}
@@ -7163,7 +7276,7 @@ function DisagreementCard({ d, onHighlight, run }) {
               kind: i === 0 ? 'origin' : 'response',
             }))}
             footer={isResolved
-              ? (d.closedRound ? `${statusLabel} in round ${d.closedRound}` : statusLabel)
+              ? (d.closedRound ? `${statusLabelPlain} in round ${d.closedRound}` : statusLabelPlain)
               : null}
           />
 
@@ -7290,6 +7403,22 @@ function IssueCard({ issue, onHighlight, run }) {
 // closure protocol; always renders as ``noted``. The left-rail is
 // neutral grey so it's visually de-prioritised next to issues +
 // questions + disagreements.
+// SPEC-0087 § L.3 — detect + strip the `[Self-raised]` prefix that
+// some comment bodies carry from the orchestrator. Matches the literal
+// `[Self-raised]` substring anywhere in the body (case-insensitive),
+// strips every occurrence, and returns whether the comment was
+// self-raised so the caller can render a chip in the header strip.
+function _parseSelfRaised(body) {
+  if (!body) return { isSelfRaised: false, body: body || '' };
+  const re = /\[Self-raised\]\s*/gi;
+  if (!re.test(body)) return { isSelfRaised: false, body };
+  // Strip every occurrence (handles both the topic-line prefix AND a
+  // duplicate inside a bold title), then collapse any whitespace
+  // doubled-up by the removal.
+  const stripped = body.replace(/\[Self-raised\]\s*/gi, '').replace(/  +/g, ' ').trim();
+  return { isSelfRaised: true, body: stripped };
+}
+
 function CommentCard({ comment, onHighlight, run }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
@@ -7297,6 +7426,15 @@ function CommentCard({ comment, onHighlight, run }) {
   // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
   const ledgerEntry = findLedgerEntry(run, comment.phase, comment.id);
   const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
+
+  // SPEC-0087 § L.3 — `[Self-raised]` prefix promoted to a distinct
+  // header chip per delta 19.47. Pre-spec the prefix lived as literal
+  // text inside both the topic line AND the body's bold title, which
+  // is what the user flagged. Strip every `[Self-raised]` occurrence
+  // (matches both the topic-line and body-title appearances) and
+  // surface a `self-raised` chip in the header strip when present.
+  const { isSelfRaised, body: cleanedBody } = _parseSelfRaised(comment.body);
+  const extraChips = isSelfRaised ? [{ tone: 'muted', label: 'self-raised' }] : null;
 
   const onCardClick = React.useCallback(() => {
     if (onHighlight && comment.raisedTurnKey) {
@@ -7319,7 +7457,7 @@ function CommentCard({ comment, onHighlight, run }) {
         transition: 'border-color 120ms',
       }}>
       <button onClick={onCardClick}
-              title={comment.body || ''}
+              title={cleanedBody || ''}
               style={{
         display: 'block', width: '100%', textAlign: 'left',
         padding: '9px 12px',
@@ -7332,7 +7470,8 @@ function CommentCard({ comment, onHighlight, run }) {
           publicId={comment.id}
           statusLabel="noted"
           statusColor="var(--fg-3)"
-          body={comment.body}
+          extraChips={extraChips}
+          body={cleanedBody}
           ghostedRounds={ghostedRounds}
           accentColor="var(--fg-3)"
           trailing={<CardChevron open={open} hover={hover} />}
@@ -7348,7 +7487,7 @@ function CommentCard({ comment, onHighlight, run }) {
         }}>
           {/* SPEC-0073 D3 — render body via Markdown instead of raw text */}
           <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
-            <Markdown text={comment.body || '(no body)'} />
+            <Markdown text={cleanedBody || '(no body)'} />
           </div>
           {/* SPEC-0087 § L — Comment metadata footer migrated to chip
               cluster per delta 19.47. First chip carries the agent's

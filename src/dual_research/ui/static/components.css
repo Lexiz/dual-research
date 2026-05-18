@@ -217,7 +217,12 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
   background: var(--bg-1);
   border: 1px solid var(--border-1);
   border-radius: var(--r-3);
-  padding: var(--s-2) var(--s-3);
+  /* SPEC-0087 § G.3 — vertical-density reduction. Trimmed vertical
+     padding from 8 → 6 px (horizontal stays at 12 px). Combined with
+     the timeline-row marginBottom drop (6 → 4 px), this saves ~6 px
+     per row across all artifact cards — meaningful on long
+     timelines (29 cards on partner-vetting `3a4a`). */
+  padding: 6px var(--s-3);
   transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
 }
 button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 100%; }
@@ -739,6 +744,11 @@ body.light .tab-group.tabs-solid .tab.is-active,
 /* ─────────────────────────────────────────────────────────────
    PhaseRail (.phase-rail) — sticky vertical indicator for timeline
    SPEC-0057 (SUR-09).
+   SPEC-0087 § D.2 — pills can either flow naturally (initial render)
+   or anchor absolutely to a measured y-offset matching the
+   corresponding phase header in the timeline. The container is
+   `position: relative` so absolutely-positioned `is-anchored` pills
+   resolve against its top edge.
    ───────────────────────────────────────────────────────────── */
 .phase-rail {
   display: flex;
@@ -746,10 +756,17 @@ body.light .tab-group.tabs-solid .tab.is-active,
   align-items: center;
   gap: 0;
   padding: var(--s-3) 0;
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 2;
   flex-shrink: 0;
+  width: 64px;
+  min-height: 100%;
+}
+.phase-rail-node.is-anchored {
+  position: absolute;
+  left: 0; right: 0;
+  margin: 0 auto;
+  transition: top var(--m-fast) var(--ease);
 }
 .phase-rail-node {
   display: flex;
