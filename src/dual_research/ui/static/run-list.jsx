@@ -92,7 +92,7 @@ const COLUMNS = [
   { key: 'cost',     label: 'cost',     align: 'right' },
 ];
 
-function RunListView({ runs, onSelect }) {
+function RunListView({ runs, loading, onSelect }) {
   // Read URL state on mount
   const initial = React.useMemo(() => _readUrlParams(), []);
   const [filter, setFilter] = React.useState(initial.filter);
@@ -363,7 +363,14 @@ function RunListView({ runs, onSelect }) {
             color: 'var(--fg-3)',
             fontSize: 12,
           }}>
-            {search ? `No runs matching "${search}"` : 'No runs'}
+            {/* Spec 0082 — distinguish first-load-still-pending from
+                confirmed-empty so the page doesn't flash "No runs"
+                before the fetch has resolved. */}
+            {loading && !search
+              ? 'Loading data…'
+              : search
+                ? `No runs matching "${search}"`
+                : 'No runs'}
           </div>
         )}
       </div>

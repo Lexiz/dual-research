@@ -160,13 +160,14 @@ function DetailScreen({ runId, navigate }) {
 // ─────────────────── List screen ───────────────────
 
 function ListScreen({ navigate }) {
-  const { rows, connected } = useRunList();
+  const { rows, connected, loading } = useRunList();
   React.useEffect(() => {
     window.__lastSseConnected = connected;
   }, [connected]);
   return (
     <RunListView
       runs={rows}
+      loading={loading}
       onSelect={(r) => navigate('detail', r.id)}
     />
   );

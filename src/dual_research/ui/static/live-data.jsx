@@ -148,6 +148,11 @@ function useLiveRun(runId) {
 function useRunList() {
   const [rows, setRows] = React.useState([]);
   const [lastOk, setLastOk] = React.useState(0);
+  // Spec 0082 — true until the very first fetch attempt resolves. Lets
+  // the list view differentiate "haven't heard back yet" from "the
+  // server confirmed an empty list", so the UI doesn't flash "No runs"
+  // on every cold page load.
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -162,7 +167,10 @@ function useRunList() {
           setRows(data);
           setLastOk(Date.now());
         })
-        .catch(() => { /* leave previous rows; lastOk goes stale → indicator dims */ });
+        .catch(() => { /* leave previous rows; lastOk goes stale → indicator dims */ })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
     };
     tick();
     const id = setInterval(tick, 3000);
@@ -178,7 +186,7 @@ function useRunList() {
     return () => clearInterval(id);
   }, [lastOk]);
 
-  return { rows, connected };
+  return { rows, connected, loading };
 }
 
 // ─────────────────── useAttachments ───────────────────

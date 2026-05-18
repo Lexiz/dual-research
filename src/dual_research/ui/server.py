@@ -79,6 +79,22 @@ _RUN_SNAPSHOT_CACHE = BoundedLRU(maxsize=50)
 
 _IMMUTABLE_CACHE_CONTROL = "public, max-age=86400, immutable"
 
+# ─── Spec 0082 — runs hidden from the frontend (supabase mode) ────────────────
+# Rows stay in the database — every run is still reachable via the
+# orchestrator, the recompute/reconcile CLIs, and direct SQL — but the hosted
+# UI's list view, search, and per-run endpoints all behave as if these IDs
+# don't exist. Add to this set to retire a run from the public surface.
+HIDDEN_RUN_IDS: frozenset[str] = frozenset({
+    "20260516-023449-web-components-catalogue",       # bcd3
+    "20260515-171500-live-verify-webcomp-catalogue",  # db46
+    "20260515-163105-live-integration-test",          # 70e3
+    "20260515-124552-cache-multi-round",              # 009f
+    "20260515-122538-prod-cached-e2e",                # 48b1
+    "20260515-120623-prod-postgres-vs-sqlite",        # 76e1
+    "20260515-112634-p2-asyncio-vs-goroutines",       # 1ab9
+    "20260515-111151-asyncio-vs-goroutines",          # 38f9
+})
+
 
 def _clear_caches_for_test() -> None:
     """Drop all LRUs. Tests call this between cases to keep them hermetic."""
@@ -626,6 +642,10 @@ def _supabase_list_runs(client: Any) -> list[RunListRow]:
         .execute()
     )
     runs_rows = res.data or []
+    # Spec 0082 — drop hidden runs before doing any further work (saves the
+    # brief-fetch round-trip for filtered-out rows too).
+    if HIDDEN_RUN_IDS:
+        runs_rows = [r for r in runs_rows if r.get("id") not in HIDDEN_RUN_IDS]
     if not runs_rows:
         return []
 
@@ -713,6 +733,11 @@ def _seconds_since_iso(iso_ts: str | None) -> float | None:
 
 def _require_run_exists(client: Any, run_id: str) -> None:
     if not _safe_run_id(run_id):
+        raise HTTPException(status_code=404, detail="not found")
+    # Spec 0082 — hidden runs 404 across all per-run endpoints (detail, SSE,
+    # inputs, searches, files, attachments). One choke-point keeps the rule
+    # in sync with the list view's filter.
+    if run_id in HIDDEN_RUN_IDS:
         raise HTTPException(status_code=404, detail="not found")
     res = client.table("runs").select("id").eq("id", run_id).limit(1).execute()
     if not (res.data or []):
@@ -1331,6 +1356,9 @@ def _search_runs_supabase(client: Any, query: str) -> list[dict[str, Any]]:
     except Exception:
         return results
     run_rows = runs_res.data or []
+    # Spec 0082 — search must not surface hidden runs.
+    if HIDDEN_RUN_IDS:
+        run_rows = [r for r in run_rows if r.get("id") not in HIDDEN_RUN_IDS]
     if not run_rows:
         return results
 
