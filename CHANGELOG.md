@@ -12,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.6] — 2026-05-18
+
+### Fixed
+
+- **Run-list flashed "No runs" before data arrived.** `useRunList` now exposes a `loading` flag (true until the first fetch resolves), and `RunListView` renders "Loading data…" instead of "No runs" while that flag is still true. The "No runs" message only appears once the server has confirmed an empty list. SPEC-0082.
+
+### Added
+
+- **`HIDDEN_RUN_IDS` filter (server-side, supabase mode).** A frozenset of run ids that the hosted UI omits from `/api/runs`, `/api/search`, and every per-run detail endpoint (404 on direct fetch). Rows stay in the database — every run is still reachable via the orchestrator and the recompute/reconcile CLIs. Initial population: 8 retired test runs visible to the user as `bcd3`, `db46`, `70e3`, `009f`, `48b1`, `76e1`, `1ab9`, `38f9`. SPEC-0082.
+
 ## [0.69.5] — 2026-05-18
 
 ### Fixed
