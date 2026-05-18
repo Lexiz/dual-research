@@ -3,10 +3,10 @@ spec: 0070
 title: Run-detail header — agent strip equalization, phase-tab info hierarchy, remove blocking banner
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.63.0
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/70"
 ---
 
 # Spec 0070 — Run-detail header restructure
