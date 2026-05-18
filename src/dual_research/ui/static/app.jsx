@@ -89,7 +89,8 @@ function App() {
   }, []);
 
   if (hostedMode && (!clientReady || !sessionReady)) {
-    return <FullPageMessage title="Loading…" body="Connecting to the server." />;
+    // Spec 0084 — unified loading visual at app boot.
+    return <LoadingState size="page" label="Connecting to the server" />;
   }
   if (hostedMode && !session) {
     return <LandingScreen client={client} />;
@@ -148,7 +149,9 @@ function DetailScreen({ runId, navigate }) {
     );
   }
   if (!run) {
-    return <FullPageMessage title="Loading run…" body={runId} />;
+    // Spec 0084 — the run-detail page-level loading state. Hint shows
+    // the run id so the user can still confirm which run is loading.
+    return <LoadingState size="page" label="Loading run" hint={runId} />;
   }
   return (
     <RunContext.Provider value={{ runId, connected, navigate }}>

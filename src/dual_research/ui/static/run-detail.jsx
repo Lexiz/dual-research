@@ -3564,7 +3564,7 @@ function ArtifactLiveBody({ item }) {
 function LazyMarkdownBody({ filePath }) {
   const { body, loading } = window.useFileBody(filePath);
   if (loading) {
-    return <div style={{ color: 'var(--fg-3)', fontSize: 12 }} className="mono">loading…</div>;
+    return <LoadingState size="inline" label="Loading…" />;
   }
   return <Markdown text={body || '— body unavailable —'} />;
 }
@@ -4264,7 +4264,7 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
       }}>
         {sub === 'draft' ? (
           loading
-            ? <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>
+            ? <LoadingState size="inline" label="Loading…" />
             : <Markdown text={body || '— body unavailable —'} />
         ) : (
           <WebSearchTabContent turnKey={turnKey} />
@@ -4641,7 +4641,7 @@ function InputTabContent({ turnKey }) {
     return <InputEmptyState label="No input record for this artifact." />;
   }
   if (loading) {
-    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading input bundle…</div>;
+    return <LoadingState size="inline" label="Loading input bundle…" />;
   }
   if (error || !bundle) {
     return (
@@ -4739,7 +4739,7 @@ function WebSearchTabContent({ turnKey }) {
     return <SearchEmptyState kind="no-bundle" />;
   }
   if (loading) {
-    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading search audit…</div>;
+    return <LoadingState size="inline" label="Loading search audit…" />;
   }
   if (error) {
     return <SearchEmptyState kind="error" detail={error} />;

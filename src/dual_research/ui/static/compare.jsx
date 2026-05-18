@@ -190,14 +190,9 @@ function RunPicker({ label, value, onChange, options, exclude }) {
 }
 
 function PanelLoading({ label }) {
-  return (
-    <div style={{
-      padding: '32px 0', textAlign: 'center',
-      color: 'var(--fg-3)', fontSize: 13,
-    }}>
-      {label}
-    </div>
-  );
+  // Spec 0084 — delegate to the shared LoadingState so the comparison
+  // page uses the same spinner + copy convention as the rest of the app.
+  return <LoadingState size="panel" label={label} />;
 }
 
 function RunSummaryPanel({ run, label, navigate }) {

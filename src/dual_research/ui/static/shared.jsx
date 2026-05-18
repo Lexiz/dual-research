@@ -1164,6 +1164,86 @@ function CollapsibleSection({ title, count, countColor, defaultOpen = true, pers
   );
 }
 
+// ─────────────────── LoadingState (SPEC-0084) ───────────────────
+//
+// One harmonious loading visual across the app. Three sizes:
+//   - 'inline'  → a small spinner + label, row-flex; for inside cards
+//                 and modals (where the prior copy was "loading…" in
+//                 mono).
+//   - 'panel'   → medium spinner stacked above the label + optional
+//                 hint; for the run-list empty state, comparison
+//                 panels, and other mid-page placeholders.
+//   - 'page'    → large spinner stacked above the label + optional
+//                 hint; for full-page waiting states (run-detail's
+//                 "Loading run…", app boot's "Connecting").
+//
+// The hint defaults to "Just a moment, please." for panel/page sizes;
+// pass `hint={null}` (or `hint=""`) to suppress, or override with a
+// surface-specific string (e.g. the run id while the run snapshot is
+// hydrating).
+
+const _LOADING_DIMS = {
+  inline: { spinner: 14, border: 2,   gap: 8,  fontSize: 11, padding: '4px 0',   dir: 'row'    },
+  panel:  { spinner: 28, border: 2.5, gap: 10, fontSize: 13, padding: '60px 18px', dir: 'column' },
+  page:   { spinner: 44, border: 3,   gap: 14, fontSize: 15, padding: '80px 18px', dir: 'column' },
+};
+
+const _LOADING_DEFAULT_HINT = 'Just a moment, please.';
+
+function LoadingState({ size = 'panel', label, hint, className, style }) {
+  const dims = _LOADING_DIMS[size] || _LOADING_DIMS.panel;
+  // Hint defaults to the friendly copy unless caller explicitly opts out
+  // by passing null/false/''.
+  const resolvedHint = hint === undefined
+    ? (size === 'inline' ? null : _LOADING_DEFAULT_HINT)
+    : hint;
+  return (
+    <div
+      className={_cn('dr-loading', `dr-loading-${size}`, className)}
+      role="status"
+      aria-live="polite"
+      style={{
+        display: 'flex',
+        flexDirection: dims.dir,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: dims.gap,
+        padding: dims.padding,
+        color: 'var(--fg-3)',
+        ...style,
+      }}
+    >
+      <div
+        className="dr-spinner"
+        aria-hidden="true"
+        style={{
+          width: dims.spinner,
+          height: dims.spinner,
+          borderWidth: dims.border,
+        }}
+      />
+      {label && (
+        <div style={{
+          fontSize: dims.fontSize,
+          color: 'var(--fg-1)',
+          fontWeight: size === 'inline' ? 400 : 500,
+        }}>
+          {label}
+        </div>
+      )}
+      {resolvedHint && (
+        <div style={{
+          fontSize: size === 'page' ? 12 : 11,
+          color: 'var(--fg-3)',
+          letterSpacing: 0.1,
+        }}>
+          {resolvedHint}
+        </div>
+      )}
+    </div>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
@@ -1184,4 +1264,6 @@ Object.assign(window, {
   CollapsibleSection,
   // SPEC-0073 primitives
   QuoteCallout,
+  // SPEC-0084 primitives
+  LoadingState,
 });
