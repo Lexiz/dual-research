@@ -179,6 +179,13 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
 .as-right .num { color: var(--fg-1); }
 .as.is-a { border-left: 2px solid var(--agent-a); }
 .as.is-b { border-left: 2px solid var(--agent-b); }
+/* SPEC-0087 § E — `.as-timeline` forces a fixed outer width so the
+   Claude + GPT pills on the run-detail header read at IDENTICAL outer
+   widths regardless of agent-name / model-name string length. They
+   live in separate flex containers (Claude on PaneHeader row, GPT on
+   PaneToolbar row) so flex-grow can't equalize them naturally;
+   pinning the width is the cleanest fix per delta 14.28. */
+.as.as-timeline { width: 400px; min-width: 400px; flex: 0 0 auto; }
 .as .as-name { color: var(--fg-0); font-weight: var(--w-medium); }
 .as .as-model { font-family: var(--mono); font-size: var(--t-mono); color: var(--fg-2); }
 
@@ -322,6 +329,11 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   transition: color var(--m-fast) var(--ease), background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease), box-shadow var(--m-fast) var(--ease);
 }
 .tab-sm { height: 22px; padding: 0 10px; font-size: var(--t-mono); }
+/* SPEC-0087 § B — chrome-cluster tabs (All runs / Compare / Search /
+   How it works) enforce a uniform 110px minimum width so the cluster
+   reads as a coherent segmented control instead of a row of pills
+   each sized to its label. */
+.tab.tab-chrome { min-width: 110px; justify-content: center; }
 .tab:hover { color: var(--fg-1); background: var(--bg-2); }
 .tab.is-active {
   color: var(--fg-0);
@@ -778,7 +790,11 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .phase-rail-node.is-completed + .phase-rail-connector,
 .phase-rail-connector + .phase-rail-node.is-completed { background: var(--ok); opacity: 0.5; }
-.phase-rail-node.is-completed .pr-label { color: var(--ok); }
+/* SPEC-0087 § D — drop the green-on-green legibility regression flagged
+   by delta 14.23. The dot still carries the `--ok` color signal; the
+   label now uses `--fg-2` so it remains readable against the rail's
+   tinted background. */
+.phase-rail-node.is-completed .pr-label { color: var(--fg-2); }
 
 /* ─────────────────────────────────────────────────────────────
    CollapsibleSection (.cs) — generic disclosure primitive

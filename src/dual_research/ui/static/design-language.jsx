@@ -65,11 +65,18 @@ function DnaOnePager() {
       {/* Brand marks */}
       <DnaSection title="Brand marks">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-          {[['claude', 'Claude'], ['openai', 'OpenAI']].map(([name, label]) => (
+          {[
+            ['claude', 'Claude', 'Used everywhere a Claude turn is rendered — list rows, run-detail header, AgentStrip pills, timeline cards, critique cards, the disagreement explorer.'],
+            ['openai', 'OpenAI', 'Used everywhere a GPT turn is rendered — list rows, run-detail header, AgentStrip pills, timeline cards, critique cards, the disagreement explorer.'],
+          ].map(([name, label, description]) => (
             <div key={name} style={{ background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)', padding: 14 }}>
               <div className="uppercase-label" style={{ marginBottom: 10 }}>{label}</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-                {[32, 24, 16].map(s => (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+                {/* SPEC-0087 § N — `solid 48` variant added back to the
+                    DNA page per delta 20.41. Pre-spec the page rendered
+                    only 32 / 24 / 16; the briefing had a `solid 48` XL
+                    variant as the leftmost example. */}
+                {[48, 32, 24, 16].map(s => (
                   <div key={s} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <BrandMark name={name} size={s} variant="solid" />
                     <span className="mono" style={{ fontSize: 9, color: 'var(--fg-3)' }}>{s}</span>
@@ -82,6 +89,12 @@ function DnaOnePager() {
                   </div>
                 ))}
               </div>
+              {/* SPEC-0087 § N — per-card description text restored from
+                  the original 20.41 briefing. Self-documents where the
+                  glyph appears in the app. */}
+              <p style={{ marginTop: 12, fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>
+                {description}
+              </p>
             </div>
           ))}
         </div>
@@ -210,6 +223,8 @@ function DnaOnePager() {
             ['Token-only colors', 'No hex codes in components. Every color reads from tokens.css so theme changes propagate everywhere.'],
             ['Full-word vocabulary', 'Labels use complete words, never abbreviated codes. "conceded by Claude", not "-> c". Codified in SPEC-0067.'],
             ['Brand fidelity', 'Official Anthropic sunburst and OpenAI hexagonal rosette everywhere an agent is identified. No generic substitutes.'],
+            // SPEC-0087 § N — Accessibility principle added per delta 20.46.
+            ['Accessibility', ':focus-visible ring on every interactive primitive; prefers-reduced-motion honored on every animation; semantic ARIA where the markup needs it.'],
           ].map(([t, d], i) => (
             <div key={i} style={{ padding: '10px 14px', background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)' }}>
               <span style={{ color: 'var(--fg-0)', fontWeight: 600, fontSize: 12.5 }}>{t}</span>

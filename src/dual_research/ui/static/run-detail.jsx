@@ -184,6 +184,7 @@ function TimelineAgentPill({ agent, run }) {
       tokens={totalTokens}
       cost={cost}
       right={activityRight}
+      className="as-timeline"
     />
   );
 }
@@ -615,11 +616,16 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
       background: 'var(--bg-2)',
       flexShrink: 0,
       fontFamily: 'var(--mono)',
+      // SPEC-0087 § A — align the run-detail status pill's vertical
+      // sizing with the run-list `.sb` primitive (20px tall). The
+      // inner status half stays a bespoke layout to keep the
+      // errors-half toggle behaviour, but visually it now matches.
+      minHeight: 20,
     }}>
       {/* Status half */}
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '3px 10px 3px 9px',
+        padding: '0 10px',
         fontSize: 11, color: 'var(--fg-1)', letterSpacing: '0.01em',
       }}>
         <Dot color={m.color} pulse={m.pulse} size={6} />
@@ -633,7 +639,7 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
           title={showErrors ? 'Back to timeline' : `View ${errorCount} error${errorCount === 1 ? '' : 's'}`}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '3px 10px',
+            padding: '0 10px',
             background: showErrors ? COLORS.err + '20' : 'transparent',
             border: 'none', borderLeft: '1px solid var(--border-1)',
             color: COLORS.err, fontSize: 11, cursor: 'pointer',
@@ -2416,13 +2422,16 @@ function PaneHeader({ title, count, left, right, accentGradient, accentColor }) 
         display: 'flex', alignItems: 'baseline', gap: 10,
         minWidth: 0, whiteSpace: 'nowrap', flexShrink: 0,
       }}>
-        {/* Spec 0046 D1 — title kept as small chrome (so the pane is
-            still labelled) but loses its visual primacy when ``left``
-            carries the navigation. */}
+        {/* SPEC-0087 § F — title typography is now CONSTANT regardless of
+            whether the `left` slot is provided. Pre-spec the title was
+            demoted to 11.5px / fg-3 muted gray when `left` carried
+            navigation (Critique pane), creating a visible asymmetry
+            with the Timeline pane's 14px / fg-0 title. The user flagged
+            this twice — see the critique-pane chrome screenshot. */}
         <span style={{
-          fontSize: left ? 11.5 : 14,
-          fontWeight: left ? 500 : 600,
-          color: left ? 'var(--fg-3)' : 'var(--fg-0)',
+          fontSize: 14,
+          fontWeight: 600,
+          color: 'var(--fg-0)',
           letterSpacing: '-0.005em',
         }}>
           {title}
@@ -2537,10 +2546,19 @@ function PhaseDividerHeader({ item, run, open }) {
   const current = item.phaseId === run.phase && run.status !== 'completed';
   return (
     <div data-phase-id={item.phaseId} style={{
+      // SPEC-0087 § G — phase-header bands now ALL render at the same
+      // width across phases. Pre-spec each band sized to its label
+      // content, producing a ragged left edge across Phase 0 / 1 / 2 /
+      // 3 / 4 / 5 (user-flagged in the 2026-05-18 follow-up). The 6 px
+      // negative margins extend the band beyond the row content area
+      // per the 14.49 spec; `calc(100% + 12px)` widens the box to
+      // match so the right edge also overhangs.
+      width: 'calc(100% + 12px)',
+      boxSizing: 'border-box',
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '8px 12px',
       marginTop: 16, marginBottom: 8,
-      marginLeft: -4, marginRight: -4,
+      marginLeft: -6, marginRight: -6,
       background: 'var(--bg-2)',
       border: '1px solid var(--border-2)',
       borderRadius: 'var(--r-2)',
@@ -3352,53 +3370,86 @@ function StatsChips({ phase, run, item }) {
 }
 
 // Spec 0044 D3 — chip displaying ``+raised  −resolved`` per kind.
-// Cases:
-//   raised > 0, resolved == 0   → ``+5 Q``        (info/warn tint)
-//   raised == 0, resolved > 0   → ``−3 prior Q``  (ok tint, "closed-only")
-//   raised > 0, resolved > 0    → ``+5 Q  −1``    (info/warn tint, "+raised  −resolved")
-// SPEC-0067 D4 — full-word labels in chip text and tooltips.
-// `label` is now plural ("claims"); singular derived by dropping trailing 's'.
+// SPEC-0087 § I — three readability fixes layered on the prior shape:
+//   1. Mixed raised+resolved no longer renders as ONE chip `+N issues −M`
+//      (bare `−M` with no noun). Renders as TWO chips:
+//        [+N issue] (info/warn tint)
+//        [−M prior issue] (ok tint)
+//      per delta 17.39's "two-chip split for mixed cases" mandate.
+//   2. Both chips use SINGULAR when count is 1 (`+1 issue`, not `+1 issues`)
+//      and plural otherwise. Pre-spec the visible chip text always used
+//      the plural label even when count=1.
+//   3. The "closed-only" case keeps the "prior" prefix the audit liked.
+// `label` is plural ("claims"); singular derived by dropping trailing 's'.
 function StatChip({ label, raised, resolved, tint }) {
   const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
+  const c = colorMap[tint] || 'var(--fg-3)';
+  const inflect = (n) => (n === 1 ? label.replace(/s$/, '') : label);
   const isClosedOnly = raised === 0 && resolved > 0;
-  const c = isClosedOnly ? COLORS.ok : (colorMap[tint] || 'var(--fg-3)');
-  // Display label: singular when count is 1, else plural as-is
-  const displayLabel = (n) => n === 1 ? label.replace(/s$/, '') : label;
-  const tooltip = isClosedOnly
-    ? `Closed ${resolved} prior ${displayLabel(resolved)} this turn.`
-    : raised > 0 && resolved > 0
-      ? `Raised ${raised}, closed ${resolved} prior ${displayLabel(raised)} this turn.`
-      : `Raised ${raised} ${displayLabel(raised)} this turn.`;
-  return (
-    <span className="mono"
-          title={tooltip}
-          style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '1px 7px',
-      background: 'transparent',
-      border: `1px solid ${c}33`,
-      borderRadius: 4,
-      fontSize: 10.5, color: c,
-      letterSpacing: '0.02em',
-    }}>
-      {isClosedOnly ? (
-        <>
-          <span className="num" style={{ color: COLORS.ok, fontWeight: 500 }}>−{resolved} prior</span>
-          <span style={{ color: 'var(--fg-3)' }}>{label}</span>
-        </>
-      ) : (
-        <>
+  const isRaisedOnly = raised > 0 && resolved === 0;
+
+  // Single "closed-only" chip: `[−N prior <noun>]` in ok tint.
+  if (isClosedOnly) {
+    return (
+      <span
+        className="mono"
+        title={`Closed ${resolved} prior ${inflect(resolved)} this turn.`}
+        style={_statChipBaseStyle(COLORS.ok)}
+      >
+        <span className="num" style={{ color: COLORS.ok, fontWeight: 500 }}>−{resolved} prior</span>
+        <span style={{ color: 'var(--fg-3)' }}>{inflect(resolved)}</span>
+      </span>
+    );
+  }
+  // Single "raised-only" chip: `[+N <noun>]` in info/warn tint.
+  if (isRaisedOnly) {
+    return (
+      <span
+        className="mono"
+        title={`Raised ${raised} ${inflect(raised)} this turn.`}
+        style={_statChipBaseStyle(c)}
+      >
+        <span className="num" style={{ color: c, fontWeight: 500 }}>+{raised}</span>
+        <span style={{ color: 'var(--fg-3)' }}>{inflect(raised)}</span>
+      </span>
+    );
+  }
+  // Mixed: render TWO sibling chips so each has its own noun.
+  if (raised > 0 && resolved > 0) {
+    return (
+      <>
+        <span
+          className="mono"
+          title={`Raised ${raised} ${inflect(raised)} this turn.`}
+          style={_statChipBaseStyle(c)}
+        >
           <span className="num" style={{ color: c, fontWeight: 500 }}>+{raised}</span>
-          <span style={{ color: 'var(--fg-3)' }}>{label}</span>
-          {resolved > 0 && (
-            <span className="num" style={{ color: COLORS.ok, fontWeight: 500, marginLeft: 2 }}>
-              −{resolved}
-            </span>
-          )}
-        </>
-      )}
-    </span>
-  );
+          <span style={{ color: 'var(--fg-3)' }}>{inflect(raised)}</span>
+        </span>
+        <span
+          className="mono"
+          title={`Closed ${resolved} prior ${inflect(resolved)} this turn.`}
+          style={_statChipBaseStyle(COLORS.ok)}
+        >
+          <span className="num" style={{ color: COLORS.ok, fontWeight: 500 }}>−{resolved} prior</span>
+          <span style={{ color: 'var(--fg-3)' }}>{inflect(resolved)}</span>
+        </span>
+      </>
+    );
+  }
+  return null;
+}
+
+function _statChipBaseStyle(c) {
+  return {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '1px 7px',
+    background: 'transparent',
+    border: `1px solid ${c}33`,
+    borderRadius: 4,
+    fontSize: 10.5, color: c,
+    letterSpacing: '0.02em',
+  };
 }
 
 // Spec 0044 D2 — Phase-converged marker. Renders as `✓ agreed` for
@@ -3450,9 +3501,15 @@ function StatusInline({ label }) {
 
 // Phase 0 preflight chip — distinct from the Phase 2/4 stats because the
 // preflight protocol uses BRIEF_OK + BRIEF_ISSUES, not the negotiation fields.
+//
+// SPEC-0087 § H — `state === 'ok'` now renders via the same `<SB tone="ok">`
+// primitive used by the Claude / GPT brief-critique cards (rounded green
+// pill), retiring the legacy `<StatusInline>` bordered-gray variant per
+// delta 14.57. Visual consistency: the Agent Input card and the per-
+// agent cards in Phase 0 now show identical "ok" chips.
 function PreflightChip({ stats }) {
   if (!stats) return null;
-  if (stats.state === 'ok') return <StatusInline label="OK" />;
+  if (stats.state === 'ok') return <SB tone="ok" size="sm">ok</SB>;
   if (stats.state === 'issues') {
     return (
       <span className="mono" style={{
@@ -3576,8 +3633,23 @@ function ArtifactHeader({ item, meta, hover, run }) {
             {fmt.tokens(item.tokens || 0)}t&nbsp;·&nbsp;{fmt.cost(item.cost || 0)}
           </span>
         ) : item.round != null ? (
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-            r{item.round}
+          // SPEC-0087 § I — render the round identifier as a bordered
+          // chip with uppercase `R{n}` instead of bare lowercase `r{n}`
+          // text (delta 17.39). Mono + neutral tone keeps it visually
+          // quieter than the stats chips next to it.
+          <span
+            className="mono"
+            title={`Round ${item.round}`}
+            style={{
+              display: 'inline-flex', alignItems: 'center',
+              padding: '1px 7px',
+              border: '1px solid var(--border-2)',
+              borderRadius: 4,
+              fontSize: 10.5, color: 'var(--fg-3)',
+              letterSpacing: '0.04em', textTransform: 'uppercase',
+            }}
+          >
+            R{item.round}
           </span>
         ) : null}
       </div>
@@ -5764,53 +5836,15 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
       {/* Spec 0070 D6-D9: phase tab strip restructured with chip clusters.
           Each tab shows structured chips: [Phase N] [Label] [X questions] [Y disagreements]
           using full words (not abbreviations). Count chips show 0 explicitly (D8). */}
+      {/* SPEC-0087 § F — Critique pane chrome restructured into THREE
+          discrete rows so the title bar visually matches the Timeline
+          pane's title bar (same height, same typography). Pre-spec the
+          phase-tabs sat in PaneHeader's `left` slot and the filter
+          chips piled up underneath, pushing the header tall and
+          inconsistent with Timeline. */}
       <PaneHeader
         title="Critique"
         accentColor={COLORS.info}
-        left={
-          <TabGroup variant="solid">
-            {tabs.map((t) => {
-              const isActive = selectedPhase === t.pid;
-              const mutedStyle = { fontSize: 10, color: isActive ? 'var(--fg-2)' : 'var(--fg-3)' };
-              return (
-                <Tab
-                  key={t.pid}
-                  active={isActive}
-                  onClick={() => setSelectedPhase(t.pid)}
-                  disabled={false}
-                >
-                  {t.active && <i className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', display: 'inline-block', flexShrink: 0 }} />}
-                  <span className="mono" style={{
-                    fontSize: 10.5, letterSpacing: '0.06em',
-                    textTransform: 'uppercase', color: 'var(--fg-3)',
-                  }}>
-                    P{t.pid}
-                  </span>
-                  <span>{t.label}</span>
-                  {!t.pending && (
-                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 2 }}>
-                      <span className="mono" style={mutedStyle}>
-                        <span className="num" style={{ fontWeight: 500 }}>{t.qTotal}</span> questions
-                      </span>
-                      <span className="mono" style={mutedStyle}>
-                        <span className="num" style={{ fontWeight: 500 }}>{t.dTotal}</span> disagreements
-                      </span>
-                    </span>
-                  )}
-                </Tab>
-              );
-            })}
-            {isTerminal && (
-              <Tab
-                active={selectedPhase === 'summary'}
-                onClick={() => setSelectedPhase('summary')}
-              >
-                <span style={{ marginRight: 2 }}>&#x03A3;</span>
-                <span>Summary</span>
-              </Tab>
-            )}
-          </TabGroup>
-        }
         right={
           <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <SmallStat label="introduced" value={totalIntroduced} color={totalIntroduced > 0 ? 'var(--fg-1)' : 'var(--fg-3)'} />
@@ -5820,19 +5854,74 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
           </span>
         }
       />
+      {/* SPEC-0087 § F — phase-scope tabs live in their own row beneath
+          the title bar (was: crammed into PaneHeader's `left` slot
+          alongside the title + stats). */}
+      <PaneToolbar>
+        <TabGroup variant="solid">
+          {tabs.map((t) => {
+            const isActive = selectedPhase === t.pid;
+            const mutedStyle = { fontSize: 10, color: isActive ? 'var(--fg-2)' : 'var(--fg-3)' };
+            return (
+              <Tab
+                key={t.pid}
+                active={isActive}
+                onClick={() => setSelectedPhase(t.pid)}
+                disabled={false}
+              >
+                {t.active && <i className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', display: 'inline-block', flexShrink: 0 }} />}
+                <span className="mono" style={{
+                  fontSize: 10.5, letterSpacing: '0.06em',
+                  textTransform: 'uppercase', color: 'var(--fg-3)',
+                }}>
+                  P{t.pid}
+                </span>
+                <span>{t.label}</span>
+                {!t.pending && (
+                  <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 2 }}>
+                    <span className="mono" style={mutedStyle}>
+                      <span className="num" style={{ fontWeight: 500 }}>{t.qTotal}</span> questions
+                    </span>
+                    <span className="mono" style={mutedStyle}>
+                      <span className="num" style={{ fontWeight: 500 }}>{t.dTotal}</span> disagreements
+                    </span>
+                  </span>
+                )}
+              </Tab>
+            );
+          })}
+          {isTerminal && (
+            <Tab
+              active={selectedPhase === 'summary'}
+              onClick={() => setSelectedPhase('summary')}
+            >
+              <span style={{ marginRight: 2 }}>&#x03A3;</span>
+              <span>Summary</span>
+            </Tab>
+          )}
+        </TabGroup>
+      </PaneToolbar>
       {!isSummary && (
         <PaneToolbar>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
-            {/* SPEC-0072 D2 — top row (kind axis) anchored left */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-              <CritiqueTypeFilter
-                active={typeFilter}
-                onChange={setTypeFilter}
-                phaseId={selectedPhase}
-              />
-            </div>
-            {/* SPEC-0072 D3/D5 — bottom row (agent + status) centered, tightened spacing */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {/* SPEC-0087 § F — filter chips RIGHT-aligned (was: center).
+              Kind axis on the left, agent + status axes on the right
+              of the same row so the chip cluster reads as one
+              coherent strip rather than two stacked. Wraps naturally
+              on narrow viewports via flex-wrap. */}
+          <div style={{
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            width: '100%',
+            justifyContent: 'space-between',
+          }}>
+            <CritiqueTypeFilter
+              active={typeFilter}
+              onChange={setTypeFilter}
+              phaseId={selectedPhase}
+            />
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <TabGroup>
                 <Tab size="sm" active={agentFilter === 'all'} onClick={() => setAgentFilter('all')} title="Show items from all agents">All</Tab>
                 <Tab size="sm" active={agentFilter === 'claude'} onClick={() => setAgentFilter('claude')} title="Show only items raised by Claude">
@@ -6016,10 +6105,12 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
                 borderRadius: 'var(--r-2)',
                 whiteSpace: 'nowrap',
               }}>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                {/* SPEC-0087 § J — chevron moved to the right edge (was: left)
+                    per delta 18.05's "chevron on the right side" rule. */}
                 <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.err, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Drift</span>
                 <span style={{ flex: 1 }} />
                 <span className="mono num" style={{ fontSize: 11.5, color: COLORS.err, fontWeight: 600 }}>{driftItems.length}</span>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
               </div>
             )}
           >
@@ -6043,10 +6134,10 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
                 borderRadius: 'var(--r-2)',
                 whiteSpace: 'nowrap',
               }}>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.warn, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Open</span>
                 <span style={{ flex: 1 }} />
                 <span className="mono num" style={{ fontSize: 11.5, color: COLORS.warn, fontWeight: 600 }}>{openItems.length}</span>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
               </div>
             )}
           >
@@ -6057,6 +6148,7 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
           <CollapsibleSection
             title="Resolved / answered" count={resolvedItems.length} countColor={COLORS.ok}
             persistKey={`dr_crit_${run.id}_${phaseId}_resolved`}
+            defaultOpen={false}
             renderTitle={({ open }) => (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%',
@@ -6067,10 +6159,15 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
                 borderRadius: 'var(--r-2)',
                 whiteSpace: 'nowrap',
               }}>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                {/* SPEC-0087 § J — defaultOpen={false} (was: true, the
+                    `defaultOpen` prop on CollapsibleSection defaults to
+                    `true`). RESOLVED items are reference history; the
+                    user explicitly asked for them collapsed by default
+                    per delta 18.05 to declutter the critique pane. */}
                 <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.ok, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Resolved / answered</span>
                 <span style={{ flex: 1 }} />
                 <span className="mono num" style={{ fontSize: 11.5, color: COLORS.ok, fontWeight: 600 }}>{resolvedItems.length}</span>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
               </div>
             )}
           >
@@ -6092,10 +6189,10 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
                 borderRadius: 'var(--r-2)',
                 whiteSpace: 'nowrap',
               }}>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.warn, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Issues</span>
                 <span style={{ flex: 1 }} />
                 <span className="mono num" style={{ fontSize: 11.5, color: COLORS.warn, fontWeight: 600 }}>{issueItems.length}</span>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
               </div>
             )}
           >
@@ -6107,6 +6204,7 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
           <CollapsibleSection
             title="Comments" count={commentItems.length} countColor={'var(--fg-2)'}
             persistKey={`dr_crit_${run.id}_${phaseId}_comments`}
+            defaultOpen={false}
             renderTitle={({ open }) => (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%',
@@ -6117,10 +6215,14 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
                 borderRadius: 'var(--r-2)',
                 whiteSpace: 'nowrap',
               }}>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                {/* SPEC-0087 § J — Comments collapsed by default per delta
+                    19.41. Comments are observations / supplementary
+                    notes; the user explicitly asked them not to clutter
+                    Phase 4 on load. */}
                 <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Comments</span>
                 <span style={{ flex: 1 }} />
                 <span className="mono num" style={{ fontSize: 11.5, color: 'var(--fg-2)', fontWeight: 600 }}>{commentItems.length}</span>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
               </div>
             )}
           >
@@ -7049,6 +7151,10 @@ function DisagreementCard({ d, onHighlight, run }) {
             kind="disagreement"
             status={isResolved ? 'resolved' : 'open'}
             question={d.point}
+            /* SPEC-0087 § K — footer now reads "conceded by X in round N"
+               (was: just "conceded by X"), matching the Question variant's
+               "Answered by GPT in round 3" format per delta 19.03 +
+               19.16's byte-identical-structure mandate. */
             turns={(d.progression || []).map((step, i) => ({
               agent: step.agent || 'claude',
               round: step.round,
@@ -7056,7 +7162,9 @@ function DisagreementCard({ d, onHighlight, run }) {
               quote: step.note,
               kind: i === 0 ? 'origin' : 'response',
             }))}
-            footer={isResolved ? statusLabel : null}
+            footer={isResolved
+              ? (d.closedRound ? `${statusLabel} in round ${d.closedRound}` : statusLabel)
+              : null}
           />
 
           {/* Current positions (only if multiple exchanges + not both-raised) */}
@@ -7070,17 +7178,12 @@ function DisagreementCard({ d, onHighlight, run }) {
             </div>
           )}
 
-          {/* Resolution detail (when available beyond the footer) */}
-          {d.resolution && (
-            <div style={{ marginTop: 14 }}>
-              <SmallLabel color={COLORS.ok}>Resolution</SmallLabel>
-              <div style={{
-                paddingLeft: 10,
-                borderLeft: `2px solid ${COLORS.ok}55`,
-                fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
-              }}>{d.resolution}</div>
-            </div>
-          )}
+          {/* SPEC-0087 § K — the uppercase "RESOLUTION" block was DROPPED.
+              Per delta 19.03 + 19.16, the disagreement detail must be
+              byte-identical to the Question variant — which has no
+              uppercase RESOLUTION block. The resolution text is already
+              available in the last conceded turn's body inside the
+              QuestionThread; surfacing it a second time was redundant. */}
         </div>
       )}
     </article>
@@ -7154,16 +7257,19 @@ function IssueCard({ issue, onHighlight, run }) {
           <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
             <Markdown text={issue.body || '(no body)'} />
           </div>
+          {/* SPEC-0087 § L — Issue metadata footer migrated from a
+              middot-separated text line to a chip cluster per delta
+              19.36. First chip carries the agent's BrandMark glyph. */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+            display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
           }}>
-            <span>flagged by {raisedMeta?.name || issue.raisedBy} · first seen R{issue.roundFirstSeen}</span>
+            <Chip tone="info" icon={null}>
+              <AgentIcon agent={issue.raisedBy} size={11} />
+              <span style={{ marginLeft: 4 }}>flagged by {raisedMeta?.name || issue.raisedBy}</span>
+            </Chip>
+            <Chip tone="muted"><span className="mono">first seen R{issue.roundFirstSeen}</span></Chip>
             {issue.roundLastSeen !== issue.roundFirstSeen && (
-              <>
-                <span>·</span>
-                <span>last seen R{issue.roundLastSeen}</span>
-              </>
+              <Chip tone="muted"><span className="mono">last seen R{issue.roundLastSeen}</span></Chip>
             )}
           </div>
           {/* SPEC-0073 D4 — QuoteCallout for quote fields */}
@@ -7244,11 +7350,18 @@ function CommentCard({ comment, onHighlight, run }) {
           <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
             <Markdown text={comment.body || '(no body)'} />
           </div>
+          {/* SPEC-0087 § L — Comment metadata footer migrated to chip
+              cluster per delta 19.47. First chip carries the agent's
+              BrandMark glyph; round chip uses the same `R<n>` shape as
+              elsewhere. */}
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-            fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+            display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
           }}>
-            <span>noted by {raisedMeta?.name || comment.raisedBy} · R{comment.raisedRound}</span>
+            <Chip tone="info" icon={null}>
+              <AgentIcon agent={comment.raisedBy} size={11} />
+              <span style={{ marginLeft: 4 }}>noted by {raisedMeta?.name || comment.raisedBy}</span>
+            </Chip>
+            <Chip tone="muted"><span className="mono">R{comment.raisedRound}</span></Chip>
           </div>
           {/* SPEC-0073 D4 — QuoteCallout for quote fields */}
           {comment.quote && <QuoteCallout text={comment.quote} />}
