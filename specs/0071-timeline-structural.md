@@ -3,10 +3,10 @@ spec: 0071
 title: Timeline structural pass — PhaseRail, phase headers, card size, collapsibility
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.64.0
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/71"
 ---
 
 # Spec 0071 — Timeline structural pass
