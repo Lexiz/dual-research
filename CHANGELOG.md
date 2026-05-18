@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.14] — 2026-05-18
+
+### Fixed
+
+- **Timeline silently hid Phase 3 and Phase 4 on errored / deadlocked runs** ([spec 0088](specs/0088-timeline-phase-omission-on-errored-runs.md)). `buildLiveTimeline()` in `live-data.jsx` was gating the Phase 3 + Phase 4 sections on `st !== 'errored' && st !== 'deadlocked'`, so any run that died after Phase 2 — e.g., a Phase 4 parse-failure — had its real on-disk Phase 3 draft and Phase 4 review-rounds stripped from the Timeline pane, while the Critique pane (which sources from a different code path) still showed the corresponding ledgers / review items. The two panes disagreed. Fixed by mirroring the Phase 2 branching pattern: outer gate becomes `if (ph >= 3)` / `if (ph >= 4)`, and the live-card branches are scoped explicitly to `st === 'running'` so a stopped-in-phase run surfaces its completed artifacts (rounds 1..cur) without a ghost streaming placeholder. Verified on `27de` (errored at P4, six P4 rounds now visible), `2c4f` (deadlocked at P2, no phantom P3/P4 dividers — unchanged), and `3a4a` (completed canonical fixture — unchanged).
+- **Round-count off-by-one when stopped mid-phase** (also spec 0088). When a run died after a `phase{2,4}_round_complete` event landed but before `round.current` advanced, the Timeline's `p2Rounds` / `p4Rounds` formula (`cur` when `ph === N`) silently dropped the trailing round. 27de hit this exactly: `phaseStats.phase4` has keys `'1'..'6'` but `round.current = 5`. Both phases now compute `Math.max(cur, Object.keys(phaseStats.phase{N}).length)` when stopped, so the count and the completed-round loop both reflect disk reality.
+- **Cache-bust** bumped `v=0089` → `v=0090` across `index.html` so the new `live-data.jsx` actually loads in already-warm browsers.
+
 ## [0.69.13] — 2026-05-18
 
 ### Added
