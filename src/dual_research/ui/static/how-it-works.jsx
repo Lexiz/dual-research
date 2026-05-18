@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.63.0',
+      date: '2026-05-18',
+      summary: 'Run-detail header restructure -- equal-width agent strips, blocking banner removed, phase tabs with structured chip clusters.',
+      items: [
+        'AgentStrip pills now share width equally via flex: 1 1 0 -- no more lopsided pills from differing model string lengths.',
+        'Vertical padding reduced from var(--s-2) to 4px for a denser agent strip.',
+        'Blocking-item callout banner removed -- the "N open . M ghosted . click to jump" bar is gone. Same info available in critique pane.',
+        'Phase tabs restructured: each tab shows P2 Negotiate 26 questions 10 disagreements instead of cramped "PHASE 2 Negotiate . 26 Q . 10 D".',
+        'Count chips use full words (questions, disagreements) and show 0 explicitly. Active tab chips at full opacity, inactive muted.',
+      ],
+    },
+    {
       version: '0.62.0',
       date: '2026-05-18',
       summary: 'Run-list & chrome polish -- uniform status pills, structured info chips, cohesive chrome controls.',

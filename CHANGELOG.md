@@ -12,6 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.63.0] — 2026-05-18
+
+### Changed
+
+- **Run-detail header restructure** ([spec 0070](specs/0070-run-detail-header.md)) — AgentStrip pills equalized via `flex: 1 1 0` so both agents share width equally regardless of model string length. Vertical padding reduced from `var(--s-2)` to `4px` for a denser strip.
+- **Blocking-item callout banner removed** — The `N open . M ghosted . click to jump` bar between header and content is gone. Same info available in the critique pane's DRIFT/OPEN section headers.
+- **Phase tab strip restructured** — Each phase tab now shows structured chip clusters (`P2 Negotiate 26 questions 10 disagreements`) instead of a cramped single string. Full words replace abbreviations (D9). Zero counts render explicitly muted (D8). Active tab chips at full opacity, inactive muted.
+- **AgentStrip spotlight updated** — Design Language DNA page reflects the denser equal-width default (M1 alignment).
+
 ## [0.62.0] — 2026-05-18
 
 ### Changed

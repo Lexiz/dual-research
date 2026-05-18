@@ -168,7 +168,8 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
   justify-content: space-between;
   gap: var(--s-3);
   min-width: 320px;
-  padding: var(--s-2) var(--s-3);
+  flex: 1 1 0;
+  padding: 4px var(--s-3);
   background: var(--bg-2);
   border: 1px solid var(--border-1);
   border-radius: var(--r-3);

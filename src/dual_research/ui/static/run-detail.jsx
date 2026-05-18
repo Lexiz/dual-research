@@ -5697,14 +5697,17 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
         title="Critique"
         accentColor={COLORS.info}
         left={
+          {/* Spec 0070 D6-D9: phase tab strip restructured with chip clusters.
+              Each tab shows structured chips: [Phase N] [Label] [X questions] [Y disagreements]
+              using full words (not abbreviations). Count chips show 0 explicitly (D8). */}
           <TabGroup variant="solid">
             {tabs.map((t) => {
-              const pInfo = t;
-              const counts = phaseCountLabel(pInfo);
+              const isActive = selectedPhase === t.pid;
+              const mutedStyle = { fontSize: 10, color: isActive ? 'var(--fg-2)' : 'var(--fg-3)' };
               return (
                 <Tab
                   key={t.pid}
-                  active={selectedPhase === t.pid}
+                  active={isActive}
                   onClick={() => setSelectedPhase(t.pid)}
                   disabled={false}
                 >
@@ -5713,12 +5716,17 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
                     fontSize: 10.5, letterSpacing: '0.06em',
                     textTransform: 'uppercase', color: 'var(--fg-3)',
                   }}>
-                    Phase&nbsp;{t.pid}
+                    P{t.pid}
                   </span>
                   <span>{t.label}</span>
-                  {counts && (
-                    <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-                      · {counts}
+                  {!t.pending && (
+                    <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 2 }}>
+                      <span className="mono" style={mutedStyle}>
+                        <span className="num" style={{ fontWeight: 500 }}>{t.qTotal}</span> questions
+                      </span>
+                      <span className="mono" style={mutedStyle}>
+                        <span className="num" style={{ fontWeight: 500 }}>{t.dTotal}</span> disagreements
+                      </span>
                     </span>
                   )}
                 </Tab>
@@ -5729,7 +5737,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
                 active={selectedPhase === 'summary'}
                 onClick={() => setSelectedPhase('summary')}
               >
-                <span style={{ marginRight: 2 }}>∑</span>
+                <span style={{ marginRight: 2 }}>&#x03A3;</span>
                 <span>Summary</span>
               </Tab>
             )}
@@ -7317,7 +7325,8 @@ function RunDetail({ run }) {
           onToggleErrors={() => setShowErrors(s => !s)}
           onJumpToFirstSearch={onJumpToFirstSearch}
         />
-        <BlockingItemCallout run={run} />
+        {/* Spec 0070 D4: blocking-item callout banner removed (user: "completely useless").
+           Same info available in critique pane DRIFT/OPEN section headers. */}
         <main style={{
           flex: 1, minHeight: 0,
           display: 'grid',
