@@ -1252,7 +1252,46 @@ const PHASE_NAMES = {
   2: 'P2 Negotiate',
   3: 'P3 Drafting',
   4: 'P4 Review',
+  5: 'P5 Final',
 };
+
+// SPEC-0086 — group flat consumption rows into per-phase clusters so
+// the view can render a phase-name HEADER above each cluster instead
+// of inside the row's leftmost cell. Returns
+// ``[{phase, name, durationMs, rounds, rows: ConsumptionRow[]}]``.
+//
+// Rationale (per the user's repeated feedback on the Consumption tab):
+// the inline phase-label cell ate ~100 px of horizontal space across
+// every row; pulling the name into a header lets the agent cards
+// reclaim the full pane width.
+function groupConsumptionRowsByPhase(rows, run) {
+  const timings = (run && run.phaseTimings) || {};
+  // run.phaseTimings is keyed by phase number, but the Phase 5 timing
+  // is stored under key '4' (the "P5 Final" label is really "Phase 4
+  // ended at"). buildLiveTimeline encodes this with phaseId 5 →
+  // phaseTimings['4']. Mirror that mapping here.
+  const timingKeyFor = (phase) => (phase === 5 ? '4' : String(phase));
+  // Number of rounds in a phase, derived from the rows that landed
+  // under it (rounds with non-zero round index). Only meaningful for
+  // P2 / P4.
+  const groups = new Map();
+  for (const r of rows) {
+    if (!groups.has(r.phase)) {
+      groups.set(r.phase, {
+        phase: r.phase,
+        name: PHASE_NAMES[r.phase] || `Phase ${r.phase}`,
+        durationMs: Number(timings[timingKeyFor(r.phase)]) || 0,
+        rounds: 0,
+        rows: [],
+      });
+    }
+    const g = groups.get(r.phase);
+    g.rows.push(r);
+    if (r.round > 0 && !r.isRepair) g.rounds = Math.max(g.rounds, r.round);
+  }
+  // Stable order: ascending phase number.
+  return Array.from(groups.values()).sort((a, b) => a.phase - b.phase);
+}
 
 // Spec 0048 — per-row provider-billed annotation.
 //
@@ -1332,6 +1371,12 @@ function ConsumptionView({ run }) {
   // Pass `run` down so TokenBar can fall back to AgentState.contextWindow
   // when a per-turn entry lacks its own (pre-0030 transcripts).
 
+  // SPEC-0086 — group rows by phase so the view can render a header
+  // ABOVE each group instead of an inline phase-label cell inside the
+  // row. Both agent cards in a row share one expanded flag (paired
+  // expansion, locked in the spec's 2026-05-18 decision).
+  const groups = groupConsumptionRowsByPhase(rows, run);
+
   return (
     <div style={{
       flex: 1, minHeight: 0, overflow: 'auto',
@@ -1358,131 +1403,101 @@ function ConsumptionView({ run }) {
           </span>
         )}
       </div>
-      {/* Spec 0046 D6 — column of single-row cards. Each card carries its
-          own top bar (phase + round label + per-agent lane bars) and an
-          inline-expanded detail body rendered inside the same card.
-          Pre-spec the expand opened a separate full-width grid row below
-          the lane row; the eye kept reorienting between the lanes and
-          the detail panels. The new card keeps the visual flow linear. */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {rows.map((row, i) => {
-          const isFirstOfPhase = i === 0 || rows[i - 1].phase !== row.phase;
-          return (
-            <ConsumptionRow
-              key={row.id}
-              row={row}
-              run={run}
-              scale={scale}
-              showPhaseTitle={isFirstOfPhase}
-              expanded={expanded.has(row.id)}
-              onToggle={() => toggleRow(row.id)}
-              reconcileReport={reconcileReport}
-            />
-          );
-        })}
-      </div>
+
+      {/* SPEC-0086 — phase groups: per-phase header band above a stack
+          of `<ConsumptionRow>`s. Each row is a 2-or-3 column grid
+          (round-chip when present, then two agent cards). Cards ARE
+          the click-to-expand surface — clicking either card in a row
+          toggles both. */}
+      {groups.map((group) => (
+        <section key={group.phase} className="consumption-phase-group">
+          <ConsumptionPhaseHeader group={group} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {group.rows.map((row) => (
+              <ConsumptionRow
+                key={row.id}
+                row={row}
+                run={run}
+                scale={scale}
+                expanded={expanded.has(row.id)}
+                onToggle={() => toggleRow(row.id)}
+                reconcileReport={reconcileReport}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
 
       <ConsumptionLegend />
     </div>
   );
 }
 
-function ConsumptionRow({ row, run, scale, showPhaseTitle, expanded, onToggle, reconcileReport }) {
-  // Spec 0046 D6 — single-row card with inline expand. The entire top
-  // bar is one clickable surface; expanded detail renders INSIDE the
-  // same card so the width never jumps. Pre-spec the expand-body sat
-  // as a separate full-width grid row below; the visual flow kept
-  // reorienting left/right between the lanes and the detail.
-  // Spec 0047 — repair-sibling rows use a slightly muted background +
-  // a `repair` chip in the label cell so they visually cluster with
-  // their parent row but stay individually addressable.
+// SPEC-0086 — phase group header. Sits above the rows belonging to a
+// phase; carries the phase name (e.g. "P2 NEGOTIATE"), the phase
+// duration when known, and the round count for P2 / P4 (the only
+// phases with rounds).
+function ConsumptionPhaseHeader({ group }) {
+  const metaBits = [];
+  if (group.durationMs > 0) metaBits.push(fmt.duration(group.durationMs));
+  if (group.rounds > 0) {
+    metaBits.push(`${group.rounds} round${group.rounds === 1 ? '' : 's'}`);
+  }
   return (
-    <article style={{
-      background: row.isRepair ? 'var(--bg-0)' : 'var(--bg-1)',
-      border: `1px solid ${expanded ? 'var(--border-2)' : 'var(--border-1)'}`,
-      borderRadius: 8,
-      overflow: 'hidden',
-      transition: 'border-color 120ms',
-    }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        style={{
-          appearance: 'none', border: 'none', background: 'transparent',
-          width: '100%', textAlign: 'left',
-          cursor: 'pointer', fontFamily: 'inherit',
-          padding: '12px 14px',
-          display: 'grid',
-          gridTemplateColumns: 'var(--consumption-label-w) 1fr 1fr 24px',
-          gap: 14, alignItems: 'center',
-        }}>
-        {/* Phase + round label cell */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', gap: 2,
-          minHeight: 48,
-        }}>
-          {showPhaseTitle && (
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>
-              {PHASE_NAMES[row.phase] || `Phase ${row.phase}`}
-            </div>
-          )}
-          {row.label && (
-            <div className="mono" style={{
-              fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <span>{row.label}</span>
-              {row.isRepair && <RepairChip />}
-            </div>
-          )}
-          {!row.label && row.isRepair && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <RepairChip />
-            </div>
-          )}
-        </div>
-        {/* Claude lane */}
-        <div>
-          <TokenLaneCell usage={row.claude} agent="claude" run={run} scale={scale} />
-        </div>
-        {/* OpenAI lane */}
-        <div>
-          <TokenLaneCell usage={row.gpt} agent="gpt" run={run} scale={scale} />
-        </div>
-        {/* Chevron */}
-        <CardChevron open={expanded} hover={false} />
-      </button>
-      {expanded && (
-        <ConsumptionRowExpanded row={row} run={run} scale={scale} reconcileReport={reconcileReport} />
+    <header className="consumption-phase-header">
+      <span className="consumption-phase-name">{group.name}</span>
+      {metaBits.length > 0 && (
+        <span className="consumption-phase-meta mono">
+          {metaBits.join(' · ')}
+        </span>
       )}
-    </article>
+    </header>
   );
 }
 
-// Spec 0046 D6 — per-row expanded body. Now lives INSIDE the parent
-// `ConsumptionRow`'s card (no `gridColumn: 1 / 4` escape); the two
-// per-agent breakdowns sit side-by-side at the same width as the
-// lane bars above. Visual flow stays linear top-to-bottom.
-function ConsumptionRowExpanded({ row, run, scale, reconcileReport }) {
+// SPEC-0086 — Consumption row. Pre-spec the row was a clickable
+// `<button>` containing a left phase-label cell + two `<TokenLaneCell>`
+// compact-bar cells (duplicating the total bar inside the expanded
+// `<ConsumptionCard>` below). Now the cards ARE the row: a 2-col grid
+// of `<ConsumptionCard>`s (or 3-col with a leading round chip for
+// phases with rounds). Clicking either card toggles BOTH (paired
+// expansion, locked decision per the spec's 2026-05-18 review).
+function ConsumptionRow({ row, run, scale, expanded, onToggle, reconcileReport }) {
+  const hasRound = !!row.label;
   return (
-    <div style={{
-      padding: '0 14px 14px',
-      background: 'var(--bg-1)',
-    }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 14,
-        alignItems: 'stretch',
-        borderTop: '1px dashed var(--border-1)',
-        paddingTop: 12,
-      }}>
-        <ConsumptionCard usage={row.claude} agent="claude" phase={row.phase} run={run} scale={scale} reconcileReport={reconcileReport} />
-        <ConsumptionCard usage={row.gpt}    agent="gpt"    phase={row.phase} run={run} scale={scale} reconcileReport={reconcileReport} />
-      </div>
+    <div
+      className="consumption-row"
+      data-has-round={hasRound ? 'true' : 'false'}
+      data-is-repair={row.isRepair ? 'true' : 'false'}
+    >
+      {hasRound && (
+        <div className="consumption-round-chip">
+          <span className="consumption-round-label">{row.label}</span>
+          {row.isRepair && <RepairChip />}
+        </div>
+      )}
+      <ConsumptionCard
+        usage={row.claude}
+        agent="claude"
+        phase={row.phase}
+        run={run}
+        scale={scale}
+        reconcileReport={reconcileReport}
+        expanded={expanded}
+        onToggle={onToggle}
+        showRepairChip={!hasRound && row.isRepair}
+      />
+      <ConsumptionCard
+        usage={row.gpt}
+        agent="gpt"
+        phase={row.phase}
+        run={run}
+        scale={scale}
+        reconcileReport={reconcileReport}
+        expanded={expanded}
+        onToggle={onToggle}
+        showRepairChip={!hasRound && row.isRepair}
+      />
     </div>
   );
 }
@@ -1493,7 +1508,16 @@ function ConsumptionRowExpanded({ row, run, scale, reconcileReport }) {
 // input piece's contribution at the same scale. Sort toggle flips
 // between size-descending (default) and canonical Tk order. Web-search
 // count + cost (spec 0031) survive at the bottom.
-function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
+// SPEC-0086 — ConsumptionCard is now the click-to-expand surface
+// itself. The whole card chrome is a `<button>`; clicking it calls
+// `onToggle`. The breakdown bars + output tail render only when
+// `expanded === true` — the total-input bar is always visible. This
+// eliminates the legacy `<TokenLaneCell>` top-row that duplicated
+// the total bar above the card.
+function ConsumptionCard({
+  usage, agent, phase, run, scale, reconcileReport,
+  expanded = false, onToggle, showRepairChip = false,
+}) {
   const meta = AGENT_META[agent];
   const [sortMode, setSortMode] = React.useState('size'); // 'size' | 'order'
 
@@ -1553,9 +1577,22 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
   const pctOfCap = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
 
   return (
-    <div className="consumption-card" style={{
-      border: `1px solid ${meta.border}`,
-    }}>
+    <button
+      type="button"
+      className="consumption-card"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      style={{
+        borderColor: meta.border,
+      }}
+    >
+      {/* SPEC-0086 — chevron indicates the disclosure state. Sits at the
+          top-right of the card; rotates when expanded. */}
+      <span className="consumption-card-chevron" aria-hidden="true" style={{
+        transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+      }}>
+        <Mdi name="chevron-right" size={16} />
+      </span>
       {/* Zone 1: data header — agent name + metrics + costs (grouped at top) */}
       <div className="consumption-data-zone">
         {/* Header row — agent + token metrics + sort */}
@@ -1567,6 +1604,10 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
           <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
             {meta.name}
           </span>
+          {/* SPEC-0086 — repair-chip lives in the card header when the
+              row has no round (P0/P1/P3/P5 repairs); for P2/P4 repairs
+              the chip stays in the `consumption-round-chip` left cell. */}
+          {showRepairChip && <RepairChip />}
           {reuse.hasReuse ? (
             <>
               <span
@@ -1602,10 +1643,17 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
             ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
           </span>
           <span style={{ flex: 1 }} />
-          {sorted.length > 1 && (
+          {/* SPEC-0086 — sort toggle only appears when expanded (the
+              breakdown bars are what gets sorted). Stop-propagation
+              so clicking the toggle doesn't bubble up to the card
+              click-to-expand. */}
+          {expanded && sorted.length > 1 && (
             <button
               type="button"
-              onClick={() => setSortMode(m => m === 'size' ? 'order' : 'size')}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSortMode(m => m === 'size' ? 'order' : 'size');
+              }}
               title="Toggle sort: by size / canonical Tk order"
               style={{
                 appearance: 'none', border: '1px solid var(--border-1)',
@@ -1618,6 +1666,9 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
               sort: {sortMode === 'size' ? '↓ size' : '↘ order'}
             </button>
           )}
+          {/* Reserve space for the chevron so the header text doesn't
+              run under it. */}
+          <span aria-hidden="true" style={{ width: 18, flexShrink: 0 }} />
         </div>
 
         {/* Cost row — grouped with metrics at top per SPEC-0075 D3 */}
@@ -1634,7 +1685,8 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
       {/* Divider between data zone and bars zone */}
       <hr className="consumption-divider" />
 
-      {/* Zone 2: bars (total bar always visible; breakdown bars below) */}
+      {/* Zone 2: bars. SPEC-0086 — total bar always visible; breakdown
+          bars + output bar render only when expanded. */}
       <div className="consumption-bars-zone">
         <TotalInputBar
           label="total input"
@@ -1645,7 +1697,7 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
           color={meta.color}
         />
 
-        {sorted.length > 0 && (
+        {expanded && sorted.length > 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', gap: 4,
             paddingLeft: 8,
@@ -1663,7 +1715,7 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
           </div>
         )}
 
-        {tokensOut > 0 && (
+        {expanded && tokensOut > 0 && (
           <div style={{
             display: 'flex', flexDirection: 'column', gap: 4,
             paddingTop: 6,
@@ -1681,7 +1733,7 @@ function ConsumptionCard({ usage, agent, phase, run, scale, reconcileReport }) {
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -2052,21 +2104,10 @@ function searchCell(usage) {
   );
 }
 
-// One cell of a row — either a populated TokenBar or a silent placeholder.
-function TokenLaneCell({ usage, agent, run, scale }) {
-  if (!usage) {
-    return (
-      <div className="mono" style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '10px', minHeight: 56,
-        background: 'var(--bg-1)',
-        border: '1px dashed var(--border-2)', borderRadius: 6,
-        fontSize: 10, color: 'var(--fg-4)', letterSpacing: '0.04em',
-      }}>silent</div>
-    );
-  }
-  return <TokenBar usage={usage} agent={agent} run={run} scale={scale} />;
-}
+// SPEC-0086 — `TokenLaneCell` retired. The Consumption tab no longer
+// renders compact top-row bars above the per-agent cards (which used
+// to duplicate the total bar inside the expanded card). The card
+// itself is now the click-to-expand surface; see `ConsumptionCard`.
 
 // Spec 0030: the bar now renders one segment per prompt-piece kind
 // from `usage.promptPieces` (Tk palette), renormalised against
