@@ -188,6 +188,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
         active={onList}
         onClick={() => navigate('list')}
         icon={route.view === 'detail' ? 'arrow-left' : 'menu'}
+        size="sm"
       >
         All runs
       </Tab>
@@ -308,36 +309,19 @@ function ActiveRunChip({ runId, onClick }) {
 }
 
 // Spec 0035: tiny pill in the chrome's right cluster showing the deployed
-// version. Click → how-it-works page (where the VERSION_NOTES live).
+// version. Click -> how-it-works page (where the VERSION_NOTES live).
+// SPEC-0069: restyled to use the Chip primitive for design-system cohesion.
 function AppVersionChip({ onClick }) {
-  // Spec 0036: call ALL hooks unconditionally before any early return —
-  // spec 0035 had `useState(false)` after the `if (!meta?.version) return null`
-  // guard, which produced a hook-order crash on first paint (meta is null → 2
-  // hooks; after fetch → 3 hooks) and took down the entire ChromeBar.
   const meta = window.useAppMeta ? window.useAppMeta() : null;
   const [hover, setHover] = React.useState(false);
   if (!meta?.version) return null;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title={`dual-research v${meta.version} · click for release notes`}
-      style={{
-        display: 'inline-flex', alignItems: 'center',
-        padding: '0 12px',
-        borderLeft: '1px solid var(--border-1)',
-        background: hover ? 'var(--bg-2)' : 'transparent',
-        color: 'var(--fg-3)',
-        fontFamily: 'var(--mono)', fontSize: 10.5,
-        cursor: 'pointer',
-        border: 'none', borderLeftWidth: 1, borderLeftStyle: 'solid',
-        borderLeftColor: 'var(--border-1)',
-      }}
-    >
-      v{meta.version}
-    </button>
+    <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', borderLeft: '1px solid var(--border-1)' }}>
+      <Chip asButton onClick={onClick} title={`dual-research v${meta.version} · click for release notes`}
+            style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>
+        v{meta.version}
+      </Chip>
+    </div>
   );
 }
 
@@ -475,22 +459,15 @@ function ConnectionPill() {
   return (
     <div title={connected ? 'Connected to /api stream' : 'Idle — no active stream'}
          style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '0 14px',
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '0 12px',
       borderLeft: '1px solid var(--border-1)',
-      color: 'var(--fg-2)',
-      minWidth: 132,
     }}>
       <Dot color={connected ? COLORS.info : COLORS.idle}
-           pulse={connected ? 'pulse-a' : null} size={7} />
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-        <span style={{ fontSize: 11.5, color: connected ? 'var(--fg-1)' : 'var(--fg-2)' }}>
-          {connected ? 'connected' : 'idle'}
-        </span>
-        <span className="mono" style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>
-          {connected ? 'localhost · 6173' : '—'}
-        </span>
-      </div>
+           pulse={connected ? 'pulse-a' : null} size={6} />
+      <span style={{ fontSize: 11, color: connected ? 'var(--fg-1)' : 'var(--fg-3)', fontFamily: 'var(--mono)' }}>
+        {connected ? 'connected' : 'idle'}
+      </span>
     </div>
   );
 }
@@ -571,21 +548,9 @@ function MoonIcon() {
 
 function DesignLanguageButton({ onClick, active }) {
   return (
-    <button
-      onClick={onClick}
-      title="Design language"
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        padding: '0 14px',
-        borderLeft: '1px solid var(--border-1)',
-        background: active ? 'var(--bg-1)' : 'transparent',
-        color: active ? 'var(--fg-0)' : 'var(--fg-2)',
-        fontSize: 12,
-        cursor: 'pointer',
-      }}>
-      <Icon.Palette style={{ color: active ? 'var(--fg-1)' : 'var(--fg-3)' }} />
-      <span>Design</span>
-    </button>
+    <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-1)', padding: '0 4px' }}>
+      <Tab active={active} onClick={onClick} icon="palette" size="sm">Design</Tab>
+    </div>
   );
 }
 

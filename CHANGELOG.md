@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.62.0] — 2026-05-18
+
+### Changed
+
+- **Run-list & chrome polish** ([spec 0069](specs/0069-run-list-chrome-polish.md)) — Fixed-width status pills (`min-width: 88px`, centered text) for uniform layout across all statuses.
+- **Run-list header chip-ification** — Replaced punctuation-separated `N runs · N running · cost` text with structured `<Chip>` instances for scannable stats.
+- **Topic column breathing room** — Added left padding to the topic column for visual separation from the status pill.
+- **Chrome tab uniformity** — All three chrome tabs (All runs, Compare, Search) now use consistent `size="sm"`.
+- **ConnectionPill flattened** — Two-line connection indicator (with "localhost · 6173" subtitle) replaced with a single-line chip showing just the connection state. URL preserved in tooltip.
+- **AppVersionChip restyled** — Bespoke inline-styled version button replaced with the standard `<Chip>` primitive.
+- **DesignLanguageButton restyled** — Bespoke button replaced with `<Tab>` primitive matching chrome style.
+- **StatusBadge spotlight** — Live StatusBadge showcase added to the Design Language DNA page's component spotlights (M1 alignment).
+
 ## [0.61.0] — 2026-05-18
 
 ### Added

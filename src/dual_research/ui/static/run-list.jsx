@@ -203,10 +203,10 @@ function RunListView({ runs, onSelect }) {
           <span style={{ color: 'var(--fg-1)', fontSize: 12 }}>runs</span>
         </div>
 
-        <div style={{ minWidth: 0 }}>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
-            {runs.length} run{runs.length === 1 ? '' : 's'} &middot; {runningCount} running &middot; &sum; cost {fmt.cost(totalCost)}
-          </span>
+        <div style={{ minWidth: 0, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Chip icon="format-list-bulleted">{runs.length} run{runs.length === 1 ? '' : 's'}</Chip>
+          {runningCount > 0 && <Chip tone="info" icon="circle-medium">{runningCount} running</Chip>}
+          <Chip icon="currency-usd">{fmt.costShort(totalCost)} spent</Chip>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', whiteSpace: 'nowrap' }}>
@@ -249,8 +249,8 @@ function RunListView({ runs, onSelect }) {
               </button>
             )}
           </div>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>SSE&nbsp;live</span>
-          <Dot color={COLORS.info} pulse="pulse-a" size={7} />
+          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>live</span>
+          <Dot color={COLORS.info} pulse="pulse-a" size={6} />
         </div>
       </header>
 
@@ -427,7 +427,7 @@ function RunRow({ run, onSelect, attentionSummary }) {
         width: 'fit-content',
       }}>{displayId}</span>
       <StatusBadge status={run.status} />
-      <div style={{ minWidth: 0, paddingRight: 16 }} title={run.topic}>
+      <div style={{ minWidth: 0, paddingLeft: 8, paddingRight: 16 }} title={run.topic}>
         <div style={{
           color: 'var(--fg-0)', fontSize: 12.5,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',

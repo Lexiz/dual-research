@@ -129,8 +129,9 @@ function StatusBadge({ status }) {
   const m = map[status] || map.idle;
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
       padding: '3px 8px 3px 7px',
+      minWidth: 88,
       background: 'var(--bg-2)',
       border: '1px solid var(--border-1)',
       borderRadius: 999,
@@ -138,6 +139,7 @@ function StatusBadge({ status }) {
       color: 'var(--fg-1)',
       fontFamily: 'var(--mono)',
       letterSpacing: '0.01em',
+      textAlign: 'center',
     }}>
       <Dot color={m.color} pulse={m.pulse} size={6} />
       {m.label}

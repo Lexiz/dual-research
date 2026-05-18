@@ -121,6 +121,16 @@ function DnaOnePager() {
             </div>
           </Spotlight>
 
+          <Spotlight label="<StatusBadge>" caption="Fixed-width status pill with dot + label. Uniform 88px min-width.">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <StatusBadge status="running" />
+              <StatusBadge status="converged" />
+              <StatusBadge status="deadlocked" />
+              <StatusBadge status="errored" />
+              <StatusBadge status="completed" />
+            </div>
+          </Spotlight>
+
           {/* M1: subsequent specs add their new primitives here.
                Format: <Spotlight label="<Foo>" caption="...">{live <Foo .../>}</Spotlight>
                SPEC-0071: <CollapsibleSection>
