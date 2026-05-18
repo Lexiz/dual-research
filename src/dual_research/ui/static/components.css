@@ -851,6 +851,37 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Consumption card — SPEC-0075
+   Three-zone vertical layout: data header (metrics + costs) at top,
+   1px divider, bars zone (total + breakdown) at bottom.
+   ───────────────────────────────────────────────────────────── */
+.consumption-card {
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border-radius: var(--r-2);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.consumption-card .consumption-data-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.consumption-card .consumption-divider {
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--border-1);
+  margin: 10px 0;
+}
+.consumption-card .consumption-bars-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
    Modal (.dr-modal) — single | split
    CMP-06 — SPEC-0058. Class-backed replacement for inline-styled Modal.
    ───────────────────────────────────────────────────────────── */

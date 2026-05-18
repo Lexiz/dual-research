@@ -12,6 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.68.0] — 2026-05-18
+
+### Changed
+
+- **Consumption tab agent-card restructure** ([spec 0075](specs/0075-consumption-tab-restructure.md)) — Reorganized expanded agent cards: metrics + costs grouped at top, 1px divider, bars zone (total + breakdown) at bottom. Cards grow downward on expand; total bar stays put as visual anchor. SUR-CONSUMPTION-V2.
+- **Wider consumption bars** — Phase-label column reduced from 160px to 100px; bar-label columns reduced from 140px to 100px via new `--consumption-label-w` token. Bars reclaim ~40px of slack space per card.
+- **`.consumption-card` CSS class** — Three-zone vertical layout codified in `components.css`.
+- **Consumption card spotlight** — Added to Design Language page Component Spotlights (M1 alignment).
+
 ## [0.67.0] — 2026-05-18
 
 ### Added
