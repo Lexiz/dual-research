@@ -3,10 +3,10 @@ spec: 0072
 title: Critique pane structural — filter strip, Phase 4 split, summary copy
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.65.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/72
 ---
 
 # Spec 0072 — Critique pane structural pass
