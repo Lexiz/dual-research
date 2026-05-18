@@ -12,6 +12,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.13] — 2026-05-18
+
+### Added
+
+- **`design-system/` folder** — canonical text reference for the design system, paired with the live implementation in `src/dual_research/ui/static/` and the in-app reference at `/#/language`. Establishes a two-way PR flow between Claude Code (terminal) and Claude Design (claude.ai chat) with GitHub as the synchronisation layer.
+  - `SPEC.md` — full spec snapshot at v0.69.12 (foundations, components, patterns, principles, implementation map).
+  - `README.md` — process docs: paths whitelist/blacklist, branch/PR conventions, the invariant that SPEC and live implementation stay in sync.
+  - `PROMPT-FOR-CLAUDE-DESIGN.md` — paste-able prompt for the Claude Design project on claude.ai.
+  - `CHANGELOG.md` — append-only design system change history.
+  - `audits/` — research feeding into future design system updates. Initial entry: `2026-05-18-responsive-audit/` (52 screenshots × 7 surfaces × 2 viewports × 2 themes, plus capture scripts and a 392-line briefing on the laptop-vs-Odyssey density gap; moved from `handoffs/`).
+
+### Fixed
+
+- **`design-language.jsx` drift fixes** — three Component Spotlights on the `/#/language` page brought back in sync with what shipped earlier today:
+  - Added `<LoadingState>` Spotlight — SPEC-0084 introduced the primitive but no Spotlight existed.
+  - Updated **Consumption row** Spotlight to reflect SPEC-0086 (phase header *above* the row, not glued to card edges).
+  - Updated **Agent Input panel** Spotlight to reflect SPEC-0085 (3-tier hierarchy with nested "From chat" + "External resources mentioned" + Child Pages).
+
 ## [0.69.12] — 2026-05-18
 
 ### Added

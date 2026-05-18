@@ -154,7 +154,7 @@ function DnaOnePager() {
             <QuoteCallout text="The architecture should prioritize horizontal scaling over vertical scaling for the ingestion layer." />
           </Spotlight>
 
-          <Spotlight label="Agent Input panel" caption="Collapsible entry list for agent input bundles. System prompt collapsed, user prompt expanded. Uses CollapsibleSection + Markdown rendering. SPEC-0074.">
+          <Spotlight label="Agent Input panel" caption="Three-tier hierarchy: System Prompt (collapsed by default) → User Prompt (expanded, with nested 'From chat' + 'External resources mentioned' sub-sections) → Child Pages (one top-level entry per external resource pulled). Uses CollapsibleSection + Markdown rendering. SPEC-0085 (extends 0074).">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -168,46 +168,71 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)', transform: 'rotate(90deg)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>User prompt: Brief</span>
-                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>(brief)</span>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>User prompt</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>245,378 chars</span>
+                </div>
+                <div style={{ paddingLeft: 22, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div style={{ padding: '4px 10px', fontSize: 11, color: 'var(--fg-2)', borderLeft: '1px solid var(--border-2)' }}>
+                    From chat <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>3,142 chars</span>
+                  </div>
+                  <div style={{ padding: '4px 10px', fontSize: 11, color: 'var(--fg-2)', borderLeft: '1px solid var(--border-2)' }}>
+                    External resources mentioned <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>2 resources</span>
+                  </div>
+                </div>
+              </div>
+              <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
+                <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)' }}>&#9654;</span>
+                  <span style={{ fontWeight: 500, fontSize: 12 }}>Child page: Notion ADR-014</span>
+                  <span style={{ flex: 1 }} />
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>12,847 chars</span>
                 </div>
               </div>
             </div>
           </Spotlight>
 
-          <Spotlight label="Consumption card" caption="Three-zone agent card: data header (metrics + costs) at top, divider, bars zone (total + breakdown) at bottom. Equal-height paired cards via grid stretch. SPEC-0075.">
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="consumption-card" style={{ border: '1px solid var(--agent-a-border)', flex: 1 }}>
-                <div className="consumption-data-zone">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                    <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>Claude</span>
-                    <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>86.5kt seen</span>
-                  </div>
-                  <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.56 · Total: $0.72</div>
-                </div>
-                <hr className="consumption-divider" />
-                <div className="consumption-bars-zone">
-                  <div style={{ height: 10, background: 'var(--agent-a)', borderRadius: 3, opacity: 0.8, width: '70%' }} />
-                  <div style={{ height: 6, background: 'var(--agent-a)', borderRadius: 2, opacity: 0.5, width: '40%', marginLeft: 8 }} />
-                </div>
+          <Spotlight label="Consumption row" caption="Phase header sits above the row (not glued to the left edge of cards). Below: paired agent cards — three zones each (data header, divider, bars zone). Equal-height via grid stretch. SPEC-0086 (rework of 0075).">
+            <div className="consumption-phase-group" style={{ marginBottom: 0 }}>
+              <div className="consumption-phase-header">
+                <span className="consumption-phase-name">Phase 2 · Negotiate</span>
+                <span className="consumption-phase-meta">5 rounds · 17m 32s</span>
               </div>
-              <div className="consumption-card" style={{ border: '1px solid var(--agent-b-border)', flex: 1 }}>
-                <div className="consumption-data-zone">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                    <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>GPT</span>
-                    <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>42.1kt seen</span>
+              <div className="consumption-row">
+                <div className="consumption-card" style={{ border: '1px solid var(--agent-a-border)' }}>
+                  <div className="consumption-data-zone">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                      <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>Claude</span>
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>86.5kt seen</span>
+                    </div>
+                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.56 · Total: $0.72</div>
                   </div>
-                  <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.21 · Total: $0.35</div>
+                  <hr className="consumption-divider" />
+                  <div className="consumption-bars-zone">
+                    <div style={{ height: 10, background: 'var(--agent-a)', borderRadius: 3, opacity: 0.8, width: '70%' }} />
+                    <div style={{ height: 6, background: 'var(--agent-a)', borderRadius: 2, opacity: 0.5, width: '40%', marginLeft: 8 }} />
+                  </div>
                 </div>
-                <hr className="consumption-divider" />
-                <div className="consumption-bars-zone">
-                  <div style={{ height: 10, background: 'var(--agent-b)', borderRadius: 3, opacity: 0.8, width: '45%' }} />
-                  <div style={{ height: 6, background: 'var(--agent-b)', borderRadius: 2, opacity: 0.5, width: '25%', marginLeft: 8 }} />
+                <div className="consumption-card" style={{ border: '1px solid var(--agent-b-border)' }}>
+                  <div className="consumption-data-zone">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                      <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>GPT</span>
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>42.1kt seen</span>
+                    </div>
+                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.21 · Total: $0.35</div>
+                  </div>
+                  <hr className="consumption-divider" />
+                  <div className="consumption-bars-zone">
+                    <div style={{ height: 10, background: 'var(--agent-b)', borderRadius: 3, opacity: 0.8, width: '45%' }} />
+                    <div style={{ height: 6, background: 'var(--agent-b)', borderRadius: 2, opacity: 0.5, width: '25%', marginLeft: 8 }} />
+                  </div>
                 </div>
               </div>
             </div>
+          </Spotlight>
+
+          <Spotlight label="<LoadingState>" caption="Three sizes — `inline` (14px spinner, row), `panel` (28px, column), `page` (44px, column). Spinner + label + optional hint. Default hint: 'Just a moment, please.' One loading visual everywhere the UI is waiting on a first useful payload. SPEC-0084.">
+            <LoadingState size="panel" label="Loading runs…" />
           </Spotlight>
 
           {/* M1: subsequent specs add their new primitives here.
