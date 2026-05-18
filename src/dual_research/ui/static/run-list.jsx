@@ -204,9 +204,12 @@ function RunListView({ runs, loading, onSelect }) {
         </div>
 
         <div style={{ minWidth: 0, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <Chip icon="format-list-bulleted">{runs.length} run{runs.length === 1 ? '' : 's'}</Chip>
-          {runningCount > 0 && <Chip tone="info" icon="circle-medium">{runningCount} running</Chip>}
-          <Chip icon="currency-usd">{fmt.costShort(totalCost)} spent</Chip>
+          {/* SPEC-0087 § C — tooltips on the header chips per delta 13.03's
+              "what does each count mean" mandate. The tooltip closes the
+              only remaining gap from the 13.03 audit verdict. */}
+          <Chip icon="format-list-bulleted" title="Total runs in the current filter">{runs.length} run{runs.length === 1 ? '' : 's'}</Chip>
+          {runningCount > 0 && <Chip tone="info" icon="circle-medium" title="Runs currently in progress">{runningCount} running</Chip>}
+          <Chip icon="currency-usd" title="Aggregate cost across the visible runs">{fmt.costShort(totalCost)} spent</Chip>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', whiteSpace: 'nowrap' }}>
@@ -433,7 +436,11 @@ function RunRow({ run, onSelect, attentionSummary }) {
         width: 'fit-content',
       }}>{displayId}</span>
       <StatusBadge status={run.status} />
-      <div style={{ minWidth: 0, paddingLeft: 8, paddingRight: 16 }} title={run.topic}>
+      {/* SPEC-0087 § A — column-gap between STATUS pill and TOPIC bumped
+          from 8 to 20 px per the user's 12.52 + 13.22 complaint. The
+          tighter spacing pre-spec made the topic text read crammed
+          against the pill. */}
+      <div style={{ minWidth: 0, paddingLeft: 20, paddingRight: 16 }} title={run.topic}>
         <div style={{
           color: 'var(--fg-0)', fontSize: 12.5,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',

@@ -182,17 +182,22 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
   const onList = route.view === 'list';
   return (
     <div style={{
+      // SPEC-0087 § B — chrome strip kept at 44px tall but tabs now
+      // sit centered (no longer flush against the top edge of the
+      // viewport). Adds the breathing-room the user flagged at 13.07.
       height: 44,
       background: 'var(--bg-0)',
       borderBottom: '1px solid var(--border-1)',
-      display: 'flex', alignItems: 'stretch',
+      display: 'flex', alignItems: 'center',
       paddingLeft: 8,
+      gap: 4,
     }}>
       <Tab
         active={onList}
         onClick={() => navigate('list')}
         icon={route.view === 'detail' ? 'arrow-left' : 'menu'}
         size="sm"
+        className="tab-chrome"
       >
         All runs
       </Tab>
@@ -201,6 +206,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
         onClick={() => navigate('compare')}
         icon="compare"
         size="sm"
+        className="tab-chrome"
       >
         Compare
       </Tab>
@@ -209,6 +215,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me 
         onClick={() => navigate('search')}
         icon="magnify"
         size="sm"
+        className="tab-chrome"
       >
         Search
       </Tab>
@@ -269,6 +276,7 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
         onClick={() => navigate('how-it-works')}
         icon="help-circle-outline"
         size="sm"
+        className="tab-chrome"
       >
         How it works
       </Tab>
