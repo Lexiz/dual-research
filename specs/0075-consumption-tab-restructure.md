@@ -3,10 +3,10 @@ spec: 0075
 title: Consumption tab agent-card restructure — equal-height, data-top-bars-bottom, wider bars
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.68.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/75
 ---
 
 # Spec 0075 — Consumption tab agent-card restructure
