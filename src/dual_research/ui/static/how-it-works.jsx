@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.62.0',
+      date: '2026-05-18',
+      summary: 'Run-list & chrome polish -- uniform status pills, structured info chips, cohesive chrome controls.',
+      items: [
+        'Status pills now have a fixed 88px min-width with centered text -- all statuses (running, deadlocked, completed, errored, converged) render at the same width.',
+        'Run-list header info line replaced with structured Chip instances: run count, running count (info tone), and total cost.',
+        'Chrome tabs (All runs, Compare, Search) now use consistent size="sm" for uniform visual weight.',
+        'ConnectionPill flattened from two-line indicator to a single-line chip showing just the connection state.',
+        'AppVersionChip restyled to use the Chip primitive. DesignLanguageButton restyled to use Tab primitive.',
+        'StatusBadge spotlight added to the Design Language DNA page.',
+      ],
+    },
+    {
       version: '0.61.0',
       date: '2026-05-18',
       summary: 'Brand-icon system + Design-page DNA reskin -- official brand marks everywhere agents are identified.',
