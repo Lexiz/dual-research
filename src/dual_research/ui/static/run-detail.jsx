@@ -1030,15 +1030,13 @@ function outputSlotFor(phase, agent) {
   return null;
 }
 
-// Label for the output bar. P0 is the only turn whose output doesn't fold
-// into a later input slot (the orchestrator reads the preflight critique
-// for go/no-go but never inlines it), so it gets a descriptive label
-// instead of a `→ slot` arrow.
+// SPEC-0067 D9 — output bar labels expanded to full descriptions.
+// P0 is the only turn whose output doesn't fold into a later input slot.
 function outputBarLabel(phase, agent) {
   const slot = outputSlotFor(phase, agent);
-  if (slot == null) return '→ preflight critique';
+  if (slot == null) return 'feeds preflight critique';
   const slotLabel = INPUT_PIECE_LABEL[slot] || slot;
-  return `→ ${slot} · ${slotLabel}`;
+  return `feeds ${slotLabel}`;
 }
 
 // Spec 0051 B4 — output cost is the biggest per-token rate (output is
@@ -1963,7 +1961,7 @@ function OutputBar({ label, tokens, scale, color, outputCost, modelId, slot }) {
     : '';
   const tooltip = [
     `${tokens.toLocaleString()}t output`,
-    slot ? `→ feeds the \`${slot}\` slot in later turns' inputs` : '→ preflight critique (consumed by orchestrator for go/no-go)',
+    slot ? `feeds the \`${slot}\` slot in later turns' inputs` : 'feeds preflight critique (consumed by orchestrator for go/no-go)',
     rateLine,
     modelId ? `model: ${modelId}` : null,
   ].filter(Boolean).join('\n');
@@ -2032,7 +2030,7 @@ function ReuseChip({ multiplier }) {
         whiteSpace: 'nowrap',
       }}
     >
-      × {n} reuse
+      × {n} token reuse
     </span>
   );
 }
@@ -2142,7 +2140,7 @@ function TokenBar({ usage, agent, run, scale }) {
   const tooltipLines = [
     `${meta.name} · ${modelId || 'unknown model'}`,
     reuse.hasReuse
-      ? `input:  ${reuse.content.toLocaleString()}t seen · ${reuse.billed.toLocaleString()}t billed (× ${reuse.multiplier.toFixed(1)} reuse)`
+      ? `input:  ${reuse.content.toLocaleString()}t seen · ${reuse.billed.toLocaleString()}t billed (× ${reuse.multiplier.toFixed(1)} token reuse)`
       : `input:  ${tokensIn.toLocaleString()}t`,
   ];
   if (reuse.hasReuse) {
@@ -3257,12 +3255,13 @@ function emptyStateCopy(item, run) {
 // Spec 0044 — kind metadata: chip label glyph + colour tint. The
 // chip strip omits any kind with both raised=0 and resolved=0 so
 // quiet turns stay sparse.
+// SPEC-0067 D3/D4 — full-word labels replace single-letter codes.
 const CHIP_KIND_META = {
-  question:     { label: 'Q',  tint: 'info' },
-  disagreement: { label: 'D',  tint: 'warn' },
-  claim:        { label: 'Cl', tint: 'info' },
-  issue:        { label: 'I',  tint: 'warn' },
-  comment:      { label: 'C',  tint: 'info' },
+  question:     { label: 'questions',     tint: 'info' },
+  disagreement: { label: 'disagreements', tint: 'warn' },
+  claim:        { label: 'claims',        tint: 'info' },
+  issue:        { label: 'issues',        tint: 'warn' },
+  comment:      { label: 'comments',      tint: 'info' },
 };
 
 // Spec 0042 D5 + Spec 0044 D1 — per-phase chip allowlist. The
@@ -3315,15 +3314,19 @@ function StatsChips({ phase, run, item }) {
 //   raised > 0, resolved == 0   → ``+5 Q``        (info/warn tint)
 //   raised == 0, resolved > 0   → ``−3 prior Q``  (ok tint, "closed-only")
 //   raised > 0, resolved > 0    → ``+5 Q  −1``    (info/warn tint, "+raised  −resolved")
+// SPEC-0067 D4 — full-word labels in chip text and tooltips.
+// `label` is now plural ("claims"); singular derived by dropping trailing 's'.
 function StatChip({ label, raised, resolved, tint }) {
   const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
   const isClosedOnly = raised === 0 && resolved > 0;
   const c = isClosedOnly ? COLORS.ok : (colorMap[tint] || 'var(--fg-3)');
+  // Display label: singular when count is 1, else plural as-is
+  const displayLabel = (n) => n === 1 ? label.replace(/s$/, '') : label;
   const tooltip = isClosedOnly
-    ? `Closed ${resolved} prior ${label}${resolved === 1 ? '' : 's'} this turn.`
+    ? `Closed ${resolved} prior ${displayLabel(resolved)} this turn.`
     : raised > 0 && resolved > 0
-      ? `Raised ${raised}, closed ${resolved} prior ${label}${raised === 1 ? '' : 's'} this turn.`
-      : `Raised ${raised} ${label}${raised === 1 ? '' : 's'} this turn.`;
+      ? `Raised ${raised}, closed ${resolved} prior ${displayLabel(raised)} this turn.`
+      : `Raised ${raised} ${displayLabel(raised)} this turn.`;
   return (
     <span className="mono"
           title={tooltip}
@@ -6132,7 +6135,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     }
     if (bestGhost > 0) {
       const other = best.raisedBy === 'claude' ? 'gpt' : 'claude';
-      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: `ghosted ${bestGhost}r`, kind: 'ghosted' });
+      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: `ghosted ${bestGhost} round${bestGhost === 1 ? '' : 's'}`, kind: 'ghosted' });
     }
     const threadStatus = bestGhost > 0 ? 'drift' : 'open';
     const footer = bestGhost > 0 ? `Not addressed for ${bestGhost} round(s) — highest-leverage open item.` : null;
@@ -6322,7 +6325,7 @@ function QuestionCard({ q, onHighlight, run }) {
       t.push({
         agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
         round: q.raisedRound + ghostedRounds,
-        verdict: `ghosted ${ghostedRounds}r`,
+        verdict: `ghosted ${ghostedRounds} round${ghostedRounds === 1 ? '' : 's'}`,
         kind: 'ghosted',
       });
     }
@@ -6475,10 +6478,15 @@ function CardHeadline({
   const statusTone = _toneFromColor(statusColor);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-      {/* SPEC-0057 D7 — kind badge migrated to Chip primitive */}
-      <Chip tone={kindTone} style={!kindTone ? { color: accentColor, borderColor: `${accentColor}44`, background: `${accentColor}14` } : undefined}>
-        {KIND_LABELS[kind] || kind}{publicId ? ` ${publicId}` : ''}
-      </Chip>
+      {/* SPEC-0067 D10 — CodeCluster for structured public IDs; falls back
+          to plain Chip when publicId is absent or unparseable. */}
+      {publicId && parseCodeId(publicId).kind ? (
+        <CodeCluster id={publicId} kind={kind} hideRound size="sm" />
+      ) : (
+        <Chip tone={kindTone} style={!kindTone ? { color: accentColor, borderColor: `${accentColor}44`, background: `${accentColor}14` } : undefined}>
+          {KIND_LABELS[kind] || kind}{publicId ? ` ${publicId}` : ''}
+        </Chip>
+      )}
       {statusLabel && (
         <>
           <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
@@ -6514,7 +6522,7 @@ function GhostedRoundsBadge({ ghostedRounds }) {
     <Chip tone="warn" icon="alert"
           title={`Open for ${ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
           style={{ flexShrink: 0, cursor: 'help' }}>
-      ghosted {ghostedRounds}r
+      ghosted {ghostedRounds} round{ghostedRounds === 1 ? '' : 's'}
     </Chip>
   );
 }
@@ -6612,7 +6620,7 @@ function GhostedAnnotation({ run, phaseId, itemId }) {
     <Chip tone="warn" icon="alert"
           title={`Open for ${entry.ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
           style={{ marginLeft: 8, cursor: 'help' }}>
-      ghosted {entry.ghostedRounds}r
+      ghosted {entry.ghostedRounds} round{entry.ghostedRounds === 1 ? '' : 's'}
     </Chip>
   );
 }
@@ -6704,17 +6712,19 @@ function DisagreementCard({ d, onHighlight, run }) {
   else if (which === 'gpt')                accentColor = COLORS.agentB;
   else if (which === 'both')               accentColor = COLORS.ok;
 
-  // Spec 0046 D3 — status label + colour for the unified headline.
+  // Spec 0046 D3 + SPEC-0067 D7 — status label + colour for the unified headline.
+  // D7: drop ambiguous arrow notation; use descriptive labels.
   let statusLabel, statusColor;
   if (d.status === 'open' && d.deadlocked) { statusLabel = 'deadlocked'; statusColor = COLORS.warn; }
   else if (d.status === 'open')            { statusLabel = 'open';       statusColor = COLORS.warn; }
-  else if (which === 'claude')             { statusLabel = '→ claude';   statusColor = COLORS.agentA; }
-  else if (which === 'gpt')                { statusLabel = '→ gpt';      statusColor = COLORS.agentB; }
-  else if (which === 'both')               { statusLabel = 'aligned';    statusColor = COLORS.ok; }
+  else if (which === 'claude')             { statusLabel = 'conceded by Claude'; statusColor = COLORS.agentA; }
+  else if (which === 'gpt')                { statusLabel = 'conceded by GPT';    statusColor = COLORS.agentB; }
+  else if (which === 'both')               { statusLabel = 'both aligned';       statusColor = COLORS.ok; }
 
+  // SPEC-0067 D8 — replace arrow notation with descriptive labels.
   const roundRange = d.closedRound
-    ? `R${d.openedRound} → R${d.closedRound}`
-    : `R${d.openedRound ?? d.round} · still open`;
+    ? `opened R${d.openedRound} · closed R${d.closedRound}`
+    : `opened R${d.openedRound ?? d.round} · still open`;
 
   return (
     <article

@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.60.0] — 2026-05-18
+
+### Added
+
+- **Chip vocabulary + code-cluster expansion** ([spec 0067](specs/0067-chip-vocabulary.md)) — Full-word labels replace all cryptic single-letter codes across every chip surface. New `parseCodeId` utility and `<CodeCluster>` primitive in shared.jsx parse critique public IDs (Q-c-r1-04, I-g-r2-06, Cl-c-p1-01, d-04) into structured chip clusters showing kind, agent, and round.
+- **Stats chips expanded** — `+6 Cl` → `+6 claims`, `+1 I −1` → `+1 issue −1`, `−3 prior Q` → `−3 prior questions`. All timeline card chips now use full-word labels.
+- **Disagreement status labels** — `→ claude` / `→ gpt` replaced with `conceded by Claude` / `conceded by GPT`. Arrow round ranges (`R2 → R5`) replaced with `opened R2 · closed R5`.
+- **Ghosted chips expanded** — `ghosted 4r` → `ghosted 4 rounds` across all surfaces (GhostedRoundsBadge, GhostedAnnotation, QuestionThread verdict).
+- **Reuse chip expanded** — `× 3.8 reuse` → `× 3.8 token reuse`.
+- **Output bar labels expanded** — `→ d1 · Claude's Phase 1 draft` → `feeds Claude's Phase 1 draft`. Slot codes removed from user-facing labels.
+- **CodeCluster in CardHeadline** — Critique card headlines now render structured chip clusters via `<CodeCluster>` when the public ID is parseable (falls back to plain chip for legacy IDs).
+- **9 new parser tests** in `tests/test_ui_codecluster.py` locking `parseCodeId` semantics for all five prefixes + edge cases.
+
 ## [0.59.1] — 2026-05-17
 
 ### Fixed

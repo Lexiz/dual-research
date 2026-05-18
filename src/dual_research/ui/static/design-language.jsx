@@ -240,9 +240,9 @@ function DesignLanguageView() {
             <PrimitiveCard name="Pill" role="Lightweight categorical tag. Inline with rows, never standalone.">
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <Pill color={COLORS.warn}>open</Pill>
-                <Pill color={COLORS.agentA}>→ claude</Pill>
-                <Pill color={COLORS.agentB}>→ gpt</Pill>
-                <Pill color={COLORS.ok}>aligned</Pill>
+                <Pill color={COLORS.agentA}>conceded by Claude</Pill>
+                <Pill color={COLORS.agentB}>conceded by GPT</Pill>
+                <Pill color={COLORS.ok}>both aligned</Pill>
                 <Pill color={COLORS.info}>live</Pill>
               </div>
             </PrimitiveCard>

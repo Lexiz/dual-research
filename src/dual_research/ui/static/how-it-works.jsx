@@ -15,6 +15,18 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.60.0',
+      date: '2026-05-18',
+      summary: 'Chip vocabulary + code-cluster expansion -- full-word labels replace cryptic codes.',
+      items: [
+        'New parseCodeId utility + CodeCluster primitive. Critique public IDs (Q-c-r1-04, d-04, etc.) now render as structured chip clusters showing kind, agent, and round.',
+        'Stats chips expanded: "+6 Cl" becomes "+6 claims", "+1 I -1" becomes "+1 issue -1". All timeline card chips use full words.',
+        'Disagreement status labels: arrow notation ("-> claude") replaced with "conceded by Claude" / "conceded by GPT". Round ranges use "opened R2 / closed R5".',
+        'Ghosted chips: "ghosted 4r" becomes "ghosted 4 rounds". Reuse chip: "x 3.8 reuse" becomes "x 3.8 token reuse".',
+        'Output bar labels: slot codes removed ("-> d1") replaced with descriptive "feeds Claude\'s Phase 1 draft".',
+      ],
+    },
+    {
       version: '0.59.0',
       date: '2026-05-17',
       summary: 'Onboarding flow + landing demo capsule -- final design-system arc spec.',
