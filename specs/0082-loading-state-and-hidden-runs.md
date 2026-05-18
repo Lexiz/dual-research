@@ -3,10 +3,10 @@ spec: 0082
 title: Run-list loading state + server-side hidden-runs filter
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.69.6
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/82"
 ---
 
 # Spec 0082 — Loading state + hidden-runs filter
