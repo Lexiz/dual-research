@@ -3,10 +3,10 @@ spec: 0078
 title: Fly VM memory bump to fix UI-server OOM-on-boot
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.69.2
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/78"
 ---
 
 # Spec 0078 — Fly VM memory bump to fix UI-server OOM-on-boot
