@@ -12,6 +12,64 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.12] — 2026-05-18
+
+### Added
+
+- **Spec 0087 completion patch** — closes out items deferred during the initial spec 0087 ship.
+  - PhaseRail pill anchoring: each pill tracks its phase header's y-position via `ResizeObserver` + RAF-throttled scroll listener. `.phase-rail` container switched from `position: sticky` to `position: relative`; anchored pills render with `position: absolute`.
+  - Disagreement chip pair: `raised by X` chip added alongside `conceded by Y` on resolved rows (skipped when `d.raisedBy === 'both'` — no signal). Each agent attribution chip embeds the corresponding BrandMark glyph.
+  - `[Self-raised]` chip promoted from inline body text to a header strip chip. The `_parseSelfRaised()` helper strips every `[Self-raised]` substring from comment bodies and surfaces a `tone-muted` chip when present.
+  - `CardHeadline` extended with an `extraChips` prop for arbitrary attribution chip clusters.
+
+### Changed
+
+- **Card vertical density** — `.card` padding trimmed `8 → 6 px` vertically; timeline-row `marginBottom` `6 → 4 px`. ~6 px shorter per artifact card.
+
+### Fixed
+
+- **`[object Object]` regression in disagreement detail footer** — the JSX `statusLabel` (with embedded BrandMark) was being template-stringified into `QuestionThread.footer`. Added a parallel `statusLabelPlain` string for footer-text usage. The visible footer now correctly reads `✓ conceded by GPT in round 3`.
+
+## [0.69.11] — 2026-05-18
+
+### Added
+
+- **Spec 0087 — Cross-cutting polish (final spec from the 2026-05-18 audit consolidation)** covering 22 audit deltas + 3 new user-feedback items across 12 sections.
+  - **Run-list spacing (§ A)** — STATUS→TOPIC column gap bumped to 20 px (was 8 px). Run-detail `StatusErrorsBadge` aligned to `.sb` height (20 px).
+  - **Top-chrome tabs (§ B)** — `All runs` / `Compare` / `Search` / `How it works` enforce `min-width: 110px` via new `.tab-chrome` class. Chrome strip switched from `align-items: stretch` to `center` so tabs sit centered, not flush against the top.
+  - **Run-list header chip tooltips (§ C)** — `Total runs in the current filter` / `Runs currently in progress` / `Aggregate cost across the visible runs`.
+  - **PhaseRail legibility (§ D.1)** — dropped the green-on-green text regression. `.phase-rail-node.is-completed .pr-label` color `var(--ok) → var(--fg-2)`.
+  - **AgentStrip equal-width (§ E)** — `as-timeline` class forces `width: 400px` so the Claude + GPT pills on the run-detail header render at identical outer widths.
+  - **Critique pane chrome rework (§ F)** — heading typography parity with Timeline (constant `14px / 600 / fg-0`, was conditional on `left` slot). Three-row chrome: title + count + aggregate stats / phase-scope tab group / kind + agent + status filter chips right-aligned. Tooltips on every filter chip.
+  - **Timeline phase-header band (§ G.1+G.2)** — all phase bands render at the same width (`width: calc(100% + 12px)`) with `marginLeft/Right: -6` for the 6 px horizontal overhang. Was ragged because each band sized to label content.
+  - **Card-chip variant unification (§ H)** — Agent Input card's `<StatusInline label="OK">` migrated to `<SB tone="ok" size="sm">ok</SB>` matching the brief-critique cards.
+  - **Chip vocabulary polish (§ I)** — `StatChip` rewritten: mixed `+1 -1` cases now split into two sibling chips (`[+1 issue]` info-tinted + `[-1 prior issue]` ok-tinted); singular inflection enforced (`+1 issue` not `+1 issues`); round identifier renders as a bordered uppercase `R<n>` chip (was bare lowercase `r<n>` text).
+  - **CollapsibleSection defaults (§ J)** — `Resolved / answered` and `Comments` sections both default to `defaultOpen={false}`. Chevron-on-right was deferred to a follow-up (the existing `cs-chevron` is positioned by the `renderTitle` callsites, each of which places it on the left).
+  - **Disagreement detail (§ K.3+K.4)** — dropped the redundant uppercase RESOLUTION block; added `in round N` suffix to the resolution footer matching the Question variant's format.
+  - **Issue + Comment metadata footers (§ L.1+L.2)** — converted from punctuation-separated text to chip clusters with BrandMark icons. R-round sub-chip in CodeCluster.
+  - **Design Language page polish (§ N)** — `solid 48` brand-mark size restored; per-card description text below the glyph row; new Accessibility Construction principle.
+
+## [0.69.10] — 2026-05-18
+
+### Changed
+
+- **Spec 0086 — Consumption tab rework** addressing the deltas 20.14 + 20.18 carryover plus a new "phase name eats horizontal space" feedback item.
+  - **Phase name lifted out of the row** into a `<ConsumptionPhaseHeader>` group header above the rows. Pre-spec every row carried a ~100 px left phase-label cell, eating horizontal real estate from the agent cards. Phase headers now anchor at `x=16` across the tab.
+  - **Single card per agent** — the legacy `<TokenLaneCell>` top-row compact-bar (which duplicated the total bar inside the expanded `<ConsumptionCard>` below) deleted. The card itself is now the click-to-expand surface (`<button>` wrapper, chevron at top-right). Collapsed: data header + cost + total bar. Expanded: breakdown bars + output bar cascade in place. `<ConsumptionRowExpanded>` deleted.
+  - **Paired expansion** — both agent cards in a row share one `expanded` flag. Clicking either toggles both.
+  - **Phase-dependent grid** — phases without rounds (P0/P1/P3/P5) render with a 2-col grid (cards span full pane width); phases with rounds (P2/P4) use a 3-col grid with a narrow `Round N` chip (`--consumption-round-w: 64px`) on the left.
+  - New helper `groupConsumptionRowsByPhase(rows, run)` in `run-detail.jsx`; new `<ConsumptionPhaseHeader>` component; rewired `ConsumptionView`; rewritten `ConsumptionRow`; `ConsumptionCard` accepts `expanded` + `onToggle`. `TokenLaneCell` retired.
+
+## [0.69.9] — 2026-05-18
+
+### Added
+
+- **Spec 0085 — Agent Input panel completion + modal vertical space** bundling three audit deltas (15.13 deferred + 15.30 + 17.13) plus a new modal-vertical-space user-feedback item.
+  - **Backend bundle synthesis fallback** — when a per-turn `inputs/<key>.json` is missing (older runs that pre-date spec 0033 input auditing), the server now synthesises a fallback bundle from the agent's current default prompts via `aggregator.build_input_bundle_fallback()` + `synthesize_bundle_payload()`. The fallback dispatches by phase / round / agent / is-repair to the matching `*_input_bundle()` builder in `protocol/prompts.py`, populates `pieces.system` from current source and `pieces.brief` from `brief.md`, and stamps the response with `system_source: 'agent-default'`. Persisted bundles get `system_source: 'recorded'` for parity.
+  - **Frontend Agent Input panel surfaces the synthesis** — `InputTabContent` reads `bundle.system_source` and renders a small italic caveat paragraph inside the System Prompt section's body ("This is the agent's current default system prompt — the per-run system prompt for this older turn was not recorded.") plus an `agent default` chip on the section header. Legacy empty-state placeholder retired from the missing-bundle branch.
+  - **Modal vertical space** — `.dr-modal` now claims `min-height: 72vh` (with the existing `max-height: 92vh` ceiling), so content-rich modals fill the viewport instead of cropping at the natural content height with empty backdrop below. The user's `Input — brief` modal complaint was the trigger.
+  - **Split-view modals — Agent Input first** — `NegotiateLeftSubTabs` reordered so `Agent Input` is the first sub-tab in both `NegotiateReviewModal` and `DraftReviewModal`. `useState` default flipped from `'original'` to `'input'` so the tab is active on open.
+
 ## [0.69.8] — 2026-05-18
 
 ### Added
