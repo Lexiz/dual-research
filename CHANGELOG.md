@@ -12,6 +12,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.72.0] — 2026-05-19
+
+### Added
+
+- **Spec 0091 — Phase 4 drafter-engagement gate (close the round-1 sycophantic-APPROVED loophole)** ([spec 0091](specs/0091-phase4-drafter-engagement-gate.md)). With spec 0090's parser fix exposing the underlying behaviour, run `27de`'s P4 was clearly showing Claude as drafter emitting `STATUS: APPROVED` with `OPEN_ISSUES: 0` on round 1 — before reading any reviewer feedback at all (verbatim turn body: *"(No prior issues. No new issues raised this round — the draft is the product of consensus reached in Phase 2.) **Issue ledger: 0 open items.**"* followed by APPROVED). He then re-emitted `APPROVED/oi=0` every subsequent round he wrote successfully, never engaging with GPT's 5+ open issues. Two coordinated mechanisms close the loophole:
+  - **§ A — Orchestrator gate** (`orchestrator/phase4.py`). One-line guard at both the main convergence-check site AND the resume-replay path: `if r == 1 and approved: approved = False`. Mirrors the existing Phase 2 "round 1 cannot agree" rule (which already lives in `assert_well_formed_round1_turn`). The drafter's turn file stays on disk; the round-complete event still fires with `approved=False`; the loop continues to r2. Structural protection that can't be bypassed by prompt non-adherence.
+  - **§ B — Drafter-engagement prompt requirement** (`protocol/prompts.py`). New paragraph in `review_turn_prompt` explicitly tells the drafter that r1 cannot be APPROVED and frames the round-1 expectation as engagement (re-read the draft from the reviewer's perspective, list at least one issue you'd hold, explain why it resolves to non-blocking). The prompt nudge reduces wasted turns by setting expectation up front; the orchestrator gate is the final backstop.
+  - Also gated: the spec-0089 § B stuck-AGREED escape valve's lenient check is skipped in r1, so the streak counter doesn't pre-load from an r1 lenient-True.
+
+### Changed
+
+- **`test_phase4_converges_in_round_1` renamed to `test_phase4_cannot_converge_in_round_1_but_converges_in_round_2`** and rewritten to assert the post-spec-0091 behaviour: APPROVED in r1 is silently downgraded, agents are re-called in r2, convergence lands in r2 at the earliest. Same pattern applied to the two resume tests in `test_phase4_resume.py`.
+
+### Fixed
+
+- **Phase 4 round 1 could prematurely terminate via sycophantic APPROVED** (spec 0091 § A). Phase 2 already prevented round-1 agreement structurally; Phase 4 now does too. Mitigates the failure pattern that contributed to `27de`'s `exit_code: 52` deadlock.
+
+### Notable
+
+- **§ C (validator-level rejection of r1 APPROVED) was dropped during implementation.** It would have raised `ProtocolParseError` on `(round=1, status=APPROVED)`, which the existing orchestrator catches and turns into a `parse_failure = True` loop break — making the failure mode worse for stubborn agents. § A alone covers the case cleanly; § B's prompt nudge handles the prevention side. Documented in the spec.
+
+### Other
+
+- Cache-bust `v=0092` → `v=0093` across `index.html` (defensive; no static asset changes here).
+- Version bump 0.71.0 → 0.72.0 (MINOR per `new-feature` label).
+
 ## [0.71.0] — 2026-05-19
 
 ### Added

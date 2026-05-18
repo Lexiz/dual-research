@@ -145,6 +145,19 @@ async def run_phase4(
                 except ProtocolParseError:
                     approved = False
 
+                # Spec 0091 § A — Phase 4 round 1 cannot terminate.
+                # Same rule as the main convergence-check site below;
+                # also applied here so resume-replay doesn't accept a
+                # pre-spec-0091 r1 APPROVED that landed on disk before
+                # the gate existed.
+                if r == 1 and approved:
+                    approved = False
+                    print(
+                        "[phase 4] round 1 (resume): ignoring APPROVED — "
+                        "round 1 cannot terminate Phase 4 (spec 0091 § A).",
+                        flush=True,
+                    )
+
                 if approved:
                     print(
                         f"[phase 4] round {r}: replayed as APPROVED (resume).",
@@ -366,9 +379,24 @@ async def run_phase4(
         except ProtocolParseError:
             approved = False
 
+        # Spec 0091 § A — Phase 4 round 1 cannot terminate. Mirrors
+        # the Phase 2 "round 1 cannot agree" rule. Prevents the
+        # drafter from emitting APPROVED before either side has had
+        # a chance to engage with the draft in this phase. The agents'
+        # turn files stay on disk; the loop just continues to r2.
+        if r == 1 and approved:
+            approved = False
+            print(
+                "[phase 4] round 1: ignoring APPROVED — round 1 cannot "
+                "terminate Phase 4 (spec 0091 § A). Loop continues.",
+                flush=True,
+            )
+
         # Spec 0089 § B — lenient approval check (no ledger gate).
+        # Spec 0091 § A — round 1 also can't pass lenient; the
+        # stuck-AGREED escape valve mustn't count r1 toward the streak.
         lenient_approved = False
-        if not approved:
+        if not approved and r > 1:
             try:
                 lenient_approved = is_review_approved_lenient(
                     claude_text, openai_text, round=r,

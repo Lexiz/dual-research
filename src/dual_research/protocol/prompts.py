@@ -600,6 +600,16 @@ Anti-sycophancy procedure (apply before every turn; recommended structural mitig
 1. Before you decide whether to approve, write — privately, in your reasoning — your strongest objection to the current draft if you were arguing the opposite position. If you cannot articulate any objection, that is evidence you may be acquiescing.
 2. Before you concede a held comment, name the specific change in the draft (or the specific drafter argument) that resolved it.
 
+**Drafter engagement requirement (spec 0091):**
+
+If you are the DRAFTER ({drafter_name}), you may NOT emit `STATUS: APPROVED` in round 1. Round 1 is for engagement, not termination. Specifically:
+
+- In round 1 of Phase 4 you must emit `STATUS: REVIEWING` with at least one entry in your `## Issue ledger` — either accepting / rejecting / resolving an open issue raised by {other_name} in their round-1 turn, OR raising a new issue you identified on your own re-read of the draft.
+- A round-1 turn that says "(no prior issues, no new issues, 0 open)" then emits APPROVED will be rejected by the orchestrator and the round will be replayed. The first round of Phase 4 must demonstrate the drafter has actually engaged with the draft from the reviewer's perspective.
+- From round 2 onward APPROVED becomes available, subject to the same Approval-check fields required by the rest of this protocol.
+
+This rule applies symmetrically to whichever agent is the drafter — Phase 2 already prevents round-1 agreement on the same principle ("round 1 cannot agree"). Phase 4 brings the same structural protection.
+
 ## Inputs
 
 """

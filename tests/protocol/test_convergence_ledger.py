@@ -28,14 +28,14 @@ def test_is_plan_agreed_ledger_none_skips_check_legacy() -> None:
 def test_is_review_approved_with_ledger_zero_terminates() -> None:
     """Phase 4: agents APPROVED + 0 issues + ledger 0 → terminates."""
     assert is_review_approved(REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED,
-                              round=1, ledger_open_count=0) is True
+                              round=2, ledger_open_count=0) is True
 
 
 def test_is_review_approved_with_ledger_nonzero_blocks() -> None:
     assert is_review_approved(REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED,
-                              round=1, ledger_open_count=5) is False
+                              round=2, ledger_open_count=5) is False
 
 
 def test_is_review_approved_ledger_none_skips_check_legacy() -> None:
     assert is_review_approved(REVIEW_TURN_APPROVED, REVIEW_TURN_APPROVED,
-                              round=1, ledger_open_count=None) is True
+                              round=2, ledger_open_count=None) is True
