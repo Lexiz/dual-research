@@ -357,21 +357,31 @@ function RunListView({ runs, loading, onSelect }) {
           <RunRow key={r.id} run={r} onSelect={onSelect} />
         ))}
         {filtered.length === 0 && (
-          <div style={{
-            padding: '40px 18px',
-            textAlign: 'center',
-            color: 'var(--fg-3)',
-            fontSize: 12,
-          }}>
-            {/* Spec 0082 — distinguish first-load-still-pending from
-                confirmed-empty so the page doesn't flash "No runs"
-                before the fetch has resolved. */}
-            {loading && !search
-              ? 'Loading data…'
-              : search
-                ? `No runs matching "${search}"`
-                : 'No runs'}
-          </div>
+          loading && !search ? (
+            // Spec 0083 — centered spinner + label. `loading` here means
+            // "we have never received a successful response", not "a
+            // request is mid-flight" — see useRunList.
+            <div style={{
+              padding: '60px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 14,
+              color: 'var(--fg-3)',
+            }}>
+              <div className="dr-spinner" aria-hidden="true" />
+              <span style={{ fontSize: 13 }}>Loading runs…</span>
+            </div>
+          ) : (
+            <div style={{
+              padding: '40px 18px',
+              textAlign: 'center',
+              color: 'var(--fg-3)',
+              fontSize: 12,
+            }}>
+              {search ? `No runs matching "${search}"` : 'No runs'}
+            </div>
+          )
         )}
       </div>
 

@@ -91,6 +91,8 @@ HIDDEN_RUN_IDS: frozenset[str] = frozenset({
     "20260515-124552-cache-multi-round",              # 009f
     "20260515-122538-prod-cached-e2e",                # 48b1
     "20260515-120623-prod-postgres-vs-sqlite",        # 76e1
+    "20260515-114303-full-e2e",                       # 5455
+
     "20260515-112634-p2-asyncio-vs-goroutines",       # 1ab9
     "20260515-111151-asyncio-vs-goroutines",          # 38f9
 })

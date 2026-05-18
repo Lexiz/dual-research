@@ -105,6 +105,17 @@ a:hover { text-decoration-color: var(--info); }
 @keyframes dr-modal-in { from{opacity:0;} to{opacity:1;} }
 .dr-modal-in { animation: dr-modal-in var(--m-base) var(--ease) both; }
 
+/* ── Spinner (spec 0083) ────────────────────────────── */
+@keyframes dr-spin { to { transform: rotate(360deg); } }
+.dr-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--border-1);
+  border-top-color: var(--accent-a);
+  border-radius: 50%;
+  animation: dr-spin 0.9s linear infinite;
+}
+
 /* ── Reduced motion contract ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

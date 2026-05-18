@@ -12,6 +12,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.7] — 2026-05-18
+
+### Fixed
+
+- **Run-list still flashed "No runs" on navigation back from a run-detail page.** The spec 0082 `loading` flag flipped to `false` even when the fetch errored, so a transient blip on the first request after remount put the UI into the "confirmed empty" branch. Reworked `useRunList` to expose `loading: !hasLoaded`, where `hasLoaded` only becomes true on a successful response. Stale data keeps showing; cold mounts keep the loading visual until the server actually answers. SPEC-0083.
+- **Run-list loading state is now a proper visual.** Replaced the bare "Loading data…" text with a centered spinner (new `dr-spinner` class + `dr-spin` keyframe in `base.css`) + a "Loading runs…" label. Honors the existing `prefers-reduced-motion` block in `base.css`. SPEC-0083.
+
+### Added
+
+- **One more run hidden from the UI.** `5455` (full-e2e) joins `HIDDEN_RUN_IDS`. SPEC-0083.
+
 ## [0.69.6] — 2026-05-18
 
 ### Fixed
