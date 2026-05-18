@@ -29,5 +29,8 @@ jobs:
       - name: Sync dependencies
         run: uv sync --frozen
 
+      - name: Syntax-check shell scripts
+        run: bash -n scripts/setup-stable-worktree.sh
+
       - name: Run pytest
         run: uv run pytest tests/ -q

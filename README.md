@@ -32,3 +32,5 @@ For Notion: share the root page (and its descendants) with the integration via t
 uv sync                            # install deps
 uv run python -m dual_research --help
 ```
+
+For parallel CLI runs alongside active feature-branch work, see [Running in parallel](CONTRIBUTING.md#running-in-parallel-with-active-development) in CONTRIBUTING.

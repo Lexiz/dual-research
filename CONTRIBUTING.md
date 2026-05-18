@@ -2,6 +2,31 @@
 
 Single-author repo. The discipline below exists because the codebase is moving from scaffold into orchestrator + UI territory and we want every change to be traceable, scoped, and versioned.
 
+## Running in parallel with active development
+
+If the autonomous orchestrator (or any active feature-branch work) is running in `~/dual-research/`, your `main` checkout may be on a feature branch with mid-implementation code. Running the CLI from that checkout can fail at import-time or yield analyses against unverified code.
+
+Use a stable worktree to isolate CLI runs:
+
+```bash
+make stable-worktree         # one-time bootstrap
+cd ~/dual-research-stable
+uv run dual-research --notion <url>
+```
+
+The stable worktree shares git objects with the primary checkout (disk-cheap) but is pinned to a `stable` branch that doesn't move unless you explicitly fast-forward it. The orchestrator never touches `stable`.
+
+To roll forward to the latest shipped main:
+
+```bash
+cd ~/dual-research-stable
+git fetch origin
+git merge --ff-only origin/main
+uv sync --quiet
+```
+
+Runs from the stable worktree write to the same Supabase backend as the primary checkout, so they appear in the hosted dashboard identically.
+
 ## TL;DR
 
 ```

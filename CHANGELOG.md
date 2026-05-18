@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.0] — 2026-05-18
+
+### Added
+
+- `scripts/setup-stable-worktree.sh` + `make stable-worktree` — bootstrap a stable git worktree at `~/dual-research-stable/` for running CLI invocations in parallel with active orchestrator or feature-branch work in the primary checkout. See CONTRIBUTING.md for full workflow.
+- `bash -n` syntax check for shell scripts in CI (`tests.yml`).
+- CONTRIBUTING.md section "Running in parallel with active development" documenting the stable-worktree pattern + roll-forward workflow.
+
 ## [0.68.0] — 2026-05-18
 
 ### Changed
