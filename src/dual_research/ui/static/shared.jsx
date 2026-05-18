@@ -1108,6 +1108,40 @@ function CodeCluster({ id, kind, hideRound, size }) {
   );
 }
 
+// ─────────────────── CollapsibleSection (SPEC-0071 D9) ───────────────────
+// Generic disclosure primitive. Used by timeline phase headers (D4)
+// and critique pane section headers (D8).
+function CollapsibleSection({ title, count, countColor, defaultOpen = true, persistKey, onToggle, children, renderTitle, style }) {
+  const [open, setOpen] = React.useState(() => {
+    if (!persistKey) return defaultOpen;
+    try { const v = localStorage.getItem(persistKey); return v == null ? defaultOpen : v === '1'; } catch { return defaultOpen; }
+  });
+  const toggle = React.useCallback(() => {
+    setOpen(prev => {
+      const next = !prev;
+      if (persistKey) try { localStorage.setItem(persistKey, next ? '1' : '0'); } catch {}
+      if (onToggle) onToggle(next);
+      return next;
+    });
+  }, [persistKey, onToggle]);
+  return (
+    <div className="cs" style={style}>
+      <button type="button" className="cs-header" onClick={toggle} aria-expanded={open}>
+        {renderTitle ? renderTitle({ open }) : (
+          <>
+            <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+            <span className="cs-title">{title}</span>
+            {count != null && <span className="cs-count mono num" style={countColor ? { color: countColor } : undefined}>{count}</span>}
+          </>
+        )}
+      </button>
+      <div className={`cs-body ${open ? 'cs-open' : 'cs-closed'}`}>
+        {open && children}
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
@@ -1124,4 +1158,6 @@ Object.assign(window, {
   RoundScrubber,
   // SPEC-0067 primitives
   parseCodeId, CodeCluster, CODE_KIND_LABELS,
+  // SPEC-0071 primitives
+  CollapsibleSection,
 });

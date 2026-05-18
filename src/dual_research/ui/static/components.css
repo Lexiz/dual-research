@@ -210,7 +210,7 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
   background: var(--bg-1);
   border: 1px solid var(--border-1);
   border-radius: var(--r-3);
-  padding: var(--s-3) var(--s-4);
+  padding: var(--s-2) var(--s-3);
   transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
 }
 button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 100%; }
@@ -763,6 +763,53 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .phase-rail-node.is-completed + .phase-rail-connector,
 .phase-rail-connector + .phase-rail-node.is-completed { background: var(--ok); opacity: 0.5; }
+.phase-rail-node.is-completed .pr-label { color: var(--ok); }
+
+/* ─────────────────────────────────────────────────────────────
+   CollapsibleSection (.cs) — generic disclosure primitive
+   SPEC-0071 (D9).
+   ───────────────────────────────────────────────────────────── */
+.cs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.cs-header:hover { opacity: 0.85; }
+.cs-chevron {
+  font-size: 8px;
+  color: var(--fg-3);
+  transition: transform var(--m-fast) var(--ease);
+  flex-shrink: 0;
+}
+.cs-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cs-count {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cs-body.cs-open {
+  transition: none;
+}
+.cs-body.cs-closed {
+  display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-chevron { transition: transform var(--m-base) var(--ease); }
+}
 
 /* ─────────────────────────────────────────────────────────────
    Modal (.dr-modal) — single | split

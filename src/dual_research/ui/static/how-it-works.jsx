@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.64.0',
+      date: '2026-05-18',
+      summary: 'Timeline structural pass -- collapsible phases, denser cards, improved PhaseRail contrast, collapsible critique sections.',
+      items: [
+        'New CollapsibleSection primitive: generic disclosure with chevron, localStorage persistence, and reduced-motion respect.',
+        'Timeline phase headers are now clickable: collapse/expand cards under each phase. State preserved across reloads.',
+        'Card vertical padding reduced for a denser, more scannable timeline.',
+        'PhaseRail completed-phase labels now render in green (--ok) instead of dim gray for better readability.',
+        'Critique pane DRIFT/OPEN/RESOLVED sections are now collapsible with the same disclosure pattern.',
+        'Small inline badges (ok, issues) unified to consistent size and style across all card types.',
+      ],
+    },
+    {
       version: '0.63.0',
       date: '2026-05-18',
       summary: 'Run-detail header restructure -- equal-width agent strips, blocking banner removed, phase tabs with structured chip clusters.',

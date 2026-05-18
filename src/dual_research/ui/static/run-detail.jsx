@@ -818,15 +818,28 @@ function Timeline({ run, highlightedTurnKeys }) {
         <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', background: 'var(--bg-0)' }}>
           <PhaseRail run={run} scrollContainerRef={scrollRef} />
           <div style={{ flex: 1, minWidth: 0, padding: '8px 16px 24px 8px' }}>
-            {items.map((item) => (
-              <TimelineItem
-                key={item.id}
-                item={item}
-                run={run}
-                onOpen={() => setOpenId(item.id)}
-                highlightedTurnKeys={highlightedTurnKeys}
-              />
-            ))}
+            {groupTimelineByPhase(items).map((group, gi) => {
+              if (!group.divider) {
+                return group.items.map((item) => (
+                  <TimelineItem key={item.id} item={item} run={run}
+                    onOpen={() => setOpenId(item.id)} highlightedTurnKeys={highlightedTurnKeys} />
+                ));
+              }
+              return (
+                <CollapsibleSection
+                  key={`phase-${group.divider.phaseId}`}
+                  persistKey={`dr_phase_${run.id}_${group.divider.phaseId}`}
+                  renderTitle={({ open }) => (
+                    <PhaseDividerHeader item={group.divider} run={run} open={open} />
+                  )}
+                >
+                  {group.items.map((item) => (
+                    <TimelineItem key={item.id} item={item} run={run}
+                      onOpen={() => setOpenId(item.id)} highlightedTurnKeys={highlightedTurnKeys} />
+                  ))}
+                </CollapsibleSection>
+              );
+            })}
           </div>
         </div>
       ) : (
@@ -2481,7 +2494,6 @@ function buildTimeline(run) {
 
 // ─────────────────── Timeline items ───────────────────
 function TimelineItem({ item, run, onOpen, highlightedTurnKeys }) {
-  if (item.kind === 'phase-divider') return <PhaseDivider item={item} run={run} />;
   if (item.kind === 'error')         return <ErrorCard item={item} />;
   if (item.kind === 'deadlock')      return <DeadlockCard item={item} />;
   return <ArtifactCard
@@ -2492,7 +2504,25 @@ function TimelineItem({ item, run, onOpen, highlightedTurnKeys }) {
   />;
 }
 
-function PhaseDivider({ item, run }) {
+// SPEC-0071 D4: group flat timeline items into phase sections for collapsibility.
+function groupTimelineByPhase(items) {
+  const groups = [];
+  let current = null;
+  for (const item of items) {
+    if (item.kind === 'phase-divider') {
+      current = { divider: item, items: [] };
+      groups.push(current);
+    } else if (current) {
+      current.items.push(item);
+    } else {
+      // Items before any phase divider — render ungrouped
+      groups.push({ divider: null, items: [item] });
+    }
+  }
+  return groups;
+}
+
+function PhaseDividerHeader({ item, run, open }) {
   const p = PHASES[item.phaseId];
   const current = item.phaseId === run.phase && run.status !== 'completed';
   return (
@@ -2500,19 +2530,21 @@ function PhaseDivider({ item, run }) {
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '8px 12px',
       marginTop: 16, marginBottom: 8,
+      marginLeft: -4, marginRight: -4,
       background: 'var(--bg-2)',
-      border: '1px solid var(--border-1)',
+      border: '1px solid var(--border-2)',
       borderRadius: 'var(--r-2)',
       whiteSpace: 'nowrap',
     }}>
+      <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
       <span className="mono" style={{
         fontSize: 10.5, color: 'var(--fg-2)',
-        letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600,
+        letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700,
       }}>
         Phase&nbsp;{item.phaseId}
       </span>
       <span style={{ color: 'var(--fg-4)' }}>·</span>
-      <span style={{ fontSize: 12.5, color: 'var(--fg-1)', fontWeight: current ? 600 : 500 }}>
+      <span style={{ fontSize: 12.5, color: 'var(--fg-1)', fontWeight: current ? 700 : 600 }}>
         {p.label}
       </span>
       <span style={{ flex: 1 }} />
@@ -3369,11 +3401,11 @@ function ConvergedChip({ phase }) {
           title="Phase converged with zero open ledger items."
           style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '1px 8px',
+      padding: '2px 8px',
       background: 'transparent',
       border: `1px solid ${COLORS.ok}55`,
       borderRadius: 4,
-      fontSize: 10.5, color: COLORS.ok,
+      fontSize: 11, color: COLORS.ok,
       letterSpacing: '0.02em',
       fontWeight: 500,
     }}>
@@ -3396,11 +3428,11 @@ function StatusInline({ label }) {
   return (
     <span className="mono" style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '1px 6px',
+      padding: '2px 7px',
       background: m.color + '14',
       border: `1px solid ${m.color}55`,
       borderRadius: 4,
-      fontSize: 10, color: m.color,
+      fontSize: 11, color: m.color,
       letterSpacing: '0.04em',
     }}>{m.text}</span>
   );
@@ -3415,11 +3447,11 @@ function PreflightChip({ stats }) {
     return (
       <span className="mono" style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
-        padding: '1px 6px',
+        padding: '2px 7px',
         background: COLORS.warn + '14',
         border: `1px solid ${COLORS.warn}55`,
         borderRadius: 4,
-        fontSize: 10, color: COLORS.warn,
+        fontSize: 11, color: COLORS.warn,
         letterSpacing: '0.04em',
       }}>
         <span>needs input</span>
@@ -3472,9 +3504,9 @@ function ArtifactHeader({ item, meta, hover, run }) {
         <SearchChip turnKey={item.turnKey} />
         {stats && (
           <span className="mono" style={{
-            fontSize: 10.5, color: ok ? COLORS.ok : COLORS.warn,
-            padding: '1px 6px', borderRadius: 999,
-            background: ok ? 'rgba(111,179,128,0.10)' : 'rgba(212,160,86,0.10)',
+            fontSize: 11, color: ok ? COLORS.ok : COLORS.warn,
+            padding: '2px 7px', borderRadius: 999,
+            background: ok ? 'rgba(111,179,128,0.12)' : 'rgba(212,160,86,0.12)',
             border: `1px solid ${ok ? 'rgba(111,179,128,0.30)' : 'rgba(212,160,86,0.30)'}`,
           }}>
             {ok ? 'ok' : `${briefIssues} issue${briefIssues === 1 ? '' : 's'}`}
@@ -5913,23 +5945,82 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
       <div style={{ padding: '6px 24px 28px' }}>
-        {/* SPEC-0057 D5 — DriftCluster above Open/Resolved */}
+        {/* SPEC-0057 D5 — DriftCluster above Open/Resolved; SPEC-0071 D8 — collapsible sections */}
         {driftItems.length > 0 && (
-          <>
-            <GroupHeader label="Drift" color={COLORS.err} count={driftItems.length} tone="err" />
+          <CollapsibleSection
+            title="Drift" count={driftItems.length} countColor={COLORS.err}
+            persistKey={`dr_crit_${run.id}_${phaseId}_drift`}
+            renderTitle={({ open }) => (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '8px 12px',
+                marginTop: 16, marginBottom: 8,
+                background: COLORS.err + '14',
+                border: `1px solid ${COLORS.err}44`,
+                borderRadius: 'var(--r-2)',
+                whiteSpace: 'nowrap',
+              }}>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.err, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Drift</span>
+                <span style={{ flex: 1 }} />
+                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.err, fontWeight: 600 }}>{driftItems.length}</span>
+              </div>
+            )}
+          >
             <div style={{ marginBottom: 4, fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)' }}>
               {driftItems.length} item{driftItems.length === 1 ? '' : 's'} without response for multiple rounds
             </div>
             {driftItems.map(renderItem)}
-          </>
+          </CollapsibleSection>
         )}
-        {openItems.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={openItems.length} style={{ marginTop: driftItems.length ? 20 : 0 }} />}
-        {openItems.map(renderItem)}
+        {openItems.length > 0 && (
+          <CollapsibleSection
+            title="Open" count={openItems.length} countColor={COLORS.warn}
+            persistKey={`dr_crit_${run.id}_${phaseId}_open`}
+            renderTitle={({ open }) => (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '8px 12px',
+                marginTop: driftItems.length ? 20 : 16, marginBottom: 8,
+                background: COLORS.warn + '14',
+                border: `1px solid ${COLORS.warn}44`,
+                borderRadius: 'var(--r-2)',
+                whiteSpace: 'nowrap',
+              }}>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.warn, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Open</span>
+                <span style={{ flex: 1 }} />
+                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.warn, fontWeight: 600 }}>{openItems.length}</span>
+              </div>
+            )}
+          >
+            {openItems.map(renderItem)}
+          </CollapsibleSection>
+        )}
         {resolvedItems.length > 0 && (
-          <GroupHeader label="Resolved / answered" color={COLORS.ok} count={resolvedItems.length}
-                       style={{ marginTop: (openItems.length || driftItems.length) ? 20 : 0 }} />
+          <CollapsibleSection
+            title="Resolved / answered" count={resolvedItems.length} countColor={COLORS.ok}
+            persistKey={`dr_crit_${run.id}_${phaseId}_resolved`}
+            renderTitle={({ open }) => (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '8px 12px',
+                marginTop: (openItems.length || driftItems.length) ? 20 : 16, marginBottom: 8,
+                background: COLORS.ok + '14',
+                border: `1px solid ${COLORS.ok}44`,
+                borderRadius: 'var(--r-2)',
+                whiteSpace: 'nowrap',
+              }}>
+                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.ok, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Resolved / answered</span>
+                <span style={{ flex: 1 }} />
+                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.ok, fontWeight: 600 }}>{resolvedItems.length}</span>
+              </div>
+            )}
+          >
+            {resolvedItems.map(renderItem)}
+          </CollapsibleSection>
         )}
-        {resolvedItems.map(renderItem)}
       </div>
     </div>
   );
