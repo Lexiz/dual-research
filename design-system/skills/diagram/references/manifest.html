@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Set manifest · architecture-diagram design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>architecture-diagram</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="manifest.html" class="active"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Cross-diagram consistency mechanism</p>
+<h1 class="page">A one-page YAML stub authored on the first diagram. Every later diagram in the set reads it.</h1>
+<p class="lede">Today's <code>SKILL.md</code> says “read the first diagram and use it as the style anchor.” That's hopeful but unenforceable — the model has to re-derive what's anchored every time. A small manifest, authored once at the start of a proposal and persisted in the conversation, lets every later diagram look up the answer instead of inferring it.</p>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.1</span>What it pins</h2>
+<p class="section-lede">The manifest is a closed list of the things that must be identical across a set. It does <em>not</em> pin layout or content — those are per-template decisions. It pins identity.</p>
+
+<table class="tokens">
+  <thead><tr><th>What's pinned</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td class="note"><strong>Service → label string</strong></td><td class="note">“Postgres” is “Postgres” in every figure, not “Cloud SQL” here and “the DB” there.</td></tr>
+    <tr><td class="note"><strong>Service → surface gradient</strong></td><td class="note">Same gradient ID, every diagram. A service that's <code>--surface-sql</code> in figure 1 doesn't become <code>--surface-neutral</code> in figure 3.</td></tr>
+    <tr><td class="note"><strong>Service → icon</strong></td><td class="note">Same icon shape — cylinder for Postgres, cloud for the CDN, gateway for the API.</td></tr>
+    <tr><td class="note"><strong>Group → color</strong></td><td class="note">A trust boundary or VPC region named in two diagrams uses the same boundary stroke color.</td></tr>
+    <tr><td class="note"><strong>Title typography</strong></td><td class="note">Inherited; identical position, size, weight, spacing.</td></tr>
+    <tr><td class="note"><strong>Theme</strong></td><td class="note">Pinned per set — <code>light</code>, <code>dark</code>, or <code>both</code>. Authoritative; per-diagram override is a hard error.</td></tr>
+    <tr><td class="note"><strong>Animation budget already spent</strong></td><td class="note">If figure 1 used <code>anim-pulse</code> + <code>anim-ring</code>, figure 2 may use at most one more new class before hitting the cap.</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.2</span>Schema</h2>
+<p class="section-lede">Plain YAML. Embed inline in the proposal's conversation or commit it as a sibling file next to the SVG outputs. The downstream skill reads it before each generation pass.</p>
+
+<pre><code><span class="c"># diagram-set-manifest.yaml</span>
+<span class="a">set</span><span class="k">:</span>
+  <span class="a">name</span><span class="k">:</span> <span class="s">"Partner Vetting"</span>
+  <span class="a">version</span><span class="k">:</span> <span class="s">"v1.0"</span>
+  <span class="a">canvas_width</span><span class="k">:</span> 1660
+  <span class="a">theme</span><span class="k">:</span> <span class="s">both</span>           <span class="c"># light | dark | both (default for proposals)</span>
+  <span class="a">canvas_bg</span><span class="k">:</span>
+    <span class="a">light</span><span class="k">:</span> <span class="s">"#f5f1ea -> #ece8e0"</span>
+    <span class="a">dark</span><span class="k">:</span>  <span class="s">"#1a1a1f -> #14141a"</span>
+
+<span class="a">services</span><span class="k">:</span>           <span class="c"># service → label + surface + icon, pinned set-wide</span>
+  <span class="a">vetting_api</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Vetting API"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-primary</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.gateway</span>
+    <span class="a">notes</span><span class="k">:</span> <span class="s">"the hero element of the proposal"</span>
+
+  <span class="a">vetting_agent</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Vetting Agent"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-primary</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.agent</span>
+
+  <span class="a">dashboard</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Vetting Dashboard"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">light</span>      <span class="c"># light card · white fill</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.browser</span>
+
+  <span class="a">auth</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Auth Service"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-secure</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.oauth</span>
+
+  <span class="a">postgres</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Postgres"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-sql</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.sql</span>
+
+  <span class="a">gcs</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"GCS"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-store</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.bucket</span>
+
+  <span class="a">redis</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Redis"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-cache</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.cache</span>
+
+<span class="a">groups</span><span class="k">:</span>             <span class="c"># named boundaries that may appear in multiple figures</span>
+  <span class="a">vpc</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"VPC · us-central1"</span>
+    <span class="a">stroke</span><span class="k">:</span> <span class="s">--ink-4</span>
+  <span class="a">trust_boundary</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Trust boundary"</span>
+    <span class="a">stroke</span><span class="k">:</span> <span class="s">--indigo</span>
+
+<span class="a">animations_used</span><span class="k">:</span>    <span class="c"># running tally — cap is 3 per diagram</span>
+  <span class="k">-</span> <span class="s">.anim-pulse</span>
+
+<span class="a">third_parties</span><span class="k">:</span>      <span class="c"># long tail — fall back to monogram</span>
+  <span class="a">stripe</span><span class="k">:</span>    { <span class="a">label</span>: <span class="s">"Stripe"</span>,    <span class="a">monogram</span>: <span class="s">"St"</span>, <span class="a">tile</span>: <span class="s">--surface-slate</span> }
+  <span class="a">sendgrid</span><span class="k">:</span>  { <span class="a">label</span>: <span class="s">"Sendgrid"</span>,  <span class="a">monogram</span>: <span class="s">"Sg"</span>, <span class="a">tile</span>: <span class="s">--surface-store</span> }
+  <span class="a">launchdarkly</span>: { <span class="a">label</span>: <span class="s">"LaunchDarkly"</span>, <span class="a">monogram</span>: <span class="s">"L"</span>, <span class="a">tile</span>: <span class="s">--surface-secure</span> }
+</code></pre>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.3</span>Lifecycle</h2>
+<p class="section-lede">Three checkpoints. Skipping any of them means a downstream diagram drifts.</p>
+
+<div class="grid cols-3">
+  <div class="card">
+    <p class="eyebrow" style="margin-bottom:4px">on first diagram</p>
+    <h3 style="margin:0 0 6px">Author the manifest</h3>
+    <p style="margin:0;font-size:13px">As you build the first diagram, write the YAML. Every service you decide to draw gets a row in <code>services:</code>. Save it inline in the conversation or as a sibling file.</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow" style="margin-bottom:4px">on each later diagram</p>
+    <h3 style="margin:0 0 6px">Look up before drawing</h3>
+    <p style="margin:0;font-size:13px">Before instantiating any card, look up its service in <code>services:</code>. Use the pinned label, surface, and icon. If the service isn't in the manifest, add it now and propagate.</p>
+  </div>
+  <div class="card">
+    <p class="eyebrow" style="margin-bottom:4px">on any change</p>
+    <h3 style="margin:0 0 6px">Re-render the set</h3>
+    <p style="margin:0;font-size:13px">If the manifest changes (a service is renamed, a gradient swap), every diagram in the set is regenerated. The whole point is that the set is coherent — partial updates aren't allowed.</p>
+  </div>
+</div>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.4</span>Theme pinning</h2>
+<p class="section-lede">Theme is set-level, not diagram-level. A proposal is a coherent reader experience: either it ships in one theme, or it ships both flavors of every figure (the default). A per-diagram theme override is a hard error — generate the one-off outside the set if you want it.</p>
+
+<table class="tokens">
+  <thead><tr><th><code>theme:</code> value</th><th>Output behavior</th></tr></thead>
+  <tbody>
+    <tr><td class="token">both</td><td class="note"><strong>Default</strong>. Emit <code>&lt;slug&gt;.light.svg</code> and <code>&lt;slug&gt;.dark.svg</code> for every diagram. A 5-diagram proposal ships 10 files. Identity pins apply to both — the gradient <em>name</em> pins; the gradient <em>value</em> varies by theme.</td></tr>
+    <tr><td class="token">light</td><td class="note">Emit only <code>&lt;slug&gt;.light.svg</code>. Backward-compatible.</td></tr>
+    <tr><td class="token">dark</td><td class="note">Emit only <code>&lt;slug&gt;.dark.svg</code>. For known-dark hosts.</td></tr>
+  </tbody>
+</table>
+
+<h3>What stays unchanged across themes</h3>
+<p>Identity rules — the cross-theme pins — are theme-agnostic. The same service maps to the same gradient <em>id</em> in both themes. The gradient body (stop values) differs per theme via <code>foundations.html</code> §01.2, but the assignment doesn't.</p>
+
+<pre><code><span class="c"># cross-theme identity rule</span>
+<span class="a">services</span><span class="k">:</span>
+  <span class="a">postgres</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Postgres"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-sql</span>      <span class="c"># same gradient ID, both themes</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.sql</span>           <span class="c"># same icon, both themes</span>
+
+<span class="c"># theme-pass interpretation:</span>
+<span class="c"># light render -> surfaceSql stops: #1e3f52 -> #162e3e</span>
+<span class="c"># dark render  -> surfaceSql stops: #2a5e7a -> #1c4a64</span>
+<span class="c"># icon.sql geometry: identical</span>
+<span class="c"># icon.sql fill: #1a1a18 (light) / rgba(255,255,255,0.18) (dark)</span></code></pre>
+
+<h3>Worked example · <code>theme: both</code> for the Partner Vetting set</h3>
+<p>A five-diagram proposal under one manifest with <code>theme: both</code> ships ten files:</p>
+
+<pre><code>diagrams/
+  partner-vetting-context.light.svg
+  partner-vetting-context.dark.svg
+  partner-vetting-architecture.light.svg
+  partner-vetting-architecture.dark.svg
+  partner-vetting-pipeline.light.svg
+  partner-vetting-pipeline.dark.svg
+  partner-vetting-sequence.light.svg
+  partner-vetting-sequence.dark.svg
+  partner-vetting-schema.light.svg
+  partner-vetting-schema.dark.svg
+  diagram-set-manifest.yaml</code></pre>
+
+<p>Every pair shares the same layout. Every <em>set</em> uses the same service-to-gradient mappings. Per-pair, the values inside <code>&lt;defs&gt;</code> differ; the structure is byte-for-byte the same.</p>
+
+<div class="callout warn"><strong>Hard error — per-diagram theme override.</strong> The skill rejects an attempt to set <code>theme:</code> on a single diagram within a set. If you want a one-off variant in a different theme, generate it outside the set or split into two separate manifests.</div>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.5</span>Where the manifest lives</h2>
+<p class="section-lede">Two options, depending on workflow.</p>
+
+<ul class="checks">
+  <li><strong>Inline in conversation.</strong> For ad-hoc proposals — the YAML lives in the conversation history. The skill reads it before each new diagram. Cheap, ephemeral, fits one-off proposals.</li>
+  <li><strong>Committed as <code>diagram-set-manifest.yaml</code></strong> next to the SVGs. For proposals that go through revision cycles — the manifest is durable, diff-able, and authoritative. The skill loads it from disk on each invocation.</li>
+</ul>
+
+<div class="callout"><strong>What this replaces.</strong> The current “read the first diagram as a style anchor” instruction in <code>SKILL.md</code>. That instruction relies on the model correctly inferring which decisions were intentional vs incidental — the manifest separates them: anything in the manifest is intentional, anything not in it is per-diagram.</div>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.6</span>Failure modes the manifest prevents</h2>
+
+<table class="tokens">
+  <thead><tr><th>Failure</th><th>How the manifest prevents it</th></tr></thead>
+  <tbody>
+    <tr><td class="note">Same service drawn with different gradients in two diagrams</td><td class="value">Looked up from <code>services.{id}.surface</code></td></tr>
+    <tr><td class="note">Postgres labeled “Postgres” in one figure and “Cloud SQL” in another</td><td class="value">Labels pinned at <code>services.{id}.label</code></td></tr>
+    <tr><td class="note">Cylinder icon for SQL in figure 1, generic box in figure 4</td><td class="value">Icon pinned at <code>services.{id}.icon</code></td></tr>
+    <tr><td class="note">A proposal ships figure 2 in light theme and figure 3 in dark by accident</td><td class="value">Theme is set-level; per-diagram override is a hard error — see §07.4</td></tr>
+    <tr><td class="note">A dark Notion reader gets a cream-rectangle–flashed diagram</td><td class="value"><code>theme: both</code> is the default; both files ship; reader picks</td></tr>
+    <tr><td class="note">Animation cap silently exceeded by figure 3</td><td class="value"><code>animations_used</code> is a running tally; new classes append</td></tr>
+    <tr><td class="note">Third-party “Stripe” gets a new improvised tile each diagram</td><td class="value">Monogram + tile color pinned at <code>third_parties.{id}</code></td></tr>
+  </tbody>
+</table>
+
+<p style="margin-top:24px">That's the full mechanism. Small, low-overhead, and the difference between a proposal that looks intentional and one that doesn't.</p>
+
+</main>
+</div>
+</body>
+</html>

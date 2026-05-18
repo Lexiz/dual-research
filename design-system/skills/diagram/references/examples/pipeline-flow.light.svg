@@ -1,0 +1,247 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 660" font-family="Inter, system-ui, -apple-system, sans-serif">
+  
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#1a1a18" flood-opacity="0.22"></feDropShadow>
+    </filter>
+
+    
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f1ea"></stop><stop offset="100%" stop-color="#ece8e0"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6573c9"></stop><stop offset="100%" stop-color="#3a4a8a"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#252521"></stop><stop offset="100%" stop-color="#1a1a18"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4a5568"></stop><stop offset="100%" stop-color="#2d3748"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a5e40"></stop><stop offset="100%" stop-color="#1e4530"></stop>
+    </linearGradient>
+
+    
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"></path>
+    </marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#4f5fb8"></path>
+    </marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#9e9b95"></path>
+    </marker>
+
+    
+    <path id="flowPath" d="M 304 256 L 1576 256" fill="none"></path>
+
+    
+    
+  </defs>
+
+  <rect width="1660" height="660" fill="url(#bgGrad)"></rect>
+
+  
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Partner Vetting · Vet Pipeline</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#706e67">From submission through to a signed verdict · five stages</text>
+
+  
+
+  
+  <g transform="translate(180, 140)">
+    <circle r="14" fill="#4f5fb8"></circle>
+    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">1</text>
+    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 1</text>
+    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Intake</text>
+  </g>
+
+  
+  <g transform="translate(500, 140)">
+    <circle r="14" fill="#4f5fb8"></circle>
+    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">2</text>
+    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 2</text>
+    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Enrich</text>
+  </g>
+
+  
+  <g transform="translate(820, 140)">
+    <circle r="14" fill="#4f5fb8"></circle>
+    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">3</text>
+    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 3</text>
+    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Vet</text>
+  </g>
+
+  
+  <g transform="translate(1140, 140)">
+    <circle r="14" fill="#4f5fb8"></circle>
+    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">4</text>
+    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 4</text>
+    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Score</text>
+  </g>
+
+  
+  <g transform="translate(1460, 140)">
+    <circle r="14" fill="#4f5fb8"></circle>
+    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">5</text>
+    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 5</text>
+    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Emit</text>
+  </g>
+
+  
+
+  
+  <rect x="60" y="216" width="240" height="120" rx="14" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+  <g transform="translate(86, 258)">
+    <rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#1a1a18"></rect>
+    <rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect>
+    <rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
+    <rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
+  </g>
+  <text x="118" y="250" font-size="14" font-weight="600" fill="#1a1a18">Submission Form</text>
+  <text x="118" y="268" font-size="11" fill="#4a4845">analyst pastes a URL or doc</text>
+  <line x1="80" y1="284" x2="280" y2="284" stroke="#e8e2d8"></line>
+  <text x="80" y="304" font-size="11" fill="#4a4845">accepts URL · PDF · DOCX</text>
+  <text x="80" y="322" font-size="10" font-style="italic" fill="#706e67">deduped on sha256</text>
+
+  
+  <rect x="380" y="216" width="240" height="120" rx="14" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(406, 258)">
+    <rect x="-13" y="-10" width="26" height="20" rx="2" fill="rgba(255,255,255,0.18)"></rect>
+    <line x1="-13" y1="-3" x2="13" y2="-3" stroke="rgba(255,255,255,0.7)" stroke-width="1"></line>
+    <circle cx="-9" cy="-7" r="1.2" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="-5" cy="-7" r="1.2" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="-1" cy="-7" r="1.2" fill="rgba(255,255,255,0.85)"></circle>
+    <rect x="-8" y="0" width="16" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect>
+    <rect x="-8" y="4" width="10" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect>
+  </g>
+  <text x="438" y="250" font-size="14" font-weight="600" fill="white">Enricher</text>
+  <text x="438" y="268" font-size="11" fill="rgba(255,255,255,0.7)">fetch · extract · normalize</text>
+  <line x1="400" y1="284" x2="600" y2="284" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="400" y="304" font-size="11" fill="rgba(255,255,255,0.92)">company · directors · filings</text>
+  <text x="400" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">soft cap at 12s · partial OK</text>
+
+  
+  <rect x="700" y="216" width="240" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(726, 258)">
+    <rect x="-10" y="-8" width="20" height="16" rx="4" fill="rgba(255,255,255,0.18)"></rect>
+    <rect x="-2" y="-12" width="4" height="4" rx="1" fill="rgba(255,255,255,0.18)"></rect>
+    <line x1="0" y1="-12" x2="0" y2="-8" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"></line>
+    <circle cx="-4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle>
+    <circle cx="4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle>
+    <path d="M-3,4 L3,4" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"></path>
+  </g>
+  <text x="758" y="250" font-size="14" font-weight="600" fill="white">Vetting Agent</text>
+  <text x="758" y="268" font-size="11" fill="rgba(255,255,255,0.7)">co-pilots through 4 phases</text>
+  <line x1="720" y1="284" x2="920" y2="284" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="720" y="304" font-size="11" fill="rgba(255,255,255,0.92)">brief → research → critique</text>
+  <text x="720" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">repair turn on critique fail</text>
+  
+  <circle cx="922" cy="234" r="5" fill="#5aad80" class="anim-pulse"></circle>
+
+  
+  <rect x="1020" y="216" width="240" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1046, 258)">
+    <circle cx="0" cy="-8" r="3" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="-8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="-3" cy="9" r="3" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="3" cy="9" r="3" fill="rgba(255,255,255,0.85)"></circle>
+    <line x1="0" y1="-7" x2="-6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
+    <line x1="0" y1="-7" x2="6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
+    <line x1="-6" y1="3" x2="-3" y2="8" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
+    <line x1="6" y1="3" x2="3" y2="8" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
+  </g>
+  <text x="1078" y="250" font-size="14" font-weight="600" fill="white">Scoring Engine</text>
+  <text x="1078" y="268" font-size="11" fill="rgba(255,255,255,0.7)">12 weighted rules</text>
+  <line x1="1040" y1="284" x2="1240" y2="284" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="1040" y="304" font-size="11" fill="rgba(255,255,255,0.92)">deterministic · YAML config</text>
+  <text x="1040" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">tx-replay any score in 1.2s</text>
+
+  
+  <rect x="1340" y="216" width="240" height="120" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1366, 258)">
+    <path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path>
+    <path d="M-4,0 L-1,4 L5,-3" stroke="#1a1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+  </g>
+  <text x="1398" y="250" font-size="14" font-weight="600" fill="white">Signed Verdict</text>
+  <text x="1398" y="268" font-size="11" fill="rgba(255,255,255,0.7)">signed JSON · GPG · ledgered</text>
+  <line x1="1360" y1="284" x2="1560" y2="284" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="1360" y="304" font-size="11" fill="rgba(255,255,255,0.92)">posted to ARC + email</text>
+  <text x="1360" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">verifiable for 90 days</text>
+
+  
+
+  
+  <path d="M 308 276 L 376 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="342" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">RAW INPUT</text>
+
+  
+  <path d="M 628 276 L 696 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="662" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">ENRICHED</text>
+
+  
+  <path d="M 948 276 L 1016 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="982" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">FINDINGS</text>
+
+  
+  <path d="M 1268 276 L 1336 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1302" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">SCORE</text>
+
+  
+  
+
+  <text x="180" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
+  <rect x="60" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="80" y="430" font-size="12" font-weight="600" fill="#4a4845">submission_t</text>
+  <line x1="80" y1="442" x2="280" y2="442" stroke="#ddd5c6"></line>
+  <text x="80" y="458" font-size="10" font-family="monospace" fill="#4a4845">id · analyst_id</text>
+  <text x="80" y="474" font-size="10" font-family="monospace" fill="#4a4845">raw_payload · sha256</text>
+
+  <text x="500" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
+  <rect x="380" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="400" y="430" font-size="12" font-weight="600" fill="#4a4845">enriched_t</text>
+  <line x1="400" y1="442" x2="600" y2="442" stroke="#ddd5c6"></line>
+  <text x="400" y="458" font-size="10" font-family="monospace" fill="#4a4845">company_profile · officers</text>
+  <text x="400" y="474" font-size="10" font-family="monospace" fill="#4a4845">filings[] · web_signals</text>
+
+  <text x="820" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
+  <rect x="700" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="720" y="430" font-size="12" font-weight="600" fill="#4a4845">findings_t</text>
+  <line x1="720" y1="442" x2="920" y2="442" stroke="#ddd5c6"></line>
+  <text x="720" y="458" font-size="10" font-family="monospace" fill="#4a4845">phase_outputs[]</text>
+  <text x="720" y="474" font-size="10" font-family="monospace" fill="#4a4845">redflags[] · evidence_refs[]</text>
+
+  <text x="1140" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
+  <rect x="1020" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="1040" y="430" font-size="12" font-weight="600" fill="#4a4845">score_t</text>
+  <line x1="1040" y1="442" x2="1240" y2="442" stroke="#ddd5c6"></line>
+  <text x="1040" y="458" font-size="10" font-family="monospace" fill="#4a4845">rule_results · weighted_sum</text>
+  <text x="1040" y="474" font-size="10" font-family="monospace" fill="#4a4845">verdict · confidence</text>
+
+  <text x="1460" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
+  <rect x="1340" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="1360" y="430" font-size="12" font-weight="600" fill="#4a4845">verdict_v1</text>
+  <line x1="1360" y1="442" x2="1560" y2="442" stroke="#ddd5c6"></line>
+  <text x="1360" y="458" font-size="10" font-family="monospace" fill="#4a4845">payload · signature</text>
+  <text x="1360" y="474" font-size="10" font-family="monospace" fill="#4a4845">posted_to[] · timestamps</text>
+
+  
+  
+  <path d="M 820 215 C 820 180 660 180 500 180" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="6,5" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <g transform="translate(610, 168)">
+    <rect width="120" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"></rect>
+    <text x="60" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">REPAIR TURN · 1×</text>
+  </g>
+
+  
+  <line x1="60" y1="540" x2="1600" y2="540" stroke="#ddd5c6"></line>
+  <text x="60" y="568" font-size="11" fill="#706e67" letter-spacing="1.6" font-weight="600">CONTRACT</text>
+  <text x="60" y="592" font-size="12" fill="#4a4845">Each stage emits a typed output; the next stage refuses anything that fails the schema check.</text>
+  <text x="60" y="612" font-size="12" fill="#4a4845">The repair turn is the one feedback edge — it re-invokes the enricher when critique fails. Bounded to one cycle per run.</text>
+  <text x="60" y="632" font-size="11" font-style="italic" fill="#706e67">Read left-to-right · numbered stages · indigo arrows are typed handoffs · dashed loop is the bounded repair turn.</text>
+</svg>

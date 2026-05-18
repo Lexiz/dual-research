@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Foundations · architecture-diagram design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>architecture-diagram</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html" class="active"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Deliverable 01 · Foundations</p>
+<h1 class="page">Tokens that every component and template references by name.</h1>
+<p class="lede">Each foundation is a registry: a closed list of named values. The generator never invents a hex, a font-size, or a spacing number — it references the token. If a situation needs a value not in the registry, the situation is wrong, not the registry. This is what makes nine different diagram templates feel like one product.</p>
+
+<!-- =========================================================== -->
+<!--                       THEME MODEL                            -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.0</span>Theme model</h2>
+<p class="section-lede">Every diagram ships in two flavors — <strong>light</strong> (cream canvas, the v1 spec) and <strong>dark</strong> (near-black canvas). The two share <em>everything</em> structural: viewBox, layout, type roles, spacing tokens, animation classes, connector geometry, manifest pins. They differ only in <em>color values</em>. Below is the contract. Every token in the rest of this page has a dark sibling named <code>--&lt;token&gt;-dark</code>.</p>
+
+<div class="theme-banner">
+  <div class="lt">
+    <span class="badge">Light · default · v1</span>
+    <h3>Cream &amp; indigo on a polished doc page.</h3>
+    <p>Vertical gradient <code>#f5f1ea → #ece8e0</code>. Dark categorical cards float on cream with a soft drop shadow. Light cards are white or warm-tint on cream, separated by 1px <code>--rule</code> strokes. Ink scale runs <code>#1a1a18 → #9e9b95</code>. Indigo identity at <code>#4f5fb8</code>.</p>
+    <p>Files emit as <code>&lt;slug&gt;.light.svg</code>.</p>
+  </div>
+  <div class="dk">
+    <span class="badge">Dark · new · same diagram</span>
+    <h3>Near-black canvas with lifted categorical surfaces.</h3>
+    <p>Vertical gradient <code>#1a1a1f → #14141a</code>. Categorical surfaces lift one value step toward mid-tone so they stay elevated; light cards become neutral mid-tones (<code>#252531</code>) separated by 1px <code>rgba(255,255,255,0.10)</code> strokes (no drop shadow). Ink scale inverts. Indigo lifts to <code>#7785d4</code> for AAA-adjacent contrast.</p>
+    <p>Files emit as <code>&lt;slug&gt;.dark.svg</code>.</p>
+  </div>
+</div>
+
+<h3>Naming convention</h3>
+<p>Every theme-dependent token has both names. Light is the canonical name; dark adds the <code>-dark</code> suffix. Theme-agnostic tokens (spacing, type sizes, viewBox, animation timing) have a single name and apply to both files.</p>
+
+<table class="tokens">
+  <thead><tr><th>Theme-dependent</th><th>Theme-agnostic</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="note"><code>--canvas-bg</code> · <code>--canvas-bg-dark</code><br><code>--surface-sql</code> · <code>--surface-sql-dark</code><br><code>--ink-1</code> · <code>--ink-1-dark</code><br><code>--indigo</code> · <code>--indigo-dark</code><br><code>--rule</code> · <code>--rule-dark</code><br><code>--shadow-dark</code> · <code>--shadow-dark-dark</code></td>
+      <td class="note"><code>--canvas-width</code> (1660)<br><code>--font-family</code> (Inter, …)<br>All 14 spacing tokens<br>All 7 animation classes<br>Type sizes, weights, letter-spacing<br>Connector geometry (curve, bend, lane gutter, label zones)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Surface gradient <em>ids</em> are theme-agnostic</h3>
+<p>Inside an emitted SVG, gradient ids stay stable: <code>&lt;linearGradient id="surfaceSql"&gt;</code> in both <code>.light.svg</code> and <code>.dark.svg</code>. What differs is the <code>stop-color</code> values inside. This lets every connector reference (<code>fill="url(#surfaceSql)"</code>) and every card primitive author once and render correctly in either theme — the theme pass swaps stop values, not ids.</p>
+
+<h3>Filter <em>ids</em> are theme-agnostic too</h3>
+<p>The two shadow filters (<code>cardShadow</code>, <code>cardShadowDark</code>) keep the same ids across themes. The dark theme rewrites their bodies — <code>cardShadow</code> becomes a near-zero halo at <code>rgba(255,255,255,0.08)</code> (elevation via stroke-like glow), <code>cardShadowDark</code> becomes a deeper <code>#000000</code> drop at 0.55 opacity. See §01.5.</p>
+
+<h3>Dual-output workflow</h3>
+<p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token set to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
+
+<div class="callout"><strong>Decisions locked in this delivery</strong> — two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming; mixed elevation strategy (light cards lose shadow, dark cards deepen it); neutral mid-tone dark surfaces; renaming of the canonical 9 examples to <code>.light.svg</code>; manifest-level theme is authoritative. Rationale in <a href="OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>.</div>
+
+<!-- =========================================================== -->
+<!--                          CANVAS                              -->
+<!-- =========================================================== -->
+<h2><span class="num">01.1</span>Canvas</h2>
+<p class="section-lede">The diagram's outer geometry is locked. The cream background, the 1660px viewBox width, and Inter as the type family are non-negotiable across all nine templates — they are the load-bearing brand surface.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--canvas-width</td><td class="value">1660</td><td class="note">Locked viewBox width. Use <code>--canvas-width-wide = 2200</code> only for explicit landscape three-column overviews — see <a href="templates.html">Templates → freeform</a>.</td></tr>
+    <tr><td class="token">--canvas-bg</td><td class="value">url(#bgGrad)</td><td class="note">Vertical gradient <code>#f5f1ea → #ece8e0</code>. Always full-canvas <code>&lt;rect&gt;</code> at index 0.</td></tr>
+    <tr><td class="token">--canvas-margin</td><td class="value">56</td><td class="note">Inset from each viewBox edge before any content. Title baseline at <code>56</code>, first card at <code>112</code>.</td></tr>
+    <tr><td class="token">--canvas-margin-tight</td><td class="value">40</td><td class="note">Only on dense templates (sequence, data-schema) where every pixel of width matters.</td></tr>
+    <tr><td class="token">--font-family</td><td class="value">Inter, ...</td><td class="note">Full stack: <code>Inter, system-ui, -apple-system, sans-serif</code>. Locked.</td></tr>
+    <tr><td class="token">--font-mono</td><td class="value">monospace</td><td class="note">Use <code>font-family="monospace"</code> attribute. For IDs, code, terminal output only.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>canvas anatomy</span><span class="meta">--canvas-margin · 56px</span></div>
+  <svg viewBox="0 0 1660 280" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="canvBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/>
+      </linearGradient>
+    </defs>
+    <rect width="1660" height="280" fill="url(#canvBg)"/>
+    <!-- margins -->
+    <rect x="56" y="56" width="1548" height="168" fill="none" stroke="#4f5fb8" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+    <!-- ruler marks -->
+    <line x1="0"  y1="56" x2="56" y2="56" stroke="#4f5fb8" stroke-width="1"/>
+    <line x1="56" y1="0"  x2="56" y2="56" stroke="#4f5fb8" stroke-width="1"/>
+    <text x="28" y="42" text-anchor="middle" font-size="10" font-family="JetBrains Mono, monospace" fill="#4f5fb8">56</text>
+    <!-- title placeholder -->
+    <text x="830" y="92" text-anchor="middle" font-size="22" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Diagram title here</text>
+    <text x="830" y="114" text-anchor="middle" font-size="13" fill="#706e67">Subtitle in tertiary grey</text>
+    <!-- guides -->
+    <line x1="56" y1="160" x2="1604" y2="160" stroke="#9e9b95" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.6"/>
+    <text x="56" y="180" font-size="10" font-family="JetBrains Mono, monospace" fill="#706e67" letter-spacing="1.2">SECTION LABEL</text>
+    <text x="56" y="200" font-size="13" font-weight="600" fill="#1a1a18">Section heading</text>
+    <!-- right meta -->
+    <text x="1604" y="180" text-anchor="end" font-size="10" font-family="JetBrains Mono, monospace" fill="#706e67">viewBox 1660 × auto</text>
+  </svg>
+</div>
+
+<h3>Dark variant</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--canvas-bg-dark</td><td class="value">url(#bgGrad)</td><td class="note">Vertical gradient <code>#1a1a1f → #14141a</code>. Same shape, same gradient-id. Theme pass swaps the stops.</td></tr>
+    <tr><td class="token">--canvas-width</td><td class="value">1660</td><td class="note">Theme-agnostic. Locked.</td></tr>
+    <tr><td class="token">--canvas-margin</td><td class="value">56</td><td class="note">Theme-agnostic.</td></tr>
+    <tr><td class="token">--canvas-margin-tight</td><td class="value">40</td><td class="note">Theme-agnostic.</td></tr>
+  </tbody>
+</table>
+
+<div class="pair">
+  <div class="frame">
+    <div class="frame-head"><span class="theme">Light</span><span class="meta">#f5f1ea → #ece8e0</span></div>
+    <svg viewBox="0 0 1660 180" font-family="Inter, system-ui, sans-serif">
+      <defs><linearGradient id="cAL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient></defs>
+      <rect width="1660" height="180" fill="url(#cAL)"/>
+      <text x="830" y="78" text-anchor="middle" font-size="28" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Diagram title · light</text>
+      <text x="830" y="106" text-anchor="middle" font-size="13" fill="#706e67">subtitle · ink-3 on cream</text>
+      <text x="830" y="142" text-anchor="middle" font-size="11" fill="#9e9b95" letter-spacing="2" font-weight="600">SECTION LABEL</text>
+    </svg>
+  </div>
+  <div class="frame dark">
+    <div class="frame-head"><span class="theme">Dark</span><span class="meta">#1a1a1f → #14141a</span></div>
+    <svg viewBox="0 0 1660 180" font-family="Inter, system-ui, sans-serif">
+      <defs><linearGradient id="cAD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1a1f"/><stop offset="100%" stop-color="#14141a"/></linearGradient></defs>
+      <rect width="1660" height="180" fill="url(#cAD)"/>
+      <text x="830" y="78" text-anchor="middle" font-size="28" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Diagram title · dark</text>
+      <text x="830" y="106" text-anchor="middle" font-size="13" fill="#9a988f">subtitle · ink-3-dark on near-black</text>
+      <text x="830" y="142" text-anchor="middle" font-size="11" fill="#7a7873" letter-spacing="2" font-weight="600">SECTION LABEL</text>
+    </svg>
+  </div>
+</div>
+
+<!-- =========================================================== -->
+<!--                       COLOR PALETTE                          -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.2</span>Color · semantic palette</h2>
+<p class="section-lede">Every color is named by what it means, not by what it looks like. The indigo identity is fixed. Card gradients are categorical: a “Postgres” card uses <code>--surface-sql</code> in every diagram of a set; a worker uses <code>--surface-neutral</code> wherever it appears. The set manifest pins these once.</p>
+
+<h3>Identity · indigo accent</h3>
+<p>The only color that crosses every template. Indigo signals <em>primary flow</em>, <em>active</em>, and <em>brand</em>. It is the default arrow color, the active card gradient, and the only accent that may appear in the title region.</p>
+
+<div class="swatch-row">
+  <div class="grid cols-4" style="gap:8px">
+    <div class="swatch" style="background:#4f5fb8"><span class="hex">#4f5fb8</span></div>
+    <div class="swatch" style="background:#6573c9"><span class="hex">#6573c9</span></div>
+    <div class="swatch" style="background:#3a4a8a"><span class="hex">#3a4a8a</span></div>
+    <div class="swatch" style="background:#c5cdf0"><span class="hex" style="background:rgba(0,0,0,0.4)">#c5cdf0</span></div>
+  </div>
+  <div class="label">
+    <div class="name">--indigo / --indigo-1 / --indigo-2 / --indigo-tint</div>
+    <div class="desc">Arrows, active states, primary card gradient, highlighted inline code on dark surfaces.</div>
+  </div>
+</div>
+
+<h3>Surface gradients · categorical</h3>
+<p>Each dark card gradient maps to a service <em>kind</em>. The generator picks by category, not by aesthetics. A category that isn't here doesn't get a new gradient — it gets remapped to the nearest semantic match.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Stops</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--surface-primary</td><td class="value">#6573c9 → #3a4a8a</td><td class="note">Active agent, primary API, the hero element in any diagram. The “your service” gradient.</td></tr>
+    <tr><td class="token">--surface-neutral</td><td class="value">#252521 → #1a1a18</td><td class="note">Workers, secondary services, persistence orchestrator. Default for unknown-category services.</td></tr>
+    <tr><td class="token">--surface-slate</td><td class="value">#4a5568 → #2d3748</td><td class="note">Research, analytics, queue / Pub/Sub, anything stream-like.</td></tr>
+    <tr><td class="token">--surface-sql</td><td class="value">#1e3f52 → #162e3e</td><td class="note">SQL databases (Postgres, MySQL, Cloud SQL). Always paired with the cylinder icon.</td></tr>
+    <tr><td class="token">--surface-secure</td><td class="value">#2a5e40 → #1e4530</td><td class="note">Auth providers, secret stores, gates, harnesses, anything “passing / healthy / secure”.</td></tr>
+    <tr><td class="token">--surface-store</td><td class="value">#5e3f1c → #3f2810</td><td class="note">Blob storage (S3, GCS, Azure Blob), file systems, artifact catalogs.</td></tr>
+    <tr><td class="token">--surface-cache</td><td class="value">#6b4d8a → #4a3565</td><td class="note">NEW · Cache, in-memory store, Redis. Distinct from queue (slate) to stop ambiguity.</td></tr>
+    <tr><td class="token">--surface-deferred</td><td class="value">rgba(58,74,138,0.35) on cream</td><td class="note">NEW · Canonical “not yet built / v2 stub” treatment. Replaces the two improvised looks in the screenshot.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>surface gradients in context</span><span class="meta">card 200 × 80, --shadow-dark</span></div>
+  <svg viewBox="0 0 1660 240" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="fBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <linearGradient id="fS1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6573c9"/><stop offset="100%" stop-color="#3a4a8a"/></linearGradient>
+      <linearGradient id="fS2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#252521"/><stop offset="100%" stop-color="#1a1a18"/></linearGradient>
+      <linearGradient id="fS3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4a5568"/><stop offset="100%" stop-color="#2d3748"/></linearGradient>
+      <linearGradient id="fS4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e3f52"/><stop offset="100%" stop-color="#162e3e"/></linearGradient>
+      <linearGradient id="fS5" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2a5e40"/><stop offset="100%" stop-color="#1e4530"/></linearGradient>
+      <linearGradient id="fS6" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5e3f1c"/><stop offset="100%" stop-color="#3f2810"/></linearGradient>
+      <linearGradient id="fS7" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6b4d8a"/><stop offset="100%" stop-color="#4a3565"/></linearGradient>
+      <filter id="fSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#1a1a18" flood-opacity="0.22"/></filter>
+    </defs>
+    <rect width="1660" height="240" fill="url(#fBg)"/>
+    <g font-size="12" font-weight="600" fill="white">
+      <rect x="40"   y="60" width="200" height="90" rx="12" fill="url(#fS1)" filter="url(#fSh)"/>
+      <text x="60" y="92">--surface-primary</text>
+      <text x="60" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">active · hero</text>
+
+      <rect x="260"  y="60" width="200" height="90" rx="12" fill="url(#fS2)" filter="url(#fSh)"/>
+      <text x="280" y="92">--surface-neutral</text>
+      <text x="280" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">worker · default</text>
+
+      <rect x="480"  y="60" width="200" height="90" rx="12" fill="url(#fS3)" filter="url(#fSh)"/>
+      <text x="500" y="92">--surface-slate</text>
+      <text x="500" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">queue · research</text>
+
+      <rect x="700"  y="60" width="200" height="90" rx="12" fill="url(#fS4)" filter="url(#fSh)"/>
+      <text x="720" y="92">--surface-sql</text>
+      <text x="720" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">postgres · mysql</text>
+
+      <rect x="920"  y="60" width="200" height="90" rx="12" fill="url(#fS5)" filter="url(#fSh)"/>
+      <text x="940" y="92">--surface-secure</text>
+      <text x="940" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">auth · gate</text>
+
+      <rect x="1140" y="60" width="200" height="90" rx="12" fill="url(#fS6)" filter="url(#fSh)"/>
+      <text x="1160" y="92">--surface-store</text>
+      <text x="1160" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">s3 · gcs · blob</text>
+
+      <rect x="1360" y="60" width="200" height="90" rx="12" fill="url(#fS7)" filter="url(#fSh)"/>
+      <text x="1380" y="92">--surface-cache</text>
+      <text x="1380" y="110" font-size="10" font-weight="400" fill="rgba(255,255,255,0.65)">redis · in-memory</text>
+    </g>
+    <text x="40" y="195" font-size="10" font-family="JetBrains Mono, monospace" fill="#706e67" letter-spacing="1.4">DEFERRED · NOT YET BUILT</text>
+    <rect x="40" y="206" width="200" height="22" rx="6" fill="none" stroke="#6573c9" stroke-width="1" stroke-dasharray="5,4" opacity="0.5"/>
+    <text x="140" y="221" text-anchor="middle" font-size="11" fill="#706e67" font-style="italic">--surface-deferred</text>
+  </svg>
+</div>
+
+<h3>Light surfaces &amp; ink</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--surface-light</td><td class="value">#ffffff</td><td class="note">Default light card fill. Pairs with <code>--rule</code> stroke at 1px.</td></tr>
+    <tr><td class="token">--surface-tint</td><td class="value">#f0ebe3</td><td class="note">Subtly-tinted light surface for sub-cards, chips on cream.</td></tr>
+    <tr><td class="token">--surface-reference</td><td class="value">#ebe6db</td><td class="note">NEW · Dimmer tint for lookup / reference / enum cards — visually subordinate to <code>card.secondary</code>.</td></tr>
+    <tr><td class="token">--rule</td><td class="value">#e8e2d8</td><td class="note">Default light-card border.</td></tr>
+    <tr><td class="token">--rule-strong</td><td class="value">#ddd5c6</td><td class="note">Section dividers, group boundaries.</td></tr>
+    <tr><td class="token">--ink-1</td><td class="value">#1a1a18</td><td class="note">Primary text on light surfaces.</td></tr>
+    <tr><td class="token">--ink-2</td><td class="value">#4a4845</td><td class="note">Body text.</td></tr>
+    <tr><td class="token">--ink-3</td><td class="value">#706e67</td><td class="note">Secondary / metadata / subtitle.</td></tr>
+    <tr><td class="token">--ink-4</td><td class="value">#9e9b95</td><td class="note">Tertiary / muted, italic connector subtitles.</td></tr>
+  </tbody>
+</table>
+
+<h3>Status colors</h3>
+<p>Reserved for status dots, ticks, and the rare semantic line. Never apply status colors to card fills — use the surface gradients above. The single exception is <code>--surface-secure</code> for systems whose primary identity <em>is</em> security (auth, secret stores).</p>
+
+<div class="swatch-row">
+  <div class="grid cols-4" style="gap:8px">
+    <div class="swatch" style="background:#4f5fb8"><span class="hex">#4f5fb8 · active</span></div>
+    <div class="swatch" style="background:#3d7f5b"><span class="hex">#3d7f5b · healthy</span></div>
+    <div class="swatch" style="background:#cc6e55"><span class="hex">#cc6e55 · error</span></div>
+    <div class="swatch" style="background:#4a9eca"><span class="hex">#4a9eca · info</span></div>
+    <div class="swatch" style="background:#d4a64a"><span class="hex">#d4a64a · warn</span></div>
+    <div class="swatch" style="background:#9e9b95"><span class="hex">#9e9b95 · muted</span></div>
+    <div class="swatch" style="background:#6b7280"><span class="hex">#6b7280 · secondary</span></div>
+    <div class="swatch" style="background:#5e3f1c"><span class="hex">#5e3f1c · artifact</span></div>
+  </div>
+  <div class="label">
+    <div class="name">--status-* / --mirror-*</div>
+    <div class="desc">Use for status dots (5px filled circle), short status badges, and matched-color arrows when the line itself carries semantic meaning beyond default flow.</div>
+  </div>
+</div>
+
+<h3>Dark variant · indigo accent</h3>
+<p>Lifted for AAA-adjacent contrast against the dark canvas. The light theme's <code>--indigo</code> (<code>#4f5fb8</code>) lands at 5.0:1 against <code>#1a1a1f</code>; the dark theme uses <code>#7785d4</code> at 6.4:1.</p>
+<div class="swatch-row">
+  <div class="grid cols-4" style="gap:8px">
+    <div class="swatch" style="background:#7785d4"><span class="hex">#7785d4 · primary</span></div>
+    <div class="swatch" style="background:#8e9aea"><span class="hex">#8e9aea · highlight</span></div>
+    <div class="swatch" style="background:#4d5db0"><span class="hex">#4d5db0 · gradient stop2</span></div>
+    <div class="swatch" style="background:#c5cdf0"><span class="hex" style="background:rgba(0,0,0,0.6)">#c5cdf0 · tint</span></div>
+  </div>
+  <div class="label">
+    <div class="name">--indigo-dark / --indigo-1-dark / --indigo-2-dark / --indigo-tint-dark</div>
+    <div class="desc">Arrows, active states, primary card gradient on dark. The indigo-tint stays unchanged — already light enough to read on the dark canvas.</div>
+  </div>
+</div>
+
+<h3>Dark variant · surface gradients</h3>
+<p>Each categorical surface lifts one value step toward mid-tone. Same hue family; the gradient still falls top-left → bottom-right, just from a higher baseline so the card stays elevated against the dark canvas.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Stops (dark)</th><th>Notes vs light</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--surface-primary-dark</td><td class="value">#7785d4 → #4d5db0</td><td class="note">Up from <code>#6573c9 → #3a4a8a</code>. Indigo identity reads brighter on dark.</td></tr>
+    <tr><td class="token">--surface-neutral-dark</td><td class="value">#3a3a40 → #28282d</td><td class="note">Hardest case — light <code>#252521 → #1a1a18</code> is invisible on dark canvas. Lifted significantly.</td></tr>
+    <tr><td class="token">--surface-slate-dark</td><td class="value">#5d6b80 → #3d4858</td><td class="note">Up from <code>#4a5568 → #2d3748</code>.</td></tr>
+    <tr><td class="token">--surface-sql-dark</td><td class="value">#2a5e7a → #1c4a64</td><td class="note">Up from <code>#1e3f52 → #162e3e</code>.</td></tr>
+    <tr><td class="token">--surface-secure-dark</td><td class="value">#3d8058 → #2a6042</td><td class="note">Up from <code>#2a5e40 → #1e4530</code>.</td></tr>
+    <tr><td class="token">--surface-store-dark</td><td class="value">#825a30 → #5c3c1a</td><td class="note">Up from <code>#5e3f1c → #3f2810</code>.</td></tr>
+    <tr><td class="token">--surface-cache-dark</td><td class="value">#8666a8 → #5d4577</td><td class="note">Up from <code>#6b4d8a → #4a3565</code>.</td></tr>
+    <tr><td class="token">--surface-deferred-dark</td><td class="value">rgba(124,139,220,0.25) on dark</td><td class="note">"Not yet built" — indigo tint at 25% on the dark canvas, with the same dashed-stroke treatment.</td></tr>
+  </tbody>
+</table>
+
+<div class="pair">
+  <div class="frame">
+    <div class="frame-head"><span class="theme">Light</span><span class="meta">7 categoricals on cream</span></div>
+    <svg viewBox="0 0 1660 200" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="dvBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <linearGradient id="dvSpL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6573c9"/><stop offset="100%" stop-color="#3a4a8a"/></linearGradient>
+        <linearGradient id="dvSnL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#252521"/><stop offset="100%" stop-color="#1a1a18"/></linearGradient>
+        <linearGradient id="dvSlL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4a5568"/><stop offset="100%" stop-color="#2d3748"/></linearGradient>
+        <linearGradient id="dvSqL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e3f52"/><stop offset="100%" stop-color="#162e3e"/></linearGradient>
+        <linearGradient id="dvScL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2a5e40"/><stop offset="100%" stop-color="#1e4530"/></linearGradient>
+        <linearGradient id="dvStL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5e3f1c"/><stop offset="100%" stop-color="#3f2810"/></linearGradient>
+        <linearGradient id="dvShL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6b4d8a"/><stop offset="100%" stop-color="#4a3565"/></linearGradient>
+        <filter id="dvFhL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#1a1a18" flood-opacity="0.22"/></filter>
+      </defs>
+      <rect width="1660" height="200" fill="url(#dvBgL)"/>
+      <g font-size="11" font-weight="600" fill="white">
+        <rect x="40"   y="50" width="210" height="100" rx="12" fill="url(#dvSpL)" filter="url(#dvFhL)"/><text x="60" y="106">primary</text>
+        <rect x="270"  y="50" width="210" height="100" rx="12" fill="url(#dvSnL)" filter="url(#dvFhL)"/><text x="290" y="106">neutral</text>
+        <rect x="500"  y="50" width="210" height="100" rx="12" fill="url(#dvSlL)" filter="url(#dvFhL)"/><text x="520" y="106">slate</text>
+        <rect x="730"  y="50" width="210" height="100" rx="12" fill="url(#dvSqL)" filter="url(#dvFhL)"/><text x="750" y="106">sql</text>
+        <rect x="960"  y="50" width="210" height="100" rx="12" fill="url(#dvScL)" filter="url(#dvFhL)"/><text x="980" y="106">secure</text>
+        <rect x="1190" y="50" width="210" height="100" rx="12" fill="url(#dvStL)" filter="url(#dvFhL)"/><text x="1210" y="106">store</text>
+        <rect x="1420" y="50" width="200" height="100" rx="12" fill="url(#dvShL)" filter="url(#dvFhL)"/><text x="1440" y="106">cache</text>
+      </g>
+    </svg>
+  </div>
+  <div class="frame dark">
+    <div class="frame-head"><span class="theme">Dark</span><span class="meta">7 categoricals lifted on near-black</span></div>
+    <svg viewBox="0 0 1660 200" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="dvBgD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1a1f"/><stop offset="100%" stop-color="#14141a"/></linearGradient>
+        <linearGradient id="dvSpD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7785d4"/><stop offset="100%" stop-color="#4d5db0"/></linearGradient>
+        <linearGradient id="dvSnD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a3a40"/><stop offset="100%" stop-color="#28282d"/></linearGradient>
+        <linearGradient id="dvSlD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5d6b80"/><stop offset="100%" stop-color="#3d4858"/></linearGradient>
+        <linearGradient id="dvSqD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2a5e7a"/><stop offset="100%" stop-color="#1c4a64"/></linearGradient>
+        <linearGradient id="dvScD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3d8058"/><stop offset="100%" stop-color="#2a6042"/></linearGradient>
+        <linearGradient id="dvStD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#825a30"/><stop offset="100%" stop-color="#5c3c1a"/></linearGradient>
+        <linearGradient id="dvShD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8666a8"/><stop offset="100%" stop-color="#5d4577"/></linearGradient>
+        <filter id="dvFhD" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/></filter>
+      </defs>
+      <rect width="1660" height="200" fill="url(#dvBgD)"/>
+      <g font-size="11" font-weight="600" fill="white">
+        <rect x="40"   y="50" width="210" height="100" rx="12" fill="url(#dvSpD)" filter="url(#dvFhD)"/><text x="60" y="106">primary</text>
+        <rect x="270"  y="50" width="210" height="100" rx="12" fill="url(#dvSnD)" filter="url(#dvFhD)"/><text x="290" y="106">neutral</text>
+        <rect x="500"  y="50" width="210" height="100" rx="12" fill="url(#dvSlD)" filter="url(#dvFhD)"/><text x="520" y="106">slate</text>
+        <rect x="730"  y="50" width="210" height="100" rx="12" fill="url(#dvSqD)" filter="url(#dvFhD)"/><text x="750" y="106">sql</text>
+        <rect x="960"  y="50" width="210" height="100" rx="12" fill="url(#dvScD)" filter="url(#dvFhD)"/><text x="980" y="106">secure</text>
+        <rect x="1190" y="50" width="210" height="100" rx="12" fill="url(#dvStD)" filter="url(#dvFhD)"/><text x="1210" y="106">store</text>
+        <rect x="1420" y="50" width="200" height="100" rx="12" fill="url(#dvShD)" filter="url(#dvFhD)"/><text x="1440" y="106">cache</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<h3>Dark variant · light surfaces &amp; ink</h3>
+<p>These flip the most. On dark canvas, the "light cards" become mid-tone neutrals (slightly cool — a 6-point tilt toward indigo so accents read as belonging). The ink scale inverts: <code>#ebebe5</code> primary text on the dark light-card is 7.8:1 — AAA territory.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value (dark)</th><th>Notes vs light</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--surface-light-dark</td><td class="value">#252531</td><td class="note">Default mid-tone "light card" on dark. Replaces <code>#ffffff</code>.</td></tr>
+    <tr><td class="token">--surface-tint-dark</td><td class="value">#2c2c38</td><td class="note">Subtly elevated sub-card. Replaces <code>#f0ebe3</code>.</td></tr>
+    <tr><td class="token">--surface-reference-dark</td><td class="value">#1f1f29</td><td class="note">Dimmer than <code>--surface-light-dark</code> — for lookup / enum / reference cards. Replaces <code>#ebe6db</code>.</td></tr>
+    <tr><td class="token">--rule-dark</td><td class="value">rgba(255,255,255,0.10)</td><td class="note">Default 1px border on dark light-cards (light cards lose their drop shadow in dark — see §01.5).</td></tr>
+    <tr><td class="token">--rule-strong-dark</td><td class="value">rgba(255,255,255,0.16)</td><td class="note">Section dividers, group boundaries.</td></tr>
+    <tr><td class="token">--ink-1-dark</td><td class="value">#ebebe5</td><td class="note">Primary text on dark light-cards. 7.8:1 on <code>#252531</code> (AAA).</td></tr>
+    <tr><td class="token">--ink-2-dark</td><td class="value">#c4c2bc</td><td class="note">Body.</td></tr>
+    <tr><td class="token">--ink-3-dark</td><td class="value">#9a988f</td><td class="note">Secondary / subtitle.</td></tr>
+    <tr><td class="token">--ink-4-dark</td><td class="value">#7a7873</td><td class="note">Tertiary / italic captions.</td></tr>
+  </tbody>
+</table>
+
+<h3>Status colors · cross-theme legibility</h3>
+<p>All 8 status colors survive unchanged. Each was checked against the dark canvas at the chosen value step; the worst is <code>--status-secondary</code> (<code>#6b7280</code>) at 4.4:1 — passes AA. None required adjustment.</p>
+
+<!-- =========================================================== -->
+<!--                         TYPOGRAPHY                           -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.3</span>Typography · roles</h2>
+<p class="section-lede">Type roles are named, not picked by inspection. Letter-spacing is part of the role and isn't optional — small caps without spacing read as cramped. The annotated screenshot's “floating MCP TOOLS” problem is fundamentally a typography role collision: section labels and connector labels were styled identically. They aren't anymore.</p>
+
+<table class="tokens">
+  <thead><tr><th>Role</th><th>Size · Weight · Spacing</th><th>Color</th><th>Where</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--type-title</td><td class="value">22–24 · 600 · -0.3</td><td class="note">--ink-1</td><td class="note">Diagram title. One per diagram. Centered on canvas at <code>y = 56–60</code>.</td></tr>
+    <tr><td class="token">--type-subtitle</td><td class="value">12–13 · 400 · 0.2</td><td class="note">--ink-3</td><td class="note">One-line below the title.</td></tr>
+    <tr><td class="token">--type-section</td><td class="value">10–11 · 600 · 1.6–2.0</td><td class="note">--ink-4 / matched</td><td class="note">ALL CAPS region labels (<code>STAGE 2</code>, <code>AGENT LAYER</code>). Only at the top of a group.</td></tr>
+    <tr><td class="token">--type-card-title</td><td class="value">14–16 · 600 · 0</td><td class="note">--ink-1 / white</td><td class="note">Card primary text. Light on dark surfaces, dark on light.</td></tr>
+    <tr><td class="token">--type-card-body</td><td class="value">11 · 400 · 0</td><td class="note">--ink-2 / rgba(255,255,255,0.92)</td><td class="note">Card detail rows.</td></tr>
+    <tr><td class="token">--type-card-caption</td><td class="value">10 · 400 italic · 0</td><td class="note">--ink-3 / rgba(255,255,255,0.55)</td><td class="note">Footer line, “e.g.” notes, audit trail.</td></tr>
+    <tr><td class="token">--type-conn-label</td><td class="value">9–10 · 600 · 0.8–1.2</td><td class="note">matched to line</td><td class="note">ALL CAPS connector label. Sits in the <em>above-line</em> label zone (see Connectors).</td></tr>
+    <tr><td class="token">--type-conn-sub</td><td class="value">9 · 400 italic · 0</td><td class="note">--ink-4</td><td class="note">Connector subtitle — sits in the <em>below-line</em> zone, half-line offset.</td></tr>
+    <tr><td class="token">--type-mono</td><td class="value">10–11 · 400/600 · 0</td><td class="note">varies</td><td class="note">Inline IDs, code, terminal output. <code>font-family="monospace"</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>typography roles, in situ</span><span class="meta">Inter · letter-spacing locked per role</span></div>
+  <svg viewBox="0 0 1660 360" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="tBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+    </defs>
+    <rect width="1660" height="360" fill="url(#tBg)"/>
+    <!-- title -->
+    <text x="830" y="60" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Partner Vetting · Request Flow</text>
+    <text x="830" y="82" text-anchor="middle" font-size="13" fill="#706e67">A walk-through of one approval, end-to-end</text>
+
+    <!-- section label -->
+    <text x="100" y="146" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">AGENT LAYER</text>
+    <line x1="100" y1="158" x2="180" y2="158" stroke="#9e9b95" stroke-width="0.5"/>
+
+    <!-- card -->
+    <rect x="100" y="174" width="280" height="108" rx="12" fill="white" stroke="#e8e2d8" stroke-width="1"/>
+    <text x="120" y="206" font-size="15" font-weight="600" fill="#1a1a18">Vetting Agent</text>
+    <text x="120" y="226" font-size="11" fill="#4a4845">co-pilots through 4 phases</text>
+    <text x="120" y="244" font-size="11" fill="#4a4845">streams sub-turns to UI</text>
+    <text x="120" y="266" font-size="10" font-style="italic" fill="#706e67">repair turn re-invokes on critique fail</text>
+
+    <!-- connector zone -->
+    <rect x="500" y="170" width="660" height="120" rx="8" fill="rgba(255,255,255,0.5)" stroke="#ddd5c6" stroke-dasharray="3,4" opacity="0.6"/>
+    <text x="510" y="160" font-size="9" font-family="JetBrains Mono, monospace" fill="#9e9b95" letter-spacing="1">connector zone — labels above, subtitles below</text>
+
+    <text x="830" y="218" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1.2">VALIDATED SPEC</text>
+    <path d="M 540 232 L 1120 232" stroke="#4f5fb8" stroke-width="1.8" marker-end="url(#tArr)"/>
+    <text x="830" y="252" text-anchor="middle" font-size="9" font-style="italic" fill="#9e9b95">json blob · ~6kb · signed</text>
+
+    <!-- right card -->
+    <rect x="1180" y="174" width="280" height="108" rx="12" fill="white" stroke="#e8e2d8"/>
+    <text x="1200" y="206" font-size="15" font-weight="600" fill="#1a1a18">Spec ledger</text>
+    <text x="1200" y="226" font-size="11" fill="#4a4845">postgres · append-only</text>
+    <text x="1200" y="244" font-size="10" font-family="monospace" fill="#3a4a8a">spec_runs(id, agent_id, payload)</text>
+    <text x="1200" y="266" font-size="10" font-style="italic" fill="#706e67">retains 90 days, then archived to GCS</text>
+
+    <defs>
+      <marker id="tArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/>
+      </marker>
+    </defs>
+  </svg>
+</div>
+
+<h3>Dark variant · ink colors per role</h3>
+<p>Type sizes, weights, and letter-spacing are theme-agnostic. Only the <em>color</em> paired with each role changes. The dark column references <code>--ink-*-dark</code> from §01.2.</p>
+<table class="tokens">
+  <thead><tr><th>Role</th><th>Light color</th><th>Dark color</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--type-title</td><td class="value">--ink-1 (#1a1a18)</td><td class="note">--ink-1-dark (#ebebe5)</td></tr>
+    <tr><td class="token">--type-subtitle</td><td class="value">--ink-3 (#706e67)</td><td class="note">--ink-3-dark (#9a988f)</td></tr>
+    <tr><td class="token">--type-section</td><td class="value">--ink-4 (#9e9b95)</td><td class="note">--ink-4-dark (#7a7873)</td></tr>
+    <tr><td class="token">--type-card-title (light card)</td><td class="value">--ink-1 (#1a1a18)</td><td class="note">--ink-1-dark (#ebebe5)</td></tr>
+    <tr><td class="token">--type-card-title (dark card)</td><td class="value">white</td><td class="note">white (unchanged — dark cards stay text-on-dark)</td></tr>
+    <tr><td class="token">--type-card-body (light card)</td><td class="value">--ink-2 (#4a4845)</td><td class="note">--ink-2-dark (#c4c2bc)</td></tr>
+    <tr><td class="token">--type-card-body (dark card)</td><td class="value">rgba(255,255,255,0.92)</td><td class="note">rgba(255,255,255,0.92) (unchanged)</td></tr>
+    <tr><td class="token">--type-card-caption (light card)</td><td class="value">--ink-3 (#706e67)</td><td class="note">--ink-3-dark (#9a988f)</td></tr>
+    <tr><td class="token">--type-card-caption (dark card)</td><td class="value">rgba(255,255,255,0.55)</td><td class="note">rgba(255,255,255,0.55) (unchanged)</td></tr>
+    <tr><td class="token">--type-conn-label</td><td class="value">matched to line (#4f5fb8)</td><td class="note">matched to line (#7785d4)</td></tr>
+    <tr><td class="token">--type-conn-sub</td><td class="value">--ink-4 (#9e9b95)</td><td class="note">--ink-4-dark (#7a7873)</td></tr>
+  </tbody>
+</table>
+<div class="callout"><strong>Rule of thumb:</strong> text-on-light-card swaps inverted; text-on-dark-card stays unchanged (dark cards still use white-on-dark in both themes — the categorical surfaces just lifted).</div>
+
+<!-- =========================================================== -->
+<!--                          SPACING                             -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.4</span>Spacing · the full token registry</h2>
+<p class="section-lede">The single rule that exists today — “~40px breathing room” — is replaced by 14 tokens. The right value is determined by <em>what's adjacent to what</em>: cards alone, cards with arrows between them, columns, stages, lane gutters, label clearances. Every layout decision references one of these by name.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>px</th><th>When to use</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--canvas-margin</td><td class="value">56</td><td class="note">Canvas edge inset on all four sides.</td></tr>
+    <tr><td class="token">--canvas-margin-tight</td><td class="value">40</td><td class="note">Dense templates only (sequence, data-schema).</td></tr>
+    <tr><td class="token">--gap-card-tight</td><td class="value">24</td><td class="note">Two cards in the same rank (same row, same semantic level), no arrow between.</td></tr>
+    <tr><td class="token">--gap-card</td><td class="value">56</td><td class="note">Default between cards.</td></tr>
+    <tr><td class="token">--gap-card-arrow</td><td class="value">96</td><td class="note">Two cards connected by an arrow. Leaves room for label + subtitle.</td></tr>
+    <tr><td class="token">--gap-stage</td><td class="value">120</td><td class="note">Between numbered stages in pipeline-flow. Wider than <code>--gap-card-arrow</code> so the stage tokens read.</td></tr>
+    <tr><td class="token">--gap-section</td><td class="value">72</td><td class="note">Between major regions inside a diagram (e.g. between the input row and the agent row).</td></tr>
+    <tr><td class="token">--gap-row</td><td class="value">48</td><td class="note">Vertical row spacing inside a column (same column, different rank).</td></tr>
+    <tr><td class="token">--lane-width</td><td class="value">240</td><td class="note">Width of a sequence lifeline. Locked across sequence diagrams for visual rhythm.</td></tr>
+    <tr><td class="token">--lane-gutter</td><td class="value">16</td><td class="note">Spacing between two parallel arrows in the same lane / region pair.</td></tr>
+    <tr><td class="token">--lane-row</td><td class="value">56</td><td class="note">Vertical step between successive horizontal arrows in a sequence diagram.</td></tr>
+    <tr><td class="token">--card-pad</td><td class="value">24</td><td class="note">Inset from card edge to first content.</td></tr>
+    <tr><td class="token">--card-pad-tight</td><td class="value">16</td><td class="note">Compact cards (connector-map spokes, lifeline headers).</td></tr>
+    <tr><td class="token">--label-clearance</td><td class="value">12</td><td class="note">Vertical offset of a connector label above/below its line center.</td></tr>
+    <tr><td class="token">--arrow-clearance</td><td class="value">16</td><td class="note">Minimum perpendicular distance between an arrow and an unrelated card it passes near.</td></tr>
+    <tr><td class="token">--arrow-stub</td><td class="value">8</td><td class="note">Arrow ends this far short of the card edge so the arrowhead has visual air.</td></tr>
+    <tr><td class="token">--boundary-pad</td><td class="value">32</td><td class="note">Group/boundary box inset around its contained cards.</td></tr>
+    <tr><td class="token">--bend-radius</td><td class="value">24</td><td class="note">Minimum curve radius for any non-axial connector. Below this, the curve reads as a kink.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>the spacing tokens, scaled to true size</span><span class="meta">measured in real pixels</span></div>
+  <svg viewBox="0 0 1660 480" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="spBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <marker id="spArr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#4f5fb8"/></marker>
+      <marker id="spArrEnd" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto-start-reverse"><path d="M0,0 L0,6 L6,3 z" fill="#4f5fb8"/></marker>
+    </defs>
+    <rect width="1660" height="480" fill="url(#spBg)"/>
+
+    <!-- row 1: card spacings -->
+    <text x="60" y="60" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.6">CARD SPACINGS</text>
+
+    <rect x="60"  y="80" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="204" y="80" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <line x1="180" y1="110" x2="204" y2="110" stroke="#4f5fb8" marker-start="url(#spArrEnd)" marker-end="url(#spArr)"/>
+    <text x="192" y="100" text-anchor="middle" font-size="9" font-family="JetBrains Mono, monospace" fill="#4f5fb8">24</text>
+    <text x="60" y="160" font-size="11" fill="#4a4845">--gap-card-tight · same rank, no arrow</text>
+
+    <rect x="440" y="80" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="616" y="80" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <line x1="560" y1="110" x2="616" y2="110" stroke="#4f5fb8" marker-start="url(#spArrEnd)" marker-end="url(#spArr)"/>
+    <text x="588" y="100" text-anchor="middle" font-size="9" font-family="JetBrains Mono, monospace" fill="#4f5fb8">56</text>
+    <text x="440" y="160" font-size="11" fill="#4a4845">--gap-card · default</text>
+
+    <rect x="852"  y="80" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="1068" y="80" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <path d="M 980 110 L 1060 110" stroke="#4f5fb8" stroke-width="1.6" marker-end="url(#spArr)"/>
+    <text x="1020" y="100" text-anchor="middle" font-size="9" font-weight="600" fill="#4f5fb8" letter-spacing="1.2">LABEL</text>
+    <text x="1020" y="124" text-anchor="middle" font-size="8" font-style="italic" fill="#9e9b95">subtitle</text>
+    <text x="852" y="160" font-size="11" fill="#4a4845">--gap-card-arrow · room for label + subtitle (96)</text>
+
+    <text x="1320" y="100" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 1</text>
+    <rect x="1320" y="108" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <text x="1560" y="100" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 2</text>
+    <rect x="1560" y="108" width="80" height="60" rx="10" fill="white" stroke="#e8e2d8"/>
+    <path d="M 1440 138 L 1560 138" stroke="#4f5fb8" stroke-width="1.6" marker-end="url(#spArr)"/>
+    <text x="1320" y="190" font-size="11" fill="#4a4845">--gap-stage · numbered stages (120)</text>
+
+    <!-- row 2: lane gutter + label clearance + arrow clearance -->
+    <text x="60" y="240" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.6">LANE &amp; LABEL</text>
+
+    <rect x="60"  y="260" width="120" height="100" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="324" y="260" width="120" height="100" rx="10" fill="white" stroke="#e8e2d8"/>
+    <line x1="180" y1="290" x2="324" y2="290" stroke="#4f5fb8" stroke-width="1.5" marker-end="url(#spArr)"/>
+    <line x1="180" y1="330" x2="324" y2="330" stroke="#4f5fb8" stroke-width="1.5" marker-end="url(#spArr)"/>
+    <line x1="240" y1="290" x2="240" y2="330" stroke="#cc6e55" stroke-width="0.8" stroke-dasharray="2,2"/>
+    <text x="254" y="314" font-size="9" font-family="JetBrains Mono, monospace" fill="#cc6e55">16</text>
+    <text x="60" y="384" font-size="11" fill="#4a4845">--lane-gutter · parallel arrows, same region pair</text>
+
+    <rect x="540" y="260" width="120" height="100" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="800" y="260" width="120" height="100" rx="10" fill="white" stroke="#e8e2d8"/>
+    <line x1="660" y1="310" x2="800" y2="310" stroke="#4f5fb8" stroke-width="1.6" marker-end="url(#spArr)"/>
+    <text x="730" y="298" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1.2">LABEL</text>
+    <line x1="660" y1="300" x2="800" y2="300" stroke="#cc6e55" stroke-width="0.5" stroke-dasharray="1,2"/>
+    <text x="668" y="306" font-size="8" font-family="JetBrains Mono, monospace" fill="#cc6e55">12 ↑</text>
+    <text x="540" y="384" font-size="11" fill="#4a4845">--label-clearance · 12px above line center</text>
+
+    <rect x="1000" y="260" width="120" height="100" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="1260" y="260" width="120" height="100" rx="10" fill="white" stroke="#e8e2d8"/>
+    <rect x="1140" y="280" width="80" height="20" rx="4" fill="#e8e2d8"/>
+    <text x="1180" y="293" text-anchor="middle" font-size="9" font-style="italic" fill="#706e67">other card</text>
+    <path d="M 1120 340 Q 1180 340 1260 340" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#spArr)"/>
+    <line x1="1140" y1="316" x2="1220" y2="316" stroke="#cc6e55" stroke-width="0.5" stroke-dasharray="1,2"/>
+    <text x="1140" y="312" font-size="8" font-family="JetBrains Mono, monospace" fill="#cc6e55">16 ↓ clearance</text>
+    <text x="1000" y="384" font-size="11" fill="#4a4845">--arrow-clearance · 16px from any unrelated card</text>
+
+    <!-- row 3: card-pad + boundary pad -->
+    <text x="60" y="430" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.6">INSIDE A CARD &amp; INSIDE A GROUP</text>
+    <rect x="60" y="446" width="20" height="20" fill="rgba(79,95,184,0.15)"/>
+    <text x="86" y="460" font-size="11" fill="#4a4845">--card-pad 24 · default</text>
+    <rect x="320" y="446" width="20" height="20" fill="rgba(79,95,184,0.15)"/>
+    <text x="346" y="460" font-size="11" fill="#4a4845">--card-pad-tight 16 · compact cards</text>
+    <rect x="640" y="446" width="20" height="20" fill="rgba(79,95,184,0.15)"/>
+    <text x="666" y="460" font-size="11" fill="#4a4845">--boundary-pad 32 · group inset</text>
+    <rect x="960" y="446" width="20" height="20" fill="rgba(79,95,184,0.15)"/>
+    <text x="986" y="460" font-size="11" fill="#4a4845">--bend-radius 24 · minimum curve radius</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                         SHADOWS                              -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.5</span>Shadow registry</h2>
+<p class="section-lede">Two shadows. The light-card shadow softens against cream; the dark-card shadow grounds against cream. Never invent a third. The variant suffix <code>-strong</code> exists for one specific case — a dark card on the dark half of the cream gradient — and uses the same shape with higher opacity.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Params</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--shadow-light</td><td class="value">dy=2, std=6, opacity=0.10</td><td class="note">Light cards on cream.</td></tr>
+    <tr><td class="token">--shadow-dark</td><td class="value">dy=3, std=8, opacity=0.22</td><td class="note">Dark cards on cream (default).</td></tr>
+    <tr><td class="token">--shadow-dark-strong</td><td class="value">dy=3, std=8, opacity=0.25</td><td class="note">Dark cards on the darker half of <code>--canvas-bg</code> only.</td></tr>
+  </tbody>
+</table>
+
+<h3>Dark variant · shadow registry</h3>
+<p>On the dark canvas the light-theme shadow (<code>#1a1a18</code> flood at 0.10–0.22) is a near-no-op. We split: <strong>light cards</strong> on dark switch to a near-zero white halo that reads as a 1px stroke (drop shadow off); <strong>dark categorical cards</strong> on dark deepen the drop with a <code>#000000</code> flood at higher opacity. Filter <em>ids</em> stay the same (<code>cardShadow</code>, <code>cardShadowDark</code>) so callers don't change between themes — the body of the filter rewrites per theme.</p>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Params (dark)</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--shadow-light-dark</td><td class="value">dy=0, std=1.5, opacity=0.08, flood #ffffff</td><td class="note">Halo-as-stroke. Reads as a 1px luminous edge around the mid-tone light-card. Drop shadow replaced.</td></tr>
+    <tr><td class="token">--shadow-dark-dark</td><td class="value">dy=4, std=12, opacity=0.55, flood #000000</td><td class="note">Deeper drop. Still does meaningful work because dark cards are elevated above the canvas.</td></tr>
+    <tr><td class="token">--shadow-dark-strong-dark</td><td class="value">dy=4, std=12, opacity=0.65, flood #000000</td><td class="note">Edge case — dark cards on the darkest half of <code>--canvas-bg-dark</code>.</td></tr>
+  </tbody>
+</table>
+<pre><code><span class="c">&lt;!-- dark-theme equivalents — same ids, different bodies --&gt;</span>
+<span class="k">&lt;filter</span> <span class="a">id=</span><span class="s">"cardShadow"</span> <span class="a">x=</span><span class="s">"-4%"</span> <span class="a">y=</span><span class="s">"-4%"</span> <span class="a">width=</span><span class="s">"108%"</span> <span class="a">height=</span><span class="s">"116%"</span><span class="k">&gt;</span>
+  <span class="k">&lt;feDropShadow</span> <span class="a">dx=</span><span class="s">"0"</span> <span class="a">dy=</span><span class="s">"0"</span> <span class="a">stdDeviation=</span><span class="s">"1.5"</span> <span class="a">flood-color=</span><span class="s">"#ffffff"</span> <span class="a">flood-opacity=</span><span class="s">"0.08"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/filter&gt;</span>
+<span class="k">&lt;filter</span> <span class="a">id=</span><span class="s">"cardShadowDark"</span> <span class="a">x=</span><span class="s">"-4%"</span> <span class="a">y=</span><span class="s">"-4%"</span> <span class="a">width=</span><span class="s">"108%"</span> <span class="a">height=</span><span class="s">"116%"</span><span class="k">&gt;</span>
+  <span class="k">&lt;feDropShadow</span> <span class="a">dx=</span><span class="s">"0"</span> <span class="a">dy=</span><span class="s">"4"</span> <span class="a">stdDeviation=</span><span class="s">"12"</span> <span class="a">flood-color=</span><span class="s">"#000000"</span> <span class="a">flood-opacity=</span><span class="s">"0.55"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/filter&gt;</span></code></pre>
+
+<pre><code><span class="c">&lt;!-- always include both. omit one only if the diagram has no card of that type --&gt;</span>
+<span class="k">&lt;filter</span> <span class="a">id=</span><span class="s">"cardShadow"</span> <span class="a">x=</span><span class="s">"-4%"</span> <span class="a">y=</span><span class="s">"-4%"</span> <span class="a">width=</span><span class="s">"108%"</span> <span class="a">height=</span><span class="s">"116%"</span><span class="k">&gt;</span>
+  <span class="k">&lt;feDropShadow</span> <span class="a">dx=</span><span class="s">"0"</span> <span class="a">dy=</span><span class="s">"2"</span> <span class="a">stdDeviation=</span><span class="s">"6"</span> <span class="a">flood-color=</span><span class="s">"#1a1a18"</span> <span class="a">flood-opacity=</span><span class="s">"0.10"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/filter&gt;</span>
+<span class="k">&lt;filter</span> <span class="a">id=</span><span class="s">"cardShadowDark"</span> <span class="a">x=</span><span class="s">"-4%"</span> <span class="a">y=</span><span class="s">"-4%"</span> <span class="a">width=</span><span class="s">"108%"</span> <span class="a">height=</span><span class="s">"116%"</span><span class="k">&gt;</span>
+  <span class="k">&lt;feDropShadow</span> <span class="a">dx=</span><span class="s">"0"</span> <span class="a">dy=</span><span class="s">"3"</span> <span class="a">stdDeviation=</span><span class="s">"8"</span> <span class="a">flood-color=</span><span class="s">"#1a1a18"</span> <span class="a">flood-opacity=</span><span class="s">"0.22"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/filter&gt;</span></code></pre>
+
+<!-- =========================================================== -->
+<!--                          ANIMATION                           -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.6</span>Animation registry</h2>
+<p class="section-lede">Animations are constrained on purpose. A polished design document is calm; the more things move, the more it reads like a marketing page. Five keyframes, applied through five named classes. Max <strong>3 animation classes per diagram</strong>. Motion-path dots count as one class.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Keyframe</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">.anim-ring</td><td class="note">rotateDash · 4s linear infinite</td><td class="note">Rotating dashed ring around an active processor card. Conveys “running.”</td></tr>
+    <tr><td class="token">.anim-ring-slow</td><td class="note">rotateDash · 6s linear infinite</td><td class="note">Slower variant for secondary processors.</td></tr>
+    <tr><td class="token">.anim-pulse</td><td class="note">pulse · 1.8s ease-in-out infinite</td><td class="note">Live status dot, “online” indicator. Opacity 0.7 → 1.</td></tr>
+    <tr><td class="token">.anim-tick</td><td class="note">tick · 2s ease-in-out infinite</td><td class="note">Color shift on a status dot to signal periodic check. Stagger with <code>animation-delay</code>.</td></tr>
+    <tr><td class="token">.anim-caret</td><td class="note">caret · 1s steps(2) infinite</td><td class="note">Terminal-style blinking caret. Use only inside a monospace card.</td></tr>
+    <tr><td class="token">.anim-loop</td><td class="note">loopPulse · 3.2s ease-in-out infinite</td><td class="note">Soft opacity pulse on a feedback-loop arc. Subtle.</td></tr>
+    <tr><td class="token">.anim-motion-dot</td><td class="note">animateMotion · stagger via begin=</td><td class="note">Flowing dots along a defined motion path. Counts as one class regardless of dot count.</td></tr>
+  </tbody>
+</table>
+
+<pre><code><span class="k">&lt;style&gt;</span>
+@keyframes rotateDash { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -60; } }
+@keyframes pulse      { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes tick       { 0%,100% { fill: #3d7f5b; } 50% { fill: #5aad80; } }
+@keyframes caret      { 0%,100% { opacity: 0.85; } 50% { opacity: 0; } }
+@keyframes loopPulse  { 0%,100% { opacity: 0.45; } 50% { opacity: 0.85; } }
+
+.anim-ring       { animation: rotateDash 4s linear infinite; }
+.anim-ring-slow  { animation: rotateDash 6s linear infinite; }
+.anim-pulse      { animation: pulse 1.8s ease-in-out infinite; }
+.anim-tick       { animation: tick 2s ease-in-out infinite; }
+.anim-caret      { animation: caret 1s steps(2) infinite; }
+.anim-loop       { animation: loopPulse 3.2s ease-in-out infinite; }
+<span class="k">&lt;/style&gt;</span></code></pre>
+
+<div class="callout warn"><strong>Hard cap:</strong> If a diagram needs a fourth distinct animation class, either drop a less essential one or split the diagram. The pattern of “every card pulsing” is a content failure dressed as a style choice.</div>
+
+<h3>Theme portability</h3>
+<p>All five keyframes and seven classes are theme-agnostic — the timing, easing, and shape of every animation is identical across light and dark renders. The one keyframe with literal colors is <code>tick</code> (<code>#3d7f5b → #5aad80</code>); both greens read on the dark canvas (luminance ≥ 0.30, ratio ≥ 6:1 against <code>#1a1a1f</code>), so no dark-variant keyframe is needed. If a future status color is added that fails the dark legibility check, define a sibling keyframe <code>&lt;name&gt;-dark</code> rather than overwriting the existing one.</p>
+
+<!-- =========================================================== -->
+<!--                CROSS-TEMPLATE CONSISTENCY                    -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.7</span>Cross-template consistency rules</h2>
+<p class="section-lede">A proposal ships 3–6 diagrams. Today the same Postgres can show up as <code>--surface-sql</code> in one and <code>--surface-neutral</code> in another, because each template re-decides. The rules below are enforced by the <a href="manifest.html">set manifest</a>; this is the list it pins.</p>
+
+<ul class="checks">
+  <li><strong>Service → gradient is pinned per-set.</strong> First diagram in the set declares the mapping; every subsequent diagram in the same proposal consults it.</li>
+  <li><strong>Service → icon is pinned per-set.</strong> Same logical service uses the same icon shape (e.g. cylinder for Postgres) wherever it appears.</li>
+  <li><strong>Label string is pinned per-set.</strong> “Postgres” is “Postgres” everywhere — not “Cloud SQL” in one diagram and “the DB” in the next.</li>
+  <li><strong>Title typography is identical.</strong> Same size, weight, letter-spacing, position (centered, <code>y=56</code>).</li>
+  <li><strong>Letter-spacing values come from <code>--type-section</code> and <code>--type-conn-label</code>.</strong> Never tighten or loosen for one diagram.</li>
+  <li><strong>Margin and gap tokens are identical.</strong> A “wide” diagram doesn't get to compress <code>--gap-card</code> — it uses <code>--canvas-width-wide</code> instead.</li>
+  <li><strong>Theme is pinned per-set in the manifest.</strong> Within one proposal, all diagrams render <em>at minimum</em> all-light or all-dark; the default <code>theme: both</code> ships both flavors of every figure. Per-diagram theme override is a hard error — see <a href="manifest.html">Set manifest</a> §07.4.</li>
+</ul>
+
+<div class="callout"><strong>The set manifest enforces these.</strong> A one-page YAML stub authored on the first diagram becomes part of the conversation; subsequent diagrams read it before generating. See <a href="manifest.html">Set manifest</a> for the schema.</div>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 760" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"></stop><stop offset="100%" stop-color="#14141a"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7785d4"></stop><stop offset="100%" stop-color="#4d5db0"></stop>
+    </linearGradient>
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"></path></marker>
+    
+  </defs>
+
+  <rect width="1660" height="760" fill="url(#bgGrad)"></rect>
+
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Partner Vetting · Integration Surface</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9a988f">Every external system the platform talks to · grouped by category</text>
+
+  <text x="220" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">DATA SOURCES</text>
+  <text x="1440" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">OUTPUTS &amp; OBSERVABILITY</text>
+
+  <rect x="80" y="170" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="98" y="184" width="40" height="40" rx="8" fill="#2a5e7a"></rect>
+  <text x="118" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="white">SF</text>
+  <text x="152" y="202" font-size="14" font-weight="600" fill="#ebebe5">Salesforce</text>
+  <text x="152" y="222" font-size="10" font-style="italic" fill="#9a988f">REST · partner roster + accounts</text>
+  <circle cx="346" cy="186" r="5" fill="#7785d4" class="anim-pulse"></circle>
+
+  <rect x="80" y="262" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="98" y="276" width="40" height="40" rx="8" fill="#2a5e7a"></rect>
+  <text x="118" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="white">OC</text>
+  <text x="152" y="294" font-size="14" font-weight="600" fill="#ebebe5">OpenCorporates</text>
+  <text x="152" y="314" font-size="10" font-style="italic" fill="#9a988f">REST · corporate registry</text>
+  <circle cx="346" cy="278" r="5" fill="#7785d4" class="anim-pulse"></circle>
+
+  <rect x="80" y="354" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="98" y="368" width="40" height="40" rx="8" fill="#2a5e7a"></rect>
+  <text x="118" y="394" text-anchor="middle" font-size="14" font-weight="700" fill="white">CH</text>
+  <text x="152" y="386" font-size="14" font-weight="600" fill="#ebebe5">Companies House</text>
+  <text x="152" y="406" font-size="10" font-style="italic" fill="#9a988f">REST · UK filings · cached 24h</text>
+  <circle cx="346" cy="370" r="5" fill="#7a7873"></circle>
+
+  <rect x="80" y="446" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" stroke-dasharray="4,3" filter="url(#cardShadow)" opacity="0.85"></rect>
+  <rect x="98" y="460" width="40" height="40" rx="8" fill="#5d6b80"></rect>
+  <text x="118" y="486" text-anchor="middle" font-size="14" font-weight="700" fill="white">SA</text>
+  <text x="152" y="478" font-size="14" font-weight="600" fill="#ebebe5">Sanctions API</text>
+  <text x="152" y="498" font-size="10" font-style="italic" fill="#9a988f">planned · OFAC + EU + UK</text>
+  <circle cx="346" cy="462" r="5" fill="#7a7873"></circle>
+
+  <rect x="610" y="240" width="440" height="240" rx="16" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(660, 308)"><path d="M-14,10 L-14,-3 Q-14,-12 0,-14 Q14,-12 14,-3 L14,10 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-10" x2="0" y2="10" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"></line><line x1="-14" y1="0" x2="14" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"></line></g>
+  <text x="700" y="298" font-size="22" font-weight="600" fill="white">Partner Vetting</text>
+  <text x="700" y="322" font-size="13" fill="rgba(255,255,255,0.72)">platform · v1.0 · multi-tenant</text>
+  <line x1="638" y1="352" x2="1022" y2="352" stroke="rgba(255,255,255,0.18)"></line>
+
+  <rect x="640" y="370" width="170" height="32" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="652" y="390" font-size="10" font-family="monospace" font-weight="600" fill="white">REST + webhooks</text>
+
+  <rect x="820" y="370" width="200" height="32" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="832" y="390" font-size="10" font-family="monospace" font-weight="600" fill="white">live integrations: 5/6</text>
+
+  <rect x="640" y="414" width="380" height="32" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="652" y="434" font-size="10" font-family="monospace" font-weight="600" fill="white">all outbound calls observed in Sentry</text>
+
+  <circle cx="1024" cy="262" r="6" fill="#5aad80" class="anim-pulse"></circle>
+  <text x="1014" y="266" text-anchor="end" font-size="10" font-weight="600" fill="rgba(255,255,255,0.78)" letter-spacing="1.2">LIVE</text>
+
+  <rect x="1300" y="170" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="184" width="40" height="40" rx="8" fill="#825a30"></rect>
+  <text x="1338" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="white">SL</text>
+  <text x="1372" y="202" font-size="14" font-weight="600" fill="#ebebe5">Slack</text>
+  <text x="1372" y="222" font-size="10" font-style="italic" fill="#9a988f">webhook · ops + verdicts channel</text>
+  <circle cx="1566" cy="186" r="5" fill="#7785d4" class="anim-pulse"></circle>
+
+  <rect x="1300" y="262" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="276" width="40" height="40" rx="8" fill="#825a30"></rect>
+  <text x="1338" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="white">EM</text>
+  <text x="1372" y="294" font-size="14" font-weight="600" fill="#ebebe5">Email (SendGrid)</text>
+  <text x="1372" y="314" font-size="10" font-style="italic" fill="#9a988f">verdict delivery to partners</text>
+  <circle cx="1566" cy="278" r="5" fill="#7785d4" class="anim-pulse"></circle>
+
+  <rect x="1300" y="354" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="368" width="40" height="40" rx="8" fill="#3d8058"></rect>
+  <text x="1338" y="394" text-anchor="middle" font-size="14" font-weight="700" fill="white">A0</text>
+  <text x="1372" y="386" font-size="14" font-weight="600" fill="#ebebe5">Auth0</text>
+  <text x="1372" y="406" font-size="10" font-style="italic" fill="#9a988f">OAuth 2 · 4 roles · RS256</text>
+  <circle cx="1566" cy="370" r="5" fill="#7785d4" class="anim-pulse"></circle>
+
+  <rect x="1300" y="446" width="280" height="68" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="460" width="40" height="40" rx="8" fill="#5d6b80"></rect>
+  <text x="1338" y="486" text-anchor="middle" font-size="14" font-weight="700" fill="white">SE</text>
+  <text x="1372" y="478" font-size="14" font-weight="600" fill="#ebebe5">Sentry</text>
+  <text x="1372" y="498" font-size="10" font-style="italic" fill="#9a988f">errors · trace · perf monitoring</text>
+  <circle cx="1566" cy="462" r="5" fill="#7785d4" class="anim-pulse"></circle>
+
+  <path d="M 360 204 L 605 280" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="478" y="232" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">READS</text>
+
+  <path d="M 360 296 L 605 326" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="478" y="304" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">QUERIES</text>
+
+  <path d="M 360 388 L 605 372" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="478" y="392" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">QUERIES</text>
+
+  <path d="M 360 480 L 605 422" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
+  <text x="478" y="466" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">FUTURE</text>
+
+  <path d="M 1055 280 L 1295 204" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1180" y="232" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">NOTIFIES</text>
+
+  <path d="M 1055 326 L 1295 296" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1180" y="304" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">SENDS</text>
+
+  <path d="M 1055 372 L 1295 388" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"></path>
+  <text x="1180" y="392" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">AUTHENTICATES</text>
+
+  <path d="M 1055 422 L 1295 480" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1180" y="466" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">REPORTS</text>
+
+  <rect x="60" y="156" width="316" height="372" rx="14" fill="none" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.4"></rect>
+  <rect x="1284" y="156" width="316" height="372" rx="14" fill="none" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.4"></rect>
+
+  <line x1="60" y1="580" x2="1600" y2="580" stroke="#3a3a47"></line>
+  <text x="60" y="608" font-size="11" font-weight="600" fill="#9a988f" letter-spacing="1.6">LEGEND</text>
+
+  <line x1="60" y1="630" x2="100" y2="630" stroke="#7785d4" stroke-width="1.8" marker-end="url(#arrowAccent)"></line>
+  <text x="112" y="634" font-size="11" fill="#c4c2bc">solid indigo — live integration</text>
+
+  <line x1="380" y1="630" x2="420" y2="630" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#arrowGrey)"></line>
+  <text x="432" y="634" font-size="11" fill="#c4c2bc">grey dashed — planned / future</text>
+
+  <circle cx="680" cy="630" r="5" fill="#7785d4" class="anim-pulse"></circle>
+  <text x="694" y="634" font-size="11" fill="#c4c2bc">pulsing dot — currently live</text>
+
+  <circle cx="960" cy="630" r="5" fill="#7a7873"></circle>
+  <text x="974" y="634" font-size="11" fill="#c4c2bc">static grey dot — degraded or planned</text>
+
+  <text x="60" y="694" font-size="11" font-style="italic" fill="#9a988f">Read center-out · hub is the platform; data flows in from the left, outputs flow out to the right · five of six integrations are live.</text>
+</svg>

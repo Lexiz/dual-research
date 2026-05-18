@@ -1,0 +1,242 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2200 1000" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"></stop><stop offset="100%" stop-color="#14141a"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7785d4"></stop><stop offset="100%" stop-color="#4d5db0"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a3a40"></stop><stop offset="100%" stop-color="#28282d"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a5e7a"></stop><stop offset="100%" stop-color="#1c4a64"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d8058"></stop><stop offset="100%" stop-color="#2a6042"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceStore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#825a30"></stop><stop offset="100%" stop-color="#5c3c1a"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5d6b80"></stop><stop offset="100%" stop-color="#3d4858"></stop>
+    </linearGradient>
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"></path></marker>
+    
+  </defs>
+
+  <rect width="2200" height="1000" fill="url(#bgGrad)"></rect>
+
+  <text x="1100" y="58" text-anchor="middle" font-size="26" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Partner Vetting · Full Project Landscape</text>
+  <text x="1100" y="84" text-anchor="middle" font-size="13" fill="#9a988f">Research · Development · Production — the complete ecosystem · wide-variant 2200 canvas</text>
+
+  
+  <rect x="60" y="118" width="660" height="800" rx="20" fill="rgba(0,0,0,0.025)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.55"></rect>
+  <text x="80" y="146" font-size="11" font-weight="600" fill="#9a988f" letter-spacing="2">RESEARCH · INPUTS</text>
+
+  <rect x="100" y="170" width="580" height="68" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <text x="120" y="194" font-size="14" font-weight="600" fill="#ebebe5">Brainstorming sessions</text>
+  <text x="120" y="212" font-size="11" fill="#c4c2bc">analyst chats · workshop transcripts · raw URLs</text>
+  <text x="120" y="228" font-size="10" font-style="italic" fill="#9a988f">design dialogue · validates intent before any spec</text>
+
+  <rect x="100" y="258" width="580" height="68" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <text x="120" y="282" font-size="14" font-weight="600" fill="#ebebe5">Web &amp; Notion URLs</text>
+  <text x="120" y="300" font-size="11" fill="#c4c2bc">research feeds · prior-art · regulatory primers</text>
+  <text x="120" y="316" font-size="10" font-style="italic" fill="#9a988f">ingested verbatim · date-prefixed</text>
+
+  <rect x="100" y="346" width="580" height="68" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <text x="120" y="370" font-size="14" font-weight="600" fill="#ebebe5">Pasted documents</text>
+  <text x="120" y="388" font-size="11" fill="#c4c2bc">PDFs · DOCX · transcripts</text>
+  <text x="120" y="404" font-size="10" font-style="italic" fill="#9a988f">deduped on sha256</text>
+
+  
+  <rect x="100" y="438" width="580" height="260" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <rect x="100" y="438" width="580" height="40" rx="14" fill="rgba(255,255,255,0.04)"></rect>
+  <text x="124" y="464" font-size="15" font-weight="600" fill="white" font-family="monospace">research wiki</text>
+  <text x="660" y="464" text-anchor="end" font-size="9" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="1.4">SOURCE OF TRUTH</text>
+
+  <line x1="116" y1="478" x2="664" y2="478" stroke="rgba(255,255,255,0.12)"></line>
+
+  <text x="124" y="504" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="1.6">SOURCES</text>
+  <rect x="124" y="514" width="540" height="32" rx="6" fill="rgba(255,255,255,0.06)"></rect>
+  <text x="136" y="534" font-size="11" font-family="monospace" fill="rgba(255,255,255,0.92)">verbatim · append-only · 42 documents</text>
+
+  <text x="124" y="568" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="1.6">DISCOVERY</text>
+  <rect x="124" y="578" width="540" height="32" rx="6" fill="rgba(255,255,255,0.06)"></rect>
+  <text x="136" y="598" font-size="11" font-family="monospace" fill="rgba(255,255,255,0.92)">11 open questions · 7 resolved tensions</text>
+
+  <text x="124" y="632" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="1.6">DECISIONS</text>
+  <rect x="124" y="642" width="540" height="32" rx="6" fill="rgba(255,255,255,0.06)"></rect>
+  <text x="136" y="662" font-size="11" font-family="monospace" fill="rgba(255,255,255,0.92)">14 ADRs · what + why · v1 ground truth</text>
+
+  
+  <rect x="100" y="720" width="580" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <text x="124" y="752" font-size="16" font-weight="600" fill="white">Design Docs</text>
+  <text x="124" y="770" font-size="11" fill="rgba(255,255,255,0.72)">buildable designs · the sole bridge to development</text>
+  <line x1="116" y1="784" x2="664" y2="784" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="124" y="808" font-size="11" fill="rgba(255,255,255,0.92)">git-versioned · Notion-linked · by file path + commit hash</text>
+  <text x="124" y="826" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">research crystallises here before any spec is written</text>
+
+  <text x="380" y="900" text-anchor="middle" font-size="11" font-style="italic" fill="#9a988f">Inputs flow into the wiki; the wiki distills into the design docs.</text>
+
+  
+  <rect x="780" y="118" width="640" height="800" rx="20" fill="rgba(79,95,184,0.04)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.6"></rect>
+  <text x="800" y="146" font-size="11" font-weight="600" fill="#9a988f" letter-spacing="2">DEVELOPMENT · PIPELINE</text>
+
+  
+  <rect x="820" y="180" width="560" height="92" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <circle cx="852" cy="226" r="14" fill="#7785d4"></circle>
+  <text x="852" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="white">1</text>
+  <text x="884" y="216" font-size="15" font-weight="600" fill="white">brainstorming</text>
+  <text x="884" y="234" font-size="11" fill="rgba(255,255,255,0.72)">design dialogue · validates intent</text>
+  <text x="884" y="254" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">input: design doc · output: validated requirements</text>
+
+  <rect x="820" y="290" width="560" height="92" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <circle cx="852" cy="336" r="14" fill="#7785d4"></circle>
+  <text x="852" y="340" text-anchor="middle" font-size="13" font-weight="700" fill="white">2</text>
+  <text x="884" y="326" font-size="15" font-weight="600" fill="white">create-spec</text>
+  <text x="884" y="344" font-size="11" fill="rgba(255,255,255,0.72)">.spec/SPEC-NNN/ · spec.md + meta.yaml</text>
+  <text x="884" y="364" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">research gate · decomposition · blast radius</text>
+
+  <rect x="820" y="400" width="560" height="92" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <circle cx="852" cy="446" r="14" fill="white"></circle>
+  <text x="852" y="450" text-anchor="middle" font-size="13" font-weight="700" fill="#7785d4">3</text>
+  <text x="884" y="436" font-size="15" font-weight="600" fill="white">agent-coding</text>
+  <text x="884" y="454" font-size="11" fill="rgba(255,255,255,0.72)">executes spec · ready → in_progress → done</text>
+  <text x="884" y="474" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">unsupervised or co-coding mode</text>
+
+  <rect x="820" y="510" width="560" height="92" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <circle cx="852" cy="556" r="14" fill="#7785d4"></circle>
+  <text x="852" y="560" text-anchor="middle" font-size="13" font-weight="700" fill="white">4</text>
+  <text x="884" y="546" font-size="15" font-weight="600" fill="white">pr-review</text>
+  <text x="884" y="564" font-size="11" fill="rgba(255,255,255,0.72)">5-dimension structured verdict</text>
+  <text x="884" y="584" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">spec compliance · scope · tests · security · quality</text>
+
+  <rect x="820" y="620" width="560" height="92" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <circle cx="852" cy="666" r="14" fill="#7785d4"></circle>
+  <text x="852" y="670" text-anchor="middle" font-size="13" font-weight="700" fill="white">5</text>
+  <text x="884" y="656" font-size="15" font-weight="600" fill="white">spec-retro</text>
+  <text x="884" y="674" font-size="11" fill="rgba(255,255,255,0.72)">curates learnings · promotes to ledger</text>
+  <text x="884" y="694" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">cross-spec patterns · feeds future research</text>
+
+  <rect x="820" y="730" width="560" height="92" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(852, 776)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path><path d="M-4,0 L-1,4 L5,-3" stroke="#ebebe5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></g>
+  <text x="884" y="766" font-size="15" font-weight="600" fill="white">Merged PRs</text>
+  <text x="884" y="784" font-size="11" fill="rgba(255,255,255,0.72)">ships into ttc-arc-partner-vetting · full provenance chain</text>
+  <text x="884" y="804" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">every commit traceable to a spec, every spec to an ADR</text>
+
+  <text x="1100" y="900" text-anchor="middle" font-size="11" font-style="italic" fill="#9a988f">Design first, then build. Each stage validates against the prior contract.</text>
+
+  
+  <rect x="1480" y="118" width="660" height="800" rx="20" fill="rgba(0,0,0,0.025)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.55"></rect>
+  <text x="1500" y="146" font-size="11" font-weight="600" fill="#9a988f" letter-spacing="2">PRODUCTION · LIVE PLATFORM</text>
+
+  
+  <rect x="1520" y="170" width="580" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1554, 224)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line></g>
+  <text x="1588" y="208" font-size="17" font-weight="600" fill="white">Vetting API</text>
+  <text x="1588" y="228" font-size="11" fill="rgba(255,255,255,0.72)">Cloud Run · session-scoped · audit-on-write</text>
+  <line x1="1536" y1="246" x2="2084" y2="246" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="1538" y="270" font-size="11" fill="rgba(255,255,255,0.92)">single ingress · 4 roles · req/resp typed contract</text>
+  <circle cx="2080" cy="186" r="6" fill="#5aad80" class="anim-pulse"></circle>
+
+  
+  <rect x="1520" y="310" width="280" height="92" rx="12" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1550, 356)"><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-9" width="22" height="18" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse></g>
+  <text x="1584" y="342" font-size="14" font-weight="600" fill="white">Postgres</text>
+  <text x="1584" y="360" font-size="11" fill="rgba(255,255,255,0.72)">Cloud SQL · primary store · RLS</text>
+  <text x="1584" y="382" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">7 entities · 14 indexes</text>
+
+  <rect x="1820" y="310" width="280" height="92" rx="12" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1850, 356)"><path d="M-11,-3 L-9,10 L9,10 L11,-3 Z" fill="rgba(255,255,255,0.85)"></path><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><path d="M-5,-5 Q0,-13 5,-5" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" fill="none"></path></g>
+  <text x="1884" y="342" font-size="14" font-weight="600" fill="white">GCS</text>
+  <text x="1884" y="360" font-size="11" fill="rgba(255,255,255,0.72)">document archive · CMEK</text>
+  <text x="1884" y="382" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">/partners/{id}/docs/*</text>
+
+  <rect x="1520" y="420" width="580" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1550, 458)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
+  <text x="1584" y="452" font-size="14" font-weight="600" fill="white" font-family="monospace">vet.submitted · vet.completed · doc.processed</text>
+  <text x="1584" y="470" font-size="10" fill="rgba(255,255,255,0.72)">Pub/Sub · 3 topics · DLQ on each</text>
+  <text x="1584" y="486" font-size="9" font-style="italic" fill="rgba(255,255,255,0.55)">3 subscribers downstream</text>
+
+  
+  <text x="1520" y="528" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">EXTERNAL INTEGRATIONS</text>
+
+  <rect x="1520" y="546" width="180" height="60" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1532" y="558" width="32" height="36" rx="6" fill="#2a5e7a"></rect>
+  <text x="1548" y="582" text-anchor="middle" font-size="12" font-weight="700" fill="white">SF</text>
+  <text x="1572" y="572" font-size="12" font-weight="600" fill="#ebebe5">Salesforce</text>
+  <text x="1572" y="588" font-size="9" fill="#c4c2bc">CRM sync</text>
+
+  <rect x="1720" y="546" width="180" height="60" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1732" y="558" width="32" height="36" rx="6" fill="#825a30"></rect>
+  <text x="1748" y="582" text-anchor="middle" font-size="12" font-weight="700" fill="white">SL</text>
+  <text x="1772" y="572" font-size="12" font-weight="600" fill="#ebebe5">Slack</text>
+  <text x="1772" y="588" font-size="9" fill="#c4c2bc">webhook</text>
+
+  <rect x="1920" y="546" width="180" height="60" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <rect x="1932" y="558" width="32" height="36" rx="6" fill="#3d8058"></rect>
+  <text x="1948" y="582" text-anchor="middle" font-size="12" font-weight="700" fill="white">A0</text>
+  <text x="1972" y="572" font-size="12" font-weight="600" fill="#ebebe5">Auth0</text>
+  <text x="1972" y="588" font-size="9" fill="#c4c2bc">OAuth 2</text>
+
+  
+  <text x="1520" y="640" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">CONSUMERS · ALL ROLES</text>
+
+  <rect x="1520" y="660" width="280" height="76" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <text x="1540" y="684" font-size="13" font-weight="600" fill="#ebebe5">Analysts (Vetting Dashboard)</text>
+  <text x="1540" y="702" font-size="10" fill="#c4c2bc">React SPA · submits + reviews</text>
+  <text x="1540" y="720" font-size="9" font-style="italic" fill="#9a988f">2 active users today · 14 vets in flight</text>
+
+  <rect x="1820" y="660" width="280" height="76" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <text x="1840" y="684" font-size="13" font-weight="600" fill="#ebebe5">Partners (Submission portal)</text>
+  <text x="1840" y="702" font-size="10" fill="#c4c2bc">supplies docs · receives verdict</text>
+  <text x="1840" y="720" font-size="9" font-style="italic" fill="#9a988f">external · session-scoped magic links</text>
+
+  
+  <rect x="1520" y="750" width="580" height="84" rx="12" fill="#252531" stroke="#7785d4" stroke-width="2" filter="url(#cardShadow)"></rect>
+  <rect x="1530" y="758" width="48" height="40" rx="6" fill="url(#surfacePrimary)"></rect>
+  <text x="1554" y="784" text-anchor="middle" font-size="13" font-weight="700" fill="white">ARC</text>
+  <text x="1590" y="780" font-size="14" font-weight="600" fill="#ebebe5">ARC / Mario embed</text>
+  <text x="1590" y="798" font-size="11" fill="#c4c2bc">embedded vetting workflow inside ARC product · v1.0</text>
+  <text x="1590" y="818" font-size="10" font-style="italic" fill="#9a988f">via Mario · MCP-compatible connector</text>
+  <rect x="1976" y="762" width="116" height="22" rx="11" fill="#7785d4"></rect>
+  <text x="2034" y="777" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">HIGHLIGHT · KEY EMBED</text>
+
+  <text x="1810" y="900" text-anchor="middle" font-size="11" font-style="italic" fill="#9a988f">Live platform · five integrations · the ARC embed is the strategic surface for v2.</text>
+
+  
+  
+  <path d="M 680 770 C 730 770 770 226 815 226" stroke="#7785d4" stroke-width="2" fill="none" marker-end="url(#arrowAccent)"></path>
+  <rect x="700" y="488" width="100" height="22" rx="11" fill="#252531" stroke="#7785d4"></rect>
+  <text x="750" y="503" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="0.8">DESIGN DOCS</text>
+
+  
+  <path d="M 1380 776 C 1420 776 1460 230 1515 230" stroke="#7785d4" stroke-width="2" fill="none" marker-end="url(#arrowAccent)"></path>
+  <rect x="1400" y="488" width="100" height="22" rx="11" fill="#252531" stroke="#7785d4"></rect>
+  <text x="1450" y="503" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="0.8">MERGED PRS</text>
+
+  
+  <path d="M 1640 290 L 1640 308" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <path d="M 1900 290 L 1900 308" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <path d="M 1810 402 L 1810 418" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+
+  
+  <path d="M 390 326 L 390 436" stroke="#7785d4" stroke-width="1.6" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <path d="M 390 414 L 390 436" stroke="#7785d4" stroke-width="1.6" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <path d="M 390 698 L 390 718" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+
+  
+  <line x1="60" y1="940" x2="2140" y2="940" stroke="#3a3a47"></line>
+  <text x="60" y="966" font-size="11" font-weight="600" fill="#9a988f" letter-spacing="1.6">FREEFORM · COMPOSITE VIEW</text>
+  <text x="60" y="988" font-size="12" font-style="italic" fill="#9a988f">Three regions · one indigo identity · wide-variant canvas (2200) reserved for explicit landscape overviews · the same Vetting API gradient appears here as in every other diagram in the set, courtesy of the manifest.</text>
+</svg>
