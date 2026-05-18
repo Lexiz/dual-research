@@ -3,10 +3,10 @@ spec: 0069
 title: Run-list & chrome polish (status pills, top bar, top tabs, right cluster)
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.62.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/69
 ---
 
 # Spec 0069 — Run-list & chrome polish
