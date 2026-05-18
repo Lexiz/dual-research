@@ -3,10 +3,10 @@ spec: 0084
 title: Unified LoadingState primitive — one delightful loading visual everywhere
 label: new-feature
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.69.8
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/84"
 ---
 
 # Spec 0084 — Unified `LoadingState` primitive
