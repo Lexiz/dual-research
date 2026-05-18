@@ -987,6 +987,91 @@ function RoundScrubber({ rounds, current, onChange }) {
   );
 }
 
+// ── SPEC-0067 — parseCodeId + CodeCluster ────────────────────────────────────
+// parseCodeId(id) — parse a critique public ID into structured components.
+// Five known prefixes: Q- (question), I- (issue), C- (comment), Cl- (claim),
+// d- (disagreement). Format: PREFIX-RAISER-ROUND_OR_PHASE-SEQ (e.g. I-c-r1-06)
+// or d-SEQ (e.g. d-04). Returns { kind, raiser, round, phase, sequence, raw }.
+const CODE_KIND_MAP = {
+  Q:  'question',
+  I:  'issue',
+  C:  'comment',
+  Cl: 'claim',
+  d:  'disagreement',
+};
+const CODE_KIND_LABELS = {
+  question:     'Question',
+  issue:        'Issue',
+  comment:      'Comment',
+  claim:        'Claim',
+  disagreement: 'Disagreement',
+};
+
+function parseCodeId(id) {
+  if (typeof id !== 'string') return { raw: String(id ?? ''), kind: null, raiser: null, round: null, phase: null, sequence: null };
+  const raw = id;
+
+  // Disagreement: d-NN
+  const dm = /^d-(\d+)$/.exec(id);
+  if (dm) return { raw, kind: 'disagreement', raiser: null, round: null, phase: null, sequence: parseInt(dm[1], 10) };
+
+  // Q/I/C/Cl: PREFIX-RAISER-r/pN-SEQ  (e.g. I-c-r1-06, Cl-g-p1-01)
+  const m = /^(Q|I|C|Cl)-([cg])-([rp])(\d+)-(\d+)$/.exec(id);
+  if (m) {
+    const kind = CODE_KIND_MAP[m[1]] || m[1];
+    const raiser = m[2] === 'c' ? 'claude' : 'gpt';
+    const isPhase = m[3] === 'p';
+    return {
+      raw,
+      kind,
+      raiser,
+      round: isPhase ? null : parseInt(m[4], 10),
+      phase: isPhase ? parseInt(m[4], 10) : null,
+      sequence: parseInt(m[5], 10),
+    };
+  }
+
+  // Fallback — unparseable
+  return { raw, kind: null, raiser: null, round: null, phase: null, sequence: null };
+}
+
+// CodeCluster — structured chip cluster for any critique public ID.
+// Renders: [Kind SEQ] [agent chip] [round chip] with tooltip showing raw code.
+function CodeCluster({ id, kind, hideRound, size }) {
+  const parsed = typeof id === 'string' ? parseCodeId(id) : { raw: String(id ?? ''), kind: null, sequence: null, raiser: null, round: null, phase: null };
+  const effectiveKind = kind || parsed.kind;
+  const kindLabel = CODE_KIND_LABELS[effectiveKind] || effectiveKind || '';
+  const seq = parsed.sequence != null ? String(parsed.sequence).padStart(2, '0') : null;
+  const chipSize = size === 'sm';
+
+  return (
+    <span className="cc" title={parsed.raw} data-code={parsed.raw}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+      <Chip tone={effectiveKind === 'disagreement' || effectiveKind === 'issue' ? 'warn' : 'info'}
+            style={chipSize ? { fontSize: 10 } : undefined}>
+        {kindLabel}{seq ? ` ${seq}` : ''}
+      </Chip>
+      {parsed.raiser && (
+        <Chip tone={parsed.raiser === 'claude' ? 'a' : 'b'}
+              style={chipSize ? { fontSize: 10 } : undefined}>
+          <AgentIcon agent={parsed.raiser} size={12} variant="ghost" />
+          {' '}{AGENT_META[parsed.raiser]?.name || parsed.raiser}
+        </Chip>
+      )}
+      {!hideRound && parsed.round != null && (
+        <Chip tone="muted" style={chipSize ? { fontSize: 10 } : undefined}>
+          R{parsed.round}
+        </Chip>
+      )}
+      {!hideRound && parsed.phase != null && (
+        <Chip tone="muted" style={chipSize ? { fontSize: 10 } : undefined}>
+          P{parsed.phase}
+        </Chip>
+      )}
+    </span>
+  );
+}
+
 Object.assign(window, {
   COLORS, AGENT_META,
   Dot, AgentIcon, StatusBadge, Pill, MetricRow, PanelHeader, StreamingText, Markdown, Modal, Icon, fmt,
@@ -1001,4 +1086,6 @@ Object.assign(window, {
   ChipCluster,
   // SPEC-0058 primitives
   RoundScrubber,
+  // SPEC-0067 primitives
+  parseCodeId, CodeCluster, CODE_KIND_LABELS,
 });
