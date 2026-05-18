@@ -3,10 +3,10 @@ spec: 0076
 title: Stable-worktree helper — isolate CLI runs from active orchestrator/feature-branch work
 label: dev-experience
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.69.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/76
 ---
 
 # Spec 0076 — Stable-worktree helper (CLI parallelism)
