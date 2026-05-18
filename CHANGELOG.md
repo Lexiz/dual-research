@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.4] — 2026-05-18
+
+### Fixed
+
+- **Fly proxy flap causing intermittent 30 s timeouts** — spec 0079 set `min_machines_running = 1` while leaving `auto_stop_machines = "stop"`. With two machines deployed, Fly's auto-scaler kept stopping the "extra" one because traffic was low; each stop/restart left the proxy's routing table briefly out of sync and roughly half of all incoming requests got "could not find a good candidate within 40 attempts at load balancing" from the Amsterdam edge. Status board showed the two machines alternating between `passing` and `critical` every few minutes. Switched to `auto_stop_machines = "off"` so both machines stay running permanently. ~$4–6/month extra; trivial trade-off for restoring reachability. SPEC-0080.
+
 ## [0.69.3] — 2026-05-18
 
 ### Fixed
