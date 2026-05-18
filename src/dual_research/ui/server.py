@@ -67,13 +67,42 @@ from dual_research.ui.models import RunListRow, to_jsonable
 _INPUT_BUNDLE_CACHE = BoundedLRU(maxsize=100)
 _SEARCH_AUDIT_CACHE = BoundedLRU(maxsize=100)
 
+# ─── Spec 0081 — full run-snapshot cache keyed by (run_id, latest_event_seq) ──
+# `/api/runs/{id}` was running `SupabaseSessionData.materialize()` on every
+# request — a full paginated dump of session_files + transcript + blobs into
+# a tmp dir, then a re-read. Multi-second per call for a real run. The
+# snapshot is a pure function of `run_id` + `max(events.seq)`, so caching by
+# that compound key is correct for both done runs (seq is fixed → permanent
+# hit) and live runs (cache hit between event ticks; one re-materialise per
+# new event no matter how many viewers).
+_RUN_SNAPSHOT_CACHE = BoundedLRU(maxsize=50)
+
 _IMMUTABLE_CACHE_CONTROL = "public, max-age=86400, immutable"
 
 
 def _clear_caches_for_test() -> None:
-    """Drop both LRUs. Tests call this between cases to keep them hermetic."""
+    """Drop all LRUs. Tests call this between cases to keep them hermetic."""
     _INPUT_BUNDLE_CACHE.clear()
     _SEARCH_AUDIT_CACHE.clear()
+    _RUN_SNAPSHOT_CACHE.clear()
+
+
+class _GZipMiddlewareSkipStream(GZipMiddleware):
+    """Spec 0081 — skip gzip for SSE paths.
+
+    `GZipMiddleware` buffers response chunks to decide whether the total body
+    is above `minimum_size` worth compressing. For an SSE stream of tiny
+    per-event payloads that decision is never satisfied and the middleware
+    can hold the response open waiting for more bytes — breaking the
+    realtime delivery contract. Skipping at the path level is the cleanest
+    fix; gzip on JSON / markdown still applies elsewhere.
+    """
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if scope.get("type") == "http" and scope.get("path", "").endswith("/stream"):
+            await self.app(scope, receive, send)
+            return
+        await super().__call__(scope, receive, send)
 
 # ─── App + state ──────────────────────────────────────────────────────────────
 
@@ -95,7 +124,7 @@ def _make_app(runs_dir: Path) -> FastAPI:
     app.state.runs_dir = runs_dir
     # Spec 0079 — gzip JSON + markdown responses above 1 KB. Skips small
     # auth-error bodies where compression CPU would dominate.
-    app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(_GZipMiddlewareSkipStream, minimum_size=1024)
 
     # ─── API routes ───────────────────────────────────────────────────────────
 
@@ -288,7 +317,7 @@ def _make_supabase_app(
     # in Starlette). Compresses JSON bundle bodies (often 100 KB+) and the
     # markdown/text payloads from /files; minimum_size skips tiny error
     # bodies + /api/health where compression CPU outweighs wire savings.
-    app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(_GZipMiddlewareSkipStream, minimum_size=1024)
 
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
@@ -392,12 +421,8 @@ def _make_supabase_app(
     @app.get("/api/runs/{run_id}")
     async def get_run(run_id: str) -> JSONResponse:
         _require_run_exists(client, run_id)
-        with SupabaseSessionData(client, run_id).materialize() as tmp:
-            run = load_run_snapshot(tmp)
-        # The tmpdir name was synthetic; restore the real run id everywhere.
-        run.id = run_id
-        run.display_id = display_id(run_id)
-        return JSONResponse(_to_camel(to_jsonable(run)))
+        payload = _materialize_snapshot_supabase(client, run_id)
+        return JSONResponse(payload)
 
     @app.get("/api/runs/{run_id}/stream")
     async def stream_run(run_id: str, request: Request) -> EventSourceResponse:
@@ -1059,23 +1084,53 @@ async def _supabase_event_stream(
     run_id: str,
     request: Request,
 ) -> AsyncIterator[dict]:
-    """Polled SSE: emit a snapshot when max(events.seq) changes."""
+    """Polled SSE: emit a snapshot when max(events.seq) changes.
+
+    Spec 0081 — shares the run-snapshot LRU with the GET endpoint, so
+    concurrent viewers + the poll loop only pay one materialise per seq
+    transition no matter how many simultaneous subscribers.
+    """
     last_seq = -2  # force first emit even on empty events
     while True:
         if await request.is_disconnected():
             return
         current_seq = latest_event_seq(client, run_id)
         if current_seq != last_seq:
-            with SupabaseSessionData(client, run_id).materialize() as tmp:
-                run = load_run_snapshot(tmp)
-            run.id = run_id
-            run.display_id = display_id(run_id)
+            payload = _materialize_snapshot_supabase(
+                client, run_id, seq=current_seq
+            )
             yield {
                 "event": "snapshot",
-                "data": json.dumps(_to_camel(to_jsonable(run))),
+                "data": json.dumps(payload),
             }
             last_seq = current_seq
         await asyncio.sleep(SUPABASE_STREAM_POLL_SECONDS)
+
+
+def _materialize_snapshot_supabase(
+    client: Any, run_id: str, *, seq: int | None = None
+) -> dict:
+    """Build a camelCase JSON-ready run snapshot, memoised by (run_id, seq).
+
+    Spec 0081. Computes the latest_event_seq if the caller hasn't already
+    (the SSE loop has, the GET endpoint hasn't); checks the LRU; on miss
+    runs the full `SupabaseSessionData.materialize()` + `load_run_snapshot`
+    pipeline. Returned dict is the camelCase wire shape, ready to wrap in
+    a ``JSONResponse``.
+    """
+    if seq is None:
+        seq = latest_event_seq(client, run_id)
+    cache_key = (run_id, seq)
+    cached = _RUN_SNAPSHOT_CACHE.get(cache_key)
+    if cached is not MISSING:
+        return cached
+    with SupabaseSessionData(client, run_id).materialize() as tmp:
+        run = load_run_snapshot(tmp)
+    run.id = run_id
+    run.display_id = display_id(run_id)
+    payload = _to_camel(to_jsonable(run))
+    _RUN_SNAPSHOT_CACHE.set(cache_key, payload)
+    return payload
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
