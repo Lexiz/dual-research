@@ -827,6 +827,30 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Agent Input entry — SPEC-0074
+   Wraps each input piece inside the Agent Input tab.
+   Uses CollapsibleSection for disclosure; adds card styling.
+   ───────────────────────────────────────────────────────────── */
+.agent-input-entry {
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  background: var(--bg-1);
+}
+.agent-input-entry .cs-header {
+  padding: 7px 10px;
+}
+.agent-input-body {
+  border-top: 1px solid var(--border-1);
+  padding: 10px 12px;
+  max-height: 360px;
+  overflow: auto;
+  background: var(--bg-0);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg-1);
+}
+
+/* ─────────────────────────────────────────────────────────────
    Modal (.dr-modal) — single | split
    CMP-06 — SPEC-0058. Class-backed replacement for inline-styled Modal.
    ───────────────────────────────────────────────────────────── */

@@ -3468,7 +3468,7 @@ function ArtifactHeader({ item, meta, hover, run }) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
         <span style={{ color: 'var(--fg-3)', fontSize: 12 }}>◆</span>
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>Input</span>
+        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>Agent Input</span>
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>brief · shared</span>
         <span style={{
           flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)',
@@ -3611,7 +3611,8 @@ function LazyMarkdownBody({ filePath }) {
 // D2 — modals filter falsy entries out of their tabs list BEFORE
 // passing into `sortByCanon`, so a tab whose content is empty simply
 // isn't rendered. Absence is the signal.
-const TABS_CANON = ['content', 'input', 'webSearch', 'sources', 'files'];
+// Spec 0074 D2 — Agent Input tab first in every modal.
+const TABS_CANON = ['input', 'content', 'webSearch', 'sources', 'files'];
 function sortByCanon(tabs) {
   return [...tabs].sort((a, b) => {
     const ia = TABS_CANON.indexOf(a.id);
@@ -3684,7 +3685,7 @@ function DocumentModal({ item, meta, onClose, accent }) {
     },
     item.turnKey && {
       id: 'input',
-      label: 'Input',
+      label: 'Agent Input',
       content: <InputTabContent turnKey={item.turnKey} />,
     },
     webSearch,
@@ -4085,7 +4086,7 @@ function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearc
   // Spec 0058 D4 — migrated to TabGroup line variant.
   const tabs = [
     { id: 'original',  label: 'Original' },
-    { id: 'input',     label: 'Input' },
+    { id: 'input',     label: 'Agent Input' },
     showWebSearch && { id: 'webSearch', label: 'Web Search',
                        badge: hasSearchWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null },
   ].filter(Boolean);
@@ -4656,16 +4657,13 @@ const INPUT_PIECE_LABEL = {
   histp:  'Prior Phase 4 review turns',
 };
 
-// Spec 0045 D4 — `brief` floats to the top (it's always the most-relevant
-// input piece). Then the system template, then the rest in canonical
-// content order. Mirrors ``protocol/prompts.py::INPUT_BUNDLE_KEY_ORDER``
-// with `brief` re-promoted above `system`.
-const INPUT_PIECE_ORDER = ['brief', 'system', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
+// Spec 0074 D3 — System prompt first (collapsed), user prompt second
+// (expanded), then the rest in canonical content order. This matches the
+// briefing's "what was fed to the agent" top-to-bottom ordering.
+const INPUT_PIECE_ORDER = ['system', 'brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
 
-// Pieces collapsed by default. The `system` template is long boilerplate
-// the user can drill into if they care; the substantive content (brief,
-// drafts, history) is open by default so the audit content is immediately
-// visible.
+// Spec 0074 D4 — system prompt collapsed by default (long boilerplate);
+// brief (user prompt) expanded; everything else expanded.
 const INPUT_PIECE_DEFAULT_COLLAPSED = new Set(['system']);
 
 function InputTabContent({ turnKey }) {
@@ -4681,28 +4679,22 @@ function InputTabContent({ turnKey }) {
     return (
       <InputEmptyState label={
         error
-          ? `Could not load input bundle (${error}).`
-          : 'Input bundle not recorded — this run pre-dates spec 0033, or the bundle was lost.'
+          ? `Could not load agent input bundle (${error}).`
+          : 'Agent input bundle was not recorded for this run (pre-dates input auditing, or the bundle was lost).'
       } />
     );
   }
   const pieces = bundle.pieces || {};
-  // Spec 0045 D3 — render only the pieces the turn actually used. The
-  // wire bundle (per `protocol/prompts.py`) carries empty strings for
-  // pieces a turn didn't inline; absent pieces don't render at all
-  // here. The "not used in this turn" footer is gone — absence is the
-  // signal. System template is always informational and renders when
-  // present.
   const renderKeys = INPUT_PIECE_ORDER
     .filter((k) => k in pieces && pieces[k])
     .concat(Object.keys(pieces).filter((k) => !INPUT_PIECE_ORDER.includes(k) && pieces[k]));
 
   if (renderKeys.length === 0) {
-    return <InputEmptyState label="This turn's input bundle is empty." />;
+    return <InputEmptyState label="This turn's agent input bundle is empty." />;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {renderKeys.map(key => (
         <InputSection
           key={key}
@@ -4715,69 +4707,32 @@ function InputTabContent({ turnKey }) {
   );
 }
 
+// Spec 0074 D4 — uses CollapsibleSection for consistent disclosure UX.
+// Spec 0074 D5 — body rendered via Markdown instead of raw <pre>.
 function InputSection({ piece, text, defaultCollapsed }) {
-  // Spec 0045 D3 — InputTabContent filters out empty pieces upstream,
-  // so the "(not used in this turn)" branch this section used to render
-  // is gone (the section itself wouldn't have been built).
-  const [open, setOpen] = React.useState(!defaultCollapsed);
   const label = INPUT_PIECE_LABEL[piece] || piece;
   const chars = text ? text.length : 0;
   const approxTokens = text ? Math.max(1, Math.round(text.length / 3.5)) : 0;
+  const stats = `${chars.toLocaleString()} chars · ~${approxTokens.toLocaleString()}t`;
 
   return (
-    <div style={{
-      border: '1px solid var(--border-1)',
-      borderRadius: 6,
-      background: 'var(--bg-1)',
-    }}>
-      <button
-        type="button"
-        onClick={() => setOpen(o => !o)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          width: '100%',
-          padding: '7px 10px',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          color: 'var(--fg-0)',
-          fontSize: 12,
-          textAlign: 'left',
-        }}
+    <div className="agent-input-entry">
+      <CollapsibleSection
+        defaultOpen={!defaultCollapsed}
+        renderTitle={({ open }) => (
+          <>
+            <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+            <span className="cs-title" style={{ fontWeight: 500, fontSize: 12 }}>{label}</span>
+            <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>({piece})</span>
+            <span style={{ flex: 1 }} />
+            <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{stats}</span>
+          </>
+        )}
       >
-        <span style={{
-          display: 'inline-block', width: 10, textAlign: 'center',
-          color: 'var(--fg-3)', fontFamily: 'var(--mono)',
-        }}>{open ? '▾' : '▸'}</span>
-        <span style={{ fontWeight: 500 }}>{label}</span>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-          ({piece})
-        </span>
-        <span style={{ flex: 1 }} />
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-          {chars.toLocaleString()} chars · ~{approxTokens.toLocaleString()}t
-        </span>
-      </button>
-      {open && (
-        <div style={{
-          borderTop: '1px solid var(--border-1)',
-          padding: '10px 12px',
-          maxHeight: 360,
-          overflow: 'auto',
-          background: 'var(--bg-0)',
-        }}>
-          <pre style={{
-            margin: 0,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            fontFamily: 'var(--mono)',
-            fontSize: 11.5,
-            lineHeight: 1.5,
-            color: 'var(--fg-1)',
-          }}>{text}</pre>
+        <div className="agent-input-body">
+          <Markdown text={text} />
         </div>
-      )}
+      </CollapsibleSection>
     </div>
   );
 }
@@ -5236,7 +5191,7 @@ function InputBriefModal({ item, run, onClose, accent }) {
     },
     {
       id: 'input',
-      label: 'Input',
+      label: 'Agent Input',
       content: <InputTabContent turnKey={item.turnKey || 'input'} />,
     },
     sources.length > 0 && {
@@ -5276,7 +5231,7 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
     },
     {
       id: 'input',
-      label: 'Input',
+      label: 'Agent Input',
       content: <InputTabContent turnKey={turnKey} />,
     },
     webSearch,
