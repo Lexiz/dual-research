@@ -249,7 +249,7 @@ wheels = [
 
 [[package]]
 name = "dual-research"
-version = "0.69.13"
+version = "0.69.14"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },

@@ -536,10 +536,18 @@ function buildLiveTimeline(run) {
 
   if (ph >= 2) {
     const cur = run.round?.current ?? 0;
-    // Phase 2 round count: while ph === 2, `cur` is the current phase's
-    // counter (authoritative). Once the run advances, `cur` is overwritten by
-    // Phase 4's round, so we derive the count from phaseStats keys instead.
-    const p2Rounds = ph === 2 ? cur : Object.keys(run.phaseStats?.phase2 || {}).length;
+    // Phase 2 round count:
+    // - while ph === 2 and running, `cur` is the in-flight round (authoritative)
+    // - while ph === 2 and stopped (errored/deadlocked), `cur` can lag behind
+    //   the actual round count if the run died mid-state-update — prefer
+    //   max(cur, phaseStats round count) so we don't truncate completed rounds.
+    //   (SPEC-0088 — same issue that affected Phase 4 of run 27de.)
+    // - once the run advances past P2, `cur` has been overwritten by the next
+    //   phase, so derive the count from phaseStats keys.
+    const p2StatsCount = Object.keys(run.phaseStats?.phase2 || {}).length;
+    const p2Rounds = ph === 2
+      ? (st === 'running' ? cur : Math.max(cur, p2StatsCount))
+      : p2StatsCount;
     items.push({
       id: 'phase-2', kind: 'phase-divider', phaseId: 2,
       duration: run.phaseTimings?.['2'],
@@ -547,9 +555,11 @@ function buildLiveTimeline(run) {
     });
     if (ph === 2 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
       // For `running`, `cur` is the in-flight round handled by the live branch
-      // below. For `deadlocked` / `errored`, `cur` is already on disk and
-      // complete, so include it in the static-card loop. (Spec 0017.)
-      const completedThrough = st === 'running' ? Math.max(0, cur - 1) : cur;
+      // below. For `deadlocked` / `errored`, use the larger of cur and
+      // phaseStats round count — see comment above. (Spec 0017 + spec 0088.)
+      const completedThrough = st === 'running'
+        ? Math.max(0, cur - 1)
+        : Math.max(cur, p2StatsCount);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p2-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
                      filePath: fileForRound(2, r, 'claude'),
@@ -590,9 +600,15 @@ function buildLiveTimeline(run) {
     }
   }
 
-  if (ph >= 3 && st !== 'errored' && st !== 'deadlocked') {
+  // SPEC-0088 § Change 1 — Phase 3 surfaces whenever ph >= 3 (mirrors the
+  // Phase 2 pattern below). The old gate dropped P3 content entirely when
+  // status was errored/deadlocked, even on runs that completed Phase 3 and
+  // then died later. The live-doc-streaming branch is now gated explicitly
+  // on st === 'running' so an errored-in-P3 run still surfaces the on-disk
+  // converged draft as a completed card instead of a streaming placeholder.
+  if (ph >= 3) {
     items.push({ id: 'phase-3', kind: 'phase-divider', phaseId: 3, duration: run.phaseTimings?.['3'] });
-    if (ph === 3 && run.drafter) {
+    if (ph === 3 && st === 'running' && run.drafter) {
       items.push({
         id: 'doc-live', kind: 'doc-live', agent: run.drafter, live: true,
         status: run.agents?.[run.drafter]?.status,
@@ -610,19 +626,41 @@ function buildLiveTimeline(run) {
     }
   }
 
-  if (ph >= 4 && st !== 'errored' && st !== 'deadlocked') {
+  // SPEC-0088 § Change 2 — Phase 4 surfaces whenever ph >= 4, mirroring the
+  // Phase 2 three-way branching for stopped-in-phase (running/deadlocked/
+  // errored) vs past-phase (ph === 5 || completed). Was previously skipped
+  // wholesale on errored/deadlocked runs, dropping legit completed review
+  // rounds for runs that died IN Phase 4 (e.g., parse-failure on the final
+  // round). The live-card branch is gated explicitly on st === 'running'
+  // so stopped-in-phase runs surface their completed rounds without a
+  // ghost streaming placeholder.
+  if (ph >= 4) {
     const cur = run.round?.current ?? 0;
-    // While ph === 4 we trust `cur`; afterwards we'd be reading whatever
-    // phase reset it. (At present nothing comes after Phase 4 but we treat
-    // the past-phase branch symmetrically with Phase 2 for future-proofing.)
-    const p4Rounds = ph === 4 ? cur : Object.keys(run.phaseStats?.phase4 || {}).length;
+    // Phase 4 round count — same shape as Phase 2:
+    // - running: cur is in-flight (authoritative)
+    // - stopped (errored/deadlocked): cur may lag behind disk reality if the
+    //   run died after a round completed but before round.current advanced.
+    //   27de hit exactly this: round-06 files + phaseStats keys '1'..'6' on
+    //   disk, but round.current = 5. Use max(cur, phaseStats round count) so
+    //   we don't silently drop the last completed round. (SPEC-0088.)
+    // - past-phase: cur belongs to the next phase, use phaseStats keys.
+    const p4StatsCount = Object.keys(run.phaseStats?.phase4 || {}).length;
+    const p4Rounds = ph === 4
+      ? (st === 'running' ? cur : Math.max(cur, p4StatsCount))
+      : p4StatsCount;
     items.push({
       id: 'phase-4', kind: 'phase-divider', phaseId: 4,
       duration: run.phaseTimings?.['4'],
       extra: `${p4Rounds} review round${p4Rounds === 1 ? '' : 's'}`,
     });
-    if (ph === 4) {
-      const completedThrough = Math.max(0, cur - 1);
+    if (ph === 4 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
+      // Mirror the Phase 2 pattern: when running, `cur` is in-flight so
+      // completed rounds are 1..cur-1 and `cur` gets a live card. When
+      // stopped (deadlocked/errored), use max(cur, phaseStats round count)
+      // — see comment above.
+      const completedThrough = st === 'running'
+        ? Math.max(0, cur - 1)
+        : Math.max(cur, p4StatsCount);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p4-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: `rev-${r}`,
                      filePath: fileForRound(4, r, 'claude'),
@@ -631,7 +669,7 @@ function buildLiveTimeline(run) {
                      filePath: fileForRound(4, r, 'gpt'),
                      turnKey: `phase4_round${r}_gpt`    });
       }
-      if (cur > 0) {
+      if (cur > 0 && st === 'running') {
         items.push({
           id: `p4-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
           round: cur, index: `rev-${cur}`, live: true,
