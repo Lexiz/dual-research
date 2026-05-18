@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.65.0',
+      date: '2026-05-18',
+      summary: 'Critique pane structural pass -- filter strip overflow fix, Phase 4 Issues/Comments split, three-sentence summary, disabled-Drift UX.',
+      items: [
+        'Filter strip no longer clips the last tab: PaneToolbar expands to fit multi-row filter strips.',
+        'Kind-axis filter row anchored left, agent+status row centered with tighter spacing.',
+        'Every filter chip now shows a tooltip on hover explaining what it filters.',
+        'Phase 4 Issues and Comments render in their own collapsible sections instead of mixing into DRIFT/OPEN/RESOLVED.',
+        'Summary tab opens with a generated three-sentence verdict: sentiment, qualitative breakdown, and drift note.',
+        'Drift status chip visually disables when Questions is the active kind filter.',
+      ],
+    },
+    {
       version: '0.64.0',
       date: '2026-05-18',
       summary: 'Timeline structural pass -- collapsible phases, denser cards, improved PhaseRail contrast, collapsible critique sections.',

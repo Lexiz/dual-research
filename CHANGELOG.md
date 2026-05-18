@@ -12,6 +12,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.65.0] — 2026-05-18
+
+### Added
+
+- **Phase 4 Issues/Comments split** ([spec 0072](specs/0072-critique-structural.md)) — Phase 4 critique pane now renders Issues and Comments in their own separate CollapsibleSection groups instead of mixing them into the status-based DRIFT/OPEN/RESOLVED sections.
+- **Three-sentence summary copy** — Summary tab now opens with a generated sentiment verdict (Mostly positive / Mostly negative / Mixed / Inconclusive), a qualitative breakdown of questions/disagreements/issues/comments/claims, and a drift note if applicable. Rendered via `<Markdown>`.
+- **Filter chip tooltips** — Every critique filter chip (kind, agent, status axes) now has a `title` tooltip explaining what it filters.
+
+### Changed
+
+- **Filter strip overflow fix** (SUR-11) — PaneToolbar switched from fixed `height: 44` to `minHeight: 44` so multi-row filter strips expand naturally instead of clipping the last tab.
+- **Filter strip alignment** — Kind-axis (top row) anchored left; agent+status axis (bottom row) centered with tighter `gap: 6`.
+- **Drift chip disabled when kind=Questions** — Drift status filter visually disabled (opacity 0.4, cursor not-allowed) when Questions is the active kind filter, since drift only applies to disagreements. Auto-resets to "All" if Drift was selected.
+
 ## [0.64.0] — 2026-05-18
 
 ### Added
