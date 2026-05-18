@@ -824,8 +824,20 @@ def _list_input_bundle_keys_fs(session: Path) -> list[str]:
 
 
 def _read_input_bundle_fs(session: Path, turn_key: str) -> dict | None:
-    """Resolve a single input bundle from disk; synthesise Phase 0 if needed."""
-    from dual_research.ui.aggregator import build_phase0_input_bundle
+    """Resolve a single input bundle from disk; synthesise if needed.
+
+    Spec 0085 — when the per-turn JSON is absent on disk (older runs
+    that pre-date input auditing, or runs whose bundle was lost),
+    synthesise a fallback bundle from the agent's current default
+    prompts. Successful disk reads stamp ``system_source: 'recorded'``
+    on the response; synthesised payloads stamp ``'agent-default'``
+    (set by the builder). The frontend uses this to render the
+    "agent default, not per-run" caveat.
+    """
+    from dual_research.ui.aggregator import (
+        build_input_bundle_fallback,
+        build_phase0_input_bundle,
+    )
 
     key = _normalize_input_key(turn_key)
     if key is None:
@@ -835,17 +847,22 @@ def _read_input_bundle_fs(session: Path, turn_key: str) -> dict | None:
         path = session / "inputs" / "input.json"
         if path.is_file():
             try:
-                return json.loads(path.read_text(encoding="utf-8"))
+                payload = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 return None
+            payload.setdefault("system_source", "recorded")
+            return payload
         return build_phase0_input_bundle(session)
     path = session / "inputs" / f"{key}.json"
-    if not path.is_file():
-        return None
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
+    if path.is_file():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        payload.setdefault("system_source", "recorded")
+        return payload
+    # Spec 0085 — synthesise from the agent's current default prompts.
+    return build_input_bundle_fallback(session, key)
 
 
 def _list_input_bundle_keys_supabase(client: Any, run_id: str) -> list[str]:
@@ -1037,15 +1054,22 @@ def _search_audit_summary_supabase(
 
 
 def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:
-    """Resolve a single input bundle from Supabase; synthesise Phase 0 if needed.
+    """Resolve a single input bundle from Supabase; synthesise if needed.
 
     Spec 0079: positive results are memoised in ``_INPUT_BUNDLE_CACHE`` keyed by
     the normalised ``(run_id, key)``. Bundles are append-only-immutable, so the
     cache never goes stale; restart-on-deploy is the only invalidation hook.
     Negative results (not-found) are not cached — live runs may have a bundle
     appear after the first lookup.
+
+    Spec 0085: when the persisted bundle is absent, synthesise a fallback
+    from the agent's current default prompts (mirroring the filesystem
+    path in :func:`_read_input_bundle_fs`). The synthesised payload is
+    not cached so live runs can still attach a real bundle and have it
+    pick up on the next read.
     """
     from dual_research.protocol.prompts import preflight_input_bundle
+    from dual_research.ui.aggregator import _parse_snake_key, synthesize_bundle_payload
 
     key = _normalize_input_key(turn_key)
     if key is None:
@@ -1074,25 +1098,33 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
             payload = json.loads(rows[0]["content"])
         except (TypeError, ValueError, json.JSONDecodeError):
             return None
+        payload.setdefault("system_source", "recorded")
         _INPUT_BUNDLE_CACHE.set(cache_key, payload)
         return payload
-    if key == "input":
-        # Fall back to synthesis from brief.md (live in session_files).
-        try:
-            brief_res = (
-                client.table("session_files")
-                .select("content")
-                .eq("run_id", run_id)
-                .eq("path", "brief.md")
-                .limit(1)
-                .execute()
-            )
-        except Exception:
-            return None
-        brief_rows = brief_res.data or []
-        if not brief_rows:
-            return None
+
+    # Spec 0085 — fetch the brief once so both the Phase 0 synthesis
+    # path and the new fallback path can populate ``pieces.brief`` from
+    # real text. ``brief.md`` is the only file we need to satisfy the
+    # synthesis contract on the Supabase backend.
+    brief_text = ""
+    try:
+        brief_res = (
+            client.table("session_files")
+            .select("content")
+            .eq("run_id", run_id)
+            .eq("path", "brief.md")
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        brief_res = None
+    brief_rows = (brief_res.data if brief_res else None) or []
+    if brief_rows:
         brief_text = brief_rows[0].get("content") or ""
+
+    if key == "input":
+        if not brief_text:
+            return None
         pieces = preflight_input_bundle(brief=brief_text, agent_name="<agent>")
         payload = {
             "agent": "shared",
@@ -1100,10 +1132,30 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
             "label": "phase0-input",
             "pieces": pieces,
             "emitted_at": "",
+            "system_source": "agent-default",
         }
+        # Negative-result not cached, but Phase 0 synthesis IS cacheable
+        # because it depends only on the brief which itself is immutable
+        # for a given run.
         _INPUT_BUNDLE_CACHE.set(cache_key, payload)
         return payload
-    return None
+
+    # Spec 0085 — non-Phase-0 fallback: parse the snake key and dispatch
+    # to the appropriate builder. Mirrors aggregator.build_input_bundle_fallback
+    # but reads the brief from Supabase, not the filesystem.
+    parsed = _parse_snake_key(key)
+    if parsed is None:
+        return None
+    phase, round_idx, ui_agent_label, is_repair = parsed
+    payload = synthesize_bundle_payload(
+        phase=phase,
+        round_idx=round_idx,
+        ui_agent_label=ui_agent_label,
+        is_repair=is_repair,
+        brief_text=brief_text,
+    )
+    # Not cached — see docstring rationale.
+    return payload
 
 
 async def _supabase_event_stream(

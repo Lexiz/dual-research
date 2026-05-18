@@ -3935,7 +3935,11 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 // per-turn input bundle for THIS agent's turn — exactly what they were
 // handed before generating the right-pane critique.
 function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }) {
-  const [sub, setSub] = React.useState('original');
+  // Spec 0085 — split-view modals start on the Agent Input tab to match
+  // the single-view modal default landed in spec 0074 (and the cross-
+  // modal "Agent Input is always the first tab" rule from the
+  // 2026-05-18 briefing, delta 15.13).
+  const [sub, setSub] = React.useState('input');
   // Spec 0044 D4 — when in "Original" sub-mode, track which document
   // the user has selected. Defaults to the first docTabs entry
   // (= the "thing being responded to" per phase). Note: clicking a
@@ -4047,14 +4051,14 @@ function NegotiateDocTabs({ tabs, active, onChange }) {
 }
 
 function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearch }) {
-  // Spec 0045 D1+D2 — declared in canonical order
-  // (Original ≡ Content slot, then Input, then Web Search); the Web
-  // Search sub-tab only renders when the turn actually has search data
-  // (the ⚠ hallucination badge of D8 still shows when present).
-  // Spec 0058 D4 — migrated to TabGroup line variant.
+  // Spec 0085 — Agent Input is the canonical first tab in every modal
+  // (single-view from spec 0074; split-view aligned here per the
+  // 2026-05-18 briefing, delta 15.13). Order is now:
+  //   Agent Input → Original → Web Search (when present).
+  // Spec 0058 D4 — TabGroup line variant.
   const tabs = [
-    { id: 'original',  label: 'Original' },
     { id: 'input',     label: 'Agent Input' },
+    { id: 'original',  label: 'Original' },
     showWebSearch && { id: 'webSearch', label: 'Web Search',
                        badge: hasSearchWarning ? <Mdi name="alert" size={11} color={COLORS.warn} /> : null },
   ].filter(Boolean);
@@ -4091,7 +4095,9 @@ function NegotiateLeftSubTabs({ active, onChange, hasSearchWarning, showWebSearc
 function DraftReviewModal({ item, run, meta, onClose, accent }) {
   const briefPath = "brief.md";
   const leftRef = React.useRef(null);
-  const [sub, setSub] = React.useState('original');
+  // Spec 0085 — split-view modals open on Agent Input by default
+  // (matches NegotiateLeftPane + the single-view modal default).
+  const [sub, setSub] = React.useState('input');
 
   const onSectionAnchorClick = React.useCallback((sectionText) => {
     if (!leftRef.current || !sectionText || sub !== 'original') return;
@@ -4634,6 +4640,18 @@ const INPUT_PIECE_ORDER = ['system', 'brief', 'd1', 'd2', 'plan', 'hist', 'draft
 // brief (user prompt) expanded; everything else expanded.
 const INPUT_PIECE_DEFAULT_COLLAPSED = new Set(['system']);
 
+// Spec 0085 — 3-tier Agent Input panel:
+//   1. System Prompt (always first, collapsed by default; rendered
+//      with an italic "agent default" caveat when ``bundle.system_source``
+//      is ``'agent-default'`` — i.e., the per-run system prompt wasn't
+//      recorded and we synthesised it from current source).
+//   2. User Prompt (= the brief, second, expanded by default).
+//   3. Remaining canonical pieces (d1/d2/plan/hist/draft/histp) in the
+//      existing canonical order, hidden if empty.
+// The historical "Agent input bundle was not recorded" placeholder is
+// retired — the backend always returns at least a synthesised System
+// Prompt (per spec 0085 sections A+B), so the panel is never empty for
+// a real turn.
 function InputTabContent({ turnKey }) {
   const { bundle, loading, error } = window.useInputBundle(turnKey);
 
@@ -4643,16 +4661,14 @@ function InputTabContent({ turnKey }) {
   if (loading) {
     return <LoadingState size="inline" label="Loading input bundle…" />;
   }
-  if (error || !bundle) {
-    return (
-      <InputEmptyState label={
-        error
-          ? `Could not load agent input bundle (${error}).`
-          : 'Agent input bundle was not recorded for this run (pre-dates input auditing, or the bundle was lost).'
-      } />
-    );
+  if (error) {
+    return <InputEmptyState label={`Could not load agent input bundle (${error}).`} />;
+  }
+  if (!bundle) {
+    return <InputEmptyState label="No agent input bundle available for this turn." />;
   }
   const pieces = bundle.pieces || {};
+  const systemSource = bundle.system_source || 'recorded';
   const renderKeys = INPUT_PIECE_ORDER
     .filter((k) => k in pieces && pieces[k])
     .concat(Object.keys(pieces).filter((k) => !INPUT_PIECE_ORDER.includes(k) && pieces[k]));
@@ -4669,6 +4685,7 @@ function InputTabContent({ turnKey }) {
           piece={key}
           text={pieces[key] || ''}
           defaultCollapsed={INPUT_PIECE_DEFAULT_COLLAPSED.has(key)}
+          isAgentDefault={key === 'system' && systemSource === 'agent-default'}
         />
       ))}
     </div>
@@ -4677,7 +4694,11 @@ function InputTabContent({ turnKey }) {
 
 // Spec 0074 D4 — uses CollapsibleSection for consistent disclosure UX.
 // Spec 0074 D5 — body rendered via Markdown instead of raw <pre>.
-function InputSection({ piece, text, defaultCollapsed }) {
+// Spec 0085 — when the system piece is the agent's default (not the
+// per-run recorded prompt), prepend a small italic caveat inside the
+// body so the user knows the displayed text may differ from what the
+// historical run actually used.
+function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
   const label = INPUT_PIECE_LABEL[piece] || piece;
   const chars = text ? text.length : 0;
   const approxTokens = text ? Math.max(1, Math.round(text.length / 3.5)) : 0;
@@ -4692,12 +4713,37 @@ function InputSection({ piece, text, defaultCollapsed }) {
             <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
             <span className="cs-title" style={{ fontWeight: 500, fontSize: 12 }}>{label}</span>
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>({piece})</span>
+            {isAgentDefault && (
+              <span
+                className="chip tone-muted chip-pill"
+                style={{ marginLeft: 6, fontSize: 10, padding: '0 6px' }}
+                title="The per-run system prompt was not recorded; showing the agent's current default."
+              >
+                agent default
+              </span>
+            )}
             <span style={{ flex: 1 }} />
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{stats}</span>
           </>
         )}
       >
         <div className="agent-input-body">
+          {isAgentDefault && (
+            <p style={{
+              margin: '0 0 10px',
+              padding: '8px 10px',
+              fontStyle: 'italic',
+              fontSize: 11.5,
+              color: 'var(--fg-2)',
+              background: 'var(--bg-2)',
+              borderLeft: '2px solid var(--border-2)',
+              borderRadius: 'var(--r-1)',
+            }}>
+              This is the agent&apos;s current default system prompt — the per-run system
+              prompt for this older turn was not recorded. The exact prompt the model
+              saw may have differed.
+            </p>
+          )}
           <Markdown text={text} />
         </div>
       </CollapsibleSection>

@@ -185,19 +185,37 @@ def test_search_audit_helper_caches_positive_results() -> None:
     assert spy.execute_count == 1
 
 
-def test_input_bundle_helper_does_not_cache_negative_results() -> None:
+def test_input_bundle_helper_does_not_cache_synthesised_fallback() -> None:
+    """Spec 0085 — when no persisted bundle exists, the helper now
+    synthesises a fallback from the agent's default prompts. The
+    synthesised payload MUST NOT be cached: if the orchestrator
+    later writes a real per-turn bundle to Supabase, the next read
+    has to pick it up and return ``system_source: 'recorded'``
+    rather than stay stuck on the cached ``'agent-default'`` synth.
+
+    (Phase 0 synthesis IS cached because it depends only on the
+    immutable ``brief.md`` content — covered separately.)
+    """
     fake = FakeSupabaseClient()
-    # No bundle seeded — first call returns None, must not be cached because
-    # the bundle may appear later in a live run.
+    # No bundle seeded — first call now returns a synthesised fallback
+    # with system_source 'agent-default'. Pre-spec-0085, it returned None.
     spy = _CountingClient(fake)
 
-    assert _read_input_bundle_supabase(spy, "ghost-run", "phase2_round1_claude") is None
-    # After miss the row gets seeded — second call must see it.
+    first = _read_input_bundle_supabase(spy, "ghost-run", "phase2_round1_claude")
+    assert first is not None
+    assert first["system_source"] == "agent-default"
+
+    # Now the orchestrator writes a real bundle. The next read MUST
+    # pick up the real row, not the cached synth.
     _seed_bundle(fake, "ghost-run", "phase2_round1_claude")
-    assert _read_input_bundle_supabase(spy, "ghost-run", "phase2_round1_claude") is not None
-    # Two execute() calls: one for the miss path, one for the real hit. If the
-    # negative result had been cached, we'd see only one.
-    assert spy.execute_count >= 2
+    second = _read_input_bundle_supabase(spy, "ghost-run", "phase2_round1_claude")
+    assert second is not None
+    assert second["system_source"] == "recorded"
+    # Multiple execute()s happen across the two calls (bundle lookup +
+    # brief lookup on the first, bundle lookup on the second). If the
+    # negative result had been cached, the second call would short-
+    # circuit and the seeded row would never be visible.
+    assert spy.execute_count >= 3
 
 
 def test_search_audit_helper_does_not_cache_negative_results() -> None:
