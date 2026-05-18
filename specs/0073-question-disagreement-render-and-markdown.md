@@ -3,10 +3,10 @@ spec: 0073
 title: Question/Disagreement render unification + markdown rendering fix
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.66.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/73
 ---
 
 # Spec 0073 — Q/D render unification + markdown fix
