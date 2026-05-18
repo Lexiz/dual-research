@@ -486,7 +486,183 @@ def build_phase0_input_bundle(session_dir: Path) -> dict | None:
         "label": "phase0-input",
         "pieces": pieces,
         "emitted_at": "",
+        # Spec 0085: this synthesis path embeds the AGENT-DEFAULT system
+        # prompt (built from the current source) plus the run's actual
+        # brief. The frontend uses ``system_source`` to render the
+        # "this is the default for this agent" caveat.
+        "system_source": "agent-default",
     }
+
+
+# Spec 0085 — turn-key → builder dispatch for runs whose per-turn
+# bundle was never persisted (pre-dates spec 0033's input-audit
+# rollout, or the JSON was lost). Every builder produces a system
+# prompt rebuilt from the current source; the brief comes from
+# ``brief.md`` so it's always real. Other pieces (d1/d2/plan/hist/
+# draft/histp) cannot be reconstructed for historical runs and stay
+# empty — the UI hides empty pieces (spec 0045 D3).
+def build_input_bundle_fallback(
+    session_dir: Path, snake_key: str
+) -> dict | None:
+    """Spec 0085 — synthesise an input bundle for a turn whose JSON is missing.
+
+    ``snake_key`` is the normalised key the server uses on disk
+    (e.g. ``phase1_claude``, ``phase2_round3_claude``, ``phase4_round2_gpt``).
+
+    Returns ``None`` if the key is unparseable. Otherwise returns a
+    bundle whose ``pieces.system`` is the agent's current default
+    system prompt for that phase, with a
+    ``system_source: 'agent-default'`` marker on the payload.
+
+    The brief comes from ``brief.md`` if present; if not, the bundle
+    still surfaces the system prompt with an empty ``brief`` slot.
+    """
+    brief_path = session_dir / "brief.md"
+    brief_text = ""
+    if brief_path.exists():
+        try:
+            brief_text = brief_path.read_text(encoding="utf-8")
+        except OSError:
+            brief_text = ""
+
+    parsed = _parse_snake_key(snake_key)
+    if parsed is None:
+        return None
+    phase, round_idx, ui_agent_label, is_repair = parsed
+    return synthesize_bundle_payload(
+        phase=phase,
+        round_idx=round_idx,
+        ui_agent_label=ui_agent_label,
+        is_repair=is_repair,
+        brief_text=brief_text,
+    )
+
+
+def synthesize_bundle_payload(
+    *,
+    phase: int,
+    round_idx: int,
+    ui_agent_label: str,
+    is_repair: bool,
+    brief_text: str,
+) -> dict | None:
+    """Spec 0085 — pure synthesis: turn-key parts + brief text → bundle dict.
+
+    Shared by the filesystem and Supabase backends. No I/O — callers
+    are responsible for resolving the brief text first. Returns the
+    JSON-ready payload (with ``system_source: 'agent-default'``) or
+    ``None`` if ``phase`` is out of range.
+    """
+    from dual_research.protocol import prompts as _prompts
+
+    agent_name = "Claude" if ui_agent_label == "claude" else "OpenAI GPT"
+    other_name = "OpenAI GPT" if ui_agent_label == "claude" else "Claude"
+
+    pieces: dict[str, str] | None = None
+    if is_repair:
+        # Repair turns don't carry per-phase context — we can't
+        # reconstruct ``hist`` (the malformed previous turn) without the
+        # original bundle. Surface the repair system prompt with empty
+        # data slots so the UI at least shows the agent's instructions.
+        pieces = _prompts.repair_input_bundle(
+            agent_name=agent_name,
+            phase=phase,
+            errors=None,
+            malformed_content="",
+        )
+    elif phase == 0:
+        pieces = _prompts.preflight_input_bundle(
+            brief=brief_text, agent_name=agent_name
+        )
+    elif phase == 1:
+        pieces = _prompts.research_input_bundle(
+            brief=brief_text, agent_name=agent_name
+        )
+    elif phase == 2 and round_idx == 1:
+        pieces = _prompts.negotiation_round1_input_bundle(
+            brief=brief_text,
+            claude_draft="",
+            openai_draft="",
+            agent_name=agent_name,
+            other_name=other_name,
+        )
+    elif phase == 2:
+        pieces = _prompts.negotiation_turn_input_bundle(
+            brief=brief_text,
+            claude_draft="",
+            openai_draft="",
+            prior_turns=[],
+            agent_name=agent_name,
+            other_name=other_name,
+            round=round_idx,
+        )
+    elif phase == 3:
+        pieces = _prompts.drafting_input_bundle(
+            brief=brief_text,
+            claude_draft="",
+            openai_draft="",
+            plan=None,
+            prior_turns=[],
+            agent_name=agent_name,
+            other_name=other_name,
+        )
+    elif phase == 4:
+        pieces = _prompts.review_input_bundle(
+            brief=brief_text,
+            draft="",
+            prior_turns=[],
+            agent_name=agent_name,
+            other_name=other_name,
+            drafter_name=other_name,
+            round=round_idx,
+        )
+    else:
+        return None
+
+    label = f"phase{phase}"
+    if round_idx > 0:
+        label = f"{label}-r{round_idx}"
+    label = f"{label}-{ui_agent_label}"
+    if is_repair:
+        label = f"{label}-repair"
+
+    return {
+        "agent": ui_agent_label,
+        "phase": f"phase{phase}",
+        "label": label,
+        "pieces": pieces,
+        "emitted_at": "",
+        # Spec 0085 — single source of truth marker the frontend reads to
+        # decide whether to surface the "agent default, not per-run" caveat.
+        "system_source": "agent-default",
+    }
+
+
+def _parse_snake_key(snake_key: str) -> tuple[int, int, str, bool] | None:
+    """Spec 0085 — parse a snake-case input-bundle key into structured parts.
+
+    Accepts:
+        ``phase0_claude``, ``phase1_gpt``,
+        ``phase2_round3_claude``, ``phase4_round1_gpt``,
+        ``phase2_round3_claude_repair``.
+
+    Returns ``(phase, round_idx, agent, is_repair)`` or ``None`` if the
+    shape doesn't match. ``round_idx`` is ``0`` for phases that don't
+    have rounds. ``agent`` is the UI label (``claude`` | ``gpt``).
+    """
+    import re
+
+    pattern = re.compile(
+        r"^phase(\d+)(?:_round(\d+))?_(claude|gpt)(_repair)?$"
+    )
+    m = pattern.match(snake_key)
+    if m is None:
+        return None
+    phase = int(m.group(1))
+    round_idx = int(m.group(2)) if m.group(2) else 0
+    agent = m.group(3)
+    is_repair = m.group(4) is not None
+    return phase, round_idx, agent, is_repair
 
 
 def _on_turn_inputs(run: Run, event: dict, session_dir: Path) -> None:

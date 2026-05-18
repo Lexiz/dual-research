@@ -906,6 +906,14 @@ body.light .tab-group.tabs-solid .tab.is-active,
   border-left: 3px solid var(--info);
   display: flex;
   flex-direction: column;
+  /* Spec 0085 — claim the available vertical space. Every modal in
+     this app is content-rich (tabbed body, Markdown rendering,
+     Agent Input panel) — capping at the natural content height left
+     the user reading a half-empty modal with greyed-out backdrop
+     stretching below. The body's ``flex: 1; min-height: 0;
+     overflow: auto`` continues to handle scroll inside the modal
+     between 72vh and 92vh. */
+  min-height: 72vh;
   max-height: 92vh;
 }
 .dr-modal.is-a { border-left-color: var(--agent-a); }

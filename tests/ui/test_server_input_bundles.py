@@ -81,9 +81,34 @@ class TestGetBundle:
         assert r.status_code == 200
         assert r.json()["pieces"]["system"] == "S"
 
-    def test_missing_key_returns_404(self, client: TestClient, tmp_path: Path) -> None:
+    def test_missing_key_synthesises_fallback_with_agent_default(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        """Spec 0085 — when a per-turn bundle JSON isn't on disk, the
+        server now synthesises a fallback from the agent's current
+        default prompts (system prompt + brief), tagged
+        ``system_source: 'agent-default'``. Historical runs that
+        pre-date input auditing still render something useful."""
         _seed_minimal_session(tmp_path / "runs", "run-3")
         r = client.get("/api/runs/run-3/inputs/phase2_round9_claude")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["system_source"] == "agent-default"
+        # System prompt reconstructed from current source.
+        assert data["pieces"]["system"]
+        # Brief carried through from the seeded brief.md.
+        assert "# Test" in data["pieces"]["brief"]
+
+    def test_unparseable_key_returns_404(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        """Spec 0085 — a key that matches the path regex but doesn't
+        parse to a real (phase, round, agent) triple yields 404, not
+        a synthesised bundle. Guards against silent fallback for
+        garbage keys."""
+        _seed_minimal_session(tmp_path / "runs", "run-3b")
+        # Path-regex permits the chars; the parser rejects the shape.
+        r = client.get("/api/runs/run-3b/inputs/phaseXY_round1_claude")
         assert r.status_code == 404
 
     def test_phase0_input_synthesised_from_brief(self, client: TestClient, tmp_path: Path) -> None:
@@ -95,6 +120,23 @@ class TestGetBundle:
         # Synthesised from brief.md content.
         assert "# Test" in data["pieces"]["brief"]
         assert "epistemic" in data["pieces"]["system"]
+        # Spec 0085 — Phase 0 synthesis also stamps system_source.
+        assert data["system_source"] == "agent-default"
+
+    def test_recorded_bundle_stamps_system_source_recorded(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        """Spec 0085 — bundles served from disk (i.e., recorded for
+        modern runs) are stamped ``system_source: 'recorded'`` so the
+        frontend can distinguish them from synthesised fallbacks and
+        SKIP the 'agent default' caveat."""
+        session = _seed_minimal_session(tmp_path / "runs", "run-rec")
+        _seed_input_bundle(session, "phase2_round3_claude", {"system": "REAL", "brief": "B"})
+        r = client.get("/api/runs/run-rec/inputs/phase2_round3_claude")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["system_source"] == "recorded"
+        assert data["pieces"]["system"] == "REAL"
 
     def test_traversal_attempt_rejected(self, client: TestClient, tmp_path: Path) -> None:
         _seed_minimal_session(tmp_path / "runs", "run-5")

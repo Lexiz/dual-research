@@ -17,8 +17,11 @@ import json
 from pathlib import Path
 
 from dual_research.ui.aggregator import (
+    _parse_snake_key,
     apply_event,
+    build_input_bundle_fallback,
     build_phase0_input_bundle,
+    synthesize_bundle_payload,
 )
 from dual_research.ui.models import Run
 
@@ -242,3 +245,159 @@ class TestSpec0045InputBundleFiltering:
         assert bundle is not None
         assert bundle["pieces"]["brief"]
         assert bundle["pieces"]["brief"] == "THIS IS THE USER PROMPT"
+
+
+class TestSpec0085ParseSnakeKey:
+    """Spec 0085 — turn-key parser handles every shape the on-disk
+    ``inputs/<key>.json`` convention produces. Lock the shape so the
+    fallback dispatch never silently drops a turn type."""
+
+    def test_phase0_no_round(self) -> None:
+        assert _parse_snake_key("phase0_claude") == (0, 0, "claude", False)
+        assert _parse_snake_key("phase0_gpt") == (0, 0, "gpt", False)
+
+    def test_phase1_no_round(self) -> None:
+        assert _parse_snake_key("phase1_claude") == (1, 0, "claude", False)
+        assert _parse_snake_key("phase1_gpt") == (1, 0, "gpt", False)
+
+    def test_phase2_round1(self) -> None:
+        assert _parse_snake_key("phase2_round1_claude") == (2, 1, "claude", False)
+        assert _parse_snake_key("phase2_round1_gpt") == (2, 1, "gpt", False)
+
+    def test_phase2_higher_rounds(self) -> None:
+        assert _parse_snake_key("phase2_round3_claude") == (2, 3, "claude", False)
+        assert _parse_snake_key("phase2_round12_gpt") == (2, 12, "gpt", False)
+
+    def test_phase4_review_rounds(self) -> None:
+        assert _parse_snake_key("phase4_round1_claude") == (4, 1, "claude", False)
+        assert _parse_snake_key("phase4_round5_gpt") == (4, 5, "gpt", False)
+
+    def test_repair_suffix(self) -> None:
+        assert _parse_snake_key("phase2_round3_claude_repair") == (
+            2, 3, "claude", True,
+        )
+
+    def test_unparseable_key_returns_none(self) -> None:
+        assert _parse_snake_key("garbage") is None
+        assert _parse_snake_key("phase2_claude_extra") is None
+        assert _parse_snake_key("") is None
+        # Old "input" sentinel is parsed by ``_normalize_input_key`` upstream
+        # and short-circuited before reaching ``_parse_snake_key``; the
+        # function itself rejects it because there's no phase prefix.
+        assert _parse_snake_key("input") is None
+
+
+class TestSpec0085BundleSynthesisFallback:
+    """Spec 0085 — when an older run's per-turn bundle JSON is missing,
+    ``build_input_bundle_fallback`` synthesises a bundle from the
+    agent's current default prompts. The system piece is reconstructed;
+    the brief comes from ``brief.md`` when present; other pieces stay
+    empty (cannot be reconstructed for historical runs)."""
+
+    def _seed_brief(self, tmp_path: Path, text: str = "BRIEF_FOR_FALLBACK") -> None:
+        (tmp_path / "brief.md").write_text(text, encoding="utf-8")
+
+    def test_phase1_claude_fallback_includes_system_and_brief(
+        self, tmp_path: Path
+    ) -> None:
+        self._seed_brief(tmp_path)
+        bundle = build_input_bundle_fallback(tmp_path, "phase1_claude")
+        assert bundle is not None
+        assert bundle["agent"] == "claude"
+        assert bundle["phase"] == "phase1"
+        assert bundle["system_source"] == "agent-default"
+        # System prompt is reconstructed from the agent default; the
+        # research-phase prompt contains the word "research".
+        assert "research" in bundle["pieces"]["system"].lower()
+        # Brief flows through from the file.
+        assert bundle["pieces"]["brief"] == "BRIEF_FOR_FALLBACK"
+        # Other pieces stay empty for historical runs.
+        for empty_key in ("d1", "d2", "plan", "hist", "draft", "histp"):
+            assert bundle["pieces"][empty_key] == ""
+
+    def test_phase2_round1_fallback(self, tmp_path: Path) -> None:
+        self._seed_brief(tmp_path)
+        bundle = build_input_bundle_fallback(tmp_path, "phase2_round1_gpt")
+        assert bundle is not None
+        assert bundle["agent"] == "gpt"
+        assert bundle["phase"] == "phase2"
+        assert bundle["pieces"]["system"]
+        assert bundle["system_source"] == "agent-default"
+
+    def test_phase2_higher_round_fallback(self, tmp_path: Path) -> None:
+        self._seed_brief(tmp_path)
+        bundle = build_input_bundle_fallback(tmp_path, "phase2_round4_claude")
+        assert bundle is not None
+        assert bundle["pieces"]["system"]
+        # Higher rounds invoke ``negotiation_turn_input_bundle`` — its
+        # system prompt has the "Phase 2" marker.
+        assert "Phase 2" in bundle["pieces"]["system"]
+
+    def test_phase4_review_fallback(self, tmp_path: Path) -> None:
+        self._seed_brief(tmp_path)
+        bundle = build_input_bundle_fallback(tmp_path, "phase4_round2_gpt")
+        assert bundle is not None
+        assert bundle["agent"] == "gpt"
+        assert bundle["phase"] == "phase4"
+        # Phase 4 builder ``review_input_bundle`` mentions "review".
+        assert "review" in bundle["pieces"]["system"].lower()
+
+    def test_repair_fallback_has_system_but_empty_other_keys(
+        self, tmp_path: Path
+    ) -> None:
+        self._seed_brief(tmp_path)
+        bundle = build_input_bundle_fallback(
+            tmp_path, "phase2_round3_claude_repair"
+        )
+        assert bundle is not None
+        assert bundle["pieces"]["system"]
+        # Repair label survives.
+        assert bundle["label"].endswith("-repair")
+        # Repair bundles can't reconstruct ``hist`` (the original
+        # malformed turn) from current source — leave it empty.
+        assert bundle["pieces"]["hist"] == ""
+
+    def test_fallback_without_brief_still_returns_bundle(
+        self, tmp_path: Path
+    ) -> None:
+        """Spec 0085 — even when ``brief.md`` is missing, the System
+        Prompt fallback must still render so users see SOMETHING. The
+        brief slot stays empty in that case."""
+        # Note: no brief seeded.
+        bundle = build_input_bundle_fallback(tmp_path, "phase1_claude")
+        assert bundle is not None
+        assert bundle["pieces"]["system"]
+        assert bundle["pieces"]["brief"] == ""
+        assert bundle["system_source"] == "agent-default"
+
+    def test_unparseable_key_returns_none(self, tmp_path: Path) -> None:
+        self._seed_brief(tmp_path)
+        assert build_input_bundle_fallback(tmp_path, "garbage") is None
+
+    def test_synthesize_payload_pure_function(self) -> None:
+        """``synthesize_bundle_payload`` is the pure dispatcher used by
+        both filesystem + Supabase backends — no I/O. Smoke-test that it
+        produces the expected shape directly."""
+        payload = synthesize_bundle_payload(
+            phase=1,
+            round_idx=0,
+            ui_agent_label="claude",
+            is_repair=False,
+            brief_text="HELLO",
+        )
+        assert payload is not None
+        assert payload["pieces"]["brief"] == "HELLO"
+        assert payload["pieces"]["system"]
+        assert payload["system_source"] == "agent-default"
+        assert payload["agent"] == "claude"
+        assert payload["phase"] == "phase1"
+
+    def test_phase0_synthesized_marks_system_source(self, tmp_path: Path) -> None:
+        """``build_phase0_input_bundle`` (the original Phase 0 path)
+        also needs the ``system_source`` marker now that the frontend
+        renders the caveat unconditionally on ``'agent-default'``.
+        Older code paths that hit this function get the same marker."""
+        (tmp_path / "brief.md").write_text("HI", encoding="utf-8")
+        bundle = build_phase0_input_bundle(tmp_path)
+        assert bundle is not None
+        assert bundle["system_source"] == "agent-default"
