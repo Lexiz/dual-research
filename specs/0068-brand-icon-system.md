@@ -3,10 +3,10 @@ spec: 0068
 title: Brand-icon system + Design-page DNA reskin
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.61.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/68
 ---
 
 # Spec 0068 — Brand-icon system + Design-page DNA reskin
