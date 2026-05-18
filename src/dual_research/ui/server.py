@@ -39,6 +39,7 @@ import base64
 import mimetypes
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
@@ -52,9 +53,27 @@ from dual_research import __version__
 from dual_research.config import resolve_paths
 from dual_research.ui import load_run_snapshot, summarize_run
 from dual_research.ui.auth import SupabaseAuthMiddleware
+from dual_research.ui.cache import BoundedLRU, MISSING
 from dual_research.ui.datasource import SupabaseSessionData, latest_event_seq
 from dual_research.ui.labels import display_id, derive_run_status, phase_to_int
 from dual_research.ui.models import RunListRow, to_jsonable
+
+# ─── Spec 0079 — per-process LRU for immutable per-turn artifacts ─────────────
+# `inputs/<key>.json` and `searches/<key>.json` are append-only-immutable in
+# session_files (retries get new turn keys; rows are never updated in place).
+# Cap at 100 entries per cache; LRU eviction on insert; process restart on
+# deploy clears them. Module-level so all uvicorn workers in this process
+# share a single cache.
+_INPUT_BUNDLE_CACHE = BoundedLRU(maxsize=100)
+_SEARCH_AUDIT_CACHE = BoundedLRU(maxsize=100)
+
+_IMMUTABLE_CACHE_CONTROL = "public, max-age=86400, immutable"
+
+
+def _clear_caches_for_test() -> None:
+    """Drop both LRUs. Tests call this between cases to keep them hermetic."""
+    _INPUT_BUNDLE_CACHE.clear()
+    _SEARCH_AUDIT_CACHE.clear()
 
 # ─── App + state ──────────────────────────────────────────────────────────────
 
@@ -74,6 +93,9 @@ def _make_app(runs_dir: Path) -> FastAPI:
         redoc_url=None,
     )
     app.state.runs_dir = runs_dir
+    # Spec 0079 — gzip JSON + markdown responses above 1 KB. Skips small
+    # auth-error bodies where compression CPU would dominate.
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     # ─── API routes ───────────────────────────────────────────────────────────
 
@@ -175,7 +197,9 @@ def _make_app(runs_dir: Path) -> FastAPI:
         payload = _read_input_bundle_fs(session, turn_key)
         if payload is None:
             raise HTTPException(status_code=404, detail="not found")
-        return JSONResponse(payload)
+        return JSONResponse(
+            payload, headers={"Cache-Control": _IMMUTABLE_CACHE_CONTROL}
+        )
 
     # ─── Spec 0036 search audit ───────────────────────────────────────────
     # GET /api/runs/{run_id}/searches/index   → list of available turn-keys
@@ -198,7 +222,9 @@ def _make_app(runs_dir: Path) -> FastAPI:
         payload = _read_search_audit_fs(session, turn_key)
         if payload is None:
             raise HTTPException(status_code=404, detail="not found")
-        return JSONResponse(payload)
+        return JSONResponse(
+            payload, headers={"Cache-Control": _IMMUTABLE_CACHE_CONTROL}
+        )
 
     @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
     async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
@@ -258,6 +284,11 @@ def _make_supabase_app(
     )
     app.state.backend = "supabase"
     app.add_middleware(SupabaseAuthMiddleware, client=client)
+    # Spec 0079 — gzip outermost (last add_middleware is first in onion order
+    # in Starlette). Compresses JSON bundle bodies (often 100 KB+) and the
+    # markdown/text payloads from /files; minimum_size skips tiny error
+    # bodies + /api/health where compression CPU outweighs wire savings.
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
@@ -469,7 +500,9 @@ def _make_supabase_app(
         payload = _read_input_bundle_supabase(client, run_id, turn_key)
         if payload is None:
             raise HTTPException(status_code=404, detail="not found")
-        return JSONResponse(payload)
+        return JSONResponse(
+            payload, headers={"Cache-Control": _IMMUTABLE_CACHE_CONTROL}
+        )
 
     # ─── Spec 0036 search audit (hosted) ──────────────────────────────────
     @app.get("/api/runs/{run_id}/searches/index")
@@ -489,7 +522,9 @@ def _make_supabase_app(
         payload = _read_search_audit_supabase(client, run_id, turn_key)
         if payload is None:
             raise HTTPException(status_code=404, detail="not found")
-        return JSONResponse(payload)
+        return JSONResponse(
+            payload, headers={"Cache-Control": _IMMUTABLE_CACHE_CONTROL}
+        )
 
     @app.get("/api/runs/{run_id}/attachment-blobs/{rel_path:path}")
     async def get_attachment_blob(run_id: str, rel_path: str) -> Response:
@@ -855,9 +890,17 @@ def _list_search_audit_keys_supabase(client: Any, run_id: str) -> list[str]:
 
 
 def _read_search_audit_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:
+    """Spec 0079: positive results memoised in ``_SEARCH_AUDIT_CACHE`` keyed
+    by ``(run_id, key)``. See `_read_input_bundle_supabase` for the rationale."""
     key = _normalize_input_key(turn_key)
     if key is None or key == "input":
         return None
+
+    cache_key = (run_id, key)
+    cached = _SEARCH_AUDIT_CACHE.get(cache_key)
+    if cached is not MISSING:
+        return cached
+
     table_path = f"searches/{key}.json"
     try:
         res = (
@@ -874,9 +917,11 @@ def _read_search_audit_supabase(client: Any, run_id: str, turn_key: str) -> dict
     if not rows:
         return None
     try:
-        return json.loads(rows[0]["content"])
+        payload = json.loads(rows[0]["content"])
     except (TypeError, ValueError, json.JSONDecodeError):
         return None
+    _SEARCH_AUDIT_CACHE.set(cache_key, payload)
+    return payload
 
 
 def _summarize_audit_payload(payload: dict) -> dict:
@@ -940,12 +985,25 @@ def _search_audit_summary_supabase(
 
 
 def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict | None:
-    """Resolve a single input bundle from Supabase; synthesise Phase 0 if needed."""
+    """Resolve a single input bundle from Supabase; synthesise Phase 0 if needed.
+
+    Spec 0079: positive results are memoised in ``_INPUT_BUNDLE_CACHE`` keyed by
+    the normalised ``(run_id, key)``. Bundles are append-only-immutable, so the
+    cache never goes stale; restart-on-deploy is the only invalidation hook.
+    Negative results (not-found) are not cached — live runs may have a bundle
+    appear after the first lookup.
+    """
     from dual_research.protocol.prompts import preflight_input_bundle
 
     key = _normalize_input_key(turn_key)
     if key is None:
         return None
+
+    cache_key = (run_id, key)
+    cached = _INPUT_BUNDLE_CACHE.get(cache_key)
+    if cached is not MISSING:
+        return cached
+
     table_path = f"inputs/{key}.json"
     try:
         res = (
@@ -961,9 +1019,11 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
     rows = (res.data if res else None) or []
     if rows:
         try:
-            return json.loads(rows[0]["content"])
+            payload = json.loads(rows[0]["content"])
         except (TypeError, ValueError, json.JSONDecodeError):
             return None
+        _INPUT_BUNDLE_CACHE.set(cache_key, payload)
+        return payload
     if key == "input":
         # Fall back to synthesis from brief.md (live in session_files).
         try:
@@ -982,13 +1042,15 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
             return None
         brief_text = brief_rows[0].get("content") or ""
         pieces = preflight_input_bundle(brief=brief_text, agent_name="<agent>")
-        return {
+        payload = {
             "agent": "shared",
             "phase": "phase0",
             "label": "phase0-input",
             "pieces": pieces,
             "emitted_at": "",
         }
+        _INPUT_BUNDLE_CACHE.set(cache_key, payload)
+        return payload
     return None
 
 
