@@ -23,9 +23,11 @@ from dual_research.ui import cache as ui_cache
 from dual_research.ui.server import (
     _IMMUTABLE_CACHE_CONTROL,
     _INPUT_BUNDLE_CACHE,
+    _RUN_SNAPSHOT_CACHE,
     _SEARCH_AUDIT_CACHE,
     _clear_caches_for_test,
     _make_supabase_app,
+    _materialize_snapshot_supabase,
     _read_input_bundle_supabase,
     _read_search_audit_supabase,
 )
@@ -233,11 +235,211 @@ def test_bounded_lru_caches_none_value_distinctly_from_miss() -> None:
 def test_clear_caches_for_test_drops_all_entries() -> None:
     _INPUT_BUNDLE_CACHE.set(("r", "k"), {"x": 1})
     _SEARCH_AUDIT_CACHE.set(("r", "k"), {"x": 1})
+    _RUN_SNAPSHOT_CACHE.set(("r", 1), {"x": 1})
     assert len(_INPUT_BUNDLE_CACHE) == 1
     assert len(_SEARCH_AUDIT_CACHE) == 1
+    assert len(_RUN_SNAPSHOT_CACHE) == 1
     _clear_caches_for_test()
     assert len(_INPUT_BUNDLE_CACHE) == 0
     assert len(_SEARCH_AUDIT_CACHE) == 0
+    assert len(_RUN_SNAPSHOT_CACHE) == 0
+
+
+# ─── Spec 0081 — run-snapshot cache ──────────────────────────────────────────
+
+
+def _seed_full_run_for_snapshot(fake: FakeSupabaseClient, run_id: str) -> None:
+    """Seed enough rows that ``load_run_snapshot`` produces a real payload."""
+    _seed_run(fake, run_id)
+    fake.session_files.extend(
+        [
+            {"run_id": run_id, "path": "brief.md", "content": "# brief\n\nbody"},
+            {
+                "run_id": run_id,
+                "path": "state.json",
+                "content": json.dumps({"phase": "phase2"}),
+            },
+            {
+                "run_id": run_id,
+                "path": "metrics.json",
+                "content": json.dumps({"total_cost_usd": 0.05}),
+            },
+        ]
+    )
+    fake.events.append(
+        {
+            "run_id": run_id,
+            "seq": 0,
+            "ts": "2026-05-18T00:00:00+00:00",
+            "kind": "run_started",
+            "payload": {
+                "slug": "test",
+                "model_tier": "test",
+                "claude_model": "claude-haiku-4-5",
+                "openai_model": "gpt-5-mini",
+                "soft_cap": 3,
+                "hard_cap": 5,
+            },
+        }
+    )
+
+
+def test_run_snapshot_helper_caches_at_constant_seq() -> None:
+    fake = FakeSupabaseClient()
+    run_id = "20260518-000000-snap"
+    _seed_full_run_for_snapshot(fake, run_id)
+    spy = _CountingClient(fake)
+
+    # First call materialises and caches.
+    first = _materialize_snapshot_supabase(spy, run_id)
+    count_after_first = spy.execute_count
+    assert first is not None
+    assert count_after_first > 1  # at least seq lookup + session_files dump
+
+    # Second call at same seq: only the cheap seq probe. Materialise skipped.
+    second = _materialize_snapshot_supabase(spy, run_id)
+    assert first == second
+    delta = spy.execute_count - count_after_first
+    # One extra query for latest_event_seq; the heavy materialise path
+    # (session_files + events transcript + attachment_blobs) is skipped.
+    assert delta == 1, f"expected 1 query (seq lookup), got {delta}"
+
+
+def test_run_snapshot_helper_invalidates_when_seq_advances() -> None:
+    fake = FakeSupabaseClient()
+    run_id = "20260518-000000-live"
+    _seed_full_run_for_snapshot(fake, run_id)
+    spy = _CountingClient(fake)
+
+    _materialize_snapshot_supabase(spy, run_id)
+    count_after_first = spy.execute_count
+
+    # Simulate a new event landing — seq advances.
+    fake.events.append(
+        {
+            "run_id": run_id,
+            "seq": 1,
+            "ts": "2026-05-18T00:01:00+00:00",
+            "kind": "phase_entered",
+            "payload": {"phase": "phase1"},
+        }
+    )
+
+    _materialize_snapshot_supabase(spy, run_id)
+    # New seq → cache miss → re-materialise. Many extra .execute() calls.
+    assert spy.execute_count - count_after_first > 1
+
+
+def test_run_snapshot_helper_accepts_prefetched_seq() -> None:
+    """The SSE loop already called ``latest_event_seq``; the helper should
+    accept the pre-computed value and skip the redundant query."""
+    fake = FakeSupabaseClient()
+    run_id = "20260518-000000-prefetch"
+    _seed_full_run_for_snapshot(fake, run_id)
+    spy = _CountingClient(fake)
+
+    # First, prime the cache at seq=0 via prefetched-seq path.
+    _materialize_snapshot_supabase(spy, run_id, seq=0)
+    count_after_prime = spy.execute_count
+
+    # Second call with prefetched seq=0: full cache hit, ZERO extra queries.
+    _materialize_snapshot_supabase(spy, run_id, seq=0)
+    assert spy.execute_count == count_after_prime
+
+
+# ─── Spec 0081 — gzip skips SSE paths ────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_gzip_skip_stream_middleware_bypasses_sse_path() -> None:
+    """Direct test on the middleware class. Send an ASGI scope with a
+    ``/stream`` path through ``_GZipMiddlewareSkipStream``; the wrapped app
+    should be called untouched (no gzip headers added) even when the
+    request advertises ``Accept-Encoding: gzip``.
+
+    Done at the middleware level (rather than through TestClient) because
+    the real SSE endpoint is an infinite poll loop — TestClient blocks on
+    it. The unit-level check is sufficient: it pins the routing decision.
+    """
+    from dual_research.ui.server import _GZipMiddlewareSkipStream
+
+    sent: list[dict] = []
+
+    async def downstream_app(scope: Any, receive: Any, send: Any) -> None:
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"content-type", b"text/event-stream")],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": b"data: hello\n\n",
+                "more_body": False,
+            }
+        )
+
+    async def receive() -> dict:
+        return {"type": "http.request"}
+
+    async def send(msg: dict) -> None:
+        sent.append(msg)
+
+    mw = _GZipMiddlewareSkipStream(downstream_app, minimum_size=1)
+    scope = {
+        "type": "http",
+        "path": "/api/runs/r1/stream",
+        "method": "GET",
+        "headers": [(b"accept-encoding", b"gzip")],
+    }
+    await mw(scope, receive, send)
+
+    start = next(m for m in sent if m["type"] == "http.response.start")
+    headers = {k.lower(): v for k, v in start["headers"]}
+    assert b"content-encoding" not in headers, "SSE response must not be gzipped"
+
+
+@pytest.mark.asyncio
+async def test_gzip_skip_stream_middleware_still_compresses_non_stream() -> None:
+    """Sanity: non-/stream paths still go through the underlying GZip layer.
+    Body must be above ``minimum_size`` so gzip actually kicks in."""
+    from dual_research.ui.server import _GZipMiddlewareSkipStream
+
+    sent: list[dict] = []
+    big_body = b"x" * 4096  # >> minimum_size
+
+    async def downstream_app(scope: Any, receive: Any, send: Any) -> None:
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"content-type", b"application/json")],
+            }
+        )
+        await send(
+            {"type": "http.response.body", "body": big_body, "more_body": False}
+        )
+
+    async def receive() -> dict:
+        return {"type": "http.request"}
+
+    async def send(msg: dict) -> None:
+        sent.append(msg)
+
+    mw = _GZipMiddlewareSkipStream(downstream_app, minimum_size=1024)
+    scope = {
+        "type": "http",
+        "path": "/api/runs",
+        "method": "GET",
+        "headers": [(b"accept-encoding", b"gzip")],
+    }
+    await mw(scope, receive, send)
+
+    start = next(m for m in sent if m["type"] == "http.response.start")
+    headers = {k.lower(): v for k, v in start["headers"]}
+    assert headers.get(b"content-encoding") == b"gzip"
 
 
 # ─── HTTP-level header + gzip tests ──────────────────────────────────────────

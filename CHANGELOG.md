@@ -12,6 +12,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.5] — 2026-05-18
+
+### Fixed
+
+- **Run-detail page took ~11 s to load** — `/api/runs/{id}` was calling `SupabaseSessionData.materialize()` on every request: a full paginated dump of `session_files` + `events` (rebuilt as transcript.jsonl) + `attachment_blobs` into a tmpdir, then re-read from disk for `load_run_snapshot`. Replaced with `_RUN_SNAPSHOT_CACHE` — a 50-entry `BoundedLRU` keyed by `(run_id, max(events.seq))`. Done runs (fixed seq) hit a permanent cache after first view; live runs invalidate exactly once per new event regardless of viewer count, since the same cache backs the SSE poll loop. SPEC-0081.
+- **GZipMiddleware was risking SSE delivery delays** — the middleware buffers chunks waiting to hit `minimum_size`; tiny per-event SSE payloads could be held back indefinitely. Introduced `_GZipMiddlewareSkipStream`, a thin subclass that bypasses gzip for paths ending in `/stream`. Gzip on JSON / markdown still applies elsewhere. SPEC-0081.
+
 ## [0.69.4] — 2026-05-18
 
 ### Fixed
