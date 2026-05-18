@@ -48,11 +48,82 @@ def _escape_regex(s: str) -> str:
     return re.escape(s)
 
 
+# ─── Spec 0090 § C — fenced code blocks must mask H2 detection ──────────────
+# `extract_fenced_section` used to naively scan for ``^##\s+`` to find the
+# next section boundary. That treated `##` lines INSIDE markdown fenced code
+# blocks (``` … ```) as real headings and truncated the body early.
+#
+# In particular, agents emit the AGREED_PLAN as a fenced ```markdown block
+# containing internal `## Final-surfaced disagreements (canonical)` headers
+# — pre-fix, parse_turn extracted only the fence opener (`` ```markdown ``)
+# as the agreed_plan body, breaking every FSD>0 convergence check and the
+# Phase 3 drafting handoff. (See run 2c4f's stuck-AGREED loop for the
+# real-world impact.)
+#
+# The fix maps the input's fenced regions, then ignores any H2 candidate
+# that falls inside one. Both ```` ``` ```` and ```` ~~~ ```` fences are
+# recognised; markdown does not allow nested fences so we treat the first
+# matching closer as the end of the fence.
+
+_FENCE_OPENER_RE = re.compile(r"^(```|~~~)[^\n]*$", re.MULTILINE)
+_H2_RE = re.compile(r"^##\s+\S", re.MULTILINE)
+
+
+def _fenced_ranges(text: str) -> list[tuple[int, int]]:
+    """Return [(start, end)] character ranges that fall inside a fenced
+    code block. ``start`` is the character after the opener's newline;
+    ``end`` is the character before the closer's match. An unterminated
+    fence runs to end-of-text.
+    """
+    ranges: list[tuple[int, int]] = []
+    in_fence = False
+    fence_start: int | None = None
+    fence_marker: str | None = None
+    for m in _FENCE_OPENER_RE.finditer(text):
+        marker = m.group(1)
+        if not in_fence:
+            in_fence = True
+            fence_start = m.end()
+            fence_marker = marker
+        else:
+            # Only the same fence marker closes (``` closes ```; ~~~ closes ~~~).
+            # If a different marker is seen first, treat it as nested literal text.
+            if marker != fence_marker:
+                continue
+            ranges.append((fence_start or 0, m.start()))
+            in_fence = False
+            fence_start = None
+            fence_marker = None
+    if in_fence and fence_start is not None:
+        ranges.append((fence_start, len(text)))
+    return ranges
+
+
+def _next_h2_outside_fences(text: str) -> "re.Match[str] | None":
+    """First `^##\\s+\\S` match in ``text`` that is NOT inside a fenced
+    code block. ``None`` if no such heading exists.
+    """
+    fenced = _fenced_ranges(text)
+    for m in _H2_RE.finditer(text):
+        pos = m.start()
+        if any(start <= pos < end for start, end in fenced):
+            continue
+        return m
+    return None
+
+
 def extract_fenced_section(text: str, heading_name: str) -> str | None:
     """Return the body under a `## <heading_name>` heading, up to the next `## ` heading.
 
     Returns None if the heading is absent or the body is empty after stripping.
     Mirrors the original extractFencedSection() in protocol.mjs.
+
+    Spec 0090 § C — `##` lines inside fenced code blocks (``` or ~~~) no
+    longer falsely terminate the section. The target heading is still
+    located via the naive regex (heading_name itself is escaped, and the
+    heading line MUST be at the top level — we don't currently support
+    fenced section headings as start anchors, which is fine: the
+    protocol never puts section openers inside fences).
     """
     heading_re = re.compile(r"^##\s+" + _escape_regex(heading_name) + r"\s*$", re.MULTILINE)
     m = heading_re.search(text)
@@ -60,7 +131,7 @@ def extract_fenced_section(text: str, heading_name: str) -> str | None:
         return None
     start_body = m.end()
     rest = text[start_body:]
-    next_heading = re.search(r"^##\s+\S", rest, re.MULTILINE)
+    next_heading = _next_h2_outside_fences(rest)
     body = rest[: next_heading.start()] if next_heading else rest
     body = body.strip()
     return body or None

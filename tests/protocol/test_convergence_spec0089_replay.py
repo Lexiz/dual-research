@@ -1,4 +1,4 @@
-"""Spec 0089 replay tests — pin the escape behaviour against real
+"""Spec 0089 + 0090 replay tests — pin behaviour against real
 production-derived turn pairs from the 2c4f deadlock.
 
 These fixtures are checked-in copies of two of the round-04 turn
@@ -6,18 +6,24 @@ files from `20260518-065852-backend-language-choice-briefing-for-
 dual-research` (run id `2c4f`), where Phase 2 hard-capped at 12
 rounds despite mutual AGREED from r3 onward.
 
-The escape paths in spec 0089 should:
-  - § A canonical-FSD synthesis: not fire on 2c4f (the agents DID emit
-    the canonical sub-section correctly — the failure was elsewhere).
-    But the test file is the most faithful regression we have for
-    "well-formed AGREED + FSD>0 turn" so it must still pass through
-    the helpers without raising.
-  - § B stuck-AGREED escape valve: fires on 2c4f when run for two
-    consecutive rounds because `is_plan_agreed_lenient` returns True
-    but `is_plan_agreed(..., ledger_open_count=17)` returns False.
+**Important spec-0090 update to the test interpretation:** pre-spec
+0090, `parse_turn`'s ``extract_fenced_section`` truncated AGREED_PLAN
+bodies at the first ``##`` heading inside the ```` ```markdown ```` fence,
+leaving both agents' ``agreed_plan`` field as just ```` ```markdown ````
+(the fence opener). That made their plan hashes trivially equal,
+which made the stuck-AGREED *signature* (`lenient=True, strict=False
+with ledger > 0`) appear at r4 — but the underlying agreement was
+illusory. Post-spec-0090, the parser now sees both agents' full
+plan bodies, which differ in content (~4 diff hunks of paraphrased
+content). So the stuck-AGREED signature no longer fires on 2c4f r4
+— the agents really weren't aligned and the spec-0032 hash-drift
+path is the correct escape.
 
-The 27de r04/r05 files are also pulled but exercise the spec-0032
-hash-drift path, which spec 0089 leaves unchanged.
+The remaining regression we DO want to pin from 2c4f r4:
+  - § A canonical-FSD detection helper: must NOT misfire when the
+    agents emit a canonical sub-section correctly.
+  - `is_plan_agreed` correctly REJECTS 2c4f r4 once parse-fence bug
+    is fixed (this used to incorrectly pass without a ledger block).
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ from pathlib import Path
 
 from dual_research.protocol.convergence import (
     all_substantive_gates_pass_except_canonical_fsd,
+    all_substantive_gates_pass_except_plan_hash,
     is_plan_agreed,
     is_plan_agreed_lenient,
 )
@@ -39,8 +46,9 @@ def _read(name: str) -> str:
 
 
 class TestReplay2c4fRound04:
-    """The 2c4f deadlock case at round 4 — first round where both agents
-    cleanly emitted AGREED + matching plan + matching FSD canonical."""
+    """The 2c4f case at round 4 — first round both agents emitted full
+    AGREED turns. Post-spec-0090 we see the agents weren't actually
+    aligned; the apparent alignment was a parse-bug artifact."""
 
     def setup_method(self) -> None:
         self.claude = _read("2c4f-r04-claude.md")
@@ -55,37 +63,49 @@ class TestReplay2c4fRound04:
         )
         assert not gap.detected
 
-    def test_lenient_passes(self) -> None:
-        """Both agents are aligned on protocol surface signals → lenient
-        check passes."""
-        assert is_plan_agreed_lenient(self.claude, self.openai)
-
     def test_strict_blocks_with_ledger_open_items(self) -> None:
-        """The real 2c4f ledger reported 17 open items at this round
-        (12 questions + 5 claims). The ledger cross-check blocks strict
-        convergence — this is the exact bug spec 0089 § B exists to
-        address."""
+        """The real 2c4f ledger reported 17 open items at this round.
+        Strict convergence rejects (both due to ledger AND, post-spec-
+        0090, the genuine plan-hash mismatch)."""
         assert not is_plan_agreed(
             self.claude, self.openai, ledger_open_count=17,
         )
 
-    def test_strict_passes_without_ledger_block(self) -> None:
-        """Sanity: without the ledger cross-check the strict path is
-        also happy. (This is the only signal that distinguishes 'really
-        stuck' from 'orchestrator over-cautious'.)"""
-        assert is_plan_agreed(
+    def test_strict_blocks_even_without_ledger(self) -> None:
+        """Post-spec-0090 reality check: the agents' AGREED_PLAN bodies
+        are NOT byte-equivalent — paraphrased content across ~4 sections
+        — so strict convergence correctly rejects even with no ledger
+        block. Pre-spec-0090 this incorrectly returned True because
+        parse_turn truncated both plans to the same fence opener.
+
+        This is a genuine plan disagreement that the spec-0032 hash-
+        drift path is designed to handle (force-verbatim-copy repair,
+        then canonical promotion)."""
+        assert not is_plan_agreed(
             self.claude, self.openai, ledger_open_count=0,
         )
-        assert is_plan_agreed(
+        assert not is_plan_agreed(
             self.claude, self.openai, ledger_open_count=None,
         )
 
-    def test_stuck_agreed_signature(self) -> None:
-        """Composite: lenient True + strict False = the stuck-AGREED
-        signature the § B escape valve counts. Two consecutive rounds
-        of this composite (`STUCK_AGREED_K = 2`) trigger promotion."""
-        strict = is_plan_agreed(
-            self.claude, self.openai, ledger_open_count=17,
+    def test_lenient_rejects_genuine_disagreement(self) -> None:
+        """Lenient also rejects because the hash mismatch is real, not
+        a ledger artifact. Confirms spec-0089 § B's stuck-AGREED escape
+        valve correctly does NOT fire on 2c4f — that path is for cases
+        where agents genuinely agree but the ledger over-blocks, not
+        cases like this one where agents merely *think* they agree."""
+        assert not is_plan_agreed_lenient(self.claude, self.openai)
+
+    def test_hash_drift_path_correctly_detects(self) -> None:
+        """The right escape for 2c4f r4 is the spec-0032 hash-drift
+        path: drafters match (both 'claude'), every other surface
+        signal aligns, only the plan hash differs. The orchestrator
+        would fire force-verbatim-copy repair on round 4 instead of
+        looping."""
+        drift = all_substantive_gates_pass_except_plan_hash(
+            self.claude, self.openai
         )
-        lenient = is_plan_agreed_lenient(self.claude, self.openai)
-        assert lenient and not strict
+        assert drift.detected
+        assert drift.drafter == "claude"
+        assert drift.other_agent == "gpt"
+        assert drift.canonical_hash != drift.other_hash

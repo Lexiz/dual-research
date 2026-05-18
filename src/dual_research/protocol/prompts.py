@@ -318,7 +318,24 @@ Produce your turn for round {round} with these sections (headings verbatim):
 3–5 sentences summarising your position in THIS round: what you've held onto, what you've conceded or updated this round, whether you're agreeing or still negotiating, and (if agreeing) whom you propose as drafter. Keep it short and factual — the UI extracts this as the timeline-card TL;DR.
 
 ## Answers to {other_name}'s open questions
-Address every numbered question {other_name} listed in their most recent turn. If their last turn had none, write "(none)".
+Address every open question from {other_name} — both the ones in their most recent turn AND any prior-round questions still listed in the standing-items section below. One answer block per question.
+
+**Format requirement (spec 0090):** the first line of each answer block MUST start with the question's protocol ID (e.g. `Q-g-r1-01`) so the system can link your answer back to the originating question. The recommended format is a numbered list with the ID inside the bold label:
+
+```
+1. **Q-g-r1-01 — short title:** your answer body…
+2. **Q-g-r1-02 — short title:** your answer body…
+```
+
+Bold-header form is also accepted as long as the ID is in the head:
+
+```
+**Q-g-r1-03 — short title**
+
+your answer body…
+```
+
+If {other_name} had no open questions in their last turn AND the standing-items section is empty, write "(none)". Otherwise, leaving a question unaddressed marks it as ghosted in the UI and continues to block convergence.
 
 ## What I researched since the last round
 Numbered list, may be empty in late rounds. Each item: what you searched / read, what you found, how your position has updated. This phase is supposed to surface evidence, not just exchange opinions.
@@ -603,10 +620,29 @@ This is **round {round}** of Phase 4 (soft cap {soft_cap}, hard cap {hard_cap}).
 Produce your turn for round {round} with these sections (headings verbatim):
 
 ## Answers to {other_name}'s prior comments
-Address every comment/question {other_name} raised in their most recent turn. "(none — first round)" if applicable.
+Address every comment {other_name} raised in their most recent turn — both new ones and any standing-items section entries below. "(none — first round)" if applicable.
+
+**Format requirement (spec 0090):** the first line of each answer block MUST start with the comment's protocol ID (e.g. `C-3` for one of {other_name}'s prior comments, or `OAI-P4-1` / `[I-g-r1-01]` when referencing the cross-round system ID) so the system can link your answer back. Recommended format is a numbered list with the ID inside the bold label:
+
+```
+1. **C-1 — short title:** your answer body…
+2. **C-2 — short title:** your answer body…
+```
+
+Bold-header form is also accepted when the ID is in the head.
 
 ## Issue ledger (delta + currently open)
 Numbered list. Include (a) all currently open issues with stable IDs and current status, (b) new issues raised this round with stable IDs assigned by the agent who raises them, (c) status changes for previously raised issues — status one of `open` / `accepted` / `rejected` / `resolved`, each with a one-sentence reason. Resolved historical issues can be referenced by ID rather than re-emitted in full. The DRAFTER must answer every prior `open` issue this round as accepted / rejected / resolved / still-open; silent skipping is not allowed.
+
+**Format requirement (spec 0090):** each ledger entry's first line MUST contain the issue's stable ID followed by its current status marker. Recommended format:
+
+```
+1. **OAI-P4-1 — resolved:** Inline [V]/[U] tags added throughout the round-2 revised draft.
+2. **OAI-P4-2 — open:** Process artifacts still present in the title block.
+3. **[I-g-r1-03] — resolved:** PgBouncer text rewritten in round-2 draft.
+```
+
+Both your own IDs (e.g., `OAI-1`, `C-7`, `D-5`) and the cross-round system IDs (e.g., `I-g-r1-01`) are accepted. Without an ID in the head, the system can't dedupe the entry across rounds and the issue will appear repeatedly in the UI.
 
 For each `open` issue, add ONE blockquote line right under the numbered item anchoring the issue to a specific span on the current draft:
 

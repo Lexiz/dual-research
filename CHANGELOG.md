@@ -12,6 +12,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.71.0] — 2026-05-19
+
+### Added
+
+- **Spec 0090 — Parser robustness for cross-round Q/A/issue linkage + code-fence awareness** ([spec 0090](specs/0090-parser-robustness-and-data-integrity.md)). Closes the "ghosting" pattern the 2c4f and 27de investigation surfaced: agents were largely doing the right work, but the system couldn't see roughly half of what Claude wrote because the answer-extraction parser only recognised numbered-list format while Claude consistently used bold-header per-Q blocks. Three coordinated changes:
+  - **§ A — Answer-detection robustness** (`ui/questions.py`, `ui/issues.py`). New `_extract_answer_blocks()` accepts numbered-list, bold-header (`**Q-g-r1-01 — title**`), and H3 (`### Q-g-r1-01: title`) head formats. `reconstruct_questions` now uses ID-based primary matching against the protocol's stable Q-N / OAI-N / I-g-rN-NN IDs with positional fallback for IDless heads. Look-ahead extended from `round_n + 1` only to `MAX_ANSWER_LOOKAHEAD_ROUNDS = 5`; first-match-wins so re-references don't overwrite. `ui/issues.py`'s `_ID_TOKEN_RE` broadened to also match lowercase-initial system IDs (`I-g-r1-01`, `Cl-c-p1-04`) for cross-round dedup.
+  - **§ B — Prompt tightening** (`protocol/prompts.py`). `negotiation_turn_prompt` and `review_turn_prompt` now include an inline numbered-list example anchoring the format. Explicit `**Format requirement (spec 0090)**` instruction names the ID requirement and the cross-round expectation (answer items raised in prior rounds too, not just last round). Same treatment added to the P4 `## Issue ledger` section.
+  - **§ C — `extract_fenced_section` code-fence awareness** (`protocol/parse.py`). New `_fenced_ranges()` + `_next_h2_outside_fences()` helpers mask out fenced code block contents (both ```` ``` ```` and ```` ~~~ ````) before the `##` boundary regex runs. Closes a hidden bug where `parse_turn(text).agreed_plan` for any FSD>0 turn was just the fence opener (`` ```markdown ``) because the canonical FSD sub-section's `##` heading inside the fence falsely terminated the AGREED_PLAN extraction. Phase 3's drafting prompt + `extract_canonical_fsd_items` + `normalized_hash(agreed_plan)` now all see meaningful plan content.
+
+### Fixed
+
+- **Asymmetric question ghosting** — `2c4f` Phase 2 was reporting 12/24 questions as ghosted but the investigation confirmed every one of those was a question Claude actually answered in bold-header format that the pre-spec parser couldn't see. Post-fix the same fixture reports 0/24 ghosted. Same shape applies to `27de` Phase 2 (10/19 → 2/19) and Phase 4 issues.
+- **Spec 0089 § B stuck-AGREED escape valve was over-firing as a workaround for the parser bug.** Post-fix the ledger reports accurate open counts and the escape valve becomes a true safety net for genuine deadlocks rather than a parser-induced false positive. The 2c4f test cases that previously asserted the stuck-AGREED signature have been updated to reflect post-fix reality: the agents weren't actually plan-aligned at r4 (~4 hunks of paraphrased content differences) — they only appeared aligned because both `agreed_plan` fields extracted to identical fence openers and trivially hash-matched. With § C fixed, the spec-0032 hash-drift path is the correct escape for that scenario.
+
+### Changed
+
+- **Cache-bust** bumped `v=0091` → `v=0092` across `index.html` (defensive; no static asset changes in this release).
+
 ## [0.70.0] — 2026-05-18
 
 ### Added
