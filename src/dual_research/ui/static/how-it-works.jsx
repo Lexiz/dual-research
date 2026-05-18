@@ -15,6 +15,16 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '0.69.1',
+      date: '2026-05-18',
+      summary: 'Hotfix -- run-detail page white-screen regression fixed.',
+      items: [
+        'Fixed Babel parse error in run-detail.jsx that caused every run-detail page to white-screen (regression from v0.63.0).',
+        'Root cause: JSX comment placed inside a prop expression slot -- Babel interprets this as a nested object literal.',
+        'Added JSX syntax regression test to catch the same class of bug in all JSX files going forward.',
+      ],
+    },
+    {
       version: '0.68.0',
       date: '2026-05-18',
       summary: 'Consumption tab agent-card restructure -- data at top, bars at bottom, wider bars, equal-height cards.',

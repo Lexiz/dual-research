@@ -12,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.1] — 2026-05-18
+
+### Fixed
+
+- **Run-detail white-screen regression** — JSX comment (`{/* */}`) inside a prop expression slot (`left={...}`) in `run-detail.jsx` caused a Babel parse error on every run-detail page. Introduced in SPEC-0070 (v0.63.0), undetected by SPEC-0071 through SPEC-0075 preview-verify. BUG-RUN-DETAIL-WHITE-SCREEN.
+
+### Added
+
+- **JSX syntax regression test** (`tests/test_ui_jsx_syntax.py`) — detects `prop={ {/* */}` patterns in all JSX files to prevent the same class of bug from shipping again.
+
 ## [0.69.0] — 2026-05-18
 
 ### Added
