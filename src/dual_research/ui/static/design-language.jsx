@@ -114,8 +114,8 @@ function DnaOnePager() {
             </div>
           </Spotlight>
 
-          <Spotlight label="<AgentStrip>" caption="Dense agent identifier with model, token count, and status.">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Spotlight label="<AgentStrip>" caption="Equal-width agent identifier with model, tokens, cost, and status. Compact 4px vertical padding (SPEC-0070). Both pills share width via flex: 1 1 0.">
+            <div style={{ display: 'flex', gap: 6 }}>
               <AgentStrip agent="a" model="claude-sonnet-4.5" tokens={12480} cost={0.042} status="completed" />
               <AgentStrip agent="b" model="gpt-5.1" tokens={9120} cost={0.031} status="completed" />
             </div>
