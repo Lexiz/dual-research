@@ -12,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.3] — 2026-05-18
+
+### Fixed
+
+- **Hosted UI modal-load latency** — clicking a card in the run-detail timeline used to spin for tens of seconds before the per-turn input bundle appeared. Root causes: (1) `min_machines_running = 0` meant the first click after idle paid a 30–60 s Python cold-start; (2) no server-side caching, so every modal re-open re-queried Supabase; (3) no `GZipMiddleware`, so 100 KB+ JSON bodies shipped uncompressed; (4) no `Cache-Control` hints, so the browser never re-used the bytes it already had. Fix bundles all four: keep one machine warm, attach `GZipMiddleware` (≥ 1 KB), emit `Cache-Control: public, max-age=86400, immutable` on the immutable per-turn endpoints (`/inputs/{key}`, `/searches/{key}`), and add a 100-entry per-cache LRU in front of `_read_input_bundle_supabase` and `_read_search_audit_supabase`. SPEC-0079.
+
+### Added
+
+- **`BoundedLRU`** in `dual_research.ui.cache` — thread-safe, count-bounded, value-agnostic (caches `None` correctly via a `MISSING` sentinel). Used by the spec 0079 caches; reusable for any future append-only-immutable read path.
+
 ## [0.69.2] — 2026-05-18
 
 ### Fixed
