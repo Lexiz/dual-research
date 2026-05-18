@@ -3,10 +3,10 @@ spec: 0074
 title: Agent Input tab rework — rename, reorder, structural restructure
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.67.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/74
 ---
 
 # Spec 0074 — Agent Input tab rework
