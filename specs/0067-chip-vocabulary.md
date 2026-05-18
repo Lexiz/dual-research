@@ -3,10 +3,10 @@ spec: 0067
 title: Chip vocabulary + code-cluster expansion
 label: new-feature
 version-bump: MINOR
-status: in-progress
+status: merged
 target-version: 0.60.0
 created: 2026-05-18
-pr: ""
+pr: https://github.com/Lexiz/dual-research/pull/67
 ---
 
 # Spec 0067 — Chip vocabulary + code-cluster expansion
