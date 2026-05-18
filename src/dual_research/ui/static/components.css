@@ -863,6 +863,25 @@ body.light .tab-group.tabs-solid .tab.is-active,
   flex-direction: column;
   gap: 0;
   min-width: 0;
+  position: relative; /* anchor for the absolute chevron */
+  /* SPEC-0086 — card is the click-to-expand surface itself. The whole
+     surface is a button; reset default button appearance. */
+  appearance: none;
+  border: 1px solid var(--border-1);
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms;
+  width: 100%;
+}
+.consumption-card:hover {
+  border-color: var(--border-2);
+}
+.consumption-card:focus-visible {
+  outline: var(--focus-ring) solid var(--info);
+  outline-offset: var(--focus-offset);
 }
 .consumption-card .consumption-data-zone {
   display: flex;
@@ -879,6 +898,74 @@ body.light .tab-group.tabs-solid .tab.is-active,
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+.consumption-card .consumption-card-chevron {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--fg-3);
+  pointer-events: none;
+  transition: transform 120ms;
+}
+
+/* SPEC-0086 — phase-group chrome */
+.consumption-phase-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.consumption-phase-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 4px 4px;
+  border-bottom: 1px solid var(--border-1);
+}
+.consumption-phase-header .consumption-phase-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-1);
+}
+.consumption-phase-header .consumption-phase-meta {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  margin-left: auto;
+}
+
+/* SPEC-0086 — row layout: 2-col for phases without rounds, 3-col with
+   a leading round-chip for phases with rounds. */
+.consumption-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.consumption-row[data-has-round="true"] {
+  grid-template-columns: var(--consumption-round-w) minmax(0, 1fr) minmax(0, 1fr);
+}
+.consumption-row[data-is-repair="true"] .consumption-card {
+  background: var(--bg-0);
+}
+.consumption-round-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  padding: 0 4px;
+}
+.consumption-round-chip .consumption-round-label {
+  font-weight: 600;
+  color: var(--fg-2);
+  white-space: nowrap;
 }
 
 /* ─────────────────────────────────────────────────────────────

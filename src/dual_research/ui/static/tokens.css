@@ -134,7 +134,17 @@
   --content-max: 1400px;
 
   /* ── Consumption tab ─────────────────────────────── */
+  /* SPEC-0075 — width of the label column in per-card breakdown bars
+     (the LabeledBar rows inside ConsumptionCard's Zone 3 — the
+     piece-name on the left of each sub-bar). NOT used by the row-
+     level grid anymore (SPEC-0086 lifted the phase name out of the
+     row into a group header above). */
   --consumption-label-w: 100px;
+  /* SPEC-0086 — width of the leading "Round N" chip in
+     ConsumptionRow grids for phases with rounds (P2 / P4). Phases
+     without rounds (P0 / P1 / P3 / P5) don't use this column at all
+     — their cards span the full row width. */
+  --consumption-round-w: 64px;
 }
 
 /* ── Light mode ─────────────────────────────────────────────── */
