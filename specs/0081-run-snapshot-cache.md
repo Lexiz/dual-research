@@ -3,10 +3,10 @@ spec: 0081
 title: Cache /api/runs/{id} snapshot by (run_id, latest_event_seq)
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.69.5
 created: 2026-05-18
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/81"
 ---
 
 # Spec 0081 — Run-snapshot cache + SSE gzip skip
