@@ -358,20 +358,9 @@ function RunListView({ runs, loading, onSelect }) {
         ))}
         {filtered.length === 0 && (
           loading && !search ? (
-            // Spec 0083 — centered spinner + label. `loading` here means
-            // "we have never received a successful response", not "a
-            // request is mid-flight" — see useRunList.
-            <div style={{
-              padding: '60px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 14,
-              color: 'var(--fg-3)',
-            }}>
-              <div className="dr-spinner" aria-hidden="true" />
-              <span style={{ fontSize: 13 }}>Loading runs…</span>
-            </div>
+            // Spec 0084 — shared LoadingState primitive used everywhere a
+            // page or panel is waiting on its first useful payload.
+            <LoadingState size="panel" label="Loading runs" />
           ) : (
             <div style={{
               padding: '40px 18px',

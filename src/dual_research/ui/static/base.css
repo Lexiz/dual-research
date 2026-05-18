@@ -105,12 +105,14 @@ a:hover { text-decoration-color: var(--info); }
 @keyframes dr-modal-in { from{opacity:0;} to{opacity:1;} }
 .dr-modal-in { animation: dr-modal-in var(--m-base) var(--ease) both; }
 
-/* ── Spinner (spec 0083) ────────────────────────────── */
+/* ── Spinner (spec 0083, sizes via inline style in spec 0084) ─────── */
 @keyframes dr-spin { to { transform: rotate(360deg); } }
 .dr-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid var(--border-1);
+  /* Width / height / borderWidth come from the LoadingState component
+     in shared.jsx so the same element scales across inline → panel →
+     page contexts. */
+  border-style: solid;
+  border-color: var(--border-1);
   border-top-color: var(--accent-a);
   border-radius: 50%;
   animation: dr-spin 0.9s linear infinite;

@@ -12,6 +12,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.69.8] — 2026-05-18
+
+### Added
+
+- **`LoadingState` primitive** in `shared.jsx` — one component, three sizes (`inline`, `panel`, `page`), shared spinner geometry + scaling, optional `label` + `hint`. Default hint is "Just a moment, please." for `panel`/`page` sizes; `inline` defaults to no hint. The base spinner's width / height / border-width are now driven by the component so the same `.dr-spinner` CSS class scales from a 14 px inline mark to a 44 px full-page mark. SPEC-0084.
+
+### Changed
+
+- **Every loading surface now uses `LoadingState`** for a single harmonious visual:
+  - Run list empty state (`run-list.jsx`) — `size="panel"`, label "Loading runs".
+  - App boot (`app.jsx`) — `size="page"`, label "Connecting to the server".
+  - Run detail wait (`app.jsx`) — `size="page"`, label "Loading run", hint = the run id.
+  - Lazy markdown body + draft body + input bundle + search audit (`run-detail.jsx`) — `size="inline"`, surface-specific label.
+  - Compare-page panel loader (`compare.jsx`).
+- **Design-language manifesto** clarified: the "no spinners" rule applies *inside* the run document (streaming uses the live caret / pulsing dot); `LoadingState` is the explicit exception at page / panel level. SPEC-0084.
+
 ## [0.69.7] — 2026-05-18
 
 ### Fixed

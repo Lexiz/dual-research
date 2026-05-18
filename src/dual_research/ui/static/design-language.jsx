@@ -463,7 +463,7 @@ function FullReference() {
         </div>
 
         <Note>
-          <b>What we don't do.</b> No scroll-into-view (it jolts the layout next to a terminal). No spinners (the live caret and pulsing dot do that job). No success animations on convergence — the document just renders. No toast notifications; this is a read-only surface.
+          <b>What we don't do.</b> No scroll-into-view (it jolts the layout next to a terminal). No spinners <em>within</em> the run document — the live caret and pulsing dot do that job for streaming text. The one exception is <code>LoadingState</code> (spec 0084), used at the page or panel level when no useful payload has arrived yet. No success animations on convergence — the document just renders. No toast notifications; this is a read-only surface.
         </Note>
       </Section>
 
