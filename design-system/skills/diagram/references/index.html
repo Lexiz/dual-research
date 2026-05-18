@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>architecture-diagram · design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>architecture-diagram</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="index.html" class="active"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Design system · v1.1 · dual-theme</p>
+<h1 class="page">A locked visual contract for nine kinds of architecture diagram, now in light and dark — every figure in a proposal ships on cream or near-black.</h1>
+<p class="lede">The <code>architecture-diagram</code> skill emits <strong>two</strong> self-contained SVGs per request — <code>&lt;slug&gt;.light.svg</code> + <code>&lt;slug&gt;.dark.svg</code>. Diagrams ship in clusters of 3–6 for any given Notion proposal, so cross-diagram coherence across both themes is the actual quality bar. This system locks the primitives the generator improvises today — cards, icons, connectors, spacing — into a closed, named, copy-pasteable library, defines theme-equivalent tokens for every theme-dependent value, and adds a manifest mechanism that pins entity → gradient → icon across a whole set in either theme.</p>
+
+<div class="callout"><strong>What's new in v1.1.</strong> A complete dark-theme token registry alongside the v1 cream palette — see <a href="foundations.html#01.0">foundations §01.0</a>. Same diagram, two backgrounds. Dual-output workflow in <a href="SKILL.md">SKILL.md</a>. Nine new canonical examples in <a href="examples.html">examples</a>. Decisions and trade-offs documented in <a href="OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>.</div>
+
+<!-- ============== identity panel ============== -->
+<div class="frame">
+  <div class="frame-head"><span>Identity at a glance</span><span class="meta">cream · indigo · Inter · viewBox 1660</span></div>
+  <svg viewBox="0 0 1660 380" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="ovBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f5f1ea"/>
+        <stop offset="100%" stop-color="#ece8e0"/>
+      </linearGradient>
+      <linearGradient id="ovIndigo" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6573c9"/>
+        <stop offset="100%" stop-color="#3a4a8a"/>
+      </linearGradient>
+      <linearGradient id="ovDark" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#252521"/>
+        <stop offset="100%" stop-color="#1a1a18"/>
+      </linearGradient>
+      <linearGradient id="ovSlate" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#4a5568"/>
+        <stop offset="100%" stop-color="#2d3748"/>
+      </linearGradient>
+      <linearGradient id="ovGreen" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#2a5e40"/>
+        <stop offset="100%" stop-color="#1e4530"/>
+      </linearGradient>
+      <linearGradient id="ovSand" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#1e3f52"/>
+        <stop offset="100%" stop-color="#162e3e"/>
+      </linearGradient>
+      <linearGradient id="ovArt" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#5e3f1c"/>
+        <stop offset="100%" stop-color="#3f2810"/>
+      </linearGradient>
+      <filter id="ovShadow" x="-4%" y="-4%" width="108%" height="116%">
+        <feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#1a1a18" flood-opacity="0.22"/>
+      </filter>
+      <filter id="ovShadowLt" x="-4%" y="-4%" width="108%" height="116%">
+        <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/>
+      </filter>
+      <marker id="ovArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/>
+      </marker>
+    </defs>
+
+    <rect width="1660" height="380" fill="url(#ovBg)"/>
+
+    <!-- left column: identity -->
+    <text x="64" y="58" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">PALETTE</text>
+    <rect x="64" y="78" width="92" height="56" rx="8" fill="#4f5fb8"/>
+    <text x="110" y="152" text-anchor="middle" font-size="10" font-family="JetBrains Mono, monospace" fill="#706e67">indigo</text>
+    <rect x="166" y="78" width="48" height="56" rx="8" fill="url(#ovDark)"/>
+    <rect x="222" y="78" width="48" height="56" rx="8" fill="url(#ovSlate)"/>
+    <rect x="278" y="78" width="48" height="56" rx="8" fill="url(#ovSand)"/>
+    <rect x="334" y="78" width="48" height="56" rx="8" fill="url(#ovGreen)"/>
+    <rect x="390" y="78" width="48" height="56" rx="8" fill="url(#ovArt)"/>
+
+    <text x="64" y="200" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">TYPE</text>
+    <text x="64" y="232" font-size="28" font-weight="600" letter-spacing="-0.5" fill="#1a1a18">Inter · 4 roles</text>
+    <text x="64" y="254" font-size="12" fill="#706e67">title / card / caps · letter-spacing locked</text>
+
+    <!-- center: card primitives -->
+    <text x="540" y="58" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">CARDS</text>
+    <!-- primary dark -->
+    <rect x="540" y="78" width="220" height="92" rx="12" fill="url(#ovIndigo)" filter="url(#ovShadow)"/>
+    <rect x="558" y="100" width="28" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
+    <rect x="562" y="106" width="20" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+    <rect x="562" y="112" width="14" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+    <text x="596" y="111" font-size="13" font-weight="600" fill="white">card.primary</text>
+    <text x="596" y="127" font-size="10" fill="rgba(255,255,255,0.65)">hero / active</text>
+    <text x="558" y="155" font-size="9" fill="#9aa3d4" letter-spacing="1.4">INDIGO · DARK</text>
+
+    <!-- secondary light -->
+    <rect x="540" y="182" width="220" height="92" rx="12" fill="white" stroke="#e8e2d8" filter="url(#ovShadowLt)"/>
+    <rect x="558" y="204" width="28" height="22" rx="4" fill="#252521"/>
+    <text x="596" y="215" font-size="13" font-weight="600" fill="#1a1a18">card.secondary</text>
+    <text x="596" y="231" font-size="10" fill="#706e67">supporting</text>
+    <text x="558" y="259" font-size="9" fill="#706e67" letter-spacing="1.4">LIGHT · BORDERED</text>
+
+    <!-- right: connector -->
+    <text x="800" y="58" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">CONNECTORS</text>
+    <rect x="800" y="78" width="180" height="62" rx="10" fill="url(#ovDark)" filter="url(#ovShadow)"/>
+    <text x="890" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="white">Producer</text>
+    <text x="890" y="120" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.6)">api.create()</text>
+
+    <rect x="1100" y="78" width="180" height="62" rx="10" fill="url(#ovIndigo)" filter="url(#ovShadow)"/>
+    <text x="1190" y="103" text-anchor="middle" font-size="12" font-weight="600" fill="white">Consumer</text>
+    <text x="1190" y="120" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.65)">worker.run()</text>
+
+    <path d="M 980 109 L 1100 109" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#ovArrow)"/>
+    <text x="1040" y="100" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1.4">EVENT</text>
+    <text x="1040" y="124" text-anchor="middle" font-size="9" font-style="italic" fill="#9e9b95">at-least-once</text>
+
+    <!-- secondary dashed below -->
+    <rect x="800" y="182" width="180" height="62" rx="10" fill="white" stroke="#e8e2d8" filter="url(#ovShadowLt)"/>
+    <text x="890" y="207" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Dashboard</text>
+    <text x="890" y="224" text-anchor="middle" font-size="10" fill="#706e67">read replica</text>
+
+    <rect x="1100" y="182" width="180" height="62" rx="10" fill="white" stroke="#e8e2d8" filter="url(#ovShadowLt)"/>
+    <text x="1190" y="207" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Postgres</text>
+    <text x="1190" y="224" text-anchor="middle" font-size="10" fill="#706e67">primary</text>
+
+    <path d="M 980 213 L 1100 213" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="5,4" fill="none" marker-end="url(#ovArrow)" opacity="0.7"/>
+    <text x="1040" y="204" text-anchor="middle" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.4">MIRRORS</text>
+    <text x="1040" y="227" text-anchor="middle" font-size="9" font-style="italic" fill="#9e9b95">read-only</text>
+
+    <!-- bottom strap -->
+    <line x1="64" y1="312" x2="1596" y2="312" stroke="#ddd5c6"/>
+    <text x="64" y="338" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">PRINCIPLES</text>
+    <text x="64"  y="362" font-size="12" fill="#4a4845">01 · One identity, nine templates</text>
+    <text x="450" y="362" font-size="12" fill="#4a4845">02 · Geometry by token, not by guess</text>
+    <text x="900" y="362" font-size="12" fill="#4a4845">03 · Same service, same look, every diagram</text>
+    <text x="1380" y="362" font-size="12" fill="#4a4845">04 · Improvise nothing</text>
+  </svg>
+</div>
+
+<h2><span class="num">00.1</span>What changed</h2>
+<p class="section-lede">The current skill ships abstract rules and lets the model fill the gaps. The annotated screenshot in <code>screenshots/</code> shows what happens when the gaps are visual primitives — icons crash through titles, labels rotate vertically, arrows route through cards, deferred state is drawn two different ways in the same diagram. Each fix below is a named primitive the generator references by ID instead of inventing.</p>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h4>Before — abstract rules</h4>
+    <p style="margin-top:6px"><strong>“~40px breathing room.”</strong> One number, applied to every situation: cards adjacent, cards with arrows between, columns, stages, canvas edges. Every template invents its own card geometry from scratch.</p>
+    <ul class="checks" style="margin-top:10px">
+      <li class="no">No card primitive — icon position drifts per template</li>
+      <li class="no">No spacing system — arrows crowd cards</li>
+      <li class="no">No connector geometry — labels rotate, lines cross unrelated cards</li>
+      <li class="no">No fallback icon — unknown services get improvised</li>
+      <li class="no">No set manifest — same service looks different in two figures</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>After — named primitives</h4>
+    <p style="margin-top:6px"><strong>Tokens, components, markers, lanes.</strong> A generator that knows only the names <code>card.primary</code>, <code>arrow.solid-primary</code>, and <code>--gap-card</code> can produce a diagram visually identical to the canonical example.</p>
+    <ul class="checks" style="margin-top:10px">
+      <li class="ok">8 card variants + 6 shape primitives with reserved slots</li>
+      <li class="ok">14 spacing tokens, used by name across all templates</li>
+      <li class="ok">8 arrow types · gutter system · label zones · crossing jogs</li>
+      <li class="ok">78 icons in 9 categories + monogram fallback + 6 shape primitives</li>
+      <li class="ok">YAML manifest that pins entity → gradient → icon set-wide</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="num">00.2</span>Deliverables map</h2>
+<p class="section-lede">The brief asks for six deliverables. Each lives at a specific page in this site, plus a markdown source file the downstream skill can consume verbatim. The sidebar mirrors that structure.</p>
+
+<table class="tokens">
+  <thead><tr><th>Brief deliverable</th><th>This site</th><th>Source file</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>D1 · Master design system</td><td><a href="foundations.html">Foundations</a></td><td><code>design-system.md</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D2 · Component library</td><td><a href="components.html">Components</a></td><td><code>components/*.md</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D3 · Expanded icon library</td><td><a href="icons.html">Icons</a></td><td><code>icons/icons.svg</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D4 · Connector geometry</td><td><a href="connectors.html">Connectors</a></td><td><code>connectors/CONNECTORS.md</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D5 · Per-template visual contracts (×9)</td><td><a href="templates.html">Templates</a></td><td><code>templates/*.md</code></td><td><span class="tag good">3/9 v1 · 6 stubs · dark notes added</span></td></tr>
+    <tr><td>D6 · Worked canonical examples (×9, light + dark)</td><td><a href="examples.html">Examples</a></td><td><code>examples/*.{light,dark}.svg</code></td><td><span class="tag good">18 files · 9 light + 9 dark</span></td></tr>
+    <tr><td>Cross-diagram consistency mechanism</td><td><a href="manifest.html">Set manifest</a></td><td><code>diagram-set-manifest.md</code></td><td><span class="tag good">v1 schema</span></td></tr>
+  </tbody>
+</table>
+
+<h2><span class="num">00.3</span>The four hard rules</h2>
+<p class="section-lede">Everything in the spec ladders up to four principles. When a downstream generator faces ambiguity, fall back to these.</p>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h4>01 · One identity, nine templates, two themes</h4>
+    <p>The cream-and-indigo identity is fixed for light; a near-black + lifted-indigo identity is fixed for dark. Background gradient, indigo accent, Inter, viewBox width <code>1660</code> — none of these vary across the nine templates or between themes (structurally). Every other choice cascades from this.</p>
+  </div>
+  <div class="card">
+    <h4>02 · Geometry by token, not by guess</h4>
+    <p>Every spatial decision references a named token (<code>--gap-card</code>, <code>--lane-gutter</code>, <code>--label-clearance</code>). “Looks fine here” is not a layout strategy. If a number isn't in the registry, the generator doesn't get to invent one.</p>
+  </div>
+  <div class="card">
+    <h4>03 · Same service, same look, both themes</h4>
+    <p>A “Postgres” card in the system-context diagram and the sequence diagram of the same proposal must use the same gradient <em>id</em>, same icon, same label string — in light and in dark. The set manifest pins these once; the theme pass swaps stop values, not assignments.</p>
+  </div>
+  <div class="card">
+    <h4>04 · Improvise nothing</h4>
+    <p>Cards, icons, arrows, chips, labels — all named in this spec. If the system needs a primitive that isn't here, it doesn't get invented inline; the system uses the documented fallback (e.g. <code>icon.generic-service</code> with a monogram).</p>
+  </div>
+</div>
+
+<h2><span class="num">00.4</span>Where to go next</h2>
+<p class="section-lede">Reviewers can follow the sidebar top-to-bottom — Foundations sets vocabulary, Components and Icons are the visible primitives, Connectors is the geometry that fixes the screenshot's worst failures, Templates and Examples show the system in motion. The single highest-value page is <a href="connectors.html">Connectors</a> — that's where most visible bugs originate today.</p>
+
+<div class="grid cols-3" style="margin-top:18px">
+  <a class="card" href="foundations.html" style="text-decoration:none;color:inherit;display:block">
+    <p class="eyebrow" style="margin-bottom:4px">01</p>
+    <h3 style="margin:0 0 6px">Foundations</h3>
+    <p style="margin:0;font-size:13px">Color, type, spacing, shadow, gradient, animation tokens. Locked.</p>
+  </a>
+  <a class="card" href="components.html" style="text-decoration:none;color:inherit;display:block">
+    <p class="eyebrow" style="margin-bottom:4px">02</p>
+    <h3 style="margin:0 0 6px">Components</h3>
+    <p style="margin:0;font-size:13px">Cards, chips, shapes (circles · pills · diamonds · hexagons · stars · notes), lanes, stages, groups, callouts.</p>
+  </a>
+  <a class="card" href="icons.html" style="text-decoration:none;color:inherit;display:block">
+    <p class="eyebrow" style="margin-bottom:4px">03</p>
+    <h3 style="margin:0 0 6px">Icons</h3>
+    <p style="margin:0;font-size:13px">78 density-locked glyphs across 9 categories + monogram fallback.</p>
+  </a>
+  <a class="card" href="connectors.html" style="text-decoration:none;color:inherit;display:block;border:1px solid var(--indigo);box-shadow:0 4px 14px rgba(79,95,184,0.18)">
+    <p class="eyebrow" style="margin-bottom:4px">04 · the big one</p>
+    <h3 style="margin:0 0 6px">Connectors</h3>
+    <p style="margin:0;font-size:13px">Taxonomy, gutters, label zones, crossing jogs, density caps.</p>
+  </a>
+  <a class="card" href="examples.html" style="text-decoration:none;color:inherit;display:block">
+    <p class="eyebrow" style="margin-bottom:4px">06</p>
+    <h3 style="margin:0 0 6px">Examples</h3>
+    <p style="margin:0;font-size:13px">Canonical SVGs — what a correct application of the system looks like.</p>
+  </a>
+  <a class="card" href="manifest.html" style="text-decoration:none;color:inherit;display:block">
+    <p class="eyebrow" style="margin-bottom:4px">07</p>
+    <h3 style="margin:0 0 6px">Set manifest</h3>
+    <p style="margin:0;font-size:13px">YAML stub that locks entity → gradient → icon across a proposal.</p>
+  </a>
+</div>
+
+</main>
+</div>
+</body>
+</html>

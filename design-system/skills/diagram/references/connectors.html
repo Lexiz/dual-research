@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Connectors · architecture-diagram design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  /* shared inline defs used across the page so we don't duplicate */
+  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
+  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ex-frame.bad .ex-head { color: #8b3a25; }
+  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
+  .ex-frame.good .ex-head { color: #275a40; }
+  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
+  .ex-frame svg { display: block; width: 100%; height: auto; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
+  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
+  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
+  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
+  .rule .body strong { color:var(--ink-1); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>architecture-diagram</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html" class="active"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Deliverable 04 · Connector geometry</p>
+<h1 class="page">The arrows. Where most of today's visible failures live, made impossible by spec.</h1>
+<p class="lede">Today's <code>design-system.md</code> describes arrow <em>styles</em>. Nothing about <em>positioning</em>. This page fixes that: eight named arrow types, a marker registry, a gutter system for parallel arrows, label zones with a hard <strong>no-rotation</strong> rule, crossing-jog geometry, and density caps that force a diagram to split rather than crowd. If the generator can't honour all of these, the diagram is wrong — split it.</p>
+
+<div class="callout warn"><strong>The four arrow failures from the annotated screenshot:</strong>
+<ol style="margin:8px 0 0 16px; padding:0; font-size:13px; line-height:1.6;">
+  <li>“DESIGN DOCS” / “MERGED PRS” rotated 90° → fixed by <a href="#labels">04.5 Label placement</a>: no rotated labels, ever.</li>
+  <li>“MCP TOOLS” / “EMBEDS” floating without an anchor → fixed by <a href="#labels">04.5</a>: every connector label is bound to its line; orphan labels become <code>chip.label</code> on a card.</li>
+  <li>MCP Adapter → ARC arrow crossing through unrelated cards → fixed by <a href="#clearance">04.7 Clearance</a>: arrows can't pass within 16px of any unrelated card.</li>
+  <li>Parallel arrows bunching → fixed by <a href="#gutters">04.4 Lanes &amp; gutters</a>: 16px gutter between parallel lines; collapse to a trunk above 3.</li>
+</ol>
+</div>
+
+<!-- =========================================================== -->
+<!--                       TAXONOMY                               -->
+<!-- =========================================================== -->
+
+<h2 id="theme"><span class="num">04.0</span>Theme behavior across connectors</h2>
+<p class="section-lede">Connector <em>geometry</em> is theme-agnostic — every rule on this page (curve modes, lane gutters, label zones, clearance, density caps, crossing priority) applies unchanged to light and dark renders. What differs between the two output files is the <em>color</em> of strokes, marker fills, label text, and the callout-pill chip. The mapping is mechanical and lives in <a href="foundations.html#01.2">foundations §01.2</a>.</p>
+
+<table class="tokens">
+  <thead><tr><th>Element</th><th>Light value</th><th>Dark value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">Primary arrow stroke</td><td class="value">#4f5fb8</td><td class="value">#7785d4</td><td class="note">Lifted indigo for AAA-adjacent contrast on dark canvas.</td></tr>
+    <tr><td class="token">Secondary / grey stroke</td><td class="value">#9e9b95</td><td class="value">#7a7873</td><td class="note">Darker tone — both inks land at 4–4.5:1 against their canvas (AA large).</td></tr>
+    <tr><td class="token">Marker <code>arrowAccent</code>, <code>arrowAccentSm</code> fill</td><td class="value">#4f5fb8</td><td class="value">#7785d4</td><td class="note">Matches primary stroke.</td></tr>
+    <tr><td class="token">Marker <code>arrowGrey</code> fill</td><td class="value">#9e9b95</td><td class="value">#7a7873</td><td class="note">Matches secondary stroke.</td></tr>
+    <tr><td class="token">Status arrow markers</td><td class="value">status colors</td><td class="value">status colors (unchanged)</td><td class="note">All 8 status hues are theme-portable; no adjustment needed.</td></tr>
+    <tr><td class="token">Zone A label (caps above-line)</td><td class="value">matched to stroke</td><td class="value">matched to stroke</td><td class="note">Inherits the new dark stroke color automatically.</td></tr>
+    <tr><td class="token">Zone B label (italic below)</td><td class="value">--ink-4 (#9e9b95)</td><td class="value">--ink-4-dark (#7a7873)</td><td class="note">Connector subtitle.</td></tr>
+    <tr><td class="token">Zone C label (on-line pill)</td><td class="value">fill #f5f1ea, stroke #4f5fb8, text #4f5fb8</td><td class="value">fill #252531, stroke #7785d4, text #c5cdf0</td><td class="note">The pill becomes a mid-tone light-card on dark; indigo stroke lifts; text uses indigo-tint for legibility on the lifted-tile fill.</td></tr>
+  </tbody>
+</table>
+
+<h3>Both marker sets ship in <code>&lt;defs&gt;</code> per file</h3>
+<p>Each output file declares its theme-appropriate markers once. The <em>id</em>s are stable (<code>arrowAccent</code>, <code>arrowGrey</code>, etc.) so every <code>marker-end="url(#arrowAccent)"</code> reference in the SVG body works unchanged across both files. Only the <code>&lt;path fill=&gt;</code> inside the marker differs.</p>
+
+<div class="pair">
+  <div class="frame">
+    <div class="frame-head"><span class="theme">Light</span><span class="meta">indigo + grey arrows on cream</span></div>
+    <svg viewBox="0 0 800 200" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="cnBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="cnArrLA" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <marker id="cnArrLG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#9e9b95"/></marker>
+      </defs>
+      <rect width="800" height="200" fill="url(#cnBgL)"/>
+      <rect x="40" y="60" width="160" height="80" rx="12" fill="#ffffff" stroke="#e8e2d8"/>
+      <rect x="600" y="60" width="160" height="80" rx="12" fill="#ffffff" stroke="#e8e2d8"/>
+      <text x="120" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Source</text>
+      <text x="680" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Target</text>
+      <!-- primary arrow -->
+      <path d="M 208 84 L 592 84" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#cnArrLA)"/>
+      <text x="400" y="74" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1.2">PRIMARY · ZONE A</text>
+      <!-- secondary -->
+      <path d="M 208 124 L 592 124" stroke="#9e9b95" stroke-width="1.4" fill="none" marker-end="url(#cnArrLG)"/>
+      <text x="400" y="142" text-anchor="middle" font-size="10" font-style="italic" fill="#9e9b95">secondary · zone B</text>
+      <!-- zone C pill -->
+      <rect x="356" y="160" width="88" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"/>
+      <text x="400" y="175" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">ZONE C · PILL</text>
+    </svg>
+  </div>
+  <div class="frame dark">
+    <div class="frame-head"><span class="theme">Dark</span><span class="meta">lifted indigo + secondary on near-black</span></div>
+    <svg viewBox="0 0 800 200" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="cnBgD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1a1f"/><stop offset="100%" stop-color="#14141a"/></linearGradient>
+        <marker id="cnArrDA" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"/></marker>
+        <marker id="cnArrDG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"/></marker>
+      </defs>
+      <rect width="800" height="200" fill="url(#cnBgD)"/>
+      <rect x="40" y="60" width="160" height="80" rx="12" fill="#252531" stroke="rgba(255,255,255,0.10)"/>
+      <rect x="600" y="60" width="160" height="80" rx="12" fill="#252531" stroke="rgba(255,255,255,0.10)"/>
+      <text x="120" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="#ebebe5">Source</text>
+      <text x="680" y="106" text-anchor="middle" font-size="12" font-weight="600" fill="#ebebe5">Target</text>
+      <path d="M 208 84 L 592 84" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#cnArrDA)"/>
+      <text x="400" y="74" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1.2">PRIMARY · ZONE A</text>
+      <path d="M 208 124 L 592 124" stroke="#7a7873" stroke-width="1.4" fill="none" marker-end="url(#cnArrDG)"/>
+      <text x="400" y="142" text-anchor="middle" font-size="10" font-style="italic" fill="#7a7873">secondary · zone B</text>
+      <rect x="356" y="160" width="88" height="22" rx="11" fill="#252531" stroke="#7785d4"/>
+      <text x="400" y="175" text-anchor="middle" font-size="10" font-weight="600" fill="#c5cdf0" letter-spacing="0.8">ZONE C · PILL</text>
+    </svg>
+  </div>
+</div>
+
+<div class="callout"><strong>For sections §04.1 through §04.8 below:</strong> everything is theme-agnostic geometry. When you see a literal hex value in a sample SVG snippet, apply the swap from the table above for the dark variant. Don't re-derive these mappings per-arrow — they live in foundations §01.2 and are the same for every connector everywhere.</div>
+
+<!-- =========================================================== -->
+
+<h2 id="taxonomy"><span class="num">04.1</span>Arrow taxonomy · eight types, one per semantic</h2>
+<p class="section-lede">Each arrow type carries a specific meaning. The generator picks by semantic, not by aesthetic. <code>solid-primary</code> for high-traffic flow, <code>dashed-handoff</code> for discrete handoff, <code>mirror-secondary</code> for read-only / “also goes here”. Adding a ninth type means the spec is wrong — extend the taxonomy formally, never inline.</p>
+
+<div class="frame">
+  <div class="frame-head"><span>the eight arrow types</span><span class="meta">live stroke specimens at canon scale</span></div>
+  <svg viewBox="0 0 1660 720" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="txBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <!-- arrowhead markers -->
+      <marker id="mAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+      <marker id="mAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#4f5fb8"/></marker>
+      <marker id="mGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#9e9b95"/></marker>
+      <marker id="mSlate" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a5568"/></marker>
+      <marker id="mGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#3d7f5b"/></marker>
+      <marker id="mRed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#cc6e55"/></marker>
+      <marker id="mAccentStart" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto-start-reverse"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+      <marker id="mOpen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7" stroke="#4a5568" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    </defs>
+    <rect width="1660" height="720" fill="url(#txBg)"/>
+
+    <!-- 8 rows × 2 cols (row spacing 80) -->
+    <g font-family="Inter, system-ui, sans-serif">
+      <!-- Row 1 — solid-primary -->
+      <text x="56" y="74" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.solid-primary</text>
+      <text x="56" y="92" font-size="13" fill="#1a1a18">High-traffic flow · default arrow</text>
+      <path d="M 540 84 L 1100 84" stroke="#4f5fb8" stroke-width="2" fill="none" marker-end="url(#mAccent)"/>
+      <text x="820" y="76" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">RECEIVES</text>
+      <text x="1140" y="88" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 2 · #4f5fb8 · mAccent</text>
+
+      <!-- Row 2 — dashed-handoff -->
+      <text x="56" y="154" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.dashed-handoff</text>
+      <text x="56" y="172" font-size="13" fill="#1a1a18">Discrete handoff · agent-to-agent</text>
+      <path d="M 540 164 L 1100 164" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="6,5" fill="none" marker-end="url(#mAccentSm)"/>
+      <text x="820" y="156" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">HANDOFF · 1×</text>
+      <text x="1140" y="168" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 1.6 · 6,5 · mAccentSm</text>
+
+      <!-- Row 3 — mirror-secondary -->
+      <text x="56" y="234" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.mirror-secondary</text>
+      <text x="56" y="252" font-size="13" fill="#1a1a18">Mirrors / read-only flow · UI also reads</text>
+      <path d="M 540 244 L 1100 244" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#mGrey)"/>
+      <text x="820" y="236" text-anchor="middle" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1">MIRRORS</text>
+      <text x="1140" y="248" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 1.3 · 4,3 · mGrey</text>
+
+      <!-- Row 4 — sync-call -->
+      <text x="56" y="314" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.sync-call</text>
+      <text x="56" y="332" font-size="13" fill="#1a1a18">Sequence: synchronous call (request)</text>
+      <path d="M 540 324 L 1100 324" stroke="#4a5568" stroke-width="1.6" fill="none" marker-end="url(#mSlate)"/>
+      <text x="820" y="316" text-anchor="middle" font-size="10" font-weight="600" fill="#4a5568" letter-spacing="1">POST /runs</text>
+      <text x="1140" y="328" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 1.6 · solid · mSlate</text>
+
+      <!-- Row 5 — return -->
+      <text x="56" y="394" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.return</text>
+      <text x="56" y="412" font-size="13" fill="#1a1a18">Sequence: response / return path</text>
+      <path d="M 1100 404 L 540 404" stroke="#4a5568" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#mOpen)"/>
+      <text x="820" y="396" text-anchor="middle" font-size="10" font-weight="600" fill="#4a5568" letter-spacing="1">200 · {id}</text>
+      <text x="1140" y="408" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 1.4 · 5,4 · mOpen (outline)</text>
+
+      <!-- Row 6 — async-event -->
+      <text x="56" y="474" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.async-event</text>
+      <text x="56" y="492" font-size="13" fill="#1a1a18">Event-flow: producer → topic → consumer</text>
+      <path d="M 540 484 L 1100 484" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="2,4" fill="none" marker-end="url(#mAccentSm)"/>
+      <text x="820" y="476" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">RUN.STARTED</text>
+      <text x="1140" y="488" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 1.6 · 2,4 dot · mAccentSm</text>
+
+      <!-- Row 7 — bidirectional -->
+      <text x="56" y="554" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.bidirectional</text>
+      <text x="56" y="572" font-size="13" fill="#1a1a18">Two-way relationship · sync between peers</text>
+      <path d="M 540 564 L 1100 564" stroke="#4a5568" stroke-width="1.5" fill="none" marker-end="url(#mSlate)" marker-start="url(#mAccentStart)"/>
+      <text x="820" y="556" text-anchor="middle" font-size="10" font-weight="600" fill="#4a5568" letter-spacing="1">SYNCS · BOTH WAYS</text>
+      <text x="1140" y="568" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">marker-start + marker-end</text>
+
+      <!-- Row 8 — error -->
+      <text x="56" y="634" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">.error-path</text>
+      <text x="56" y="652" font-size="13" fill="#1a1a18">Failure / blocked path</text>
+      <path d="M 540 644 L 1100 644" stroke="#cc6e55" stroke-width="1.6" fill="none" marker-end="url(#mRed)"/>
+      <text x="820" y="636" text-anchor="middle" font-size="10" font-weight="600" fill="#cc6e55" letter-spacing="1">REJECTED · 4XX</text>
+      <text x="1140" y="648" font-family="JetBrains Mono, monospace" font-size="10" fill="#706e67">stroke 1.6 · #cc6e55 · mRed</text>
+    </g>
+  </svg>
+</div>
+
+<div class="callout">Adding a ninth arrow type is a spec amendment, not a per-diagram decision. If you reach for one (e.g. “a feedback loop with retry semantics”), document it here first, then use. The point of a closed set is that two diagrams in the same proposal read the same way.</div>
+
+<!-- =========================================================== -->
+<!--                       MARKERS                                -->
+<!-- =========================================================== -->
+
+<h2><span class="num">04.2</span>Marker registry · exact dimensions</h2>
+<p class="section-lede">All markers are declared at the top of <code>&lt;defs&gt;</code>. <code>refX</code> places the marker tip relative to the path end; <code>refY</code> centers it. These dimensions are tuned to look correct against a 1.6–2px stroke. Don't scale markers per arrow — pick the named marker that fits.</p>
+
+<div class="frame">
+  <div class="frame-head"><span>marker geometry</span><span class="meta">5× zoom for legibility</span></div>
+  <svg viewBox="0 0 1660 280" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="mkBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+    </defs>
+    <rect width="1660" height="280" fill="url(#mkBg)"/>
+
+    <!-- 5 markers shown at 5× scale -->
+    <g transform="translate(180, 80)">
+      <line x1="-100" y1="0" x2="0" y2="0" stroke="#4f5fb8" stroke-width="2"/>
+      <g transform="scale(5)"><path d="M0,-3 L0,3 L8,0 z" fill="#4f5fb8"/></g>
+      <text x="-100" y="60" font-family="JetBrains Mono, monospace" font-size="11" fill="#4a4845">arrowAccent</text>
+      <text x="-100" y="78" font-size="10" fill="#706e67">8×8 · refX 6 · refY 3</text>
+      <text x="-100" y="96" font-size="10" fill="#706e67">solid-primary, async-event, bidirectional</text>
+    </g>
+
+    <g transform="translate(500, 80)">
+      <line x1="-100" y1="0" x2="0" y2="0" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="6,5"/>
+      <g transform="scale(5)"><path d="M0,-3 L0,3 L7,0 z" fill="#4f5fb8"/></g>
+      <text x="-100" y="60" font-family="JetBrains Mono, monospace" font-size="11" fill="#4a4845">arrowAccentSm</text>
+      <text x="-100" y="78" font-size="10" fill="#706e67">7×7 · refX 5 · refY 3</text>
+      <text x="-100" y="96" font-size="10" fill="#706e67">dashed-handoff, async-event</text>
+    </g>
+
+    <g transform="translate(820, 80)">
+      <line x1="-100" y1="0" x2="0" y2="0" stroke="#4a5568" stroke-width="1.6"/>
+      <g transform="scale(5)"><path d="M0,-3 L0,3 L8,0 z" fill="#4a5568"/></g>
+      <text x="-100" y="60" font-family="JetBrains Mono, monospace" font-size="11" fill="#4a4845">arrowSlate</text>
+      <text x="-100" y="78" font-size="10" fill="#706e67">8×8 · refX 6 · refY 3</text>
+      <text x="-100" y="96" font-size="10" fill="#706e67">sync-call, bidirectional</text>
+    </g>
+
+    <g transform="translate(1140, 80)">
+      <line x1="-100" y1="0" x2="0" y2="0" stroke="#4a5568" stroke-width="1.4" stroke-dasharray="5,4"/>
+      <g transform="scale(5)"><path d="M0,-3.5 L8,0 L0,3.5" stroke="#4a5568" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+      <text x="-100" y="60" font-family="JetBrains Mono, monospace" font-size="11" fill="#4a4845">arrowOpen</text>
+      <text x="-100" y="78" font-size="10" fill="#706e67">9×9 · refX 7 · refY 3.5</text>
+      <text x="-100" y="96" font-size="10" fill="#706e67">return paths only</text>
+    </g>
+
+    <g transform="translate(1460, 80)">
+      <line x1="-100" y1="0" x2="0" y2="0" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3"/>
+      <g transform="scale(5)"><path d="M0,-3 L0,3 L8,0 z" fill="#9e9b95"/></g>
+      <text x="-100" y="60" font-family="JetBrains Mono, monospace" font-size="11" fill="#4a4845">arrowGrey</text>
+      <text x="-100" y="78" font-size="10" fill="#706e67">8×8 · refX 6 · refY 3</text>
+      <text x="-100" y="96" font-size="10" fill="#706e67">mirror-secondary</text>
+    </g>
+
+    <line x1="56" y1="200" x2="1604" y2="200" stroke="#ddd5c6"/>
+    <text x="56" y="226" font-size="11" fill="#4a4845">Plus <code>arrowGreen</code> (mGreen) and <code>arrowRed</code> (mRed) for status-colored lines. Same 8×8 geometry as <code>arrowAccent</code>, different fill.</text>
+  </svg>
+</div>
+
+<pre><code><span class="c">&lt;!-- complete marker registry — paste into every diagram's &lt;defs&gt; --&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowAccent"</span>   <span class="a">markerWidth=</span><span class="s">"8"</span> <span class="a">markerHeight=</span><span class="s">"8"</span> <span class="a">refX=</span><span class="s">"6"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#4f5fb8"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowAccentSm"</span> <span class="a">markerWidth=</span><span class="s">"7"</span> <span class="a">markerHeight=</span><span class="s">"7"</span> <span class="a">refX=</span><span class="s">"5"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L7,3 z"</span> <span class="a">fill=</span><span class="s">"#4f5fb8"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowSlate"</span>    <span class="a">markerWidth=</span><span class="s">"8"</span> <span class="a">markerHeight=</span><span class="s">"8"</span> <span class="a">refX=</span><span class="s">"6"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#4a5568"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowGrey"</span>     <span class="a">markerWidth=</span><span class="s">"8"</span> <span class="a">markerHeight=</span><span class="s">"8"</span> <span class="a">refX=</span><span class="s">"6"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#9e9b95"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowGreen"</span>    <span class="a">markerWidth=</span><span class="s">"8"</span> <span class="a">markerHeight=</span><span class="s">"8"</span> <span class="a">refX=</span><span class="s">"6"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#3d7f5b"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowRed"</span>      <span class="a">markerWidth=</span><span class="s">"8"</span> <span class="a">markerHeight=</span><span class="s">"8"</span> <span class="a">refX=</span><span class="s">"6"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#cc6e55"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowOpen"</span>     <span class="a">markerWidth=</span><span class="s">"9"</span> <span class="a">markerHeight=</span><span class="s">"9"</span> <span class="a">refX=</span><span class="s">"7"</span> <span class="a">refY=</span><span class="s">"3.5"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L8,3.5 L0,7"</span> <span class="a">stroke=</span><span class="s">"#4a5568"</span> <span class="a">stroke-width=</span><span class="s">"1.4"</span> <span class="a">fill=</span><span class="s">"none"</span><span class="k">/&gt;&lt;/marker&gt;</span></code></pre>
+
+<!-- =========================================================== -->
+<!--                         CURVES                                -->
+<!-- =========================================================== -->
+
+<h2 id="curves"><span class="num">04.3</span>Curve rules · straight, quadratic, cubic</h2>
+<p class="section-lede">Three curve modes. Pick by the geometry of the shortest path, not by aesthetics.</p>
+
+<div class="frame">
+  <div class="frame-head"><span>three curve modes, three situations</span><span class="meta">--bend-radius 24 · max 60° per bend</span></div>
+  <svg viewBox="0 0 1660 360" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="cvBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <marker id="cvArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+      <filter id="cvSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="360" fill="url(#cvBg)"/>
+
+    <!-- straight -->
+    <text x="56" y="56" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">L · STRAIGHT</text>
+    <text x="56" y="74" font-size="12" fill="#4a4845">Axially aligned, no obstacles</text>
+    <rect x="56" y="120" width="140" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cvSh)"/>
+    <rect x="324" y="120" width="140" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cvSh)"/>
+    <path d="M 196 160 L 324 160" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#cvArr)"/>
+    <text x="260" y="152" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">CALLS</text>
+    <text x="56"  y="234" font-size="11" fill="#4a4845" font-family="JetBrains Mono, monospace">d="M x1 y1 L x2 y2"</text>
+    <text x="56"  y="254" font-size="11" fill="#706e67">Use when both endpoints sit on the same axis line.</text>
+
+    <!-- quadratic -->
+    <text x="580" y="56" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">Q · QUADRATIC</text>
+    <text x="580" y="74" font-size="12" fill="#4a4845">Single bend, short offset (&lt;200px)</text>
+    <rect x="580" y="120" width="140" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cvSh)"/>
+    <rect x="848" y="180" width="140" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cvSh)"/>
+    <path d="M 720 160 Q 820 160 848 220" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#cvArr)"/>
+    <text x="790" y="152" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">DELEGATES</text>
+    <text x="580" y="290" font-size="11" fill="#4a4845" font-family="JetBrains Mono, monospace">d="M x1 y1 Q cx cy x2 y2"</text>
+    <text x="580" y="310" font-size="11" fill="#706e67">One control point. Bend radius ≥ --bend-radius (24).</text>
+
+    <!-- cubic -->
+    <text x="1104" y="56" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">C · CUBIC</text>
+    <text x="1104" y="74" font-size="12" fill="#4a4845">S-curve, mid-jog, long offset (&gt;300px)</text>
+    <rect x="1104" y="120" width="140" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cvSh)"/>
+    <rect x="1448" y="220" width="140" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cvSh)"/>
+    <path d="M 1244 160 C 1320 160 1380 260 1448 260" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#cvArr)"/>
+    <text x="1346" y="200" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">DROPS TO</text>
+    <text x="1104" y="330" font-size="11" fill="#4a4845" font-family="JetBrains Mono, monospace">d="M x1 y1 C c1x c1y c2x c2y x2 y2"</text>
+    <text x="1104" y="350" font-size="11" fill="#706e67">Two control points. Symmetric S-curves between rows.</text>
+  </svg>
+</div>
+
+<table class="tokens">
+  <thead><tr><th>Rule</th><th>Value</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--bend-radius</td><td class="value">24</td><td class="note">Minimum curvature radius. Below this, a curve reads as a kink. If your control point produces &lt;24, increase the gap between endpoints or switch to straight.</td></tr>
+    <tr><td class="token">--max-bend-angle</td><td class="value">60°</td><td class="note">No single curve may bend more than 60°. If the geometry demands more, you need a different layout — not a sharper curve.</td></tr>
+    <tr><td class="token">curve choice</td><td class="value">L · Q · C</td><td class="note">Straight for axial. Quadratic for offsets up to ~200px. Cubic for longer S-curves spanning rows or columns. Don't mix.</td></tr>
+    <tr><td class="token">corners</td><td class="value">forbidden</td><td class="note">No <code>M…L…L…</code> right-angle elbows. Use Q with a control point at the corner instead.</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<!--                       LANES & GUTTERS                        -->
+<!-- =========================================================== -->
+
+<h2 id="gutters"><span class="num">04.4</span>Lanes &amp; gutters · parallel arrows</h2>
+<p class="section-lede">When two or more arrows run between the same region pair, they need <em>reserved space</em> to live in. Without it, they bunch onto one line and become illegible.</p>
+
+<div class="compare">
+  <div class="ex-frame bad">
+    <div class="ex-head"><span>bad — arrows bunch on one center-line</span><span>before</span></div>
+    <svg viewBox="0 0 800 320" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="bdBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="bdAr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <filter id="bdSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+      </defs>
+      <rect width="800" height="320" fill="url(#bdBg)"/>
+      <rect x="60" y="120" width="180" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#bdSh)"/>
+      <text x="150" y="160" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">API</text>
+      <rect x="560" y="120" width="180" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#bdSh)"/>
+      <text x="650" y="160" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">Worker</text>
+      <!-- three arrows all on center -->
+      <path d="M 240 160 L 558 160" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#bdAr)"/>
+      <path d="M 240 162 L 558 162" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#bdAr)"/>
+      <path d="M 240 164 L 558 164" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#bdAr)"/>
+      <text x="400" y="152" text-anchor="middle" font-size="9" font-weight="600" fill="#4f5fb8">ENQUEUE / RETRY / DRAIN</text>
+      <text x="400" y="180" text-anchor="middle" font-size="10" font-style="italic" fill="#cc6e55">3 arrows occupying the same line</text>
+    </svg>
+  </div>
+
+  <div class="ex-frame good">
+    <div class="ex-head"><span>good — gutter of 16 between parallel lanes</span><span>after</span></div>
+    <svg viewBox="0 0 800 320" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="gdBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="gdAr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <filter id="gdSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+      </defs>
+      <rect width="800" height="320" fill="url(#gdBg)"/>
+      <rect x="60" y="100" width="180" height="120" rx="10" fill="white" stroke="#e8e2d8" filter="url(#gdSh)"/>
+      <text x="150" y="160" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">API</text>
+      <rect x="560" y="100" width="180" height="120" rx="10" fill="white" stroke="#e8e2d8" filter="url(#gdSh)"/>
+      <text x="650" y="160" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">Worker</text>
+      <!-- 3 lanes spaced 16 -->
+      <path d="M 240 132 L 558 132" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#gdAr)"/>
+      <text x="400" y="124" text-anchor="middle" font-size="9" font-weight="600" fill="#4f5fb8" letter-spacing="1">ENQUEUE</text>
+      <path d="M 240 164 L 558 164" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#gdAr)"/>
+      <text x="400" y="156" text-anchor="middle" font-size="9" font-weight="600" fill="#4f5fb8" letter-spacing="1">RETRY</text>
+      <path d="M 240 196 L 558 196" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#gdAr)"/>
+      <text x="400" y="188" text-anchor="middle" font-size="9" font-weight="600" fill="#4f5fb8" letter-spacing="1">DRAIN</text>
+
+      <!-- gutter marks -->
+      <line x1="400" y1="135" x2="400" y2="161" stroke="#cc6e55" stroke-width="0.8" stroke-dasharray="2,2"/>
+      <text x="408" y="151" font-family="JetBrains Mono, monospace" font-size="8" fill="#cc6e55">16</text>
+    </svg>
+  </div>
+</div>
+
+<div class="rule"><div class="num">04.4a</div><div class="body"><strong>Gutter rule.</strong> When ≥2 arrows run between the same region pair, allocate a <code>--lane-gutter</code> (16px) reservation between adjacent lanes. Each lane is centered on its allocated row; labels sit above each lane's own line, never shared.</div></div>
+
+<div class="rule"><div class="num">04.4b</div><div class="body"><strong>Card height stretches to accommodate lanes.</strong> If you have 3 parallel arrows landing on a card, the card's height must support 3 lanes × <code>--lane-gutter</code>. The card grows; the lanes don't crowd.</div></div>
+
+<div class="rule"><div class="num">04.4c</div><div class="body"><strong>Trunk collapse.</strong> When &gt;3 parallel arrows exist between the same region pair, collapse them into a single labeled trunk arrow with a <code>chip.count</code> badge (“4 EVENTS”). The individual semantics belong in the receiver's body text or in a footnote, not as four arrows.</div></div>
+
+<div class="frame">
+  <div class="frame-head"><span>trunk collapse · 5 arrows → 1 + chip.count</span><span class="meta">density rule applied</span></div>
+  <svg viewBox="0 0 1660 200" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="tkBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <marker id="tkAr" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#4f5fb8"/></marker>
+      <filter id="tkSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="200" fill="url(#tkBg)"/>
+    <rect x="200" y="60" width="320" height="80" rx="12" fill="white" stroke="#e8e2d8" filter="url(#tkSh)"/>
+    <text x="360" y="100" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Vetting API</text>
+    <rect x="1140" y="60" width="320" height="80" rx="12" fill="white" stroke="#e8e2d8" filter="url(#tkSh)"/>
+    <text x="1300" y="100" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Pub/Sub event bus</text>
+    <!-- thick trunk arrow -->
+    <path d="M 520 100 L 1140 100" stroke="#4f5fb8" stroke-width="3" fill="none" marker-end="url(#tkAr)"/>
+    <!-- count chip -->
+    <g transform="translate(780, 80)">
+      <rect width="100" height="22" rx="11" fill="#4f5fb8"/>
+      <text x="50" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="white" letter-spacing="0.8">5 EVENTS</text>
+    </g>
+    <text x="780" y="148" font-size="11" font-style="italic" fill="#706e67">run.start · run.tick · run.fail · run.complete · run.archive — listed in the consumer's body, not as 5 arrows</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                       LABEL PLACEMENT                        -->
+<!-- =========================================================== -->
+
+<h2 id="labels"><span class="num">04.5</span>Label placement · zones &amp; the no-rotation rule</h2>
+<p class="section-lede">The “DESIGN DOCS” / “MERGED PRS” rotation failure from the screenshot lives here. The fix is mechanical: a label occupies one of three zones, and rotation is forbidden. If horizontal space isn't sufficient, the <em>arrow</em> changes shape, not the label.</p>
+
+<div class="frame">
+  <div class="frame-head"><span>the three legal label zones</span><span class="meta">--label-clearance 12 · no rotation, ever</span></div>
+  <svg viewBox="0 0 1660 360" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="lbBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <marker id="lbAr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+      <filter id="lbSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="360" fill="url(#lbBg)"/>
+
+    <!-- zone 1: above + below -->
+    <text x="56" y="56" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">ZONE A · ABOVE-LINE</text>
+    <text x="56" y="74" font-size="12" fill="#4a4845">Caps label, 12px above center</text>
+
+    <rect x="60" y="124" width="160" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#lbSh)"/>
+    <rect x="360" y="124" width="160" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#lbSh)"/>
+    <path d="M 220 164 L 360 164" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#lbAr)"/>
+    <text x="290" y="152" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">PUBLISHES</text>
+    <text x="290" y="176" text-anchor="middle" font-size="9" font-style="italic" fill="#9e9b95">at-least-once</text>
+
+    <!-- zone B annotations -->
+    <line x1="220" y1="154" x2="360" y2="154" stroke="#cc6e55" stroke-width="0.4" stroke-dasharray="1,2"/>
+    <line x1="220" y1="174" x2="360" y2="174" stroke="#cc6e55" stroke-width="0.4" stroke-dasharray="1,2"/>
+
+    <text x="60" y="234" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">ZONE B · BELOW-LINE</text>
+    <text x="60" y="252" font-size="12" fill="#4a4845">Italic subtitle, 10px below center</text>
+
+    <!-- zone 2: inline-on-line -->
+    <text x="600" y="56" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="1.6">ZONE C · ON-LINE PILL</text>
+    <text x="600" y="74" font-size="12" fill="#4a4845">When line has to jog or curve through space</text>
+
+    <rect x="600" y="124" width="160" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#lbSh)"/>
+    <rect x="940" y="244" width="160" height="80" rx="10" fill="white" stroke="#e8e2d8" filter="url(#lbSh)"/>
+    <path d="M 760 164 C 850 164 850 284 940 284" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#lbAr)"/>
+    <!-- pill on the curve at mid-point -->
+    <g transform="translate(778, 213)">
+      <rect width="92" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"/>
+      <text x="46" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">DROPS TO</text>
+    </g>
+
+    <!-- forbidden examples on the right -->
+    <text x="1240" y="56" font-size="11" font-weight="600" fill="#cc6e55" letter-spacing="1.6">FORBIDDEN ZONES</text>
+
+    <g transform="translate(1240, 100)">
+      <text x="0" y="14" font-size="11" font-weight="600" fill="#1a1a18">✗  Rotated 90°</text>
+      <text x="0" y="32" font-size="11" fill="#4a4845">Hard to read. Always fix the arrow.</text>
+    </g>
+    <g transform="translate(1240, 150)">
+      <text x="0" y="14" font-size="11" font-weight="600" fill="#1a1a18">✗  Floating, no anchor</text>
+      <text x="0" y="32" font-size="11" fill="#4a4845">Becomes a chip.label tied to a card.</text>
+    </g>
+    <g transform="translate(1240, 200)">
+      <text x="0" y="14" font-size="11" font-weight="600" fill="#1a1a18">✗  Crossing the line</text>
+      <text x="0" y="32" font-size="11" fill="#4a4845">Use a callout chip, not in-line text.</text>
+    </g>
+    <g transform="translate(1240, 250)">
+      <text x="0" y="14" font-size="11" font-weight="600" fill="#1a1a18">✗  Stacked on another label</text>
+      <text x="0" y="32" font-size="11" fill="#4a4845">Move one arrow into a different lane.</text>
+    </g>
+  </svg>
+</div>
+
+<div class="compare">
+  <div class="ex-frame bad">
+    <div class="ex-head"><span>bad — label rotated for cross-column line</span><span>screenshot pattern</span></div>
+    <svg viewBox="0 0 800 280" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="rb1Bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="rb1Ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <filter id="rb1Sh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+      </defs>
+      <rect width="800" height="280" fill="url(#rb1Bg)"/>
+      <rect x="60" y="60" width="280" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#rb1Sh)"/>
+      <text x="200" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">Brainstorm Pipeline</text>
+      <rect x="60" y="180" width="280" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#rb1Sh)"/>
+      <text x="200" y="216" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">Development Pipeline</text>
+      <path d="M 200 120 L 200 180" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#rb1Ar)"/>
+      <text transform="translate(216, 150) rotate(90)" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">DESIGN DOCS</text>
+    </svg>
+  </div>
+
+  <div class="ex-frame good">
+    <div class="ex-head"><span>good — line jogs to make room, label horizontal</span><span>after</span></div>
+    <svg viewBox="0 0 800 280" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="rg1Bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="rg1Ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <filter id="rg1Sh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+      </defs>
+      <rect width="800" height="280" fill="url(#rg1Bg)"/>
+      <rect x="60" y="60" width="280" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#rg1Sh)"/>
+      <text x="200" y="96" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">Brainstorm Pipeline</text>
+      <rect x="460" y="180" width="280" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#rg1Sh)"/>
+      <text x="600" y="216" text-anchor="middle" font-size="13" font-weight="600" fill="#1a1a18">Development Pipeline</text>
+      <path d="M 280 120 C 380 120 460 210 460 210" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#rg1Ar)"/>
+      <g transform="translate(338, 154)">
+        <rect width="120" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"/>
+        <text x="60" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">DESIGN DOCS</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<div class="rule"><div class="num">04.5a</div><div class="body"><strong>No rotated labels — ever.</strong> Vertical text is hard to read at every scale. If the natural horizontal label position is blocked, the arrow changes shape (zone C pill on a jog) or the label becomes a <code>chip.label</code> on its owning element.</div></div>
+
+<div class="rule"><div class="num">04.5b</div><div class="body"><strong>Every connector label is bound to its line.</strong> Floating ALL-CAPS labels (like the “MCP TOOLS” / “EMBEDS” problem) are forbidden. If the label describes a region, it's a <code>chip.label</code> on a card. If it describes a flow, it sits in zone A above that line.</div></div>
+
+<div class="rule"><div class="num">04.5c</div><div class="body"><strong>Label-on-label collision is impossible by spec.</strong> Two labels in the same zone within <code>--label-clearance × 2</code> (24px) of each other = move one arrow into a different lane. Two labels overlapping is never an aesthetic decision.</div></div>
+
+<!-- =========================================================== -->
+<!--                       CROSSING RULES                         -->
+<!-- =========================================================== -->
+
+<h2 id="crossings"><span class="num">04.6</span>Crossings · which arrow jogs over which</h2>
+<p class="section-lede">Crossings are unavoidable in some layouts. When they happen, the rule is deterministic: the <em>secondary</em> arrow jogs over the primary; if both are primary, the <em>shorter</em> jogs over the longer.</p>
+
+<div class="frame">
+  <div class="frame-head"><span>crossing jog · 6px arc on the jogging line</span><span class="meta">.crossing-jog · always small</span></div>
+  <svg viewBox="0 0 1660 320" font-family="Inter, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="crBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+      <marker id="crAr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+      <marker id="crArG" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#9e9b95"/></marker>
+      <filter id="crSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="320" fill="url(#crBg)"/>
+
+    <!-- left: bad - clean cross with no jog -->
+    <text x="100" y="56" font-size="11" font-weight="600" fill="#cc6e55" letter-spacing="1.6">BEFORE · ARROWS INTERSECT</text>
+    <rect x="80"  y="100" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="140" y="136" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">A</text>
+    <rect x="380" y="100" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="440" y="136" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">B</text>
+    <rect x="80"  y="220" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="140" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">C</text>
+    <rect x="380" y="220" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="440" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">D</text>
+    <!-- arrows -->
+    <path d="M 200 130 L 380 250" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#crAr)"/>
+    <path d="M 200 250 L 380 130" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#crArG)"/>
+
+    <!-- right: good - jog -->
+    <text x="900" y="56" font-size="11" font-weight="600" fill="#275a40" letter-spacing="1.6">AFTER · MIRROR JOGS OVER PRIMARY</text>
+    <rect x="880"  y="100" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="940" y="136" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">A</text>
+    <rect x="1180" y="100" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="1240" y="136" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">B</text>
+    <rect x="880"  y="220" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="940" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">C</text>
+    <rect x="1180" y="220" width="120" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#crSh)"/>
+    <text x="1240" y="256" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">D</text>
+
+    <!-- primary straight -->
+    <path d="M 1000 130 L 1180 250" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#crAr)"/>
+
+    <!-- secondary with arc over -->
+    <path d="M 1000 250 L 1080 200 A 8 8 0 0 1 1098 200 L 1180 130" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#crArG)"/>
+
+    <!-- callout on jog -->
+    <circle cx="1089" cy="190" r="20" fill="none" stroke="#4f5fb8" stroke-width="0.6" stroke-dasharray="2,2"/>
+    <text x="1115" y="186" font-size="10" font-family="JetBrains Mono, monospace" fill="#4f5fb8">6px arc</text>
+    <text x="1115" y="200" font-size="10" font-family="JetBrains Mono, monospace" fill="#706e67">on the jogging line</text>
+  </svg>
+</div>
+
+<table class="tokens">
+  <thead><tr><th>Situation</th><th>Which arrow jogs</th></tr></thead>
+  <tbody>
+    <tr><td class="note">Primary × Secondary (mirror, dashed)</td><td class="value">Secondary always jogs</td></tr>
+    <tr><td class="note">Primary × Primary</td><td class="value">Shorter line jogs</td></tr>
+    <tr><td class="note">Async × Sync</td><td class="value">Async (dotted) jogs</td></tr>
+    <tr><td class="note">Anything × Error path</td><td class="value">Error path stays straight (signals importance)</td></tr>
+    <tr><td class="note">Jog geometry</td><td class="value">6px arc, perpendicular to underlying line</td></tr>
+    <tr><td class="note">Max crossings per diagram</td><td class="value">3 — beyond that, re-layout or split</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<!--                       CLEARANCE & DENSITY                    -->
+<!-- =========================================================== -->
+
+<h2 id="clearance"><span class="num">04.7</span>Clearance &amp; density caps</h2>
+<p class="section-lede">The MCP-Adapter-through-the-cards failure from the screenshot lives here. The fix: an arrow can't pass within <code>--arrow-clearance</code> (16px) of any card it doesn't terminate at. If geometry demands closer, the arrow routes around.</p>
+
+<div class="compare">
+  <div class="ex-frame bad">
+    <div class="ex-head"><span>bad — arrow crosses unrelated cards</span><span>screenshot pattern</span></div>
+    <svg viewBox="0 0 800 320" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="clbBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="clbAr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <filter id="clbSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+      </defs>
+      <rect width="800" height="320" fill="url(#clbBg)"/>
+      <rect x="40" y="60" width="160" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clbSh)"/>
+      <text x="120" y="96" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">MCP Adapter</text>
+      <rect x="240" y="120" width="160" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clbSh)"/>
+      <text x="320" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Workflow UI</text>
+      <rect x="440" y="120" width="160" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clbSh)"/>
+      <text x="520" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Vetting Dash</text>
+      <rect x="640" y="240" width="120" height="50" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clbSh)"/>
+      <text x="700" y="270" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">ARC/Mario</text>
+      <!-- straight-line through cards -->
+      <path d="M 120 120 L 700 240" stroke="#4f5fb8" stroke-width="1.5" stroke-dasharray="5,4" fill="none" marker-end="url(#clbAr)"/>
+      <text x="380" y="200" text-anchor="middle" font-size="9" font-style="italic" fill="#cc6e55">passes within 0px of two unrelated cards</text>
+    </svg>
+  </div>
+  <div class="ex-frame good">
+    <div class="ex-head"><span>good — arrow routes around the gutter</span><span>after</span></div>
+    <svg viewBox="0 0 800 320" font-family="Inter, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="clgBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/></linearGradient>
+        <marker id="clgAr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/></marker>
+        <filter id="clgSh" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/></filter>
+      </defs>
+      <rect width="800" height="320" fill="url(#clgBg)"/>
+      <rect x="40" y="60" width="160" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clgSh)"/>
+      <text x="120" y="96" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">MCP Adapter</text>
+      <rect x="240" y="120" width="160" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clgSh)"/>
+      <text x="320" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Workflow UI</text>
+      <rect x="440" y="120" width="160" height="60" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clgSh)"/>
+      <text x="520" y="156" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">Vetting Dash</text>
+      <rect x="640" y="240" width="120" height="50" rx="10" fill="white" stroke="#e8e2d8" filter="url(#clgSh)"/>
+      <text x="700" y="270" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a18">ARC/Mario</text>
+      <!-- routed path: down out of MCP, across the gap below cards, into ARC -->
+      <path d="M 120 120 L 120 210 C 120 220 130 220 140 220 L 620 220 C 640 220 660 230 700 240" stroke="#4f5fb8" stroke-width="1.5" stroke-dasharray="5,4" fill="none" marker-end="url(#clgAr)"/>
+      <g transform="translate(340, 198)">
+        <rect width="120" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"/>
+        <text x="60" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">MCP INTEGRATION</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Rule</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--arrow-clearance</td><td class="value">16</td><td class="note">Minimum perpendicular distance between any arrow and any card it doesn't terminate at.</td></tr>
+    <tr><td class="token">--arrow-stub</td><td class="value">8</td><td class="note">Arrow path ends 8px short of the card edge so the arrowhead has air.</td></tr>
+    <tr><td class="token">--lane-row</td><td class="value">56</td><td class="note">Minimum vertical separation between successive horizontal arrows in a sequence diagram.</td></tr>
+  </tbody>
+</table>
+
+<h3>Density caps · the “split it” numbers</h3>
+<p>When any of these is exceeded, the diagram must be split or simplified. These are not aesthetic targets — they are the line below which a diagram becomes unreadable.</p>
+
+<table class="tokens">
+  <thead><tr><th>Cap</th><th>Limit</th><th>What to do if exceeded</th></tr></thead>
+  <tbody>
+    <tr><td class="note">Arrows entering or leaving one card</td><td class="value">6</td><td class="note">Group functionally related arrows into a single trunk, or move the card's role onto two cards.</td></tr>
+    <tr><td class="note">Parallel arrows in one region pair</td><td class="value">3</td><td class="note">Collapse to a single trunk + <code>chip.count</code> (see 04.4c).</td></tr>
+    <tr><td class="note">Crossings per diagram</td><td class="value">3</td><td class="note">Re-layout. If the geometry truly requires more, split the diagram.</td></tr>
+    <tr><td class="note">Cards per diagram</td><td class="value">18</td><td class="note">Above this the diagram reads as a list. Use a higher-level system-context view + drill-down.</td></tr>
+    <tr><td class="note">Distinct arrow types per diagram</td><td class="value">4</td><td class="note">If a fifth seems needed, two of them are doing similar work. Merge.</td></tr>
+    <tr><td class="note">Distinct surface gradients per diagram</td><td class="value">5</td><td class="note">Above this, the legend dominates the diagram. Re-map a category to <code>--surface-neutral</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout"><strong>Why caps and not “use judgment”.</strong> A locked spec lets the generator say “this won't fit” instead of crowding silently. The annotated screenshot is the result of judgment under pressure; caps make pressure visible early.</div>
+
+<!-- =========================================================== -->
+<!--                           SUMMARY                            -->
+<!-- =========================================================== -->
+
+<h2><span class="num">04.8</span>Connector contract · the checklist</h2>
+<p class="section-lede">A diagram passes the connector contract if every one of these is true. If any is false, the diagram is wrong — not a matter of taste.</p>
+
+<ul class="checks">
+  <li class="ok">Every arrow has a named type from the eight-arrow taxonomy</li>
+  <li class="ok">Every arrow uses a marker from the registry — no inline marker definitions</li>
+  <li class="ok">Curve mode matches the geometry rule (straight axial / Q short / C long)</li>
+  <li class="ok">No bend has radius below <code>--bend-radius</code> (24) or angle above 60°</li>
+  <li class="ok">Parallel arrows are spaced <code>--lane-gutter</code> (16) apart; &gt;3 parallel collapses to a trunk</li>
+  <li class="ok">Every label sits in zone A, B, or C — no rotation, no float, no overlap</li>
+  <li class="ok">Every label is bound to a specific line (or it's a chip on a card, not a connector label)</li>
+  <li class="ok">Crossings ≤ 3; jog applied per the priority rule (secondary over primary, short over long)</li>
+  <li class="ok">No arrow passes within <code>--arrow-clearance</code> (16) of any unrelated card</li>
+  <li class="ok">Arrows end <code>--arrow-stub</code> (8) short of card edges</li>
+  <li class="ok">All density caps respected — when in doubt, split the diagram</li>
+</ul>
+
+</main>
+</div>
+</body>
+</html>

@@ -12,6 +12,12 @@ Format:
 
 ---
 
+## 2026-05-19 — diagram skill vendored as agent-facing reference
+- New `design-system/skills/` subfolder introduced as the canonical home for agent-facing skills consulted while authoring design-system proposals. Companion `skills/README.md` documents the index and authoring conventions.
+- Vendored the `diagram` skill at [`design-system/skills/diagram/`](skills/diagram/) — paired light + dark SVG production in the locked cream-and-indigo style. Includes `SKILL.md` plus `references/` (templates, examples, troubleshooting, foundations/components/connectors/icons HTML, `_shared.css`). `_archive/` excluded.
+- `PROMPT-FOR-CLAUDE-DESIGN.md` updated with a "Skills available to you" section pointing Claude Design at the diagram skill, plus a bullet under "Where the design system lives" referencing `skills/`.
+- No SPEC.md or live implementation change — this PR adds reference material only. The design-system invariant ("every PR touches SPEC.md AND the live implementation") does not apply to reference-only additions; the invariant guards against text↔code drift inside the system, not against expanding the surrounding documentation.
+
 ## 2026-05-18 — folder + SPEC introduced; design-language drift fixed
 - New `design-system/` folder created as canonical text reference. Pairs with the live implementation in `src/dual_research/ui/static/` and the in-app reference at `/#/language`.
 - `SPEC.md` bootstrapped from the current state of `tokens.css` + `components.css` + `design-language.jsx` at `0fd9b95` (v0.69.12).

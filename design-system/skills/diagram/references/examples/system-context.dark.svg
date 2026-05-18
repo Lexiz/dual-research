@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 720" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    </filter>
+
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"></stop><stop offset="100%" stop-color="#14141a"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7785d4"></stop><stop offset="100%" stop-color="#4d5db0"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d8058"></stop><stop offset="100%" stop-color="#2a6042"></stop>
+    </linearGradient>
+
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"></path></marker>
+
+    
+  </defs>
+
+  <rect width="1660" height="720" fill="url(#bgGrad)"></rect>
+
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Partner Vetting · System Context</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9a988f">The system, the people who use it, and what it touches</text>
+
+  <text x="220" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">USERS</text>
+  <text x="830" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">PLATFORM</text>
+  <text x="1440" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">EXTERNAL SYSTEMS</text>
+
+  
+  <rect x="80" y="180" width="280" height="84" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(110, 222)"><circle cx="0" cy="-6" r="6" fill="#ebebe5"></circle><path d="M-11,12 Q-11,3 0,3 Q11,3 11,12 Z" fill="#ebebe5"></path></g>
+  <text x="148" y="216" font-size="14" font-weight="600" fill="#ebebe5">Analyst</text>
+  <text x="148" y="234" font-size="11" fill="#c4c2bc">internal · TTC operations</text>
+  <text x="148" y="252" font-size="10" font-style="italic" fill="#9a988f">submits partners · reviews verdicts</text>
+
+  <rect x="80" y="296" width="280" height="84" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(110, 338)"><circle cx="0" cy="-6" r="6" fill="#ebebe5"></circle><path d="M-11,12 Q-11,3 0,3 Q11,3 11,12 Z" fill="#ebebe5"></path></g>
+  <text x="148" y="332" font-size="14" font-weight="600" fill="#ebebe5">Partner</text>
+  <text x="148" y="350" font-size="11" fill="#c4c2bc">external · subject of vet</text>
+  <text x="148" y="368" font-size="10" font-style="italic" fill="#9a988f">supplies documents on request</text>
+
+  <rect x="80" y="412" width="280" height="84" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(110, 454)"><circle cx="0" cy="-6" r="6" fill="#ebebe5"></circle><path d="M-11,12 Q-11,3 0,3 Q11,3 11,12 Z" fill="#ebebe5"></path><circle cx="0" cy="-12" r="3" fill="none" stroke="#ebebe5" stroke-width="1.4"></circle></g>
+  <text x="148" y="448" font-size="14" font-weight="600" fill="#ebebe5">Trimble Admin</text>
+  <text x="148" y="466" font-size="11" fill="#c4c2bc">internal · platform owner</text>
+  <text x="148" y="484" font-size="10" font-style="italic" fill="#9a988f">configures rulesets · org policies</text>
+
+  
+  <rect x="540" y="220" width="600" height="280" rx="16" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(580, 274)"><path d="M-14,10 L-14,-3 Q-14,-12 0,-14 Q14,-12 14,-3 L14,10 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-10" x2="0" y2="10" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"></line><line x1="-14" y1="0" x2="14" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"></line></g>
+  <text x="620" y="266" font-size="22" font-weight="600" fill="white">Partner Vetting</text>
+  <text x="620" y="290" font-size="13" fill="rgba(255,255,255,0.72)">single ingress · session-scoped · audit-on-write</text>
+  <line x1="565" y1="316" x2="1115" y2="316" stroke="rgba(255,255,255,0.18)"></line>
+
+  <text x="580" y="346" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="1.6">CAPABILITIES</text>
+
+  <rect x="580" y="358" width="200" height="34" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="592" y="380" font-size="11" font-weight="600" fill="white">Submission &amp; intake</text>
+  <rect x="580" y="402" width="200" height="34" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="592" y="424" font-size="11" font-weight="600" fill="white">Agentic vet pipeline</text>
+  <rect x="580" y="446" width="200" height="34" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="592" y="468" font-size="11" font-weight="600" fill="white">Signed verdict + ledger</text>
+
+  <rect x="800" y="358" width="316" height="34" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="812" y="380" font-size="11" font-weight="600" fill="white">4-role auth · partner / analyst / admin / arc</text>
+  <rect x="800" y="402" width="316" height="34" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="812" y="424" font-size="11" font-weight="600" fill="white">Append-only audit on every write</text>
+  <rect x="800" y="446" width="316" height="34" rx="6" fill="rgba(0,0,0,0.22)"></rect>
+  <text x="812" y="468" font-size="11" font-weight="600" fill="white">90-day verdict verification SLA</text>
+
+  <circle cx="1118" cy="240" r="6" fill="#5aad80" class="anim-pulse"></circle>
+  <text x="1108" y="244" text-anchor="end" font-size="10" font-weight="600" fill="rgba(255,255,255,0.78)" letter-spacing="1.2">LIVE</text>
+
+  
+  <rect x="1300" y="180" width="280" height="76" rx="12" fill="#252531" stroke="#3a3a47" stroke-dasharray="4,3" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="198" width="40" height="40" rx="8" fill="#2a5e7a"></rect>
+  <text x="1338" y="224" text-anchor="middle" font-size="14" font-weight="700" fill="white">SF</text>
+  <text x="1372" y="218" font-size="14" font-weight="600" fill="#ebebe5">Salesforce</text>
+  <text x="1372" y="236" font-size="11" fill="#c4c2bc">CRM · partner roster sync</text>
+
+  <rect x="1300" y="276" width="280" height="76" rx="12" fill="#252531" stroke="#3a3a47" stroke-dasharray="4,3" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="294" width="40" height="40" rx="8" fill="#825a30"></rect>
+  <text x="1338" y="320" text-anchor="middle" font-size="14" font-weight="700" fill="white">SL</text>
+  <text x="1372" y="314" font-size="14" font-weight="600" fill="#ebebe5">Slack</text>
+  <text x="1372" y="332" font-size="11" fill="#c4c2bc">verdict alerts · ops escalations</text>
+
+  <rect x="1300" y="372" width="280" height="76" rx="12" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1334, 410)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path><path d="M-4,0 L-1,4 L5,-3" stroke="#ebebe5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></g>
+  <text x="1372" y="410" font-size="14" font-weight="600" fill="white">Auth0</text>
+  <text x="1372" y="428" font-size="11" fill="rgba(255,255,255,0.72)">RS256 · OAuth 2 · 4 roles</text>
+
+  <rect x="1300" y="468" width="280" height="76" rx="12" fill="#252531" stroke="#3a3a47" stroke-dasharray="4,3" filter="url(#cardShadow)"></rect>
+  <rect x="1318" y="486" width="40" height="40" rx="8" fill="#825a30"></rect>
+  <text x="1338" y="512" text-anchor="middle" font-size="14" font-weight="700" fill="white">SE</text>
+  <text x="1372" y="506" font-size="14" font-weight="600" fill="#ebebe5">Sentry</text>
+  <text x="1372" y="524" font-size="11" fill="#c4c2bc">error tracking · perf monitoring</text>
+
+  
+  <path d="M 365 222 L 535 282" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="430" y="240" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">SUBMITS · REVIEWS</text>
+
+  <path d="M 365 338 L 535 340" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
+  <text x="448" y="332" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">SENDS DOCS</text>
+
+  <path d="M 365 454 L 535 432" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="448" y="460" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">CONFIGURES RULESETS</text>
+
+  
+  <path d="M 1145 250 L 1295 218" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
+  <text x="1220" y="222" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">CRM SYNC</text>
+
+  <path d="M 1145 314 L 1295 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1220" y="306" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">NOTIFIES</text>
+  <text x="1220" y="326" text-anchor="middle" font-size="9" font-style="italic" fill="#7a7873">webhook · verdict events</text>
+
+  <path d="M 1145 388 L 1295 410" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"></path>
+  <text x="1220" y="392" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">OAUTH 2</text>
+
+  <path d="M 1145 470 L 1295 506" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
+  <text x="1220" y="500" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">TELEMETRY</text>
+
+  
+  <rect x="498" y="200" width="684" height="320" rx="20" fill="none" stroke="#7a7873" stroke-dasharray="8,5" opacity="0.45"></rect>
+  <text x="498" y="194" font-size="9" font-weight="600" fill="#7a7873" letter-spacing="1.6">TRUST BOUNDARY · TTC TENANT</text>
+
+  
+  <line x1="60" y1="568" x2="1600" y2="568" stroke="#3a3a47"></line>
+  <text x="60" y="596" font-size="11" font-weight="600" fill="#9a988f" letter-spacing="1.6">CONTEXT</text>
+  <text x="60" y="620" font-size="12" fill="#c4c2bc">Solid indigo arrows are primary user-initiated flows · grey-dashed arrows are data exchanges the system performs on its own schedule.</text>
+  <text x="60" y="640" font-size="12" fill="#c4c2bc">The trust boundary surrounds the platform and its session-scoped data. Everything outside it requires auth or a signed contract.</text>
+  <text x="60" y="668" font-size="11" font-style="italic" fill="#9a988f">Read center-out · the hub is the system; users on the left initiate, external systems on the right participate.</text>
+</svg>

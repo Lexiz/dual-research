@@ -19,6 +19,7 @@ The dual-research repo is at `github.com/Lexiz/dual-research`. The design system
    - [`design-system/README.md`](https://github.com/Lexiz/dual-research/blob/main/design-system/README.md) — process docs: workflow, branch/PR conventions, paths you may touch.
    - [`design-system/CHANGELOG.md`](https://github.com/Lexiz/dual-research/blob/main/design-system/CHANGELOG.md) — append-only change history.
    - [`design-system/audits/`](https://github.com/Lexiz/dual-research/tree/main/design-system/audits) — research feeding into your V1+ proposals. Read every audit before proposing major changes.
+   - [`design-system/skills/`](https://github.com/Lexiz/dual-research/tree/main/design-system/skills) — packaged agent-facing skills you can consult when producing specific artefacts. See the "Skills available to you" section below.
 
 2. **Live implementation**: [`src/dual_research/ui/static/`](https://github.com/Lexiz/dual-research/tree/main/src/dual_research/ui/static).
    - `tokens.css` — CSS custom properties (palette, type, spacing, motion). **Authoritative for token values.**
@@ -73,6 +74,14 @@ The dual-research repo is at `github.com/Lexiz/dual-research`. The design system
 - **Density is a feature.** Information-dense UI is intentional. Don't propose spacing increases without justifying them against the principles in `SPEC.md § 1`.
 - **No motion that announces.** Pulses for live states, opacity/position transitions only. No spring physics, no bounces, no scale.
 - **Accessibility.** Every interactive primitive needs `:focus-visible` ring; every animation must honor `prefers-reduced-motion`.
+
+### Skills available to you (reference material)
+
+The [`design-system/skills/`](https://github.com/Lexiz/dual-research/tree/main/design-system/skills) folder packages agent-facing skills you can consult when a proposal calls for a specific kind of artefact. Skills are reference material — read the relevant `SKILL.md` (and its `references/`) when the task warrants, then follow its instructions.
+
+- [`skills/diagram/`](https://github.com/Lexiz/dual-research/tree/main/design-system/skills/diagram) — **use whenever a proposal would benefit from a visual diagram** (system context, layered architecture, pipeline/flow, sequence, ER data schema, infrastructure, event flow, connector map, or freeform composite). Produces a paired light + dark SVG matching a locked cream-and-indigo visual style. Read [`skills/diagram/SKILL.md`](https://github.com/Lexiz/dual-research/blob/main/design-system/skills/diagram/SKILL.md) end-to-end before generating; the `references/examples/` subdir is the visual canon. Drop generated SVGs alongside the PR (e.g., under the relevant `audits/<date>-<slug>/` folder or inline in the PR description) — do **not** commit them into `skills/diagram/references/examples/` (those are reference exemplars, not working output).
+
+See [`skills/README.md`](https://github.com/Lexiz/dual-research/blob/main/design-system/skills/README.md) for the full index and authoring conventions.
 
 ### Read these first
 

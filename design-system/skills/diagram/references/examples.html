@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Examples · architecture-diagram design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .example-pair {
+    margin: 18px 0 36px;
+  }
+  .example-pair .ex-frame {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--rule-soft);
+    box-shadow: 0 3px 12px rgba(26, 26, 24, 0.08);
+  }
+  .example-pair .ex-frame.light { background: linear-gradient(180deg, #f5f1ea, #ece8e0); }
+  .example-pair .ex-frame.dark  { background: linear-gradient(180deg, #1a1a1f, #14141a); border-color: #2e2e3a; box-shadow: 0 3px 12px rgba(0,0,0,0.35); }
+  .example-pair .ex-frame .head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px;
+    font-size: 11px; font-weight: 600; letter-spacing: 1.4; text-transform: uppercase;
+  }
+  .example-pair .ex-frame.light .head { background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); color: var(--ink-3); }
+  .example-pair .ex-frame.dark  .head { background: rgba(255,255,255,0.04); border-bottom: 1px solid #2e2e3a; color: #9a988f; }
+  .example-pair .ex-frame .head .file {
+    font-family: var(--mono); font-size: 10px; text-transform: none; letter-spacing: 0.4;
+  }
+  .example-pair .ex-frame.light .head .file { color: var(--indigo-2); }
+  .example-pair .ex-frame.dark  .head .file { color: #c5cdf0; }
+  .example-pair .ex-frame img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .demonstrates {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--rule-soft);
+    border-radius: 12px;
+    margin-top: 14px;
+    background: white;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  .demonstrates .cell {
+    padding: 12px 16px;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .demonstrates .cell:last-child { border-right: none; }
+  .demonstrates .cell .lbl {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-4); margin-bottom: 4px;
+  }
+  .demonstrates .cell .val { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+  @media (max-width: 1100px) { .demonstrates { grid-template-columns: 1fr; } .demonstrates .cell { border-right: none; border-bottom: 1px solid var(--rule-soft); } }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>architecture-diagram</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html" class="active"><span class="n">06</span>Examples</a>
+    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Deliverable 06 · Worked canonical examples · light + dark</p>
+<h1 class="page">Nine templates, each rendered in both themes. Eighteen files. One canonical layout per template.</h1>
+<p class="lede">Each example below ships as a <strong>pair</strong>: <code>&lt;name&gt;.light.svg</code> + <code>&lt;name&gt;.dark.svg</code>. The two files share layout, components, icons, arrow routes, and labels — only color values, shadow filter bodies, and canvas gradient stops differ. They are the canonical anchors the downstream generator targets: a diagram produced from the same spec should read as a sibling of these.</p>
+
+<div class="callout">
+  <strong>Dual output is the rule, not an option.</strong> The <code>SKILL.md</code> workflow now emits both files for every diagram by default (manifest <code>theme: both</code>). Cream-canvas Notion gets the light variant; dark-mode Notion gets the dark. See <a href="foundations.html#01.0">foundations §01.0</a> for the theme model.
+</div>
+
+<!-- ===================== LIST OF EXAMPLES ===================== -->
+
+<h2><span class="num">06.1</span>Layered architecture</h2>
+<p class="section-lede">Four horizontal layers: surfaces → API → services → data. Demonstrates categorical gradients (the data layer uses three distinct surfaces — sql, store, cache), the mirror-secondary arrow for read-only lookups, and the lane-gutter rule on the four parallel arrows leaving the API.</p>
+
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">layered-architecture.light.svg</span></div><img src="examples/layered-architecture.light.svg" alt="Layered architecture (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">layered-architecture.dark.svg</span></div><img src="examples/layered-architecture.dark.svg" alt="Layered architecture (dark)"></div>
+  </div>
+  <div class="demonstrates">
+    <div class="cell"><div class="lbl">Components</div><div class="val">card.secondary (surfaces) · card.primary with 4 surface variants · group.boundary</div></div>
+    <div class="cell"><div class="lbl">Connectors</div><div class="val">solid-primary (10) · mirror-secondary (2 for read replicas) · 4 parallel arrows from API exercise the gutter rule</div></div>
+    <div class="cell"><div class="lbl">Animations</div><div class="val">anim-pulse (1× — live dot on API)</div></div>
+  </div>
+</div>
+
+<h2><span class="num">06.2</span>Pipeline flow</h2>
+<p class="section-lede">Five left-to-right stages with numbered tokens, hero cards, and dim reference cards below showing the typed output each stage emits. Demonstrates stage.numbered-token, card.reference for output rows, and the on-line pill label (zone C) used for the bounded feedback loop.</p>
+
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">pipeline-flow.light.svg</span></div><img src="examples/pipeline-flow.light.svg" alt="Pipeline flow (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">pipeline-flow.dark.svg</span></div><img src="examples/pipeline-flow.dark.svg" alt="Pipeline flow (dark)"></div>
+  </div>
+  <div class="demonstrates">
+    <div class="cell"><div class="lbl">Components</div><div class="val">stage.numbered-token (×5) · card.primary in 4 surface variants · card.reference (×5 typed-output rows)</div></div>
+    <div class="cell"><div class="lbl">Connectors</div><div class="val">solid-primary handoffs (4) · dashed-handoff feedback arc + zone-C pill (1)</div></div>
+    <div class="cell"><div class="lbl">Animations</div><div class="val">anim-pulse (1× — agent's live status)</div></div>
+  </div>
+</div>
+
+<h2><span class="num">06.3</span>Sequence</h2>
+<p class="section-lede">Five vertical lanes, lifelines, activation boxes on the active actors, sync calls paired with returns. Exercises the no-rotation rule — every label horizontal even though messages span the full canvas width.</p>
+
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">sequence.light.svg</span></div><img src="examples/sequence.light.svg" alt="Sequence (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">sequence.dark.svg</span></div><img src="examples/sequence.dark.svg" alt="Sequence (dark)"></div>
+  </div>
+  <div class="demonstrates">
+    <div class="cell"><div class="lbl">Components</div><div class="val">lane.header (×5) · lane.vertical (×5 lifelines) · lane.activation-box (×4) · callout.note (×1)</div></div>
+    <div class="cell"><div class="lbl">Connectors</div><div class="val">sync-call (5) + return (4) · zero rotated labels · arrow stubs end 8px from card edge</div></div>
+    <div class="cell"><div class="lbl">Animations</div><div class="val">None. Sequence diagrams read better static.</div></div>
+  </div>
+</div>
+
+<h2><span class="num">06.4</span>System context</h2>
+<p class="section-lede">The outer boundary view: who uses Partner Vetting and what it connects to. External integration tiles, trust boundary, light cards on cream / mid-tone on dark.</p>
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">system-context.light.svg</span></div><img src="examples/system-context.light.svg" alt="System context (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">system-context.dark.svg</span></div><img src="examples/system-context.dark.svg" alt="System context (dark)"></div>
+  </div>
+</div>
+
+<h2><span class="num">06.5</span>Data schema</h2>
+<p class="section-lede">ER view of the proposal's entities. Reference cards (many), bidirectional relationships, type rows.</p>
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">data-schema.light.svg</span></div><img src="examples/data-schema.light.svg" alt="Data schema (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">data-schema.dark.svg</span></div><img src="examples/data-schema.dark.svg" alt="Data schema (dark)"></div>
+  </div>
+</div>
+
+<h2><span class="num">06.6</span>Infrastructure</h2>
+<p class="section-lede">Cloud topology: VPC, regions, load balancers, services, data tier. Nested group boundaries; the full icon palette.</p>
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">infrastructure.light.svg</span></div><img src="examples/infrastructure.light.svg" alt="Infrastructure (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">infrastructure.dark.svg</span></div><img src="examples/infrastructure.dark.svg" alt="Infrastructure (dark)"></div>
+  </div>
+</div>
+
+<h2><span class="num">06.7</span>Event flow</h2>
+<p class="section-lede">Pub/Sub topology: producers → topics → consumers. Trunk collapse when 5+ events fan out.</p>
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">event-flow.light.svg</span></div><img src="examples/event-flow.light.svg" alt="Event flow (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">event-flow.dark.svg</span></div><img src="examples/event-flow.dark.svg" alt="Event flow (dark)"></div>
+  </div>
+</div>
+
+<h2><span class="num">06.8</span>Connector map</h2>
+<p class="section-lede">Vetting API at hub, third-party integrations on spokes. Compact cards; monogram fallback for the long tail.</p>
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">connector-map.light.svg</span></div><img src="examples/connector-map.light.svg" alt="Connector map (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">connector-map.dark.svg</span></div><img src="examples/connector-map.dark.svg" alt="Connector map (dark)"></div>
+  </div>
+</div>
+
+<h2><span class="num">06.9</span>Freeform</h2>
+<p class="section-lede">The catch-all. Demonstrates the decomposition procedure — nouns → cards, verbs → arrows, groupings → boundaries.</p>
+<div class="example-pair">
+  <div class="pair">
+    <div class="ex-frame light"><div class="head"><span>Light</span><span class="file">freeform.light.svg</span></div><img src="examples/freeform.light.svg" alt="Freeform (light)"></div>
+    <div class="ex-frame dark"><div class="head"><span>Dark</span><span class="file">freeform.dark.svg</span></div><img src="examples/freeform.dark.svg" alt="Freeform (dark)"></div>
+  </div>
+</div>
+
+<!-- ============== CROSS-DIAGRAM CONSISTENCY ============== -->
+
+<h2><span class="num">06.10</span>Cross-diagram consistency</h2>
+<p class="section-lede">Open every example side-by-side and the same proposal reads the same way — in either theme. The manifest pins service → gradient-id, service → icon, label spelling; the theme pass swaps gradient stops + filter bodies. Identity is theme-agnostic; appearance is theme-specific.</p>
+
+<table class="tokens">
+  <thead><tr><th>Service</th><th>Label</th><th>Gradient (id, theme-agnostic)</th><th>Icon</th></tr></thead>
+  <tbody>
+    <tr><td class="note">Primary API</td><td class="value">Vetting API</td><td class="token">--surface-primary</td><td class="token">icon.gateway</td></tr>
+    <tr><td class="note">Active agent</td><td class="value">Vetting Agent</td><td class="token">--surface-primary</td><td class="token">icon.agent</td></tr>
+    <tr><td class="note">Web frontend</td><td class="value">Vetting Dashboard</td><td class="token">--surface-light · light card</td><td class="token">icon.browser</td></tr>
+    <tr><td class="note">Auth provider</td><td class="value">Auth Service</td><td class="token">--surface-secure</td><td class="token">icon.oauth</td></tr>
+    <tr><td class="note">Primary database</td><td class="value">Postgres</td><td class="token">--surface-sql</td><td class="token">icon.sql</td></tr>
+    <tr><td class="note">Blob storage</td><td class="value">GCS</td><td class="token">--surface-store</td><td class="token">icon.bucket</td></tr>
+    <tr><td class="note">Cache</td><td class="value">Redis</td><td class="token">--surface-cache</td><td class="token">icon.cache</td></tr>
+  </tbody>
+</table>
+
+<div class="callout good"><strong>What you should not see in any of these eighteen files:</strong> cream leakage in a dark variant, drop shadows invisible against canvas, indigo arrows muddy on dark, structural drift between a pair (light has an arrow the dark doesn't), or any layout shifted between the two. Each is documented in <a href="troubleshooting.md">troubleshooting.md</a>.</div>
+
+</main>
+</div>
+</body>
+</html>

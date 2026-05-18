@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 820" font-family="Inter, system-ui, -apple-system, sans-serif">
+  
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    </filter>
+
+    
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"></stop>
+      <stop offset="100%" stop-color="#14141a"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7785d4"></stop><stop offset="100%" stop-color="#4d5db0"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a3a40"></stop><stop offset="100%" stop-color="#28282d"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2a5e7a"></stop><stop offset="100%" stop-color="#1c4a64"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3d8058"></stop><stop offset="100%" stop-color="#2a6042"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceStore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#825a30"></stop><stop offset="100%" stop-color="#5c3c1a"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceCache" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8666a8"></stop><stop offset="100%" stop-color="#5d4577"></stop>
+    </linearGradient>
+
+    
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7785d4"></path></marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"></path></marker>
+
+    
+    
+  </defs>
+
+  <rect width="1660" height="820" fill="url(#bgGrad)"></rect>
+
+  
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Partner Vetting · Layered Architecture</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9a988f">Four layers from surfaces through to persistence · v1.0</text>
+
+  
+  <text x="830" y="130" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">SURFACES</text>
+
+  
+  <rect x="370" y="146" width="280" height="92" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(390, 184)"><rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#ebebe5"></rect><rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect><circle cx="-10" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><circle cx="-7" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><circle cx="-4" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect><rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect></g>
+  <text x="430" y="180" font-size="14" font-weight="600" fill="#ebebe5">Vetting Dashboard</text>
+  <text x="430" y="198" font-size="11" fill="#c4c2bc">React SPA · TypeScript</text>
+  <text x="430" y="222" font-size="10" font-style="italic" fill="#9a988f">embedded into ARC via iframe</text>
+
+  
+  <rect x="690" y="146" width="280" height="92" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(710, 184)"><rect x="-7" y="-13" width="14" height="26" rx="3" fill="#ebebe5"></rect><rect x="-5" y="-10" width="10" height="17" rx="1" fill="rgba(255,255,255,0.18)"></rect><circle cx="0" cy="10" r="1.4" fill="rgba(255,255,255,0.5)"></circle></g>
+  <text x="730" y="180" font-size="14" font-weight="600" fill="#ebebe5">Mobile companion</text>
+  <text x="730" y="198" font-size="11" fill="#c4c2bc">React Native · approve flows</text>
+  <text x="730" y="222" font-size="10" font-style="italic" fill="#9a988f">read-only ops dashboard</text>
+
+  
+  <rect x="1010" y="146" width="280" height="92" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(1030, 184)"><rect x="-12" y="-10" width="24" height="20" rx="2" fill="#ebebe5"></rect><path d="M-7,-3 L-3,0 L-7,3" stroke="rgba(255,255,255,0.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><line x1="-2" y1="3" x2="6" y2="3" stroke="rgba(255,255,255,0.65)" stroke-width="1.4" stroke-linecap="round"></line></g>
+  <text x="1050" y="180" font-size="14" font-weight="600" fill="#ebebe5">arc-cli</text>
+  <text x="1050" y="198" font-size="11" fill="#c4c2bc">batch ops · admins only</text>
+  <text x="1050" y="222" font-size="10" font-style="italic" fill="#9a988f">authenticated via session token</text>
+
+  
+  <text x="830" y="298" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">API LAYER</text>
+
+  <rect x="590" y="314" width="480" height="92" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  
+  <g transform="translate(620, 352)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line></g>
+  <text x="654" y="348" font-size="16" font-weight="600" fill="white">Vetting API</text>
+  <text x="654" y="366" font-size="11" fill="rgba(255,255,255,0.7)">Cloud Run · Express + ts-rest</text>
+  <line x1="610" y1="378" x2="1050" y2="378" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="610" y="396" font-size="11" fill="rgba(255,255,255,0.92)">Single ingress · session-scoped · request/response is a typed contract</text>
+  
+  <circle cx="1052" cy="332" r="5" fill="#5aad80" class="anim-pulse"></circle>
+
+  
+  <text x="830" y="466" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">SERVICE LAYER</text>
+
+  
+  <rect x="200" y="482" width="320" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(230, 524)"><rect x="-10" y="-8" width="20" height="16" rx="4" fill="rgba(255,255,255,0.18)"></rect><rect x="-2" y="-12" width="4" height="4" rx="1" fill="rgba(255,255,255,0.18)"></rect><line x1="0" y1="-12" x2="0" y2="-8" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"></line><circle cx="-4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle><circle cx="4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle><path d="M-3,4 L3,4" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"></path></g>
+  <text x="264" y="520" font-size="16" font-weight="600" fill="white">Vetting Agent</text>
+  <text x="264" y="538" font-size="11" fill="rgba(255,255,255,0.7)">4-phase orchestrator · Sonnet</text>
+  <line x1="220" y1="552" x2="500" y2="552" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="220" y="570" font-size="11" fill="rgba(255,255,255,0.92)">brief → research → score → emit</text>
+  <text x="220" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">repair turn on critique fail</text>
+
+  
+  <rect x="560" y="482" width="280" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(590, 524)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
+  <text x="624" y="520" font-size="16" font-weight="600" fill="white">Document Service</text>
+  <text x="624" y="538" font-size="11" fill="rgba(255,255,255,0.7)">Cloud Run · ingest + extract</text>
+  <line x1="580" y1="552" x2="820" y2="552" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="580" y="570" font-size="11" fill="rgba(255,255,255,0.92)">PDF · DOCX · web archive</text>
+  <text x="580" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">deduped on sha256 of bytes</text>
+
+  
+  <rect x="880" y="482" width="280" height="120" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(910, 524)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path><path d="M-4,0 L-1,4 L5,-3" stroke="#ebebe5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></g>
+  <text x="944" y="520" font-size="16" font-weight="600" fill="white">Auth Service</text>
+  <text x="944" y="538" font-size="11" fill="rgba(255,255,255,0.7)">Auth0 · RS256 · 4 roles</text>
+  <line x1="900" y1="552" x2="1140" y2="552" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="900" y="570" font-size="11" fill="rgba(255,255,255,0.92)">analyst · partner · admin · arc</text>
+  <text x="900" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">JWT 30m · refresh on the API</text>
+
+  
+  <rect x="1200" y="482" width="280" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1230, 524)"><circle cx="0" cy="-8" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="-9" cy="2" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="9" cy="2" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="-4" cy="10" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="4" cy="10" r="3.5" fill="rgba(255,255,255,0.85)"></circle><line x1="0" y1="-7" x2="-7" y2="1" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="0" y1="-7" x2="7" y2="1" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="-7" y1="3" x2="-3" y2="9" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="7" y1="3" x2="3" y2="9" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="-3" y1="10" x2="3" y2="10" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line></g>
+  <text x="1264" y="520" font-size="16" font-weight="600" fill="white">Scoring Engine</text>
+  <text x="1264" y="538" font-size="11" fill="rgba(255,255,255,0.7)">deterministic · 12 rules</text>
+  <line x1="1220" y1="552" x2="1460" y2="552" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="1220" y="570" font-size="11" fill="rgba(255,255,255,0.92)">weighted ruleset · YAML configs</text>
+  <text x="1220" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">tx-replay any score in 1.2s</text>
+
+  
+  <text x="830" y="660" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">DATA LAYER</text>
+
+  
+  <rect x="370" y="676" width="280" height="92" rx="12" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(400, 722)"><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-9" width="22" height="18" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse></g>
+  <text x="430" y="710" font-size="15" font-weight="600" fill="white">Postgres</text>
+  <text x="430" y="728" font-size="11" fill="rgba(255,255,255,0.7)">Cloud SQL · primary store</text>
+  <text x="430" y="748" font-size="10" font-family="monospace" fill="#c5cdf0">spec_runs · audit_events</text>
+
+  
+  <rect x="690" y="676" width="280" height="92" rx="12" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(720, 722)"><path d="M-11,-3 L-9,10 L9,10 L11,-3 Z" fill="rgba(255,255,255,0.85)"></path><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse><path d="M-5,-5 Q0,-13 5,-5" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" fill="none"></path></g>
+  <text x="750" y="710" font-size="15" font-weight="600" fill="white">GCS</text>
+  <text x="750" y="728" font-size="11" fill="rgba(255,255,255,0.7)">blob archive · cold tier</text>
+  <text x="750" y="748" font-size="10" font-family="monospace" fill="#e8c5a0">/partners/{id}/docs/*</text>
+
+  
+  <rect x="1010" y="676" width="280" height="92" rx="12" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1040, 722)"><ellipse cx="0" cy="-8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-8" width="22" height="16" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-1" width="22" height="3" fill="rgba(26,26,24,0.25)"></rect></g>
+  <text x="1070" y="710" font-size="15" font-weight="600" fill="white">Redis</text>
+  <text x="1070" y="728" font-size="11" fill="rgba(255,255,255,0.7)">cache · session + score</text>
+  <text x="1070" y="748" font-size="10" font-family="monospace" fill="#d2c5e8">ttl 5m on score:*</text>
+
+  
+
+  
+  <path d="M 510 238 C 510 270 700 270 720 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <path d="M 830 238 L 830 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <path d="M 1150 238 C 1150 270 960 270 940 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+
+  
+  <text x="830" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1.2">HTTPS · BEARER TOKEN</text>
+
+  
+  <path d="M 720 406 L 360 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="498" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">DELEGATES RUN</text>
+
+  <path d="M 800 406 L 700 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <path d="M 860 406 L 1020 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="930" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">VERIFIES SESSION</text>
+
+  <path d="M 940 406 L 1340 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1170" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">SCORES</text>
+
+  
+  
+  <path d="M 360 602 C 360 640 480 660 510 676" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="430" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">PERSISTS</text>
+
+  
+  <path d="M 700 602 C 700 640 830 660 830 676" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="780" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">STORES BYTES</text>
+
+  
+  <path d="M 1020 602 C 1020 640 620 660 590 676" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
+  <g transform="translate(710, 638)"><rect width="96" height="22" rx="11" fill="#252531" stroke="#7a7873"></rect><text x="48" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">USER LOOKUP</text></g>
+
+  
+  <path d="M 1340 602 L 1150 676" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1252" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">CACHES SCORE</text>
+
+  
+  <path d="M 1340 602 C 1340 640 620 660 590 676" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
+
+  
+  <text x="830" y="800" text-anchor="middle" font-size="11" fill="#9a988f" font-style="italic">Read top-to-bottom · indigo arrows are primary flow · grey-dashed arrows are mirror reads · all data writes are append-only into the SQL primary.</text>
+</svg>
