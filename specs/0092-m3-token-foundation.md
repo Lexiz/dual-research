@@ -34,12 +34,22 @@ it.
 
 Group by file, one-line summary of what changes:
 
-- `src/dual_research/ui/static/tokens.css` — replace the
-  existing `--bg-*` / `--fg-*` / `--agent-*` token tree with the
-  full M3 token set: colour roles (`--md-primary`,
-  `--md-secondary`, `--md-tertiary`, `--md-error`, plus
-  `-container` + `--md-on-*` pairs); surface tiers
-  (`--md-surface`, `--md-surface-{dim,bright}`,
+> **Rewrite note (Step 3 Rewrite, 2026-05-19):** the original draft
+> said "replace" for the v1 token tree, body font, dark/light flip,
+> and boot block — that contradicted § 1 Goal ("page renders
+> identically") and acceptance § 5.9 ("v1 visual appearance
+> preserved"). Reframed to **add alongside** v1 — the M3 layer
+> becomes *available* but the rendered surface stays v1. Subsequent
+> specs (0093…0104) swap components one by one.
+
+- `src/dual_research/ui/static/tokens.css` — **append** the full
+  M3 token set after the existing v1 tokens. The v1 `--bg-*` /
+  `--fg-*` / `--border-*` / `--agent-*` / `--ok` / `--info` /
+  `--warn` / `--err` / `--idle` definitions are preserved verbatim
+  (981 references across `*.css` and `*.jsx` keep working). Add
+  on top: colour roles (`--md-primary`, `--md-secondary`,
+  `--md-tertiary`, `--md-error`, plus `-container` + `--md-on-*`
+  pairs); surface tiers (`--md-surface`, `--md-surface-{dim,bright}`,
   `--md-surface-container-{lowest,low,_,high,highest}`); derived
   `--md-surface-1..5` via `color-mix` with surface tint; shape
   scale (`--md-shape-xs/sm/md/lg/xl/full`); 15-role M3 type scale;
@@ -47,36 +57,47 @@ Group by file, one-line summary of what changes:
   layer opacities; M3 easings + 8 duration tokens; focus-ring +
   focus-offset. Mirror verbatim the values in
   [docs/design-system-v2/assets/styles/v2-m3.css](docs/design-system-v2/assets/styles/v2-m3.css)
-  lines 7-174. Preserve the v1 palette (sable, sage, info, ok,
-  warn, err, idle) as `--p-*` source vars at the top so role
-  tokens reference them, not raw hex.
-- `src/dual_research/ui/static/theme.css` — replace the existing
-  dark/light flip with the M3 dark default and `body.light`
-  override per
-  [v2-m3.css:200-245](docs/design-system-v2/assets/styles/v2-m3.css).
-  Add `body.tint-secondary` for sage-on-GPT tinting per
-  [v2-m3.css:177-180](docs/design-system-v2/assets/styles/v2-m3.css).
-  Add `body.compact` density override per
+  lines 7-174. Add the `--p-*` palette source vars (sable, sage,
+  info, ok, warn, err, idle) at the top of the M3 block so role
+  tokens reference them, not raw hex. The v1 dark/light flip stays
+  in `tokens.css` `body.light` block; append a parallel
+  `body.light` block that overrides the new `--md-*` role tokens
+  per [v2-m3.css:200-245](docs/design-system-v2/assets/styles/v2-m3.css).
+- `src/dual_research/ui/static/theme.css` — **append** `body.tint-
+  secondary` for sage-on-GPT tinting per
+  [v2-m3.css:177-180](docs/design-system-v2/assets/styles/v2-m3.css)
+  and `body.compact` density override per
   [v2-m3.css:183-198](docs/design-system-v2/assets/styles/v2-m3.css).
-- `src/dual_research/ui/static/base.css` — replace the boot
-  block: `* { box-sizing: border-box }`, `html, body { font-family:
-  var(--md-font-plain); … }`, `:focus-visible { outline:
-  var(--md-focus-ring); outline-offset: var(--md-focus-offset);
-  border-radius: var(--md-shape-xs); }`, the
-  `prefers-reduced-motion: reduce` global rule that kills all
-  transitions and animations, the 15 `.t-*` typography
-  role-utility classes (`.t-display-l` … `.t-label-s`, `.t-data`),
-  and the `.muted` / `.faint` / `.subtle` colour helpers. Mirror
+  The existing legacy component rules (`.phase-step-line`,
+  `.uppercase-label`, `.dr-ghost-block`, `.dr-section-brief-btn`,
+  `.cap-bar`, `.bg-grid`) are **untouched** — they drain in
+  subsequent specs.
+- `src/dual_research/ui/static/base.css` — **append** the M3
+  utilities after the existing v1 boot block. New rules:
+  the 15 `.t-*` M3 role classes (`.t-display-l` … `.t-label-s`,
+  `.t-data`), the `.muted` / `.faint` / `.subtle` colour helpers
+  (only if no collision with existing classes), and a
+  `prefers-reduced-motion: reduce` companion rule that kills
+  motion via the M3-shaped `* { transition: none !important;
+  animation: none !important; }`. The existing v1 `.t-display`,
+  `.t-title`, `.t-h3`, `.t-body`, `.t-meta`, `.t-mono`, `.t-label`
+  classes are **untouched** so components keep rendering as
+  today. The existing `html, body { font-family: var(--sans); }`
+  declaration stays — body font does NOT swap to Roboto Flex.
+  Mirror the new utilities from
   [v2-m3.css:247-298](docs/design-system-v2/assets/styles/v2-m3.css).
-- `src/dual_research/ui/static/index.html` — swap the
-  `IBM+Plex+Sans` + `IBM+Plex+Serif` Google Fonts preconnect/link
-  for the M3 default pair: `Roboto+Flex:opsz,wght@8..144,100..1000`
-  + `Roboto+Serif:opsz,wght@8..144,300..800`. Add the Material
-  Symbols Outlined stylesheet (`family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0`).
-  Bump the cache-bust `?v=` from `0093` to `0094` (we're behind
-  the previous bump in v1) on every existing `<link>` / `<script>`
-  tag. **Do not** import the design-system bundle's HTML or CSS;
-  this spec mirrors those tokens into the app's own files.
+- `src/dual_research/ui/static/index.html` — **add** the M3 font
+  links (`Roboto+Flex:opsz,wght@8..144,100..1000`,
+  `Roboto+Serif:opsz,wght@8..144,300..800`) and the Material
+  Symbols Outlined stylesheet
+  (`family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0`)
+  alongside the existing `IBM+Plex+Sans` / `IBM+Plex+Serif`
+  preconnect/link (both pairs load; rendered body font stays
+  IBM Plex). Bump the cache-bust `?v=` from `0093` to `0094`
+  (we're behind the previous bump in v1) on every existing
+  `<link>` / `<script>` tag. **Do not** import the design-system
+  bundle's HTML or CSS; this spec mirrors those tokens into the
+  app's own files.
 - `src/dual_research/ui/static/components.css` — add the
   `.ms` / `.ms-18` / `.ms-20` / `.ms-24` icon-sizing helpers so
   the Material Symbols Outlined ligatures render at the documented
@@ -88,8 +109,8 @@ Group by file, one-line summary of what changes:
 - `pyproject.toml` — bump `version = "0.72.0"` → `"0.72.1"`. Label
   is `refactoring` so the bump is PATCH.
 
-Notably **not** touched in this spec: any `.jsx` file, any
-component CSS beyond the boot block, any backend file.
+Notably **not** touched in this spec: any `.jsx` file, any v1
+component CSS, the v1 body font, any backend file.
 
 ## 3. Material 3 anatomy
 
@@ -158,9 +179,19 @@ spec lands, because each one reads tokens defined here.
 
 ## 5. Acceptance criteria
 
-- [ ] Computed `getComputedStyle(document.body).fontFamily`
-      contains `"Roboto Flex"` as the first declared family in
-      dark and light, comfortable and compact.
+> **Rewrite note (Step 3 Rewrite, 2026-05-19):** original criterion
+> 1 (body fontFamily contains "Roboto Flex" as the first declared
+> family) contradicted § 1 Goal ("page renders identically"). The
+> body font stays IBM Plex; Roboto Flex/Serif and Material Symbols
+> are *loaded and available* for subsequent specs. Reworded so
+> font availability is checked via the font face being present,
+> not via body.fontFamily.
+
+- [ ] Computed `getComputedStyle(document.body).getPropertyValue(
+      '--md-font-plain')` resolves to a string containing
+      `"Roboto Flex"`. Body's rendered `font-family` is unchanged
+      (still resolves with `"IBM Plex Sans"` first). Subsequent
+      specs flip individual components onto `--md-font-plain`.
 - [ ] Computed `getComputedStyle(document.body).getPropertyValue(
       '--md-primary')` resolves to the sable hex (`#d4a574`) when
       `body.tint-secondary` is absent, and the sable hex is still
@@ -172,19 +203,21 @@ spec lands, because each one reads tokens defined here.
       in DevTools.
 - [ ] Adding `body.compact` flips `--md-pad-card` from `24px` to
       `16px` and `--md-row-h` from `56px` to `44px`.
-- [ ] Viewport <1500 px: `--md-rail-w` resolves to `80px`;
-      viewport <900 px: `--md-rail-w` is unchanged but layout
-      grids in subsequent specs collapse to single column.
-- [ ] Focus ring is visible on every focusable boot element
-      (skip-link, theme toggle) via `:focus-visible`, with
-      `outline: 3px solid color-mix(var(--md-tertiary) 80%, …)`
-      and 2 px offset. No visible outline on mouse `:focus`.
-- [ ] Setting `prefers-reduced-motion: reduce` in DevTools kills
-      every CSS transition and animation in the page.
+- [ ] Viewport-driven `--md-rail-w` rule is **deferred** to a
+      subsequent spec — this spec lays the token only (default
+      280 px / compact 240 px); no `@media (max-width: 1499px)`
+      override yet.
 - [ ] The Material Symbols Outlined font loads (network panel
-      shows the woff2 fetch and a 200 response) and a literal
-      `<span class="ms">check_circle</span>` renders as the
-      glyph, not the literal string `check_circle`.
+      shows the woff2 fetch and a 200 response). Rendering a
+      literal `<span class="ms">check_circle</span>` in the
+      DevTools console produces the glyph, not the literal
+      string. (No `<span class="ms">` is added to live UI in
+      this spec.)
+- [ ] Reduced-motion contract preserved: setting
+      `prefers-reduced-motion: reduce` in DevTools kills every
+      CSS transition and animation in the page (existing
+      `base.css` rule remains authoritative; the M3 companion
+      rule reinforces it).
 - [ ] Page reload preserves the v1 visual appearance of every
       existing component — this spec is invisible to the user.
       Verified via side-by-side screenshot diff of run-list and

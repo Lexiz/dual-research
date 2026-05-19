@@ -145,6 +145,181 @@
      without rounds (P0 / P1 / P3 / P5) don't use this column at all
      — their cards span the full row width. */
   --consumption-round-w: 64px;
+
+  /* =============================================================
+     SPEC-0092 — Material 3 token layer (foundation, additive)
+     Mirrors docs/design-system-v2/assets/styles/v2-m3.css:7-174.
+     The v1 tokens above stay authoritative for v1 components;
+     the --md-* layer here is what subsequent specs (0093…0104)
+     read as they migrate components.
+     ============================================================= */
+
+  /* ── M3 palette source vars (alias the v1 palette) ─────────── */
+  --p-sable:           #d4a574;
+  --p-sable-dim:       #8a6d4e;
+  --p-sage:            #7cc4b8;
+  --p-sage-dim:        #4f8079;
+  --p-info:            #6b9cf0;
+  --p-ok:              #6fb380;
+  --p-warn:            #d4a056;
+  --p-err:             #d96a6a;
+  --p-idle:            #5e636d;
+
+  /* ── M3 color roles — DARK (default) ─────────── */
+  --md-primary:                var(--p-sable);
+  --md-on-primary:             #1f1407;
+  --md-primary-container:      rgba(212,165,116,0.18);
+  --md-on-primary-container:   #f3deca;
+
+  --md-secondary:              var(--p-sage);
+  --md-on-secondary:           #06201d;
+  --md-secondary-container:    rgba(124,196,184,0.18);
+  --md-on-secondary-container: #cfece6;
+
+  --md-tertiary:               var(--p-info);
+  --md-on-tertiary:            #061229;
+  --md-tertiary-container:     rgba(107,156,240,0.18);
+  --md-on-tertiary-container:  #d6e3ff;
+
+  --md-error:                  var(--p-err);
+  --md-on-error:               #2a0808;
+  --md-error-container:        rgba(217,106,106,0.16);
+  --md-on-error-container:     #f3c8c5;
+
+  --md-warning:                var(--p-warn);
+  --md-success:                var(--p-ok);
+
+  /* Surface tiers (5) + dim. Tonal — neutral with a hint of warmth. */
+  --md-surface-dim:                 #08090b;
+  --md-surface:                     #0d0f12;
+  --md-surface-bright:              #21242a;
+  --md-surface-container-lowest:    #0a0c0f;
+  --md-surface-container-low:       #111317;
+  --md-surface-container:           #14171c;
+  --md-surface-container-high:      #191c21;
+  --md-surface-container-highest:   #21252b;
+
+  --md-on-surface:           #ffffff;
+  --md-on-surface-variant:   #b4bac4;
+  --md-on-surface-muted:     #9aa0ac;
+  --md-on-surface-faint:     #7d8290;
+  --md-on-surface-decor:     #50545d;
+
+  --md-outline:              #343941;
+  --md-outline-variant:      #262a31;
+  --md-outline-hair:         #1c1f24;
+
+  /* Surface tint — body.tint-secondary swaps to sage. */
+  --md-surface-tint:         var(--md-primary);
+
+  /* M3 tonal elevation: rgba of surface-tint laid over surface at
+     increasing opacity. Components read --md-surface-1..5. */
+  --md-surface-1: color-mix(in srgb, var(--md-surface-tint) 5%,  var(--md-surface));
+  --md-surface-2: color-mix(in srgb, var(--md-surface-tint) 8%,  var(--md-surface));
+  --md-surface-3: color-mix(in srgb, var(--md-surface-tint) 11%, var(--md-surface));
+  --md-surface-4: color-mix(in srgb, var(--md-surface-tint) 12%, var(--md-surface));
+  --md-surface-5: color-mix(in srgb, var(--md-surface-tint) 14%, var(--md-surface));
+
+  /* ── Typography — Roboto Flex + Roboto Serif (M3 default pair) ─── */
+  /* Available for opt-in by subsequent specs; v1 body keeps --sans. */
+  --md-font-plain:  "Roboto Flex", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --md-font-brand:  "Roboto Serif", ui-serif, Charter, Georgia, serif;
+  --md-font-data:   "Roboto Flex", "Roboto", ui-monospace, monospace;
+
+  /* M3 type scale — 15 roles (5 categories × 3 sizes) */
+  --md-display-l-size: 57px; --md-display-l-lh: 64px; --md-display-l-track: -0.25px;
+  --md-display-m-size: 45px; --md-display-m-lh: 52px; --md-display-m-track: 0;
+  --md-display-s-size: 36px; --md-display-s-lh: 44px; --md-display-s-track: 0;
+
+  --md-headline-l-size: 32px; --md-headline-l-lh: 40px;
+  --md-headline-m-size: 28px; --md-headline-m-lh: 36px;
+  --md-headline-s-size: 24px; --md-headline-s-lh: 32px;
+
+  --md-title-l-size: 22px; --md-title-l-lh: 28px;
+  --md-title-m-size: 16px; --md-title-m-lh: 24px;  --md-title-m-track: 0.15px;
+  --md-title-s-size: 14px; --md-title-s-lh: 20px;  --md-title-s-track: 0.1px;
+
+  --md-body-l-size: 16px; --md-body-l-lh: 24px;
+  --md-body-m-size: 14px; --md-body-m-lh: 20px;
+  --md-body-s-size: 12px; --md-body-s-lh: 16px;
+
+  --md-label-l-size: 14px; --md-label-l-lh: 20px;  --md-label-l-track: 0.1px;
+  --md-label-m-size: 12px; --md-label-m-lh: 16px;  --md-label-m-track: 0.5px;
+  --md-label-s-size: 11px; --md-label-s-lh: 16px;  --md-label-s-track: 0.5px;
+
+  /* Weights — Roboto Flex variable */
+  --md-w-regular: 400;
+  --md-w-medium:  500;
+  --md-w-semi:    600;
+  --md-w-bold:    700;
+
+  /* ── Shape scale ───────────────────────────────── */
+  --md-shape-xs:   4px;
+  --md-shape-sm:   8px;
+  --md-shape-md:  12px;   /* default */
+  --md-shape-lg:  16px;
+  --md-shape-xl:  28px;
+  --md-shape-full: 9999px;
+
+  /* ── Spacing — M3 8dp grid (with 4dp half-step) ─ */
+  --md-sp-0:  0;
+  --md-sp-1:  4px;
+  --md-sp-2:  8px;
+  --md-sp-3:  12px;
+  --md-sp-4:  16px;
+  --md-sp-5:  20px;
+  --md-sp-6:  24px;
+  --md-sp-8:  32px;
+  --md-sp-10: 40px;
+  --md-sp-12: 48px;
+  --md-sp-14: 56px;
+  --md-sp-16: 64px;
+  --md-sp-20: 80px;
+
+  /* Comfortable density — M3 defaults. body.compact tightens. */
+  --md-density:     0;
+  --md-pad-card:    var(--md-sp-6);
+  --md-pad-card-y:  var(--md-sp-5);
+  --md-gap-row:     var(--md-sp-8);
+  --md-gap-col:     var(--md-sp-6);
+  --md-row-h:       56px;
+  --md-rail-w:      280px;
+  --md-content-max: 1440px;
+
+  /* ── Elevation — 6 levels (M3) ─────────────────── */
+  --md-elev-0: none;
+  --md-elev-1: 0 1px 2px 0 rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
+  --md-elev-2: 0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.15);
+  --md-elev-3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px 0 rgba(0,0,0,.30);
+  --md-elev-4: 0 6px 10px 4px rgba(0,0,0,.15), 0 2px 3px 0 rgba(0,0,0,.30);
+  --md-elev-5: 0 8px 12px 6px rgba(0,0,0,.15), 0 4px 4px 0 rgba(0,0,0,.30);
+
+  /* ── State layer opacities (overlay at currentColor) ── */
+  --md-state-hover:    0.08;
+  --md-state-focus:    0.10;
+  --md-state-pressed:  0.12;
+  --md-state-dragged:  0.16;
+
+  /* ── Motion — M3 easings + durations ───────────── */
+  --md-easing-emphasized:           cubic-bezier(0.2, 0, 0, 1);
+  --md-easing-emphasized-decel:     cubic-bezier(0.05, 0.7, 0.1, 1);
+  --md-easing-emphasized-accel:     cubic-bezier(0.3, 0, 0.8, 0.15);
+  --md-easing-standard:             cubic-bezier(0.2, 0, 0, 1);
+  --md-easing-standard-decel:       cubic-bezier(0, 0, 0, 1);
+  --md-easing-standard-accel:       cubic-bezier(0.3, 0, 1, 1);
+
+  --md-dur-short-1:  50ms;
+  --md-dur-short-2:  100ms;
+  --md-dur-short-3:  150ms;
+  --md-dur-short-4:  200ms;
+  --md-dur-medium-1: 250ms;
+  --md-dur-medium-2: 300ms;
+  --md-dur-medium-4: 400ms;
+  --md-dur-long-2:   500ms;
+
+  /* ── Focus ring (uses tertiary = info) ─────────── */
+  --md-focus-ring: 3px solid color-mix(in srgb, var(--md-tertiary) 80%, transparent);
+  --md-focus-offset: 2px;
 }
 
 /* ── Light mode ─────────────────────────────────────────────── */
@@ -183,4 +358,57 @@ body.light, .light {
   /* Lighter shadow recipe for cream surfaces */
   --e-1: 0 4px 12px rgba(20,23,28,0.10), 0 1px 2px rgba(20,23,28,0.06);
   --e-2: 0 24px 60px rgba(20,23,28,0.22), 0 4px 12px rgba(20,23,28,0.10);
+}
+
+/* =============================================================
+   SPEC-0092 — M3 light-mode role-token overrides.
+   Parallel to the v1 body.light block above. Mirrors
+   docs/design-system-v2/assets/styles/v2-m3.css:200-245.
+   Only --md tokens flip here; v1 components keep reading
+   their v1 surface and foreground tokens from the v1 block.
+   ============================================================= */
+body.light {
+  --md-on-primary:             #1f1407;
+  --md-primary-container:      rgba(212,165,116,0.26);
+  --md-on-primary-container:   #3b2810;
+
+  --md-secondary-container:    rgba(124,196,184,0.26);
+  --md-on-secondary-container: #0a322d;
+
+  --md-tertiary-container:     rgba(107,156,240,0.20);
+  --md-on-tertiary-container:  #0a1d44;
+
+  --md-error-container:        rgba(217,106,106,0.18);
+  --md-on-error-container:     #4a0e0e;
+
+  --md-surface-dim:                 #ece8de;
+  --md-surface:                     #faf9f6;
+  --md-surface-bright:              #ffffff;
+  --md-surface-container-lowest:    #ffffff;
+  --md-surface-container-low:       #f5f3ec;
+  --md-surface-container:           #f0ede4;
+  --md-surface-container-high:      #e9e5d9;
+  --md-surface-container-highest:   #e3decf;
+
+  --md-on-surface:           #04060a;
+  --md-on-surface-variant:   #3a3f47;
+  --md-on-surface-muted:     #4d5159;
+  --md-on-surface-faint:     #6f7480;
+  --md-on-surface-decor:     #a8aab0;
+
+  --md-outline:              #aaa599;
+  --md-outline-variant:      #d2cdc0;
+  --md-outline-hair:         #e7e3d9;
+
+  --md-surface-1: color-mix(in srgb, var(--md-surface-tint) 5%,  var(--md-surface));
+  --md-surface-2: color-mix(in srgb, var(--md-surface-tint) 8%,  var(--md-surface));
+  --md-surface-3: color-mix(in srgb, var(--md-surface-tint) 11%, var(--md-surface));
+  --md-surface-4: color-mix(in srgb, var(--md-surface-tint) 12%, var(--md-surface));
+  --md-surface-5: color-mix(in srgb, var(--md-surface-tint) 14%, var(--md-surface));
+
+  --md-elev-1: 0 1px 2px 0 rgba(20,23,28,.10), 0 1px 3px 1px rgba(20,23,28,.06);
+  --md-elev-2: 0 1px 2px 0 rgba(20,23,28,.10), 0 2px 6px 2px rgba(20,23,28,.06);
+  --md-elev-3: 0 4px 8px 3px rgba(20,23,28,.08), 0 1px 3px 0 rgba(20,23,28,.10);
+  --md-elev-4: 0 6px 10px 4px rgba(20,23,28,.08), 0 2px 3px 0 rgba(20,23,28,.10);
+  --md-elev-5: 0 8px 12px 6px rgba(20,23,28,.10), 0 4px 4px 0 rgba(20,23,28,.10);
 }
