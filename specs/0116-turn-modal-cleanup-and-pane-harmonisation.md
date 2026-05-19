@@ -3,10 +3,10 @@ spec: 0116
 title: Turn / Cross-review modal cleanup + Timeline-Critique pane visual harmonisation
 label: bug
 version-bump: NONE
-status: proposed
+status: merged
 target-version: "next-release (1.1.x)"
 created: 2026-05-20
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/127"
 ---
 
 # Spec 0116 — Turn modal cleanup + Timeline-Critique pane harmonisation
