@@ -1558,13 +1558,33 @@ function ProviderBilledLine({ report, agent, modelId }) {
   );
 }
 
+// SPEC-0100 — CCX fill-class mapping for input sub-buckets.
+// Maps promptPieces keys to the ccx CSS `.fl.*` class name.
+const CCX_INPUT_FILL = {
+  system: 'sys',
+  brief:  'sys',
+  d1:     'hist',
+  d2:     'hist',
+  plan:   'round',
+  hist:   'hist',
+  draft:  'resp',
+  histp:  'hist',
+};
+
+// SPEC-0100 — CCX sub-bucket labels for the M3 anatomy.
+const CCX_INPUT_LABEL = {
+  system: 'system prompt',
+  brief:  'brief',
+  d1:     'Claude draft',
+  d2:     'GPT draft',
+  plan:   'agreed plan',
+  hist:   'conversation history',
+  draft:  'current draft',
+  histp:  'review history',
+};
+
 function ConsumptionView({ run }) {
-  const reconcileState = useReconcileReport(run.id);
-  const reconcileReport = reconcileState.report;
   const rows = React.useMemo(() => buildConsumptionRows(run), [run.phaseTokenUsage]);
-  // Spec 0031: per-row click-to-expand. Set of row ids currently open.
-  // Resets implicitly when navigating runs (Timeline component remounts
-  // ConsumptionView via the tab toggle).
   const [expanded, setExpanded] = React.useState(() => new Set());
   const toggleRow = React.useCallback((id) => {
     setExpanded((prev) => {
@@ -1574,379 +1594,252 @@ function ConsumptionView({ run }) {
       return next;
     });
   }, []);
-  // Spec 0035: shared scale across every bar in this grid. Recomputes
-  // when the per-turn usage dict changes (the rows are derived from it).
   const scale = React.useMemo(() => computeConsumptionScale(rows, run), [rows, run]);
 
   if (rows.length === 0) {
     return <ConsumptionEmptyState />;
   }
-  // Pass `run` down so TokenBar can fall back to AgentState.contextWindow
-  // when a per-turn entry lacks its own (pre-0030 transcripts).
 
-  // SPEC-0086 — group rows by phase so the view can render a header
-  // ABOVE each group instead of an inline phase-label cell inside the
-  // row. Both agent cards in a row share one expanded flag (paired
-  // expansion, locked in the spec's 2026-05-18 decision).
   const groups = groupConsumptionRowsByPhase(rows, run);
 
   return (
-    <div style={{
-      flex: 1, minHeight: 0, overflow: 'auto',
-      padding: '16px 16px 32px', background: 'var(--bg-0)',
-    }}>
-      {/* Spec 0035: caption telling the user the bars are data-relative
-          (not the full 1M-cap-relative). Same denominator across the grid. */}
-      <div className="mono" style={{
-        marginBottom: 10, padding: '0 4px',
-        fontSize: 10.5, color: 'var(--fg-3)',
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-      }}>
-        <span>scale: <span style={{ color: 'var(--fg-1)' }}>{fmt.tokens(scale.denom)}t</span></span>
-        {scale.window > 0 && scale.window !== scale.denom && (
-          <>
-            <span>·</span>
-            <span>cap <span style={{ color: 'var(--fg-1)' }}>{_fmtCapLabel(scale.window)}</span></span>
-          </>
-        )}
-        <span style={{ flex: 1 }} />
-        {scale.dataRelative && (
-          <span style={{ fontStyle: 'italic', color: 'var(--fg-4)' }}>
-            bars sized to the largest input in this run, not the full window
-          </span>
-        )}
-      </div>
-
-      {/* SPEC-0086 — phase groups: per-phase header band above a stack
-          of `<ConsumptionRow>`s. Each row is a 2-or-3 column grid
-          (round-chip when present, then two agent cards). Cards ARE
-          the click-to-expand surface — clicking either card in a row
-          toggles both. */}
-      {groups.map((group) => (
-        <section key={group.phase} className="consumption-phase-group">
-          <ConsumptionPhaseHeader group={group} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {group.rows.map((row) => (
-              <ConsumptionRow
-                key={row.id}
-                row={row}
-                run={run}
-                scale={scale}
-                expanded={expanded.has(row.id)}
-                onToggle={() => toggleRow(row.id)}
-                reconcileReport={reconcileReport}
-              />
-            ))}
+    <div className="ccx-pane">
+      <div className="ccx-pane__body">
+        {groups.map((group) => (
+          <div key={group.phase}>
+            <div className="phase-group-head">{group.name}</div>
+            {group.rows.map((row) => {
+              const hasRound = !!row.label;
+              const roundCount = group.rounds || 0;
+              const phaseCode = `P${row.phase}`;
+              const roundLabel = hasRound
+                ? `round ${row.round} of ${roundCount}${row.isRepair ? ' repair' : ' soft'}`
+                : null;
+              return (
+                <div key={row.id} className="cards-2up" style={{ marginBottom: 16 }}>
+                  {['claude', 'gpt'].map((agent) => (
+                    <div key={agent}>
+                      {hasRound && (
+                        <div className="round-label">
+                          <span className="pcode">{phaseCode}</span>
+                          <span>&middot;</span>
+                          <span>{roundLabel}</span>
+                        </div>
+                      )}
+                      <CcxCard
+                        usage={row[agent]}
+                        agent={agent}
+                        run={run}
+                        scale={scale}
+                        expanded={expanded.has(row.id)}
+                        onToggle={() => toggleRow(row.id)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
-        </section>
-      ))}
-
-      <ConsumptionLegend />
+        ))}
+      </div>
+      <CcxLegend />
     </div>
   );
 }
 
-// SPEC-0086 — phase group header. Sits above the rows belonging to a
-// phase; carries the phase name (e.g. "P2 NEGOTIATE"), the phase
-// duration when known, and the round count for P2 / P4 (the only
-// phases with rounds).
+// SPEC-0086 — phase group header (kept for backwards compat; SPEC-0100
+// replaces with .phase-group-head inline in ConsumptionView).
 function ConsumptionPhaseHeader({ group }) {
-  const metaBits = [];
-  if (group.durationMs > 0) metaBits.push(fmt.duration(group.durationMs));
-  if (group.rounds > 0) {
-    metaBits.push(`${group.rounds} round${group.rounds === 1 ? '' : 's'}`);
-  }
-  return (
-    <header className="consumption-phase-header">
-      <span className="consumption-phase-name">{group.name}</span>
-      {metaBits.length > 0 && (
-        <span className="consumption-phase-meta mono">
-          {metaBits.join(' · ')}
-        </span>
-      )}
-    </header>
-  );
+  return null;
 }
 
-// SPEC-0086 — Consumption row. Pre-spec the row was a clickable
-// `<button>` containing a left phase-label cell + two `<TokenLaneCell>`
-// compact-bar cells (duplicating the total bar inside the expanded
-// `<ConsumptionCard>` below). Now the cards ARE the row: a 2-col grid
-// of `<ConsumptionCard>`s (or 3-col with a leading round chip for
-// phases with rounds). Clicking either card toggles BOTH (paired
-// expansion, locked decision per the spec's 2026-05-18 review).
-function ConsumptionRow({ row, run, scale, expanded, onToggle, reconcileReport }) {
-  const hasRound = !!row.label;
-  return (
-    <div
-      className="consumption-row"
-      data-has-round={hasRound ? 'true' : 'false'}
-      data-is-repair={row.isRepair ? 'true' : 'false'}
-    >
-      {hasRound && (
-        <div className="consumption-round-chip">
-          <span className="consumption-round-label">{row.label}</span>
-          {row.isRepair && <RepairChip />}
-        </div>
-      )}
-      <ConsumptionCard
-        usage={row.claude}
-        agent="claude"
-        phase={row.phase}
-        run={run}
-        scale={scale}
-        reconcileReport={reconcileReport}
-        expanded={expanded}
-        onToggle={onToggle}
-        showRepairChip={!hasRound && row.isRepair}
-      />
-      <ConsumptionCard
-        usage={row.gpt}
-        agent="gpt"
-        phase={row.phase}
-        run={run}
-        scale={scale}
-        reconcileReport={reconcileReport}
-        expanded={expanded}
-        onToggle={onToggle}
-        showRepairChip={!hasRound && row.isRepair}
-      />
-    </div>
-  );
-}
+// SPEC-0086 ConsumptionRow — kept as stub; SPEC-0100 inlines into ConsumptionView.
+function ConsumptionRow() { return null; }
 
-// Spec 0035 — one card per agent, rendered side-by-side in the expanded
-// row. Header carries the agent name + total tokens / cost; total bar
-// fills against the shared ``scale``; stacked sub-bars beneath show each
-// input piece's contribution at the same scale. Sort toggle flips
-// between size-descending (default) and canonical Tk order. Web-search
-// count + cost (spec 0031) survive at the bottom.
-// SPEC-0086 — ConsumptionCard is now the click-to-expand surface
-// itself. The whole card chrome is a `<button>`; clicking it calls
-// `onToggle`. The breakdown bars + output tail render only when
-// `expanded === true` — the total-input bar is always visible. This
-// eliminates the legacy `<TokenLaneCell>` top-row that duplicated
-// the total bar above the card.
-function ConsumptionCard({
-  usage, agent, phase, run, scale, reconcileReport,
-  expanded = false, onToggle, showRepairChip = false,
-}) {
+// SPEC-0086 ConsumptionCard — kept as stub; SPEC-0100 replaces with CcxCard.
+function ConsumptionCard() { return null; }
+
+// SPEC-0100 — CcxCard: M3 consumption card with collapsed + unfolded anatomy.
+// Issues 12 (collapsed), 13 (unfolded), 14 (uniform width).
+function CcxCard({ usage, agent, run, scale, expanded = false, onToggle }) {
   const meta = AGENT_META[agent];
-  const [sortMode, setSortMode] = React.useState('size'); // 'size' | 'order'
+  const iconClass = agent === 'claude' ? 'a' : 'b';
+  const fillIn = agent === 'claude' ? 'in' : 'in-b';
+  const fillOut = agent === 'claude' ? 'out' : 'out-b';
 
   if (!usage) {
     return (
-      <div style={{
-        padding: '14px 16px',
-        background: 'var(--bg-1)',
-        border: '1px dashed var(--border-2)', borderRadius: 6,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--fg-4)', fontSize: 12,
-        fontFamily: 'var(--mono)',
-      }}>
-        {meta.name} · silent this turn
-      </div>
+      <article className="ccx" style={{ opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 60 }}>
+        <span style={{ fontSize: 12, color: 'var(--md-on-surface-faint)' }}>
+          {meta.name} &middot; silent this turn
+        </span>
+      </article>
     );
   }
 
   const tokensIn  = effectiveTokensIn(usage);
   const tokensOut = Number(usage.out) || 0;
-  const cacheRead = Number(usage.cacheRead) || 0;
-  const cacheWrite = Number(usage.cacheWrite) || 0;
-  const freshIn   = Number(usage.in) || 0;
   const cost      = Number(usage.cost) || 0;
   const ctxWindow = contextWindowFor(usage, run, agent);
+  const pctOfCap  = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
+  const denom     = scale?.denom || 1;
+  const reuse     = reuseInfo(usage);
   const piecesRaw = usage.promptPieces || {};
-
-  // Spec 0051 A2/A4 — pieces use their raw heuristic estimates, no
-  // renormalisation against `tokensIn`. The pre-spec scale step inflated
-  // every piece proportionally to absorb cache-read tokens, which made
-  // the "Brief" bar read as 411kt on P1 Claude even though the brief is
-  // 60kt of distinct content. Now the bar reflects content size; the
-  // gap between piece-sum and `tokensIn` is the reuse overlay on the
-  // total bar (see § total bar below).
-  const pieces = (() => {
-    const present = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0);
-    return present.map((k) => ({
-      kind: k,
-      tokens: Number(piecesRaw[k]) || 0,
-    }));
-  })();
-
-  // Sort.
-  const sorted = (() => {
-    const copy = pieces.slice();
-    if (sortMode === 'size') {
-      copy.sort((a, b) => b.tokens - a.tokens);
-    } else {
-      copy.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
-    }
-    return copy;
-  })();
-
-  const reuse = reuseInfo(usage);
   const outputCost = outputCostFor(usage);
-  const outputSlot = outputSlotFor(phase, agent);
-  const pctOfCap = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
+
+  // Input sub-buckets — only show present ones.
+  const inputPieces = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0)
+    .map((k) => ({ kind: k, tokens: Number(piecesRaw[k]) || 0 }));
+
+  // Total tokens formatted for the header.
+  const totalKt = fmt.tokens(tokensIn + tokensOut);
+
+  // Input cost: tokenCost - outputCost
+  const tokenCost  = Number(usage?.tokenCost ?? usage?.cost ?? 0) || 0;
+  const outCostUsd = Number(outputCost?.cost) || 0;
+  const inputCost  = Math.max(0, tokenCost - outCostUsd);
+  const searchCost = Number(usage?.searchCost) || 0;
+  const searches   = Number(usage?.searches) || 0;
+  const queries    = Number(usage?.searchQueries) || 0;
+  const hasSearches = searches > 0 || queries > 0 || searchCost > 0;
+
+  // Bar widths
+  const totalInPct  = denom > 0 ? Math.min(100, (tokensIn / denom) * 100) : 0;
+  const totalOutPct = denom > 0 ? Math.min(100, (tokensOut / denom) * 100) : 0;
+
+  // Reuse overlay on total in bar
+  const reusePct = reuse.reused > 0 && tokensIn > 0
+    ? Math.min(100, (reuse.reused / tokensIn) * 100)
+    : 0;
+  const reuseLeft = reusePct > 0 ? 0 : 0;
+  const reuseWidth = reusePct > 0
+    ? (reuse.reused / denom) * 100
+    : 0;
 
   return (
-    <button
-      type="button"
-      className="consumption-card"
-      onClick={onToggle}
-      aria-expanded={expanded}
-      style={{
-        borderColor: meta.border,
-      }}
-    >
-      {/* SPEC-0086 — chevron indicates the disclosure state. Sits at the
-          top-right of the card; rotates when expanded. */}
-      <span className="consumption-card-chevron" aria-hidden="true" style={{
-        transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-      }}>
-        <Mdi name="chevron-right" size={16} />
-      </span>
-      {/* Zone 1: data header — agent name + metrics + costs (grouped at top) */}
-      <div className="consumption-data-zone">
-        {/* Header row — agent + token metrics + sort */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          flexWrap: 'wrap',
-        }}>
-          <AgentIcon agent={agent} size={14} />
-          <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
-            {meta.name}
-          </span>
-          {/* SPEC-0086 — repair-chip lives in the card header when the
-              row has no round (P0/P1/P3/P5 repairs); for P2/P4 repairs
-              the chip stays in the `consumption-round-chip` left cell. */}
-          {showRepairChip && <RepairChip />}
-          {reuse.hasReuse ? (
-            <>
-              <span
-                className="mono num"
-                style={{ fontSize: 11, color: 'var(--fg-2)' }}
-                title={
-                  `${fmt.tokens(reuse.content)}t unique content seen by the model.\n`
-                  + `${fmt.tokens(reuse.billed)}t total billed by the provider:\n`
-                  + `  ${fmt.tokens(freshIn)}t fresh input\n`
-                  + (cacheWrite ? `  ${fmt.tokens(cacheWrite)}t cache write\n` : '')
-                  + (cacheRead ? `  ${fmt.tokens(cacheRead)}t cache read (${reuse.multiplier.toFixed(1)}× the unique content)\n` : '')
-                  + `Anthropic re-reads the cached prefix on every internal turn of a tool-use loop, so cache_read_tokens accumulates per search.`
-                }
-              >
-                {fmt.tokens(reuse.content)}t seen
-                {' · '}
-                <span style={{ color: 'var(--fg-3)' }}>{fmt.tokens(reuse.billed)}t billed</span>
-                {' · '}
-                {fmt.tokens(tokensOut)}t out
-              </span>
-              <ReuseChip multiplier={reuse.multiplier} />
-            </>
-          ) : (
-            <span
-              className="mono num"
-              style={{ fontSize: 11, color: 'var(--fg-2)' }}
-              title={`${fmt.tokens(tokensIn)}t input · ${fmt.tokens(tokensOut)}t output`}
-            >
-              {fmt.tokens(tokensIn)}t in · {fmt.tokens(tokensOut)}t out
-            </span>
+    <article className="ccx" onClick={onToggle} style={{ cursor: 'pointer' }}>
+      {/* Header trio — Issue 12 */}
+      <header className="ccx-header">
+        <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
+        <span className="nm">{meta.name}</span>
+        <span className="stats">
+          <span>{totalKt}t total</span>
+          <span className="sep">&middot;</span>
+          <span>{fmt.cost(cost)}</span>
+          <span className="sep">&middot;</span>
+          <span className="pct">{pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)}</span>
+        </span>
+        <span className="chev" tabIndex={0} role="button" aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse' : 'Expand'}
+              style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          <span className="ms ms-20">expand_more</span>
+        </span>
+      </header>
+
+      {/* Total in bar — always visible */}
+      <div className="ccx-bar-row is-total">
+        <span className="lbl">total in</span>
+        <div className="ccx-bar">
+          <div className={`fl ${fillIn}`} style={{ width: `${totalInPct}%` }} />
+          {reuse.hasReuse && (
+            <div className="reuse" style={{ left: 0, width: `${reuseWidth}%` }} />
           )}
-          <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-            ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
-          </span>
-          <span style={{ flex: 1 }} />
-          {/* SPEC-0086 — sort toggle only appears when expanded (the
-              breakdown bars are what gets sorted). Stop-propagation
-              so clicking the toggle doesn't bubble up to the card
-              click-to-expand. */}
-          {expanded && sorted.length > 1 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSortMode(m => m === 'size' ? 'order' : 'size');
-              }}
-              title="Toggle sort: by size / canonical Tk order"
-              style={{
-                appearance: 'none', border: '1px solid var(--border-1)',
-                background: 'var(--bg-2)', color: 'var(--fg-3)',
-                borderRadius: 999, padding: '1px 8px',
-                fontSize: 10.5, fontFamily: 'var(--mono)',
-                cursor: 'pointer',
-              }}
-            >
-              sort: {sortMode === 'size' ? '↓ size' : '↘ order'}
-            </button>
-          )}
-          {/* Reserve space for the chevron so the header text doesn't
-              run under it. */}
-          <span aria-hidden="true" style={{ width: 18, flexShrink: 0 }} />
         </div>
-
-        {/* Cost row — grouped with metrics at top per SPEC-0075 D3 */}
-        <CostsCluster usage={usage} outputCost={outputCost} />
-
-        {/* Provider-billed reconciliation line */}
-        <ProviderBilledLine
-          report={reconcileReport}
-          agent={agent}
-          modelId={usage?.modelId || usage?.model_id}
-        />
+        <span className="num">{fmt.tokens(tokensIn)}t</span>
       </div>
 
-      {/* Divider between data zone and bars zone */}
-      <hr className="consumption-divider" />
-
-      {/* Zone 2: bars. SPEC-0086 — total bar always visible; breakdown
-          bars + output bar render only when expanded. */}
-      <div className="consumption-bars-zone">
-        <TotalInputBar
-          label="total input"
-          content={reuse.content}
-          reused={reuse.reused}
-          billed={reuse.billed}
-          scale={scale}
-          color={meta.color}
-        />
-
-        {expanded && sorted.length > 0 && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: 4,
-            paddingLeft: 8,
-            borderLeft: `1px dashed var(--border-2)`,
-          }}>
-            {sorted.map((p) => (
-              <SubInputBar
-                key={p.kind}
-                label={INPUT_PIECE_LABEL[p.kind] || KIND_COLORS[p.kind]?.label || p.kind}
-                tokens={p.tokens}
-                scale={scale}
-                color={SUBINPUT_COLORS[p.kind] || 'var(--fg-3)'}
-              />
-            ))}
-          </div>
-        )}
-
-        {expanded && tokensOut > 0 && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: 4,
-            paddingTop: 6,
-            borderTop: '1px dashed var(--border-2)',
-          }}>
-            <OutputBar
-              label={outputBarLabel(phase, agent)}
-              tokens={tokensOut}
-              scale={scale}
-              color={outputSlot ? (SUBINPUT_COLORS[outputSlot] || 'var(--fg-3)') : 'var(--fg-3)'}
-              outputCost={outputCost}
-              modelId={usage.modelId || null}
-              slot={outputSlot}
-            />
-          </div>
-        )}
+      {/* Total out bar — always visible */}
+      <div className="ccx-bar-row is-total">
+        <span className="lbl">total out</span>
+        <div className="ccx-bar">
+          <div className={`fl ${fillOut}`} style={{ width: `${totalOutPct}%` }} />
+        </div>
+        <span className="num">{fmt.tokens(tokensOut)}t</span>
       </div>
-    </button>
+
+      {/* ── UNFOLDED SECTION — Issue 13 ── */}
+      {expanded && (
+        <React.Fragment>
+          {/* Input sub-rows */}
+          <div className="ccx-divider" />
+          {inputPieces.map((p) => {
+            const fillClass = CCX_INPUT_FILL[p.kind] || 'sys';
+            const label = CCX_INPUT_LABEL[p.kind] || INPUT_PIECE_LABEL[p.kind] || p.kind;
+            const piecePct = denom > 0 ? Math.min(100, (p.tokens / denom) * 100) : 0;
+            return (
+              <div key={p.kind} className="ccx-sub-row">
+                <span className="lbl">{label}</span>
+                <div className="ccx-bar thin">
+                  <div className={`fl ${fillClass}`} style={{ width: `${piecePct}%` }} />
+                </div>
+                <span className="num">{fmt.tokens(p.tokens)}</span>
+              </div>
+            );
+          })}
+
+          {/* Input totals block */}
+          <div className="ccx-totals">
+            <div className="line">
+              <span className="v">{tokensIn.toLocaleString()}</span>
+              <span className="l">input tokens &middot; billed</span>
+            </div>
+            <div className="line">
+              <span className="v">{fmt.cost(inputCost)}</span>
+              <span className="l">input cost</span>
+            </div>
+            {hasSearches && (
+              <div className="line">
+                <span className="v">{fmt.cost(searchCost)}</span>
+                <span className="l">web search &middot; {queries || searches} queries</span>
+              </div>
+            )}
+            <div className="line is-grand">
+              <span className="v">{fmt.cost(inputCost + searchCost)}</span>
+              <span className="l">total input</span>
+            </div>
+          </div>
+
+          <div className="ccx-section-spacer" />
+
+          {/* Output total bar (repeated in unfolded) */}
+          <div className="ccx-bar-row is-total">
+            <span className="lbl">total out</span>
+            <div className="ccx-bar">
+              <div className={`fl ${fillOut}`} style={{ width: `${totalOutPct}%` }} />
+            </div>
+            <span className="num">{fmt.tokens(tokensOut)}t</span>
+          </div>
+          <div className="ccx-divider" />
+
+          {/* Output sub-rows — show if output breakdown exists */}
+          {tokensOut > 0 && (
+            <div className="ccx-sub-row">
+              <span className="lbl">response</span>
+              <div className="ccx-bar thin">
+                <div className="fl resp" style={{ width: `${totalOutPct}%` }} />
+              </div>
+              <span className="num">{fmt.tokens(tokensOut)}</span>
+            </div>
+          )}
+
+          {/* Output totals block */}
+          <div className="ccx-totals">
+            <div className="line">
+              <span className="v">{tokensOut.toLocaleString()}</span>
+              <span className="l">output tokens</span>
+            </div>
+            <div className="line">
+              <span className="v">{fmt.cost(outCostUsd)}</span>
+              <span className="l">output cost</span>
+            </div>
+            <div className="line is-grand">
+              <span className="v">{fmt.cost(outCostUsd)}</span>
+              <span className="l">total output</span>
+            </div>
+          </div>
+        </React.Fragment>
+      )}
+    </article>
   );
 }
 
@@ -2531,37 +2424,32 @@ function TokenBar({ usage, agent, run, scale }) {
   );
 }
 
-function ConsumptionLegend() {
-  // Spec 0030 — the bars now break down into prompt-piece kinds. Legend
-  // shows the Tk palette + the output tail; bar total is the model's
-  // real context window (from `RunStarted.{agent}_context_window`).
-  // Spec 0031 — adds the click-to-expand hint.
+// SPEC-0100 — sticky bottom legend (Issue 15).
+function CcxLegend() {
   return (
-    <React.Fragment>
-      <div className="mono" style={{
-        marginTop: 14, padding: '10px 14px',
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
-        borderRadius: 6,
-        display: 'flex', flexWrap: 'wrap', gap: 14,
-        alignItems: 'center',
-        fontSize: 10.5, color: 'var(--fg-3)',
-      }}>
-        {KIND_ORDER.map((k) => (
-          <LegendSwatch key={k} color={KIND_COLORS[k].bg} label={KIND_COLORS[k].label} />
-        ))}
-        <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-2)' }} />
-        <LegendSwatch color="var(--agent-a)" label="output (tail)" alpha={0.45} thin />
-        <span style={{ flex: 1 }} />
-        <span>bar total = model context window</span>
-      </div>
-      <div className="mono" style={{
-        marginTop: 6, padding: '0 4px',
-        fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic',
-      }}>
-        click any phase row to see exact per-input numbers + web-search count
-      </div>
-    </React.Fragment>
+    <footer className="ccx-pane__legend">
+      <span className="legend-row">
+        <span className="legend-sw a" />
+        <span>Claude</span>
+        <span className="legend-sw b" />
+        <span>GPT</span>
+      </span>
+      <span className="legend-sep">|</span>
+      <span className="legend-row">
+        <span className="legend-sw solid" />
+        <span>current charge</span>
+        <span className="legend-sw striped" />
+        <span>cache reuse</span>
+        <span className="legend-sw web" />
+        <span>web search</span>
+      </span>
+    </footer>
   );
+}
+
+function ConsumptionLegend() {
+  // Kept for backwards compat — SPEC-0100 replaces with CcxLegend.
+  return <CcxLegend />;
 }
 
 function LegendSwatch({ color, label, alpha, thin }) {
