@@ -115,14 +115,7 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
     (run.agents.gpt.tokens?.in || 0) + (run.agents.gpt.tokens?.out || 0);
 
   return (
-    <header data-tour-anchor="run-detail-header" style={{
-      display: 'flex', flexDirection: 'column',
-      padding: '12px 20px',
-      borderBottom: '1px solid var(--border-1)',
-      background: 'var(--bg-0)',
-      flexShrink: 0,
-      gap: 6,
-    }}>
+    <header className="run-detail__head" data-tour-anchor="run-detail-header">
       {/* Row 1: topic + cost + reconcile-status + status/errors */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
         <Topic text={run.topic} />
@@ -186,6 +179,16 @@ function TimelineAgentPill({ agent, run }) {
       right={activityRight}
       className="as-timeline"
     />
+  );
+}
+
+// ─────────────────── Spec 0105 — restored agent bar above timeline ───────────
+function TimelineAgentBar({ run }) {
+  return (
+    <div className="agent-bar">
+      <TimelineAgentPill agent="claude" run={run} />
+      <TimelineAgentPill agent="gpt" run={run} />
+    </div>
   );
 }
 
@@ -7248,6 +7251,7 @@ function RunDetail({ run }) {
           onToggleErrors={() => setShowErrors(s => !s)}
           onJumpToFirstSearch={onJumpToFirstSearch}
         />
+        <TimelineAgentBar run={run} />
         {/* Spec 0070 D4: blocking-item callout banner removed (user: "completely useless").
            Same info available in critique pane DRIFT/OPEN section headers. */}
         <main style={{

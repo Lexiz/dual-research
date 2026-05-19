@@ -237,17 +237,7 @@ function ListScreen({ navigate }) {
 function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me, onOpenHow }) {
   const onList = route.view === 'list';
   return (
-    <div style={{
-      // SPEC-0087 § B — chrome strip kept at 44px tall but tabs now
-      // sit centered (no longer flush against the top edge of the
-      // viewport). Adds the breathing-room the user flagged at 13.07.
-      height: 44,
-      background: 'var(--bg-0)',
-      borderBottom: '1px solid var(--border-1)',
-      display: 'flex', alignItems: 'center',
-      paddingLeft: 8,
-      gap: 4,
-    }}>
+    <header className="md-appbar">
       <Tab
         active={onList}
         onClick={() => navigate('list')}
@@ -286,7 +276,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me,
         me={me}
         onOpenHow={onOpenHow}
       />
-    </div>
+    </header>
   );
 }
 
