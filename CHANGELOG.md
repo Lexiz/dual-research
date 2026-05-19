@@ -12,6 +12,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [1.0.0] — 2026-05-19
+
+### Changed (BREAKING)
+
+- **Spec 0114 — Deep Research protocol** ([spec 0114](specs/0114-deep-research-protocol.md)). The negotiation protocol is replaced with the canonical Deep Research model. MAJOR version bump.
+  - **Single source of truth**: new `src/dual_research/contract/` package owns category vocabulary, six-state lifecycle, stable ID format, section / counter regexes, operation block schemas, evidence anti-hallucination rules, phase artifact templates + canonical hashing, per-phase caps + closeout budgets, status vocabulary, and the turn validator.
+  - **Four canonical categories** (`question` / `disagreement` / `issue` / `comment`) with `RAISABLE_IN` allow-sets per phase. The legacy `claim` kind is gone.
+  - **Six-state lifecycle** (`open` / `addressed` / `resolved` / `acknowledged` / `withdrawn` / `capped`) with a mutual-handshake `acknowledged` and orchestrator-only `capped`.
+  - **Stable item IDs** (`Q-input-c-04`, `D-plan-g-02`, …) assigned by the orchestrator at parse time; monotonic per `(kind, phase, raiser)`.
+  - **Closeout mechanism replaces repair**: when both agents emit `STATUS: AGREED` with non-terminal items remaining, a bounded closeout round fires; per-agent budget = 2 per phase; ghost-cap at exhaustion; hard-cap at the phase ceiling. The legacy `canonical-FSD synthesis`, `stuck-AGREED promotion`, `force-verbatim-copy` repair, and multi-tier drafter tiebreak are removed.
+  - **Evidence anti-hallucination**: every `evidence_required: true` item must be addressed with a structured evidence record carrying `evidence_event_id` matching a real `ToolEvent`, URL in `consulted_sources`, and a ≥200-char excerpt that appears in the consulted content.
+  - **New event types** (`ItemRaised`, `ItemTransitioned`, `CloseoutUrged`, `CloseoutViolation`, `PhaseConverged`) — the ledger can be reconstructed from the event stream alone.
+  - **New prompts** (`preflight_prompt_v2`, `input_negotiation_prompt_v2`, `research_plan_prompt_v2`, `plan_negotiation_round{1,_n}_prompt_v2`, `drafting_prompt_v2`, `review_round{1,_n}_prompt_v2`) with the `DEEP_RESEARCH_PREAMBLE` (anti-sycophancy + anti-adversarialism + tracked-items + evidence sections).
+  - **New parser** (`parse_turn_v2`) walks typed operation blocks (`RAISE` / `ADDRESS` / `RESOLVE` / `ACKNOWLEDGE` / `WITHDRAW`); fixes the `EVIDENCE_CHECKED_SECTION_RE` heading-glued-to-body bug from `runs/20260519-132908-backend-language-choice/phase4/round-03-claude.md:39`.
+  - **`run.py` cutover**: the production orchestrator now imports from `orchestrator/dr_run.py` (Deep Research phase runners). The legacy `orchestrator/phase{0..4}.py` modules remain importable for their dedicated tests but `run.py` no longer calls them.
+  - **Backward-compat shim** in `events/legacy_shim.py` derives the legacy `Phase0Complete` / `Phase2RoundComplete` / `Phase2Complete` / `Phase4RoundComplete` / `Phase4Complete` payloads from a ledger snapshot so the existing UI continues to render. Removed in spec 0115.
+  - **`SessionState` extended** with `agreed_interpretation`, `carry_forward_phase{0,2,4}`, `closeout_budgets` fields.
+  - **Open questions resolved**: OQ-1 ID scope = per `(kind, phase, raiser)`; OQ-2 closeout budget = 2; OQ-3 canonical-FSD synthesis fully removed; OQ-4 endorsement = loose prose.
+
+  Old runs on disk remain readable in their legacy shape; the legacy UI renderer is removed in spec 0115. No migration of legacy run artifacts.
+
 ## [0.76.15] — 2026-05-19
 
 ### Fixed

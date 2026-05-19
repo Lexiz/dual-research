@@ -285,7 +285,7 @@ class DeepResearchPhase:
             remaining_budget=self.state.closeout.remaining(agent),
         )
 
-    def _apply_turn(
+    def apply_turn(
         self,
         *,
         text: str,
@@ -495,6 +495,112 @@ class DeepResearchPhase:
 
     # ── Round driver ─────────────────────────────────────────────
 
+    def process_round_end(
+        self,
+        *,
+        parsed_claude: ParsedTurnV2 | None,
+        parsed_openai: ParsedTurnV2 | None,
+        round: int,
+        is_closeout_round: bool,
+        raised_events: list[ItemRaised],
+        transition_events: list[ItemTransitioned],
+        violation_events: list[CloseoutViolation],
+    ) -> RoundResult:
+        """End-of-round processing: convergence check + closeout urge decision.
+
+        Used by the async production orchestrator after both agents'
+        turns have been applied via ``apply_turn``. Returns a
+        ``RoundResult`` bundle the caller publishes.
+        """
+        artifact_match = False
+        if (
+            parsed_claude is not None
+            and parsed_openai is not None
+            and parsed_claude.status == "AGREED"
+            and parsed_openai.status == "AGREED"
+        ):
+            artifact_match = self.artifact_hash_match(parsed_claude, parsed_openai)
+
+        conv = check_convergence(
+            claude_status=parsed_claude.status if parsed_claude else None,
+            openai_status=parsed_openai.status if parsed_openai else None,
+            items=self.state.item_views(),
+            artifact_hash_match=artifact_match,
+        )
+
+        closeout_evt: CloseoutUrged | None = None
+        if not conv.converged and should_urge_closeout(
+            claude_status=parsed_claude.status if parsed_claude else None,
+            openai_status=parsed_openai.status if parsed_openai else None,
+            items=self.state.item_views(),
+        ):
+            blocking = items_blocking_convergence(self.state.item_views())
+            closeout_evt = CloseoutUrged(
+                phase=self.phase,
+                round=round,
+                affected_items=[iv.id for iv in blocking],
+                affected_raiser_budgets={
+                    "claude": self.state.closeout.remaining("claude"),
+                    "openai": self.state.closeout.remaining("openai"),
+                },
+            )
+
+        return RoundResult(
+            round=round,
+            claude_status=parsed_claude.status if parsed_claude else None,
+            openai_status=parsed_openai.status if parsed_openai else None,
+            raised_events=tuple(raised_events),
+            transition_events=tuple(transition_events),
+            violation_events=tuple(violation_events),
+            closeout_event=closeout_evt,
+            converged=conv.converged,
+            is_closeout_round=is_closeout_round,
+        )
+
+    def spend_failed_closeout_budget(self) -> bool:
+        """Spend one closeout-round slot for each agent that still has
+        blocking items they raised. Returns ``True`` if any agent's
+        budget hit 0 with blocking items remaining (signals ghost-cap)."""
+        for agent in ("claude", "openai"):
+            owned = select_ghost_cap_items(
+                agent=agent,
+                items=self.state.item_views(),
+            )
+            if owned:
+                self.state.closeout.decrement_on_fail(agent)
+        return any(
+            self.state.closeout.remaining(agent) <= 0
+            and select_ghost_cap_items(
+                agent=agent, items=self.state.item_views(),
+            )
+            for agent in ("claude", "openai")
+        )
+
+    def ghost_cap_remaining_items(self, *, round: int) -> list[ItemTransitioned]:
+        """Public alias for ``_ghost_cap_all_blocking`` — called by the
+        async production orchestrator when budget is exhausted."""
+        return self._ghost_cap_all_blocking(round=round)
+
+    def hard_cap_remaining_items(self, *, round: int) -> list[ItemTransitioned]:
+        """Public alias for ``_hard_cap_all_blocking``."""
+        return self._hard_cap_all_blocking(round=round)
+
+    def build_phase_converged_event(
+        self,
+        *,
+        final_round: int,
+        via_closeout: bool,
+        via_ghost_cap: bool,
+        via_hard_cap: bool,
+    ) -> PhaseConverged:
+        return PhaseConverged(
+            phase=self.phase,
+            final_round=final_round,
+            via_closeout=via_closeout,
+            via_ghost_cap=via_ghost_cap,
+            via_hard_cap=via_hard_cap,
+        )
+
     def run_round(self, *, round: int, is_closeout_round: bool) -> RoundResult:
         """Drive a single round: both agents' turns + lifecycle updates."""
         raised: list[ItemRaised] = []
@@ -533,7 +639,7 @@ class DeepResearchPhase:
                 parsed_claude = parsed
             else:
                 parsed_openai = parsed
-            r, t, v = self._apply_turn(
+            r, t, v = self.apply_turn(
                 text=text,
                 parsed=parsed,
                 agent=agent,
