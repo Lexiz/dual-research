@@ -985,6 +985,9 @@ function _agentSlot(agent) { return agent === 'claude' ? 'a' : agent === 'gpt' ?
 // QuestionRef — decoded reference for a critique question.
 // format='compact' (default): "Q · 04"
 // format='full': "Q · 04 · [Claude] · r1"
+// format='split' (Spec 0111): "Q · 04" only. Agent + round are rendered as
+// sibling chips by QuestionThread per Notion issue 4 ("no badge encodes
+// two facts; agent and round get their own pills").
 // kindLetter: 'Q' (default) | 'D' | 'I' | 'C' — Spec 0097
 function QuestionRef({ id, number, raisedBy, round, format = 'compact', kindLetter = 'Q', className }) {
   if (id != null && (number == null || raisedBy == null || round == null)) {
@@ -1001,7 +1004,11 @@ function QuestionRef({ id, number, raisedBy, round, format = 'compact', kindLett
   const wantsAuthor = format === 'full' && agentLabel;
   const wantsRound  = format === 'full' && round != null;
   return (
-    <span className={_cn('qref', format === 'full' && 'qref-full', className)} data-kind={kindLetter} title={title}>
+    <span
+      className={_cn('qref', format === 'full' && 'qref-full', format === 'split' && 'qref-split', className)}
+      data-kind={kindLetter}
+      title={title}
+    >
       <span className="qref-k">{kindLetter}</span>
       <span className="qref-sep" aria-hidden="true">&middot;</span>
       <span className="qref-n num">{num}</span>
@@ -1030,11 +1037,18 @@ function QuestionThread({
   id, kind: threadKind = 'question', status = 'open',
   raisedBy, raisedRound, phase,
   turns = [], footer, onHighlight,
+  // Spec 0111 — when nested inside a phase-grouped section (e.g.
+  // <CritiquePhaseContent> renders inside .crit-group for a specific
+  // phase), the phase chip on the card is redundant. Callers pass
+  // showPhaseChip={false} to suppress it. Defaults to true so the chip
+  // still shows at out-of-context callsites (Σ Summary, search results).
+  showPhaseChip = true,
   // Legacy compat — ignored by new header, kept for SummaryView callsite
   question, statusChips,
 }) {
   const [open, setOpen] = React.useState(false);
   const [hover, setHover] = React.useState(false);
+  const articleRef = React.useRef(null);
 
   // Dev-mode verdict validation
   turns.forEach((t) => {
@@ -1058,9 +1072,33 @@ function QuestionThread({
                    : status === 'resolved' ? 'ok'
                    : status === 'drift' ? 'err' : 'warn';
   const lastRound = turns.length > 0 ? turns[turns.length - 1].round : null;
-  const statusLabel = status === 'open-new' ? 'open \u00b7 new'
-                    : status === 'resolved' ? ('resolved' + (lastRound ? ' \u00b7 r' + lastRound : ''))
-                    : status;
+  // Spec 0111 \u2014 verbose status labels. No `r2`-style abbreviations; rounds
+  // spell out as `round 2`. Resolves Notion issue 4.
+  const verboseStatusLabel = status === 'open-new' ? 'Open \u00b7 new'
+                           : status === 'open' ? 'Open'
+                           : status === 'resolved' ? ('Resolved' + (lastRound ? ' in round ' + lastRound : ''))
+                           : status === 'drift' ? 'Drift'
+                           : status;
+
+  const agentLabel = raisedBy === 'claude' ? 'Claude' : raisedBy === 'gpt' ? 'GPT' : null;
+
+  // Spec 0111 dev assertion \u2014 flag a UI/data desync where the card's status
+  // and the surrounding .crit-group's data-tone disagree. Resolves Notion
+  // issue 2's invariant (status pill must match the section it sits in).
+  React.useEffect(() => {
+    const el = articleRef.current;
+    if (!el) return;
+    const group = el.closest('.crit-group');
+    if (!group) return;
+    const tone = group.getAttribute('data-tone');
+    const expectedTone = (status === 'open' || status === 'open-new') ? 'warn'
+                       : status === 'resolved' ? 'ok'
+                       : status === 'drift' ? 'err'
+                       : null;
+    if (expectedTone && tone && tone !== expectedTone) {
+      console.error('[critique] status/section mismatch: status=' + status + ', section=' + tone, el);
+    }
+  }, [status]);
 
   const onCardClick = () => {
     if (onHighlight) onHighlight();
@@ -1069,6 +1107,7 @@ function QuestionThread({
 
   return (
     <article
+      ref={articleRef}
       className={_cn('qthread', 'is-' + statusCss)}
       aria-labelledby={id ? 'qt-' + id : undefined}
       onMouseEnter={() => setHover(true)}
@@ -1077,18 +1116,26 @@ function QuestionThread({
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCardClick(); } }}
       style={{ marginBottom: 8 }}
     >
-      {/* HEADER — always visible. Badge cluster only. No title text. */}
+      {/* HEADER — Spec 0111: five discrete chips, each carrying one fact.
+          No abbreviations (rounds spelled out, phases spelled out). */}
       <header className="qt-head" onClick={onCardClick}>
         <QuestionRef
           id={threadKind === 'question' ? id : null}
           number={displayNum}
-          raisedBy={raisedBy}
-          round={raisedRound}
           kindLetter={kindLetter}
-          format="full"
+          format="split"
         />
-        <Chip tone={statusTone}>{statusLabel}</Chip>
-        {phase && <span className="md-chip md-chip--sm">P{phase}</span>}
+        {agentLabel && (
+          <Chip tone="neutral" noDot>
+            <AgentIcon agent={raisedBy} size={14} />
+            <span style={{ marginLeft: 4 }}>Raised by {agentLabel}</span>
+          </Chip>
+        )}
+        {raisedRound != null && (
+          <Chip tone="neutral" noDot>Raised on round {raisedRound}</Chip>
+        )}
+        <Chip tone={statusTone}>{verboseStatusLabel}</Chip>
+        {showPhaseChip && phase && <span className="md-chip md-chip--sm">Phase {phase}</span>}
         <span className="right">
           <span style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

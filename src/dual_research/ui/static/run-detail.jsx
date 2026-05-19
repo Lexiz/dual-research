@@ -5830,29 +5830,61 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   for (const c of phaseComments) latestRound = Math.max(latestRound, c.raisedRound || 0);
 
   // Group by status into four buckets: openNew, openCarried, resolved, drift
+  // Spec 0111 — strict allow-list per status; unknown statuses fall back to
+  // openCarried (safest: keeps the item visible) with a dev console.warn so
+  // a UI/data desync surfaces immediately. Resolves Notion issue 2 (an
+  // `open` card was being bucketed under Resolved because Resolved was the
+  // implicit `!== 'open'` default).
+  //
+  // Real backend statuses vary by kind (see src/dual_research/ui/models.py):
+  //   - questions: 'open' | 'answered'
+  //   - issues:    'open' | 'resolved'
+  //   - disagreements: 'open' | 'resolved-claude' | 'resolved-gpt' | 'resolved-both'
+  //   - comments:  no status field (non-blocking, "noted" / never closed)
+  // Comments live in the Resolved bucket (their displayed status is
+  // normalised to 'resolved' in _normalizeToThread below, so the visible
+  // pill matches the bucket they sit in).
   const openNewItems = [];
   const openCarriedItems = [];
   const resolvedItems = [];
   const driftItems = [];
+  const _isOpenStatus = (s) => s === 'open' || s === 'open-new';
+  const _isResolvedStatus = (s) =>
+    s === 'resolved' || s === 'answered' ||
+    (typeof s === 'string' && s.startsWith('resolved-'));
   const pushItem = (it, critiqueKind) => {
     const item = { ...it, _critiqueKind: critiqueKind };
     if (!matchesAgent(it)) return;
     const drift = isDrift(it);
-    if (statusFilter === 'open' && (it.status !== 'open' || drift)) return;
-    if (statusFilter === 'resolved' && it.status === 'open') return;
+    // Comments are non-blocking commentary — bucket as resolved (see header).
+    const isComment = critiqueKind === 'c';
+    const isResolved = isComment || _isResolvedStatus(it.status);
+    if (statusFilter === 'open' && (isResolved || !_isOpenStatus(it.status) || drift)) return;
+    if (statusFilter === 'resolved' && !isResolved) return;
     if (statusFilter === 'drift' && !drift) return;
     if (drift) {
       driftItems.push(item);
-    } else if (it.status === 'open') {
+      return;
+    }
+    if (isResolved) {
+      resolvedItems.push(item);
+      return;
+    }
+    if (_isOpenStatus(it.status)) {
       const round = _itemRound(it, critiqueKind);
       if (round >= latestRound && latestRound > 0) {
         openNewItems.push(item);
       } else {
         openCarriedItems.push(item);
       }
-    } else {
-      resolvedItems.push(item);
+      return;
     }
+    // Unknown status — surface it in dev, keep item visible.
+    if (typeof console !== 'undefined' && console.warn) {
+      // eslint-disable-next-line no-console
+      console.warn('[critique] unknown item.status:', it.status, it);
+    }
+    openCarriedItems.push(item);
   };
   if (showI) for (const i of phaseIssues) pushItem(i, 'i');
   if (showD) for (const d of phaseDisagreements) pushItem(d, 'd');
@@ -5929,6 +5961,10 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
         turns={props.turns}
         footer={props.footer}
         onHighlight={highlightFn}
+        // Spec 0111 — phase is implied by the surrounding .crit-group
+        // header (rendered by CritiquePhaseContent); per-card chip would
+        // be redundant. Other callsites keep the default (true).
+        showPhaseChip={false}
       />
     );
   };
@@ -6225,8 +6261,15 @@ function _normalizeToThread(item, run, phaseId) {
     const comment = item;
     const { body: cleanedBody } = _parseSelfRaised(comment.body);
     const turns = [{ agent: comment.raisedBy, round: comment.raisedRound, verdict: 'raised', quote: cleanedBody || null }];
+    // Spec 0111 — comments are non-blocking commentary with no closure
+    // protocol. They were previously rendered with status='open' but
+    // bucketed into Resolved by the prior `!== 'open'` default, which
+    // produced the Notion issue 2 contradiction (open pill inside the
+    // Resolved section). Rendering them as 'resolved' keeps them in the
+    // Resolved bucket AND makes the visible status pill agree with the
+    // section that holds them.
     return {
-      id: comment.id, kind: 'comment', status: 'open',
+      id: comment.id, kind: 'comment', status: 'resolved',
       raisedBy: comment.raisedBy, raisedRound: comment.raisedRound, phase: comment.phase, turns, footer: null,
       _highlightKeys: comment.raisedTurnKey ? [comment.raisedTurnKey] : [],
       _highlightVariant: 'd',

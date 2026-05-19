@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.13] — 2026-05-19
+
+### Fixed
+
+- **Spec 0111 — Critique cards: bucket correctness, expanded-card scroll, badge cleanup, height parity** ([spec 0111](specs/0111-critique-cards-bucket-scroll-badges-height.md)). Four pre-test fixes against [Notion Known issues v2](https://www.notion.so/Known-issues-v2-36599f3e507f80a8ad5fdb26b143a695) (issues 1, 2, 4, 5):
+  1. **Card height parity (Notion 5).** Introduced `--dr-card-pad-v: 6px` and `--dr-card-pad-h: 12px` in `tokens.css`. Routed `.card` (Timeline), `.qthread` (Critique), and `.sc` (short-form item card) padding through these tokens. Critique cards no longer render taller than Timeline cards — the Timeline value is the single source of truth for both panes.
+  2. **Bucket correctness (Notion 2).** Tightened `pushItem()` in `CritiqueExplorer` from a `!== 'open'` default-to-Resolved branch to a strict allow-list: `open`/`open-new` → Open · new / Open · carried; `resolved` → Resolved; `drift` (ledger-derived) → Drift; anything else → Open · carried with a `console.warn` so a UI/data desync surfaces in dev. Also added a dev assertion inside `QuestionThread` that fires `console.error` when the card's `status` prop and the surrounding `.crit-group` `data-tone` disagree. The status filter at the top of the pane mirrors the same predicate (the previous `'resolved'` filter accidentally included drift items).
+  3. **Expanded-card scroll (Notion 1).** Added `flex-shrink: 0` to `.crit-group`. The pane's `.crit2__body` is the intended scroller (`overflow: auto`, `flex: 1`, `min-height: 0`), but flex children with default `flex-shrink: 1` were being compressed below their intrinsic height, at which point the section's own `overflow: hidden` (kept for rounded-corner clipping) cut off the expanded comment body. Locking `flex-shrink: 0` forces the parent body to scroll instead. No nested per-card scroll regions introduced.
+  4. **Badge cleanup (Notion 4).** Added `format="split"` to `QuestionRef` that renders the type+number portion only (`Q · 04`). `QuestionThread` header rebuilt to render five discrete chips, each carrying one fact: `Q · 04` · `Raised by Claude` (with agent icon) · `Raised on round 1` · status (verbose: `Open`, `Open · new`, `Resolved in round 2`, `Drift`) · `Phase 2`. The single combined `Q · 04 · Claude · r1` pill, the abbreviated `resolved · r2` pill, and the cryptic `P2` chip are gone. Phase chip is suppressed inside `CritiquePhaseContent` (where phase is implied by the surrounding `.crit-group`) via a new `showPhaseChip` prop; other callsites (Σ Summary, search results) keep the default `true`.
+
+  Cache-bust `?v=0102` → `?v=0103`. Backend untouched.
+
 ## [0.76.12] — 2026-05-19
 
 ### Refactored
