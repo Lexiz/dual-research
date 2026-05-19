@@ -12,6 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.3] — 2026-05-19
+
+### Fixed
+
+- **Hand-fix — chrome tab buttons + timeline surface contrast** (no spec file; followed up on spec 0105 gaps discovered post-deploy). Two visible regressions:
+  - The `ChromeBar` tab buttons ("All runs / Compare / Search") were still passing `className="tab-chrome"` to the legacy `<Tab>` primitive (size="sm"), which renders v1 `.tab.tab-sm` markup with v1 hex backgrounds. Switched to `variant="chrome"` so the buttons emit `<button class="md-btn md-btn--text md-btn--sm">` (M3 text-button) per spec 0095's intent. Spec 0095 had added the M3 CSS but never flipped the call sites.
+  - The timeline pane (`.rdvc__pane`) and its header band (`.tl__head`) had no `background` set, so in light mode they rendered transparent against the page surface (cream-on-cream) and the pane looked entirely flat. Added `.rdvc__pane { background: var(--md-surface-container-low); }` and `.tl__head { background: var(--md-surface-container-high); border-bottom: 1px solid var(--md-outline-hair); }` — mirrors the three-tier surface treatment the critique pane already had (`.bar1` / `.bar2` / `.crit2__body`).
+
 ## [0.72.1] — 2026-05-19
 
 ### Added
