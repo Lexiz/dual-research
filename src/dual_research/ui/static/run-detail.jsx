@@ -1055,6 +1055,173 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   );
 }
 
+// ─── Spec 0115 — SourceRow + ItemCard (Critique pane v2) ───────────
+//
+// SourceRow is the per-evidence-record collapsible row inside a
+// critique card. Multiple instances per card. Default collapsed:
+// shows title + URL hostname + chevron. Expanded: full URL, fetched
+// timestamp, search query, content excerpt (bounded scroll for long
+// excerpts). Keyboard accessible.
+//
+// ItemCard is the card surface for one Item from the new event
+// stream. It replaces the legacy QuestionThread for new-protocol
+// runs (legacy runs keep their existing renderer).
+
+function _hostnameOf(url) {
+  try { return new URL(url).hostname; } catch { return url || ''; }
+}
+
+function SourceRow({ record }) {
+  const [open, setOpen] = React.useState(false);
+  const toggle = () => setOpen((v) => !v);
+  const onKey = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
+  };
+  const title = record.title || 'Untitled source';
+  const hostname = _hostnameOf(record.url);
+  const isUnverified = !!record.unverified;
+  const excerpt = record.contentExcerpt || record.content_excerpt || '';
+  // Long excerpts → bounded height with internal scroll. Spec 0115 §2.
+  const excerptStyle = excerpt.length > 800
+    ? { maxHeight: 200, overflowY: 'auto' }
+    : null;
+  return (
+    <div className={`source-row ${open ? 'is-open' : ''} ${isUnverified ? 'is-unverified' : ''}`}>
+      <div
+        className="source-row__head"
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={onKey}
+        aria-expanded={open}
+      >
+        <span className="source-row__chev" aria-hidden="true">{open ? '▼' : '▶'}</span>
+        <span className="source-row__title">{title}</span>
+        <span className="source-row__host">{hostname}</span>
+        {isUnverified && (
+          <span
+            className="md-chip md-chip--sm md-chip--warn"
+            title={record.unverifiedReason || record.unverified_reason || 'evidence flagged by validator'}
+          >
+            ⚠ unverified
+          </span>
+        )}
+      </div>
+      {open && (
+        <div className="source-row__body">
+          {record.url && (
+            <div className="source-row__field">
+              <span className="source-row__label">URL:</span>{' '}
+              <a href={record.url} target="_blank" rel="noopener noreferrer">{record.url}</a>
+            </div>
+          )}
+          {(record.fetchedAt || record.fetched_at) && (
+            <div className="source-row__field">
+              <span className="source-row__label">Fetched:</span>{' '}
+              {record.fetchedAt || record.fetched_at}
+            </div>
+          )}
+          {(record.searchQuery || record.search_query) && (
+            <div className="source-row__field">
+              <span className="source-row__label">Search query:</span>{' '}
+              <code>{record.searchQuery || record.search_query}</code>
+            </div>
+          )}
+          {excerpt && (
+            <div className="source-row__excerpt-wrap">
+              <div className="source-row__label">Content excerpt:</div>
+              <pre className="source-row__excerpt" style={excerptStyle || undefined}>
+                {excerpt}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItemCard({ item, onHighlight }) {
+  const kindLabel = ({
+    question: 'Question',
+    disagreement: 'Disagreement',
+    issue: 'Issue',
+    comment: 'Comment',
+  })[item.kind] || item.kind;
+  const stateLabel = item.currentState || item.current_state || 'open';
+  const stateTone = ({
+    resolved: 'ok',
+    acknowledged: 'warn',
+    withdrawn: 'muted',
+    capped: 'error',
+    open: 'info',
+    addressed: 'info',
+  })[stateLabel] || 'info';
+  const raiserName = item.raiser === 'openai' ? 'GPT' : 'Claude';
+  const transitions = item.transitions || [];
+  const evidence = item.evidence || [];
+  return (
+    <article
+      className={`item-card item-card--${stateLabel}`}
+      onClick={onHighlight}
+    >
+      <header className="item-card__head">
+        <span className="md-chip md-chip--sm"><code>{item.id}</code></span>
+        <span className="md-chip md-chip--sm">{kindLabel}</span>
+        <Chip tone={stateTone}>{stateLabel}</Chip>
+        <span className="md-chip md-chip--sm">raised by {raiserName}</span>
+        <span className="md-chip md-chip--sm">round {item.raisedRound || item.raised_round}</span>
+      </header>
+      <div className="item-card__body">
+        {item.body}
+        {item.anchorType && item.anchorType !== 'none' && (
+          <blockquote className="item-card__anchor">
+            {item.anchorType === 'quote' ? '> quote: ' : '> after: '}
+            {item.anchorText || item.anchor_text}
+          </blockquote>
+        )}
+      </div>
+      {transitions.length > 0 && (
+        <div className="item-card__timeline">
+          <div className="item-card__timeline-hd">Timeline</div>
+          {transitions.map((t, i) => {
+            const fromS = t.fromState || t.from_state;
+            const toS = t.toState || t.to_state;
+            const actor = t.actor || '';
+            const actorLabel = actor === 'openai' ? 'GPT'
+                             : actor === 'claude' ? 'Claude'
+                             : actor === 'mutual' ? 'Both (mutual)'
+                             : actor === 'orchestrator' ? 'Orchestrator'
+                             : actor;
+            const via = t.via ? ` (${t.via})` : '';
+            return (
+              <div key={i} className="item-card__transition">
+                <span className="item-card__transition-meta">
+                  Round {t.round} — {fromS} → <strong>{toS}</strong>{via} · by {actorLabel}
+                </span>
+                {t.reason && (
+                  <div className="item-card__transition-reason">{t.reason}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {evidence.length > 0 && (
+        <div className="item-card__sources">
+          <div className="item-card__sources-hd">Sources ({evidence.length})</div>
+          {evidence.map((rec, i) => (
+            <SourceRow key={i} record={rec} />
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
 function TimelineTabs({ active, onChange, prominent = false }) {
   // Spec 0053 D4 — migrated from PaneButton to Tab (tabs-solid variant).
   const tabs = [
@@ -5994,14 +6161,34 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     );
   };
 
-  // Kind tab definitions for Bar 2
+  // Spec 0115 — count-augmented kind tabs. Counts come from the new
+  // unified Item bundle when available; legacy runs fall back to the
+  // per-kind list lengths the legacy renderer already computes.
+  const _itemsAll = (run.phaseStats?.items) || [];
+  const _phaseItemsForCount = isSummary
+    ? _itemsAll
+    : _itemsAll.filter((it) => it.phase === selectedPhase);
+  const _itemCountByKind = (kind) =>
+    _phaseItemsForCount.filter((it) => it.kind === kind).length;
+  // Prefer the new-bundle count when available (>0); else legacy.
+  const _displayCount = (newCount, legacyCount) =>
+    (newCount > 0 ? newCount : legacyCount);
+
   const KIND_TABS = [
-    { id: 'all', label: 'All', tone: null },
-    { id: 'issues', label: 'Issues', tone: 'is-warn' },
-    { id: 'comments', label: 'Comments', tone: null },
-    { id: 'questions', label: 'Questions', tone: 'is-info' },
-    { id: 'disagreements', label: 'Disagreements', tone: 'is-warn' },
-  ];
+    { id: 'all', label: 'All', tone: null,
+      count: _phaseItemsForCount.length || undefined },
+    { id: 'issues', label: 'Issues', tone: 'is-warn',
+      count: _displayCount(_itemCountByKind('issue'), phaseIssues.length) },
+    { id: 'comments', label: 'Comments', tone: null,
+      count: _displayCount(_itemCountByKind('comment'), phaseComments.length) },
+    { id: 'questions', label: 'Questions', tone: 'is-info',
+      count: _displayCount(_itemCountByKind('question'), phaseQuestions.length) },
+    { id: 'disagreements', label: 'Disagreements', tone: 'is-warn',
+      count: _displayCount(_itemCountByKind('disagreement'), phaseDisagreements.length) },
+  ].map((t) => ({
+    ...t,
+    label: (t.count != null && t.count > 0) ? `${t.label} (${t.count})` : t.label,
+  }));
 
   // Render a collapsible crit-group section
   const renderGroup = (title, items, tone, countClass, collapsed) => {
