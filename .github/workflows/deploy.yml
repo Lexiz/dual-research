@@ -1,0 +1,38 @@
+name: Deploy to fly.io
+
+# Runs on every push to main (after tests.yml passes via the
+# `needs: test` gate) and pushes the current main to
+# dual-research-alex.fly.dev. The workflow uses `--remote-only` so the
+# Docker image is built on Fly's machines, not the GitHub runner.
+#
+# Setup (one-time, out of band):
+#   1. fly tokens create deploy -x 999999h > /tmp/token.txt
+#   2. Paste the token into the repo's
+#      Settings → Secrets and variables → Actions → New repository secret
+#      with the name FLY_API_TOKEN.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    # Re-uses the same test job as tests.yml so deploy waits for green.
+    uses: ./.github/workflows/tests.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: false  # let in-flight deploys finish
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

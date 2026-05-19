@@ -9,6 +9,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Spec 0115 — callable from deploy.yml so the deploy job can gate
+  # on a green test run without duplicating the steps.
+  workflow_call:
 
 jobs:
   test:
