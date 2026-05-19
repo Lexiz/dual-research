@@ -330,8 +330,9 @@ function RunListView({ runs, loading, onSelect }) {
                 color: 'var(--warn)',
               }}>{sortedAttention.length}</span>
             </div>
-            {sortedAttention.map((r) => (
-              <RunRow key={r.id} run={r} onSelect={onSelect} attentionSummary={_attentionSummary(r)} />
+            {sortedAttention.map((r, idx) => (
+              <RunRow key={r.id} run={r} onSelect={onSelect} attentionSummary={_attentionSummary(r)}
+                      tourAnchor={idx === 0} />
             ))}
             {sortedNormal.length > 0 && (
               <div style={{
@@ -347,8 +348,9 @@ function RunListView({ runs, loading, onSelect }) {
             )}
           </>
         )}
-        {sortedNormal.map((r) => (
-          <RunRow key={r.id} run={r} onSelect={onSelect} />
+        {sortedNormal.map((r, idx) => (
+          <RunRow key={r.id} run={r} onSelect={onSelect}
+                  tourAnchor={idx === 0 && !hasAttention} />
         ))}
         {filtered.length === 0 && (
           loading && !search ? (
@@ -384,7 +386,7 @@ function RunListView({ runs, loading, onSelect }) {
   );
 }
 
-function RunRow({ run, onSelect, attentionSummary }) {
+function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
   const phaseLabel = PHASES[run.phase]?.label || 'done';
   const [hover, setHover] = React.useState(false);
   const idParts = window.splitRunId(run.id);
@@ -403,6 +405,8 @@ function RunRow({ run, onSelect, attentionSummary }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={run.id}
+      data-tour-anchor={tourAnchor ? 'run-row' : undefined}
+      data-run-id={run.id}
       style={{
         display: 'grid',
         gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',

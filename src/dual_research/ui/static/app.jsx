@@ -31,21 +31,44 @@ function App() {
   const [notApproved, setNotApproved] = React.useState(false);
   const me = useMe();  // null until first /api/me resolves
 
-  // SPEC-0061: onboarding gate for first-time users.
-  const [showOnboarding, setShowOnboarding] = React.useState(() => {
-    // Check for reset param.
+  // SPEC-0103: 8-step tour overlay (replaces SPEC-0061 3-screen modal).
+  const [tourOpen, setTourOpen] = React.useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('reset_onboarding') === '1') {
         localStorage.removeItem('dr_onboarded');
-        // Clean the URL.
+        localStorage.removeItem('dr_tour_step');
         const url = new URL(window.location);
         url.searchParams.delete('reset_onboarding');
         window.history.replaceState({}, '', url.toString());
+        return true;
       }
     } catch (e) {}
     try { return localStorage.getItem('dr_onboarded') !== 'true'; } catch (e) { return false; }
   });
+  const [tourStep, setTourStep] = React.useState(() => {
+    try {
+      const saved = parseInt(localStorage.getItem('dr_tour_step'), 10);
+      return (saved > 0 && saved <= 8) ? saved : 1;
+    } catch (e) { return 1; }
+  });
+  const tourAdvance = React.useCallback(() => {
+    const next = tourStep + 1;
+    setTourStep(next);
+    try { localStorage.setItem('dr_tour_step', String(next)); } catch (e) {}
+  }, [tourStep]);
+  const tourBack = React.useCallback(() => {
+    const prev = Math.max(1, tourStep - 1);
+    setTourStep(prev);
+    try { localStorage.setItem('dr_tour_step', String(prev)); } catch (e) {}
+  }, [tourStep]);
+  const tourClose = React.useCallback(() => {
+    setTourOpen(false);
+    try {
+      localStorage.setItem('dr_onboarded', 'true');
+      localStorage.removeItem('dr_tour_step');
+    } catch (e) {}
+  }, []);
 
   // SPEC-0059: overlay state for keyboard-accessible chrome surfaces.
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
@@ -118,10 +141,8 @@ function App() {
     return <NotApprovedScreen session={session} client={client} />;
   }
 
-  // SPEC-0061: show onboarding for first-time users (after auth resolves).
-  if (showOnboarding && hostedMode && session) {
-    return <OnboardingScreen onComplete={() => setShowOnboarding(false)} />;
-  }
+  // SPEC-0103: tour opens for first-time users but does NOT replace the app shell.
+  // The overlay is mounted as a sibling below, not as a gate.
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--bg-0)' }}>
@@ -139,6 +160,7 @@ function App() {
         {route.view === 'how-it-works'  && <HowItWorksPage />}
         {route.view === 'compare'       && <CompareScreen navigate={navigate} />}
         {route.view === 'search'        && <CrossRunSearchScreen navigate={navigate} />}
+        {route.view === 'admin-users'   && <AdminUsers />}
       </div>
 
       {/* SPEC-0059: keyboard-accessible overlays */}
@@ -146,6 +168,17 @@ function App() {
       <SearchPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       {/* SPEC-0102: How It Works overlay */}
       <HowItWorks open={howOpen} onClose={closeHow} />
+      {/* SPEC-0103: 8-step onboarding tour overlay */}
+      {tourOpen && (
+        <TourOverlay
+          open={tourOpen}
+          step={tourStep}
+          onClose={tourClose}
+          onAdvance={tourAdvance}
+          onBack={tourBack}
+          navigate={navigate}
+        />
+      )}
     </div>
   );
 }
