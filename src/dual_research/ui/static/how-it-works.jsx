@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '1.2.0',
+      date: '2026-05-20',
+      summary: 'Spec 0117 -- canonical artifact registry, Deep Research how-it-works diagram, and display-name propagation across the UI.',
+      items: [
+        'New artifact registry at contract/artifacts.py: ArtifactKind enum, ArtifactDef dataclass, 33-entry REGISTRY tuple, display_name() / is_known() / kind_of(). Single source of truth for every artifact name surfaced to the user. Hashing machinery (canonical_hash, AGREED_* templates) unchanged.',
+        'Hand-authored Deep Research pipeline SVGs bundled under /diagrams/ (light + dark variants). The how-it-works "View full process map" panel now embeds the variant matching the active theme; toggling the theme swaps the SVG in real time via a MutationObserver on body.classList.',
+        'Inline diagrams in how-it-works.jsx updated to the Deep Research protocol: PhaseStrip flags P0 as multi-round; NegotiationRoundDiagram rewritten around the five-operation turn structure (RAISE / ADDRESS / RESOLVE / ACKNOWLEDGE / WITHDRAW + status footer); ChatLifecycle now shows the P0 multi-round loop feeding Agreed interpretation into P1, Agreed plan into P3, and the ledger of standing items per-agent each round.',
+        'JS-side registry mirror at static/artifacts.jsx (window.DrArtifacts.displayName / isKnown / truncateTitle). A pytest sync test parses both registries and fails CI if Python and JS drift apart.',
+        'Display-name propagation: every modal header in run-detail.jsx resolves through the registry ("Negotiation turn · Claude · round 3", "Claude\'s research plan", "Current draft (latest version) · drafted by Claude"). Every timeline card carries the full registry display name as a title + aria-label tooltip; the visible chip stays short for layout. validate-run CLI prints the display name alongside each location tag in its audit report.',
+        'CI drift guard: a pytest scans src/dual_research/ for string literals matching the registry\'s ID prefixes and fails if any unregistered ID slips in.',
+      ],
+    },
+    {
       version: '0.69.1',
       date: '2026-05-18',
       summary: 'Hotfix -- run-detail page white-screen regression fixed.',
@@ -1098,7 +1111,7 @@
         border: '1px solid var(--md-outline-hair)', borderRadius: 6,
       }}>
         {items.map(i => (
-          <div key={i.kind} style={{
+          <div key={i.label} style={{
             display: 'flex', gap: 6, alignItems: 'center', fontSize: 11.5, color: 'var(--md-on-surface-variant)',
           }}>
             <Tk kind={i.kind}>{i.label}</Tk>
