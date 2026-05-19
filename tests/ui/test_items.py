@@ -73,11 +73,11 @@ def test_one_question_raised_then_resolved():
     r2_claude = bundle.turn_category_stats[2][2]["claude"]
     assert r2_claude.questions.raised == 0
     assert r2_claude.questions.closed == 0
-    # Round 3: claude resolved his own question (addressed → resolved
-    # is non-terminal → terminal, so closed += 1, standing -= 1).
+    # Round 3: claude resolved his own question (addressed → resolved).
+    # Absolute running standing now: round 1 +1, round 3 −1 → 0.
     r3_claude = bundle.turn_category_stats[2][3]["claude"]
     assert r3_claude.questions.closed == 1
-    assert r3_claude.questions.standing == -1  # delta only; UI sums for absolute
+    assert r3_claude.questions.standing == 0
 
 
 def test_phase_totals_sum_correctly():
@@ -131,8 +131,8 @@ def test_counter_argument_does_not_count_as_closed():
 
     r3_claude = bundle.turn_category_stats[2][3]["claude"]
     assert r3_claude.questions.closed == 0
-    # Standing didn't change (addressed → open both non-terminal)
-    assert r3_claude.questions.standing == 0
+    # Absolute standing stays at 1 (raised round 1, never closed)
+    assert r3_claude.questions.standing == 1
 
 
 def test_ghost_cap_increments_capped_subset_of_closed():

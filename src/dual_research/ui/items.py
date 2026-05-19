@@ -215,13 +215,11 @@ def aggregate_items(events: list[dict]) -> AggregatedItems:
     ``transcript.jsonl``. Only ``item_raised`` / ``item_transitioned``
     events drive aggregation; all others are ignored.
 
-    The aggregator does NOT roll the standing counter forward into
-    rounds where the agent didn't act — the timeline JSX is
-    responsible for that "carry-forward" rendering by summing standing
-    along the column. The per-turn-stats here record the delta only
-    (raised / closed / capped) plus the *net* standing change at this
-    turn. Callers compute the running standing total by summing along
-    the (phase, raiser) sequence.
+    Returns a bundle where ``CategoryCounters.standing`` is the
+    DELTA at this round (raised − closed); ``_finalise_running_totals``
+    is then called to convert standing-deltas into absolute running
+    standing totals per (phase, raiser) sequence so the timeline JSX
+    can read absolute values directly.
     """
     bundle = AggregatedItems()
     for event in events:
@@ -252,7 +250,44 @@ def aggregate_items(events: list[dict]) -> AggregatedItems:
                 via=event.get("via"),
                 evidence_records=event.get("evidence_records") or [],
             )
+    _finalise_running_totals(bundle)
     return bundle
+
+
+def _finalise_running_totals(bundle: AggregatedItems) -> None:
+    """Convert per-turn ``standing`` deltas into absolute running totals.
+
+    Walks each (phase, raiser) sequence in round order and accumulates
+    the standing delta. Carries forward across rounds where the agent
+    didn't act so every emitted TurnCategoryStats row carries the
+    correct end-of-round standing total for both agents.
+    """
+    for phase, by_round in bundle.turn_category_stats.items():
+        rounds = sorted(by_round.keys())
+        agents = {a for r in rounds for a in by_round[r].keys()}
+        for agent in agents:
+            running = {"questions": 0, "disagreements": 0, "issues": 0, "comments": 0}
+            for r in rounds:
+                slot = by_round.setdefault(r, {})
+                stats = slot.get(agent)
+                if stats is None:
+                    # Carry-forward: agent didn't act this round; emit
+                    # a row with raised/closed=0 and the running
+                    # standing total carried in.
+                    from dual_research.ui.models import (
+                        CategoryCounters,
+                        TurnCategoryStats,
+                    )
+                    stats = TurnCategoryStats()
+                    slot[agent] = stats
+                for field in ("questions", "disagreements", "issues", "comments"):
+                    cc = getattr(stats, field)
+                    running[field] += cc.standing
+                    cc.standing = running[field]
+    # Same idea for phase-level totals — standing currently holds
+    # raised − closed, which IS the phase-end carry-forward count.
+    # No carry-across-phases (each phase is independent).
+    pass
 
 
 def aggregate_items_from_transcript(transcript_path: Path) -> AggregatedItems:
