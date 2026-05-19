@@ -217,12 +217,10 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
   background: var(--bg-1);
   border: 1px solid var(--border-1);
   border-radius: var(--r-3);
-  /* SPEC-0087 § G.3 — vertical-density reduction. Trimmed vertical
-     padding from 8 → 6 px (horizontal stays at 12 px). Combined with
-     the timeline-row marginBottom drop (6 → 4 px), this saves ~6 px
-     per row across all artifact cards — meaningful on long
-     timelines (29 cards on partner-vetting `3a4a`). */
-  padding: 6px var(--s-3);
+  /* SPEC-0087 § G.3 vertical-density trim + Spec 0111 routing through
+     --dr-card-pad-* tokens so Critique cards (.qthread, .sc) match
+     Timeline cards (.card) exactly — Notion issue 5. */
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
   transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
 }
 button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 100%; }
@@ -495,7 +493,9 @@ body.light .tab-group.tabs-solid .tab.is-active,
   background: var(--bg-1);
   border: 1px solid var(--border-1);
   border-radius: var(--r-3);
-  padding: 16px 20px;
+  /* Spec 0111 — match Timeline .card padding via shared tokens
+     (Notion issue 5 — Critique cards too tall). */
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
   display: flex; flex-direction: column;
   gap: 12px;
   transition: box-shadow var(--m-fast) var(--ease);
@@ -1786,7 +1786,15 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .crit-group {
   display: flex; flex-direction: column;
   border-radius: var(--md-shape-sm);
+  /* Spec 0111 — keep `overflow: hidden` (rounds-corners-clip the inner
+     header background), BUT add `flex-shrink: 0` so the section cannot
+     be compressed below its intrinsic content height by its flex-column
+     parent (.crit2__body). When the section can't shrink, an expanded
+     card body forces .crit2__body to scroll instead of being clipped by
+     this rule. Resolves Notion issue 1 (expanded comment body cut off
+     inside Resolved container with no scroll affordance). */
   overflow: hidden;
+  flex-shrink: 0;
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
 }
@@ -1844,9 +1852,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   background: var(--md-surface-container-low);
 }
 
-/* ── Short-form item card (.sc) — Spec 0098 ────────────── */
+/* ── Short-form item card (.sc) — Spec 0098; padding tokens — Spec 0111 ── */
 .sc {
-  padding: 14px 16px;
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
   border-radius: var(--md-shape-md);
   background: var(--md-surface-container-low);
   border: 1px solid var(--md-outline-hair);
@@ -2008,7 +2016,11 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
    padding + smaller font, since timeline rows show a one-line glance rather
    than the multi-turn critique thread. */
 .qthread.tl-thread {
-  padding: 10px 14px;
+  /* Spec 0111 — route through shared --dr-card-pad-* tokens so Timeline
+     turn rows match Timeline .card and Critique .qthread heights (Notion
+     issue 5). The prior 10px/14px override is gone; the token values
+     (6px/12px) are the single source of truth across both panes. */
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
   margin: 0;
   gap: 0;
   cursor: pointer;

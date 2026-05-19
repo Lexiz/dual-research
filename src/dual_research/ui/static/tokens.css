@@ -286,6 +286,12 @@
   --md-rail-w:      280px;
   --md-content-max: 1440px;
 
+  /* Spec 0111 — single source of truth for list-item card padding so
+   * Critique cards (.qthread, .sc) match Timeline cards (.card) exactly.
+   * Timeline value is the target (Notion issue 5). */
+  --dr-card-pad-v:  6px;
+  --dr-card-pad-h:  12px;
+
   /* ── Elevation — 6 levels (M3) ─────────────────── */
   --md-elev-0: none;
   --md-elev-1: 0 1px 2px 0 rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
