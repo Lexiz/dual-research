@@ -3989,6 +3989,8 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
       variant="split"
       footer={scrubber}
     >
+      {/* SPEC-0101: PhaseRail — horizontal 5-cell strip at the top of the modal */}
+      <PhaseRail run={run} />
       <div className="dr-modal-split">
         {/* Left: prior content + Input sub-tab (spec 0033).
             Spec 0044 D4: ``docTabs`` exposes the per-turn document
