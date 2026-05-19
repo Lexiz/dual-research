@@ -732,15 +732,24 @@ function RunIDChip({ id, size = 'md', className, onClick, title }) {
 
 // Card — base + variants. Wrap in `<CardBody>` for the expanded body region
 // (the `.card-body` margin/padding kicks in when the parent has `.card-expanded`).
-function Card({ live, agent, expanded, interactive, onClick, className, children, role, ariaLabel }) {
+// SPEC-0094: `variant` selects M3 card style (elevated/filled/outlined/tonal-a/tonal-b).
+// `hoverable` sets data-hoverable="true" for the hover-elevation rule.
+// When variant is set, the M3 `.md-card` base is used instead of v1 `.card`.
+function Card({ live, agent, expanded, interactive, onClick, className, children, role, ariaLabel, variant, hoverable, ...rest }) {
   const Tag = interactive ? 'button' : 'div';
+  const useM3 = !!variant;
+  const cls = useM3
+    ? _cn('md-card', variant && `md-card--${variant}`, interactive && 'is-interactive', className)
+    : _cn('card', interactive && 'is-interactive', expanded && 'card-expanded', live && 'card-live', live && agent === 'b' && 'is-b', className);
   return (
     <Tag
       onClick={interactive ? onClick : undefined}
       type={interactive ? 'button' : undefined}
       role={role}
       aria-label={ariaLabel}
-      className={_cn('card', interactive && 'is-interactive', expanded && 'card-expanded', live && 'card-live', live && agent === 'b' && 'is-b', className)}
+      className={cls}
+      data-hoverable={hoverable ? 'true' : undefined}
+      {...rest}
     >
       {children}
     </Tag>
@@ -779,6 +788,28 @@ function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', l
         {right != null ? right : <SB tone={status} size="sm" live={live}>{status}</SB>}
       </span>
     </div>
+  );
+}
+
+// SPEC-0094 — ModelBadge: 56dp right-cluster pill containing an AgentStrip + model id.
+// Both Claude and GPT pills render identically at 56dp height (Issue 1 symmetry).
+// The model name truncates with ellipsis if longer than the pill width; height never changes.
+function ModelBadge({ agent, model }) {
+  const slot = agent === 'claude' ? 'a' : 'b';
+  const meta = AGENT_META[agent] || AGENT_META.claude;
+  const displayName = meta.name;
+  return (
+    <span className={_cn('agent-strip', `agent-strip--${slot}`)}
+          style={{ height: 56, minWidth: 0 }}
+          title={`${displayName} · ${model}`}>
+      <span className="dot" />
+      <span style={{ fontWeight: 'var(--md-w-medium)', whiteSpace: 'nowrap' }}>{displayName}</span>
+      <span style={{
+        fontFamily: 'var(--mono)', fontSize: 'var(--t-mono)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        opacity: 0.8,
+      }}>{model}</span>
+    </span>
   );
 }
 
@@ -1271,4 +1302,6 @@ Object.assign(window, {
   LoadingState,
   // SPEC-0093 primitives
   _STATUS_TO_M3,
+  // SPEC-0094 primitives
+  ModelBadge,
 });

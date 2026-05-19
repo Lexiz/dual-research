@@ -1413,3 +1413,103 @@ body.light .tab-group.tabs-solid .tab.is-active,
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--md-gap-col);
 }
+
+/* =============================================================
+   SPEC-0094 — M3 Cards + AgentStrip + badge inventory +
+   hover-elevation rule + bcard
+   ============================================================= */
+
+/* ── M3 Cards (elevated / filled / outlined / agent-tonal) ─── */
+.md-card {
+  border-radius: var(--md-shape-md);
+  padding: var(--md-pad-card);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  position: relative;
+}
+.md-card--elevated  { background: var(--md-surface-1); box-shadow: var(--md-elev-1); }
+.md-card--filled    { background: var(--md-surface-container-high); }
+.md-card--outlined  { background: var(--md-surface); box-shadow: inset 0 0 0 1px var(--md-outline-variant); }
+.md-card--tonal-a   { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.md-card--tonal-b   { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+
+.md-card__hd { display: flex; align-items: center; gap: 12px; margin-bottom: var(--md-sp-3); }
+.md-card__title { font: var(--md-w-medium) var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-plain); }
+.md-card__support { color: var(--md-on-surface-variant); }
+
+/* Hover-elevation rule: elevation-1 → elevation-2 (Issue 3 hover-lift).
+   Only fires on cards with data-hoverable="true". Phase/section headers
+   never receive this attribute. */
+.md-card[data-hoverable="true"]:hover {
+  box-shadow: var(--md-elev-2);
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-card[data-hoverable="true"] {
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard);
+}
+/* Focus ring for interactive md-cards */
+.md-card:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Agent strip primitive (M3 — 28dp fixed height) ────────── */
+.agent-strip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 12px;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: 0.04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.agent-strip--a { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.agent-strip--b { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.agent-strip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.agent-strip--a .dot { background: var(--md-on-primary-container); }
+.agent-strip--b .dot { background: var(--md-on-secondary-container); }
+
+/* ── Delta chip (+5 Q / -1) ────────────────────────────────── */
+.delta-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 8px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-high);
+  font: var(--md-w-medium) 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-variant);
+}
+.delta-chip .up   { color: var(--p-info); }
+.delta-chip .down { color: var(--p-ok);   }
+
+/* ── Drift chip ────────────────────────────────────────────── */
+.drift-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 10px;
+  border-radius: var(--md-shape-full);
+  background: color-mix(in srgb, var(--p-err) 18%, transparent);
+  color: var(--p-err);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  letter-spacing: 0.4px;
+}
+.drift-chip svg { width: 12px; height: 12px; }
+
+/* ── Badge-rich card container (.bcard) ────────────────────── */
+.bcard {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.bcard__hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bcard__title { font: var(--md-w-medium) var(--md-title-m-size)/1.3 var(--md-font-plain); }
+.bcard__body  { color: var(--md-on-surface-variant); font-size: 13px; line-height: 1.5; }
+.bcard__ft { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px dashed var(--md-outline-hair); }
+
+/* ── Reduced motion for hover-elevation ────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .md-card[data-hoverable="true"],
+  .md-card[data-hoverable="true"]:hover {
+    transition: none;
+  }
+}
