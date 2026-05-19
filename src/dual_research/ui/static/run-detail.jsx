@@ -5700,76 +5700,52 @@ function DeadlockCard({ item }) {
 function CritiqueExplorer({ run, onHighlightTurns }) {
   const questions = Array.isArray(run.questions) ? run.questions : [];
   const disagreements = Array.isArray(run.disagreements) ? run.disagreements : [];
-  // Spec 0041 — Phase 4 ``Issue ledger`` + ``Comments on the current
-  // draft`` get their own first-class arrays alongside questions /
-  // disagreements. Older runs (transcripts without `run.issues`) get
-  // empty lists.
   const issues = Array.isArray(run.issues) ? run.issues : [];
   const comments = Array.isArray(run.comments) ? run.comments : [];
 
-  // Spec 0040 D5: the Summary tab is visible only when the run has
-  // reached a terminal state — the post-mortem aggregate doesn't make
-  // sense while numbers are still shifting each poll.
   const isTerminal = run.status === 'completed'
     || run.status === 'deadlocked'
     || run.status === 'errored';
 
-  // Phase pick: prefer the currently-running phase; else any phase that has
-  // either kind of item; else default to Phase 2.
   const haveAny = (pid) =>
     questions.some(q => q.phase === pid) || disagreements.some(d => d.phase === pid);
   const initial = (run.phase === 4 || run.phase === 2) ? run.phase
                  : haveAny(4) ? 4
                  : haveAny(2) ? 2
                  : 2;
-  // selectedPhase is 2 | 4 | 'summary'.
   const [selectedPhase, setSelectedPhase] = React.useState(initial);
-  const [typeFilter, setTypeFilter] = React.useState('all'); // 'all' | 'questions' | 'disagreements'
-  // SPEC-0057 D4 — three-axis filter: kind + agent + status.
-  const [agentFilter, setAgentFilter] = React.useState('all'); // 'all' | 'claude' | 'gpt'
-  const [statusFilter, setStatusFilter] = React.useState('all'); // 'all' | 'open' | 'resolved' | 'drift'
-  React.useEffect(() => { setSelectedPhase(initial); setTypeFilter('all'); setAgentFilter('all'); setStatusFilter('all'); }, [run.id, initial]);
-  // Spec 0046 D2 — when the user switches phase, reset to ``all`` if the
-  // previous filter isn't in the new phase's allowlist. Without this an
-  // ``issues`` selection persists into Phase 2 and quietly renders no
-  // matching cards.
+  const [kindFilter, setKindFilter] = React.useState('all');
+  const [agentFilter, setAgentFilter] = React.useState('all');
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  React.useEffect(() => { setSelectedPhase(initial); setKindFilter('all'); setAgentFilter('all'); setStatusFilter('all'); }, [run.id, initial]);
   React.useEffect(() => {
-    if (typeFilter === 'all') return;
+    if (kindFilter === 'all') return;
     const allowed = PHASE_CHIP_ALLOWLIST[selectedPhase] || [];
-    if (!allowed.includes(typeFilter)) setTypeFilter('all');
-  }, [selectedPhase, typeFilter]);
-  // SPEC-0072 D12 — auto-reset status to 'all' if drift is selected but
-  // kind switched to 'questions' (drift doesn't apply to questions).
+    if (!allowed.includes(kindFilter)) setKindFilter('all');
+  }, [selectedPhase, kindFilter]);
   React.useEffect(() => {
-    if (typeFilter === 'questions' && statusFilter === 'drift') setStatusFilter('all');
-  }, [typeFilter, statusFilter]);
-  // If the user had selected Summary but the run later regressed out of
-  // a terminal state (rare — e.g. a resume), fall back to a phase view.
+    if (kindFilter === 'questions' && statusFilter === 'drift') setStatusFilter('all');
+  }, [kindFilter, statusFilter]);
   React.useEffect(() => {
     if (selectedPhase === 'summary' && !isTerminal) setSelectedPhase(initial);
   }, [isTerminal, selectedPhase, initial]);
 
-  // Phase-filtered slices. (Summary view ignores both filters and uses
-  // the full lists directly — see SummaryView.)
   const isSummary = selectedPhase === 'summary';
   const phaseQuestions = isSummary ? [] : questions.filter(q => q.phase === selectedPhase);
   const phaseDisagreements = isSummary ? [] : disagreements.filter(d => d.phase === selectedPhase);
   const phaseIssues = isSummary ? [] : issues.filter(i => i.phase === selectedPhase);
   const phaseComments = isSummary ? [] : comments.filter(c => c.phase === selectedPhase);
 
-  // Spec 0041 D5 — type filter now distinguishes four kinds.
-  const showI = typeFilter === 'all' || typeFilter === 'issues';
-  const showQ = typeFilter === 'all' || typeFilter === 'questions';
-  const showD = typeFilter === 'all' || typeFilter === 'disagreements';
-  const showC = typeFilter === 'all' || typeFilter === 'comments';
+  const showI = kindFilter === 'all' || kindFilter === 'issues';
+  const showQ = kindFilter === 'all' || kindFilter === 'questions';
+  const showD = kindFilter === 'all' || kindFilter === 'disagreements';
+  const showC = kindFilter === 'all' || kindFilter === 'comments';
 
-  // SPEC-0057 D4 — agent filter: match raisedBy field.
   const matchesAgent = (it) => {
     if (agentFilter === 'all') return true;
     return it.raisedBy === agentFilter;
   };
 
-  // SPEC-0057 D5 — detect drift items (ghosted rounds > 0 + open).
   const findLedgerGhostRounds = (phaseId, itemId) => {
     const entries = (run && run.phaseLedgers && run.phaseLedgers[phaseId]) || [];
     const entry = entries.find((e) => e.id === itemId);
@@ -5780,52 +5756,49 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     return ghost > 0 && it.status === 'open';
   };
 
-  // Group by status. Comments don't have a status — they're always
-  // "noted"; they go in the resolved column to keep open-vs-noise
-  // separation clean. SPEC-0057 adds a driftItems group.
-  const openItems = [];
+  // Determine the latest visible round for "new this round" vs "carried over".
+  const _itemRound = (it, kind) => {
+    if (kind === 'q' || kind === 'c') return it.raisedRound || 0;
+    if (kind === 'd') return it.openedRound || it.round || 0;
+    if (kind === 'i') return it.roundFirstSeen || 0;
+    return 0;
+  };
+  let latestRound = 0;
+  for (const q of phaseQuestions) latestRound = Math.max(latestRound, q.raisedRound || 0);
+  for (const d of phaseDisagreements) latestRound = Math.max(latestRound, d.openedRound || d.round || 0);
+  for (const i of phaseIssues) latestRound = Math.max(latestRound, i.roundFirstSeen || 0);
+  for (const c of phaseComments) latestRound = Math.max(latestRound, c.raisedRound || 0);
+
+  // Group by status into four buckets: openNew, openCarried, resolved, drift
+  const openNewItems = [];
+  const openCarriedItems = [];
   const resolvedItems = [];
   const driftItems = [];
   const pushItem = (it, critiqueKind) => {
     const item = { ...it, _critiqueKind: critiqueKind };
     if (!matchesAgent(it)) return;
     const drift = isDrift(it);
-    // Status filter (SPEC-0057 D4).
     if (statusFilter === 'open' && (it.status !== 'open' || drift)) return;
     if (statusFilter === 'resolved' && it.status === 'open') return;
     if (statusFilter === 'drift' && !drift) return;
     if (drift) {
       driftItems.push(item);
     } else if (it.status === 'open') {
-      openItems.push(item);
+      const round = _itemRound(it, critiqueKind);
+      if (round >= latestRound && latestRound > 0) {
+        openNewItems.push(item);
+      } else {
+        openCarriedItems.push(item);
+      }
     } else {
       resolvedItems.push(item);
     }
   };
-  // SPEC-0072 D6 — In Phase 4, issues and comments render in their own
-  // CollapsibleSections instead of being mixed into OPEN/RESOLVED.
-  const issueItems = [];
-  const commentItems = [];
-  if (showI) {
-    for (const i of phaseIssues) {
-      if (selectedPhase === 4) {
-        if (!matchesAgent(i)) continue;
-        issueItems.push({ ...i, _critiqueKind: 'i' });
-      } else {
-        pushItem(i, 'i');
-      }
-    }
-  }
+  if (showI) for (const i of phaseIssues) pushItem(i, 'i');
   if (showD) for (const d of phaseDisagreements) pushItem(d, 'd');
   if (showQ) for (const q of phaseQuestions) pushItem(q, 'q');
-  if (showC) {
-    for (const c of phaseComments) {
-      if (!matchesAgent(c)) continue;
-      commentItems.push({ ...c, _critiqueKind: 'c' });
-    }
-  }
+  if (showC) for (const c of phaseComments) pushItem(c, 'c');
 
-  // Sort: by round ascending so the user reads chronological history.
   const sortRound = (it) => {
     switch (it._critiqueKind) {
       case 'q': return it.raisedRound;
@@ -5836,191 +5809,197 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     }
   };
   const byRound = (a, b) => (sortRound(a) || 0) - (sortRound(b) || 0);
-  openItems.sort(byRound);
+  openNewItems.sort(byRound);
+  openCarriedItems.sort(byRound);
   resolvedItems.sort(byRound);
   driftItems.sort(byRound);
-  issueItems.sort(byRound);
-  commentItems.sort(byRound);
 
-  const totalOpen = openItems.length;
-  const totalResolved = resolvedItems.length;
-  const totalDrift = driftItems.length;
-  const introduced = (showI ? phaseIssues.length : 0)
-                   + (showQ ? phaseQuestions.length : 0)
-                   + (showD ? phaseDisagreements.length : 0)
-                   + (showC ? phaseComments.length : 0);
+  // Run-wide totals for Bar 1 (unfiltered, phase-scoped)
+  const allPhaseItems = [...phaseQuestions, ...phaseDisagreements, ...phaseIssues, ...phaseComments];
+  const runWideIntroduced = allPhaseItems.length;
+  const runWideOpen = allPhaseItems.filter(it => it.status === 'open').length;
+  const runWideResolved = allPhaseItems.filter(it => it.status !== 'open').length;
 
-  // Phase-tab info: shows I + Q + D + C counts per phase (any zeros
-  // collapse out of the label).
-  const phaseInfo = (pid) => {
-    const iInPhase = issues.filter(i => i.phase === pid);
-    const qInPhase = questions.filter(q => q.phase === pid);
-    const dInPhase = disagreements.filter(d => d.phase === pid);
-    const cInPhase = comments.filter(c => c.phase === pid);
-    const pending = run.phase < pid || (pid === 4 && run.phase < 3);
-    return {
-      pid,
-      label: pid === 2 ? 'Negotiate' : 'Review',
-      iTotal: iInPhase.length,
-      iOpen: iInPhase.filter(i => i.status === 'open').length,
-      qTotal: qInPhase.length,
-      qOpen: qInPhase.filter(q => q.status === 'open').length,
-      dTotal: dInPhase.length,
-      dOpen: dInPhase.filter(d => d.status === 'open').length,
-      cTotal: cInPhase.length,
-      pending,
-      active: (run.phase === pid && run.status === 'running'),
-    };
+  // Run-wide drift count for Bar 1
+  const runWideDrift = allPhaseItems.filter(it => {
+    const ghost = findLedgerGhostRounds(selectedPhase, it.id);
+    return ghost > 0 && it.status === 'open';
+  }).length;
+
+  // Kind-tab counts (filtered by agent + status)
+  const filteredAll = [...openNewItems, ...openCarriedItems, ...resolvedItems, ...driftItems];
+  const kindCounts = {
+    all: filteredAll.length,
+    issues: filteredAll.filter(it => it._critiqueKind === 'i').length,
+    comments: filteredAll.filter(it => it._critiqueKind === 'c').length,
+    questions: filteredAll.filter(it => it._critiqueKind === 'q').length,
+    disagreements: filteredAll.filter(it => it._critiqueKind === 'd').length,
   };
-  const tabs = [phaseInfo(2), phaseInfo(4)];
-
-  // Spec 0042 D11 — ``totalIntroduced`` is the phase-scoped sum, not a
-  // global one across both phases. Previously read all phases' totals
-  // here, which then didn't reconcile with ``totalOpen + totalResolved``
-  // (which ARE phase-scoped). Math now adds up within the selected tab.
-  const totalIntroduced = introduced;
 
   const handleHighlight = React.useCallback((keys, variant) => {
     if (onHighlightTurns) onHighlightTurns(keys, variant);
   }, [onHighlightTurns]);
 
-  return (
-    <section style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-      {/* Spec 0046 D1 — header rewrite. Three primary buttons on the
-          left (Phase 2 / Phase 4 / Summary) ARE the navigation; the
-          count cluster is right-aligned. Drop the "Critique · 99
-          introduced" lead so the buttons sit at the visual anchor of
-          the pane. The small "Critique" label stays as PaneHeader's
-          title so the pane is still labelled. */}
-      {/* Spec 0070 D6-D9: phase tab strip restructured with chip clusters.
-          Each tab shows structured chips: [Phase N] [Label] [X questions] [Y disagreements]
-          using full words (not abbreviations). Count chips show 0 explicitly (D8). */}
-      {/* SPEC-0087 § F — Critique pane chrome restructured into THREE
-          discrete rows so the title bar visually matches the Timeline
-          pane's title bar (same height, same typography). Pre-spec the
-          phase-tabs sat in PaneHeader's `left` slot and the filter
-          chips piled up underneath, pushing the header tall and
-          inconsistent with Timeline. */}
-      <PaneHeader
-        title="Critique"
-        accentColor={COLORS.info}
-        right={
-          <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <SmallStat label="introduced" value={totalIntroduced} color={totalIntroduced > 0 ? 'var(--fg-1)' : 'var(--fg-3)'} />
-            <SmallStat label="open"       value={totalOpen}       color={totalOpen > 0 ? COLORS.warn : 'var(--fg-3)'} />
-            <SmallStat label="resolved"   value={totalResolved}   color={totalResolved > 0 ? COLORS.ok : 'var(--fg-3)'} />
-            <LedgerDriftChip drifts={run.drifts} phaseId={selectedPhase} />
-          </span>
-        }
+  // Toggle handler for collapsible crit-group headers
+  const toggleGroup = React.useCallback((e) => {
+    const hd = e.currentTarget;
+    const group = hd.closest('.crit-group');
+    if (!group) return;
+    const collapsed = group.getAttribute('data-collapsed') === 'true';
+    group.setAttribute('data-collapsed', collapsed ? 'false' : 'true');
+  }, []);
+
+  // Spec 0097 — unified renderItem: all four kinds -> <QuestionThread />
+  const renderItem = (item) => {
+    const props = _normalizeToThread(item, run, selectedPhase);
+    if (!props) return null;
+    const highlightFn = () => {
+      if (!handleHighlight) return;
+      handleHighlight(props._highlightKeys, props._highlightVariant);
+    };
+    return (
+      <QuestionThread
+        key={item.id}
+        id={props.id}
+        kind={props.kind}
+        status={props.status}
+        raisedBy={props.raisedBy}
+        raisedRound={props.raisedRound}
+        phase={props.phase}
+        turns={props.turns}
+        footer={props.footer}
+        onHighlight={highlightFn}
       />
-      {/* SPEC-0087 § F — phase-scope tabs live in their own row beneath
-          the title bar (was: crammed into PaneHeader's `left` slot
-          alongside the title + stats). */}
-      <PaneToolbar>
-        <TabGroup variant="solid">
-          {tabs.map((t) => {
-            const isActive = selectedPhase === t.pid;
-            const mutedStyle = { fontSize: 10, color: isActive ? 'var(--fg-2)' : 'var(--fg-3)' };
-            return (
-              <Tab
-                key={t.pid}
-                active={isActive}
-                onClick={() => setSelectedPhase(t.pid)}
-                disabled={false}
-              >
-                {t.active && <i className="dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--info)', display: 'inline-block', flexShrink: 0 }} />}
-                <span className="mono" style={{
-                  fontSize: 10.5, letterSpacing: '0.06em',
-                  textTransform: 'uppercase', color: 'var(--fg-3)',
-                }}>
-                  P{t.pid}
-                </span>
-                <span>{t.label}</span>
-                {!t.pending && (
-                  <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 2 }}>
-                    <span className="mono" style={mutedStyle}>
-                      <span className="num" style={{ fontWeight: 500 }}>{t.qTotal}</span> questions
-                    </span>
-                    <span className="mono" style={mutedStyle}>
-                      <span className="num" style={{ fontWeight: 500 }}>{t.dTotal}</span> disagreements
-                    </span>
-                  </span>
-                )}
-              </Tab>
-            );
-          })}
+    );
+  };
+
+  // Kind tab definitions for Bar 2
+  const KIND_TABS = [
+    { id: 'all', label: 'All', tone: null },
+    { id: 'issues', label: 'Issues', tone: 'is-warn' },
+    { id: 'comments', label: 'Comments', tone: null },
+    { id: 'questions', label: 'Questions', tone: 'is-info' },
+    { id: 'disagreements', label: 'Disagreements', tone: 'is-warn' },
+  ];
+
+  // Render a collapsible crit-group section
+  const renderGroup = (title, items, tone, countClass, collapsed) => {
+    if (items.length === 0) return null;
+    return (
+      <section className="crit-group" data-collapsed={collapsed ? 'true' : 'false'} data-tone={tone}>
+        <header className="crit-group__hd" role="button" tabIndex={0}
+          onClick={toggleGroup}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(e); } }}>
+          <span className="crit-group__chev"><span className="ms ms-20">expand_more</span></span>
+          <span className="crit-group__title">
+            {title}
+            <span className={`crit-group__count ${countClass}`}>{items.length}</span>
+          </span>
+          {latestRound > 0 && <span className="crit-group__meta">round {latestRound}</span>}
+        </header>
+        <div className="crit-group__body">
+          {items.map(renderItem)}
+        </div>
+      </section>
+    );
+  };
+
+  return (
+    <section className="crit2">
+      {/* BAR 1 — Title + Phase tabs + Totals + Drift chip */}
+      <header className="bar1">
+        <span className="ttl">Critique</span>
+        <span className="vbar"></span>
+        <div className="phase-tabs">
+          <button
+            className={`phase-tab${selectedPhase === 2 ? ' is-active' : ''}`}
+            onClick={() => setSelectedPhase(2)}>
+            <span className="pcode">P2</span><span className="pname">Negotiate</span>
+          </button>
+          <button
+            className={`phase-tab${selectedPhase === 4 ? ' is-active' : ''}`}
+            onClick={() => setSelectedPhase(4)}>
+            <span className="pcode">P4</span><span className="pname">Review</span>
+          </button>
           {isTerminal && (
-            <Tab
-              active={selectedPhase === 'summary'}
-              onClick={() => setSelectedPhase('summary')}
-            >
-              <span style={{ marginRight: 2 }}>&#x03A3;</span>
-              <span>Summary</span>
-            </Tab>
+            <button
+              className={`phase-tab${selectedPhase === 'summary' ? ' is-active' : ''}`}
+              onClick={() => setSelectedPhase('summary')}>
+              <span className="sigma">{'\u03A3'}</span><span className="pname">Summary</span>
+            </button>
           )}
-        </TabGroup>
-      </PaneToolbar>
+        </div>
+        <div className="right">
+          <span className="crit-totals">
+            <span><span className="n">{runWideIntroduced}</span><span className="lbl">introduced</span></span>
+            <span><span className="n is-info">{runWideOpen}</span><span className="lbl">open</span></span>
+            <span><span className="n is-ok">{runWideResolved}</span><span className="lbl">resolved</span></span>
+          </span>
+          {runWideDrift > 0 && (
+            <span className="drift-chip">
+              <svg viewBox="0 0 12 12"><polygon points="6,1 11,11 1,11" fill="currentColor"/></svg>
+              {runWideDrift} drift
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* BAR 2 — Kind tabs + Agent/Status filters. Hidden in Summary. */}
       {!isSummary && (
-        <PaneToolbar>
-          {/* SPEC-0087 § F — filter chips RIGHT-aligned (was: center).
-              Kind axis on the left, agent + status axes on the right
-              of the same row so the chip cluster reads as one
-              coherent strip rather than two stacked. Wraps naturally
-              on narrow viewports via flex-wrap. */}
-          <div style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            width: '100%',
-            justifyContent: 'space-between',
-          }}>
-            <CritiqueTypeFilter
-              active={typeFilter}
-              onChange={setTypeFilter}
-              phaseId={selectedPhase}
-            />
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <TabGroup>
-                <Tab size="sm" active={agentFilter === 'all'} onClick={() => setAgentFilter('all')} title="Show items from all agents">All</Tab>
-                <Tab size="sm" active={agentFilter === 'claude'} onClick={() => setAgentFilter('claude')} title="Show only items raised by Claude">
-                  <AgentIcon agent="claude" size={12} /> Claude
-                </Tab>
-                <Tab size="sm" active={agentFilter === 'gpt'} onClick={() => setAgentFilter('gpt')} title="Show only items raised by GPT">
-                  <AgentIcon agent="gpt" size={12} /> GPT
-                </Tab>
-              </TabGroup>
-              <span style={{ color: 'var(--fg-4)', fontSize: 10 }}>·</span>
-              <TabGroup>
-                <Tab size="sm" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} title="Show items in all statuses">All</Tab>
-                <Tab size="sm" active={statusFilter === 'open'} onClick={() => setStatusFilter('open')} title="Show only open (unresolved) items">Open</Tab>
-                <Tab size="sm" active={statusFilter === 'resolved'} onClick={() => setStatusFilter('resolved')} title="Show only resolved / answered items">Resolved</Tab>
-                {/* SPEC-0072 D12 — disable Drift when kind=questions (drift only applies to disagreements) */}
-                <Tab
-                  size="sm"
-                  active={statusFilter === 'drift'}
-                  onClick={typeFilter === 'questions' ? undefined : () => setStatusFilter('drift')}
-                  title={typeFilter === 'questions' ? 'Drift does not apply to questions' : 'Show only drift items (unaddressed for multiple rounds)'}
-                  style={typeFilter === 'questions' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-                >Drift</Tab>
-              </TabGroup>
+        <header className="bar2">
+          <div className="kind-tabs">
+            {KIND_TABS.map((kt) => {
+              const count = kindCounts[kt.id] || 0;
+              const isActive = kindFilter === kt.id;
+              const isZero = count === 0 && kt.id !== 'all';
+              return (
+                <button
+                  key={kt.id}
+                  className={`kind-tab${isActive ? ' is-active' : ''}${isZero ? ' is-zero' : ''}`}
+                  onClick={() => setKindFilter(kt.id)}>
+                  <span>{kt.label}</span>
+                  <span className={`ct${kt.tone && count > 0 ? ` ${kt.tone}` : ''}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="right">
+            <div className="tab-group-solid">
+              <button className={`tab-solid${agentFilter === 'all' ? ' is-active' : ''}`} onClick={() => setAgentFilter('all')}>All</button>
+              <button className={`tab-solid${agentFilter === 'claude' ? ' is-active' : ''}`} onClick={() => setAgentFilter('claude')}>
+                <span className="dot" style={{ background: 'var(--p-sable)' }}></span>Claude
+              </button>
+              <button className={`tab-solid${agentFilter === 'gpt' ? ' is-active' : ''}`} onClick={() => setAgentFilter('gpt')}>
+                <span className="dot" style={{ background: 'var(--p-sage)' }}></span>GPT
+              </button>
+            </div>
+            <div className="tab-group-solid">
+              <button className={`tab-solid${statusFilter === 'all' ? ' is-active' : ''}`} onClick={() => setStatusFilter('all')}>All</button>
+              <button className={`tab-solid${statusFilter === 'open' ? ' is-active' : ''}`} onClick={() => setStatusFilter('open')}>Open</button>
+              <button className={`tab-solid${statusFilter === 'resolved' ? ' is-active' : ''}`} onClick={() => setStatusFilter('resolved')}>Resolved</button>
+              <button className={`tab-solid${statusFilter === 'drift' ? ' is-active' : ''}`}
+                onClick={kindFilter === 'questions' ? undefined : () => setStatusFilter('drift')}
+                style={kindFilter === 'questions' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}>Drift</button>
             </div>
           </div>
-        </PaneToolbar>
+        </header>
       )}
+
+      {/* BODY */}
       {isSummary ? (
         <CritiqueSummaryView run={run} questions={questions} disagreements={disagreements} />
       ) : (
         <CritiquePhaseContent
           run={run}
           phaseId={selectedPhase}
-          openItems={openItems}
+          openNewItems={openNewItems}
+          openCarriedItems={openCarriedItems}
           resolvedItems={resolvedItems}
           driftItems={driftItems}
-          issueItems={issueItems}
-          commentItems={commentItems}
-          introduced={introduced}
+          latestRound={latestRound}
           onHighlight={handleHighlight}
+          renderItem={renderItem}
+          renderGroup={renderGroup}
         />
       )}
     </section>
@@ -6193,17 +6172,17 @@ function _mapVerdict(action) {
   return a; // fallback — will trigger dev console.error from VERDICT_VOCAB check
 }
 
-function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftItems = [], issueItems = [], commentItems = [], introduced, onHighlight }) {
+function CritiquePhaseContent({ run, phaseId, openNewItems, openCarriedItems, resolvedItems, driftItems, latestRound, onHighlight, renderItem, renderGroup }) {
   const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
   if (pending) {
     return (
-      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
-        <div style={{ textAlign: 'center', maxWidth: 280, lineHeight: 1.6, fontSize: 12.5 }}>
+      <div className="crit2__body" style={{ display: 'grid', placeItems: 'center' }}>
+        <div style={{ textAlign: 'center', maxWidth: 280, lineHeight: 1.6, fontSize: 12.5, color: 'var(--md-on-surface-faint)' }}>
           {phaseId === 2 ? (
             <>
               <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <AgentIcon agent="claude" size={16} />
-                <span className="mono" style={{ color: 'var(--fg-4)' }}>↔</span>
+                <span className="mono" style={{ color: 'var(--md-on-surface-faint)' }}>{'\u2194'}</span>
                 <AgentIcon agent="gpt" size={16} />
               </div>
               Negotiation hasn't started yet. Both agents are still drafting independent plans.
@@ -6216,191 +6195,23 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
     );
   }
 
-  const totalVisible = openItems.length + resolvedItems.length + driftItems.length + issueItems.length + commentItems.length;
-  if (introduced === 0 && totalVisible === 0) {
-    const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
+  const totalVisible = openNewItems.length + openCarriedItems.length + resolvedItems.length + driftItems.length;
+  if (totalVisible === 0) {
     return (
-      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
-        <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
-          <div className="mono" style={{ fontSize: 12 }}>no questions or disagreements in this phase</div>
-          {suspectedMiss && (
-            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Mdi name="alert" size={11} />
-              <span>couldn't reconstruct disagreements from this run — open the round files directly</span>
-            </div>
-          )}
+      <div className="crit2__body" style={{ display: 'grid', placeItems: 'center' }}>
+        <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6, color: 'var(--md-on-surface-faint)' }}>
+          <div style={{ fontSize: 12 }}>no items match the current filters</div>
         </div>
       </div>
     );
   }
 
-  // Spec 0097 — unified renderItem: all four kinds → <QuestionThread />
-  const renderItem = (item) => {
-    const props = _normalizeToThread(item, run, phaseId);
-    if (!props) return null;
-    const highlightFn = () => {
-      if (!onHighlight) return;
-      onHighlight(props._highlightKeys, props._highlightVariant);
-    };
-    return (
-      <QuestionThread
-        key={item.id}
-        id={props.id}
-        kind={props.kind}
-        status={props.status}
-        raisedBy={props.raisedBy}
-        raisedRound={props.raisedRound}
-        phase={props.phase}
-        turns={props.turns}
-        footer={props.footer}
-        onHighlight={highlightFn}
-      />
-    );
-  };
-
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
-      <div style={{ padding: '6px 24px 28px' }}>
-        {/* SPEC-0057 D5 — DriftCluster above Open/Resolved; SPEC-0071 D8 — collapsible sections */}
-        {driftItems.length > 0 && (
-          <CollapsibleSection
-            title="Drift" count={driftItems.length} countColor={COLORS.err}
-            persistKey={`dr_crit_${run.id}_${phaseId}_drift`}
-            renderTitle={({ open }) => (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                padding: '8px 12px',
-                marginTop: 16, marginBottom: 8,
-                background: COLORS.err + '14',
-                border: `1px solid ${COLORS.err}44`,
-                borderRadius: 'var(--r-2)',
-                whiteSpace: 'nowrap',
-              }}>
-                {/* SPEC-0087 § J — chevron moved to the right edge (was: left)
-                    per delta 18.05's "chevron on the right side" rule. */}
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.err, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Drift</span>
-                <span style={{ flex: 1 }} />
-                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.err, fontWeight: 600 }}>{driftItems.length}</span>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-              </div>
-            )}
-          >
-            <div style={{ marginBottom: 4, fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)' }}>
-              {driftItems.length} item{driftItems.length === 1 ? '' : 's'} without response for multiple rounds
-            </div>
-            {driftItems.map(renderItem)}
-          </CollapsibleSection>
-        )}
-        {openItems.length > 0 && (
-          <CollapsibleSection
-            title="Open" count={openItems.length} countColor={COLORS.warn}
-            persistKey={`dr_crit_${run.id}_${phaseId}_open`}
-            renderTitle={({ open }) => (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                padding: '8px 12px',
-                marginTop: driftItems.length ? 20 : 16, marginBottom: 8,
-                background: COLORS.warn + '14',
-                border: `1px solid ${COLORS.warn}44`,
-                borderRadius: 'var(--r-2)',
-                whiteSpace: 'nowrap',
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.warn, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Open</span>
-                <span style={{ flex: 1 }} />
-                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.warn, fontWeight: 600 }}>{openItems.length}</span>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-              </div>
-            )}
-          >
-            {openItems.map(renderItem)}
-          </CollapsibleSection>
-        )}
-        {resolvedItems.length > 0 && (
-          <CollapsibleSection
-            title="Resolved / answered" count={resolvedItems.length} countColor={COLORS.ok}
-            persistKey={`dr_crit_${run.id}_${phaseId}_resolved`}
-            defaultOpen={false}
-            renderTitle={({ open }) => (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                padding: '8px 12px',
-                marginTop: (openItems.length || driftItems.length) ? 20 : 16, marginBottom: 8,
-                background: COLORS.ok + '14',
-                border: `1px solid ${COLORS.ok}44`,
-                borderRadius: 'var(--r-2)',
-                whiteSpace: 'nowrap',
-              }}>
-                {/* SPEC-0087 § J — defaultOpen={false} (was: true, the
-                    `defaultOpen` prop on CollapsibleSection defaults to
-                    `true`). RESOLVED items are reference history; the
-                    user explicitly asked for them collapsed by default
-                    per delta 18.05 to declutter the critique pane. */}
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.ok, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Resolved / answered</span>
-                <span style={{ flex: 1 }} />
-                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.ok, fontWeight: 600 }}>{resolvedItems.length}</span>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-              </div>
-            )}
-          >
-            {resolvedItems.map(renderItem)}
-          </CollapsibleSection>
-        )}
-        {/* SPEC-0072 D6 — Issues as a separate CollapsibleSection in Phase 4 */}
-        {issueItems.length > 0 && (
-          <CollapsibleSection
-            title="Issues" count={issueItems.length} countColor={COLORS.warn}
-            persistKey={`dr_crit_${run.id}_${phaseId}_issues`}
-            renderTitle={({ open }) => (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                padding: '8px 12px',
-                marginTop: (openItems.length || resolvedItems.length || driftItems.length) ? 20 : 16, marginBottom: 8,
-                background: COLORS.warn + '14',
-                border: `1px solid ${COLORS.warn}44`,
-                borderRadius: 'var(--r-2)',
-                whiteSpace: 'nowrap',
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.warn, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Issues</span>
-                <span style={{ flex: 1 }} />
-                <span className="mono num" style={{ fontSize: 11.5, color: COLORS.warn, fontWeight: 600 }}>{issueItems.length}</span>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-              </div>
-            )}
-          >
-            {issueItems.map(renderItem)}
-          </CollapsibleSection>
-        )}
-        {/* SPEC-0072 D6 — Comments as a separate CollapsibleSection */}
-        {commentItems.length > 0 && (
-          <CollapsibleSection
-            title="Comments" count={commentItems.length} countColor={'var(--fg-2)'}
-            persistKey={`dr_crit_${run.id}_${phaseId}_comments`}
-            defaultOpen={false}
-            renderTitle={({ open }) => (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                padding: '8px 12px',
-                marginTop: (openItems.length || resolvedItems.length || driftItems.length) ? 20 : 16, marginBottom: 8,
-                background: 'var(--bg-2)',
-                border: '1px solid var(--border-2)',
-                borderRadius: 'var(--r-2)',
-                whiteSpace: 'nowrap',
-              }}>
-                {/* SPEC-0087 § J — Comments collapsed by default per delta
-                    19.41. Comments are observations / supplementary
-                    notes; the user explicitly asked them not to clutter
-                    Phase 4 on load. */}
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-2)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Comments</span>
-                <span style={{ flex: 1 }} />
-                <span className="mono num" style={{ fontSize: 11.5, color: 'var(--fg-2)', fontWeight: 600 }}>{commentItems.length}</span>
-                <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-              </div>
-            )}
-          >
-            {commentItems.map(renderItem)}
-          </CollapsibleSection>
-        )}
-      </div>
+    <div className="crit2__body">
+      {renderGroup('Open \u00b7 new this round', openNewItems, 'info', 'is-info', false)}
+      {renderGroup('Open \u00b7 carried over', openCarriedItems, 'warn', 'is-warn', false)}
+      {renderGroup('Resolved', resolvedItems, 'ok', 'is-ok', true)}
+      {renderGroup('Drift', driftItems, 'err', 'is-err', true)}
     </div>
   );
 }
