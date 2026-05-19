@@ -242,8 +242,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me,
         active={onList}
         onClick={() => navigate('list')}
         icon={route.view === 'detail' ? 'arrow-left' : 'menu'}
-        size="sm"
-        className="tab-chrome"
+        variant="chrome"
       >
         All runs
       </Tab>
@@ -251,8 +250,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me,
         active={route.view === 'compare'}
         onClick={() => navigate('compare')}
         icon="compare"
-        size="sm"
-        className="tab-chrome"
+        variant="chrome"
       >
         Compare
       </Tab>
@@ -260,8 +258,7 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me,
         active={route.view === 'search'}
         onClick={() => navigate('search')}
         icon="magnify"
-        size="sm"
-        className="tab-chrome"
+        variant="chrome"
       >
         Search
       </Tab>

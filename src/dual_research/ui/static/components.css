@@ -1866,9 +1866,18 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 /* ── Timeline pane M3 — Spec 0099 ──────────────────────── */
 
 /* Header chrome */
+/* SPEC-0106 — give the timeline pane the same 3-tier surface treatment as
+   the critique pane (.bar1 / .bar2 / .crit2__body), so light mode has
+   visible surface contrast against the page surface. Without this the
+   whole pane reads as flat cream in light mode. */
+.rdvc__pane {
+  background: var(--md-surface-container-low);
+}
 .tl__head {
   display: flex; align-items: baseline; gap: 10px;
-  padding: 14px 20px 0;
+  padding: 14px 20px 12px;
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
 }
 .tl__head .ttl { font: var(--md-w-medium) 16px/1 var(--md-font-plain); }
 .tl__head .ct  { font: 12px/1 var(--md-font-data); color: var(--md-on-surface-faint); }
