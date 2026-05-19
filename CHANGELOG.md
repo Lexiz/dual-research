@@ -12,6 +12,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.4] — 2026-05-19
+
+### Refactored
+
+- **Spec 0107 — Timeline cards + RunDetailHeader children M3 token migration** ([spec 0107](specs/0107-timeline-cards-and-run-detail-header-children.md)). Two visible gaps after v0.76.3:
+  - Timeline phase rows had no card surface — `.tl-phase` rendered transparent against the timeline body, so the timeline read as a flat text list. Added card treatment: `background: var(--md-surface-container-low)`, `border: 1px solid var(--md-outline-hair)`, `border-radius: var(--md-shape-md)`. The phase list container now uses `gap: var(--md-sp-2)` to space cards. Result: timeline reads as a stack of cards on the timeline body surface (mirrors what the critique pane already had).
+  - The `RunDetailHeader` children (`Topic`, `CostBadge`, `ReconcileChip`, `StatusErrorsBadge`, `PhaseDotsRow`) were still inline-styled with v1 tokens (`var(--fg-1/2/3)`, `var(--bg-2)`, `var(--border-1)`) — they looked off against the new `.run-detail__head` M3 surface. Swapped every inline reference inside those five components to the corresponding `--md-*` tokens (`--md-on-surface-*`, `--md-surface-container-high`, `--md-outline-hair`). Structural rendering unchanged; only colours/borders harmonise with the surrounding M3 surfaces.
+- **`scripts/queue-autonomous/capture-shots.py` — fix the onboarding-dismiss localStorage key**. Previous version set `dr.onboarding.dismissed/completed/seen` (guesswork); the app actually reads `dr_onboarded === 'true'` (`app.jsx:47`). Verify shots in the 0093–0104 arc were all dominated by the onboarding modal because the key didn't match. Set the correct key, and add a note in the comment about why this matters.
+
 ## [0.76.3] — 2026-05-19
 
 ### Fixed

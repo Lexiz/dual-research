@@ -116,14 +116,11 @@ def main() -> int:
         # all dominated by the modal and the actual spec deliverable is hidden
         # behind it. That false-pass trap is what bit the 0093 → 0104 arc.
         page.goto(base + "/", wait_until="networkidle")
+        # The app reads localStorage.getItem('dr_onboarded') === 'true' to skip
+        # the tour (see app.jsx:47). The earlier dr.onboarding.* keys were
+        # guesswork; the real key is dr_onboarded, set on tour completion.
         page.evaluate("""
-            () => {
-              try {
-                localStorage.setItem('dr.onboarding.dismissed', '1');
-                localStorage.setItem('dr.onboarding.completed', '1');
-                localStorage.setItem('dr.onboarding.seen', JSON.stringify({ v: 1, completed: true, step: 99 }));
-              } catch(_) {}
-            }
+            () => { try { localStorage.setItem('dr_onboarded', 'true'); } catch(_) {} }
         """)
 
         for row in plan:
