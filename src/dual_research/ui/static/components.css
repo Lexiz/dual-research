@@ -1747,3 +1747,132 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   outline: 2px solid var(--md-primary);
   outline-offset: 2px;
 }
+
+/* ── Critique pane M3 chrome (.crit2) — Spec 0098 ──────── */
+.crit2 {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0; flex: 1;
+}
+.crit2 .bar1, .crit2 .bar2 {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
+.crit2 .bar1 {
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit2 .bar2 {
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit2 .ttl  { font: var(--md-w-medium) var(--md-title-m-size)/1 var(--md-font-plain); white-space: nowrap; }
+.crit2 .right { margin-left: auto; display: inline-flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.crit2__body {
+  flex: 1; min-height: 0; overflow: auto;
+  background: var(--md-surface-container-low);
+  padding: 12px 20px 24px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── Crit-totals cluster (Bar 1 right) ─────────────────── */
+.crit-totals {
+  display: inline-flex; gap: 16px; align-items: baseline;
+  font-family: var(--md-font-plain);
+}
+.crit-totals > span {
+  display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.2;
+}
+.crit-totals .n   { font: var(--md-w-semi) 18px/1 var(--md-font-data); color: var(--md-on-surface); }
+.crit-totals .lbl { font: var(--md-w-medium) 10px/1 var(--md-font-plain); letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-faint); margin-top: 4px; }
+.crit-totals .n.is-info { color: var(--p-info); }
+.crit-totals .n.is-ok   { color: var(--p-ok); }
+
+/* ── Collapsible status-grouped section (.crit-group) ──── */
+.crit-group {
+  display: flex; flex-direction: column;
+  border-radius: var(--md-shape-sm);
+  overflow: hidden;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+}
+.crit-group__hd {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+  position: relative;
+  user-select: none;
+}
+.crit-group__hd::before {
+  content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.crit-group__hd:hover::before { opacity: var(--md-state-hover); }
+.crit-group__hd:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -2px;
+}
+.crit-group__chev {
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--md-on-surface-variant);
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+/* Issue 3 sizing: section headers at title-medium (16dp / weight 500) */
+.crit-group__title {
+  font: var(--md-w-medium) var(--md-title-m-size)/1.5 var(--md-font-plain);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.crit-group__count {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  background: var(--md-surface-container);
+  color: var(--md-on-surface-variant);
+  padding: 4px 8px;
+  border-radius: var(--md-shape-full);
+  min-width: 22px; text-align: center;
+}
+.crit-group__count.is-info { background: color-mix(in srgb, var(--p-info) 22%, transparent); color: var(--p-info); }
+.crit-group__count.is-warn { background: color-mix(in srgb, var(--p-warn) 22%, transparent); color: var(--p-warn); }
+.crit-group__count.is-ok   { background: color-mix(in srgb, var(--p-ok)   22%, transparent); color: var(--p-ok); }
+.crit-group__count.is-err  { background: color-mix(in srgb, var(--p-err)  22%, transparent); color: var(--p-err); }
+.crit-group__meta {
+  margin-left: auto;
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+  letter-spacing: 0.04em;
+}
+.crit-group[data-collapsed="true"] .crit-group__chev { transform: rotate(-90deg); }
+.crit-group[data-collapsed="true"] .crit-group__body { display: none; }
+.crit-group__body {
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--md-surface-container-low);
+}
+
+/* ── Short-form item card (.sc) — Spec 0098 ────────────── */
+.sc {
+  padding: 14px 16px;
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-left: 3px solid var(--md-outline);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sc:hover { box-shadow: var(--md-elev-2); }
+.sc.is-open     { border-left-color: var(--p-warn); }
+.sc.is-resolved { border-left-color: var(--p-ok); }
+.sc.is-drift    { border-left-color: var(--p-err); }
+.sc-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sc-by { font-size: 12px; color: var(--md-on-surface-faint); }
+.sc-by .a { color: var(--p-sable); font-weight: var(--md-w-medium); }
+.sc-by .b { color: var(--p-sage);  font-weight: var(--md-w-medium); }
+/* Issue 3: card title at body-medium (14dp / weight 400) */
+.sc-q { font: var(--md-w-regular) var(--md-body-m-size)/1.5 var(--md-font-brand); color: var(--md-on-surface); }
+
+/* ── Reduced motion for crit-group chevron ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .crit-group__chev {
+    transition: none;
+  }
+}
