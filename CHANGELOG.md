@@ -12,6 +12,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.7] — 2026-05-19
+
+### Refactored
+
+- **Spec 0108 — Run-list page M3 token migration** ([spec 0108](specs/0108-run-list-m3-migration.md)). The run-list page is the first surface every user lands on. It carried ~48 inline v1-token references across its top app bar, filter strip, column-header band, list body, and per-row inline styles — so the page kept reading as v1 against the rest of the M3-migrated app. Swept every `var(--bg-0/1/2/3)`, `var(--fg-0/1/2/3/4)`, `var(--border-1/2/3)`, and `var(--r-2/3/pill)` reference in `run-list.jsx` to the matching `--md-*` token (e.g. `--bg-1` → `--md-surface-container-low`, `--border-1` → `--md-outline-hair`, `--r-2` → `--md-shape-sm`). The Status pills already emitted `.md-status` via the spec 0093 primitive — verified 15 status pills render correctly across the canonical run set. Tests 924 green; hand-verified via Playwright at 2200×1300 and 1400×900 in both themes. Cache-bust `?v=0096` → `?v=0097`.
+
+## [0.76.6] — 2026-05-19
+
+### Fixed
+
+- **Hand-fix — restore `_parseSelfRaised` dropped by spec 0097**. Navigating to any run with comment items (e.g. `20260518-083618-backend-language-choice`) rendered a fully blank page because `_normalizeToThread`'s `k === 'c'` branch referenced `_parseSelfRaised` which was deleted in the same PR that introduced the call site. The autonomous verify step false-passed because the canonical fixture has zero comment items. Restored the function definition verbatim from the pre-0097 source. Cache-bust `?v=0095` → `?v=0096`.
+
+## [0.76.5] — 2026-05-19
+
+### Fixed
+
+- **Hand-fix — bump static-asset cache-bust** `?v=0094` → `?v=0095`. The cache-bust hadn't moved since spec 0092, so five deploys' worth of asset changes shared the same cache key — browsers with stale combinations couldn't refresh. Pure cache-busting, no source code changes other than the 21 `?v=` references in `index.html`.
+
 ## [0.76.4] — 2026-05-19
 
 ### Refactored
