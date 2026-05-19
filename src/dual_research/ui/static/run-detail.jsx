@@ -6095,6 +6095,104 @@ function CritiqueTypeFilter({ active, onChange, phaseId }) {
   );
 }
 
+// Spec 0097 — normalize any critique item into QuestionThread props.
+function _normalizeToThread(item, run, phaseId) {
+  const k = item._critiqueKind;
+  const ledgerEntry = findLedgerEntry(run, phaseId || item.phase, item.id);
+  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
+
+  if (k === 'q') {
+    const q = item;
+    const isAnswered = q.status === 'answered';
+    const turns = [];
+    turns.push({ agent: q.raisedBy, round: q.raisedRound, verdict: 'raised', quote: q.body || null });
+    if (isAnswered && q.answeredBy) {
+      turns.push({ agent: q.answeredBy, round: q.answeredRound, verdict: 'conceded', quote: q.answerBody || null });
+    }
+    if (ghostedRounds > 0 && !isAnswered) {
+      turns.push({
+        agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
+        round: q.raisedRound + ghostedRounds,
+        verdict: 'ghosted',
+        kind: 'ghosted',
+      });
+    }
+    const status = ghostedRounds > 0 && !isAnswered ? 'drift' : isAnswered ? 'resolved' : 'open';
+    const footer = status === 'drift'
+      ? 'drift \u00b7 recorded with full history \u00b7 does not block exit'
+      : status === 'resolved'
+      ? `resolved at round ${q.answeredRound} \u00b7 ${turns.length} turn${turns.length === 1 ? '' : 's'} to converge`
+      : null;
+    return {
+      id: q.id, kind: 'question', status, raisedBy: q.raisedBy, raisedRound: q.raisedRound,
+      phase: q.phase, turns, footer,
+      _highlightKeys: [q.raisedTurnKey, q.answeredTurnKey].filter(Boolean),
+      _highlightVariant: 'q',
+    };
+  }
+
+  if (k === 'd') {
+    const d = item;
+    const isResolved = (d.status || '').startsWith('resolved');
+    const turns = (d.progression || []).map((step, i) => ({
+      agent: step.agent || 'claude',
+      round: step.round,
+      verdict: _mapVerdict(step.action),
+      quote: step.note,
+    }));
+    const status = isResolved ? 'resolved' : 'open';
+    const which = isResolved ? d.status.split('-')[1] : null;
+    let footerText = null;
+    if (isResolved) {
+      const who = which === 'claude' ? 'Claude' : which === 'gpt' ? 'GPT' : which === 'both' ? 'both agents' : which;
+      footerText = `resolved at round ${d.closedRound || '?'} \u00b7 conceded by ${who}`;
+    }
+    return {
+      id: d.id, kind: 'disagreement', status, raisedBy: d.raisedBy,
+      raisedRound: d.openedRound || d.round, phase: d.phase, turns, footer: footerText,
+      _highlightKeys: [d.raisedTurnKey, d.closedTurnKey].filter(Boolean),
+      _highlightVariant: 'd',
+    };
+  }
+
+  if (k === 'i') {
+    const issue = item;
+    const isOpen = issue.status === 'open';
+    const turns = [{ agent: issue.raisedBy, round: issue.roundFirstSeen, verdict: 'raised', quote: issue.body || null }];
+    return {
+      id: issue.id, kind: 'issue', status: isOpen ? 'open' : 'resolved',
+      raisedBy: issue.raisedBy, raisedRound: issue.roundFirstSeen, phase: issue.phase, turns, footer: null,
+      _highlightKeys: issue.raisedTurnKey ? [issue.raisedTurnKey] : [],
+      _highlightVariant: 'd',
+    };
+  }
+
+  if (k === 'c') {
+    const comment = item;
+    const { body: cleanedBody } = _parseSelfRaised(comment.body);
+    const turns = [{ agent: comment.raisedBy, round: comment.raisedRound, verdict: 'raised', quote: cleanedBody || null }];
+    return {
+      id: comment.id, kind: 'comment', status: 'open',
+      raisedBy: comment.raisedBy, raisedRound: comment.raisedRound, phase: comment.phase, turns, footer: null,
+      _highlightKeys: comment.raisedTurnKey ? [comment.raisedTurnKey] : [],
+      _highlightVariant: 'd',
+    };
+  }
+
+  return null;
+}
+
+// Map non-vocab verdicts to the canonical six-word set.
+function _mapVerdict(action) {
+  if (!action) return undefined;
+  const a = action.toLowerCase().trim();
+  if (['raised', 'pushback', 'conceded', 'resolved', 'ghosted', 'drift'].includes(a)) return a;
+  if (a === 'answered' || a === 'agreed' || a === 'accepted') return 'conceded';
+  if (a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'pushback';
+  if (a === 'opened' || a === 'introduced' || a === 'flagged by') return 'raised';
+  return a; // fallback — will trigger dev console.error from VERDICT_VOCAB check
+}
+
 function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftItems = [], issueItems = [], commentItems = [], introduced, onHighlight }) {
   const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
   if (pending) {
@@ -6136,14 +6234,28 @@ function CritiquePhaseContent({ run, phaseId, openItems, resolvedItems, driftIte
     );
   }
 
+  // Spec 0097 — unified renderItem: all four kinds → <QuestionThread />
   const renderItem = (item) => {
-    switch (item._critiqueKind) {
-      case 'q': return <QuestionCard     key={item.id} q={item}        onHighlight={onHighlight} run={run} />;
-      case 'd': return <DisagreementCard key={item.id} d={item}        onHighlight={onHighlight} run={run} />;
-      case 'i': return <IssueCard        key={item.id} issue={item}    onHighlight={onHighlight} run={run} />;
-      case 'c': return <CommentCard      key={item.id} comment={item}  onHighlight={onHighlight} run={run} />;
-      default:  return null;
-    }
+    const props = _normalizeToThread(item, run, phaseId);
+    if (!props) return null;
+    const highlightFn = () => {
+      if (!onHighlight) return;
+      onHighlight(props._highlightKeys, props._highlightVariant);
+    };
+    return (
+      <QuestionThread
+        key={item.id}
+        id={props.id}
+        kind={props.kind}
+        status={props.status}
+        raisedBy={props.raisedBy}
+        raisedRound={props.raisedRound}
+        phase={props.phase}
+        turns={props.turns}
+        footer={props.footer}
+        onHighlight={highlightFn}
+      />
+    );
   };
 
   return (
@@ -6501,7 +6613,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     }
     if (bestGhost > 0) {
       const other = best.raisedBy === 'claude' ? 'gpt' : 'claude';
-      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: `ghosted ${bestGhost} round${bestGhost === 1 ? '' : 's'}`, kind: 'ghosted' });
+      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'ghosted', kind: 'ghosted' });
     }
     const threadStatus = bestGhost > 0 ? 'drift' : 'open';
     const footer = bestGhost > 0 ? `Not addressed for ${bestGhost} round(s) — highest-leverage open item.` : null;
@@ -6593,8 +6705,11 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
             </div>
             <QuestionThread
               id={highestLeverageThread.question.id}
+              kind="question"
               status={highestLeverageThread.threadStatus}
-              question={highestLeverageThread.question.body || '(no body)'}
+              raisedBy={highestLeverageThread.question.raisedBy}
+              raisedRound={highestLeverageThread.question.raisedRound}
+              phase={highestLeverageThread.question.phase}
               turns={highestLeverageThread.turns}
               footer={highestLeverageThread.footer}
             />
@@ -6722,138 +6837,8 @@ const _summaryTd = {
   fontSize: 12, color: 'var(--fg-1)',
 };
 
-// Spec 0034: Question card in the explorer.
-function QuestionCard({ q, onHighlight, run }) {
-  const [open, setOpen] = React.useState(false);
-  const [hover, setHover] = React.useState(false);
-  const isAnswered = q.status === 'answered';
-  const accentColor = COLORS.info;
-  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
-  const ledgerEntry = findLedgerEntry(run, q.phase, q.id);
-  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
-
-  // Spec 0054 D7 — AP-01 enforcement: decode legacy Q-c-r1-01 into "01".
-  const parsed = parseQId(q.id);
-  const decodedNum = typeof parsed.number === 'number' ? String(parsed.number).padStart(2, '0') : q.id;
-
-  // Spec 0054 D6 — derive turns from flat question fields.
-  const turns = React.useMemo(() => {
-    const t = [];
-    t.push({
-      agent: q.raisedBy,
-      round: q.raisedRound,
-      verdict: 'raised',
-      quote: q.body || null,
-      kind: 'origin',
-    });
-    if (isAnswered && q.answeredBy) {
-      t.push({
-        agent: q.answeredBy,
-        round: q.answeredRound,
-        verdict: 'answered',
-        quote: q.answerBody || null,
-        kind: 'resolved',
-      });
-    }
-    if (ghostedRounds > 0 && !isAnswered) {
-      // Ghosted turn: the question has been open for N rounds
-      // without an explicit answer. Show as a ghosted marker.
-      t.push({
-        agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
-        round: q.raisedRound + ghostedRounds,
-        verdict: `ghosted ${ghostedRounds} round${ghostedRounds === 1 ? '' : 's'}`,
-        kind: 'ghosted',
-      });
-    }
-    return t;
-  }, [q, isAnswered, ghostedRounds]);
-
-  // Determine thread status from question state.
-  const threadStatus = ghostedRounds > 0 && !isAnswered ? 'drift'
-                     : isAnswered ? 'resolved'
-                     : 'open';
-
-  // Footer text for drift/resolved.
-  const footerText = threadStatus === 'drift'
-    ? `Drift detected — not addressed for ${ghostedRounds} round(s).`
-    : threadStatus === 'resolved'
-    ? `Answered by ${AGENT_META[q.answeredBy]?.name || q.answeredBy} in round ${q.answeredRound}${q.match === 'positional' ? ' (positional match)' : ''}.`
-    : null;
-
-  const onCardClick = React.useCallback(() => {
-    if (onHighlight) {
-      const keys = [q.raisedTurnKey];
-      if (q.answeredTurnKey) keys.push(q.answeredTurnKey);
-      onHighlight(keys, 'q');
-    }
-    setOpen(o => !o);
-  }, [q, onHighlight]);
-
-  return (
-    <article
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        marginBottom: 8,
-        background: 'var(--bg-1)',
-        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
-        borderLeft: `3px solid ${accentColor}`,
-        borderRadius: 'var(--r-3)',
-        overflow: 'hidden',
-        transition: 'border-color 120ms',
-      }}
-    >
-      <button onClick={onCardClick}
-              title={q.body || ''}
-              style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '9px 12px',
-        background: hover && !open ? 'var(--bg-2)' : 'transparent',
-        transition: 'background 120ms',
-      }}>
-        {/* Spec 0054 D7 — AP-01: decoded number replaces raw Q-c-r1-NN ID. */}
-        <CardHeadline
-          kind="question"
-          publicId={decodedNum}
-          statusLabel={isAnswered ? 'answered' : 'open'}
-          statusColor={isAnswered ? COLORS.ok : COLORS.warn}
-          body={q.body}
-          ghostedRounds={ghostedRounds}
-          accentColor={accentColor}
-          trailing={<CardChevron open={open} hover={hover} />}
-        />
-      </button>
-      {open && (
-        <div style={{
-          padding: '10px 14px 14px',
-          borderTop: '1px solid var(--border-1)',
-          background: 'var(--bg-0)',
-        }}>
-          {/* Spec 0054 D5 — QuestionThread replaces the flat body + metadata. */}
-          <QuestionThread
-            id={q.id}
-            status={threadStatus}
-            question={q.body || '(no body)'}
-            turns={turns}
-            footer={footerText}
-          />
-          {q.quote && (
-            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--fg-1)' }}>
-              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>quote:</span>
-              <span style={{ fontStyle: 'italic' }}>"{q.quote}"</span>
-            </div>
-          )}
-          {q.after && (
-            <div style={{ marginTop: 4, fontSize: 12, color: 'var(--fg-1)' }}>
-              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
-              <span style={{ fontStyle: 'italic' }}>{q.after}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </article>
-  );
-}
+// Spec 0097 — QuestionCard, DisagreementCard, IssueCard, CommentCard deleted.
+// All four kinds now render via <QuestionThread /> through _normalizeToThread().
 
 // Spec 0046 D3 — shared headline for every critique card type
 // (Question / Disagreement / Issue / Comment / Claim).
@@ -7121,398 +7106,20 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
       <div style={{ padding: '6px 24px 28px' }}>
         {open.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={open.length} />}
-        {open.map(d => <DisagreementCard key={d.id} d={d} />)}
+        {open.map(d => {
+          const props = _normalizeToThread({ ...d, _critiqueKind: 'd' }, run, phaseId);
+          return props ? <QuestionThread key={d.id} {...props} /> : null;
+        })}
         {resolved.length > 0 && (
           <GroupHeader label="Resolved" color={COLORS.ok} count={resolved.length}
                        style={{ marginTop: open.length ? 20 : 0 }} />
         )}
-        {resolved.map(d => <DisagreementCard key={d.id} d={d} />)}
+        {resolved.map(d => {
+          const props = _normalizeToThread({ ...d, _critiqueKind: 'd' }, run, phaseId);
+          return props ? <QuestionThread key={d.id} {...props} /> : null;
+        })}
       </div>
     </div>
-  );
-}
-
-function DisagreementCard({ d, onHighlight, run }) {
-  const [open, setOpen] = React.useState(false);
-  const [hover, setHover] = React.useState(false);
-
-  // Spec 0034: click highlights the raised/closed turn-cards in the
-  // timeline so the user can follow the disagreement's history visually.
-  const onCardClick = React.useCallback(() => {
-    if (onHighlight) {
-      const keys = [];
-      if (d.raisedTurnKey) keys.push(d.raisedTurnKey);
-      if (d.closedTurnKey) keys.push(d.closedTurnKey);
-      if (keys.length > 0) onHighlight(keys, 'd');
-    }
-    setOpen(o => !o);
-  }, [d, onHighlight]);
-
-  const isResolved = d.status.startsWith('resolved');
-  const which = isResolved ? d.status.split('-')[1] : null;
-  const exchanges = d.progression?.length || 0;
-  const raisedMeta = d.raisedBy && d.raisedBy !== 'both' ? AGENT_META[d.raisedBy] : null;
-  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
-  const ledgerEntry = findLedgerEntry(run, d.phase, d.id);
-  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
-
-  // Card accent (left edge) color by status
-  let accentColor;
-  if (d.status === 'open' && d.deadlocked) accentColor = COLORS.warn;
-  else if (d.status === 'open')            accentColor = COLORS.warn;
-  else if (which === 'claude')             accentColor = COLORS.agentA;
-  else if (which === 'gpt')                accentColor = COLORS.agentB;
-  else if (which === 'both')               accentColor = COLORS.ok;
-
-  // Spec 0046 D3 + SPEC-0067 D7 — status label + colour for the unified headline.
-  // D7: drop ambiguous arrow notation; use descriptive labels.
-  // SPEC-0087 § K.2 — embed `<BrandMark>` icons inside the agent-
-  // attribution chips so the brand glyph (Claude burst / OpenAI knot)
-  // sits beside the agent name. We keep TWO copies of the label:
-  // a plain string for footer interpolation (`QuestionThread.footer`)
-  // and a JSX node for the visual chip so it can carry the icon.
-  let statusLabel, statusColor, statusLabelPlain;
-  const _conceded = (agentName, brandName) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <BrandMark name={brandName} size={11} variant="solid" aria-hidden="true" />
-      conceded by {agentName}
-    </span>
-  );
-  if (d.status === 'open' && d.deadlocked) {
-    statusLabel = 'deadlocked'; statusLabelPlain = 'deadlocked'; statusColor = COLORS.warn;
-  } else if (d.status === 'open') {
-    statusLabel = 'open'; statusLabelPlain = 'open'; statusColor = COLORS.warn;
-  } else if (which === 'claude') {
-    statusLabel = _conceded('Claude', 'claude'); statusLabelPlain = 'conceded by Claude'; statusColor = COLORS.agentA;
-  } else if (which === 'gpt') {
-    statusLabel = _conceded('GPT', 'openai'); statusLabelPlain = 'conceded by GPT'; statusColor = COLORS.agentB;
-  } else if (which === 'both') {
-    statusLabel = 'both aligned'; statusLabelPlain = 'both aligned'; statusColor = COLORS.ok;
-  }
-
-  // SPEC-0087 § K.1 — `raised by X` attribution chip. Resolves the
-  // long-standing audit gap (delta 18.47) where the chip pair was
-  // collapsed into a single `conceded by Y` chip and the originator
-  // was lost. Shown when `d.raisedBy` is known; defaults to skipping
-  // the `both` case (rendering `raised by both` adds little signal).
-  const raisedBy = d.raisedBy;
-  const _raisedBrand = raisedBy === 'claude' ? 'claude'
-                     : raisedBy === 'gpt' ? 'openai' : null;
-  const _raisedName = raisedBy === 'claude' ? 'Claude'
-                    : raisedBy === 'gpt' ? 'GPT' : null;
-  const extraChips = (raisedBy === 'claude' || raisedBy === 'gpt') ? [{
-    tone: 'muted',
-    label: (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-        <BrandMark name={_raisedBrand} size={11} variant="solid" aria-hidden="true" />
-        raised by {_raisedName}
-      </span>
-    ),
-  }] : null;
-
-  // SPEC-0067 D8 — replace arrow notation with descriptive labels.
-  const roundRange = d.closedRound
-    ? `opened R${d.openedRound} · closed R${d.closedRound}`
-    : `opened R${d.openedRound ?? d.round} · still open`;
-
-  return (
-    <article
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        marginBottom: 8,
-        background: 'var(--bg-1)',
-        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
-        borderLeft: `3px solid ${accentColor}`,
-        borderRadius: 'var(--r-3)',
-        overflow: 'hidden',
-        transition: 'border-color 120ms',
-      }}
-    >
-      <button onClick={onCardClick}
-              title={d.point || d.shortLabel || ''}
-              style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '9px 12px',
-        background: hover && !open ? 'var(--bg-2)' : 'transparent',
-        transition: 'background 120ms',
-      }}>
-        {/* Spec 0046 D3 — unified headline. The round range + exchange
-            count move into the expanded body below. */}
-        <CardHeadline
-          kind="disagreement"
-          publicId={d.id}
-          statusLabel={statusLabel}
-          statusColor={statusColor}
-          extraChips={extraChips}
-          body={d.shortLabel || d.point}
-          ghostedRounds={ghostedRounds}
-          accentColor={COLORS.warn}
-          trailing={<CardChevron open={open} hover={hover} />}
-        />
-      </button>
-
-      {/* SPEC-0073 D1-D2 — QuestionThread-based disagreement detail */}
-      {open && (
-        <div style={{
-          padding: '14px',
-          borderTop: '1px dashed var(--border-1)',
-          background: 'var(--bg-0)',
-        }}>
-          <QuestionThread
-            id={d.id}
-            kind="disagreement"
-            status={isResolved ? 'resolved' : 'open'}
-            question={d.point}
-            /* SPEC-0087 § K — footer now reads "conceded by X in round N"
-               (was: just "conceded by X"), matching the Question variant's
-               "Answered by GPT in round 3" format per delta 19.03 +
-               19.16's byte-identical-structure mandate. */
-            turns={(d.progression || []).map((step, i) => ({
-              agent: step.agent || 'claude',
-              round: step.round,
-              verdict: step.action,
-              quote: step.note,
-              kind: i === 0 ? 'origin' : 'response',
-            }))}
-            footer={isResolved
-              ? (d.closedRound ? `${statusLabelPlain} in round ${d.closedRound}` : statusLabelPlain)
-              : null}
-          />
-
-          {/* Current positions (only if multiple exchanges + not both-raised) */}
-          {d.progression && d.progression.length > 1 && d.raisedBy !== 'both' && (
-            <div style={{ marginTop: 14 }}>
-              <SmallLabel>Current positions</SmallLabel>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Position agent="claude" text={d.claudePosition || d.claude} />
-                <Position agent="gpt" text={d.gptPosition || d.gpt} />
-              </div>
-            </div>
-          )}
-
-          {/* SPEC-0087 § K — the uppercase "RESOLUTION" block was DROPPED.
-              Per delta 19.03 + 19.16, the disagreement detail must be
-              byte-identical to the Question variant — which has no
-              uppercase RESOLUTION block. The resolution text is already
-              available in the last conceded turn's body inside the
-              QuestionThread; surfacing it a second time was redundant. */}
-        </div>
-      )}
-    </article>
-  );
-}
-
-// Spec 0041 D5 — Phase 4 Issue ledger items have their own card type.
-// Same compact-header + expandable-body shape as QuestionCard. The
-// left-rail color is the warn-amber issue color (matches the timeline
-// chip's "issues" tint). Click flashes the timeline turn-card where
-// the issue was first raised.
-function IssueCard({ issue, onHighlight, run }) {
-  const [open, setOpen] = React.useState(false);
-  const [hover, setHover] = React.useState(false);
-  const isOpen = issue.status === 'open';
-  const accentColor = isOpen ? COLORS.warn : COLORS.ok;
-  const raisedMeta = AGENT_META[issue.raisedBy];
-  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
-  const ledgerEntry = findLedgerEntry(run, issue.phase, issue.id);
-  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
-
-  const onCardClick = React.useCallback(() => {
-    if (onHighlight && issue.raisedTurnKey) {
-      onHighlight([issue.raisedTurnKey], 'd');
-    }
-    setOpen(o => !o);
-  }, [issue, onHighlight]);
-
-  return (
-    <article
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        marginBottom: 8,
-        background: 'var(--bg-1)',
-        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
-        borderLeft: `3px solid ${accentColor}`,
-        borderRadius: 'var(--r-3)',
-        overflow: 'hidden',
-        transition: 'border-color 120ms',
-      }}>
-      <button onClick={onCardClick}
-              title={issue.body || ''}
-              style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '9px 12px',
-        background: hover && !open ? 'var(--bg-2)' : 'transparent',
-        transition: 'background 120ms',
-      }}>
-        {/* Spec 0046 D3 — unified headline; round range moves to expanded body. */}
-        <CardHeadline
-          kind="issue"
-          publicId={issue.id}
-          statusLabel={isOpen ? 'open' : 'resolved'}
-          statusColor={isOpen ? COLORS.warn : COLORS.ok}
-          body={issue.body}
-          ghostedRounds={ghostedRounds}
-          accentColor={COLORS.warn}
-          trailing={<CardChevron open={open} hover={hover} />}
-        />
-      </button>
-      {open && (
-        <div style={{
-          padding: '10px 14px 14px',
-          borderTop: '1px solid var(--border-1)',
-          background: 'var(--bg-0)',
-          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          {/* SPEC-0073 D3 — render body via Markdown instead of raw text */}
-          <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
-            <Markdown text={issue.body || '(no body)'} />
-          </div>
-          {/* SPEC-0087 § L — Issue metadata footer migrated from a
-              middot-separated text line to a chip cluster per delta
-              19.36. First chip carries the agent's BrandMark glyph. */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
-          }}>
-            <Chip tone="info" icon={null}>
-              <AgentIcon agent={issue.raisedBy} size={11} />
-              <span style={{ marginLeft: 4 }}>flagged by {raisedMeta?.name || issue.raisedBy}</span>
-            </Chip>
-            <Chip tone="muted"><span className="mono">first seen R{issue.roundFirstSeen}</span></Chip>
-            {issue.roundLastSeen !== issue.roundFirstSeen && (
-              <Chip tone="muted"><span className="mono">last seen R{issue.roundLastSeen}</span></Chip>
-            )}
-          </div>
-          {/* SPEC-0073 D4 — QuoteCallout for quote fields */}
-          {issue.quote && <QuoteCallout text={issue.quote} />}
-          {issue.after && (
-            <div>
-              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
-              <span style={{ fontStyle: 'italic' }}>{issue.after}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </article>
-  );
-}
-
-// Spec 0041 D5 — Comments on the current draft. Non-blocking, no
-// closure protocol; always renders as ``noted``. The left-rail is
-// neutral grey so it's visually de-prioritised next to issues +
-// questions + disagreements.
-// SPEC-0087 § L.3 — detect + strip the `[Self-raised]` prefix that
-// some comment bodies carry from the orchestrator. Matches the literal
-// `[Self-raised]` substring anywhere in the body (case-insensitive),
-// strips every occurrence, and returns whether the comment was
-// self-raised so the caller can render a chip in the header strip.
-function _parseSelfRaised(body) {
-  if (!body) return { isSelfRaised: false, body: body || '' };
-  const re = /\[Self-raised\]\s*/gi;
-  if (!re.test(body)) return { isSelfRaised: false, body };
-  // Strip every occurrence (handles both the topic-line prefix AND a
-  // duplicate inside a bold title), then collapse any whitespace
-  // doubled-up by the removal.
-  const stripped = body.replace(/\[Self-raised\]\s*/gi, '').replace(/  +/g, ' ').trim();
-  return { isSelfRaised: true, body: stripped };
-}
-
-function CommentCard({ comment, onHighlight, run }) {
-  const [open, setOpen] = React.useState(false);
-  const [hover, setHover] = React.useState(false);
-  const raisedMeta = AGENT_META[comment.raisedBy];
-  // Spec 0046 D4 — ghosted-rounds annotation from the spec-0043 ledger.
-  const ledgerEntry = findLedgerEntry(run, comment.phase, comment.id);
-  const ghostedRounds = ledgerEntry?.ghostedRounds || 0;
-
-  // SPEC-0087 § L.3 — `[Self-raised]` prefix promoted to a distinct
-  // header chip per delta 19.47. Pre-spec the prefix lived as literal
-  // text inside both the topic line AND the body's bold title, which
-  // is what the user flagged. Strip every `[Self-raised]` occurrence
-  // (matches both the topic-line and body-title appearances) and
-  // surface a `self-raised` chip in the header strip when present.
-  const { isSelfRaised, body: cleanedBody } = _parseSelfRaised(comment.body);
-  const extraChips = isSelfRaised ? [{ tone: 'muted', label: 'self-raised' }] : null;
-
-  const onCardClick = React.useCallback(() => {
-    if (onHighlight && comment.raisedTurnKey) {
-      onHighlight([comment.raisedTurnKey], 'd');
-    }
-    setOpen(o => !o);
-  }, [comment, onHighlight]);
-
-  return (
-    <article
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        marginBottom: 8,
-        background: 'var(--bg-1)',
-        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
-        borderLeft: `3px solid var(--border-3)`,
-        borderRadius: 'var(--r-3)',
-        overflow: 'hidden',
-        transition: 'border-color 120ms',
-      }}>
-      <button onClick={onCardClick}
-              title={cleanedBody || ''}
-              style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '9px 12px',
-        background: hover && !open ? 'var(--bg-2)' : 'transparent',
-        transition: 'background 120ms',
-      }}>
-        {/* Spec 0046 D3 — unified headline; round + raiser move to expanded body. */}
-        <CardHeadline
-          kind="comment"
-          publicId={comment.id}
-          statusLabel="noted"
-          statusColor="var(--fg-3)"
-          extraChips={extraChips}
-          body={cleanedBody}
-          ghostedRounds={ghostedRounds}
-          accentColor="var(--fg-3)"
-          trailing={<CardChevron open={open} hover={hover} />}
-        />
-      </button>
-      {open && (
-        <div style={{
-          padding: '10px 14px 14px',
-          borderTop: '1px solid var(--border-1)',
-          background: 'var(--bg-0)',
-          fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.55,
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          {/* SPEC-0073 D3 — render body via Markdown instead of raw text */}
-          <div style={{ fontSize: 12.5, color: 'var(--fg-0)', lineHeight: 1.55 }}>
-            <Markdown text={cleanedBody || '(no body)'} />
-          </div>
-          {/* SPEC-0087 § L — Comment metadata footer migrated to chip
-              cluster per delta 19.47. First chip carries the agent's
-              BrandMark glyph; round chip uses the same `R<n>` shape as
-              elsewhere. */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
-          }}>
-            <Chip tone="info" icon={null}>
-              <AgentIcon agent={comment.raisedBy} size={11} />
-              <span style={{ marginLeft: 4 }}>noted by {raisedMeta?.name || comment.raisedBy}</span>
-            </Chip>
-            <Chip tone="muted"><span className="mono">R{comment.raisedRound}</span></Chip>
-          </div>
-          {/* SPEC-0073 D4 — QuoteCallout for quote fields */}
-          {comment.quote && <QuoteCallout text={comment.quote} />}
-          {comment.after && (
-            <div>
-              <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5, marginRight: 6 }}>after:</span>
-              <span style={{ fontStyle: 'italic' }}>{comment.after}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </article>
   );
 }
 
