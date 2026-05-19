@@ -2320,3 +2320,173 @@ body.light .ccx-bar .reuse {
 @media (prefers-reduced-motion: reduce) {
   .ccx-header .chev { transition: none; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   How It Works overlay (.hiw-overlay) — SPEC-0102
+   Full-screen M3 rich dialog with sticky right menu.
+   ───────────────────────────────────────────────────────────── */
+.hiw-overlay__layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: var(--md-sp-6);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.hiw-overlay__content {
+  overflow-y: auto;
+  padding-right: var(--md-sp-4);
+}
+.hiw-overlay__menu {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-sp-4);
+}
+.hiw-overlay__menu-toggle {
+  align-self: stretch;
+}
+.hiw-overlay__menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hiw-overlay__menu-list li a {
+  display: block;
+  padding: 6px 12px;
+  border-radius: var(--md-shape-sm);
+  font: var(--md-w-regular) 12px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  text-decoration: none;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard);
+}
+.hiw-overlay__menu-list li a:hover {
+  background: var(--md-surface-container);
+}
+.hiw-overlay__menu-list li a:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── How It Works content (.hiw) ─────────────────────────── */
+.hiw { display: flex; flex-direction: column; gap: 96px; }
+.hiw-sec { scroll-margin-top: 80px; }
+.hiw-sec > .label {
+  font: var(--md-w-medium) var(--md-label-m-size)/1 var(--md-font-plain);
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--md-primary);
+  margin-bottom: 8px;
+}
+.hiw-sec > h3 {
+  font: var(--md-w-regular) var(--md-headline-l-size)/var(--md-headline-l-lh) var(--md-font-brand);
+  margin: 0 0 16px; letter-spacing: -0.01em;
+}
+.hiw-sec > .lede {
+  max-width: 720px;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 28px;
+  font: var(--md-body-l-size)/var(--md-body-l-lh) var(--md-font-plain);
+}
+.hiw-diagram {
+  border-radius: var(--md-shape-lg);
+  overflow: hidden;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  box-shadow: var(--md-elev-1);
+}
+.hiw-diagram svg { display: block; width: 100%; height: auto; }
+
+/* Collapse contract */
+.hiw-sec__body {
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.hiw-sec[data-collapsed="true"] .hiw-sec__body {
+  display: none;
+}
+.hiw-sec__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--md-primary);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  padding: 4px 0;
+}
+.hiw-sec__toggle:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+.hiw-sec__toggle .ms {
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.hiw-sec[data-collapsed="true"] .hiw-sec__toggle .ms {
+  transform: rotate(0deg);
+}
+.hiw-sec[data-collapsed="false"] .hiw-sec__toggle .ms {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hiw-sec__toggle .ms { transition: none; }
+  .hiw-sec__body { transition: none; }
+}
+
+/* ── Changelog (.changelog) ──────────────────────────────── */
+.changelog { display: flex; flex-direction: column; gap: 32px; }
+.changelog__entry { display: grid; grid-template-columns: 140px 1fr; gap: 32px; align-items: baseline; }
+.changelog__date {
+  font: var(--md-w-medium) var(--md-label-m-size)/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  font-family: var(--md-font-data);
+}
+.changelog__body h4 {
+  font: var(--md-w-medium) var(--md-title-m-size)/1.3 var(--md-font-plain);
+  margin: 0 0 8px;
+}
+.changelog__body ul { margin: 0; padding-left: 20px; color: var(--md-on-surface-variant); }
+.changelog__body ul li { margin: 4px 0; }
+.changelog__entry[data-collapsed="true"] .changelog__body { display: none; }
+.changelog__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--md-primary);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  padding: 4px 0;
+}
+.changelog__toggle:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Responsive: single-column at narrow viewports ─── */
+@media (max-width: 960px) {
+  .hiw-overlay__layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .hiw-overlay__menu {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--md-sp-2);
+    order: -1;
+  }
+  .hiw-overlay__menu-list {
+    display: none;
+  }
+  .hiw-overlay__content {
+    padding-right: 0;
+  }
+}

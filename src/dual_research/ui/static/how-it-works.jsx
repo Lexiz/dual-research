@@ -1677,313 +1677,359 @@
     );
   }
 
-  // ─── Main page ────────────────────────────────────────────────────────
+  // ─── Canonical sub-section data for the right menu ──────────────────
+  const HIW_SECTIONS = [
+    { id: 'hiw-hero', label: 'Protocol overview' },
+    { id: 'hiw-p0',   label: 'Preflight' },
+    { id: 'hiw-p1',   label: 'Independent research' },
+    { id: 'hiw-p2',   label: 'Plan negotiation' },
+    { id: 'hiw-p3',   label: 'Drafting' },
+    { id: 'hiw-p4',   label: 'Review loop' },
+    { id: 'hiw-dis',  label: 'Disagreement & convergence' },
+    { id: 'hiw-cost', label: 'Cost & consumption' },
+    { id: 'hiw-vn',   label: 'Version notes' },
+  ];
 
-  function HowItWorks() {
+  // ─── Collapsible HIW sub-section wrapper ──────────────────────────
+  function HiwSection({ id, label, title, lede, defaultOpen, children }) {
+    const [collapsed, setCollapsed] = React.useState(!defaultOpen);
     return (
-      <div style={{
-        height: '100%', overflow: 'auto', padding: '28px 32px 96px',
-        background: 'var(--bg-0)', color: 'var(--fg-0)',
-      }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <section className="hiw-sec" id={id} data-collapsed={String(collapsed)}>
+        <div className="label">{label}</div>
+        <h3>{title}</h3>
+        <div className="lede">{lede}</div>
+        <div className="hiw-sec__body">
+          {children}
+        </div>
+        <button
+          type="button"
+          className="hiw-sec__toggle"
+          onClick={() => setCollapsed(c => !c)}
+          aria-expanded={!collapsed}
+        >
+          <span className="ms ms-20">{collapsed ? 'expand_more' : 'expand_less'}</span>
+          {collapsed ? 'Read more' : 'Collapse'}
+        </button>
+      </section>
+    );
+  }
 
-          {/* Hero */}
-          <header style={{ marginBottom: 36 }}>
-            <div className="mono" style={{
-              fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.08em',
-              textTransform: 'uppercase', marginBottom: 8,
-            }}>PROTOCOL · v3.5</div>
-            <h1 style={{
-              fontSize: 30, fontWeight: 600, margin: 0,
-              letterSpacing: '-0.02em', color: 'var(--fg-0)',
-            }}>How dual-research works</h1>
-            <p style={{
-              fontSize: 14.5, color: 'var(--fg-2)', maxWidth: 640,
-              marginTop: 10, marginBottom: 0, lineHeight: 1.6,
-            }}>
-              Two language models start from the same brief, work independently,
-              then negotiate until they agree on a single document. The
-              orchestrator is deterministic; the agents are not. This page is
-              what they actually do, in order.
-            </p>
-            <TldrCards />
-          </header>
-
-          {/* Five phases at a glance */}
-          <Section
-            kicker="Overview"
-            title="The five phases"
-            lede={
-              <span>
-                A run walks a fixed phase machine. Some phases fire both agents in
-                parallel, some are turn-based with multiple rounds, one is a
-                single-shot draft. The orchestrator never lets an agent advance
-                the phase — it watches the outputs and decides.
-              </span>
-            }
+  // ─── Changelog entry with collapse ────────────────────────────────
+  function ChangelogEntry({ entry, defaultOpen }) {
+    const [collapsed, setCollapsed] = React.useState(!defaultOpen);
+    return (
+      <div className="changelog__entry" data-collapsed={String(collapsed)}>
+        <div className="changelog__date">
+          <div>v{entry.version}</div>
+          <div style={{ marginTop: 4 }}>{entry.date}</div>
+        </div>
+        <div>
+          <div className="changelog__body">
+            <h4>{entry.summary}</h4>
+            <ul>
+              {entry.items.map((item, i) => <li key={i}>{item}</li>)}
+            </ul>
+          </div>
+          <button
+            type="button"
+            className="changelog__toggle"
+            onClick={() => setCollapsed(c => !c)}
+            aria-expanded={!collapsed}
           >
-            <PhaseStrip />
-            <ProtocolOverviewFold />
-          </Section>
-
-          {/* Chat lifecycle (main new section) */}
-          <Section
-            kicker="Chat lifecycle"
-            title="When do we start new chats?"
-            lede={
-              <span>
-                <strong>Every API call is a new "chat".</strong> The orchestrator
-                never holds a conversation handle, never sends a thread ID, never
-                appends to a stored message list. For each phase and each round,
-                it assembles a fresh prompt from scratch — re-inlining the brief,
-                the Phase&nbsp;1 drafts, any prior turns, the agreed plan, and so
-                on. The two agents do not share an API session and they have no
-                memory of previous calls beyond what the orchestrator quotes back
-                at them.
-              </span>
-            }
-            mutedLede="Below: every box is one HTTP request to one provider. The contents of each box are exactly the inputs that request carries."
-          >
-            <ChatLifecycle />
-            <Legend />
-            <ComparePanel />
-            <div className="mono" style={{
-              marginTop: 14, padding: '8px 12px',
-              background: 'var(--bg-1)', border: '1px solid var(--border-1)',
-              borderRadius: 6, fontSize: 10.5, color: 'var(--fg-3)',
-              lineHeight: 1.55,
-            }}>
-              Want the same lanes filled with real numbers from a run? Open
-              any run and switch the timeline pane to its
-              <span style={{ color: 'var(--fg-1)' }}>&nbsp;Consumption&nbsp;</span>
-              tab — each row is one chat above, with a bar showing how much
-              of that model's context window the call consumed.
-            </div>
-          </Section>
-
-          {/* Context grows, prefix is cached */}
-          <Section
-            kicker="Cost shape"
-            title="Context grows, but the prefix is cached"
-            lede={
-              <span>
-                Because we re-inline everything, the prompt gets longer each
-                round. The orchestrator places a <code style={codeS}>CACHE_BREAKPOINT</code> marker
-                between the stable prefix (brief + Phase&nbsp;1 drafts + earlier
-                turns) and the volatile suffix (the round's instructions).
-                Anthropic caches the prefix with a 1h TTL; OpenAI auto-caches any
-                shared prefix ≥1024 tokens. Long runs end up paying full price
-                only for the small variable tail.
-              </span>
-            }
-          >
-            <ContextGrowthBars />
-          </Section>
-
-          {/* Phase deep-dive */}
-          <Section
-            kicker="Deep-dive"
-            title="Phase by phase"
-            mutedLede="Expand any phase for the full mechanics, inputs, and outputs."
-          >
-            <PhaseAccordion ph={0} name="Preflight" tag="parallel" defaultOpen>
-              <p>
-                Both agents read the brief and write a short critique — what's
-                underspecified, what's ambiguous, what's missing. The two API
-                calls fire <code style={codeS}>asyncio.gather</code>-style at the same moment;
-                neither sees the other's critique. In autonomous mode their
-                feedback is logged but doesn't gate the run.
-              </p>
-              <PhaseMeta rows={[
-                ['input',  <Tk kind="brief">brief</Tk>],
-                ['chats',  '2 fresh API calls (one per agent), no history'],
-                ['output', <span><code style={codeS}>preflight-claude.md</code>, <code style={codeS}>preflight-openai.md</code></span>],
-                ['gate',   'none — informational'],
-              ]} />
-            </PhaseAccordion>
-
-            <PhaseAccordion ph={1} name="Independent research" tag="parallel">
-              <p>
-                Each agent writes a complete first-pass research draft, alone.
-                Same brief, same prompt structure — but the two drafts are written
-                without any cross-talk. This is the only phase where you see how
-                each model interprets the brief under zero negotiation pressure.
-              </p>
-              <PhaseMeta rows={[
-                ['input',  <Tk kind="brief">brief</Tk>],
-                ['chats',  '2 fresh API calls (one per agent), no history'],
-                ['output', <span><code style={codeS}>phase1/draft-claude.md</code>, <code style={codeS}>phase1/draft-openai.md</code></span>],
-                ['gate',   'both drafts present ⇒ advance'],
-              ]} />
-            </PhaseAccordion>
-
-            <PhaseAccordion ph={2} name="Plan negotiation" tag="turn-based">
-              <p>
-                The agents start reading each other's work. Each round, both
-                agents fire <em>in parallel</em> with the brief, both Phase&nbsp;1
-                drafts, and every prior negotiation turn from both sides as input.
-                Round 1 is structurally required to be a "first read" — neither
-                agent can mark AGREED yet. From round 2 on, they exchange
-                counter-proposals, mark disagreements with stable
-                {' '}<code style={codeS}>D-N</code> identifiers, and try to converge on an
-                {' '}<code style={codeS}>AGREED_PLAN</code> block whose SHA-256 hash matches the other agent's.
-              </p>
-              <p>
-                Convergence detection is mechanical: same{' '}
-                <code style={codeS}>STATUS: AGREED</code>, same drafter choice, same plan hash,
-                zero open questions, zero blocking disagreements, matching
-                final-surfaced disagreements — all in the same round.
-              </p>
-              <PhaseMeta rows={[
-                ['r1 input', <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk></span>],
-                ['rN input', <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk> <Tk kind="hist">all prior P2 turns</Tk></span>],
-                ['chats',    '2 fresh API calls per round; full history re-inlined every time'],
-                ['output',   <span><code style={codeS}>phase2/round-NN-claude.md</code>, <code style={codeS}>phase2/round-NN-openai.md</code></span>],
-                ['caps',     'soft 6 rounds (warn), hard 12 rounds (exit 51)'],
-                ['gate',     'same-round plan-hash match + zero blocking disagreements'],
-              ]} />
-            </PhaseAccordion>
-
-            <PhaseAccordion ph={3} name="Drafting" tag="single-shot">
-              <p>
-                One agent — the drafter, picked by <code style={codeS}>tiebreak.pick_drafter</code> —
-                writes the converged document in a single call. They receive: the
-                brief, both Phase&nbsp;1 drafts, the hash-verified canonical agreed
-                plan, the final-surfaced disagreements, and the entire Phase&nbsp;2
-                conversation as context. The other agent is silent in this phase.
-              </p>
-              <PhaseMeta rows={[
-                ['input',  <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk> <Tk kind="plan">agreed plan</Tk> <Tk kind="hist">all P2 turns</Tk></span>],
-                ['chats',  '1 fresh API call (drafter only)'],
-                ['output', <code style={codeS}>phase3/draft-v1.md</code>],
-                ['gate',   'draft written ⇒ advance'],
-              ]} />
-            </PhaseAccordion>
-
-            <PhaseAccordion ph={4} name="Cross-review" tag="turn-based">
-              <p>
-                Same shape as Phase&nbsp;2: both agents fire in parallel each
-                round. The drafter can include a <code style={codeS}>## Revised draft</code>{' '}
-                section in their turn, which the orchestrator detects, writes as{' '}
-                <code style={codeS}>phase4/draft-vN+1.md</code>, and shows to both agents in the
-                next round. The reviewer can comment but not edit. Convergence
-                here means both agents emit <code style={codeS}>STATUS: APPROVED</code> with
-                zero open issues in the same round.
-              </p>
-              <PhaseMeta rows={[
-                ['input',  <span><Tk kind="brief">brief</Tk> <Tk kind="draft">current draft-vK</Tk> <Tk kind="histp">all prior P4 turns</Tk></span>],
-                ['chats',  '2 fresh API calls per round; full history re-inlined every time'],
-                ['output', <span><code style={codeS}>phase4/round-NN-&#123;agent&#125;.md</code>, plus <code style={codeS}>draft-vK+1.md</code> if revised</span>],
-                ['gate',   <span>both agents <code style={codeS}>STATUS: APPROVED</code>, zero open issues, same round</span>],
-              ]} />
-            </PhaseAccordion>
-          </Section>
-
-          {/* Round up close */}
-          <Section
-            kicker="Zoom in"
-            title="A round, up close"
-            lede={
-              <span>
-                In each Phase&nbsp;2 (and Phase&nbsp;4) round, the orchestrator
-                builds one prompt per agent that bundles all the prior history,
-                fires both calls in parallel, writes the two responses to disk,
-                then checks whether the convergence criteria are met. If yes,
-                advance phase. If no, repeat with the new turn files appended to
-                the history.
-              </span>
-            }
-          >
-            <div style={{
-              padding: '16px 18px', background: 'var(--bg-1)',
-              border: '1px solid var(--border-1)', borderRadius: 8,
-            }}>
-              <NegotiationRoundDiagram />
-              <div style={{
-                fontSize: 11.5, color: 'var(--fg-3)', fontStyle: 'italic', marginTop: 6,
-              }}>
-                If yes, advance phase. If no, append both turns to disk and run
-                the next round.
-              </div>
-            </div>
-          </Section>
-
-          {/* FAQ */}
-          <Section kicker="FAQ" title="What gets decided when">
-            <Faq q="Do they read each other's work?">
-              Not in Phases 0 and 1. From Phase&nbsp;2 onward yes — each agent's
-              prompt inlines the brief, both Phase&nbsp;1 drafts, and every prior
-              round's turn from both sides. They build context fully transparently.
-            </Faq>
-            <Faq q="Who goes first in a round? Random? Fixed?">
-              Neither. <strong>Both agents fire at the same moment</strong> via
-              {' '}<code style={codeS}>asyncio.gather</code>. There's no "speaker" in the way humans
-              would imagine. Each agent independently produces a turn that
-              references all prior history — they aren't reading the round-N
-              turn of the other agent while they're writing round N.
-            </Faq>
-            <Faq q="Fresh chats per turn, or one long chat?">
-              <strong>Fresh API call every turn.</strong> The agents have no
-              persistent conversation handle; the orchestrator re-inlines the
-              full prior-turn history into every new prompt. The{' '}
-              <code style={codeS}>CACHE_BREAKPOINT</code> marker lets Anthropic cache the
-              stable prefix (brief + Phase&nbsp;1 drafts + earlier turns) so the
-              marginal cost of long history is small, but that's prefix caching —
-              not a session. From the agent's perspective every turn is a single
-              question with all context provided up front. See "Chat lifecycle"
-              above for the per-phase picture.
-            </Faq>
-            <Faq q="How is the drafter picked?">
-              A four-step cascade in <code style={codeS}>tiebreak.pick_drafter</code>:
-              <ol style={{ paddingLeft: 22, margin: '6px 0' }}>
-                <li>If both agents independently recommend the same drafter in their AGREED turns — that wins.</li>
-                <li>Otherwise, sum each agent's self-rated <code style={codeS}>DOMAIN_FIT_SELF</code> plus the other's rating of them. Higher total drafts.</li>
-                <li>Tiebreak by plan-alignment: word-set overlap between the agreed plan and each agent's Phase 1 draft.</li>
-                <li>Last-resort: <code style={codeS}>SHA-256(brief)</code>'s first byte parity. Even = claude, odd = openai. Deterministic, no concession asymmetry.</li>
-              </ol>
-            </Faq>
-            <Faq q="What if they never converge?">
-              Two caps. <strong>Soft cap</strong> (default 6 rounds) logs a
-              warning and keeps going. <strong>Hard cap</strong> (default 12
-              rounds) stops the run, exits with code&nbsp;51, and emits a
-              {' '}<code style={codeS}>final.md</code> containing the last draft plus both agents'
-              last review turns as an "unresolved disagreements" appendix.
-              Confidence tag is forced to <code style={codeS}>LOW</code>.
-            </Faq>
-            <Faq q="What if an agent emits something the parser can't read?">
-              Each agent has one repair attempt per phase. The orchestrator saves
-              the malformed turn (as <code style={codeS}>round-NN-agent.malformed-N.md</code>),
-              spends the budget, and re-prompts the agent with the specific
-              missing fields surfaced. If the agent fails again on the next
-              round, the run exits with code&nbsp;52. Two consecutive parse
-              failures kill it.
-            </Faq>
-            <Faq q="Which models are used?">
-              By default the production tier: Claude Sonnet 4.6 (with the
-              1M-context beta) + GPT-5.5. There's a faster <code style={codeS}>test</code>{' '}
-              tier (Haiku 4.5 + GPT-5-mini) for verifying changes without
-              spending much. The agent labels stay <code style={codeS}>claude</code> and{' '}
-              <code style={codeS}>openai</code>; the actual model id is recorded in the
-              run's metrics file.
-            </Faq>
-            <Faq q="Where does the cost come from?">
-              Every call records its token usage and a per-call USD cost computed
-              from the model's published pricing. The number you see in the
-              header is the sum of every call in the run. Anthropic prompt
-              caching gives ~75% off cached prefix reads — long Phase&nbsp;2 runs
-              are cheaper than their input-token count suggests.
-            </Faq>
-          </Section>
-
-          {/* Release notes */}
-          <Section kicker="Changelog" title="Release notes" mutedLede="Each entry corresponds to a merged spec. Newest first.">
-            {VERSION_NOTES.map(entry => <ReleaseNote key={entry.version} entry={entry} />)}
-          </Section>
-
+            <span className="ms ms-20">{collapsed ? 'expand_more' : 'expand_less'}</span>
+            {collapsed ? 'Read more' : 'Collapse'}
+          </button>
         </div>
       </div>
     );
   }
 
+  // ─── Main overlay component ───────────────────────────────────────
+  function HowItWorks({ open, onClose }) {
+    const [view, setView] = React.useState('how');  // 'how' | 'changelog'
+    const triggerRef = React.useRef(null);
+    const contentRef = React.useRef(null);
+
+    // Close on Escape
+    React.useEffect(() => {
+      if (!open) return;
+      function onKey(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+      }
+      window.addEventListener('keydown', onKey, true);
+      return () => window.removeEventListener('keydown', onKey, true);
+    }, [open, onClose]);
+
+    // Return focus to trigger on close
+    React.useEffect(() => {
+      if (!open && triggerRef.current) {
+        triggerRef.current.focus();
+        triggerRef.current = null;
+      }
+    }, [open]);
+
+    // Capture the trigger element when opening
+    React.useEffect(() => {
+      if (open) {
+        triggerRef.current = document.activeElement;
+      }
+    }, [open]);
+
+    if (!open) return null;
+
+    function onScrimClick(e) {
+      if (e.target === e.currentTarget) onClose();
+    }
+
+    return (
+      <div className="md-dialog__scrim" onClick={onScrimClick} role="dialog" aria-modal="true" aria-label="How it works">
+        <div className="md-dialog md-dialog--rich" style={{ maxHeight: '92vh', overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--md-sp-4)', flexShrink: 0 }}>
+            <div className="md-dialog__title" style={{ margin: 0 }}>
+              {view === 'how' ? 'How it works' : 'Changelog'}
+            </div>
+            <button
+              type="button"
+              className="md-btn md-btn--text md-btn--sm"
+              onClick={onClose}
+              aria-label="Close"
+            >
+              <span className="ms ms-20">close</span>
+            </button>
+          </div>
+
+          {/* Two-column layout */}
+          <div className="hiw-overlay__layout">
+            {/* Left: scrollable content */}
+            <div className="hiw-overlay__content" ref={contentRef}>
+              {view === 'how' ? (
+                <div className="hiw">
+                  {/* 1. Protocol overview (hero — open by default) */}
+                  <HiwSection id="hiw-hero" label="Protocol" title="Protocol overview" defaultOpen
+                    lede="Two language models start from the same brief, work independently, then negotiate until they agree on a single document. The orchestrator is deterministic; the agents are not.">
+                    <TldrCards />
+                    <div style={{ marginTop: 24 }}>
+                      <PhaseStrip />
+                    </div>
+                    <div style={{ marginTop: 24 }}>
+                      <ProtocolOverviewFold />
+                    </div>
+                  </HiwSection>
+
+                  {/* 2. Preflight */}
+                  <HiwSection id="hiw-p0" label="Phase 0" title="Preflight"
+                    lede="Both agents read the brief and write a short critique. The two API calls fire in parallel; neither sees the other's critique.">
+                    <PhaseAccordion ph={0} name="Preflight" tag="parallel" defaultOpen>
+                      <p>
+                        Both agents read the brief and write a short critique — what's
+                        underspecified, what's ambiguous, what's missing. The two API
+                        calls fire <code style={codeS}>asyncio.gather</code>-style at the same moment;
+                        neither sees the other's critique. In autonomous mode their
+                        feedback is logged but doesn't gate the run.
+                      </p>
+                      <PhaseMeta rows={[
+                        ['input',  <Tk kind="brief">brief</Tk>],
+                        ['chats',  '2 fresh API calls (one per agent), no history'],
+                        ['output', <span><code style={codeS}>preflight-claude.md</code>, <code style={codeS}>preflight-openai.md</code></span>],
+                        ['gate',   'none — informational'],
+                      ]} />
+                    </PhaseAccordion>
+                  </HiwSection>
+
+                  {/* 3. Independent research */}
+                  <HiwSection id="hiw-p1" label="Phase 1" title="Independent research"
+                    lede="Each agent writes a complete first-pass research draft alone. This is the only phase where you see how each model interprets the brief under zero negotiation pressure.">
+                    <PhaseAccordion ph={1} name="Independent research" tag="parallel" defaultOpen>
+                      <p>
+                        Each agent writes a complete first-pass research draft, alone.
+                        Same brief, same prompt structure — but the two drafts are written
+                        without any cross-talk.
+                      </p>
+                      <PhaseMeta rows={[
+                        ['input',  <Tk kind="brief">brief</Tk>],
+                        ['chats',  '2 fresh API calls (one per agent), no history'],
+                        ['output', <span><code style={codeS}>phase1/draft-claude.md</code>, <code style={codeS}>phase1/draft-openai.md</code></span>],
+                        ['gate',   'both drafts present => advance'],
+                      ]} />
+                    </PhaseAccordion>
+                  </HiwSection>
+
+                  {/* 4. Plan negotiation */}
+                  <HiwSection id="hiw-p2" label="Phase 2" title="Plan negotiation"
+                    lede="The agents start reading each other's work. Each round, both agents fire in parallel. They exchange counter-proposals and try to converge on an agreed plan.">
+                    <PhaseAccordion ph={2} name="Plan negotiation" tag="turn-based" defaultOpen>
+                      <p>
+                        Round 1 is structurally required to be a "first read" — neither
+                        agent can mark AGREED yet. From round 2 on, they exchange
+                        counter-proposals, mark disagreements with stable
+                        {' '}<code style={codeS}>D-N</code> identifiers, and try to converge on an
+                        {' '}<code style={codeS}>AGREED_PLAN</code> block whose SHA-256 hash matches the other agent's.
+                      </p>
+                      <PhaseMeta rows={[
+                        ['r1 input', <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk></span>],
+                        ['rN input', <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk> <Tk kind="hist">all prior P2 turns</Tk></span>],
+                        ['chats',    '2 fresh API calls per round; full history re-inlined every time'],
+                        ['output',   <span><code style={codeS}>phase2/round-NN-claude.md</code>, <code style={codeS}>phase2/round-NN-openai.md</code></span>],
+                        ['caps',     'soft 6 rounds (warn), hard 12 rounds (exit 51)'],
+                        ['gate',     'same-round plan-hash match + zero blocking disagreements'],
+                      ]} />
+                    </PhaseAccordion>
+                  </HiwSection>
+
+                  {/* 5. Drafting */}
+                  <HiwSection id="hiw-p3" label="Phase 3" title="Drafting"
+                    lede="One agent — the drafter — writes the converged document in a single call. The other agent is silent in this phase.">
+                    <PhaseAccordion ph={3} name="Drafting" tag="single-shot" defaultOpen>
+                      <p>
+                        One agent — the drafter, picked by <code style={codeS}>tiebreak.pick_drafter</code> —
+                        writes the converged document in a single call.
+                      </p>
+                      <PhaseMeta rows={[
+                        ['input',  <span><Tk kind="brief">brief</Tk> <Tk kind="d1">P1 draft-claude</Tk> <Tk kind="d2">P1 draft-openai</Tk> <Tk kind="plan">agreed plan</Tk> <Tk kind="hist">all P2 turns</Tk></span>],
+                        ['chats',  '1 fresh API call (drafter only)'],
+                        ['output', <code style={codeS}>phase3/draft-v1.md</code>],
+                        ['gate',   'draft written => advance'],
+                      ]} />
+                    </PhaseAccordion>
+                  </HiwSection>
+
+                  {/* 6. Review loop */}
+                  <HiwSection id="hiw-p4" label="Phase 4" title="Review loop"
+                    lede="Same shape as Phase 2: both agents fire in parallel each round. The drafter can include a revised draft, the reviewer comments. Convergence means both agents approve with zero open issues.">
+                    <PhaseAccordion ph={4} name="Cross-review" tag="turn-based" defaultOpen>
+                      <p>
+                        Same shape as Phase&nbsp;2: both agents fire in parallel each
+                        round. The drafter can include a <code style={codeS}>## Revised draft</code>{' '}
+                        section in their turn. Convergence means both agents emit{' '}
+                        <code style={codeS}>STATUS: APPROVED</code> with zero open issues.
+                      </p>
+                      <PhaseMeta rows={[
+                        ['input',  <span><Tk kind="brief">brief</Tk> <Tk kind="draft">current draft-vK</Tk> <Tk kind="histp">all prior P4 turns</Tk></span>],
+                        ['chats',  '2 fresh API calls per round; full history re-inlined every time'],
+                        ['output', <span><code style={codeS}>phase4/round-NN-&#123;agent&#125;.md</code>, plus <code style={codeS}>draft-vK+1.md</code> if revised</span>],
+                        ['gate',   <span>both agents <code style={codeS}>STATUS: APPROVED</code>, zero open issues, same round</span>],
+                      ]} />
+                    </PhaseAccordion>
+                  </HiwSection>
+
+                  {/* 7. Disagreement & convergence */}
+                  <HiwSection id="hiw-dis" label="Convergence" title="Disagreement & convergence"
+                    lede="A round, up close: how the orchestrator checks convergence, what happens when agents don't agree, and the FAQ.">
+                    <div style={{
+                      padding: '16px 18px', background: 'var(--md-surface-container-low)',
+                      border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)',
+                      marginBottom: 24,
+                    }}>
+                      <NegotiationRoundDiagram />
+                      <div style={{
+                        fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontStyle: 'italic', marginTop: 6,
+                      }}>
+                        If yes, advance phase. If no, append both turns to disk and run the next round.
+                      </div>
+                    </div>
+                    <Faq q="Do they read each other's work?">
+                      Not in Phases 0 and 1. From Phase&nbsp;2 onward yes — each agent's prompt inlines the brief, both Phase&nbsp;1 drafts, and every prior round's turn from both sides.
+                    </Faq>
+                    <Faq q="Who goes first in a round?">
+                      Neither. <strong>Both agents fire at the same moment</strong> via <code style={codeS}>asyncio.gather</code>. Each agent independently produces a turn that references all prior history.
+                    </Faq>
+                    <Faq q="What if they never converge?">
+                      Two caps. <strong>Soft cap</strong> (default 6 rounds) logs a warning. <strong>Hard cap</strong> (default 12 rounds) stops the run with exit code 51.
+                    </Faq>
+                    <Faq q="What if an agent emits something the parser can't read?">
+                      Each agent has one repair attempt per phase. Two consecutive parse failures kill the run (exit 52).
+                    </Faq>
+                  </HiwSection>
+
+                  {/* 8. Cost & consumption */}
+                  <HiwSection id="hiw-cost" label="Cost" title="Cost & consumption"
+                    lede="Because we re-inline everything, the prompt gets longer each round. The orchestrator places a CACHE_BREAKPOINT between the stable prefix and the volatile suffix.">
+                    <ContextGrowthBars />
+                    <div style={{ marginTop: 24 }}>
+                      <ChatLifecycle />
+                    </div>
+                    <div style={{ marginTop: 16 }}>
+                      <Legend />
+                    </div>
+                    <Faq q="Which models are used?">
+                      By default: Claude Sonnet 4.6 (1M-context beta) + GPT-5.5. Faster <code style={codeS}>test</code> tier: Haiku 4.5 + GPT-5-mini.
+                    </Faq>
+                    <Faq q="Where does the cost come from?">
+                      Every call records token usage and per-call USD cost. Anthropic prompt caching gives ~75% off cached prefix reads.
+                    </Faq>
+                  </HiwSection>
+
+                  {/* 9. Version notes */}
+                  <HiwSection id="hiw-vn" label="Changelog" title="Version notes"
+                    lede="Each entry corresponds to a merged spec. Newest first.">
+                    {VERSION_NOTES.slice(0, 5).map(entry => <ReleaseNote key={entry.version} entry={entry} />)}
+                  </HiwSection>
+                </div>
+              ) : (
+                /* Changelog view */
+                <div className="changelog">
+                  {VERSION_NOTES.map((entry, i) => (
+                    <ChangelogEntry key={entry.version} entry={entry} defaultOpen={i === 0} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right: sticky menu */}
+            <div className="hiw-overlay__menu">
+              <div className="tab-group-solid hiw-overlay__menu-toggle">
+                <button type="button" className={'tab-solid' + (view === 'how' ? ' is-active' : '')}
+                        onClick={() => setView('how')}>How It Works</button>
+                <button type="button" className={'tab-solid' + (view === 'changelog' ? ' is-active' : '')}
+                        onClick={() => setView('changelog')}>Changelog</button>
+              </div>
+              {view === 'how' && (
+                <ol className="hiw-overlay__menu-list">
+                  {HIW_SECTIONS.map(sec => (
+                    <li key={sec.id}>
+                      <a href={'#' + sec.id} onClick={(e) => {
+                        e.preventDefault();
+                        const el = contentRef.current?.querySelector('#' + sec.id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}>{sec.label}</a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {view === 'changelog' && (
+                <ol className="hiw-overlay__menu-list">
+                  {VERSION_NOTES.map(entry => (
+                    <li key={entry.version}>
+                      <a href="#" onClick={(e) => { e.preventDefault(); }}
+                        style={{ fontFamily: 'var(--md-font-data)', fontSize: 11 }}>
+                        v{entry.version} — {entry.date}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Keep legacy page-based HowItWorks as a redirect wrapper
+  function HowItWorksPage() {
+    return (
+      <div style={{
+        height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg-0)', color: 'var(--fg-0)',
+      }}>
+        <p style={{ color: 'var(--fg-2)' }}>
+          Use the "How it works" button in the top bar to open the overlay.
+        </p>
+      </div>
+    );
+  }
+
   window.HowItWorks = HowItWorks;
+  window.HowItWorksPage = HowItWorksPage;
 })();
