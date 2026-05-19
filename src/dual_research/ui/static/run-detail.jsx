@@ -6106,6 +6106,21 @@ function CritiqueTypeFilter({ active, onChange, phaseId }) {
 }
 
 // Spec 0097 — normalize any critique item into QuestionThread props.
+// Restored after spec 0097 dropped the function definition while keeping one
+// call site (line ~6182 inside the `k === 'c'` comment branch of
+// _normalizeToThread). The canonical verify fixture used by spec 0097 had no
+// comment items so the missing reference never fired during verify; runs that
+// DO contain comment items (e.g. 27de = 20260518-083618-backend-language-
+// choice) crashed the whole React tree with "ReferenceError:
+// _parseSelfRaised is not defined" and rendered as a blank page.
+function _parseSelfRaised(body) {
+  if (!body) return { isSelfRaised: false, body: body || '' };
+  const re = /\[Self-raised\]\s*/gi;
+  if (!re.test(body)) return { isSelfRaised: false, body };
+  const stripped = body.replace(/\[Self-raised\]\s*/gi, '').replace(/  +/g, ' ').trim();
+  return { isSelfRaised: true, body: stripped };
+}
+
 function _normalizeToThread(item, run, phaseId) {
   const k = item._critiqueKind;
   const ledgerEntry = findLedgerEntry(run, phaseId || item.phase, item.id);
