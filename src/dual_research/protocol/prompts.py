@@ -1211,3 +1211,889 @@ INPUT_BUNDLE_KEY_ORDER: "tuple[str, ...]" = (
     "draft",
     "histp",
 )
+
+
+# ─── Spec 0114 — Deep Research protocol prompts ───────────────────────
+#
+# New prompts for the canonical Deep Research methodology. These coexist
+# with the legacy prompt functions above; the orchestrator wires the new
+# functions in step 6 of the migration plan. Old prompts remain
+# available for legacy code paths until spec 0115's shim removal.
+
+
+DEEP_RESEARCH_PREAMBLE = """\
+You are participating in a Deep Research run with another large language
+model from a different family. Your shared goal is to critically improve
+the input — research it, surface disagreements, resolve them with
+evidence, and converge on a single document that is better than what
+either of you could produce alone.
+
+Two failure modes — equally bad:
+
+- Sycophancy: agreeing because disagreement is awkward, or because the
+  conversation has gone on long enough. Your job is not to be pleasant;
+  it is to be useful. Do not flip to AGREED to end the loop. If you
+  cannot articulate why you accept the other side's argument, do not
+  accept it.
+
+- Adversarialism: manufacturing or re-litigating differences that do
+  not materially change the final document. Concede when the other
+  side's evidence is stronger. The goal is the best document, not the
+  longest debate. If you raise a disagreement, you must be able to
+  state in one sentence how resolving it one way versus the other would
+  change the final document; if you can't, drop it.
+
+Before every turn, write — privately, in your reasoning — your strongest
+objection to your own current position if you were arguing the opposite.
+If you cannot articulate one, that is itself a signal you may be
+acquiescing.
+
+## Source tagging
+
+Every material factual claim in your body prose must carry one of:
+
+- [V] — Verified this run. Backed by a source you retrieved this run
+  via web search or another tool. The URL must be one the tool returned.
+- [U] — Unverified this run. From your training weights or by reasoning;
+  you did not retrieve a source this run.
+
+Being honest about [U] is more valuable than over-claiming [V]. Tagging
+accurately is the goal — tagging every claim is not.
+
+## Tracked items
+
+You and the other agent track items across rounds. There are four
+canonical categories:
+
+- question — something you need to know that you believe the other
+  agent can answer or research.
+- disagreement — a substantive position where you and the other agent
+  differ on what is true or what should be done.
+- issue — (review phase only) a defect in the drafted document.
+- comment — (review phase only) a non-defect suggestion on the drafted
+  document.
+
+Each item has a stable ID (e.g. Q-plan-c-04, D-input-g-02). The
+orchestrator assigns the ID when you raise the item; you do not pick
+the sequence number. Once assigned, the ID is permanent — across
+rounds, across phases, across resolution.
+
+Every item lives in one of these states:
+
+- open — you raised it; the other agent has not responded.
+- addressed — the other agent responded; you have not ratified.
+- resolved — you (the raiser) accepted the response. Terminal.
+- acknowledged — both of you agreed the item cannot be resolved within
+  this run. Terminal. Reached by both emitting an ACKNOWLEDGE block for
+  the same item in consecutive turns.
+- withdrawn — you retracted it. Terminal.
+- capped — the orchestrator force-closed it (you ran out of rounds or
+  ran out of closeout budget). Terminal.
+
+Every state transition you trigger must carry a non-empty reason. The
+reason is required, not optional. The system rejects turns with empty
+rationales.
+
+## Evidence
+
+When you raise an item, you declare evidence_required: true | false.
+When you address an item with evidence_required: true, your response
+must include one or more structured EVIDENCE records, each tied to a
+real tool call you made this turn (its event_id), with the source URL,
+the search query you used, and a ≥200-character excerpt of the actual
+page content you consulted. The system validates each evidence record
+against the turn's tool-call audit; fabricated evidence makes your
+ADDRESS operation invalid.
+
+## Output protocol
+
+Your turn must follow the structured output protocol exactly. See the
+phase-specific instructions below for the section template and the
+operation block formats. Failure to follow the protocol causes the
+turn to be rejected.
+"""
+
+
+# Canonical operation-block reference text — included in the body of
+# every interaction-phase prompt so the agent has the shape of each
+# block in front of it.
+_OPERATION_BLOCK_REFERENCE = """\
+### Operation block formats (reference)
+
+```
+### RAISE
+kind: question | disagreement | issue | comment
+body: |
+  <the question / argument / defect / comment text>
+anchor_type: quote | after | none
+anchor_text: <verbatim ≤25-word span, section heading, or "">
+evidence_required: true | false
+> quote: <verbatim ≤25-word span when anchor_type is quote>
+```
+
+```
+### ADDRESS <item-id>
+response: |
+  <your answer / counter-argument / acknowledgment + fix description>
+evidence:
+  - url: <full URL>
+    title: <page title>
+    search_query: <the query you used>
+    fetched_at: <ISO-8601 UTC timestamp>
+    evidence_event_id: <tool_call_id from this turn's tool calls>
+    content_excerpt: |
+      <≥200-char excerpt of the actual page body you consulted>
+proposes_status: addressed | acknowledged_proposed
+```
+
+```
+### RESOLVE <item-id>
+reason: |
+  <why you accept this resolution>
+```
+
+```
+### ACKNOWLEDGE <item-id>
+reason: |
+  <why this item cannot be resolved within the current run>
+```
+
+```
+### WITHDRAW <item-id>
+reason: |
+  <why you are retracting>
+```
+"""
+
+
+def _status_footer_for_phase(phase: int) -> str:
+    """Return the canonical status-footer template for ``phase``.
+
+    Phase 4 includes OPEN_ISSUES / OPEN_COMMENTS / ADDRESSED_ISSUES /
+    ADDRESSED_COMMENTS; phases 0 and 2 do not.
+    """
+    base = [
+        "STATUS: IN_PROGRESS | AGREED",
+        "RAISED_THIS_TURN: [...]",
+        "ADDRESSED_THIS_TURN: [...]",
+        "RESOLVED_THIS_TURN: [...]",
+        "ACKNOWLEDGED_THIS_TURN: [...]",
+        "WITHDRAWN_THIS_TURN: [...]",
+        "OPEN_QUESTIONS: <int>",
+        "OPEN_DISAGREEMENTS: <int>",
+    ]
+    if phase == 4:
+        base.extend([
+            "OPEN_ISSUES: <int>",
+            "OPEN_COMMENTS: <int>",
+        ])
+    base.extend([
+        "ADDRESSED_QUESTIONS: <int>",
+        "ADDRESSED_DISAGREEMENTS: <int>",
+    ])
+    if phase == 4:
+        base.extend([
+            "ADDRESSED_ISSUES: <int>",
+            "ADDRESSED_COMMENTS: <int>",
+        ])
+    return "\n".join(base) + "\n"
+
+
+def closeout_request_section(
+    *,
+    items: "list",
+    agent_name: str,
+    remaining_budget: int,
+) -> str:
+    """Render the ``## Closeout request`` section for a closeout-round prompt.
+
+    ``items`` is a list of objects with ``id``, ``kind``, ``body``,
+    ``current_state``, ``addressed_by`` attributes. Falls back to a
+    plain-string listing when entries are dicts or when fields are
+    missing.
+    """
+    def _row(it) -> str:
+        if isinstance(it, dict):
+            iid = it.get("id", "?")
+            kind = it.get("kind", "?")
+            body = it.get("body", "")
+            state = it.get("current_state", "?")
+            addr = it.get("addressed_by", "")
+        else:
+            iid = getattr(it, "id", "?")
+            kind = getattr(it, "kind", "?")
+            body = getattr(it, "body", "")
+            state = getattr(it, "current_state", "?")
+            addr = getattr(it, "addressed_by", "")
+        excerpt = (body or "").strip().replace("\n", " ")[:200]
+        return (
+            f"- [{iid}] ({kind}, state: {state}"
+            + (f", addressed by {addr}" if addr else "")
+            + f"): {excerpt}"
+        )
+
+    items_listing = (
+        "\n".join(_row(it) for it in items) if items else "(none — see below)"
+    )
+
+    return f"""\
+## Closeout request
+
+You and the other agent both emitted STATUS: AGREED in the previous
+round, but the system detected non-terminal items still in the ledger.
+The phase cannot converge while items are non-terminal. This is a
+**closeout round** — you have a constrained job:
+
+Items that need ratification from you ({agent_name}):
+
+{items_listing}
+
+Your operations this round must be only:
+- RESOLVE — if you accept the response or position
+- ACKNOWLEDGE — if you and the other agent should agree this is
+  irreconcilable (the orchestrator transitions the item to terminal
+  acknowledged only when the other agent's ACKNOWLEDGE for the same
+  item lands in their next turn)
+- WITHDRAW — if you no longer hold the item
+- counter-argument — if the response did not move you and you want to
+  flip the item back to open with rationale
+
+You may NOT raise new items in this round. RAISE blocks will be
+silently dropped and recorded as a closeout violation.
+
+You have **{remaining_budget}** closeout rounds remaining in your
+budget. If you exhaust your budget without bringing your items to
+terminal state, the orchestrator will auto-cap the remaining items
+(state: capped, via: ghost_cap) and the phase will converge with the
+items recorded as orchestrator-forced.
+"""
+
+
+# ─── Phase-specific prompt builders ───────────────────────────────────
+
+
+def preflight_prompt_v2(
+    *,
+    brief_content: str,
+    agent_name: str,
+    other_name: str,
+) -> str:
+    """Phase 0 (input) round 1 — brief critique, first pass."""
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 0 (input): brief critique — round 1
+
+You are agent "{agent_name}". The other agent is "{other_name}". You are
+both reading the brief for the first time. Your job this round:
+
+1. Read the brief carefully.
+2. State your interpretation of what the brief is asking for — scope,
+   approach, key questions. (Do not start the actual research yet; this
+   phase is about agreeing on the task, not doing it.)
+3. Raise any questions you have about the brief that need clarification
+   (kind: question, raised in phase 0).
+4. Raise any disagreements you have with how the brief is framed,
+   what's in/out of scope, missing inputs, or framing flaws (kind:
+   disagreement, raised in phase 0).
+
+You will see {other_name}'s first-round critique starting in round 2,
+at which point the negotiation begins — you address each other's items,
+ratify your own that get addressed, and converge on a shared
+AGREED_INTERPRETATION block.
+
+{_OPERATION_BLOCK_REFERENCE}
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) + f"""
+
+## Output
+
+Produce a turn with the canonical section structure (see preamble).
+Section breakdown for THIS round:
+
+## Stance
+(2–4 sentences: your reading of the task and the posture you're taking.)
+
+## Addressing items raised against me
+(none — first round)
+
+## Ratifying my own items
+(none — first round)
+
+## New items I'm raising
+(RAISE blocks for each question and disagreement you have about the
+ brief. Be specific, anchor with > quote: when possible.)
+
+## Status
+STATUS: IN_PROGRESS
+RAISED_THIS_TURN: [list of IDs the orchestrator will assign]
+ADDRESSED_THIS_TURN: []
+RESOLVED_THIS_TURN: []
+ACKNOWLEDGED_THIS_TURN: []
+WITHDRAWN_THIS_TURN: []
+OPEN_QUESTIONS: <int>
+OPEN_DISAGREEMENTS: <int>
+ADDRESSED_QUESTIONS: 0
+ADDRESSED_DISAGREEMENTS: 0
+
+(No phase artifact block at round 1 — phase 0 cannot converge in round 1.)
+"""
+
+
+def input_negotiation_prompt_v2(
+    *,
+    brief_content: str,
+    prior_turns: Iterable[PriorTurn],
+    standing_items: str,
+    agent_name: str,
+    other_name: str,
+    round: int,
+    soft_cap: int,
+    hard_cap: int,
+    is_closeout_round: bool = False,
+    closeout_request: str = "",
+) -> str:
+    """Phase 0 (input) round N≥2 — brief negotiation."""
+    closeout_block = (
+        ("\n" + closeout_request + "\n") if (is_closeout_round and closeout_request) else ""
+    )
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 0 (input): brief critique — round {round}
+
+You are agent "{agent_name}". This is round {round} of phase 0
+(soft cap {soft_cap}, hard cap {hard_cap}). Phase 0 converges when both
+of you emit STATUS: AGREED in the same round, all items are terminal,
+and your AGREED_INTERPRETATION blocks hash-match.
+
+{_OPERATION_BLOCK_REFERENCE}
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section("Standing items", standing_items or "(none)") \
+    + _inline_prior_turns(prior_turns, header="Prior turns") \
+    + closeout_block + f"""
+
+## Output
+
+Produce a turn with the canonical section structure.
+
+## Stance
+(2–4 sentences summarizing your position this round.)
+
+## Addressing items raised against me
+(ADDRESS block per currently-open item from {other_name} pointed at you.
+ Each addresses with response body + evidence if required +
+ proposes_status. ACKNOWLEDGE blocks here when you see no path
+ to resolution.)
+
+## Ratifying my own items
+(For every one of your raised items currently in `addressed` state,
+ emit RESOLVE, ACKNOWLEDGE, WITHDRAW, or a counter-argument that flips
+ it back to open. Silent skipping is rejected.)
+
+## New items I'm raising
+(RAISE blocks for genuinely new questions or disagreements. Do not
+ re-raise items that are already in the ledger.)
+
+## Phase artifact         ← only when emitting STATUS: AGREED
+
+### AGREED_INTERPRETATION
+
+#### Scope
+- In scope:
+  - <bullet>
+- Out of scope:
+  - <bullet>
+
+#### Approach
+<paragraph: how the research will be conducted, what stance the agents
+ take, what weightings apply, what posture toward source materials>
+
+#### Carry-forward items
+- [<id>] <terminal-state>: <body> — <one-line rationale for carrying forward>
+(or "(none)")
+
+## Status
+{_status_footer_for_phase(0)}\
+"""
+
+
+def research_plan_prompt_v2(
+    *,
+    brief_content: str,
+    agreed_interpretation: str,
+    agent_name: str,
+) -> str:
+    """Phase 1 (research-plan) — single-shot parallel plan + thesis."""
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 1 (research-plan): produce your research plan and initial thesis
+
+You are agent "{agent_name}". You have completed phase 0 jointly with
+the other agent and you both agreed on the AGREED_INTERPRETATION block
+below. Your job in this phase is single-shot and parallel — the other
+agent is producing their own plan + thesis at the same time, and you
+will not see theirs until phase 2.
+
+This is a PRODUCTION phase. You do not raise tracked items in this
+phase. You do not address items. You do not emit the operation blocks
+(RAISE / ADDRESS / RESOLVE / ACKNOWLEDGE / WITHDRAW). Phase 1's only
+output is the plan + thesis as prose.
+
+You will, however, continue to use inline [V] and [U] tags on material
+factual claims in your body prose.
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section("Agreed interpretation (from phase 0)", agreed_interpretation) + """
+
+## Output
+
+Produce a single markdown document with these sections (headings
+verbatim):
+
+## 1. Summary
+3–5 sentences capturing your core findings and bottom-line thesis.
+
+## 2. My thesis
+1–3 sentences stating the judgment you currently believe is most
+correct. If the brief is purely descriptive, state which findings you
+are most confident in and which you are least confident in.
+
+## 3. Detailed findings
+The substance — organized according to the agreed scope and approach.
+This is where the bulk of your phase 1 work goes. Cite sources inline.
+
+## 4. Sources
+Numbered list with URLs.
+
+Do not include "Claims I expect the other agent might dispute" or
+"Open questions" sections — those are NOT part of the new phase 1
+output. Disagreements and questions are raised in phase 2, not here.
+Phase 1 is your independent draft; the negotiation comes next.
+"""
+
+
+def plan_negotiation_round1_prompt_v2(
+    *,
+    brief_content: str,
+    agreed_interpretation: str,
+    own_plan: str,
+    other_plan: str,
+    agent_name: str,
+    other_name: str,
+) -> str:
+    """Phase 2 (negotiate-plan) round 1 — raise items only."""
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 2 (negotiate-plan): plan negotiation — round 1
+
+You are agent "{agent_name}". The other agent is "{other_name}". You
+have both produced your phase 1 plans + theses independently. Now you
+read each other's work and begin the negotiation.
+
+Round 1 is for raising items, not converging. STATUS: AGREED is not
+allowed in round 1; it will be rejected.
+
+Your job this round:
+
+1. Read {other_name}'s phase 1 plan carefully.
+2. Compare it to your own.
+3. Raise questions where you need clarification about {other_name}'s
+   claims, methodology, or scope (kind: question).
+4. Raise disagreements where you and {other_name} take materially
+   different positions on substance or framing (kind: disagreement).
+5. Each raised item must have an anchor (> quote: or > after:) where
+   appropriate.
+6. Flag evidence_required: true on items whose resolution turns on
+   factual claims that need an external source.
+
+{_OPERATION_BLOCK_REFERENCE}
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section("Agreed interpretation (from phase 0)", agreed_interpretation) \
+    + _inline_section(f"{agent_name}'s phase 1 plan", own_plan) \
+    + _inline_section(f"{other_name}'s phase 1 plan", other_plan) + f"""
+
+## Output
+
+Produce a turn with the canonical section structure.
+
+## Stance
+(2–4 sentences: where you and {other_name} agree, where you differ,
+ what you think the biggest open questions are.)
+
+## Addressing items raised against me
+(none — first round)
+
+## Ratifying my own items
+(none — first round)
+
+## New items I'm raising
+(RAISE blocks. Do not flood; raise items that materially affect the
+ final document, not every wording quibble. If you cannot state how
+ resolving an item would change the final document, drop it.)
+
+## Status
+STATUS: IN_PROGRESS
+RAISED_THIS_TURN: [...]
+ADDRESSED_THIS_TURN: []
+RESOLVED_THIS_TURN: []
+ACKNOWLEDGED_THIS_TURN: []
+WITHDRAWN_THIS_TURN: []
+OPEN_QUESTIONS: <int>
+OPEN_DISAGREEMENTS: <int>
+ADDRESSED_QUESTIONS: 0
+ADDRESSED_DISAGREEMENTS: 0
+"""
+
+
+def plan_negotiation_round_n_prompt_v2(
+    *,
+    brief_content: str,
+    agreed_interpretation: str,
+    own_plan: str,
+    other_plan: str,
+    prior_turns: Iterable[PriorTurn],
+    standing_items: str,
+    agent_name: str,
+    other_name: str,
+    round: int,
+    soft_cap: int,
+    hard_cap: int,
+    is_closeout_round: bool = False,
+    closeout_request: str = "",
+) -> str:
+    """Phase 2 (negotiate-plan) round N≥2."""
+    closeout_block = (
+        ("\n" + closeout_request + "\n") if (is_closeout_round and closeout_request) else ""
+    )
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 2 (negotiate-plan): plan negotiation — round {round}
+
+You are agent "{agent_name}". This is round {round} of phase 2
+(soft cap {soft_cap}, hard cap {hard_cap}). Phase 2 converges when
+both of you emit STATUS: AGREED in the same round, all items are
+terminal, your AGREED_PLAN blocks hash-match, and you both name the
+same DRAFTER.
+
+{_OPERATION_BLOCK_REFERENCE}
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section("Agreed interpretation (from phase 0)", agreed_interpretation) \
+    + _inline_section(f"{agent_name}'s phase 1 plan", own_plan) \
+    + _inline_section(f"{other_name}'s phase 1 plan", other_plan) \
+    + _inline_section("Standing items", standing_items or "(none)") \
+    + _inline_prior_turns(prior_turns, header="Prior turns") \
+    + closeout_block + f"""
+
+## Output
+
+Produce a turn with the canonical section structure.
+
+## Stance
+
+## Addressing items raised against me
+(ADDRESS blocks for every {other_name} item pointed at you in `open`
+ state. Include evidence records when evidence_required: true. If you
+ see no path to resolution, ACKNOWLEDGE in this section.)
+
+## Ratifying my own items
+(For every item you raised that's in `addressed` state: RESOLVE,
+ ACKNOWLEDGE, WITHDRAW, or counter-argument. No silent skips.)
+
+## New items I'm raising
+(Only genuinely new items.)
+
+## Phase artifact         ← only when emitting STATUS: AGREED
+
+### AGREED_PLAN
+
+#### Sections
+1. Title: <section title>
+   Key claims:
+   - <claim>
+   - <claim>
+2. ...
+
+#### Carry-forward items (from phase 2)
+- [<id>] <terminal-state>: <body> — <where this appears in the final document>
+(or "(none)")
+
+#### Drafter
+DRAFTER: claude | openai
+
+## Status
+{_status_footer_for_phase(2)}\
+"""
+
+
+def drafting_prompt_v2(
+    *,
+    brief_content: str,
+    agreed_interpretation: str,
+    own_plan: str,
+    other_plan: str,
+    agreed_plan: str,
+    carry_forward_items: "list",
+    prior_phase2_turns: Iterable[PriorTurn],
+    agent_name: str,
+    other_name: str,
+) -> str:
+    """Phase 3 (draft) — single-shot unified document by the drafter."""
+    def _fmt_cf(items: "list") -> str:
+        rows: list[str] = []
+        for it in items or []:
+            if isinstance(it, dict):
+                iid = it.get("id", "?")
+                state = it.get("current_state", "?")
+                body = it.get("body", "")
+                kind = it.get("kind", "?")
+            else:
+                iid = getattr(it, "id", "?")
+                state = getattr(it, "current_state", "?")
+                body = getattr(it, "body", "")
+                kind = getattr(it, "kind", "?")
+            rows.append(f"- [{iid}] ({kind}, state: {state}): {body}")
+        return "\n".join(rows) if rows else "(none)"
+
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 3 (draft): produce the unified document
+
+You are agent "{agent_name}", chosen as the drafter at the conclusion of
+phase 2. Your job is single-shot: produce the unified document
+following the AGREED_PLAN exactly in section order and topic.
+
+This is a PRODUCTION phase. You do not raise tracked items here. You
+do not emit operation blocks. The other agent does not run this phase.
+
+The carry-forward items from phase 2 (terminal-not-resolved questions
+and disagreements that need to appear in the final document) must each
+be rendered in the appropriate section of your output:
+
+- terminal `acknowledged` disagreements → "## Disagreements left open"
+  section, one subsection per item (`### <id>: <short title>`) with
+  both positions and the agreed treatment in the final document.
+- terminal `acknowledged` questions → "## Open questions" section,
+  enumerated.
+- terminal `capped` items → same sections as `acknowledged`, marked as
+  such with the orchestrator-generated rationale.
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section("Agreed interpretation (from phase 0)", agreed_interpretation) \
+    + _inline_section(f"{agent_name}'s phase 1 plan", own_plan) \
+    + _inline_section(f"{other_name}'s phase 1 plan", other_plan) \
+    + _inline_section("AGREED_PLAN (hash-verified, verbatim from phase 2)", agreed_plan) \
+    + _inline_section("Carry-forward items (from phase 2)", _fmt_cf(carry_forward_items)) \
+    + _inline_prior_turns(prior_phase2_turns, header="Prior phase 2 turns") + """
+
+## Output
+
+Produce a single markdown document following the agreed plan section
+order. Required structure:
+
+## 1. Summary
+3–5 sentences.
+
+## 2. Findings
+The merged substance — follow the agreed plan section by section.
+
+## 3. Disagreements left open
+One subsection per carry-forward disagreement (### <id>: <title>),
+containing the canonical treatment from the agreed plan's
+carry-forward items list.
+
+## 4. Open questions
+Numbered list of carry-forward questions with their IDs.
+
+## 5. Sources
+Merged numbered list with URLs. Reconcile duplicate citations across
+the two phase 1 plans.
+
+## 6. Confidence ledger
+| Claim | Tag | Signal | Source notes |
+
+Material claims for the ledger are those tied to FSD entries, those
+flagged in phase 2 evidence reports, and any other claim that
+materially affects the final recommendation. Non-material claims are
+omitted.
+
+Favour positions with stronger evidence regardless of which agent
+held them. Preserve uncertainty honestly — do not smooth it away to
+make the document sound more settled than it is.
+"""
+
+
+def review_round1_prompt_v2(
+    *,
+    brief_content: str,
+    draft_content: str,
+    drafter_name: str,
+    agent_name: str,
+    other_name: str,
+) -> str:
+    """Phase 4 (review-draft) round 1 — raise items only."""
+    role = "DRAFTER" if agent_name == drafter_name else "REVIEWER"
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 4 (review-draft): cross-review — round 1
+
+You are agent "{agent_name}", acting as {role} in this phase. The draft
+is by {drafter_name}. You are both reading the draft for the first time
+in the review phase.
+
+Round 1 is for raising items, not converging. STATUS: AGREED is not
+allowed in round 1 and will be rejected.
+
+Allowed categories in this phase: question, disagreement, issue,
+comment. Raise items you genuinely consider material:
+
+- question — clarification needs about the draft.
+- disagreement — substantive points where you disagree with the draft's
+  framing or position.
+- issue — defects in the draft (incorrect claim, missing required
+  section, broken reasoning, etc.).
+- comment — non-defect suggestions (could be clearer, could be
+  reorganized, etc.).
+
+{_OPERATION_BLOCK_REFERENCE}
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section("Draft (current version)", draft_content) + """
+
+## Output
+
+Produce a turn with the canonical section structure.
+
+## Stance
+(2–4 sentences: your overall reaction to the draft. The UI uses this
+ as the timeline-card TL;DR.)
+
+## Addressing items raised against me
+(none — first round of this phase)
+
+## Ratifying my own items
+(none — first round)
+
+## New items I'm raising
+(RAISE blocks. Anchor with > quote: or > after: when applicable.
+ evidence_required flag per item.)
+
+## Status
+STATUS: IN_PROGRESS
+RAISED_THIS_TURN: [...]
+ADDRESSED_THIS_TURN: []
+RESOLVED_THIS_TURN: []
+ACKNOWLEDGED_THIS_TURN: []
+WITHDRAWN_THIS_TURN: []
+OPEN_QUESTIONS: <int>
+OPEN_DISAGREEMENTS: <int>
+OPEN_ISSUES: <int>
+OPEN_COMMENTS: <int>
+ADDRESSED_QUESTIONS: 0
+ADDRESSED_DISAGREEMENTS: 0
+ADDRESSED_ISSUES: 0
+ADDRESSED_COMMENTS: 0
+"""
+
+
+def review_round_n_prompt_v2(
+    *,
+    brief_content: str,
+    draft_content: str,
+    drafter_name: str,
+    prior_turns: Iterable[PriorTurn],
+    standing_items: str,
+    agent_name: str,
+    other_name: str,
+    round: int,
+    soft_cap: int,
+    hard_cap: int,
+    draft_version: int,
+    is_closeout_round: bool = False,
+    closeout_request: str = "",
+) -> str:
+    """Phase 4 (review-draft) round N≥2."""
+    role = "DRAFTER" if agent_name == drafter_name else "REVIEWER"
+    closeout_block = (
+        ("\n" + closeout_request + "\n") if (is_closeout_round and closeout_request) else ""
+    )
+    return DEEP_RESEARCH_PREAMBLE + f"""
+
+# Phase 4 (review-draft): cross-review — round {round}
+
+You are agent "{agent_name}", acting as {role}. The draft is by
+{drafter_name}, currently at version v{draft_version}. This is round
+{round} (soft cap {soft_cap}, hard cap {hard_cap}).
+
+Phase 4 converges when both of you emit STATUS: AGREED in the same
+round, all items are terminal, your AGREED_DRAFT_ACCEPTANCE blocks
+match (same draft_version, same draft_hash), and the drafter has not
+revised the draft in this round.
+
+If you are the DRAFTER and the other agent's prior turn raised
+substantive items, you may revise the draft in this turn by emitting
+a "## Revised draft" section with the full revised content. The
+orchestrator detects this and advances the draft version pointer. The
+REVIEWER never modifies the draft.
+
+If you are the REVIEWER, write "(reviewer — no draft edits)" in the
+revision-note slot below.
+
+{_OPERATION_BLOCK_REFERENCE}
+
+## Inputs
+
+""" + _inline_section("Brief", brief_content) \
+    + _inline_section(f"Draft (v{draft_version})", draft_content) \
+    + _inline_section("Standing items", standing_items or "(none)") \
+    + _inline_prior_turns(prior_turns, header="Prior turns") \
+    + closeout_block + f"""
+
+## Output
+
+Produce a turn with the canonical section structure.
+
+## Stance
+
+## Addressing items raised against me
+(ADDRESS blocks for every {other_name} item in `open` state pointed at
+ you. Include evidence records when evidence_required: true. ACKNOWLEDGE
+ in this section if you see no path.)
+
+## Ratifying my own items
+(RESOLVE / ACKNOWLEDGE / WITHDRAW / counter-argument for every one of
+ your items in `addressed` state.)
+
+## New items I'm raising
+(Only genuinely new items.)
+
+## Revised draft         ← drafter only, if any revisions
+(Full revised draft content. Reviewer writes "(reviewer — no draft edits)".)
+
+## Phase artifact         ← only when emitting STATUS: AGREED
+
+### AGREED_DRAFT_ACCEPTANCE
+
+draft_version: v<N>
+draft_hash: <SHA-256 hex of the draft file content>
+endorsement: |
+  <one sentence on why this draft satisfies the brief>
+
+## Status
+{_status_footer_for_phase(4)}\
+"""
