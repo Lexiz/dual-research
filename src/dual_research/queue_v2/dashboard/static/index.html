@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>queue v2 · dual-research</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+  <header>
+    <h1>queue v2 <span class="muted">·</span> dual-research</h1>
+    <div id="status" class="status">connecting…</div>
+  </header>
+
+  <main>
+    <section id="left" class="left">
+      <h2>Specs</h2>
+      <ol id="spec-list"></ol>
+    </section>
+
+    <section id="right" class="right">
+      <h2 id="right-title">No active spec</h2>
+      <div id="right-sub" class="muted"></div>
+      <table id="steps">
+        <thead>
+          <tr>
+            <th>#</th><th>Step</th><th>Status</th><th>Avg</th><th>Elapsed</th><th>Detail</th>
+          </tr>
+        </thead>
+        <tbody id="steps-body"></tbody>
+      </table>
+      <div id="terminal" class="terminal" hidden></div>
+    </section>
+  </main>
+
+  <script type="module" src="/static/dashboard.js"></script>
+</body>
+</html>
