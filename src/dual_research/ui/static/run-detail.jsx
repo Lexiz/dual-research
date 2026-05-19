@@ -801,20 +801,23 @@ function Timeline({ run, highlightedTurnKeys }) {
         <span className="ct">{artifactCount} artifacts</span>
       </header>
 
-      {/* TABS — Conversation / Consumption */}
+      {/* TABS — Conversation / Consumption. Outer .tl__tabs is the full-width
+          band (matches .bar2); inner .tl__tabs-inner is the segmented pill. */}
       <div className="tl__tabs">
-        <button
-          className={`tl__tab${tab === 'conversation' ? ' is-active' : ''}`}
-          onClick={() => setTab('conversation')}
-        >
-          <span className="ms ms-18">forum</span>Conversation
-        </button>
-        <button
-          className={`tl__tab${tab === 'consumption' ? ' is-active' : ''}`}
-          onClick={() => setTab('consumption')}
-        >
-          <span className="ms ms-18">stacked_bar_chart</span>Consumption
-        </button>
+        <div className="tl__tabs-inner">
+          <button
+            className={`tl__tab${tab === 'conversation' ? ' is-active' : ''}`}
+            onClick={() => setTab('conversation')}
+          >
+            <span className="ms ms-18">forum</span>Conversation
+          </button>
+          <button
+            className={`tl__tab${tab === 'consumption' ? ' is-active' : ''}`}
+            onClick={() => setTab('consumption')}
+          >
+            <span className="ms ms-18">stacked_bar_chart</span>Consumption
+          </button>
+        </div>
       </div>
 
       {tab === 'conversation' ? (
