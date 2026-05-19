@@ -820,13 +820,16 @@ function PhaseRail({ run, scrollContainerRef }) {
 // Tab state is owned by Timeline (re-internalised — spec 0033 had lifted
 // it to RunDetail so the header could render the pill; spec 0035 moved
 // the tabs back here and unwound the lift).
+// Spec 0099 — M3 Timeline pane rework. Header chrome + vertical phase
+// rail outside the column, anchored to header centres via CSS grid.
+// Resolves Issue 5 (rail anchoring), Issue 11 (single dashed border on
+// unfold), Issue 16 (REPAIR-round explainer).
 function Timeline({ run, highlightedTurnKeys }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
   const [openId, setOpenId] = React.useState(null);
   const [tab, setTab] = React.useState('conversation'); // 'conversation' | 'consumption'
-  const scrollRef = React.useRef(null);
 
-  // Reset open modal + active tab when navigating between runs.
+  // Reset open card + active tab when navigating between runs.
   React.useEffect(() => {
     setOpenId(null);
     setTab('conversation');
@@ -835,73 +838,111 @@ function Timeline({ run, highlightedTurnKeys }) {
   const openItem = items.find((i) => i.id === openId) || null;
 
   const artifactCount = items.filter(i => i.kind !== 'phase-divider' && i.kind !== 'error' && i.kind !== 'deadlock').length;
-  const liveCount = items.filter(i => i.live).length;
+
+  // Group items by phase for the Conversation tab.
+  const phaseGroups = React.useMemo(() => groupTimelineByPhase(items), [items]);
+
+  // Visible phases: phases that have at least one non-divider item.
+  const visiblePhases = React.useMemo(() => {
+    return phaseGroups
+      .filter(g => g.divider && g.items.length > 0)
+      .map(g => {
+        const pid = g.divider.phaseId;
+        const pDef = PHASES[pid] || PHASES.find(p => p.id === pid);
+        const allDone = pid < run.phase || run.status === 'completed';
+        const isCurrent = pid === run.phase && run.status !== 'completed';
+        return { ...g, pid, pDef, allDone, isCurrent };
+      });
+  }, [phaseGroups, run.phase, run.status]);
+
+  // Phase collapse state (persisted per-run).
+  const [collapsed, setCollapsed] = React.useState({});
+  React.useEffect(() => { setCollapsed({}); }, [run.id]);
+  const togglePhase = React.useCallback((pid) => {
+    setCollapsed(prev => ({ ...prev, [pid]: !prev[pid] }));
+  }, []);
 
   return (
-    <section style={{
+    <div className="rdvc__pane" style={{
       display: 'flex', flexDirection: 'column',
-      borderRight: '1px solid var(--border-1)',
+      borderRight: '1px solid var(--md-outline-hair)',
       minWidth: 0, minHeight: 0,
     }}>
-      {/* Row 1 — PaneHeader: title on the left, Claude pill on the right. */}
-      <PaneHeader
-        title="Timeline"
-        count={`${artifactCount} artifacts`}
-        accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
-        right={<ModelBadge agent="claude" model={(run.agents?.claude?.modelId || run.agents?.claude?.model_id || AGENT_META.claude.model)} />}
-      />
-      {/* Row 2 — PaneToolbar: Conversation/Consumption tabs on the LEFT,
-          directly under the "Timeline" title in the row above (spec 0040 D6 —
-          previously the tabs were stranded on the right, next to the GPT
-          pill they had no semantic relationship to). The live-count chip
-          sits to the right of the tabs; GPT pill stays on the right edge,
-          vertically aligned with the Claude pill on the PaneHeader row. */}
-      <PaneToolbar>
-        <TimelineTabs active={tab} onChange={setTab} prominent />
-        {liveCount > 0 && (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '3px 8px',
-            background: 'rgba(107,156,240,0.10)',
-            border: '1px solid rgba(107,156,240,0.30)',
-            borderRadius: 999,
-            fontSize: 11, color: COLORS.info,
-            fontFamily: 'var(--mono)',
-            whiteSpace: 'nowrap',
-          }}>
-            <span className="pulse-a" style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.info }} />
-            {liveCount} live
-          </span>
-        )}
-        <span style={{ flex: 1 }} />
-        <ModelBadge agent="gpt" model={(run.agents?.gpt?.modelId || run.agents?.gpt?.model_id || AGENT_META.gpt.model)} />
-      </PaneToolbar>
+      {/* HEAD — title + count */}
+      <header className="tl__head">
+        <span className="ttl">Timeline</span>
+        <span className="ct">{artifactCount} artifacts</span>
+      </header>
+
+      {/* TABS — Conversation / Consumption */}
+      <div className="tl__tabs">
+        <button
+          className={`tl__tab${tab === 'conversation' ? ' is-active' : ''}`}
+          onClick={() => setTab('conversation')}
+        >
+          <span className="ms ms-18">forum</span>Conversation
+        </button>
+        <button
+          className={`tl__tab${tab === 'consumption' ? ' is-active' : ''}`}
+          onClick={() => setTab('consumption')}
+        >
+          <span className="ms ms-18">stacked_bar_chart</span>Consumption
+        </button>
+      </div>
+
       {tab === 'conversation' ? (
-        <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', background: 'var(--bg-0)' }}>
-          <PhaseRail run={run} scrollContainerRef={scrollRef} />
-          <div style={{ flex: 1, minWidth: 0, padding: '8px 16px 24px 8px' }}>
-            {groupTimelineByPhase(items).map((group, gi) => {
-              if (!group.divider) {
-                return group.items.map((item) => (
-                  <TimelineItem key={item.id} item={item} run={run}
-                    onOpen={() => setOpenId(item.id)} highlightedTurnKeys={highlightedTurnKeys} />
-                ));
-              }
-              return (
-                <CollapsibleSection
-                  key={`phase-${group.divider.phaseId}`}
-                  persistKey={`dr_phase_${run.id}_${group.divider.phaseId}`}
-                  renderTitle={({ open }) => (
-                    <PhaseDividerHeader item={group.divider} run={run} open={open} />
-                  )}
-                >
-                  {group.items.map((item) => (
-                    <TimelineItem key={item.id} item={item} run={run}
-                      onOpen={() => setOpenId(item.id)} highlightedTurnKeys={highlightedTurnKeys} />
-                  ))}
-                </CollapsibleSection>
-              );
-            })}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          {/* BODY — rail + phases. Grid is 40px 1fr. */}
+          <div className="tl__body">
+            {/* RAIL — one .seg per visible phase */}
+            <div className="tl__rail" aria-hidden="true">
+              {visiblePhases.map(vp => (
+                <div key={vp.pid} className={`seg${vp.allDone ? ' is-done' : ''}${vp.isCurrent ? ' is-current' : ''}`}>
+                  <span className="marker"></span>
+                  <span className="lbl">{vp.pDef?.short || `P${vp.pid}`}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* PHASES — collapsible sections */}
+            <div className="tl__phases">
+              {visiblePhases.map(vp => {
+                const isCollapsed = !!collapsed[vp.pid];
+                const divider = vp.divider;
+                const metaParts = [];
+                if (divider.duration) metaParts.push(fmt.duration(divider.duration));
+                if (divider.extra) metaParts.push(divider.extra);
+                return (
+                  <section key={vp.pid} className="tl-phase" data-collapsed={isCollapsed ? 'true' : 'false'}>
+                    <header
+                      className="tl-phase__hd"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => togglePhase(vp.pid)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePhase(vp.pid); } }}
+                    >
+                      <span className="chev"><span className="ms ms-18">expand_more</span></span>
+                      <span className="tl-phase__pcode">PHASE {vp.pid}</span>
+                      <span className="tl-phase__name">{vp.pDef?.label || `Phase ${vp.pid}`}</span>
+                      <span className="tl-phase__meta">{metaParts.join(' \u00b7 ') || '\u2014'}</span>
+                    </header>
+                    {!isCollapsed && (
+                      <div className="tl-phase__body">
+                        {vp.items.map(item => (
+                          <TlTurnRow
+                            key={item.id}
+                            item={item}
+                            run={run}
+                            isOpen={openId === item.id}
+                            onToggle={() => setOpenId(openId === item.id ? null : item.id)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : (
@@ -914,7 +955,117 @@ function Timeline({ run, highlightedTurnKeys }) {
           onClose={() => setOpenId(null)}
         />
       )}
-    </section>
+    </div>
+  );
+}
+
+// Spec 0099 — M3 turn row. One-line summary; click expands inline.
+// Issue 11: single dashed border between header row and body.
+// Issue 16: REPAIR variant renders explainer sentence.
+function TlTurnRow({ item, run, isOpen, onToggle }) {
+  const agentSlot = item.agent === 'gpt' ? 'b' : 'a';
+  const agentInitial = item.agent === 'gpt' ? 'G' : 'C';
+  const agentName = item.agent ? (AGENT_META[item.agent]?.name || item.agent) : '';
+  const isRepair = hasRepairSibling(run, item.turnKey);
+  const isLive = item.live;
+  const isCurrent = isLive;
+  const label = item.round ? `turn ${item.round}` : item.kind;
+  const roundChip = item.round ? `R${item.round}` : '';
+
+  // Delta chips: derive from item stats if available.
+  const stats = item.stats || {};
+  const deltas = [];
+  if (stats.questionsRaised > 0) deltas.push({ cls: 'up', text: `+${stats.questionsRaised} questions` });
+  if (stats.questionsResolved > 0) deltas.push({ cls: 'down', text: `\u2212${stats.questionsResolved} resolved` });
+  if (stats.disagreementsRaised > 0) deltas.push({ cls: 'up', text: `+${stats.disagreementsRaised} disagreements` });
+  if (stats.disagreementsResolved > 0) deltas.push({ cls: 'down', text: `\u2212${stats.disagreementsResolved} resolved` });
+  if (isRepair) deltas.push({ cls: 'rep', text: 'REPAIR' });
+
+  // Expanded body content: use summary or gist.
+  const gist = !isLive ? composeGist(item, run) : '';
+  const summary = item.summary || '';
+
+  // REPAIR explainer (Issue 16): when expanded and this is a repair turn,
+  // show the canonical sentence. The silent agent is the one whose usage
+  // is zero on this turn.
+  const silentAgent = isRepair
+    ? (item.agent === 'gpt' ? 'GPT' : 'Claude')
+    : null;
+  const otherAgent = silentAgent === 'GPT' ? 'Claude' : 'GPT';
+  const repairExplainer = isRepair
+    ? `${silentAgent} was silent this turn. ${otherAgent} will reissue the same plan on the next round. No data lost.`
+    : null;
+
+  // Token/cost info for actions row.
+  const usage = run.phaseTokenUsage || {};
+  const turnUsageKey = item.turnKey
+    ? item.turnKey.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+    : null;
+  const turnUsage = turnUsageKey ? usage[turnUsageKey] : null;
+  const tokensIn = turnUsage?.inputTokens || turnUsage?.input_tokens || 0;
+  const tokensOut = turnUsage?.outputTokens || turnUsage?.output_tokens || 0;
+  const totalTokens = tokensIn + tokensOut;
+  const cost = turnUsage?.cost || 0;
+
+  if (!isOpen) {
+    // Compact one-line turn row
+    return (
+      <div
+        className={`tl-turn${isCurrent ? ' is-current' : ''}`}
+        onClick={onToggle}
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        role="button"
+      >
+        <span className={`tl-turn__ai is-${agentSlot}`}>{agentInitial}</span>
+        <span className="tl-turn__nm">{agentName}</span>
+        <span className="tl-turn__lbl">{label}</span>
+        <span className="tl-turn__deltas">
+          {deltas.map((d, i) => (
+            <span key={i} className={`tl-delta ${d.cls}`}>{d.text}</span>
+          ))}
+        </span>
+        {roundChip && <span className="tl-turn__round">{roundChip}</span>}
+      </div>
+    );
+  }
+
+  // Expanded turn — Issue 11: single dashed top border between row and body
+  return (
+    <div className="tl-turn--open">
+      <div
+        className="tl-turn"
+        onClick={onToggle}
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+        role="button"
+      >
+        <span className={`tl-turn__ai is-${agentSlot}`}>{agentInitial}</span>
+        <span className="tl-turn__nm">{agentName}</span>
+        <span className="tl-turn__lbl">{label}{isOpen ? ' \u00b7 expanded' : ''}</span>
+        <span className="tl-turn__deltas">
+          {deltas.map((d, i) => (
+            <span key={i} className={`tl-delta ${d.cls}`}>{d.text}</span>
+          ))}
+        </span>
+        {roundChip && <span className="tl-turn__round">{roundChip}</span>}
+      </div>
+      <div className="body">
+        {repairExplainer || summary || gist || '\u2014'}
+      </div>
+      <div className="actions">
+        <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); setOpenId && onToggle(); }}>
+          Open full view
+        </button>
+        <span style={{ flex: 1 }}></span>
+        <span className="md-chip md-chip--sm">
+          {isRepair ? '0 tokens' : `${(totalTokens / 1000).toFixed(1)}kt in`}
+        </span>
+        <span className="md-chip md-chip--sm">
+          {isRepair ? '$0.0000' : fmt.cost(cost)}
+        </span>
+      </div>
+    </div>
   );
 }
 
