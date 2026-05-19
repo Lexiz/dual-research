@@ -109,3 +109,36 @@
   background-size: 24px 24px;
   background-position: -1px -1px;
 }
+
+/* =============================================================
+   SPEC-0092 — M3 tint + density body classes (additive).
+   No v1 component currently reads these — they exist so
+   subsequent specs (0093…0104) can flip agent tint (sable ⇄
+   sage) and density (comfortable ⇄ compact) via a single body
+   class without touching component CSS per route.
+   Mirrors docs/design-system-v2/assets/styles/v2-m3.css:177-198.
+   ============================================================= */
+
+/* Agent-tint flip: sable on Claude routes (default), sage on GPT routes. */
+body.tint-secondary {
+  --md-surface-tint: var(--md-secondary);
+}
+
+/* Compact density: tightens M3 paddings, row heights, rail width, and
+   the display/headline type scale. Applied via body.compact. */
+body.compact {
+  --md-density: 1;
+  --md-pad-card:    var(--md-sp-4);
+  --md-pad-card-y:  var(--md-sp-3);
+  --md-gap-row:     var(--md-sp-5);
+  --md-gap-col:     var(--md-sp-4);
+  --md-row-h:       44px;
+  --md-rail-w:      240px;
+
+  --md-display-l-size: 45px; --md-display-l-lh: 52px;
+  --md-display-m-size: 36px; --md-display-m-lh: 44px;
+  --md-display-s-size: 28px; --md-display-s-lh: 36px;
+  --md-headline-l-size: 24px; --md-headline-l-lh: 32px;
+  --md-headline-m-size: 22px; --md-headline-m-lh: 28px;
+  --md-headline-s-size: 20px; --md-headline-s-lh: 28px;
+}

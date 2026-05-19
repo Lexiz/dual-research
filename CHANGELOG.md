@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.72.1] — 2026-05-19
+
+### Added
+
+- **Spec 0092 — Material 3 token & foundation layer** ([spec 0092](specs/0092-m3-token-foundation.md)). Foundation-only; no v1 component CSS changes are visible to the user — the page renders identically. The M3 token tree, the 15 `.t-*` typography role utilities, the `.ms` Material Symbols sizing helpers, the `.responsive-grid` utility, and the `body.tint-secondary` / `body.compact` body classes become *available* so subsequent specs (0093…0104) can migrate components without touching theme files. Roboto Flex, Roboto Serif, and Material Symbols Outlined are loaded alongside IBM Plex, but the rendered body font stays IBM Plex. Mirrors `docs/design-system-v2/assets/styles/v2-m3.css` lines 7–298.
+  - **`tokens.css`**: append the full M3 token block (palette `--p-*`, colour roles `--md-primary/--md-secondary/--md-tertiary/--md-error` with `-container` and `--md-on-*` pairs, surface tiers, `--md-surface-1..5` via `color-mix`, shape scale, 15-role type scale, spacing `--md-sp-0..20`, 6-level elevation, 4 state-layer opacities, M3 easings + durations, focus ring). The v1 `--bg-*` / `--fg-*` / `--agent-*` / status / typography / spacing / radius / motion tokens are preserved verbatim (981 references across `*.css` and `*.jsx` keep working). A parallel `body.light` block overrides the new `--md-*` role tokens for cream mode.
+  - **`theme.css`**: append `body.tint-secondary` (sage tint on GPT routes) and `body.compact` (M3 compact density override). Existing legacy component rules untouched.
+  - **`base.css`**: append the 15 `.t-display-l/-m/-s` … `.t-label-l/-m/-s` and `.t-data` M3 type-role utilities, the `.muted` / `.faint` / `.subtle` on-surface colour helpers, and a reduced-motion companion `@media` block. Existing v1 `.t-display` / `.t-title` / `.t-h3` / `.t-body` / `.t-meta` / `.t-mono` / `.t-label` classes untouched.
+  - **`components.css`**: append `.ms` / `.ms-18` / `.ms-20` / `.ms-24` Material Symbols Outlined sizing helpers and a `.responsive-grid` utility class. No live component reads these yet.
+  - **`index.html`**: add the Roboto Flex / Roboto Serif and Material Symbols Outlined font links alongside the existing IBM Plex preconnect/link. Bump every static-asset cache-bust from `?v=0093` to `?v=0094`.
+  - **Step 3 Rewrite** edits reconciled "replace" vs "renders identically" contradictions in the spec doc — the original draft asked for token replacement and a body-font swap that would have broken 981 var-references and changed every text component. The spec now reads "append alongside" and the body-font acceptance criterion was reframed to test `getComputedStyle(body).getPropertyValue('--md-font-plain')` (token availability) instead. Rewrite edits logged at `queue/runs/0092/rewrite-log.md`.
+
 ## [0.72.0] — 2026-05-19
 
 ### Added

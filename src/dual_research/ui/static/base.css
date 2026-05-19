@@ -223,3 +223,43 @@ a:hover { text-decoration-color: var(--info); }
 .md th, .md td { padding: 6px 10px; border: 1px solid var(--border-1); text-align: left; }
 .md th { background: var(--bg-2); color: var(--fg-1); font-weight: var(--w-semi); }
 .md del { color: var(--fg-3); text-decoration: line-through; }
+
+/* =============================================================
+   SPEC-0092 — Material 3 typography role utilities (additive).
+   The 15 .t-display-l / -m / -s … .t-label-l / -m / -s classes
+   plus .t-data. Existing v1 .t-display / .t-title / .t-h3 /
+   .t-body / .t-meta / .t-mono / .t-label classes above are
+   untouched so v1 components keep rendering identically.
+   Mirrors docs/design-system-v2/assets/styles/v2-m3.css:247-298.
+   ============================================================= */
+
+.t-display-l  { font: var(--md-w-regular) var(--md-display-l-size)/var(--md-display-l-lh) var(--md-font-brand); letter-spacing: var(--md-display-l-track); }
+.t-display-m  { font: var(--md-w-regular) var(--md-display-m-size)/var(--md-display-m-lh) var(--md-font-brand); }
+.t-display-s  { font: var(--md-w-regular) var(--md-display-s-size)/var(--md-display-s-lh) var(--md-font-brand); }
+.t-headline-l { font: var(--md-w-medium)  var(--md-headline-l-size)/var(--md-headline-l-lh) var(--md-font-brand); }
+.t-headline-m { font: var(--md-w-medium)  var(--md-headline-m-size)/var(--md-headline-m-lh) var(--md-font-brand); }
+.t-headline-s { font: var(--md-w-medium)  var(--md-headline-s-size)/var(--md-headline-s-lh) var(--md-font-brand); }
+.t-title-l    { font: var(--md-w-medium)  var(--md-title-l-size)/var(--md-title-l-lh) var(--md-font-plain); }
+.t-title-m    { font: var(--md-w-medium)  var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-plain); letter-spacing: var(--md-title-m-track); }
+.t-title-s    { font: var(--md-w-medium)  var(--md-title-s-size)/var(--md-title-s-lh) var(--md-font-plain); letter-spacing: var(--md-title-s-track); }
+.t-body-l     { font: var(--md-w-regular) var(--md-body-l-size)/var(--md-body-l-lh) var(--md-font-plain); }
+.t-body-m     { font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain); }
+.t-body-s     { font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain); }
+.t-label-l    { font: var(--md-w-medium)  var(--md-label-l-size)/var(--md-label-l-lh) var(--md-font-plain); letter-spacing: var(--md-label-l-track); }
+.t-label-m    { font: var(--md-w-medium)  var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-plain); letter-spacing: var(--md-label-m-track); text-transform: uppercase; }
+.t-label-s    { font: var(--md-w-medium)  var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain); letter-spacing: var(--md-label-s-track); text-transform: uppercase; }
+
+.t-data { font-family: var(--md-font-data); font-variant-numeric: tabular-nums; font-feature-settings: "tnum","ss01"; }
+
+/* On-surface colour helpers (additive — no collision with v1 .muted etc.
+   if any were to be added). */
+.muted   { color: var(--md-on-surface-variant); }
+.faint   { color: var(--md-on-surface-faint); }
+.subtle  { color: var(--md-on-surface-muted); }
+
+/* M3 reduced-motion companion. The v1 @media block above is
+   authoritative for live components; this one reinforces the
+   contract with the M3-shaped declaration. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

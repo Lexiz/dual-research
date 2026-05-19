@@ -1157,3 +1157,39 @@ body.light .tab-group.tabs-solid .tab.is-active,
   text-transform: uppercase;
   padding: 0 4px;
 }
+
+/* =============================================================
+   SPEC-0092 — Material Symbols Outlined sizing helpers (additive).
+   Use as <span class="ms ms-20">check_circle</span>. The base
+   .ms class names the family + the icon-rendering reset; .ms-18 /
+   ms-20 / ms-24 set the three documented dp sizes
+   (18 dp inside chips, 20 dp inside buttons, 24 dp in chrome).
+   No live component reads these yet — subsequent specs migrate.
+   ============================================================= */
+.ms {
+  font-family: "Material Symbols Outlined";
+  font-weight: 400;
+  font-style: normal;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  direction: ltr;
+  font-size: 24px;   /* default */
+}
+.ms-18 { font-size: 18px; }
+.ms-20 { font-size: 20px; }
+.ms-24 { font-size: 24px; }
+
+/* SPEC-0092 — responsive grid utility (additive). Single-column
+   collapse is a no-op here; subsequent specs introduce the
+   @media (max-width: 900px) rule that flips this to one column. */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--md-gap-col);
+}
