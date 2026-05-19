@@ -2032,7 +2032,13 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   color: var(--md-on-surface-faint);
 }
 .tl-phase__name {
-  font: var(--md-w-medium) 13px/1 var(--md-font-plain);
+  /* Spec 0116 — harmonised with .crit-group__title so Timeline phase
+     headers and Critique section headers read at equal visual weight
+     (user request via 2026-05-19 follow-up screenshot). Was 13px/1;
+     now title-medium (16dp / 1.5). The .tl-phase__pcode "P0" prefix
+     and .tl-phase__meta "0m 20s" suffix stay at their quieter 10/11 px
+     sizes — the user specifically called out the NAME text. */
+  font: var(--md-w-medium) var(--md-title-m-size)/1.5 var(--md-font-plain);
   color: var(--md-on-surface);
 }
 .tl-phase__meta {

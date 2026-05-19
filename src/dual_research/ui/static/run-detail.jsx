@@ -4214,8 +4214,10 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
       variant="split"
       footer={scrubber}
     >
-      {/* SPEC-0101: PhaseRail — horizontal 5-cell strip at the top of the modal */}
-      <PhaseRail run={run} />
+      {/* Spec 0116 — PhaseRail callsite removed (Notion issues 8 + 10).
+          The 5-cell phase stepper duplicated context already shown in the
+          run-detail header + the modal's own title/subtitle. The component
+          itself (~`:712-732`) stays defined for future use. */}
       <div className="dr-modal-split">
         {/* Left: prior content + Input sub-tab (spec 0033).
             Spec 0044 D4: ``docTabs`` exposes the per-turn document
@@ -4298,11 +4300,14 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 // per-turn input bundle for THIS agent's turn — exactly what they were
 // handed before generating the right-pane critique.
 function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, run }) {
-  // Spec 0085 — split-view modals start on the Agent Input tab to match
-  // the single-view modal default landed in spec 0074 (and the cross-
-  // modal "Agent Input is always the first tab" rule from the
-  // 2026-05-18 briefing, delta 15.13).
-  const [sub, setSub] = React.useState('input');
+  // Spec 0116 — land on the "Original" sub-tab so the FIRST thing the user
+  // sees inside a turn modal is what this agent was actually responding to:
+  // counterpart's prior turn (Phase 2 r ≥ 2), counterpart's Phase 1 draft
+  // (Phase 2 r1), or the Converged Draft (Phase 4). Resolves Notion issues
+  // 8 + 10. The prior Spec 0085 default ('input' → AgentInputDualPane's
+  // dual-bundle view) was confusing in a per-turn context where input vs
+  // output is the natural mental model. 'input' stays one click away.
+  const [sub, setSub] = React.useState('original');
   // Spec 0044 D4 — when in "Original" sub-mode, track which document
   // the user has selected. Defaults to the first docTabs entry
   // (= the "thing being responded to" per phase). Note: clicking a
@@ -7251,7 +7256,14 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
-      <div style={{ padding: '6px 24px 28px' }}>
+      {/* Spec 0116 — flex column + gap: 8 so card spacing comes from the
+          parent (parallel to the inline-margin removal on .qthread in
+          shared.jsx:1117). "Resolved" GroupHeader's compensating
+          marginTop drops 20 → 12 because the parent gap contributes 8. */}
+      <div style={{
+        padding: '6px 24px 28px',
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
         {open.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={open.length} />}
         {open.map(d => {
           const props = _normalizeToThread({ ...d, _critiqueKind: 'd' }, run, phaseId);
@@ -7259,7 +7271,7 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
         })}
         {resolved.length > 0 && (
           <GroupHeader label="Resolved" color={COLORS.ok} count={resolved.length}
-                       style={{ marginTop: open.length ? 20 : 0 }} />
+                       style={{ marginTop: open.length ? 12 : 0 }} />
         )}
         {resolved.map(d => {
           const props = _normalizeToThread({ ...d, _critiqueKind: 'd' }, run, phaseId);
