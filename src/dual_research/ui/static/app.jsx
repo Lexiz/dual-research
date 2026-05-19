@@ -146,13 +146,14 @@ function App() {
 
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--bg-0)' }}>
+      <a className="skip-link" href="#main">Skip to main content</a>
       <ChromeBar route={route} navigate={navigate}
                  theme={theme}
                  onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                  client={client} session={session} me={me}
                  onOpenHow={openHow} />
 
-      <div style={{ height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
+      <div id="main" style={{ height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
         {route.view === 'detail'        && <DetailScreen runId={route.runId} navigate={navigate} />}
         {route.view === 'list'          && <ListScreen navigate={navigate} />}
         {route.view === 'language'      && <DesignLanguageView />}

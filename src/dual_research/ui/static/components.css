@@ -2559,3 +2559,93 @@ body.light .tour-overlay__mask {
 .callout__progress span.on { background: var(--md-primary); }
 .callout__actions { display: flex; align-items: center; }
 .callout__spacer { flex: 1; }
+
+/* ── Skeleton loader (SPEC-0104) ──────────────────────────── */
+@keyframes md-shimmer {
+  0%   { background-position: -240px 0; }
+  100% { background-position: 240px 0; }
+}
+.skel {
+  border-radius: var(--r-2);
+  background: linear-gradient(90deg, var(--bg-2) 0%, var(--bg-3) 50%, var(--bg-2) 100%);
+  background-size: 480px 100%;
+  animation: md-shimmer 1.4s linear infinite;
+}
+.load-card { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Skip link (SPEC-0104 #a11y) ─────────────────────────── */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--bg-1);
+  color: var(--fg-0);
+  border: 2px solid var(--info);
+  border-radius: var(--r-2);
+  font-size: 13px;
+  font-family: var(--sans);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  width: auto;
+  height: auto;
+  clip: auto;
+  z-index: 9999;
+}
+
+/* ── States gallery (SPEC-0104 — design-language route) ──── */
+.states-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.state-card {
+  padding: 16px;
+  border-radius: var(--r-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+}
+.state-card .name { font-weight: 500; font-size: 14px; margin-bottom: 6px; color: var(--fg-0); }
+.state-card .desc { color: var(--fg-2); font-size: 13px; line-height: 1.45; }
+
+/* ── A11y row (SPEC-0104 — design-language route) ────────── */
+.a11y-row {
+  display: grid; grid-template-columns: 200px 1fr;
+  align-items: center; gap: 24px;
+  padding: 16px 0; border-bottom: 1px solid var(--border-1);
+}
+.a11y-row .name { font-weight: 500; font-size: 14px; color: var(--fg-0); }
+.a11y-row .desc { color: var(--fg-2); }
+
+/* ── Light-mode preview frame (SPEC-0104 — design-language) ── */
+.lm-frame {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.lm-frame__half {
+  border-radius: var(--r-3);
+  overflow: hidden;
+  border: 1px solid var(--border-1);
+  min-height: 320px;
+  padding: 24px;
+}
+.lm-frame__half--dark  { background: var(--bg-0); color: var(--fg-0); }
+.lm-frame__half--light { background: #faf9f6; color: #04060a; }
+
+/* ── Responsive cards (SPEC-0104 — design-language route) ── */
+.resp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.resp-card {
+  padding: 20px;
+  border-radius: var(--r-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+}
+.resp-card .lbl {
+  font-weight: 500; font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--info); margin-bottom: 8px;
+}
+@media (max-width: 1499px) { .resp-grid { grid-template-columns: 1fr; } }

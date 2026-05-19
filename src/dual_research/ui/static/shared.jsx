@@ -1371,17 +1371,15 @@ function CollapsibleSection({ title, count, countColor, defaultOpen = true, pers
 // hydrating).
 
 const _LOADING_DIMS = {
-  inline: { spinner: 14, border: 2,   gap: 8,  fontSize: 11, padding: '4px 0',   dir: 'row'    },
-  panel:  { spinner: 28, border: 2.5, gap: 10, fontSize: 13, padding: '60px 18px', dir: 'column' },
-  page:   { spinner: 44, border: 3,   gap: 14, fontSize: 15, padding: '80px 18px', dir: 'column' },
+  inline: { skelH: 12, skelW: 120, gap: 8,  fontSize: 11, padding: '4px 0',     dir: 'row'    },
+  panel:  { skelH: 16, skelW: 200, gap: 10, fontSize: 13, padding: '60px 18px', dir: 'column' },
+  page:   { skelH: 20, skelW: 280, gap: 14, fontSize: 15, padding: '80px 18px', dir: 'column' },
 };
 
 const _LOADING_DEFAULT_HINT = 'Just a moment, please.';
 
 function LoadingState({ size = 'panel', label, hint, className, style }) {
   const dims = _LOADING_DIMS[size] || _LOADING_DIMS.panel;
-  // Hint defaults to the friendly copy unless caller explicitly opts out
-  // by passing null/false/''.
   const resolvedHint = hint === undefined
     ? (size === 'inline' ? null : _LOADING_DEFAULT_HINT)
     : hint;
@@ -1401,15 +1399,10 @@ function LoadingState({ size = 'panel', label, hint, className, style }) {
         ...style,
       }}
     >
-      <div
-        className="dr-spinner"
-        aria-hidden="true"
-        style={{
-          width: dims.spinner,
-          height: dims.spinner,
-          borderWidth: dims.border,
-        }}
-      />
+      <div className="load-card" aria-hidden="true" style={{ alignItems: 'center' }}>
+        <div className="skel" style={{ width: dims.skelW, height: dims.skelH, borderRadius: 4 }} />
+        {size !== 'inline' && <div className="skel" style={{ width: dims.skelW * 0.6, height: dims.skelH * 0.7, borderRadius: 4 }} />}
+      </div>
       {label && (
         <div style={{
           fontSize: dims.fontSize,

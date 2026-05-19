@@ -241,6 +241,83 @@ function DnaOnePager() {
         </div>
       </DnaSection>
 
+      {/* States gallery — SPEC-0104 */}
+      <DnaSection title="States">
+        <div className="states-grid">
+          {[
+            ['running',    'Active processing',      'The run is actively streaming tokens between agents.'],
+            ['converged',  'Agreement reached',       'Both agents converged on a shared position.'],
+            ['drift',      'Position drift detected', 'Agents drifted apart after initial agreement.'],
+            ['errored',    'Error halted the run',    'An unrecoverable error stopped processing.'],
+            ['idle',       'Waiting',                 'The run is idle, not currently processing.'],
+            ['queued',     'In queue',                'The run is queued and waiting to start.'],
+          ].map(([status, name, desc]) => (
+            <div key={status} className="state-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <StatusBadge status={status} />
+              </div>
+              <div className="name">{name}</div>
+              <div className="desc">{desc}</div>
+            </div>
+          ))}
+        </div>
+      </DnaSection>
+
+      {/* A11y — SPEC-0104 */}
+      <DnaSection title="Accessibility">
+        <div>
+          {[
+            ['Focus ring',        '3px tertiary ring with 2px offset on :focus-visible. Every interactive primitive.'],
+            ['Hit area',          'Every touch target is at least 48 x 48 dp (visual size 40 dp + 4 dp hidden padding ring on icon buttons).'],
+            ['Contrast',          'All on-surface text hits WCAG AA at body sizes and AAA at headline+ sizes in both themes.'],
+            ['Reduced motion',    'Global prefers-reduced-motion: reduce rule kills every animation and transition. Shimmer, caret pulse, state-layer overlay, hover-elevation, chevron rotation, tour spotlight — all frozen.'],
+            ['Semantic landmarks', '<header>, <aside aria-label>, <main>, <section id> present in the app shell. Skip link jumps to #main as the first tab stop.'],
+          ].map(([name, desc], i) => (
+            <div key={i} className="a11y-row">
+              <div className="name">{name}</div>
+              <div className="desc">{desc}</div>
+            </div>
+          ))}
+        </div>
+      </DnaSection>
+
+      {/* Responsive — SPEC-0104 */}
+      <DnaSection title="Responsive">
+        <div className="resp-grid">
+          {[
+            ['Full', '\u2265 1500 px', [
+              'Full rail + three-column layout',
+              'Consumption cards in paired grid',
+              'Timeline and critique side by side',
+            ]],
+            ['Compact', '< 1500 px', [
+              'Compact rail (icons only)',
+              'Denser grid, two-column layout',
+              'Consumption cards stack vertically within phase groups',
+            ]],
+            ['Single column', '< 900 px', [
+              'Rail collapses to bottom nav or hamburger',
+              'Single column, full-width cards',
+              'Tab groups stack or scroll horizontally',
+            ]],
+            ['Rules of thumb', 'All breakpoints', [
+              'Never hide data — reflow, never remove',
+              'Touch targets stay at 48 dp minimum',
+              'Font sizes don\'t change across breakpoints',
+              'Padding scales down by one step per bucket',
+            ]],
+          ].map(([title, bp, rules], i) => (
+            <div key={i} className="resp-card">
+              <div className="lbl">{bp}</div>
+              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 500, color: 'var(--fg-0)' }}>{title}</h4>
+              <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--fg-2)', fontSize: 13, lineHeight: 1.6 }}>
+                {rules.map((r, j) => <li key={j}>{r}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </DnaSection>
+
       {/* Construction */}
       <DnaSection title="Construction">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
