@@ -3,10 +3,10 @@ spec: 0112
 title: Agent strip — stop wrapping the model id and activity label when the box is tight
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.76.14
 created: 2026-05-19
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/120"
 ---
 
 # Spec 0112 — Agent strip text overflow
