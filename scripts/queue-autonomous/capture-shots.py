@@ -110,8 +110,21 @@ def main() -> int:
         ctx = browser.new_context(viewport={"width": 1400, "height": 900},
                                   device_scale_factor=1)
         page = ctx.new_page()
-        # Bootstrap localStorage on the origin
+        # Bootstrap localStorage on the origin so we can write the onboarding-
+        # dismissed flags BEFORE any route navigation. Spec 0103 introduced
+        # the onboarding modal; if we don't dismiss it the verify shots are
+        # all dominated by the modal and the actual spec deliverable is hidden
+        # behind it. That false-pass trap is what bit the 0093 → 0104 arc.
         page.goto(base + "/", wait_until="networkidle")
+        page.evaluate("""
+            () => {
+              try {
+                localStorage.setItem('dr.onboarding.dismissed', '1');
+                localStorage.setItem('dr.onboarding.completed', '1');
+                localStorage.setItem('dr.onboarding.seen', JSON.stringify({ v: 1, completed: true, step: 99 }));
+              } catch(_) {}
+            }
+        """)
 
         for row in plan:
             idx = int(row["index"])
