@@ -1945,11 +1945,16 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .tl__rail .seg.is-done    .lbl { color: var(--md-on-surface); }
 
 /* Phase list container */
-.tl__phases { display: flex; flex-direction: column; gap: 0; }
+.tl__phases { display: flex; flex-direction: column; gap: var(--md-sp-2); }
 
-/* Phase section — collapsible */
-.tl-phase { border-top: 1px solid var(--md-outline-hair); }
-.tl-phase:first-child { border-top: 0; }
+/* SPEC-0107 — Phase sections render as M3 cards on the timeline body
+   so the timeline reads as a stack of cards, not a flat text list. */
+.tl-phase {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  overflow: hidden;
+}
 .tl-phase__hd {
   display: grid; grid-template-columns: 20px auto 1fr auto;
   gap: 10px; align-items: center;

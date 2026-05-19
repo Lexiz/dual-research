@@ -262,7 +262,7 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
     }}>
       <PhaseDots run={run} />
       <span className="mono" style={{
-        fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.03em',
+        fontSize: 9.5, color: 'var(--md-on-surface-faint)', letterSpacing: '0.03em',
       }}>
         preflight · drafts · negotiate · drafting · review
       </span>
@@ -270,15 +270,15 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
       {run.drafter && <DrafterCalloutPill drafter={run.drafter} />}
       <span style={{ flex: 1 }} />
       <span className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-3)',
+        fontSize: 10.5, color: 'var(--md-on-surface-faint)',
         whiteSpace: 'nowrap',
       }}>
-        started <span style={{ color: 'var(--fg-1)' }}>{startedClock}</span>
-        &nbsp;·&nbsp;<span style={{ color: 'var(--fg-1)' }}>{elapsedLabel}</span> elapsed
+        started <span style={{ color: 'var(--md-on-surface-variant)' }}>{startedClock}</span>
+        &nbsp;·&nbsp;<span style={{ color: 'var(--md-on-surface-variant)' }}>{elapsedLabel}</span> elapsed
         {run.status === 'running' && (run.phase === 2 || run.phase === 4) && run.round && (
-          <>&nbsp;·&nbsp;round <span style={{ color: 'var(--fg-1)' }}>
+          <>&nbsp;·&nbsp;round <span style={{ color: 'var(--md-on-surface-variant)' }}>
             {run.round.current}/{run.round.soft}
-          </span><span style={{ color: 'var(--fg-3)' }}>&nbsp;(hard {run.round.hard})</span></>
+          </span><span style={{ color: 'var(--md-on-surface-faint)' }}>&nbsp;(hard {run.round.hard})</span></>
         )}
       </span>
     </div>
@@ -375,7 +375,7 @@ function Topic({ text }) {
   return (
     <div title={text}
          style={{
-           color: 'var(--fg-0)', fontSize: 14, lineHeight: 1.35, fontWeight: 500,
+           color: 'var(--md-on-surface)', fontSize: 14, lineHeight: 1.35, fontWeight: 500,
            flex: 1, minWidth: 0,
            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
          }}>
@@ -455,10 +455,10 @@ function ReconcileChip({ run, localCost }) {
             title={error
               ? `Reconciliation endpoint unreachable: ${error}`
               : "No reconciliation snapshot for this date. Run `dual-research reconcile-costs --run <id>` to verify."}>
-        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span style={{ color: 'var(--md-on-surface-muted)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
-        <span style={{ color: 'var(--fg-3)' }}>unverified</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>unverified</span>
       </Chip>
     );
   }
@@ -503,7 +503,7 @@ function ReconcileChip({ run, localCost }) {
     body = (
       <>
         <span>verified</span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
         <span className="num">{fmt.cost(cost)}</span>
       </>
     );
@@ -514,8 +514,8 @@ function ReconcileChip({ run, localCost }) {
         <span className="num">
           {totalDelta >= 0 ? '+' : ''}{fmt.cost(totalDelta)}
         </span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
-        <span style={{ color: 'var(--fg-3)' }}>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>
           billed <span className="num">{fmt.cost(totalProvider)}</span>
         </span>
       </>
@@ -523,9 +523,9 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'partial') {
     body = (
       <>
-        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span style={{ color: 'var(--md-on-surface-muted)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
         {providersChecked.map((prov) => (
           <span key={prov} style={{ color: COLORS.ok, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
             <Mdi name="check" size={10} /> {prov}
@@ -541,19 +541,19 @@ function ReconcileChip({ run, localCost }) {
   } else if (status === 'awaiting_provider_data') {
     body = (
       <>
-        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span style={{ color: 'var(--md-on-surface-muted)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
-        <span style={{ color: 'var(--fg-3)' }}>awaiting provider data</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>awaiting provider data</span>
       </>
     );
   } else {
     body = (
       <>
-        <span style={{ color: 'var(--fg-2)' }}>local</span>
+        <span style={{ color: 'var(--md-on-surface-muted)' }}>local</span>
         <span className="num">{fmt.cost(cost)}</span>
-        <span style={{ color: 'var(--fg-3)' }}>·</span>
-        <span style={{ color: 'var(--fg-3)' }}>unverified</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-faint)' }}>unverified</span>
       </>
     );
   }
@@ -590,13 +590,13 @@ function CostBadge({ cost, tokens, searchCost }) {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '3px 9px', borderRadius: 999,
-            background: 'var(--bg-2)', border: '1px solid var(--border-1)',
-            fontSize: 11, color: 'var(--fg-1)', flexShrink: 0,
+            background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)',
+            fontSize: 11, color: 'var(--md-on-surface-variant)', flexShrink: 0,
             whiteSpace: 'nowrap',
           }}>
       <span className="num">{fmt.cost(cost)}</span>
-      <span style={{ color: 'var(--fg-3)' }}>·</span>
-      <span className="num" style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokens)}t</span>
+      <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
+      <span className="num" style={{ color: 'var(--md-on-surface-muted)' }}>{fmt.tokens(tokens)}t</span>
     </span>
   );
 }
@@ -615,8 +615,8 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
     <span style={{
       display: 'inline-flex', alignItems: 'stretch',
       borderRadius: 999, overflow: 'hidden',
-      border: '1px solid var(--border-1)',
-      background: 'var(--bg-2)',
+      border: '1px solid var(--md-outline-hair)',
+      background: 'var(--md-surface-container-high)',
       flexShrink: 0,
       fontFamily: 'var(--mono)',
       // SPEC-0087 § A — align the run-detail status pill's vertical
@@ -629,7 +629,7 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '0 10px',
-        fontSize: 11, color: 'var(--fg-1)', letterSpacing: '0.01em',
+        fontSize: 11, color: 'var(--md-on-surface-variant)', letterSpacing: '0.01em',
       }}>
         <Dot color={m.color} pulse={m.pulse} size={6} />
         {m.label}
@@ -644,7 +644,7 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
             display: 'inline-flex', alignItems: 'center', gap: 5,
             padding: '0 10px',
             background: showErrors ? COLORS.err + '20' : 'transparent',
-            border: 'none', borderLeft: '1px solid var(--border-1)',
+            border: 'none', borderLeft: '1px solid var(--md-outline-hair)',
             color: COLORS.err, fontSize: 11, cursor: 'pointer',
             fontFamily: 'inherit',
           }}
@@ -654,7 +654,7 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
           <span className="num">{errorCount}</span>
           <span style={{ color: COLORS.err, opacity: 0.85 }}>error{errorCount === 1 ? '' : 's'}</span>
           {showErrors && (
-            <span style={{ marginLeft: 4, transform: 'rotate(180deg)', display: 'inline-block', color: 'var(--fg-1)' }}>
+            <span style={{ marginLeft: 4, transform: 'rotate(180deg)', display: 'inline-block', color: 'var(--md-on-surface-variant)' }}>
               <Icon.Arrow />
             </span>
           )}
