@@ -22,6 +22,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dual_research.contract.artifacts import display_name
 from dual_research.contract.evidence import validate_evidence
 from dual_research.contract.lifecycle import is_terminal
 from dual_research.contract.validator import validate_turn
@@ -202,6 +203,21 @@ def validate_session(session_dir: Path) -> ValidationReport:
     return report
 
 
+_LOCATION_RE = re.compile(r"^phase(?P<phase>\d+)-r(?P<round>\d+)-(?P<agent>[a-z]+)$")
+
+
+def _location_artifact_id(location: str) -> str | None:
+    """Map a phase-round-agent location tag to its canonical artifact ID.
+
+    ``phase2-r3-claude`` → ``phase2.claude.r3``. Returns ``None`` for
+    non-canonical locations (``cross-phase``, ``session``, …).
+    """
+    m = _LOCATION_RE.match(location)
+    if not m:
+        return None
+    return f"phase{m.group('phase')}.{m.group('agent')}.r{m.group('round')}"
+
+
 def _render_report(report: ValidationReport) -> str:
     lines: list[str] = []
     lines.append(f"Deep Research Run Audit — {report.session_dir}")
@@ -220,7 +236,15 @@ def _render_report(report: ValidationReport) -> str:
     for f in report.findings:
         grouped.setdefault(f.location, []).append(f)
     for loc in sorted(grouped.keys()):
-        lines.append(f"== {loc} ==")
+        # Spec 0117 §6 — print the registry display name alongside the
+        # canonical location tag so human readers can scan the report
+        # without translating phase{N}-r{M}-{agent} in their head.
+        artifact_id = _location_artifact_id(loc)
+        if artifact_id is not None:
+            header = f"== {display_name(artifact_id)}  ·  {loc} =="
+        else:
+            header = f"== {loc} =="
+        lines.append(header)
         for f in grouped[loc]:
             mark = "✗ ERROR  " if f.severity == "error" else "⚠ WARN   "
             lines.append(f"  {mark}[{f.code}] {f.message}")

@@ -971,12 +971,18 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
                       : isRepair ? 'drift'
                       : 'resolved';
 
+  // Spec 0117 §6 — hover tooltip shows the full registry display name
+  // even though the visible chip uses the short activity label.
+  const fullDisplayName = displayNameForItem(item, null);
+
   return (
     <article
       className={_cn('qthread', 'tl-thread', `is-${cardStatusCss}`, isOpen && 'is-open-expanded')}
       onClick={onToggle}
       tabIndex={0}
       role="button"
+      title={fullDisplayName || undefined}
+      aria-label={fullDisplayName || undefined}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
     >
       <header className="qt-head">
@@ -3963,6 +3969,34 @@ function hasWebSearchData(summary, turnKey) {
 // ─────────────────── Modal dispatch ───────────────────
 // Spec 0025 owns title + accent + body shape per artifact kind.
 // Spec 0027 layers the side-by-side review modal on top of phase 2 turn cards.
+// Spec 0117: map a UI ``item`` to its canonical artifact ID so every
+// modal header can resolve through the registry's display_name().
+function artifactIdFromItem(item) {
+  if (!item) return null;
+  const agent = item.agent === 'gpt' ? 'openai' : item.agent;
+  const round = item.round || 1;
+  if (item.kind === 'input') return 'user_prompt';
+  if (item.kind === 'preflight' && agent) return `phase0.${agent}.r${round}`;
+  if ((item.kind === 'plan' || item.kind === 'plan-live') && agent) return `phase1.${agent}`;
+  if (item.kind === 'doc' || item.kind === 'doc-live') {
+    return item.completed ? 'final.document' : 'current_draft';
+  }
+  if (item.kind === 'turn' || item.kind === 'turn-live') {
+    if (item.statsPhase === 0 && agent) return `phase0.${agent}.r${round}`;
+    if (item.statsPhase === 2 && agent) return `phase2.${agent}.r${round}`;
+    if (item.statsPhase === 4 && agent) return `phase4.${agent}.r${round}`;
+  }
+  return null;
+}
+
+function displayNameForItem(item, fallback) {
+  const id = artifactIdFromItem(item);
+  if (id && typeof window !== 'undefined' && window.DrArtifacts) {
+    return window.DrArtifacts.displayName(id);
+  }
+  return fallback;
+}
+
 function ArtifactModal({ item, run, onClose }) {
   const meta = item.agent ? AGENT_META[item.agent] : null;
   const accent = meta?.color || COLORS.info;
@@ -3986,16 +4020,19 @@ function ArtifactModal({ item, run, onClose }) {
 }
 
 function DocumentModal({ item, meta, onClose, accent }) {
-  let title = 'Document';
+  // Spec 0117 §5 single-mode header rule: display_name + producer
+  // suffix when the artifact has one.
+  let title = displayNameForItem(item, 'Document');
   let subtitle = null;
   if (item.kind === 'doc') {
-    title = item.completed ? 'Final document' : 'Converged document';
-    subtitle = meta ? `by ${meta.name}` : null;
+    if (item.completed) {
+      subtitle = meta ? `by ${meta.name}` : null;
+    } else if (meta) {
+      title = `${title} · drafted by ${meta.name}`;
+    }
   } else if (item.kind === 'plan' || item.kind === 'plan-live') {
-    title = `${meta?.name || 'Agent'} — plan draft`;
+    // display_name already encodes the agent ("Claude's research plan").
   } else if (item.kind === 'turn' || item.kind === 'turn-live') {
-    const lbl = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
-    title = `${meta?.name || 'Agent'} — ${lbl}`;
     subtitle = `round ${item.round}`;
   }
   // Spec 0033: every output modal gains an Input tab. The bundle key
@@ -4170,11 +4207,15 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [items, jumpToItem, activeIdx]);
 
+  // Spec 0117 §5 — header resolves through the registry; the round
+  // number is already encoded in the display name (e.g. "Negotiation
+  // turn · Claude · round 3"). Subtitle keeps the reviewing-context
+  // clue for readers.
   const turnLabel = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
-  const title = `${meta?.name || 'Agent'} — ${turnLabel}`;
+  const title = displayNameForItem(item, `${meta?.name || 'Agent'} — ${turnLabel}`);
   const subtitle = item.statsPhase === 4
-    ? `round ${item.round} · reviewing the converged document`
-    : `round ${item.round} · reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+    ? `reviewing the converged document`
+    : `reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
   const agentSlot = item.agent === 'claude' ? 'a' : 'b';
 
   // SPEC-0058 SUR-12: RoundScrubber — find available rounds for this agent+phase.
@@ -4499,7 +4540,8 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
     }
   }, [sub]);
 
-  const title = `${meta?.name || 'Agent'} — Phase 1 draft`;
+  // Spec 0117 §5 — header resolves to e.g. "Claude's research plan".
+  const title = displayNameForItem(item, `${meta?.name || 'Agent'} — Phase 1 draft`);
   const subtitle = 'side-by-side with the brief';
   const agentSlot = item.agent === 'claude' ? 'a' : item.agent === 'gpt' ? 'b' : null;
 
@@ -5653,7 +5695,7 @@ function InputBriefModal({ item, run, onClose, accent }) {
     <Modal
       open={true}
       onClose={onClose}
-      title="Input — brief"
+      title={displayNameForItem(item, 'Input — brief')}
       subtitle={item.topic || ''}
       tabs={tabs}
     />
@@ -5684,7 +5726,7 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
     <Modal
       open={true}
       onClose={onClose}
-      title={`${meta?.name || 'Agent'} — brief critique`}
+      title={displayNameForItem(item, `${meta?.name || 'Agent'} — brief critique`)}
       subtitle={item.topic || ''}
       agent={agentSlot}
       tabs={tabs}
