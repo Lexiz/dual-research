@@ -1159,6 +1159,226 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 
 /* =============================================================
+   SPEC-0093 — M3 Atoms (buttons, chips, status pills, switch,
+   segmented buttons, FAB, icon-btn, tonal chips)
+   Mirrors v2-m3.css:299-494 verbatim. Additive — v1 classes above
+   remain for call sites not yet migrated.
+   ============================================================= */
+
+/* ── M3 Buttons ─────────────────────────────────────────── */
+.md-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 24px;
+  border: 0; background: transparent; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-l-track);
+  color: var(--md-on-surface);
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard),
+              background var(--md-dur-short-3) var(--md-easing-standard);
+  text-decoration: none;
+}
+.md-btn::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+  pointer-events: none;
+}
+.md-btn:hover::before    { opacity: var(--md-state-hover); }
+.md-btn:focus-visible::before { opacity: var(--md-state-focus); }
+.md-btn:active::before   { opacity: var(--md-state-pressed); }
+
+.md-btn--filled   { background: var(--md-primary); color: var(--md-on-primary); }
+.md-btn--filled:hover { box-shadow: var(--md-elev-1); }
+
+.md-btn--tonal    { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.md-btn--tonal:hover { box-shadow: var(--md-elev-1); }
+
+.md-btn--outlined { background: transparent; color: var(--md-primary); box-shadow: inset 0 0 0 1px var(--md-outline); }
+.md-btn--outlined:hover { box-shadow: inset 0 0 0 1px var(--md-primary); }
+
+.md-btn--text     { background: transparent; color: var(--md-primary); padding: 0 12px; }
+
+.md-btn--elevated { background: var(--md-surface-1); color: var(--md-primary); box-shadow: var(--md-elev-1); }
+.md-btn--elevated:hover { box-shadow: var(--md-elev-2); }
+
+.md-btn[disabled], .md-btn--disabled {
+  pointer-events: none; opacity: .38; color: var(--md-on-surface);
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+}
+
+.md-btn--sm { height: 32px; padding: 0 16px; font-size: var(--md-label-m-size); }
+.md-btn--lg { height: 48px; padding: 0 28px; }
+
+/* ── M3 Icon button ─────────────────────────────────────── */
+.md-icon-btn {
+  width: 40px; height: 40px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--md-shape-full);
+  background: transparent; color: var(--md-on-surface-variant);
+  border: 0; cursor: pointer; position: relative;
+}
+.md-icon-btn::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-icon-btn:hover::before { opacity: var(--md-state-hover); }
+.md-icon-btn:active::before { opacity: var(--md-state-pressed); }
+
+/* ── M3 FAB ─────────────────────────────────────────────── */
+.md-fab {
+  width: 56px; height: 56px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--md-shape-lg); border: 0;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  box-shadow: var(--md-elev-3);
+  cursor: pointer; position: relative;
+}
+.md-fab--ext {
+  width: auto; padding: 0 20px 0 16px; height: 56px;
+  gap: 12px; font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+}
+
+/* ── M3 Chips ───────────────────────────────────────────── */
+.md-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 16px;
+  border-radius: var(--md-shape-sm);
+  background: transparent; color: var(--md-on-surface);
+  box-shadow: inset 0 0 0 1px var(--md-outline);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-l-track);
+  position: relative; cursor: default; white-space: nowrap;
+}
+.md-chip::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-chip:hover::before { opacity: var(--md-state-hover); }
+.md-chip--selected {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  box-shadow: none;
+}
+.md-chip--filter-a {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  box-shadow: none;
+}
+.md-chip--sm { height: 24px; padding: 0 10px; font-size: 11px; }
+
+/* ── M3 Status pills (canonical OK — Issue 4) ──────────── */
+.md-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 10px;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain);
+  letter-spacing: 0.4px; text-transform: uppercase;
+}
+.md-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.md-status--running   { color: var(--p-info);  background: color-mix(in srgb, var(--p-info) 16%, transparent); }
+.md-status--converged { color: var(--p-ok);    background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
+.md-status--drift     { color: var(--p-warn);  background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
+.md-status--errored   { color: var(--p-err);   background: color-mix(in srgb, var(--p-err) 16%, transparent); }
+.md-status--idle      { color: var(--p-idle);  background: color-mix(in srgb, var(--p-idle) 24%, transparent); }
+.md-status--queued    { color: var(--md-on-surface-faint); background: var(--md-surface-container-high); }
+
+/* ── M3 Segmented buttons ───────────────────────────────── */
+.md-seg {
+  display: inline-flex; align-items: center;
+  border-radius: var(--md-shape-full);
+  box-shadow: inset 0 0 0 1px var(--md-outline);
+  overflow: hidden;
+}
+.md-seg__opt {
+  height: 40px; padding: 0 20px;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--md-on-surface);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-l-track);
+  position: relative;
+}
+.md-seg__opt + .md-seg__opt { box-shadow: inset 1px 0 0 var(--md-outline); }
+.md-seg__opt::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-seg__opt:hover::before { opacity: var(--md-state-hover); }
+.md-seg__opt[aria-selected="true"] {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* ── M3 Switch ──────────────────────────────────────────── */
+.md-switch {
+  width: 52px; height: 32px; border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-highest);
+  box-shadow: inset 0 0 0 2px var(--md-outline);
+  position: relative; cursor: pointer; transition: background var(--md-dur-short-3);
+  border: 0; padding: 0;
+}
+.md-switch::after {
+  content: ""; position: absolute; top: 50%; left: 8px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--md-outline);
+  transform: translateY(-50%);
+  transition: all var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.md-switch[aria-checked="true"] {
+  background: var(--md-primary); box-shadow: none;
+}
+.md-switch[aria-checked="true"]::after {
+  left: 28px; width: 24px; height: 24px; background: var(--md-on-primary);
+}
+
+/* ── Tonal chips (v2-m3-page.css anatomy — M3 tokens) ──── */
+/* These cascade over the v1 .chip.tone-* rules above, adding
+   the M3 pastel-pill anatomy with leading dot and no border. */
+.chip.tone-ok    { background: color-mix(in srgb, var(--p-ok)    18%, transparent); color: var(--p-ok);   border: 0; }
+.chip.tone-info  { background: color-mix(in srgb, var(--p-info)  18%, transparent); color: var(--p-info); border: 0; }
+.chip.tone-info-strong { background: color-mix(in srgb, var(--p-info) 28%, transparent); color: var(--p-info); border: 0; }
+.chip.tone-warn  { background: color-mix(in srgb, var(--p-warn)  18%, transparent); color: var(--p-warn); border: 0; }
+.chip.tone-err   { background: color-mix(in srgb, var(--p-err)   18%, transparent); color: var(--p-err);  border: 0; }
+.chip.tone-idle  { background: color-mix(in srgb, var(--p-idle)  28%, transparent); color: var(--md-on-surface-variant); border: 0; }
+.chip.tone-a     { background: var(--md-primary-container);   color: var(--md-on-primary-container); border: 0; }
+.chip.tone-b     { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border: 0; }
+.chip.tone-neutral { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 0; }
+/* Dot pseudo-element for tonal chips — scoped to tone-* to avoid
+   regressing non-tonal chips that don't expect a leading dot. */
+.chip[class*="tone-"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.chip.no-dot::before { display: none; }
+
+/* ── Focus ring for all M3 focusable atoms ──────────────── */
+.md-btn:focus-visible,
+.md-icon-btn:focus-visible,
+.md-fab:focus-visible,
+.md-chip:focus-visible,
+.md-switch:focus-visible,
+.md-seg__opt:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .md-btn::before,
+  .md-icon-btn::before,
+  .md-chip::before,
+  .md-seg__opt::before,
+  .md-switch::after {
+    transition: none;
+  }
+  .md-btn, .md-switch {
+    transition: none;
+  }
+}
+
+/* =============================================================
    SPEC-0092 — Material Symbols Outlined sizing helpers (additive).
    Use as <span class="ms ms-20">check_circle</span>. The base
    .ms class names the family + the icon-rendering reset; .ms-18 /

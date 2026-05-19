@@ -3568,7 +3568,7 @@ function StatusInline({ label }) {
 // agent cards in Phase 0 now show identical "ok" chips.
 function PreflightChip({ stats }) {
   if (!stats) return null;
-  if (stats.state === 'ok') return <SB tone="ok" size="sm">ok</SB>;
+  if (stats.state === 'ok') return <StatusBadge status="converged" label="ok" />;
   if (stats.state === 'issues') {
     return (
       <span className="mono" style={{

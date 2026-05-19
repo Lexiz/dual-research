@@ -414,12 +414,12 @@ function TweakRadio({ label, value, options, onChange }) {
   return (
     <TweakRow label={label}>
       <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
-           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
-        <div className="twk-seg-thumb"
-             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
-                      width: `calc((100% - 4px) / ${n})` }} />
+           className={'md-seg' + (dragging ? ' dragging' : '')}
+           style={{ width: '100%' }}>
         {opts.map((o) => (
-          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+          <button key={o.value} type="button" className="md-seg__opt"
+                  role="radio" aria-selected={o.value === value ? 'true' : 'false'}
+                  style={{ flex: 1, minHeight: 28, height: 28, padding: '0 6px', fontSize: '11.5px' }}>
             {o.label}
           </button>
         ))}

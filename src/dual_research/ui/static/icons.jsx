@@ -111,4 +111,17 @@ window.Mdi = function Mdi({ name, size = 16, color, stroke = false, className = 
   );
 };
 
+// SPEC-0093 — MaterialSymbol primitive. Renders a Material Symbols Outlined
+// glyph at the requested size. Uses the .ms sizing helpers from SPEC-0092.
+// Subsequent specs use MaterialSymbol for any new icon; existing Mdi callers
+// continue to render until refactored individually.
+window.MaterialSymbol = function MaterialSymbol({ name, size = 20, className = '', style = {} }) {
+  const sizeClass = size <= 18 ? 'ms-18' : size <= 20 ? 'ms-20' : 'ms-24';
+  return React.createElement('span', {
+    className: `ms ${sizeClass} ${className}`.trim(),
+    'aria-hidden': true,
+    style,
+  }, name);
+};
+
 window.ICONS = ICONS;
