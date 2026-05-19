@@ -149,6 +149,7 @@ def load_run_snapshot(session_dir: Path) -> Run:
     )
 
     run.phase_stats = build_phase_stats(session_dir)
+    _attach_item_aggregation(run, session_dir / "transcript.jsonl")
 
     # Summary cards (spec 0025): heuristic TL;DR of brief.md + extracted
     # `## Summary` sections from every completed turn file.
@@ -1598,3 +1599,42 @@ def _compute_ledger_drifts(run: Run) -> list[dict]:
             "severity": "warn" if ledger_open > agent_total else "info",
         })
     return drifts
+
+
+# ─── Spec 0115 — per-category Item aggregation ────────────────────────
+
+
+def _attach_item_aggregation(run, transcript_path) -> None:
+    """Populate the new per-category Item fields on PhaseStats by walking
+    the new ``item_raised`` / ``item_transitioned`` event stream.
+
+    Pre-spec-0114 runs produce no such events; the new fields stay empty
+    and the legacy UI path uses the scalar fields on ``TurnStats``.
+    """
+    from dual_research.ui.items import aggregate_items_from_transcript
+    from dual_research.ui.models import TurnStats
+
+    bundle = aggregate_items_from_transcript(transcript_path)
+    run.phase_stats.items = list(bundle.items)
+    if 0 in bundle.phase_category_stats:
+        run.phase_stats.phase_summary_0 = bundle.phase_category_stats[0]
+    if 2 in bundle.phase_category_stats:
+        run.phase_stats.phase_summary_2 = bundle.phase_category_stats[2]
+    if 4 in bundle.phase_category_stats:
+        run.phase_stats.phase_summary_4 = bundle.phase_category_stats[4]
+
+    for phase, by_round in bundle.turn_category_stats.items():
+        for round_no, by_agent in by_round.items():
+            for agent, cat_stats in by_agent.items():
+                ui_agent = "gpt" if agent == "openai" else agent
+                if phase == 2:
+                    slot = run.phase_stats.phase2.setdefault(round_no, {})
+                elif phase == 4:
+                    slot = run.phase_stats.phase4.setdefault(round_no, {})
+                elif phase == 0:
+                    slot = run.phase_stats.phase0
+                else:
+                    continue
+                existing = slot.get(ui_agent) or TurnStats()
+                existing.categories = cat_stats
+                slot[ui_agent] = existing

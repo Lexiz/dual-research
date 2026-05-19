@@ -38,38 +38,63 @@ The most visible new concept the UI must accommodate is **sources** — every re
 
 ### 1. Timeline cards — new badge model
 
-Each timeline card represents one agent's turn (or input/draft for one-shot phases). The badge row layout follows the spec we established in earlier audit conversation:
+Each timeline card represents one agent's turn (or input/draft for one-shot phases). The badge row layout:
 
 **Left cluster** (aligned to card content edge, in order):
 - Provider badge: `Claude` or `GPT`
 - Activity / round badge: `preflight`, `draft plan`, `turn 1`, `turn 2`, … (single canonical label per round; no duplicated `R1` chip)
-- Counter badges: per-category, this round's activity — `+3 questions`, `−2 disagreements resolved`, etc.
+- **Per-category summary chips** (see below)
+- Closeout / cap modifier chips (when applicable): `⟳ closeout`, `via hard cap`, `via ghost cap`
 
 **Right cluster** (right-aligned to card edge):
 - Status badge: `Done`, `In progress`, `Capped`
 
-Per-category counter badge logic, per card:
+Per-card chip layout, by card type:
 
-| card type | counter badges shown |
+| card type | per-category chips |
 |---|---|
 | phase 0 input card | `AgentInput` (single chip, no provider, no counters) |
-| phase 0 preflight (per agent) | provider · `preflight` · raised/addressed/resolved/acknowledged/withdrawn counts for Q+D · status |
-| phase 1 plan (per agent) | provider · `draft plan` · status (no counters — phase 1 raises nothing) |
-| phase 2 round (per agent) | provider · `turn N` · raised/addressed/resolved/acknowledged/withdrawn counts for Q+D · status |
-| phase 3 draft | drafter-provider · `draft` · status (no counters) |
-| phase 4 round (per agent) | provider · `turn N` · raised/addressed/resolved/acknowledged/withdrawn counts for Q+D+I+C · status |
+| phase 0 round (per agent) | provider · `turn N` · one chip each for **Questions** and **Disagreements** |
+| phase 1 plan (per agent) | provider · `draft plan` · status (no per-category chips — phase 1 raises nothing) |
+| phase 2 round (per agent) | provider · `turn N` · one chip each for **Questions** and **Disagreements** |
+| phase 3 draft | drafter-provider · `draft` · status (no per-category chips — phase 3 raises nothing) |
+| phase 4 round (per agent) | provider · `turn N` · one chip each for **Questions**, **Disagreements**, **Issues**, **Comments** |
 
-**Counter badge format** — each non-zero category produces one badge per non-zero count type (raised, addressed, resolved, acknowledged, withdrawn). Examples:
+#### Per-category summary chip — uniform across the timeline
 
-- `+3 Q` raised — Claude raised 3 new questions this round
-- `−2 D` resolved — Claude resolved 2 disagreements (i.e. ratified the other agent's responses) this round
-- `±1 D` acknowledged — Claude and GPT mutually acknowledged 1 disagreement this round
-- `−1 Q` withdrawn — Claude withdrew 1 of their open questions
-- `⊘1 I` capped — 1 issue was orchestrator-capped (hard cap or ghost cap)
+For every interaction-phase round, the card shows **one chip per category allowed in that phase**, in a fixed left-to-right order: Questions → Disagreements → (Issues → Comments only in phase 4). The chip is always present, even when zero, so the columns align visually across rounds and the reader can read down a column to see how a category evolved.
 
-Zero-count categories produce no badge (no clutter).
+Each chip carries three numbers, in this order:
 
-**Hover detail** — hovering any counter badge shows a popover listing the item IDs that contributed, with one-line snippets and click-through to the critique card for that item.
+- **standing** — total non-terminal items of this category that this agent raised, *as of the end of this round*. (Sum of `open` + `addressed` items.)
+- **raised** — items of this category this agent raised *during this round*.
+- **closed** — items of this category this agent raised that transitioned to a terminal state (`resolved` / `acknowledged` / `withdrawn` / `capped`) *during this round*. A counter-argument (`addressed` → `open`) does NOT count as closed.
+
+**Canonical chip text**: full category word (plural), then the three numbers in a clear inline summary. Examples:
+
+- `Questions  4 standing · 2 raised · 1 closed`
+- `Disagreements  0 standing · 0 raised · 0 closed`
+- `Issues  3 standing · 0 raised · 2 closed`
+- `Comments  1 standing · 1 raised · 0 closed`
+
+**Reading the chip**: "Questions — 4 are still in flight; this round added 2 and closed 1." Numbers update monotonically along the column (standing of round N = standing of N−1 + raised − closed) so the timeline tells a coherent story by category.
+
+**Forbidden**: never use bare letter abbreviations like `Q`, `D`, `I`, `C`, `T`, or compound shorthand like `QCR1`. Always the full word (plural). Never merge categories into a single chip — every allowed category gets its own chip even when all three numbers are zero.
+
+**Visual style**: the standing number is the primary value (largest type weight); raised / closed are secondary, separated by middle-dot. When `raised + closed == 0` the chip dims slightly to indicate "no activity this round" while still showing the standing total — this preserves the column alignment without drawing the eye.
+
+#### Per-card detail popover
+
+Clicking a per-category chip opens a popover listing the item IDs that contributed to each of the three numbers (standing / raised / closed), with one-line snippets and click-through to the critique card for that item. The popover groups the three lists under sub-headings; closed items are further broken down by terminal state (resolved / acknowledged / withdrawn / capped) since that distinction matters for the reader.
+
+#### Phase-level summary on the phase header
+
+The header row above each phase's set of turn cards (e.g. "Phase 2 — Negotiate plan") shows the same per-category summary, but aggregated across both agents and showing the *phase-end* state (after the phase converged):
+
+- `Questions  0 standing · 7 raised · 7 closed`
+- `Disagreements  2 standing · 5 raised · 3 closed` (2 standing here ≡ items carried forward, since the phase has converged)
+
+This gives a one-glance summary of the phase outcome.
 
 **Card body** — the existing `## Stance` prose section is rendered as the card's TL;DR text. The body content is the full markdown of the turn, rendered with the existing side-by-side viewer for items with `> quote:` / `> after:` anchors. The operation blocks (`### RAISE` / `### ADDRESS` / etc.) are rendered as collapsible mini-cards inline.
 
@@ -155,14 +180,17 @@ Each evidence record produces one row. The row has two states:
 
 #### Filtering and grouping
 
-The Critique pane gets filter chips at the top:
+The Critique pane gets filter chips at the top. Each chip carries its own per-category count so the numbers on the chip match the timeline summary chips exactly. Same vocabulary, full words (plural), never abbreviated.
 
-- By category: Question · Disagreement · Issue · Comment · All
-- By status: Open · Addressed · Resolved · Acknowledged · Withdrawn · Capped · All
-- By raiser: Claude · GPT · Either
-- By phase: 0 (input) · 2 (plan) · 4 (review) · All
+- **By category** (counts = total items of that category across the run, scoped to the active phase / raiser / status filters):
+  - `Questions (12)` · `Disagreements (5)` · `Issues (4)` · `Comments (2)` · `All (23)`
+- **By status**: `Open` · `Addressed` · `Resolved` · `Acknowledged` · `Withdrawn` · `Capped` · `All`
+- **By raiser**: `Claude` · `GPT` · `Either`
+- **By phase**: `Phase 0 (input)` · `Phase 2 (negotiate plan)` · `Phase 4 (review draft)` · `All`
 
-Cards group under section headers based on the active grouping (default: by category, then by phase).
+Cards group under section headers based on the active grouping (default: by category, then by phase). The section header repeats the per-category summary chip from the timeline (standing · raised-across-phase · closed-across-phase) so the reader can cross-reference back to the timeline without re-counting.
+
+**Uniformity invariant**: a viewer can pick any per-category summary chip on a timeline turn card, click it, and arrive at a filtered critique view whose count chip displays the same standing number. The same canonical (kind, phase, raiser) namespace drives both surfaces — there is no separate vocabulary anywhere in the UI.
 
 ### 3. Final-document appendix rendering
 
@@ -196,7 +224,7 @@ The underlying `final.md` markdown file (written by `finalize.py`) carries the s
 
 ### 4. Closeout indicator in the UI
 
-When a round was a closeout round (the prior round attempted convergence but left non-terminal items), the timeline card for that round renders a small `⟳ closeout` chip in the activity badge slot, alongside `turn N`. Hovering shows the list of items the closeout was requested for.
+When a round was a closeout round (the prior round attempted convergence but left non-terminal items), the timeline card for that round renders a small `⟳ closeout` chip immediately after the round chip, before the per-category summary chips. Hovering shows the list of items the closeout was requested for.
 
 Phase complete events that came via the closeout / ghost-cap / hard-cap paths render a corresponding flag on the phase header in the timeline:
 
@@ -205,6 +233,14 @@ Phase complete events that came via the closeout / ghost-cap / hard-cap paths re
 - `via_hard_cap: true` → small `via hard cap` chip
 
 These are not alarming colors — they're informational, helping the reader understand how the phase ended.
+
+#### Cap modifiers on per-category chips
+
+When an agent's items in a category were ghost-capped or hard-capped in a round, the closed-count includes those transitions and the chip gets an extra suffix `· ⊘ N` showing how many of the closed count came via orchestrator-forced cap rather than agent action. Example:
+
+- `Questions  0 standing · 0 raised · 4 closed · ⊘ 2`
+
+reads as: "Of the 4 questions closed this round, 2 were orchestrator-capped (the other 2 were resolved / acknowledged / withdrawn normally)." The cap suffix is omitted when the cap count is zero.
 
 ### 5. Components touched
 

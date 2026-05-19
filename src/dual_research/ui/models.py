@@ -357,11 +357,116 @@ class TopLevelError:
 
 
 @dataclass
+class CategoryCounters:
+    """Per-category, per-round counter triple for the timeline chips (spec 0115).
+
+    The three numbers shown on each Questions / Disagreements / Issues
+    / Comments chip in a turn card:
+
+    - ``standing``: total non-terminal items (open + addressed) of this
+      category that this agent raised, as of end-of-round.
+    - ``raised``: items of this category this agent raised during this
+      round.
+    - ``closed``: items of this category this agent raised that
+      transitioned to a terminal state during this round.
+    - ``capped`` (subset of closed): items that closed via orchestrator
+      hard_cap or ghost_cap.
+    """
+
+    standing: int = 0
+    raised: int = 0
+    closed: int = 0
+    capped: int = 0
+
+
+@dataclass
+class TurnCategoryStats:
+    """Per-category counters for one turn (round, agent) — spec 0115."""
+
+    questions: CategoryCounters = field(default_factory=CategoryCounters)
+    disagreements: CategoryCounters = field(default_factory=CategoryCounters)
+    issues: CategoryCounters = field(default_factory=CategoryCounters)
+    comments: CategoryCounters = field(default_factory=CategoryCounters)
+
+
+@dataclass
+class PhaseCategoryStats:
+    """Per-category counters aggregated across both agents for a phase header — spec 0115."""
+
+    questions: CategoryCounters = field(default_factory=CategoryCounters)
+    disagreements: CategoryCounters = field(default_factory=CategoryCounters)
+    issues: CategoryCounters = field(default_factory=CategoryCounters)
+    comments: CategoryCounters = field(default_factory=CategoryCounters)
+
+
+@dataclass
+class EvidenceRecord:
+    """One structured evidence record linked to an Item address transition (spec 0115).
+
+    Mirrors ``contract.evidence.EvidenceRecord`` shape but lives in
+    the UI layer for serialisation. ``unverified`` flips True when the
+    contract validator flagged the record (event_id fabricated, URL
+    not in consulted, content excerpt not in source).
+    """
+
+    item_id: str
+    url: str
+    title: str
+    search_query: str
+    fetched_at: str
+    evidence_event_id: str
+    content_excerpt: str
+    unverified: bool = False
+    unverified_reason: str = ""
+
+
+@dataclass
+class ItemTransition:
+    """One state-change in an Item's lifecycle (spec 0115)."""
+
+    from_state: str
+    to_state: str
+    actor: str
+    round: int
+    reason: str
+    via: str | None = None
+
+
+@dataclass
+class Item:
+    """Unified UI-side representation of one tracked item across the run (spec 0115).
+
+    Replaces the legacy ``Question`` / ``Issue`` / ``Comment`` /
+    ``Disagreement`` dataclasses. ``id`` is the orchestrator-assigned
+    stable ID (e.g. ``Q-plan-c-04``).
+    """
+
+    id: str
+    kind: str             # "question" | "disagreement" | "issue" | "comment"
+    phase: int            # 0 | 2 | 4
+    raiser: str           # "claude" | "openai"
+    body: str
+    anchor_type: str = "none"
+    anchor_text: str = ""
+    evidence_required: bool = False
+    raised_round: int = 0
+    current_state: str = "open"
+    transitions: list[ItemTransition] = field(default_factory=list)
+    evidence: list[EvidenceRecord] = field(default_factory=list)
+    ack_proposed_by: str | None = None
+
+
+@dataclass
 class TurnStats:
     """The structured marker fields parsed from a single turn file.
 
     Each field is optional — agents occasionally omit a marker, and the
     UI silently drops chips whose value is ``None``.
+
+    Spec 0115 — ``categories`` carries the per-category-per-round
+    counter triples for the new timeline chips. Always present on
+    new-protocol runs; absent on legacy runs (the legacy renderer
+    keeps using the scalar ``open_questions`` / ``open_issues`` etc.).
     """
 
     status: str | None = None
@@ -370,6 +475,8 @@ class TurnStats:
     blocking: int | None = None
     fsd: int | None = None
     brief_issues: int | None = None
+    # Spec 0115 — per-category, per-turn counters (chip data).
+    categories: TurnCategoryStats | None = None
 
 
 @dataclass
@@ -378,12 +485,23 @@ class PhaseStats:
 
     - ``phase0`` and ``phase1`` are single-shot per-agent.
     - ``phase2`` and ``phase4`` are round-keyed dicts of per-agent stats.
+
+    Spec 0115 — the new-protocol runs also populate:
+    - ``items``: list of every ``Item`` raised during the run, in
+      raise-time order. The Critique pane reads from here directly.
+    - ``phase_summary_{0,2,4}``: phase-header aggregated chips
+      (across both agents, phase-end state).
     """
 
     phase0: dict[str, TurnStats] = field(default_factory=dict)
     phase1: dict[str, TurnStats] = field(default_factory=dict)
     phase2: dict[int, dict[str, TurnStats]] = field(default_factory=dict)
     phase4: dict[int, dict[str, TurnStats]] = field(default_factory=dict)
+    # Spec 0115 — new-protocol fields.
+    items: list[Item] = field(default_factory=list)
+    phase_summary_0: PhaseCategoryStats = field(default_factory=PhaseCategoryStats)
+    phase_summary_2: PhaseCategoryStats = field(default_factory=PhaseCategoryStats)
+    phase_summary_4: PhaseCategoryStats = field(default_factory=PhaseCategoryStats)
 
 
 # ─── Per-turn token usage (spec 0029) ─────────────────────────────────────────

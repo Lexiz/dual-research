@@ -224,6 +224,12 @@ def main(argv: list[str] | None = None) -> int:
     if raw and raw[0] == "reconcile-costs":
         return _run_reconcile(raw[1:])
 
+    # Spec 0115: `dual-research validate-run <session-dir>` audits a
+    # finished Deep Research run against the contract.
+    if raw and raw[0] == "validate-run":
+        from dual_research.validate_cli import main as _validate_main
+        return _validate_main(raw[1:])
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 

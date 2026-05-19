@@ -45,7 +45,9 @@ from dual_research.events import (
     ItemTransitioned,
     PhaseConverged,
 )
-from dual_research.events.legacy_shim import LedgerSnapshotEntry
+# Spec 0115 — legacy_shim removed; the snapshot helper below is no
+# longer used by production code but is retained for ad-hoc callers
+# (tests, debugging tools).
 from dual_research.orchestrator.closeout import (
     CloseoutTracker,
     _ItemView,
@@ -85,14 +87,6 @@ class LedgerEntryV2:
     transitions: list[dict] = field(default_factory=list)
     ack_proposed_by: str | None = None  # for the mutual-ack handshake
 
-    def to_snapshot(self) -> LedgerSnapshotEntry:
-        return LedgerSnapshotEntry(
-            item_id=self.id,
-            kind=self.kind.value,
-            raiser=self.raiser,
-            current_state=self.current_state.value,
-        )
-
     def to_item_view(self) -> _ItemView:
         return _ItemView(
             id=self.id,
@@ -122,9 +116,6 @@ class PhaseState:
             if e.id == item_id:
                 return e
         return None
-
-    def snapshot(self) -> list[LedgerSnapshotEntry]:
-        return [e.to_snapshot() for e in self.ledger]
 
     def item_views(self) -> list[_ItemView]:
         return [e.to_item_view() for e in self.ledger]

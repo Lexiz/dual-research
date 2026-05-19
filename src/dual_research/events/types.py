@@ -159,11 +159,21 @@ class TurnEnded(Event):
 
 @dataclass(frozen=True, kw_only=True)
 class Phase0Complete(Event):
-    claude_status: str | None
-    openai_status: str | None
-    claude_brief_issues: int | None
-    openai_brief_issues: int | None
-    brief_needs_input: bool
+    """Phase 0 marker event.
+
+    Spec 0115 — the legacy counter fields (``claude_brief_issues``,
+    ``openai_brief_issues``) default to ``None`` and are no longer
+    populated on new-protocol runs. They remain on the dataclass so
+    legacy transcripts continue to deserialise cleanly during the
+    transition. The new-protocol UI reads counters from the
+    ``ItemRaised`` event stream instead.
+    """
+
+    claude_status: str | None = None
+    openai_status: str | None = None
+    claude_brief_issues: int | None = None
+    openai_brief_issues: int | None = None
+    brief_needs_input: bool = False
     kind: str = "phase0_complete"
 
 
@@ -183,18 +193,26 @@ class CostUpdate(Event):
 
 @dataclass(frozen=True, kw_only=True)
 class Phase2RoundComplete(Event):
+    """Phase 2 round marker event.
+
+    Spec 0115 — the legacy counter fields default to ``None`` and are
+    no longer populated on new-protocol runs. The new-protocol UI
+    reads counters from the ``ItemRaised`` / ``ItemTransitioned``
+    event stream. Fields retained for legacy transcript compat.
+    """
+
     round: int
     agreed: bool
-    claude_status: str | None
-    openai_status: str | None
-    claude_drafter: str | None
-    openai_drafter: str | None
-    claude_open_questions: int | None
-    openai_open_questions: int | None
-    claude_blocking: int | None
-    openai_blocking: int | None
-    claude_fsd: int | None
-    openai_fsd: int | None
+    claude_status: str | None = None
+    openai_status: str | None = None
+    claude_drafter: str | None = None
+    openai_drafter: str | None = None
+    claude_open_questions: int | None = None
+    openai_open_questions: int | None = None
+    claude_blocking: int | None = None
+    openai_blocking: int | None = None
+    claude_fsd: int | None = None
+    openai_fsd: int | None = None
     kind: str = "phase2_round_complete"
 
 
@@ -327,13 +345,19 @@ class Phase3Complete(Event):
 
 @dataclass(frozen=True, kw_only=True)
 class Phase4RoundComplete(Event):
+    """Phase 4 round marker event.
+
+    Spec 0115 — legacy counter fields default to ``None``; the
+    new-protocol UI reads from ``ItemRaised`` / ``ItemTransitioned``.
+    """
+
     round: int
     approved: bool
-    claude_status: str | None
-    openai_status: str | None
-    claude_open_issues: int | None
-    openai_open_issues: int | None
-    draft_round: int
+    claude_status: str | None = None
+    openai_status: str | None = None
+    claude_open_issues: int | None = None
+    openai_open_issues: int | None = None
+    draft_round: int = 1
     kind: str = "phase4_round_complete"
 
 

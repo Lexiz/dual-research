@@ -902,19 +902,24 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   const isRepair = hasRepairSibling(run, item.turnKey);
   const isLive = item.live;
 
-  // Kind classification — drives the leading letter badge.
-  const kindLetter = item.round != null ? 'T'
-                   : item.kind === 'input' ? 'I'
-                   : item.kind === 'preflight' ? 'P'
-                   : item.kind === 'plan' ? 'D'
-                   : item.kind === 'doc' || item.kind === 'doc-live' ? 'D'
-                   : 'T';
-  const kindLabel = item.round != null ? `turn ${item.round}`
-                  : item.kind || '—';
-  const roundLabel = item.round != null ? `r${item.round}` : null;
+  // Spec 0115 — full-word activity label (no single-letter badge).
+  const activityLabel = item.round != null ? `Turn ${item.round}`
+                      : item.kind === 'input' ? 'Brief'
+                      : item.kind === 'preflight' ? 'Preflight'
+                      : item.kind === 'plan' ? 'Plan'
+                      : item.kind === 'plan-live' ? 'Plan'
+                      : item.kind === 'doc' ? 'Draft'
+                      : item.kind === 'doc-live' ? 'Draft'
+                      : item.kind || '—';
 
   // Phase pill — every row knows its phase via item.phase.
   const phase = item.phase ?? null;
+  const phaseLabel = phase === 0 ? 'Phase 0'
+                   : phase === 1 ? 'Phase 1'
+                   : phase === 2 ? 'Phase 2'
+                   : phase === 3 ? 'Phase 3'
+                   : phase === 4 ? 'Phase 4'
+                   : null;
 
   // Status pill — done | repair | running | agreed.
   let statusTone = 'ok';
@@ -923,17 +928,23 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   else if (isRepair)       { statusTone = 'warn'; statusLabel = 'repair'; }
   else if (item.agreed)    { statusTone = 'ok';   statusLabel = 'agreed'; }
 
-  // Delta chips — count badges the user asked for per round.
+  // Spec 0115 — per-category summary chips for interaction-phase rounds.
+  // ``item.stats.categories`` is populated by the Python aggregator from
+  // the new ItemRaised/ItemTransitioned event stream. Phase 0 + 2 carry
+  // Questions + Disagreements; phase 4 also carries Issues + Comments.
   const stats = item.stats || {};
-  const deltaChips = [];
-  if (stats.questionsRaised > 0)
-    deltaChips.push({ tone: 'info', text: `+${stats.questionsRaised} Q` });
-  if (stats.questionsResolved > 0)
-    deltaChips.push({ tone: 'ok',   text: `−${stats.questionsResolved} Q` });
-  if (stats.disagreementsRaised > 0)
-    deltaChips.push({ tone: 'warn', text: `+${stats.disagreementsRaised} D` });
-  if (stats.disagreementsResolved > 0)
-    deltaChips.push({ tone: 'ok',   text: `−${stats.disagreementsResolved} D` });
+  const categories = stats.categories || null;
+  const isInteractionTurn = item.round != null || item.kind === 'preflight';
+  const showCategoryChips = isInteractionTurn && categories;
+  const chipCategories = (phase === 4)
+    ? ['questions', 'disagreements', 'issues', 'comments']
+    : ['questions', 'disagreements'];
+  const CATEGORY_LABEL = {
+    questions: 'Questions',
+    disagreements: 'Disagreements',
+    issues: 'Issues',
+    comments: 'Comments',
+  };
 
   // Expanded body content.
   const gist = !isLive ? composeGist(item, run) : '';
@@ -969,27 +980,43 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
     >
       <header className="qt-head">
-        {/* KindRef — leading badge: letter · label · agent pill · round */}
-        <span className="qref qref-full" data-kind={kindLetter}>
-          <span className="qref-k">{kindLetter}</span>
-          <span className="qref-sep" aria-hidden="true">·</span>
-          <span className="qref-n">{kindLabel}</span>
+        {/* Spec 0115 — full-word labels; no single-letter badge. */}
+        <span className="qref qref-full" data-kind={activityLabel[0]}>
           {agent && (
             <span className={`qref-by is-${agentSlot}`}>
               <AgentIcon agent={agent} size={14} />
               <span className="qref-by-n">{agentName}</span>
             </span>
           )}
-          {roundLabel && <span className="qref-round num">{roundLabel}</span>}
+          <span className="qref-sep" aria-hidden="true">·</span>
+          <span className="qref-n">{activityLabel}</span>
         </span>
 
+        {phaseLabel && <span className="md-chip md-chip--sm">{phaseLabel}</span>}
+
+        {/* Per-category summary chips — spec 0115 §1. One chip per
+            allowed category for the phase. Always present (even when
+            zero) so the columns align across rounds; dimmed when the
+            round had no activity in this category. */}
+        {showCategoryChips && chipCategories.map((cat) => {
+          const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
+          const noActivity = (c.raised + c.closed) === 0;
+          const capSuffix = (c.capped > 0) ? ` · ⊘ ${c.capped}` : '';
+          const text = `${CATEGORY_LABEL[cat]}  ${c.standing} standing · ${c.raised} raised · ${c.closed} closed${capSuffix}`;
+          return (
+            <Chip
+              key={cat}
+              tone={noActivity ? 'muted' : (c.standing === 0 ? 'ok' : 'info')}
+              style={{ opacity: noActivity ? 0.55 : 1 }}
+            >
+              {text}
+            </Chip>
+          );
+        })}
+
+        <span style={{ flex: 1 }} />
+
         <Chip tone={statusTone}>{statusLabel}</Chip>
-
-        {phase != null && <span className="md-chip md-chip--sm">P{phase}</span>}
-
-        {deltaChips.map((d, i) => (
-          <Chip key={i} tone={d.tone}>{d.text}</Chip>
-        ))}
 
         <span className="right">
           <span style={{
@@ -1023,6 +1050,173 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
             </span>
           </div>
         </>
+      )}
+    </article>
+  );
+}
+
+// ─── Spec 0115 — SourceRow + ItemCard (Critique pane v2) ───────────
+//
+// SourceRow is the per-evidence-record collapsible row inside a
+// critique card. Multiple instances per card. Default collapsed:
+// shows title + URL hostname + chevron. Expanded: full URL, fetched
+// timestamp, search query, content excerpt (bounded scroll for long
+// excerpts). Keyboard accessible.
+//
+// ItemCard is the card surface for one Item from the new event
+// stream. It replaces the legacy QuestionThread for new-protocol
+// runs (legacy runs keep their existing renderer).
+
+function _hostnameOf(url) {
+  try { return new URL(url).hostname; } catch { return url || ''; }
+}
+
+function SourceRow({ record }) {
+  const [open, setOpen] = React.useState(false);
+  const toggle = () => setOpen((v) => !v);
+  const onKey = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
+  };
+  const title = record.title || 'Untitled source';
+  const hostname = _hostnameOf(record.url);
+  const isUnverified = !!record.unverified;
+  const excerpt = record.contentExcerpt || record.content_excerpt || '';
+  // Long excerpts → bounded height with internal scroll. Spec 0115 §2.
+  const excerptStyle = excerpt.length > 800
+    ? { maxHeight: 200, overflowY: 'auto' }
+    : null;
+  return (
+    <div className={`source-row ${open ? 'is-open' : ''} ${isUnverified ? 'is-unverified' : ''}`}>
+      <div
+        className="source-row__head"
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={onKey}
+        aria-expanded={open}
+      >
+        <span className="source-row__chev" aria-hidden="true">{open ? '▼' : '▶'}</span>
+        <span className="source-row__title">{title}</span>
+        <span className="source-row__host">{hostname}</span>
+        {isUnverified && (
+          <span
+            className="md-chip md-chip--sm md-chip--warn"
+            title={record.unverifiedReason || record.unverified_reason || 'evidence flagged by validator'}
+          >
+            ⚠ unverified
+          </span>
+        )}
+      </div>
+      {open && (
+        <div className="source-row__body">
+          {record.url && (
+            <div className="source-row__field">
+              <span className="source-row__label">URL:</span>{' '}
+              <a href={record.url} target="_blank" rel="noopener noreferrer">{record.url}</a>
+            </div>
+          )}
+          {(record.fetchedAt || record.fetched_at) && (
+            <div className="source-row__field">
+              <span className="source-row__label">Fetched:</span>{' '}
+              {record.fetchedAt || record.fetched_at}
+            </div>
+          )}
+          {(record.searchQuery || record.search_query) && (
+            <div className="source-row__field">
+              <span className="source-row__label">Search query:</span>{' '}
+              <code>{record.searchQuery || record.search_query}</code>
+            </div>
+          )}
+          {excerpt && (
+            <div className="source-row__excerpt-wrap">
+              <div className="source-row__label">Content excerpt:</div>
+              <pre className="source-row__excerpt" style={excerptStyle || undefined}>
+                {excerpt}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ItemCard({ item, onHighlight }) {
+  const kindLabel = ({
+    question: 'Question',
+    disagreement: 'Disagreement',
+    issue: 'Issue',
+    comment: 'Comment',
+  })[item.kind] || item.kind;
+  const stateLabel = item.currentState || item.current_state || 'open';
+  const stateTone = ({
+    resolved: 'ok',
+    acknowledged: 'warn',
+    withdrawn: 'muted',
+    capped: 'error',
+    open: 'info',
+    addressed: 'info',
+  })[stateLabel] || 'info';
+  const raiserName = item.raiser === 'openai' ? 'GPT' : 'Claude';
+  const transitions = item.transitions || [];
+  const evidence = item.evidence || [];
+  return (
+    <article
+      className={`item-card item-card--${stateLabel}`}
+      onClick={onHighlight}
+    >
+      <header className="item-card__head">
+        <span className="md-chip md-chip--sm"><code>{item.id}</code></span>
+        <span className="md-chip md-chip--sm">{kindLabel}</span>
+        <Chip tone={stateTone}>{stateLabel}</Chip>
+        <span className="md-chip md-chip--sm">raised by {raiserName}</span>
+        <span className="md-chip md-chip--sm">round {item.raisedRound || item.raised_round}</span>
+      </header>
+      <div className="item-card__body">
+        {item.body}
+        {item.anchorType && item.anchorType !== 'none' && (
+          <blockquote className="item-card__anchor">
+            {item.anchorType === 'quote' ? '> quote: ' : '> after: '}
+            {item.anchorText || item.anchor_text}
+          </blockquote>
+        )}
+      </div>
+      {transitions.length > 0 && (
+        <div className="item-card__timeline">
+          <div className="item-card__timeline-hd">Timeline</div>
+          {transitions.map((t, i) => {
+            const fromS = t.fromState || t.from_state;
+            const toS = t.toState || t.to_state;
+            const actor = t.actor || '';
+            const actorLabel = actor === 'openai' ? 'GPT'
+                             : actor === 'claude' ? 'Claude'
+                             : actor === 'mutual' ? 'Both (mutual)'
+                             : actor === 'orchestrator' ? 'Orchestrator'
+                             : actor;
+            const via = t.via ? ` (${t.via})` : '';
+            return (
+              <div key={i} className="item-card__transition">
+                <span className="item-card__transition-meta">
+                  Round {t.round} — {fromS} → <strong>{toS}</strong>{via} · by {actorLabel}
+                </span>
+                {t.reason && (
+                  <div className="item-card__transition-reason">{t.reason}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {evidence.length > 0 && (
+        <div className="item-card__sources">
+          <div className="item-card__sources-hd">Sources ({evidence.length})</div>
+          {evidence.map((rec, i) => (
+            <SourceRow key={i} record={rec} />
+          ))}
+        </div>
       )}
     </article>
   );
@@ -5967,14 +6161,34 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     );
   };
 
-  // Kind tab definitions for Bar 2
+  // Spec 0115 — count-augmented kind tabs. Counts come from the new
+  // unified Item bundle when available; legacy runs fall back to the
+  // per-kind list lengths the legacy renderer already computes.
+  const _itemsAll = (run.phaseStats?.items) || [];
+  const _phaseItemsForCount = isSummary
+    ? _itemsAll
+    : _itemsAll.filter((it) => it.phase === selectedPhase);
+  const _itemCountByKind = (kind) =>
+    _phaseItemsForCount.filter((it) => it.kind === kind).length;
+  // Prefer the new-bundle count when available (>0); else legacy.
+  const _displayCount = (newCount, legacyCount) =>
+    (newCount > 0 ? newCount : legacyCount);
+
   const KIND_TABS = [
-    { id: 'all', label: 'All', tone: null },
-    { id: 'issues', label: 'Issues', tone: 'is-warn' },
-    { id: 'comments', label: 'Comments', tone: null },
-    { id: 'questions', label: 'Questions', tone: 'is-info' },
-    { id: 'disagreements', label: 'Disagreements', tone: 'is-warn' },
-  ];
+    { id: 'all', label: 'All', tone: null,
+      count: _phaseItemsForCount.length || undefined },
+    { id: 'issues', label: 'Issues', tone: 'is-warn',
+      count: _displayCount(_itemCountByKind('issue'), phaseIssues.length) },
+    { id: 'comments', label: 'Comments', tone: null,
+      count: _displayCount(_itemCountByKind('comment'), phaseComments.length) },
+    { id: 'questions', label: 'Questions', tone: 'is-info',
+      count: _displayCount(_itemCountByKind('question'), phaseQuestions.length) },
+    { id: 'disagreements', label: 'Disagreements', tone: 'is-warn',
+      count: _displayCount(_itemCountByKind('disagreement'), phaseDisagreements.length) },
+  ].map((t) => ({
+    ...t,
+    label: (t.count != null && t.count > 0) ? `${t.label} (${t.count})` : t.label,
+  }));
 
   // Render a collapsible crit-group section
   const renderGroup = (title, items, tone, countClass, collapsed) => {

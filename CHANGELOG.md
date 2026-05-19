@@ -12,6 +12,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [1.1.0] — 2026-05-19
+
+### Added
+
+- **Spec 0115 — Deep Research UI + validate-run + shim removal** ([spec 0115](specs/0115-deep-research-ui-and-validator.md)).
+  - **Per-category timeline summary chips** (the user-requested addition): every interaction-phase timeline card now shows one chip per allowed category (Questions / Disagreements in phases 0+2; plus Issues / Comments in phase 4). Each chip carries three numbers — `standing · raised · closed` — with an optional `· ⊘ N` suffix when items closed via orchestrator hard-cap or ghost-cap. Full-word labels (plural), never abbreviations like `Q` / `D` / `QCR1`. Chips always present so columns align across the timeline.
+  - **Unified Item model + EvidenceRecord** in `ui/models.py` replace the legacy `Question` / `Issue` / `Comment` / `Disagreement` dataclasses. The `ui/items.py` aggregator walks the new `ItemRaised` / `ItemTransitioned` event stream and produces the per-(phase, round, agent) `TurnCategoryStats` consumed by the timeline chips, plus the unified `Item` list consumed by the Critique pane.
+  - **SourceRow + ItemCard JSX components**: collapsible per-evidence-record rows with title + URL + fetched-at + search query + content excerpt (bounded scroll for long excerpts), keyboard-accessible, with a `⚠ unverified` chip when the contract validator flagged the record. ItemCard renders the full Item lifecycle (header chips, body, anchor blockquote, transition timeline, sources section).
+  - **Critique-pane filter chips** carry matching per-category counts (`Questions (12)` / `Disagreements (5)` / …) using the same vocabulary as the timeline chips. Single source of truth for category counts across both surfaces.
+  - **`dual-research validate-run <session-dir>`** CLI subcommand audits a finished run against the contract: per-turn structural validation + cross-phase lifecycle invariants (terminal items have rationale, capped items have `via:` tags, evidence-required items that resolved have evidence records). Exit codes 0 / 1 / 2. `--json` flag for machine-readable output.
+  - **Final.md unresolved-items appendix**: `finalize.py` now appends the canonical `## Appendix — Unresolved items` section (briefing limitations / surfaced disagreements / unanswered questions / known issues / pending comments) from the `carry_forward_phase{0,2,4}` fields on `SessionState`.
+  - **Backward-compat shim removed**: `events/legacy_shim.py` deleted along with all its callers. Round-complete events (`Phase0Complete` / `Phase2RoundComplete` / `Phase4RoundComplete` / `Phase2Complete` / `Phase4Complete`) become minimal marker events; legacy counter fields default to `None`. Legacy run transcripts (pre-1.0.0) continue to render correctly because the fields remain on the dataclasses with `None` defaults.
+
 ## [1.0.0] — 2026-05-19
 
 ### Changed (BREAKING)

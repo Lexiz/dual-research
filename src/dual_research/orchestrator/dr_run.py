@@ -51,14 +51,9 @@ from dual_research.events import (
     PhaseExited,
     SoftCapHit,
 )
-from dual_research.events.legacy_shim import (
-    LedgerSnapshotEntry,
-    phase0_complete_legacy_fields,
-    phase2_complete_legacy_fields,
-    phase2_round_complete_legacy_fields,
-    phase4_complete_legacy_fields,
-    phase4_round_complete_legacy_fields,
-)
+# Spec 0115 — legacy_shim removed; the new event stream is the only
+# source of per-category data. Round-complete events emit as marker
+# events with no counter payload.
 from dual_research.orchestrator._call import run_one_call
 from dual_research.orchestrator._turns import (
     list_turns,
@@ -105,10 +100,6 @@ _DRAFT_MAX_OUTPUT_TOKENS = 16384
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────
-
-
-def _ledger_snapshot(ledger: Iterable[LedgerEntryV2]) -> list[LedgerSnapshotEntry]:
-    return [e.to_snapshot() for e in ledger]
 
 
 def _carry_forward_payload(ledger: Iterable[LedgerEntryV2]) -> list[dict]:
@@ -311,7 +302,8 @@ async def _drive_interaction_phase(
             closeout_event=rr.closeout_event,
         )
 
-        # Legacy round-complete event for shim consumers.
+        # Round-complete marker event (no per-category payload — those
+        # flow via ItemRaised / ItemTransitioned).
         await _publish_legacy_round_complete(
             event_bus,
             phase_int=phase_int,
@@ -319,7 +311,6 @@ async def _drive_interaction_phase(
             agreed=rr.converged,
             claude_status=rr.claude_status,
             openai_status=rr.openai_status,
-            ledger=_ledger_snapshot(phase.state.ledger),
             ctx=ctx,
         )
 
@@ -426,31 +417,28 @@ async def _publish_legacy_round_complete(
     agreed: bool,
     claude_status: str | None,
     openai_status: str | None,
-    ledger: list[LedgerSnapshotEntry],
     ctx: SessionContext,
 ):
-    """Publish the legacy round-complete event for the existing UI."""
+    """Spec 0115 — emit minimal round-complete marker events.
+
+    The legacy counter fields stay at their None defaults; all
+    per-category data now flows via ItemRaised / ItemTransitioned.
+    """
     if phase_int == 2:
-        fields = phase2_round_complete_legacy_fields(
-            ledger,
+        await bus.publish(Phase2RoundComplete(
             round=round,
             agreed=agreed,
             claude_status=claude_status,
             openai_status=openai_status,
-            claude_drafter=None,
-            openai_drafter=None,
-        )
-        await bus.publish(Phase2RoundComplete(**fields))
+        ))
     elif phase_int == 4:
-        fields = phase4_round_complete_legacy_fields(
-            ledger,
+        await bus.publish(Phase4RoundComplete(
             round=round,
             approved=agreed,
             claude_status=claude_status,
             openai_status=openai_status,
             draft_round=ctx.state.draft_round,
-        )
-        await bus.publish(Phase4RoundComplete(**fields))
+        ))
     # Phase 0 has no per-round event in the legacy schema.
 
 
@@ -538,21 +526,25 @@ async def run_dr_phase0(
     ctx.state.carry_forward_phase0 = _carry_forward_payload(phase.state.ledger)
     ctx.session.save_state(ctx.state)
 
-    ledger = _ledger_snapshot(phase.state.ledger)
-    legacy_fields = phase0_complete_legacy_fields(
-        ledger,
-        claude_status="AGREED" if result.converged else "IN_PROGRESS",
-        openai_status="AGREED" if result.converged else "IN_PROGRESS",
+    claude_status = "AGREED" if result.converged else "IN_PROGRESS"
+    openai_status = "AGREED" if result.converged else "IN_PROGRESS"
+    await event_bus.publish(Phase0Complete(
+        claude_status=claude_status,
+        openai_status=openai_status,
+        brief_needs_input=False,
+    ))
+    ctx.transcript.write(
+        "phase0_complete",
+        claude_status=claude_status,
+        openai_status=openai_status,
         brief_needs_input=False,
     )
-    await event_bus.publish(Phase0Complete(**legacy_fields))
-    ctx.transcript.write("phase0_complete", **legacy_fields)
 
     outcome = Phase0Outcome(
-        claude_status=legacy_fields["claude_status"],
-        openai_status=legacy_fields["openai_status"],
-        claude_brief_issues=legacy_fields["claude_brief_issues"],
-        openai_brief_issues=legacy_fields["openai_brief_issues"],
+        claude_status=claude_status,
+        openai_status=openai_status,
+        claude_brief_issues=None,
+        openai_brief_issues=None,
         brief_needs_input=False,
     )
     print(
@@ -821,17 +813,25 @@ async def run_dr_phase2(
         ctx.state.phase = "phase3"
     ctx.session.save_state(ctx.state)
 
-    legacy_fields = phase2_complete_legacy_fields(
-        _ledger_snapshot(phase.state.ledger),
+    from dual_research.contract.lifecycle import State as _State
+    fsd_count = sum(
+        1 for e in phase.state.ledger
+        if e.kind == Category.DISAGREEMENT and e.current_state == _State.ACKNOWLEDGED
+    )
+    await event_bus.publish(Phase2Complete(
         rounds=result.rounds,
         converged=result.converged,
         drafter=drafter,
-        via_hard_cap=result.via_hard_cap,
-        via_ghost_cap=result.via_ghost_cap,
-        via_closeout=result.via_closeout,
+        fsd_count=fsd_count,
+        via_tiebreak=result.via_hard_cap and drafter == "claude",
+    ))
+    ctx.transcript.write(
+        "phase2_complete",
+        rounds=result.rounds,
+        converged=result.converged,
+        drafter=drafter,
+        fsd_count=fsd_count,
     )
-    await event_bus.publish(Phase2Complete(**legacy_fields))
-    ctx.transcript.write("phase2_complete", **legacy_fields)
 
     # Build legacy Phase2Outcome shape for finalize.py consumption.
     fsd_dicts = [
@@ -1104,14 +1104,20 @@ async def run_dr_phase4(
     ctx.state.carry_forward_phase4 = _carry_forward_payload(phase.state.ledger)
     ctx.session.save_state(ctx.state)
 
-    legacy_fields = phase4_complete_legacy_fields(
+    approved = result.converged and not result.via_hard_cap
+    await event_bus.publish(Phase4Complete(
         rounds=result.rounds,
-        approved=result.converged and not result.via_hard_cap,
+        approved=approved,
+        final_draft_round=ctx.state.draft_round,
+        revisions=revisions_count,
+    ))
+    ctx.transcript.write(
+        "phase4_complete",
+        rounds=result.rounds,
+        approved=approved,
         final_draft_round=ctx.state.draft_round,
         revisions=revisions_count,
     )
-    await event_bus.publish(Phase4Complete(**legacy_fields))
-    ctx.transcript.write("phase4_complete", **legacy_fields)
 
     last_claude_path = ctx.session.phase_dir("phase4") / turn_filename(
         round=result.final_round, agent="claude",
