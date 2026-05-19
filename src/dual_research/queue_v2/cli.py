@@ -148,12 +148,17 @@ def _dispatch(args) -> int:
         return 0
 
     if args.cmd == "read":
-        parsed = read.run(args.spec)
-        # If the spec hasn't been begun yet, do that now using the parsed metadata.
+        # begin_spec must run before read.run, because read.run calls
+        # state.begin_step which requires an active spec. Peek at the
+        # spec file just enough to extract the slug.
+        from dual_research.queue_v2 import parse_spec
+        spec_path = read.find_spec(args.spec)
         s = state.load()
-        if s.active is None or s.active.get("spec") != parsed.spec:
-            branch = f"spec/{parsed.spec}-{parsed.slug}"
-            state.begin_spec(parsed.spec, parsed.slug, branch)
+        if s.active is None or s.active.get("spec") != args.spec.zfill(4):
+            preview = parse_spec.parse(spec_path)
+            branch = f"spec/{preview.spec}-{preview.slug}"
+            state.begin_spec(preview.spec, preview.slug, branch)
+        parsed = read.run(args.spec)
         print(f"read spec {parsed.spec} — {len(parsed.files_touched)} files, {len(parsed.visual_matrix)} matrix rows")
         return 0
 
