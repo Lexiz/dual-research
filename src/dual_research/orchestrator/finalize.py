@@ -171,6 +171,15 @@ async def emit_final(
             f"{phase4_outcome.last_openai_text or '(no content)'}\n"
         )
 
+    # Spec 0115 — Deep Research unresolved-items appendix. Built from
+    # the carry-forward fields on SessionState (populated by the dr
+    # phase runners at phase boundaries). Appended to final.md as
+    # plain markdown so it renders in any viewer; the UI parses it
+    # back into structured card stacks for richer display.
+    dr_appendix = _render_unresolved_items_appendix(ctx)
+    if dr_appendix:
+        appendix = (appendix or "") + dr_appendix
+
     final_body = header + draft_body + appendix
     session_final = ctx.session.root / "final.md"
     write_atomic(session_final, final_body)
@@ -208,3 +217,126 @@ async def emit_final(
         confidence=conf,
     )
     return session_final
+
+
+# ─── Spec 0115 — unresolved-items appendix renderer ───────────────────
+
+
+_PHASE_SECTION_TITLE = {
+    0: "Briefing limitations (phase 0)",
+    2: ("Surfaced disagreements (negotiate-plan phase)",
+        "Unanswered research questions (negotiate-plan phase)"),
+    4: ("Known issues in this draft (review-draft phase)",
+        "Pending comments (review-draft phase)"),
+}
+
+
+def _is_appendix_candidate(entry: dict) -> bool:
+    """Spec 0114 — items appearing in the appendix are terminal-not-resolved.
+
+    Resolved items vanish into the document body. Acknowledged / capped
+    items always surface. Withdrawn items surface only when the reason
+    is non-trivial (length > 40 chars and no boilerplate prefix).
+    """
+    state = entry.get("current_state")
+    if state in {"acknowledged", "capped"}:
+        return True
+    if state == "withdrawn":
+        # Look at the last transition's reason.
+        transitions = entry.get("transitions") or []
+        last = transitions[-1] if transitions else None
+        reason = (last or {}).get("reason", "") if isinstance(last, dict) else ""
+        if len(reason) <= 40:
+            return False
+        boilerplate = ("duplicate of", "superseded by")
+        if any(reason.strip().lower().startswith(b) for b in boilerplate):
+            return False
+        return True
+    return False
+
+
+def _format_entry(entry: dict) -> str:
+    iid = entry.get("id", "?")
+    state = entry.get("current_state", "?")
+    body = (entry.get("body") or "").strip().replace("\n", " ")
+    transitions = entry.get("transitions") or []
+    last = transitions[-1] if transitions else {}
+    raiser = entry.get("raiser", "?")
+    raiser_label = "Claude" if raiser == "claude" else "GPT" if raiser == "openai" else raiser
+    raised_round = entry.get("raised_round", "?")
+    terminal_round = last.get("round", "?") if isinstance(last, dict) else "?"
+    via = last.get("via") if isinstance(last, dict) else None
+    state_label = f"{state} ({via})" if via else state
+    reason = last.get("reason", "") if isinstance(last, dict) else ""
+
+    lines = [
+        f"- [{iid}] {state_label}: {body}",
+        f"  - Raised by: {raiser_label} in round {raised_round}",
+        f"  - Terminal in round {terminal_round}",
+    ]
+    if reason:
+        # Single-line reason for readability in plain markdown viewers.
+        reason_line = reason.strip().replace("\n", " ")[:400]
+        lines.append(f"  - Reason: {reason_line}")
+    return "\n".join(lines)
+
+
+def _entries_by_kind(entries: list[dict], kind: str) -> list[dict]:
+    return [e for e in entries if e.get("kind") == kind and _is_appendix_candidate(e)]
+
+
+def _render_unresolved_items_appendix(ctx) -> str:
+    """Render the ``## Appendix — Unresolved items`` section as plain markdown.
+
+    Reads from ``ctx.state.carry_forward_phase{0,2,4}`` (populated by
+    the dr phase runners). Returns empty string if no carry-forward
+    items exist (legacy runs / clean convergence).
+    """
+    cf0 = getattr(ctx.state, "carry_forward_phase0", []) or []
+    cf2 = getattr(ctx.state, "carry_forward_phase2", []) or []
+    cf4 = getattr(ctx.state, "carry_forward_phase4", []) or []
+    if not (cf0 or cf2 or cf4):
+        return ""
+
+    sections: list[str] = []
+
+    # Phase 0 — briefing limitations
+    p0 = [e for e in cf0 if _is_appendix_candidate(e)]
+    if p0:
+        sections.append("### " + _PHASE_SECTION_TITLE[0])
+        for e in p0:
+            sections.append(_format_entry(e))
+        sections.append("")
+
+    # Phase 2 — disagreements + questions in separate subsections.
+    p2_disagreements = _entries_by_kind(cf2, "disagreement")
+    p2_questions = _entries_by_kind(cf2, "question")
+    if p2_disagreements:
+        sections.append("### " + _PHASE_SECTION_TITLE[2][0])
+        for e in p2_disagreements:
+            sections.append(_format_entry(e))
+        sections.append("")
+    if p2_questions:
+        sections.append("### " + _PHASE_SECTION_TITLE[2][1])
+        for e in p2_questions:
+            sections.append(_format_entry(e))
+        sections.append("")
+
+    # Phase 4 — issues + comments in separate subsections.
+    p4_issues = _entries_by_kind(cf4, "issue")
+    p4_comments = _entries_by_kind(cf4, "comment")
+    if p4_issues:
+        sections.append("### " + _PHASE_SECTION_TITLE[4][0])
+        for e in p4_issues:
+            sections.append(_format_entry(e))
+        sections.append("")
+    if p4_comments:
+        sections.append("### " + _PHASE_SECTION_TITLE[4][1])
+        for e in p4_comments:
+            sections.append(_format_entry(e))
+        sections.append("")
+
+    if not sections:
+        return ""
+
+    return "\n\n---\n\n## Appendix — Unresolved items\n\n" + "\n".join(sections)
