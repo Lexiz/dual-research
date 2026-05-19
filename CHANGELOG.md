@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.14] — 2026-05-19
+
+### Fixed
+
+- **Spec 0112 — Agent strip text overflow** ([spec 0112](specs/0112-agent-strip-text-overflow.md)). Single Notion issue from [Known issues v2](https://www.notion.so/Known-issues-v2-36599f3e507f80a8ad5fdb26b143a695) (issue 3): the run-detail agent bar's Claude pill wrapped `claude-sonnet-4-6` and `negotiating · round 5` onto two lines while the GPT pill rendered on one — different heights, unbalanced row, content below pushed down.
+  - `.as-name` and `.as-model` (`components.css`) now carry `white-space: nowrap`. Defensive: text cannot wrap at word boundaries or hyphens regardless of the pill's width. Root cause of `claude-sonnet-4-6` breaking after `claude-sonnet-4-`.
+  - `.as.as-timeline` relaxed from `width: 460px; flex: 0 0 auto` to `min-width: 460px; max-width: 720px; flex: 1 1 460px`. The two pills share `.agent-bar` so flex-grow auto-equalizes them at the same computed width. SPEC-0087's symmetry guarantee is preserved because both children consume the same flex rule against the same parent — no longer needs a hard width-pin.
+  - Activity-label styling moved out of inline `style={{ maxWidth: 140, … }}` into a new `.as-activity` CSS class with `min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px`. `.as-right` also gets `min-width: 0` so the nested flex grandchild can shrink below its content size and the ellipsis actually engages on narrow viewports. Only the dynamic `phraseColor` remains inline.
+  - Result: the model id and activity phrase render on a single line on every viewport. On 820 px the activity phrase clips with an ellipsis if it doesn't fit; on 2200 px each pill grows up to 720 px wide; pill heights match between Claude and GPT in all cases.
+
+  Cache-bust `?v=0103` → `?v=0104`. Backend untouched.
+
 ## [0.76.13] — 2026-05-19
 
 ### Fixed

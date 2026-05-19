@@ -157,13 +157,11 @@ function TimelineAgentPill({ agent, run }) {
   const phraseColor = live ? 'var(--fg-1)' : 'var(--fg-3)';
 
   const activityRight = (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
       <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
-      <span style={{
-        fontSize: 11, color: phraseColor,
-        maxWidth: 140,
-        overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
+      {/* Spec 0112 — sizing/overflow lives in .as-activity (components.css).
+          Only the dynamic phraseColor remains inline. */}
+      <span className="as-activity" style={{ color: phraseColor }}>
         {phrase}
       </span>
     </span>

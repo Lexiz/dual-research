@@ -175,7 +175,10 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
   border-radius: var(--r-3);
 }
 .as-left  { display: inline-flex; align-items: center; gap: var(--s-2); }
-.as-right { display: inline-flex; align-items: center; gap: var(--s-3); color: var(--fg-2); }
+/* Spec 0112 — `min-width: 0` lets the nested .as-activity grandchild
+   shrink below its content size so text-overflow: ellipsis engages
+   instead of letting the activity phrase overflow the pill. */
+.as-right { display: inline-flex; align-items: center; gap: var(--s-3); color: var(--fg-2); min-width: 0; }
 .as-right .num { color: var(--fg-1); }
 .as.is-a { border-left: 2px solid var(--agent-a); }
 .as.is-b { border-left: 2px solid var(--agent-b); }
@@ -185,9 +188,28 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
    live in separate flex containers (Claude on PaneHeader row, GPT on
    PaneToolbar row) so flex-grow can't equalize them naturally;
    pinning the width is the cleanest fix per delta 14.28. */
-.as.as-timeline { width: 460px; min-width: 460px; flex: 0 0 auto; }
-.as .as-name { color: var(--fg-0); font-weight: var(--w-medium); }
-.as .as-model { font-family: var(--mono); font-size: var(--t-mono); color: var(--fg-2); }
+/* Spec 0112 — relaxed from hard `width: 460px; flex: 0 0 auto` to a
+   flex rule that grows around a 460px basis but stays equal between
+   the Claude / GPT children of the shared `.agent-bar` parent. Lets
+   the pill absorb longer model id / activity strings on the right
+   without forcing internal text wrap (Notion issue 3). The 720px cap
+   keeps the row under --md-content-max on ultrawide displays. */
+.as.as-timeline { min-width: 460px; max-width: 720px; flex: 1 1 460px; }
+.as .as-name  { color: var(--fg-0); font-weight: var(--w-medium); white-space: nowrap; }
+.as .as-model { font-family: var(--mono); font-size: var(--t-mono); color: var(--fg-2); white-space: nowrap; }
+
+/* Spec 0112 — activity label inside .as-right. Absorbs whatever
+   horizontal space remains in the pill; clips with an ellipsis when
+   the pill is too narrow to fit the full phrase (Notion issue 3).
+   `min-width: 0` is required to let this flex grandchild shrink
+   below its content size so `text-overflow: ellipsis` engages. */
+.as-activity {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
 
 /* AgentIcon (.ai) — agent logo tile */
 .ai {
