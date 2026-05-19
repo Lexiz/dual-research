@@ -2073,3 +2073,264 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   .tl__body { grid-template-columns: 24px 1fr; }
   .tl__rail .seg .lbl { display: none; }
 }
+
+/* =============================================================
+   Spec 0100 — Consumption pane M3 rework (ccx card family)
+   Issues 12-15: collapsed card, unfolded card, uniform width,
+   sticky bottom legend.
+   ============================================================= */
+
+/* ── Card container ──────────────────────────── */
+.ccx {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ccx-header { display: flex; align-items: center; gap: 10px; padding-bottom: 4px; }
+.ccx-icon {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font: var(--md-w-semi) 11px/1 var(--md-font-plain);
+}
+.ccx-icon.a { background: var(--md-primary);   color: var(--md-on-primary); }
+.ccx-icon.b { background: var(--md-secondary); color: var(--md-on-secondary); }
+.ccx-header .nm { font: var(--md-w-medium) var(--md-title-s-size)/1 var(--md-font-plain); }
+.ccx-header .stats {
+  margin-left: auto;
+  display: inline-flex; gap: 8px; align-items: baseline;
+  font: var(--md-w-regular) 13px/1 var(--md-font-data);
+  color: var(--md-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.ccx-header .stats .sep { color: var(--md-on-surface-faint); }
+.ccx-header .stats .pct { color: var(--md-on-surface-faint); font-style: normal; }
+.ccx-header .chev {
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--md-on-surface-variant); cursor: pointer;
+}
+.ccx-header .chev:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+  border-radius: var(--md-shape-xs);
+}
+
+/* ── Bar rows + sub-rows ─────────────────────── */
+.ccx-bar-row, .ccx-sub-row {
+  display: grid; grid-template-columns: 140px 1fr 100px;
+  gap: 12px; align-items: center;
+  font: var(--md-w-regular) 12px/1 var(--md-font-plain);
+}
+.ccx-bar-row.is-total { font-weight: var(--md-w-semi); color: var(--md-on-surface); }
+.ccx-bar-row .lbl, .ccx-sub-row .lbl { color: var(--md-on-surface-variant); }
+.ccx-bar-row.is-total .lbl { color: var(--md-on-surface); }
+.ccx-sub-row .lbl { font-size: 12px; padding-left: 12px; }
+.ccx-bar {
+  position: relative;
+  height: 10px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  overflow: hidden;
+}
+.ccx-bar.thin { height: 6px; }
+.ccx-bar .fl { position: absolute; top: 0; bottom: 0; left: 0; border-radius: inherit; }
+.ccx-bar .fl.in   { background: var(--p-sable); }
+.ccx-bar .fl.out  { background: var(--p-sable); opacity: 0.55; }
+.ccx-bar .fl.in-b { background: var(--p-sage); }
+.ccx-bar .fl.out-b{ background: var(--p-sage); opacity: 0.55; }
+.ccx-bar .fl.sys   { background: color-mix(in srgb, var(--p-sable) 75%, var(--md-on-surface)); }
+.ccx-bar .fl.hist  { background: var(--p-sable); }
+.ccx-bar .fl.round { background: color-mix(in srgb, var(--p-sable) 60%, var(--md-on-surface)); }
+.ccx-bar .fl.tools { background: color-mix(in srgb, var(--p-info)  70%, transparent); }
+.ccx-bar .fl.web   { background: var(--p-info); }
+.ccx-bar .fl.reason{ background: var(--p-sable); }
+.ccx-bar .fl.resp  { background: color-mix(in srgb, var(--p-sable) 60%, var(--md-on-surface)); }
+.ccx-bar .fl.toolc { background: var(--p-info); }
+.ccx-bar .reuse {
+  position: absolute; top: 0; bottom: 0;
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(255,255,255,0.40) 0 3px,
+      rgba(255,255,255,0)    3px 6px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+body.light .ccx-bar .reuse {
+  background: repeating-linear-gradient(135deg, rgba(0,0,0,0.18) 0 3px, rgba(0,0,0,0) 3px 6px);
+  mix-blend-mode: normal;
+}
+
+/* ── Numeric cells ───────────────────────────── */
+.ccx-bar-row .num, .ccx-sub-row .num {
+  font: var(--md-w-medium) 12px/1 var(--md-font-data);
+  text-align: right;
+  display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end;
+}
+.ccx-bar-row .num { font-size: 13px; font-weight: var(--md-w-semi); }
+
+/* ── Dividers + spacers ──────────────────────── */
+.ccx-divider { height: 1px; background: var(--md-outline-hair); margin: 4px 0 6px; }
+.ccx-section-spacer { height: 8px; }
+
+/* ── Totals block ────────────────────────────── */
+.ccx-totals {
+  display: grid; grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--md-surface-container-low);
+  border-radius: var(--md-shape-sm);
+  border: 1px solid var(--md-outline-hair);
+}
+.ccx-totals .line {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font: var(--md-w-regular) 12px/1 var(--md-font-data);
+  color: var(--md-on-surface-variant);
+}
+.ccx-totals .line .v { font: var(--md-w-semi) 13px/1 var(--md-font-data); color: var(--md-on-surface); font-variant-numeric: tabular-nums; }
+.ccx-totals .line .l { font-size: 11px; color: var(--md-on-surface-faint); letter-spacing: 0.04em; }
+.ccx-totals .line.is-savings .v { color: var(--p-ok); }
+.ccx-totals .line.is-grand   { padding-top: 4px; border-top: 1px solid var(--md-outline-hair); margin-top: 4px; }
+.ccx-totals .line.is-grand .v { font-size: 15px; }
+
+/* ── Uniform pair grid (Issue 14) ────────────── */
+.cards-2up { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 1099px) { .cards-2up { grid-template-columns: 1fr; } }
+
+/* ── Round label + phase group head (Issue 14) ── */
+.round-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+  font: var(--md-w-medium) 10px/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+}
+.round-label .pcode { font: var(--md-w-semi) 10px/1 var(--md-font-data); color: var(--md-on-surface); }
+.phase-group-head {
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--md-primary);
+  padding: 16px 0 8px;
+}
+
+/* ── Sticky bottom legend (Issue 15) ─────────── */
+.ccx-pane {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0;
+  overflow: hidden;
+}
+.ccx-pane__body {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 16px;
+}
+.ccx-pane__legend {
+  position: sticky; bottom: 0;
+  background: var(--md-surface-container-high);
+  border-top: 1px solid var(--md-outline-hair);
+  box-shadow: var(--md-elev-1);
+  padding: var(--md-sp-3) var(--md-sp-6);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  font: var(--md-w-regular) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.ccx-pane__legend .legend-row {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ccx-pane__legend .legend-sep {
+  color: var(--md-on-surface-faint);
+  margin: 0 4px;
+}
+.ccx-pane__legend .legend-sw {
+  display: inline-block; width: 14px; height: 8px;
+  border-radius: var(--md-shape-xs);
+}
+.ccx-pane__legend .legend-sw.a { background: var(--p-sable); }
+.ccx-pane__legend .legend-sw.b { background: var(--p-sage); }
+.ccx-pane__legend .legend-sw.solid { background: var(--md-on-surface-variant); }
+.ccx-pane__legend .legend-sw.striped {
+  background: repeating-linear-gradient(135deg,
+    var(--md-on-surface-variant) 0 3px,
+    transparent 3px 6px);
+}
+.ccx-pane__legend .legend-sw.web { background: var(--p-info); }
+
+/* ── Reuse mark (Issue 13) ───────────────────── */
+.reuse-mark {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 16px; padding: 0 6px;
+  border-radius: var(--md-shape-xs);
+  background: color-mix(in srgb, var(--p-info) 18%, transparent);
+  color: var(--p-info);
+  font: var(--md-w-semi) 10px/1 var(--md-font-plain);
+  letter-spacing: 0.04em;
+  position: relative;
+  cursor: help;
+}
+.reuse-mark .ms { font-size: 12px; }
+.reuse-mark::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%; bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  padding: 6px 10px;
+  font: var(--md-w-regular) 11px/1.4 var(--md-font-plain);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+  box-shadow: var(--md-elev-2);
+  z-index: 10;
+}
+.reuse-mark::before {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: calc(100% + 1px);
+  transform: translateX(-50%) rotate(45deg);
+  width: 6px; height: 6px;
+  background: var(--md-surface-container-highest);
+  border-right: 1px solid var(--md-outline-hair);
+  border-bottom: 1px solid var(--md-outline-hair);
+  opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+  z-index: 10;
+}
+.reuse-mark:hover::after, .reuse-mark:focus-visible::after,
+.reuse-mark:hover::before, .reuse-mark:focus-visible::before { opacity: 1; }
+.reuse-mark:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+.cache-mark {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 16px; padding: 0 5px;
+  border-radius: var(--md-shape-xs);
+  background: color-mix(in srgb, var(--p-ok) 18%, transparent);
+  color: var(--p-ok);
+  font: var(--md-w-semi) 9px/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.web-mark {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 16px; padding: 0 5px;
+  border-radius: var(--md-shape-xs);
+  background: color-mix(in srgb, var(--p-info) 14%, transparent);
+  color: var(--p-info);
+  font: var(--md-w-semi) 10px/1 var(--md-font-data);
+}
+
+/* ── Chevron rotation (reduced-motion safe) ─── */
+.ccx-header .chev {
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ccx-header .chev { transition: none; }
+}
