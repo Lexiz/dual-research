@@ -822,19 +822,11 @@ function Timeline({ run, highlightedTurnKeys }) {
 
       {tab === 'conversation' ? (
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-          {/* BODY — rail + phases. Grid is 40px 1fr. */}
-          <div className="tl__body">
-            {/* RAIL — one .seg per visible phase */}
-            <div className="tl__rail" aria-hidden="true" data-tour-anchor="timeline-phase-rail">
-              {visiblePhases.map(vp => (
-                <div key={vp.pid} className={`seg${vp.allDone ? ' is-done' : ''}${vp.isCurrent ? ' is-current' : ''}`}>
-                  <span className="marker"></span>
-                  <span className="lbl">{vp.pDef?.short || `P${vp.pid}`}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* PHASES — collapsible sections */}
+          {/* BODY — phases only. Per-phase marker lives inside each header so
+              collapse / expand can never desync the rail from the phase it
+              belongs to (the bug was that .tl__rail laid markers out as
+              equal flex segments, drifting once phase heights diverged). */}
+          <div className="tl__body" data-tour-anchor="timeline-phase-rail">
             <div className="tl__phases">
               {visiblePhases.map(vp => {
                 const isCollapsed = !!collapsed[vp.pid];
@@ -842,6 +834,7 @@ function Timeline({ run, highlightedTurnKeys }) {
                 const metaParts = [];
                 if (divider.duration) metaParts.push(fmt.duration(divider.duration));
                 if (divider.extra) metaParts.push(divider.extra);
+                const markerStateCls = vp.allDone ? 'is-done' : vp.isCurrent ? 'is-current' : '';
                 return (
                   <section key={vp.pid} className="tl-phase" data-collapsed={isCollapsed ? 'true' : 'false'}>
                     <header
@@ -851,6 +844,10 @@ function Timeline({ run, highlightedTurnKeys }) {
                       onClick={() => togglePhase(vp.pid)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePhase(vp.pid); } }}
                     >
+                      <span className={`tl-phase__marker ${markerStateCls}`} aria-hidden="true">
+                        <span className="dot"></span>
+                        <span className="lbl">{vp.pDef?.short || `P${vp.pid}`}</span>
+                      </span>
                       <span className="chev"><span className="ms ms-18">expand_more</span></span>
                       <span className="tl-phase__pcode">PHASE {vp.pid}</span>
                       <span className="tl-phase__name">{vp.pDef?.label || `Phase ${vp.pid}`}</span>
