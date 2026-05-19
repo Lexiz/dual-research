@@ -848,7 +848,7 @@ function Timeline({ run, highlightedTurnKeys }) {
         title="Timeline"
         count={`${artifactCount} artifacts`}
         accentGradient="linear-gradient(to right, var(--agent-a) 0%, var(--agent-a) 48%, var(--agent-b) 52%, var(--agent-b) 100%)"
-        right={<TimelineAgentPill agent="claude" run={run} />}
+        right={<ModelBadge agent="claude" model={(run.agents?.claude?.modelId || run.agents?.claude?.model_id || AGENT_META.claude.model)} />}
       />
       {/* Row 2 — PaneToolbar: Conversation/Consumption tabs on the LEFT,
           directly under the "Timeline" title in the row above (spec 0040 D6 —
@@ -874,7 +874,7 @@ function Timeline({ run, highlightedTurnKeys }) {
           </span>
         )}
         <span style={{ flex: 1 }} />
-        <TimelineAgentPill agent="gpt" run={run} />
+        <ModelBadge agent="gpt" model={(run.agents?.gpt?.modelId || run.agents?.gpt?.model_id || AGENT_META.gpt.model)} />
       </PaneToolbar>
       {tab === 'conversation' ? (
         <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', background: 'var(--bg-0)' }}>
