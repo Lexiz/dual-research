@@ -5701,7 +5701,7 @@ function PreflightSourcesTab({ sources, loading }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {sources.map((s, i) => (
-        <SourceRow key={i} attachment={s} />
+        <SourceRowAttachment key={i} attachment={s} />
       ))}
     </div>
   );
@@ -5744,7 +5744,13 @@ function AttachmentsEmpty({ label }) {
   );
 }
 
-function SourceRow({ attachment }) {
+// Hotfix — renamed from `SourceRow` to `SourceRowAttachment` to disambiguate
+// from the spec 0115 `SourceRow({ record })` at ~`:1074`. Both names appearing
+// at module scope caused Babel to throw "Identifier 'SourceRow' has already
+// been declared", which crashed the whole run-detail page (RunDetail not
+// defined). The two components have different prop shapes — keeping both is
+// correct; only the name collision needed fixing.
+function SourceRowAttachment({ attachment }) {
   const { title, url, caption, source } = attachment;
   let host = '';
   try { host = url ? new URL(url).host : ''; } catch (_) { host = ''; }
