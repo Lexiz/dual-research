@@ -16,6 +16,19 @@ class SessionState:
     final_surfaced_disagreements: list[dict[str, Any]] = field(default_factory=list)
     draft_round: int = 1
     final_emitted_to: str | None = None
+    # ─── Spec 0114 — Deep Research state ──────────────────────────────
+    # ``agreed_interpretation`` is the AGREED_INTERPRETATION block body
+    # captured at phase 0 convergence; consumed by phase 1's prompt.
+    # ``carry_forward_phase{0,2,4}`` are the terminal-not-resolved
+    # items as captured at each phase boundary, used by phase 3's
+    # drafting prompt and the finalize-step appendix.
+    # ``closeout_budgets`` records per-phase, per-agent remaining
+    # closeout budget across the run (resumed via load_state).
+    agreed_interpretation: str | None = None
+    carry_forward_phase0: list[dict[str, Any]] = field(default_factory=list)
+    carry_forward_phase2: list[dict[str, Any]] = field(default_factory=list)
+    carry_forward_phase4: list[dict[str, Any]] = field(default_factory=list)
+    closeout_budgets: dict[str, dict[str, int]] = field(default_factory=dict)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2, ensure_ascii=False)
@@ -30,6 +43,11 @@ class SessionState:
             final_surfaced_disagreements=data.get("final_surfaced_disagreements", []),
             draft_round=int(data.get("draft_round", 1)),
             final_emitted_to=data.get("final_emitted_to"),
+            agreed_interpretation=data.get("agreed_interpretation"),
+            carry_forward_phase0=data.get("carry_forward_phase0", []),
+            carry_forward_phase2=data.get("carry_forward_phase2", []),
+            carry_forward_phase4=data.get("carry_forward_phase4", []),
+            closeout_budgets=data.get("closeout_budgets", {}),
         )
 
 
