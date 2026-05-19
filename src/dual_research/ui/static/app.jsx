@@ -265,22 +265,20 @@ function ChromeTab({ label, icon, active, onClick }) {
 
 function RightCluster({ theme, onToggleTheme, navigate, route, client, session, me }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+    <div style={{ display: 'flex', alignItems: 'center', height: 40 }}>
       <ConnectionPill />
-      <AppVersionChip onClick={() => navigate('how-it-works')} />
-      {route.view === 'detail' && route.runId && (
-        <ActiveRunChip runId={route.runId} onClick={() => navigate('list')} />
-      )}
-      <Tab
-        active={route.view === 'how-it-works'}
+      <AppVersionChip />
+      <span className="vbar" style={{ margin: '0 4px' }} />
+      <button
+        type="button"
+        className="md-btn md-btn--text md-btn--sm"
         onClick={() => navigate('how-it-works')}
-        icon="help-circle-outline"
-        size="sm"
-        className="tab-chrome"
+        style={route.view === 'how-it-works' ? { fontWeight: 'var(--md-w-semi)' } : undefined}
       >
         How it works
-      </Tab>
-      <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-1)', padding: '0 10px' }}>
+      </button>
+      <span className="vbar" style={{ margin: '0 4px' }} />
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px' }}>
         <ThemeToggleSegmented theme={theme} onToggle={onToggleTheme} />
       </div>
       {session
@@ -323,13 +321,12 @@ function ActiveRunChip({ runId, onClick }) {
 // Spec 0035: tiny pill in the chrome's right cluster showing the deployed
 // version. Click -> how-it-works page (where the VERSION_NOTES live).
 // SPEC-0069: restyled to use the Chip primitive for design-system cohesion.
-function AppVersionChip({ onClick }) {
+function AppVersionChip() {
   const meta = window.useAppMeta ? window.useAppMeta() : null;
-  const [hover, setHover] = React.useState(false);
   if (!meta?.version) return null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px', borderLeft: '1px solid var(--border-1)' }}>
-      <Chip asButton onClick={onClick} title={`dual-research v${meta.version} · click for release notes`}
+    <div style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 8px' }}>
+      <Chip title={`dual-research v${meta.version}`}
             style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>
         v{meta.version}
       </Chip>

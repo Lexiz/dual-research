@@ -821,19 +821,87 @@ function OpenAIMonogram() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={BRAND_SVGS.openai} fill="currentColor" /></svg>;
 }
 
-// ─── SPEC-0053 — Tab + TabGroup ───────────────────────────────
-// variant: undefined (bordered pill — chrome, filter chips)
-//        | 'line'   (minimal underline stripe — modal sub-tabs, narrow rails)
-//        | 'solid'  (segmented control — primary pane switchers)
+// ─── SPEC-0053 / SPEC-0095 — Tab + TabGroup ───────────────────
+// TabGroup variant: undefined (bordered pill), 'line', 'solid',
+//   'md-tabs' (M3 primary tabs), 'tab-group-solid' (M3 segmented pill),
+//   'phase-tabs', 'kind-tabs', 'fgroup'.
+// Tab variant (SPEC-0095): undefined (v1 bordered pill), 'primary' (M3
+//   md-tab), 'solid' (tab-solid), 'kind' (kind-tab), 'phase' (phase-tab),
+//   'chrome' (md-btn--text for app-bar use).
 function TabGroup({ children, className, variant }) {
-  const variantClass = variant === 'line' ? 'tabs-line' : variant === 'solid' ? 'tabs-solid' : null;
+  const variantClass = variant === 'line' ? 'tabs-line'
+    : variant === 'solid' ? 'tabs-solid'
+    : variant === 'md-tabs' ? null
+    : variant === 'tab-group-solid' ? null
+    : variant === 'phase-tabs' ? null
+    : variant === 'kind-tabs' ? null
+    : variant === 'fgroup' ? null
+    : null;
+  const baseClass = variant === 'md-tabs' ? 'md-tabs'
+    : variant === 'tab-group-solid' ? 'tab-group-solid'
+    : variant === 'phase-tabs' ? 'phase-tabs'
+    : variant === 'kind-tabs' ? 'kind-tabs'
+    : variant === 'fgroup' ? 'fgroup'
+    : 'tab-group';
   return (
-    <div className={_cn('tab-group', variantClass, className)} role="tablist">
+    <div className={_cn(baseClass, variantClass, className)} role="tablist">
       {children}
     </div>
   );
 }
-function Tab({ active, onClick, size = 'md', icon, children, count, disabled, dot, filterTone, className }) {
+function Tab({ active, onClick, size = 'md', icon, children, count, disabled, dot, filterTone, className, variant }) {
+  if (variant === 'primary') {
+    return (
+      <button type="button" role="tab" aria-selected={active ? 'true' : 'false'}
+              onClick={onClick} disabled={disabled}
+              className={_cn('md-tab', className)}>
+        {icon && <Mdi name={icon} size={14} />}
+        <span>{children}</span>
+        {count != null && <span className="count num">{count}</span>}
+      </button>
+    );
+  }
+  if (variant === 'solid') {
+    return (
+      <button type="button" role="tab" aria-selected={active ? 'true' : 'false'}
+              onClick={onClick} disabled={disabled}
+              className={_cn('tab-solid', active && 'is-active', className)}>
+        {dot && <i className="dot" />}
+        {icon && <Mdi name={icon} size={14} />}
+        <span>{children}</span>
+      </button>
+    );
+  }
+  if (variant === 'kind') {
+    return (
+      <button type="button" role="tab" aria-selected={active ? 'true' : 'false'}
+              onClick={onClick} disabled={disabled}
+              className={_cn('kind-tab', active && 'is-active', count === 0 && 'is-zero', className)}>
+        {icon && <Mdi name={icon} size={14} />}
+        <span>{children}</span>
+        {count != null && <span className="ct">{count}</span>}
+      </button>
+    );
+  }
+  if (variant === 'phase') {
+    return (
+      <button type="button" role="tab" aria-selected={active ? 'true' : 'false'}
+              onClick={onClick} disabled={disabled}
+              className={_cn('phase-tab', active && 'is-active', className)}>
+        {children}
+      </button>
+    );
+  }
+  if (variant === 'chrome') {
+    return (
+      <button type="button" onClick={onClick} disabled={disabled}
+              className={_cn('md-btn', 'md-btn--text', 'md-btn--sm', active && 'is-active', className)}
+              style={{ height: 40 }}>
+        {icon && <Mdi name={icon} size={14} />}
+        <span>{children}</span>
+      </button>
+    );
+  }
   return (
     <button
       type="button"
