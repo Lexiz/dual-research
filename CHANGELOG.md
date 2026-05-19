@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.11] — 2026-05-19
+
+### Refactored
+
+- **Timeline turn rows reuse the critique-pane `.qthread` card anatomy**. The user flagged that timeline rows (input, preflight, plan, every turn) looked nothing like the critique cards next to them. Refactored `TlTurnRow` to emit `<article class="qthread tl-thread is-<status>">` with the same `.qt-head` header, the same `.qref qref-full` leading badge (kind letter · label · agent pill · round), the same status `<Chip>`, the same `.md-chip` phase badge, and the same chevron right cluster. Each row now reads as a card with white surface, hairline outline, status-tone left border (green = done, amber = repair, blue = running), and hover-elevation matching the critique side. Delta chips (Q+N, Q−N, D+N, D−N, AGREED) render inline so every round/turn shows at a glance how many questions / disagreements were added or resolved. Removed the legacy `.tl-turn` markup entirely from `TlTurnRow`; old grid-based one-line row is gone. The old function definition was duplicated during refactor and removed. Cache-bust `?v=0100` → `?v=0101`. Tests 924 green.
+
 ## [0.76.10] — 2026-05-19
 
 ### Refactored

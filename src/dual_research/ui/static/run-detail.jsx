@@ -889,44 +889,66 @@ function Timeline({ run, highlightedTurnKeys }) {
   );
 }
 
-// Spec 0099 — M3 turn row. One-line summary; click expands inline.
-// Issue 11: single dashed border between header row and body.
-// Issue 16: REPAIR variant renders explainer sentence.
+// Spec 0099 + polish — timeline turn row.
+//
+// Every row in the timeline (input, preflight, plan, turn 1..N, doc) renders
+// as a card whose anatomy mirrors the critique-pane QuestionThread cards:
+//
+//   [KindLetter] · [Number or kind label] · [AgentPill]  [Round]  [Status]
+//   [Phase]  [Q+N] [Q−N] [D+N] [D−N] [AGREED] ────────────────► [chevron]
+//
+// Both panes therefore read as one design language. Status tone drives the
+// left-edge accent: ok (green) for completed, warn (amber) for repair,
+// info (blue) for running.
 function TlTurnRow({ item, run, isOpen, onToggle }) {
-  const agentSlot = item.agent === 'gpt' ? 'b' : 'a';
-  const agentInitial = item.agent === 'gpt' ? 'G' : 'C';
-  const agentName = item.agent ? (AGENT_META[item.agent]?.name || item.agent) : '';
+  const agent = item.agent || null;
+  const agentSlot = agent === 'gpt' ? 'b' : agent === 'claude' ? 'a' : null;
+  const agentName = agent ? (AGENT_META[agent]?.name || agent) : null;
   const isRepair = hasRepairSibling(run, item.turnKey);
   const isLive = item.live;
-  const isCurrent = isLive;
-  const label = item.round ? `turn ${item.round}` : item.kind;
-  const roundChip = item.round ? `R${item.round}` : '';
 
-  // Delta chips: derive from item stats if available.
+  // Kind classification — drives the leading letter badge.
+  const kindLetter = item.round != null ? 'T'
+                   : item.kind === 'input' ? 'I'
+                   : item.kind === 'preflight' ? 'P'
+                   : item.kind === 'plan' ? 'D'
+                   : item.kind === 'doc' || item.kind === 'doc-live' ? 'D'
+                   : 'T';
+  const kindLabel = item.round != null ? `turn ${item.round}`
+                  : item.kind || '—';
+  const roundLabel = item.round != null ? `r${item.round}` : null;
+
+  // Phase pill — every row knows its phase via item.phase.
+  const phase = item.phase ?? null;
+
+  // Status pill — done | repair | running | agreed.
+  let statusTone = 'ok';
+  let statusLabel = 'done';
+  if (isLive)              { statusTone = 'info'; statusLabel = 'running'; }
+  else if (isRepair)       { statusTone = 'warn'; statusLabel = 'repair'; }
+  else if (item.agreed)    { statusTone = 'ok';   statusLabel = 'agreed'; }
+
+  // Delta chips — count badges the user asked for per round.
   const stats = item.stats || {};
-  const deltas = [];
-  if (stats.questionsRaised > 0) deltas.push({ cls: 'up', text: `+${stats.questionsRaised} questions` });
-  if (stats.questionsResolved > 0) deltas.push({ cls: 'down', text: `\u2212${stats.questionsResolved} resolved` });
-  if (stats.disagreementsRaised > 0) deltas.push({ cls: 'up', text: `+${stats.disagreementsRaised} disagreements` });
-  if (stats.disagreementsResolved > 0) deltas.push({ cls: 'down', text: `\u2212${stats.disagreementsResolved} resolved` });
-  if (isRepair) deltas.push({ cls: 'rep', text: 'REPAIR' });
+  const deltaChips = [];
+  if (stats.questionsRaised > 0)
+    deltaChips.push({ tone: 'info', text: `+${stats.questionsRaised} Q` });
+  if (stats.questionsResolved > 0)
+    deltaChips.push({ tone: 'ok',   text: `−${stats.questionsResolved} Q` });
+  if (stats.disagreementsRaised > 0)
+    deltaChips.push({ tone: 'warn', text: `+${stats.disagreementsRaised} D` });
+  if (stats.disagreementsResolved > 0)
+    deltaChips.push({ tone: 'ok',   text: `−${stats.disagreementsResolved} D` });
 
-  // Expanded body content: use summary or gist.
+  // Expanded body content.
   const gist = !isLive ? composeGist(item, run) : '';
   const summary = item.summary || '';
-
-  // REPAIR explainer (Issue 16): when expanded and this is a repair turn,
-  // show the canonical sentence. The silent agent is the one whose usage
-  // is zero on this turn.
-  const silentAgent = isRepair
-    ? (item.agent === 'gpt' ? 'GPT' : 'Claude')
-    : null;
+  const silentAgent = isRepair ? (agent === 'gpt' ? 'GPT' : 'Claude') : null;
   const otherAgent = silentAgent === 'GPT' ? 'Claude' : 'GPT';
   const repairExplainer = isRepair
     ? `${silentAgent} was silent this turn. ${otherAgent} will reissue the same plan on the next round. No data lost.`
     : null;
 
-  // Token/cost info for actions row.
   const usage = run.phaseTokenUsage || {};
   const turnUsageKey = item.turnKey
     ? item.turnKey.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
@@ -937,73 +959,80 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   const totalTokens = tokensIn + tokensOut;
   const cost = turnUsage?.cost || 0;
 
-  if (!isOpen) {
-    // Compact one-line turn row
-    return (
-      <div
-        className={`tl-turn${isCurrent ? ' is-current' : ''}`}
-        onClick={onToggle}
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
-        role="button"
-      >
-        <span className={`tl-turn__ai is-${agentSlot}`}>{agentInitial}</span>
-        <span className="tl-turn__nm">{agentName}</span>
-        <span className="tl-turn__lbl">{label}</span>
-        <span className="tl-turn__deltas">
-          {deltas.map((d, i) => (
-            <span key={i} className={`tl-delta ${d.cls}`}>{d.text}</span>
-          ))}
-        </span>
-        {roundChip && <span className="tl-turn__round">{roundChip}</span>}
-      </div>
-    );
-  }
+  // Side-accent class on the card — mirrors the critique pane's
+  // is-open / is-resolved / is-drift left-border tint convention.
+  const cardStatusCss = isLive ? 'open'
+                      : isRepair ? 'drift'
+                      : 'resolved';
 
-  // Expanded turn — Issue 11: single dashed top border between row and body
   return (
-    <div className="tl-turn--open">
-      <div
-        className="tl-turn"
-        onClick={onToggle}
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
-        role="button"
-      >
-        <span className={`tl-turn__ai is-${agentSlot}`}>{agentInitial}</span>
-        <span className="tl-turn__nm">{agentName}</span>
-        <span className="tl-turn__lbl">{label}{isOpen ? ' \u00b7 expanded' : ''}</span>
-        <span className="tl-turn__deltas">
-          {deltas.map((d, i) => (
-            <span key={i} className={`tl-delta ${d.cls}`}>{d.text}</span>
-          ))}
+    <article
+      className={_cn('qthread', 'tl-thread', `is-${cardStatusCss}`, isOpen && 'is-open-expanded')}
+      onClick={onToggle}
+      tabIndex={0}
+      role="button"
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+    >
+      <header className="qt-head">
+        {/* KindRef — leading badge: letter · label · agent pill · round */}
+        <span className="qref qref-full" data-kind={kindLetter}>
+          <span className="qref-k">{kindLetter}</span>
+          <span className="qref-sep" aria-hidden="true">·</span>
+          <span className="qref-n">{kindLabel}</span>
+          {agent && (
+            <span className={`qref-by is-${agentSlot}`}>
+              <AgentIcon agent={agent} size={14} />
+              <span className="qref-by-n">{agentName}</span>
+            </span>
+          )}
+          {roundLabel && <span className="qref-round num">{roundLabel}</span>}
         </span>
-        {roundChip && <span className="tl-turn__round">{roundChip}</span>}
-      </div>
-      <div className="body">
-        {repairExplainer || summary || gist || '\u2014'}
-      </div>
-      <div className="actions">
-        <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-          Open full view
-        </button>
-        <span style={{ flex: 1 }}></span>
-        <span className="md-chip md-chip--sm">
-          {isRepair ? '0 tokens' : `${(totalTokens / 1000).toFixed(1)}kt in`}
+
+        <Chip tone={statusTone}>{statusLabel}</Chip>
+
+        {phase != null && <span className="md-chip md-chip--sm">P{phase}</span>}
+
+        {deltaChips.map((d, i) => (
+          <Chip key={i} tone={d.tone}>{d.text}</Chip>
+        ))}
+
+        <span className="right">
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 16, height: 16,
+            opacity: isOpen ? 0.6 : 0.25,
+            transition: 'opacity 120ms, transform 120ms',
+            color: 'var(--md-on-surface-faint)',
+            transform: isOpen ? 'rotate(90deg)' : 'none',
+          }}>
+            <Icon.Chevron />
+          </span>
         </span>
-        <span className="md-chip md-chip--sm">
-          {isRepair ? '$0.0000' : fmt.cost(cost)}
-        </span>
-      </div>
-    </div>
+      </header>
+
+      {isOpen && (
+        <>
+          <div className="tl-thread__body">
+            {repairExplainer || summary || gist || '—'}
+          </div>
+          <div className="tl-thread__actions">
+            <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+              Open full view
+            </button>
+            <span style={{ flex: 1 }}></span>
+            <span className="md-chip md-chip--sm">
+              {isRepair ? '0 tokens' : `${(totalTokens / 1000).toFixed(1)}kt in`}
+            </span>
+            <span className="md-chip md-chip--sm">
+              {isRepair ? '$0.0000' : fmt.cost(cost)}
+            </span>
+          </div>
+        </>
+      )}
+    </article>
   );
 }
 
-// Segmented control of two pills — matches the AgentLegendChip aesthetic
-// (rounded pill, var(--bg-2) background, agent-style accent on active).
-// Spec 0033: when ``prominent`` is set (in the run header), bump font +
-// padding and add a 1px accent underline on the active tab so the
-// control reads as primary chrome.
 function TimelineTabs({ active, onChange, prominent = false }) {
   // Spec 0053 D4 — migrated from PaneButton to Tab (tabs-solid variant).
   const tabs = [
