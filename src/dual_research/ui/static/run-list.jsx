@@ -354,9 +354,27 @@ function RunListView({ runs, loading, onSelect }) {
         ))}
         {filtered.length === 0 && (
           loading && !search ? (
-            // Spec 0084 — shared LoadingState primitive used everywhere a
-            // page or panel is waiting on its first useful payload.
-            <LoadingState size="panel" label="Loading runs" />
+            <div className="load-card" role="status" aria-label="Loading runs" style={{ padding: '18px' }}>
+              {[0,1,2,3,4].map(i => (
+                <div key={i} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
+                  alignItems: 'center',
+                  padding: '10px 0',
+                  borderBottom: '1px solid var(--border-1)',
+                  gap: 8,
+                }}>
+                  <div className="skel" style={{ width: 52, height: 22, borderRadius: 999 }} />
+                  <div className="skel" style={{ width: 80, height: 18 }} />
+                  <div className="skel" style={{ width: '80%', height: 14 }} />
+                  <div className="skel" style={{ width: 60, height: 14 }} />
+                  <div className="skel" style={{ width: 50, height: 14 }} />
+                  <div className="skel" style={{ width: 50, height: 14 }} />
+                  <div className="skel" style={{ width: 60, height: 14 }} />
+                  <div style={{ width: 12 }} />
+                </div>
+              ))}
+            </div>
           ) : (
             <div style={{
               padding: '40px 18px',
