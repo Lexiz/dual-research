@@ -180,21 +180,21 @@ function RunListView({ runs, loading, onSelect }) {
         gap: 16,
         padding: '0 18px',
         height: 44,
-        borderBottom: '1px solid var(--border-1)',
-        background: 'var(--bg-1)',
+        borderBottom: '1px solid var(--md-outline-hair)',
+        background: 'var(--md-surface-container-low)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
           <div style={{
             width: 16, height: 16, borderRadius: 4,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             position: 'relative', overflow: 'hidden',
-            background: 'var(--bg-3)',
+            background: 'var(--md-surface-container-highest)',
             flexShrink: 0,
           }}>
             <BrandMark name="claude" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', top: 1, left: 1 }} />
             <BrandMark name="openai" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', bottom: 1, right: 1 }} />
           </div>
-          <span className="mono" style={{ fontSize: 12, color: 'var(--fg-1)', letterSpacing: '0.02em' }}>
+          <span className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface-variant)', letterSpacing: '0.02em' }}>
             dual&#8209;research
           </span>
         </div>
@@ -219,23 +219,23 @@ function RunListView({ runs, loading, onSelect }) {
                 padding: '0 8px 0 26px',
                 fontSize: 11,
                 fontFamily: 'var(--mono)',
-                color: 'var(--fg-1)',
-                background: 'var(--bg-0)',
-                border: '1px solid var(--border-1)',
-                borderRadius: 'var(--r-2)',
+                color: 'var(--md-on-surface-variant)',
+                background: 'var(--md-surface)',
+                border: '1px solid var(--md-outline-hair)',
+                borderRadius: 'var(--md-shape-sm)',
                 outline: 'none',
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--border-2)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--border-1)'}
+              onFocus={(e) => e.target.style.borderColor = 'var(--md-outline-variant)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--md-outline-hair)'}
             />
-            <Mdi name="magnify" size={12} style={{ position: 'absolute', left: 8, color: 'var(--fg-3)', pointerEvents: 'none' }} />
+            <Mdi name="magnify" size={12} style={{ position: 'absolute', left: 8, color: 'var(--md-on-surface-faint)', pointerEvents: 'none' }} />
             {search && (
               <button
                 onClick={() => { handleSearch(''); if (searchRef.current) searchRef.current.focus(); }}
                 style={{
                   position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--fg-3)', padding: 2, display: 'flex',
+                  color: 'var(--md-on-surface-faint)', padding: 2, display: 'flex',
                 }}
                 aria-label="Clear search"
               >
@@ -243,7 +243,7 @@ function RunListView({ runs, loading, onSelect }) {
               </button>
             )}
           </div>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)' }}>live</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-decor)' }}>live</span>
           <Dot color={COLORS.info} pulse="pulse-a" size={6} />
         </div>
       </header>
@@ -252,8 +252,8 @@ function RunListView({ runs, loading, onSelect }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 18px',
-        background: 'var(--bg-1)',
-        borderBottom: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-low)',
+        borderBottom: '1px solid var(--md-outline-hair)',
       }}>
         <TabGroup>
           <Tab active={filter === 'all'} onClick={() => handleFilter('all')} count={runs.length} size="sm">all</Tab>
@@ -270,9 +270,9 @@ function RunListView({ runs, loading, onSelect }) {
         display: 'grid',
         gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
         padding: '8px 18px',
-        background: 'var(--bg-2)',
-        borderBottom: '1px solid var(--border-2)',
-        fontSize: 10, color: 'var(--fg-2)',
+        background: 'var(--md-surface-container-high)',
+        borderBottom: '1px solid var(--md-outline-variant)',
+        fontSize: 10, color: 'var(--md-on-surface-muted)',
         fontWeight: 600,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
@@ -291,7 +291,7 @@ function RunListView({ runs, loading, onSelect }) {
                 gap: 4,
                 justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
                 userSelect: 'none',
-                color: active ? 'var(--fg-0)' : undefined,
+                color: active ? 'var(--md-on-surface)' : undefined,
               }}
               title={`Sort by ${c.label}`}
             >
@@ -304,17 +304,17 @@ function RunListView({ runs, loading, onSelect }) {
       </div>
 
       {/* Rows */}
-      <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-0)' }}>
+      <div style={{ flex: 1, overflow: 'auto', background: 'var(--md-surface)' }}>
         {/* Attention section */}
         {hasAttention && (
           <>
             <div style={{
               padding: '6px 18px',
-              background: 'var(--bg-1)',
-              borderBottom: '1px solid var(--border-1)',
+              background: 'var(--md-surface-container-low)',
+              borderBottom: '1px solid var(--md-outline-hair)',
               fontSize: 11,
               fontWeight: 600,
-              color: 'var(--fg-2)',
+              color: 'var(--md-on-surface-muted)',
               display: 'flex',
               alignItems: 'center',
               gap: 8,
@@ -326,7 +326,7 @@ function RunListView({ runs, loading, onSelect }) {
                 padding: '1px 6px',
                 background: 'var(--warn-bg)',
                 border: '1px solid var(--warn-border)',
-                borderRadius: 'var(--r-pill)',
+                borderRadius: 'var(--md-shape-full)',
                 color: 'var(--warn)',
               }}>{sortedAttention.length}</span>
             </div>
@@ -337,11 +337,11 @@ function RunListView({ runs, loading, onSelect }) {
             {sortedNormal.length > 0 && (
               <div style={{
                 padding: '6px 18px',
-                background: 'var(--bg-1)',
-                borderBottom: '1px solid var(--border-1)',
+                background: 'var(--md-surface-container-low)',
+                borderBottom: '1px solid var(--md-outline-hair)',
                 fontSize: 11,
                 fontWeight: 600,
-                color: 'var(--fg-3)',
+                color: 'var(--md-on-surface-faint)',
               }}>
                 Other runs
               </div>
@@ -361,7 +361,7 @@ function RunListView({ runs, loading, onSelect }) {
                   gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
                   alignItems: 'center',
                   padding: '10px 0',
-                  borderBottom: '1px solid var(--border-1)',
+                  borderBottom: '1px solid var(--md-outline-hair)',
                   gap: 8,
                 }}>
                   <div className="skel" style={{ width: 52, height: 22, borderRadius: 999 }} />
@@ -379,7 +379,7 @@ function RunListView({ runs, loading, onSelect }) {
             <div style={{
               padding: '40px 18px',
               textAlign: 'center',
-              color: 'var(--fg-3)',
+              color: 'var(--md-on-surface-faint)',
               fontSize: 12,
             }}>
               {search ? `No runs matching "${search}"` : 'No runs'}
@@ -390,15 +390,15 @@ function RunListView({ runs, loading, onSelect }) {
 
       {/* Footer */}
       <footer style={{
-        borderTop: '1px solid var(--border-1)',
-        background: 'var(--bg-1)',
+        borderTop: '1px solid var(--md-outline-hair)',
+        background: 'var(--md-surface-container-low)',
         padding: '8px 18px',
         display: 'flex', gap: 18, alignItems: 'center',
-        fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+        fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--mono)',
       }}>
         <span>showing {filtered.length} of {runs.length}</span>
         <span style={{ flex: 1 }} />
-        <span><kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-1)', borderRadius: 3, fontSize: 10 }}>/</kbd> search &middot; click header to sort</span>
+        <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>/</kbd> search &middot; click header to sort</span>
       </footer>
     </div>
   );
@@ -430,8 +430,8 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
         gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
         alignItems: 'center',
         padding: '10px 18px',
-        borderBottom: '1px solid var(--border-1)',
-        background: hover ? 'var(--bg-1)' : run.selected ? 'var(--bg-1)' : 'transparent',
+        borderBottom: '1px solid var(--md-outline-hair)',
+        background: hover ? 'var(--md-surface-container-low)' : run.selected ? 'var(--md-surface-container-low)' : 'transparent',
         cursor: 'pointer',
         position: 'relative',
         borderLeft: borderColor ? `2px solid ${borderColor}` : '2px solid transparent',
@@ -440,11 +440,11 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
       <span className="mono" title={idTooltip} style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         padding: '3px 10px',
-        background: 'var(--bg-2)',
-        border: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-high)',
+        border: '1px solid var(--md-outline-hair)',
         borderRadius: 999,
         fontSize: 11.5,
-        color: 'var(--fg-1)',
+        color: 'var(--md-on-surface-variant)',
         letterSpacing: '0.04em',
         width: 'fit-content',
       }}>{displayId}</span>
@@ -455,26 +455,26 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
           against the pill. */}
       <div style={{ minWidth: 0, paddingLeft: 20, paddingRight: 16 }} title={run.topic}>
         <div style={{
-          color: 'var(--fg-0)', fontSize: 12.5,
+          color: 'var(--md-on-surface)', fontSize: 12.5,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{shortTopic}</div>
         {attentionSummary && (
           <div className="mono" style={{
-            fontSize: 10, color: 'var(--fg-3)', marginTop: 2,
+            fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 2,
           }}>{attentionSummary}</div>
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <PhaseMini phase={run.phase} status={run.status} />
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>P{run.phase}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-muted)' }}>P{run.phase}</span>
         {run.rounds && (run.phase === 2 || run.phase === 4) && (
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>&middot; {run.rounds}</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>&middot; {run.rounds}</span>
         )}
       </div>
-      <span className="mono" style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{fmt.relTime(run.startedAtAgo)}</span>
-      <span className="mono num" style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{fmt.duration(run.duration)}</span>
-      <span className="mono num" style={{ fontSize: 12, color: 'var(--fg-0)', textAlign: 'right' }}>{fmt.cost(run.cost)}</span>
-      <Icon.Chevron style={{ color: hover ? 'var(--fg-1)' : 'var(--fg-4)' }} />
+      <span className="mono" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{fmt.relTime(run.startedAtAgo)}</span>
+      <span className="mono num" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{fmt.duration(run.duration)}</span>
+      <span className="mono num" style={{ fontSize: 12, color: 'var(--md-on-surface)', textAlign: 'right' }}>{fmt.cost(run.cost)}</span>
+      <Icon.Chevron style={{ color: hover ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-decor)' }} />
     </div>
   );
 }
@@ -487,7 +487,7 @@ function PhaseMini({ phase, status }) {
       {PHASES.map((p) => {
         const completed = p.id < phase || (status === 'completed' && p.id <= 5);
         const current = p.id === phase && status !== 'completed';
-        let bg = 'var(--border-2)';
+        let bg = 'var(--md-outline-variant)';
         if (failed && current) bg = status === 'errored' ? COLORS.err : COLORS.warn;
         else if (current) bg = COLORS.info;
         else if (completed) bg = COLORS.ok;
