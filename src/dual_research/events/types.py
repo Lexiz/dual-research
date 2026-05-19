@@ -364,3 +364,100 @@ class FinalEmitted(Event):
     char_count: int
     confidence: str
     kind: str = "final_emitted"
+
+
+# ─── Spec 0114 — Deep Research lifecycle events ───────────────────────
+#
+# These events form the canonical persistence of the lifecycle. The
+# ledger can be reconstructed from the event stream alone — no need to
+# re-parse markdown for state derivation.
+
+
+@dataclass(frozen=True, kw_only=True)
+class ItemRaised(Event):
+    """A new item entered the ledger.
+
+    ``id`` is the orchestrator-assigned stable ID (e.g. ``Q-plan-c-04``).
+    ``phase`` is the integer phase number (0, 2, or 4) — string-coercion
+    happens at the serialization boundary.
+    """
+
+    id: str
+    item_kind: str          # "question" | "disagreement" | "issue" | "comment"
+    phase: int
+    round: int
+    raiser: str             # "claude" | "openai"
+    body: str
+    anchor_type: str        # "quote" | "after" | "none"
+    anchor_text: str
+    evidence_required: bool
+    kind: str = "item_raised"
+
+
+@dataclass(frozen=True, kw_only=True)
+class ItemTransitioned(Event):
+    """An item moved from one state to another.
+
+    ``actor`` is one of ``"claude"`` / ``"openai"`` / ``"orchestrator"``.
+    ``evidence_records`` is populated only on ``open → addressed``
+    transitions; each entry is a dict shape mirroring
+    ``contract.EvidenceRecord``. ``via`` is set only when
+    ``actor == "orchestrator"`` for ``capped`` transitions (``"hard_cap"``
+    or ``"ghost_cap"``).
+    """
+
+    id: str
+    from_state: str         # "open" | "addressed" | "resolved" | …
+    to_state: str
+    actor: str              # "claude" | "openai" | "orchestrator"
+    phase: int
+    round: int
+    reason: str
+    evidence_records: list[dict] = field(default_factory=list)
+    via: str | None = None
+    kind: str = "item_transitioned"
+
+
+@dataclass(frozen=True, kw_only=True)
+class CloseoutUrged(Event):
+    """The orchestrator detected both agents emitted AGREED with
+    non-terminal items in the ledger. The next round becomes a closeout
+    round; each agent's prompt receives a closeout_request section.
+    """
+
+    phase: int
+    round: int
+    affected_items: list[str] = field(default_factory=list)
+    affected_raiser_budgets: dict[str, int] = field(default_factory=dict)
+    kind: str = "closeout_urged"
+
+
+@dataclass(frozen=True, kw_only=True)
+class CloseoutViolation(Event):
+    """A closeout-round turn contained a forbidden operation (e.g. a
+    RAISE block). The orchestrator silently drops the offending block
+    and records this event for diagnostics.
+    """
+
+    phase: int
+    round: int
+    agent: str
+    violation_code: str     # "closeout_violation_raise" | …
+    dropped_block: str = ""
+    kind: str = "closeout_violation"
+
+
+@dataclass(frozen=True, kw_only=True)
+class PhaseConverged(Event):
+    """A phase reached terminal convergence.
+
+    One of ``via_closeout`` / ``via_ghost_cap`` / ``via_hard_cap`` may
+    be ``True``; an organic convergence has all three ``False``.
+    """
+
+    phase: int
+    final_round: int
+    via_closeout: bool = False
+    via_ghost_cap: bool = False
+    via_hard_cap: bool = False
+    kind: str = "phase_converged"

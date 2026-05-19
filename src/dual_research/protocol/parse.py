@@ -3,7 +3,60 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from dual_research.contract.categories import Category
+from dual_research.contract.evidence import EvidenceRecord
+from dual_research.contract.markers import (
+    ADDRESS_PROPOSES_STATUS_RE,
+    ADDRESSED_THIS_TURN_RE,
+    ACKNOWLEDGED_THIS_TURN_RE,
+    ADDRESSED_COMMENTS_RE,
+    ADDRESSED_DISAGREEMENTS_RE,
+    ADDRESSED_ISSUES_RE,
+    ADDRESSED_QUESTIONS_RE,
+    DRAFT_HASH_RE,
+    DRAFT_VERSION_RE,
+    EVIDENCE_EVENT_ID_RE,
+    EVIDENCE_FETCHED_AT_RE,
+    EVIDENCE_SEARCH_QUERY_RE,
+    EVIDENCE_TITLE_RE,
+    EVIDENCE_URL_RE,
+    OP_ACKNOWLEDGE_RE,
+    OP_ADDRESS_RE,
+    OP_EVIDENCE_RE,
+    OP_RAISE_RE,
+    OP_RESOLVE_RE,
+    OP_WITHDRAW_RE,
+    OPEN_COMMENTS_RE,
+    OPEN_DISAGREEMENTS_RE,
+    OPEN_ISSUES_RE,
+    OPEN_QUESTIONS_RE,
+    RAISE_ANCHOR_TEXT_RE,
+    RAISE_ANCHOR_TYPE_RE,
+    RAISE_EVIDENCE_REQUIRED_RE,
+    RAISE_KIND_RE,
+    RAISED_THIS_TURN_RE,
+    RESOLVED_THIS_TURN_RE,
+    SECTION_ADDRESSING_RE,
+    SECTION_NEW_ITEMS_RE,
+    SECTION_PHASE_ARTIFACT_RE,
+    SECTION_RATIFYING_RE,
+    SECTION_REVISED_DRAFT_RE,
+    SECTION_STANCE_RE,
+    SECTION_STATUS_RE,
+    STATUS_RE as STATUS_V2_RE,
+    WITHDRAWN_THIS_TURN_RE,
+    list_ids,
+)
+from dual_research.contract.operations import (
+    AcknowledgeBlock,
+    AddressBlock,
+    OperationBlock,
+    RaiseBlock,
+    ResolveBlock,
+    WithdrawBlock,
+)
 from dual_research.protocol.errors import Status
+from dual_research.protocol.parse_v2 import ParsedTurnV2
 
 # Field regexes — tolerant of leading list markers, surrounding backticks,
 # emphasis, and blockquote prefixes. The original .mjs implementation uses
@@ -32,12 +85,22 @@ STRONGEST_REMAINING_OBJECTION_RE = re.compile(
 )
 WHY_NON_BLOCKING_RE = re.compile(_LEAD + r"WHY_NON_BLOCKING:[ \t]*`?(.*)`?", re.MULTILINE)
 
-# Spec 0036: word-boundary anchor + tolerate trailing content. Agents
-# emit headings like ``## Evidence checked this round (3 sources)`` or
-# ``## Evidence checked this round:`` — the old ``\s*$`` form missed
-# them. ``\b`` keeps ``roundup`` / ``roundtable`` from false-positive.
+# Spec 0036 / 0114: word-boundary OR uppercase-letter lookahead.
+#
+# Pre-0114 the regex used a plain ``\b`` after ``round``. The bug:
+# agents sometimes glue the heading directly to the body with no
+# newline or whitespace between them (e.g. ``## Evidence checked this
+# roundThe search confirms…`` — see runs/20260519-132908-backend-
+# language-choice/phase4/round-03-claude.md line 39). Between ``d`` and
+# ``T`` there is no ``\b``, so the section was silently missed and the
+# legacy parser thought no evidence was checked.
+#
+# ``(?=\b|[A-Z])`` accepts either a real word boundary (the normal
+# case) or an uppercase letter immediately after ``round`` (the glued
+# case). Keeps ``roundup`` / ``roundtable`` from false-positive because
+# their continuation is lowercase.
 EVIDENCE_CHECKED_SECTION_RE = re.compile(
-    r"^##\s+Evidence checked this round\b", re.MULTILINE
+    r"^##\s+Evidence checked this round(?=\b|[A-Z])", re.MULTILINE
 )
 CARRYOVER_AUDIT_SECTION_RE = re.compile(
     r"^##\s+Disagreement carryover audit\b", re.MULTILINE
@@ -761,3 +824,581 @@ def synthesise_brief_tldr(brief_text: str, *, max_sentences: int = 2, max_chars:
     if len(chosen) > max_chars:
         chosen = chosen[:max_chars].rsplit(" ", 1)[0].rstrip(",.;:") + "…"
     return chosen or None
+
+
+# ─── Spec 0114 — new-protocol parser (parse_turn_v2) ──────────────────
+#
+# Reads a turn in the new Deep Research output protocol and returns a
+# ParsedTurnV2 carrying typed operation blocks, action-array IDs, the
+# STATUS value, optional phase artifact text, and self-reported
+# counters. The legacy parse_turn / ParsedTurn remain available for
+# the backward-compat shim path during the migration.
+
+
+# Regex for "key: value" single-line fields (used inside operation
+# block bodies). The capture group is the raw value text after the
+# colon, NOT stripped of surrounding whitespace.
+_FIELD_LINE_RE = re.compile(r"^\s*([A-Za-z_]+)\s*:\s*(.*?)\s*$", re.MULTILINE)
+
+# Regex for "key: |" line indicating a YAML block scalar follows.
+_BLOCK_SCALAR_OPENER_RE = re.compile(r"^\s*([A-Za-z_]+)\s*:\s*\|\s*$", re.MULTILINE)
+
+
+def _extract_block_scalar(text: str, start_after: int) -> tuple[str, int]:
+    """Extract an indented YAML-style block scalar starting after
+    ``start_after``. Returns ``(body, end_offset)`` where ``end_offset``
+    is the character index in ``text`` where the block ended.
+
+    The first non-empty line after ``start_after`` establishes the
+    indent prefix; subsequent lines belonging to the block are those
+    starting with at least that indent. The block ends at the first
+    less-indented non-empty line.
+    """
+    lines = text[start_after:].splitlines(keepends=True)
+    body_lines: list[str] = []
+    indent: str | None = None
+    consumed = 0
+    for line in lines:
+        if not line.strip():
+            # Blank line — part of the scalar if we already started, otherwise
+            # leading whitespace we skip.
+            if indent is None:
+                consumed += len(line)
+                continue
+            body_lines.append("")
+            consumed += len(line)
+            continue
+        # Determine leading indent (spaces only — YAML block scalars
+        # don't use tabs).
+        stripped = line.lstrip(" ")
+        leading = len(line) - len(stripped)
+        if indent is None:
+            if leading == 0:
+                # First non-blank line has no indent — block scalar is empty.
+                break
+            indent = " " * leading
+            body_lines.append(stripped.rstrip("\n"))
+            consumed += len(line)
+            continue
+        if leading >= len(indent):
+            body_lines.append(line[len(indent):].rstrip("\n"))
+            consumed += len(line)
+            continue
+        # Less-indented line: block ends here.
+        break
+    body = "\n".join(body_lines).rstrip()
+    return body, start_after + consumed
+
+
+def _section_body(
+    text: str,
+    *,
+    start_match: "re.Match[str]",
+    end_patterns: list["re.Pattern[str]"],
+) -> str:
+    """Return the body of a section starting at ``start_match`` up to
+    the first match of any pattern in ``end_patterns``."""
+    start = start_match.end()
+    rest = text[start:]
+    end_offsets = []
+    for pat in end_patterns:
+        m = pat.search(rest)
+        if m:
+            end_offsets.append(m.start())
+    if not end_offsets:
+        return rest
+    return rest[: min(end_offsets)]
+
+
+# All section patterns the parser knows about — used to define section
+# boundaries when extracting the body of a specific section.
+_ALL_SECTION_PATTERNS = [
+    SECTION_STANCE_RE,
+    SECTION_ADDRESSING_RE,
+    SECTION_RATIFYING_RE,
+    SECTION_NEW_ITEMS_RE,
+    SECTION_PHASE_ARTIFACT_RE,
+    SECTION_REVISED_DRAFT_RE,
+    SECTION_STATUS_RE,
+]
+
+
+def _other_section_patterns(this: "re.Pattern[str]") -> list["re.Pattern[str]"]:
+    return [p for p in _ALL_SECTION_PATTERNS if p is not this]
+
+
+def _extract_section_body(text: str, pattern: "re.Pattern[str]") -> str | None:
+    m = pattern.search(text)
+    if not m:
+        return None
+    return _section_body(
+        text,
+        start_match=m,
+        end_patterns=_other_section_patterns(pattern),
+    ).strip() or None
+
+
+# ─── Operation-block extraction ───────────────────────────────────────
+
+
+def _split_blocks(section_body: str, openers: list["re.Pattern[str]"]) -> list[tuple[str, "re.Match[str]"]]:
+    """Walk through ``section_body`` and return the substrings
+    delimited by ``### `` operation-block headings.
+
+    Each return entry is ``(raw_block_text, opening_match)``. The
+    ``opening_match`` is one of the supplied openers. A trailing block
+    runs to the end of ``section_body``.
+    """
+    matches: list[tuple[int, "re.Match[str]"]] = []
+    for pat in openers:
+        for m in pat.finditer(section_body):
+            matches.append((m.start(), m))
+    matches.sort(key=lambda x: x[0])
+    out: list[tuple[str, "re.Match[str]"]] = []
+    for i, (start, m) in enumerate(matches):
+        end = matches[i + 1][0] if i + 1 < len(matches) else len(section_body)
+        out.append((section_body[start:end], m))
+    return out
+
+
+def _strip_evidence_block(raw: str) -> tuple[str, str]:
+    """Split an ADDRESS block body into (pre_evidence_body, evidence_yaml_text).
+
+    The evidence: yaml-list-style block runs from the first occurrence
+    of ``evidence:`` on its own line (with optional whitespace) until
+    the next sibling field key at the same indent or the end of the
+    block.
+    """
+    m = re.search(r"^\s*evidence\s*:\s*$", raw, re.MULTILINE)
+    if not m:
+        return raw, ""
+    head = raw[: m.start()]
+    rest = raw[m.end():]
+    # Sibling field marker = a non-indented line containing "<key>:"
+    # at zero indent inside the block. Use proposes_status as the
+    # primary terminator since it always follows the evidence list.
+    end_m = re.search(r"^[a-z_]+\s*:.*$", rest, re.MULTILINE)
+    if not end_m:
+        return head, rest
+    return head + rest[end_m.start():], rest[: end_m.start()]
+
+
+def _parse_evidence_yaml(yaml_text: str, *, item_id: str) -> list[EvidenceRecord]:
+    """Parse the YAML-list-of-mappings under ``evidence:`` into records.
+
+    Tolerant: each entry begins with ``- url:`` or just ``url:`` on its
+    own indented line. Fields after the leading url: are mapped by name.
+    The ``content_excerpt:`` field is a YAML block scalar.
+    """
+    records: list[EvidenceRecord] = []
+    # Split entries on the leading "- url:" marker.
+    entry_starts = [m.start() for m in re.finditer(
+        r"^\s*-\s*url\s*:", yaml_text, re.MULTILINE,
+    )]
+    if not entry_starts:
+        return records
+    entry_starts.append(len(yaml_text))
+    for i in range(len(entry_starts) - 1):
+        chunk = yaml_text[entry_starts[i]: entry_starts[i + 1]]
+        url_m = EVIDENCE_URL_RE.search(chunk)
+        title_m = EVIDENCE_TITLE_RE.search(chunk)
+        sq_m = EVIDENCE_SEARCH_QUERY_RE.search(chunk)
+        fa_m = EVIDENCE_FETCHED_AT_RE.search(chunk)
+        eid_m = EVIDENCE_EVENT_ID_RE.search(chunk)
+        # content_excerpt: |  + indented block
+        excerpt_m = re.search(
+            r"^\s*content_excerpt\s*:\s*\|\s*$",
+            chunk,
+            re.MULTILINE,
+        )
+        excerpt = ""
+        if excerpt_m:
+            excerpt, _ = _extract_block_scalar(chunk, excerpt_m.end())
+        records.append(EvidenceRecord(
+            item_id=item_id,
+            url=(url_m.group(1).strip() if url_m else ""),
+            title=(title_m.group(1).strip() if title_m else ""),
+            search_query=(sq_m.group(1).strip() if sq_m else ""),
+            fetched_at=(fa_m.group(1).strip() if fa_m else ""),
+            evidence_event_id=(eid_m.group(1).strip() if eid_m else ""),
+            content_excerpt=excerpt,
+        ))
+    return records
+
+
+def _parse_field_block_scalar(block_text: str, field_name: str) -> str:
+    """Return the body of ``<field_name>: |`` followed by an indented
+    block, or empty string when absent."""
+    m = re.search(
+        r"^\s*" + re.escape(field_name) + r"\s*:\s*\|\s*$",
+        block_text,
+        re.MULTILINE,
+    )
+    if not m:
+        return ""
+    body, _ = _extract_block_scalar(block_text, m.end())
+    return body
+
+
+def _parse_raise_block(raw: str) -> RaiseBlock | None:
+    kind_m = RAISE_KIND_RE.search(raw)
+    if not kind_m:
+        return None
+    body = _parse_field_block_scalar(raw, "body")
+    anchor_type_m = RAISE_ANCHOR_TYPE_RE.search(raw)
+    anchor_text_m = RAISE_ANCHOR_TEXT_RE.search(raw)
+    evidence_req_m = RAISE_EVIDENCE_REQUIRED_RE.search(raw)
+    blockquote_m = re.search(
+        r"^\s*>\s*(?:quote|after)\s*:\s*(.+?)\s*$",
+        raw,
+        re.MULTILINE | re.IGNORECASE,
+    )
+    try:
+        kind = Category(kind_m.group(1).lower())
+    except ValueError:
+        return None
+    return RaiseBlock(
+        kind=kind,
+        body=body.strip(),
+        anchor_type=(anchor_type_m.group(1).lower() if anchor_type_m else "none"),
+        anchor_text=(anchor_text_m.group(1).strip() if anchor_text_m else ""),
+        evidence_required=(
+            (evidence_req_m.group(1).lower() == "true") if evidence_req_m else False
+        ),
+        blockquote_anchor=(blockquote_m.group(1).strip() if blockquote_m else ""),
+        raw_text=raw,
+    )
+
+
+def _parse_address_block(raw: str, *, item_id: str | None) -> AddressBlock | None:
+    if not item_id:
+        return None
+    pre_evidence, evidence_yaml = _strip_evidence_block(raw)
+    response = _parse_field_block_scalar(pre_evidence, "response")
+    proposes_m = ADDRESS_PROPOSES_STATUS_RE.search(raw)
+    evidence_records = _parse_evidence_yaml(evidence_yaml, item_id=item_id)
+    return AddressBlock(
+        item_id=item_id,
+        response=response.strip(),
+        evidence=evidence_records,
+        proposes_status=(
+            proposes_m.group(1).lower() if proposes_m else "addressed"
+        ),
+        raw_text=raw,
+    )
+
+
+def _parse_resolve_block(raw: str, *, item_id: str | None) -> ResolveBlock | None:
+    if not item_id:
+        return None
+    reason = _parse_field_block_scalar(raw, "reason")
+    return ResolveBlock(item_id=item_id, reason=reason.strip(), raw_text=raw)
+
+
+def _parse_acknowledge_block(
+    raw: str,
+    *,
+    item_id: str | None,
+    section: str,
+) -> AcknowledgeBlock | None:
+    if not item_id:
+        return None
+    reason = _parse_field_block_scalar(raw, "reason")
+    return AcknowledgeBlock(
+        item_id=item_id,
+        reason=reason.strip(),
+        section=section,
+        raw_text=raw,
+    )
+
+
+def _parse_withdraw_block(raw: str, *, item_id: str | None) -> WithdrawBlock | None:
+    if not item_id:
+        return None
+    reason = _parse_field_block_scalar(raw, "reason")
+    return WithdrawBlock(item_id=item_id, reason=reason.strip(), raw_text=raw)
+
+
+# ─── Action-array + counter parsing ───────────────────────────────────
+
+
+def _parse_action_array(text: str, pat: "re.Pattern[str]") -> list[str]:
+    m = pat.search(text)
+    if not m:
+        return []
+    return list_ids(m.group("ids"))
+
+
+def _parse_counter(text: str, pat: "re.Pattern[str]") -> int | None:
+    m = pat.search(text)
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+# ─── Top-level parse_turn_v2 ──────────────────────────────────────────
+
+
+def parse_turn_v2(text: str) -> ParsedTurnV2:
+    """Parse a Deep Research turn text into a typed ``ParsedTurnV2``.
+
+    The parser is best-effort: malformed blocks are skipped rather than
+    raised. The validator (``contract.validate_parsed``) is the authority
+    on rejection; ``parse_turn_v2`` always returns a value so the
+    validator can report errors against it.
+    """
+    text = text or ""
+
+    # STATUS
+    status_m = STATUS_V2_RE.search(text)
+    status = status_m.group(1) if status_m else None
+
+    # Section bodies
+    addressing_body = _extract_section_body(text, SECTION_ADDRESSING_RE) or ""
+    ratifying_body = _extract_section_body(text, SECTION_RATIFYING_RE) or ""
+    new_items_body = _extract_section_body(text, SECTION_NEW_ITEMS_RE) or ""
+    phase_artifact = _extract_section_body(text, SECTION_PHASE_ARTIFACT_RE)
+    revised_draft = _extract_section_body(text, SECTION_REVISED_DRAFT_RE)
+    stance = _extract_section_body(text, SECTION_STANCE_RE)
+
+    blocks: list[OperationBlock] = []
+
+    # RAISE blocks live in `## New items I'm raising`.
+    for raw, _ in _split_blocks(new_items_body, [OP_RAISE_RE]):
+        rb = _parse_raise_block(raw)
+        if rb is not None:
+            blocks.append(rb)
+
+    # ADDRESS / ACKNOWLEDGE blocks live in `## Addressing items raised against me`.
+    for raw, opener_m in _split_blocks(
+        addressing_body,
+        [OP_ADDRESS_RE, OP_ACKNOWLEDGE_RE, OP_EVIDENCE_RE],
+    ):
+        if OP_ADDRESS_RE.match(opener_m.group(0)):
+            ab = _parse_address_block(
+                raw,
+                item_id=opener_m.group("id") if opener_m.groupdict().get("id") else None,
+            )
+            if ab is not None:
+                blocks.append(ab)
+        elif OP_ACKNOWLEDGE_RE.match(opener_m.group(0)):
+            ack = _parse_acknowledge_block(
+                raw,
+                item_id=opener_m.group("id") if opener_m.groupdict().get("id") else None,
+                section="addressing",
+            )
+            if ack is not None:
+                blocks.append(ack)
+        elif OP_EVIDENCE_RE.match(opener_m.group(0)):
+            # Standalone EVIDENCE-for-<id> block (alternative to inline
+            # evidence: under the ADDRESS body). Attach to the matching
+            # ADDRESS block when one already exists.
+            ev_id = opener_m.group("id")
+            attached = False
+            for blk in blocks:
+                if isinstance(blk, AddressBlock) and blk.item_id == ev_id:
+                    rec = _parse_evidence_yaml("- " + raw, item_id=ev_id)
+                    if rec:
+                        # Replace the block with one that has appended evidence.
+                        new_evidence = list(blk.evidence) + rec
+                        idx = blocks.index(blk)
+                        blocks[idx] = AddressBlock(
+                            item_id=blk.item_id,
+                            response=blk.response,
+                            evidence=new_evidence,
+                            proposes_status=blk.proposes_status,
+                            raw_text=blk.raw_text,
+                        )
+                        attached = True
+                        break
+            if not attached:
+                # No matching ADDRESS; ignore the orphan record.
+                pass
+
+    # RESOLVE / ACKNOWLEDGE / WITHDRAW blocks live in `## Ratifying my own items`.
+    for raw, opener_m in _split_blocks(
+        ratifying_body,
+        [OP_RESOLVE_RE, OP_ACKNOWLEDGE_RE, OP_WITHDRAW_RE],
+    ):
+        if OP_RESOLVE_RE.match(opener_m.group(0)):
+            rb = _parse_resolve_block(
+                raw,
+                item_id=opener_m.group("id") if opener_m.groupdict().get("id") else None,
+            )
+            if rb is not None:
+                blocks.append(rb)
+        elif OP_ACKNOWLEDGE_RE.match(opener_m.group(0)):
+            ack = _parse_acknowledge_block(
+                raw,
+                item_id=opener_m.group("id") if opener_m.groupdict().get("id") else None,
+                section="ratifying",
+            )
+            if ack is not None:
+                blocks.append(ack)
+        elif OP_WITHDRAW_RE.match(opener_m.group(0)):
+            wb = _parse_withdraw_block(
+                raw,
+                item_id=opener_m.group("id") if opener_m.groupdict().get("id") else None,
+            )
+            if wb is not None:
+                blocks.append(wb)
+
+    # Action arrays — searched anywhere in the turn (the status footer
+    # is at the end but tolerance for placement is cheap).
+    raised_ids = _parse_action_array(text, RAISED_THIS_TURN_RE)
+    addressed_ids = _parse_action_array(text, ADDRESSED_THIS_TURN_RE)
+    resolved_ids = _parse_action_array(text, RESOLVED_THIS_TURN_RE)
+    acknowledged_ids = _parse_action_array(text, ACKNOWLEDGED_THIS_TURN_RE)
+    withdrawn_ids = _parse_action_array(text, WITHDRAWN_THIS_TURN_RE)
+
+    # Per-kind counters.
+    counters: dict[str, int] = {}
+    for label, pat in [
+        ("OPEN_QUESTIONS", OPEN_QUESTIONS_RE),
+        ("OPEN_DISAGREEMENTS", OPEN_DISAGREEMENTS_RE),
+        ("OPEN_ISSUES", OPEN_ISSUES_RE),
+        ("OPEN_COMMENTS", OPEN_COMMENTS_RE),
+        ("ADDRESSED_QUESTIONS", ADDRESSED_QUESTIONS_RE),
+        ("ADDRESSED_DISAGREEMENTS", ADDRESSED_DISAGREEMENTS_RE),
+        ("ADDRESSED_ISSUES", ADDRESSED_ISSUES_RE),
+        ("ADDRESSED_COMMENTS", ADDRESSED_COMMENTS_RE),
+    ]:
+        val = _parse_counter(text, pat)
+        if val is not None:
+            counters[label] = val
+
+    return ParsedTurnV2(
+        status=status,
+        blocks=blocks,
+        raised_this_turn=raised_ids,
+        addressed_this_turn=addressed_ids,
+        resolved_this_turn=resolved_ids,
+        acknowledged_this_turn=acknowledged_ids,
+        withdrawn_this_turn=withdrawn_ids,
+        counters=counters,
+        phase_artifact=phase_artifact,
+        revised_draft=revised_draft,
+        stance=stance,
+    )
+
+
+# ─── ID assignment (post-parse) ───────────────────────────────────────
+
+
+def assign_raise_ids(
+    parsed: ParsedTurnV2,
+    *,
+    phase: int,
+    raiser: str,
+    next_seq_provider,
+) -> ParsedTurnV2:
+    """Stamp orchestrator-assigned IDs onto the parser's RAISE blocks.
+
+    ``next_seq_provider`` is a callable ``(kind: Category) -> int`` that
+    returns the next monotonic sequence in the (kind, phase, raiser)
+    namespace and advances it. Returns a new ``ParsedTurnV2`` with
+    ``raised_this_turn`` populated with the stamped IDs.
+
+    The parser itself does NOT call this — the orchestrator owns the
+    ledger and the next-seq counters, so it invokes ``assign_raise_ids``
+    after ``parse_turn_v2`` returns.
+    """
+    from dual_research.contract.ids import format_id
+
+    new_raised: list[str] = []
+    new_blocks: list[OperationBlock] = []
+    for blk in parsed.blocks:
+        if isinstance(blk, RaiseBlock):
+            seq = next_seq_provider(blk.kind)
+            item_id = format_id(blk.kind, phase, raiser, seq)
+            new_raised.append(item_id)
+            # RaiseBlock doesn't itself carry the ID — the orchestrator
+            # records the assignment separately. We surface it via
+            # raised_this_turn on the returned ParsedTurnV2.
+            new_blocks.append(blk)
+        else:
+            new_blocks.append(blk)
+    return ParsedTurnV2(
+        status=parsed.status,
+        blocks=new_blocks,
+        raised_this_turn=new_raised,
+        addressed_this_turn=parsed.addressed_this_turn,
+        resolved_this_turn=parsed.resolved_this_turn,
+        acknowledged_this_turn=parsed.acknowledged_this_turn,
+        withdrawn_this_turn=parsed.withdrawn_this_turn,
+        counters=parsed.counters,
+        phase_artifact=parsed.phase_artifact,
+        revised_draft=parsed.revised_draft,
+        stance=parsed.stance,
+    )
+
+
+# ─── Phase-artifact extraction helpers ────────────────────────────────
+
+
+def extract_agreed_interpretation_body(turn_text: str) -> str | None:
+    """Return the body under ``## Phase artifact`` > ``### AGREED_INTERPRETATION``.
+
+    Phase 0 hash-target. Returns ``None`` when the artifact section is
+    absent.
+    """
+    artifact = _extract_section_body(turn_text, SECTION_PHASE_ARTIFACT_RE)
+    if not artifact:
+        return None
+    m = re.search(r"^###\s+AGREED_INTERPRETATION\b", artifact, re.MULTILINE)
+    if not m:
+        return None
+    body_start = m.end()
+    return artifact[body_start:].strip() or None
+
+
+def extract_agreed_plan_body(turn_text: str) -> str | None:
+    """Return the body under ``## Phase artifact`` > ``### AGREED_PLAN``.
+
+    Phase 2 hash-target. Returns ``None`` when the artifact section is
+    absent.
+    """
+    artifact = _extract_section_body(turn_text, SECTION_PHASE_ARTIFACT_RE)
+    if not artifact:
+        return None
+    m = re.search(r"^###\s+AGREED_PLAN\b", artifact, re.MULTILINE)
+    if not m:
+        return None
+    return artifact[m.end():].strip() or None
+
+
+def extract_agreed_draft_acceptance(turn_text: str) -> tuple[int, str, str] | None:
+    """Return ``(draft_version, draft_hash, endorsement)`` from ``### AGREED_DRAFT_ACCEPTANCE``.
+
+    Phase 4 acceptance block. Returns ``None`` when the section is
+    absent. Missing fields default to ``(0, "", "")`` per field.
+    """
+    artifact = _extract_section_body(turn_text, SECTION_PHASE_ARTIFACT_RE)
+    if not artifact:
+        return None
+    m = re.search(r"^###\s+AGREED_DRAFT_ACCEPTANCE\b", artifact, re.MULTILINE)
+    if not m:
+        return None
+    body = artifact[m.end():]
+    ver_m = DRAFT_VERSION_RE.search(body)
+    hash_m = DRAFT_HASH_RE.search(body)
+    endorsement = _parse_field_block_scalar(body, "endorsement")
+    version = int(ver_m.group(1)) if ver_m else 0
+    digest = hash_m.group(1).lower() if hash_m else ""
+    return version, digest, endorsement.strip()
+
+
+def extract_drafter_from_agreed_plan(agreed_plan_body: str) -> str | None:
+    """Return the ``DRAFTER:`` line value from an AGREED_PLAN body.
+
+    Returns ``None`` when the line is absent or the value is unknown.
+    """
+    m = re.search(
+        r"^\s*DRAFTER:\s*`?(claude|openai)`?\s*$",
+        agreed_plan_body or "",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    return m.group(1).lower() if m else None

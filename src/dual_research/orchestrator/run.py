@@ -18,11 +18,21 @@ from dual_research.events import (
     TurnEnded,
 )
 from dual_research.orchestrator.finalize import emit_final
-from dual_research.orchestrator.phase0 import Phase0Outcome, run_phase0
-from dual_research.orchestrator.phase1 import Phase1Outcome, run_phase1
-from dual_research.orchestrator.phase2 import Phase2Outcome, run_phase2
-from dual_research.orchestrator.phase3 import Phase3Outcome, run_phase3
-from dual_research.orchestrator.phase4 import Phase4Outcome, run_phase4
+# Spec 0114 — the production path uses the new Deep Research runners.
+# The legacy ``run_phase{0..4}`` coroutines remain importable for their
+# dedicated tests but ``run.py`` no longer calls them.
+from dual_research.orchestrator.dr_run import (
+    run_dr_phase0 as run_phase0,
+    run_dr_phase1 as run_phase1,
+    run_dr_phase2 as run_phase2,
+    run_dr_phase3 as run_phase3,
+    run_dr_phase4 as run_phase4,
+)
+from dual_research.orchestrator.phase0 import Phase0Outcome
+from dual_research.orchestrator.phase1 import Phase1Outcome
+from dual_research.orchestrator.phase2 import Phase2Outcome
+from dual_research.orchestrator.phase3 import Phase3Outcome
+from dual_research.orchestrator.phase4 import Phase4Outcome
 from dual_research.persistence import (
     Metrics,
     SessionContext,
