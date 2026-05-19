@@ -374,11 +374,12 @@ function Markdown({ text, className, style }) {
 //   tabs      [{id,label,content,count?,badge?}] — optional tab strip (rendered
 //              via TabGroup line variant). When provided the body renders only
 //              the active tab's `content`; `children` is ignored.
-//   agent     'a'|'b'|null — controls the 3 px left-border color.
-//   variant   'single'|'split' — default 'single'.
+//   agent     'a'|'b'|null — controls the 4 px left-border color (v1 compat).
+//   agentTint 'a'|'b'|null — M3 alias for agent (spec 0096).
+//   variant   'single'|'split'|'basic'|'rich' — default 'single'/'basic'.
 //   footer    node     — optional fixed footer below the body (e.g. RoundScrubber).
 //   children  node     — body content (ignored when `tabs` is provided).
-function Modal({ open, onClose, title, subtitle, tabs, agent, variant = 'single', footer, children }) {
+function Modal({ open, onClose, title, subtitle, tabs, agent, agentTint, variant = 'single', footer, children }) {
   const [activeId, setActiveId] = React.useState(null);
   const modalRef = React.useRef(null);
   const previousFocusRef = React.useRef(null);
@@ -442,10 +443,23 @@ function Modal({ open, onClose, title, subtitle, tabs, agent, variant = 'single'
 
   const activeTab = tabs && tabs.find ? tabs.find((t) => t.id === activeId) : null;
   const body = tabs ? (activeTab ? activeTab.content : null) : children;
-  const modalCls = _cn('dr-modal', variant === 'split' && 'is-split', agent && `is-${agent}`);
+
+  // Resolve agent tint: new `agentTint` prop takes priority over v1 `agent`.
+  const tint = agentTint || agent || null;
+
+  // Map variant: v1 'single'→'basic', v1 'split'→'rich'; M3 names pass through.
+  const resolvedVariant = variant === 'split' ? 'rich' : (variant === 'single' ? 'basic' : variant);
+
+  const modalCls = _cn(
+    'dr-modal', 'md-dialog',
+    resolvedVariant === 'rich' ? 'is-split' : null,
+    resolvedVariant === 'rich' ? 'md-dialog--rich' : 'md-dialog--basic',
+    tint && `is-${tint}`,
+    tint && `md-dialog--agent-${tint}`,
+  );
 
   return (
-    <div className="dr-backdrop" onClick={onClose}>
+    <div className="dr-backdrop md-dialog__scrim" onClick={onClose}>
       <div
         ref={modalRef}
         role="dialog"
@@ -456,7 +470,7 @@ function Modal({ open, onClose, title, subtitle, tabs, agent, variant = 'single'
         {/* Header */}
         <div className="dr-modal-header">
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="dr-modal-title">{title}</div>
+            <div className="dr-modal-title md-dialog__title">{title}</div>
             {subtitle && <div className="dr-modal-sub">{subtitle}</div>}
           </div>
           <button
@@ -494,7 +508,7 @@ function Modal({ open, onClose, title, subtitle, tabs, agent, variant = 'single'
         )}
 
         {/* Body */}
-        <div className="dr-modal-body">
+        <div className="dr-modal-body md-dialog__body">
           {body}
         </div>
 

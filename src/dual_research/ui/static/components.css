@@ -1098,6 +1098,56 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 
 /* ─────────────────────────────────────────────────────────────
+   M3 Dialog (.md-dialog) — SPEC-0096
+   Canonical M3 modal primitive: shape-xl, surface-3, elevation-3.
+   Variants: --basic (560 dp), --rich (1080 dp).
+   Agent-tint: --agent-a (sable), --agent-b (sage).
+   ───────────────────────────────────────────────────────────── */
+.md-dialog__scrim {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 50;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: var(--md-sp-6) var(--md-sp-6);
+  overflow-y: auto;
+  animation: md-dialog-in var(--md-dur-medium-2) var(--md-easing-emphasized-decel);
+}
+body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
+@keyframes md-dialog-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .md-dialog__scrim { animation: none; }
+}
+.md-dialog {
+  border-radius: var(--md-shape-xl);
+  background: var(--md-surface-3);
+  color: var(--md-on-surface);
+  padding: var(--md-sp-6);
+  box-shadow: var(--md-elev-3);
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  min-height: 72vh;
+  max-height: 92vh;
+  overflow: hidden;
+  border-left: 4px solid transparent;
+}
+.md-dialog--basic { max-width: 560px; }
+.md-dialog--rich  { max-width: 1080px; }
+.md-dialog--agent-a { border-left: 4px solid var(--p-sable); }
+.md-dialog--agent-b { border-left: 4px solid var(--p-sage); }
+.md-dialog__icon {
+  width: 24px; height: 24px; color: var(--md-primary);
+  margin: 0 auto var(--md-sp-4);
+}
+.md-dialog__title {
+  font: var(--md-w-medium) var(--md-headline-s-size)/var(--md-headline-s-lh) var(--md-font-brand);
+  margin: 0 0 var(--md-sp-4);
+}
+.md-dialog__body { color: var(--md-on-surface-variant); margin-bottom: var(--md-sp-6); flex: 1; min-height: 0; overflow: auto; }
+.md-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+
+/* ─────────────────────────────────────────────────────────────
    RoundScrubber (.round-scrubber) — SUR-12
    Horizontal round-stepping bar at the bottom of split modals.
    ───────────────────────────────────────────────────────────── */
