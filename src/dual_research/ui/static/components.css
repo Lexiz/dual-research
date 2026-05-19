@@ -2649,3 +2649,20 @@ body.light .tour-overlay__mask {
   text-transform: uppercase; color: var(--info); margin-bottom: 8px;
 }
 @media (max-width: 1499px) { .resp-grid { grid-template-columns: 1fr; } }
+
+/* ── Spec 0105 — run-detail sub-header + agent bar ──────── */
+.run-detail__head {
+  display: flex; flex-direction: column;
+  padding: 12px 20px;
+  background: var(--md-surface-container-low);
+  border-bottom: 1px solid var(--md-outline-hair);
+  gap: 6px;
+  flex-shrink: 0;
+}
+.agent-bar {
+  display: flex; gap: var(--md-sp-6);
+  padding: var(--md-sp-2) var(--md-sp-5);
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  flex-shrink: 0;
+}
