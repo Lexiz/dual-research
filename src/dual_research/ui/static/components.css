@@ -1876,3 +1876,200 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
     transition: none;
   }
 }
+
+/* ── Timeline pane M3 — Spec 0099 ──────────────────────── */
+
+/* Header chrome */
+.tl__head {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 14px 20px 0;
+}
+.tl__head .ttl { font: var(--md-w-medium) 16px/1 var(--md-font-plain); }
+.tl__head .ct  { font: 12px/1 var(--md-font-data); color: var(--md-on-surface-faint); }
+
+/* Pill tabs — Conversation / Consumption */
+.tl__tabs {
+  display: inline-flex; gap: 4px; align-self: flex-start;
+  margin: 12px 20px 0;
+  padding: 4px;
+  background: var(--md-surface-container);
+  border-radius: var(--md-shape-full);
+}
+.tl__tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 14px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.tl__tab .ms { font-size: 18px; }
+.tl__tab.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+
+/* Body — grid: 40px rail + 1fr phases */
+.tl__body {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 0;
+  padding: 12px 20px 16px;
+  align-items: stretch;
+}
+
+/* Vertical phase-indicator rail (Issue 5) */
+.tl__rail {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0;
+  padding-top: 18px;
+  position: relative;
+}
+.tl__rail .seg {
+  flex: 1; min-height: 100px;
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center;
+}
+.tl__rail .seg::before {
+  content: ""; position: absolute; top: 14px; bottom: -14px; width: 1px;
+  background: var(--md-outline-hair);
+}
+.tl__rail .seg:last-child::before { display: none; }
+.tl__rail .seg .marker {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--md-outline-variant);
+  z-index: 1;
+  margin-top: 8px;
+}
+.tl__rail .seg.is-done    .marker { background: var(--p-ok); }
+.tl__rail .seg.is-current .marker { background: var(--p-err); box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-err) 22%, transparent); }
+.tl__rail .seg .lbl {
+  font: var(--md-w-medium) 10px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  margin-top: 4px;
+}
+.tl__rail .seg.is-current .lbl { color: var(--p-err); }
+.tl__rail .seg.is-done    .lbl { color: var(--md-on-surface); }
+
+/* Phase list container */
+.tl__phases { display: flex; flex-direction: column; gap: 0; }
+
+/* Phase section — collapsible */
+.tl-phase { border-top: 1px solid var(--md-outline-hair); }
+.tl-phase:first-child { border-top: 0; }
+.tl-phase__hd {
+  display: grid; grid-template-columns: 20px auto 1fr auto;
+  gap: 10px; align-items: center;
+  padding: 10px 8px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+.tl-phase__hd::before {
+  content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.tl-phase__hd:hover::before { opacity: var(--md-state-hover); }
+.tl-phase__hd:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.tl-phase__hd .chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.tl-phase[data-collapsed="true"] .chev { transform: rotate(-90deg); }
+.tl-phase[data-collapsed="true"] .tl-phase__body { display: none; }
+.tl-phase__pcode {
+  font: var(--md-w-semi) 10px/1 var(--md-font-data);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+}
+.tl-phase__name {
+  font: var(--md-w-medium) 13px/1 var(--md-font-plain);
+  color: var(--md-on-surface);
+}
+.tl-phase__meta {
+  font: 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+}
+.tl-phase__body { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
+
+/* Turn row — one-line summary */
+.tl-turn {
+  display: grid;
+  grid-template-columns: 22px 64px 1fr auto 28px;
+  gap: 10px; align-items: center;
+  padding: 8px 8px 8px 28px;
+  border-radius: var(--md-shape-sm);
+  cursor: pointer;
+  position: relative;
+}
+.tl-turn::before {
+  content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.tl-turn:hover::before { opacity: var(--md-state-hover); }
+.tl-turn:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.tl-turn.is-current { background: color-mix(in srgb, var(--p-info) 8%, transparent); }
+.tl-turn__ai {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: var(--md-w-semi) 11px/1 var(--md-font-plain);
+}
+.tl-turn__ai.is-a { background: var(--md-primary);   color: var(--md-on-primary); }
+.tl-turn__ai.is-b { background: var(--md-secondary); color: var(--md-on-secondary); }
+.tl-turn__nm   { font: var(--md-w-medium) 13px/1 var(--md-font-plain); color: var(--md-on-surface); }
+.tl-turn__lbl  { font: var(--md-w-regular) 12px/1 var(--md-font-plain); color: var(--md-on-surface-variant); }
+.tl-turn__deltas { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.tl-turn__round {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  background: var(--md-surface-container);
+  padding: 4px 8px;
+  border-radius: var(--md-shape-xs);
+}
+
+/* Delta chips */
+.tl-delta {
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 8px;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 11px/1 var(--md-font-data);
+}
+.tl-delta.up   { background: color-mix(in srgb, var(--p-info) 14%, transparent); color: var(--p-info); }
+.tl-delta.down { background: color-mix(in srgb, var(--p-ok)   14%, transparent); color: var(--p-ok); }
+.tl-delta.rep  { background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn); letter-spacing: 0.08em; }
+
+/* Turn row — expanded (opens inline) · Issue 11: single dashed border */
+.tl-turn--open {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 0;
+  margin: 8px 0;
+  display: block;
+}
+.tl-turn--open .tl-turn { background: var(--md-surface-container); border-radius: var(--md-shape-md) var(--md-shape-md) 0 0; cursor: pointer; }
+.tl-turn--open .tl-turn::before { display: none; }
+.tl-turn--open .body {
+  padding: 12px 14px 14px;
+  font: 13px/1.55 var(--md-font-brand); font-style: italic;
+  color: var(--md-on-surface-variant);
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.tl-turn--open .actions {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px 12px;
+  flex-wrap: wrap;
+}
+
+/* Reduced motion for timeline phase chevron + turn expand */
+@media (prefers-reduced-motion: reduce) {
+  .tl-phase__hd .chev,
+  .tl-turn::before {
+    transition: none;
+  }
+}
+
+/* Responsive: rail collapses to 24dp gutter at narrow viewport */
+@media (max-width: 900px) {
+  .tl__body { grid-template-columns: 24px 1fr; }
+  .tl__rail .seg .lbl { display: none; }
+}
