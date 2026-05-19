@@ -1114,7 +1114,11 @@ function QuestionThread({
       onMouseLeave={() => setHover(false)}
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCardClick(); } }}
-      style={{ marginBottom: 8 }}
+      /* Spec 0116 — inline marginBottom: 8 removed. Parent flex container
+         (`gap: 8px` on .crit-group__body and .tl-phase__body) is now the
+         single source of card spacing — Critique was 16 px effective
+         (8 px parent + 8 px child); Timeline was 8 px (child overridden
+         to 0 via `.qthread.tl-thread { margin: 0 }`). Both panes at 8 px now. */
     >
       {/* HEADER — Spec 0111: five discrete chips, each carrying one fact.
           No abbreviations (rounds spelled out, phases spelled out). */}

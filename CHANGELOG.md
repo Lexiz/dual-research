@@ -10,7 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-(Nothing yet.)
+### Fixed
+
+- **Spec 0116 — Turn / cross-review modal cleanup + Timeline–Critique pane harmonisation** ([spec 0116](specs/0116-turn-modal-cleanup-and-pane-harmonisation.md)). Closes the [Notion Known issues v2](https://www.notion.so/Known-issues-v2-36599f3e507f80a8ad5fdb26b143a695) backlog (final two issues + two screenshot-driven typographic items).
+  - **`PhaseRail` removed from `NegotiateReviewModal`** (Notion issues 8 + 10). JSX callsite at `run-detail.jsx:4218` deleted; component definition preserved at `~:712-732` for future use.
+  - **Default left-pane sub-tab flipped from `'input'` to `'original'`** (`run-detail.jsx:4307`). On opening a turn modal the user now immediately sees the artifact this agent was actually responding to: Converged Draft for Phase 4, counterpart's prior turn for Phase 2 round ≥ 2, counterpart's Phase 1 draft for Phase 2 round 1.
+  - **Data-correctness investigation (Notion 10)**: Phase 4 reviewers were already correctly receiving the Converged Draft as their primary input. `src/dual_research/orchestrator/phase4.py:169-170` reads `current_draft_path(...).read_text()`; `src/dual_research/protocol/prompts.py:616-617` inlines it under "Current draft" right after the brief reference. No backend change required.
+  - **`.tl-phase__name` bumped to title-medium** (`components.css:2034`). Was `13px/1`, now `var(--md-title-m-size)/1.5` (≈ 16 px). Matches `.crit-group__title` so Timeline phase headers and Critique section headers read at equal visual weight on the run-detail page.
+  - **Inline `style={{ marginBottom: 8 }}` removed from `.qthread`** (`shared.jsx:1117`). The parent's `gap: 8px` (both `.crit-group__body` and `.tl-phase__body`) is now the single source of card spacing — equalises Critique (was 16 px effective) and Timeline (was 8 px). The `DisagreementExplorer` callsite switched to `display: flex; flex-direction: column; gap: 8` with the "Resolved" `GroupHeader`'s compensating `marginTop` adjusted from 20 → 12.
+
+  Backend untouched. No version bump or cache-bust in this PR — both roll into the next release.
 
 ## [1.1.0] — 2026-05-19
 
