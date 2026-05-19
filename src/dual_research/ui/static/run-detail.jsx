@@ -704,101 +704,25 @@ function PhaseDots({ run }) {
 // PhaseStrip / ErrorsToggleButton / RoundIndicator (spec 0017) folded into
 // RunDetailHeader above in spec 0023; RoundIndicator removed entirely in 0024.
 
-// ─────────────────── PhaseRail (SPEC-0057 D1) ───────────────────
-// Sticky vertical rail down the timeline pane left edge showing phase progress.
-// Click a phase node to scroll the timeline to that phase's divider card.
-//
-// SPEC-0087 § D.2 — pill anchoring. Each pill's vertical position
-// tracks its corresponding phase header's y-position in the timeline
-// (was: evenly spaced down a column). Implemented via IntersectionObserver
-// on the header bands + a RAF-throttled position update on scroll.
-function PhaseRail({ run, scrollContainerRef }) {
+// ─────────────────── PhaseRail (SPEC-0101 M3) ───────────────────
+// Horizontal 5-cell phase indicator strip. Renders inside modals
+// to show phase progress at a glance. Cells P0..P4 carry --done or
+// --current state tinting per the M3 design-system anatomy.
+function PhaseRail({ run }) {
   const { phase, status } = run;
-  const railRef = React.useRef(null);
-  const [pillTops, setPillTops] = React.useState({});
-
-  const handleClick = React.useCallback((phaseId) => {
-    if (!scrollContainerRef?.current) return;
-    const container = scrollContainerRef.current;
-    // Phase dividers have a data-phase-id attribute.
-    const target = container.querySelector(`[data-phase-id="${phaseId}"]`);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [scrollContainerRef]);
-
-  // Measure each phase header's y-offset within the scroll container
-  // and translate it to a `top` value for the matching pill. RAF-throttled
-  // so it stays smooth on fast scrolls. Re-runs when the timeline
-  // re-renders (artifact-card mounts / unmounts shift header positions).
-  React.useEffect(() => {
-    const container = scrollContainerRef?.current;
-    const rail = railRef.current;
-    if (!container || !rail) return;
-
-    let raf = 0;
-    const measure = () => {
-      raf = 0;
-      const containerRect = container.getBoundingClientRect();
-      const next = {};
-      for (const p of PHASES) {
-        const header = container.querySelector(`[data-phase-id="${p.id}"]`);
-        if (!header) continue;
-        const headerRect = header.getBoundingClientRect();
-        // Pin to the visible region of the scroll container — the rail
-        // is sticky to the top of the scroll container, so the y-offset
-        // is relative to the container's top edge plus scrollTop.
-        const top = headerRect.top - containerRect.top + container.scrollTop;
-        next[p.id] = Math.max(0, top);
-      }
-      setPillTops(next);
-    };
-    const schedule = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(measure);
-    };
-
-    // Initial measurement + on scroll.
-    schedule();
-    container.addEventListener('scroll', schedule, { passive: true });
-    // Re-measure when the timeline content changes via ResizeObserver
-    // (header positions shift as cards expand / collapse / load).
-    const ro = new ResizeObserver(schedule);
-    ro.observe(container);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      container.removeEventListener('scroll', schedule);
-      ro.disconnect();
-    };
-  }, [scrollContainerRef, run.phase, run.status]);
-
   return (
-    <div ref={railRef} className="phase-rail">
-      {PHASES.map((p) => {
-        const completed = p.id < phase || (status === 'completed' && p.id <= 5);
+    <div className="phase-rail">
+      {PHASES.filter(p => p.id <= 4).map(p => {
+        const done = p.id < phase || (status === 'completed' && p.id <= 4);
         const current = p.id === phase && status !== 'completed';
-        const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
-        const stateClass = failed ? 'is-failed'
-                         : current ? 'is-current'
-                         : completed ? 'is-completed'
-                         : '';
-        // When we've measured a y-offset for this phase header, position
-        // the pill absolutely at that offset. Otherwise fall back to the
-        // natural stack flow (initial paint, before measurement runs).
-        const measuredTop = pillTops[p.id];
-        const anchored = measuredTop != null;
+        const cls = ['phase-rail__cell'];
+        if (done) cls.push('phase-rail__cell--done');
+        if (current) cls.push('phase-rail__cell--current');
         return (
-          <div
-            key={p.id}
-            className={`phase-rail-node ${stateClass} ${anchored ? 'is-anchored' : ''}`}
-            onClick={() => handleClick(p.id)}
-            title={`Phase ${p.id} — ${p.label}`}
-            style={anchored ? { position: 'absolute', top: measuredTop } : undefined}
-          >
-            <span className="pr-dot">
-              {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
-            </span>
-            <span className="pr-label">{p.short}</span>
+          <div key={p.id} className={cls.join(' ')}>
+            <span className="ph">{p.short}</span>
+            <span className="name">{p.label}</span>
+            <span className="meta">{done ? 'Done' : current ? 'In progress' : 'Queued'}</span>
           </div>
         );
       })}
@@ -4065,6 +3989,8 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
       variant="split"
       footer={scrubber}
     >
+      {/* SPEC-0101: PhaseRail — horizontal 5-cell strip at the top of the modal */}
+      <PhaseRail run={run} />
       <div className="dr-modal-split">
         {/* Left: prior content + Input sub-tab (spec 0033).
             Spec 0044 D4: ``docTabs`` exposes the per-turn document
@@ -4076,6 +4002,7 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           priorFilePath={scrubOtherFilePath}
           docTabs={leftPaneTabsFor(scrubItem, otherAgent, run)}
           leftRef={leftRef}
+          run={run}
         />
 
         {/* Right: review cards */}
@@ -4145,7 +4072,7 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
 // is the prior agent's content (unchanged from spec 0027); ``Input`` is the
 // per-turn input bundle for THIS agent's turn — exactly what they were
 // handed before generating the right-pane critique.
-function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }) {
+function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, run }) {
   // Spec 0085 — split-view modals start on the Agent Input tab to match
   // the single-view modal default landed in spec 0074 (and the cross-
   // modal "Agent Input is always the first tab" rule from the
@@ -4233,7 +4160,7 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef }
         padding: '14px 16px',
       }}>
         {sub === 'original' && <LazyMarkdownBody filePath={activeDoc.path} />}
-        {sub === 'input' && <InputTabContent turnKey={item.turnKey} />}
+        {sub === 'input' && <AgentInputDualPane item={item} run={run} />}
         {sub === 'webSearch' && <WebSearchTabContent turnKey={item.turnKey} />}
       </div>
     </div>
@@ -4820,6 +4747,67 @@ function reviewItemsFor(run, item) {
     : `phase${phase}Round${item.round}${cap(item.agent)}`;
   const bucket = (run.phaseReviewItems || {})[key];
   return Array.isArray(bucket) ? bucket : [];
+}
+
+// ─────────────────── SPEC-0101 — AgentInputDualPane ──────────────────────────
+// Two-pane M3 agent-input layout showing both agents' input bundles side by
+// side. Pane A = Claude, Pane B = GPT. Each pane: AgentStrip + StatusBadge
+// in the head, collapsible input sections in the body.
+function AgentInputDualPane({ item, run }) {
+  const timeline = React.useMemo(() => buildTimeline(run), [run]);
+  const pairedTurn = React.useMemo(() => {
+    return timeline.find(t =>
+      t.agent !== item.agent &&
+      t.statsPhase === item.statsPhase &&
+      Number(t.round) === Number(item.round)
+    );
+  }, [timeline, item]);
+
+  const agentAKey = item.agent === 'claude' ? item.turnKey : pairedTurn?.turnKey;
+  const agentBKey = item.agent === 'gpt' ? item.turnKey : pairedTurn?.turnKey;
+
+  return (
+    <div className="agent-input">
+      <AgentInputPane slot="a" turnKey={agentAKey} run={run} />
+      <AgentInputPane slot="b" turnKey={agentBKey} run={run} />
+    </div>
+  );
+}
+
+function AgentInputPane({ slot, turnKey, run }) {
+  const { bundle, loading, error } = window.useInputBundle(turnKey);
+  const agentName = slot === 'a' ? 'Claude' : 'GPT';
+  const statusLabel = run?.status || 'idle';
+
+  return (
+    <div className={`agent-input__pane agent-input__pane--${slot}`}>
+      <div className="agent-input__head">
+        <AgentStrip agent={slot} name={agentName} />
+        <StatusBadge status={statusLabel} />
+      </div>
+      <div className="agent-input__body">
+        {!turnKey && 'No paired turn available.'}
+        {turnKey && loading && 'Loading…'}
+        {turnKey && error && `Error: ${error}`}
+        {turnKey && bundle && (() => {
+          const pieces = bundle.pieces || {};
+          const keys = INPUT_PIECE_ORDER
+            .filter(k => k in pieces && pieces[k])
+            .concat(Object.keys(pieces).filter(k => !INPUT_PIECE_ORDER.includes(k) && pieces[k]));
+          if (keys.length === 0) return 'Empty input bundle.';
+          return keys.map(k => (
+            <InputSection
+              key={k}
+              piece={k}
+              text={pieces[k] || ''}
+              defaultCollapsed={INPUT_PIECE_DEFAULT_COLLAPSED.has(k)}
+              isAgentDefault={k === 'system' && (bundle.system_source || 'recorded') === 'agent-default'}
+            />
+          ));
+        })()}
+      </div>
+    </div>
+  );
 }
 
 // ─────────────────── Spec 0033 — Input tab + bundle rendering ───────────────
