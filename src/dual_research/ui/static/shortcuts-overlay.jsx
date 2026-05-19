@@ -41,7 +41,7 @@ function ShortcutsOverlay({ open, onClose }) {
             <div style={{
               fontSize: 'var(--t-meta)',
               fontWeight: 'var(--w-semibold)',
-              color: 'var(--fg-1)',
+              color: 'var(--md-on-surface-variant)',
               marginBottom: 8,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
@@ -50,34 +50,34 @@ function ShortcutsOverlay({ open, onClose }) {
             </div>
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 0,
-              background: 'var(--bg-1)',
-              border: '1px solid var(--border-1)',
-              borderRadius: 'var(--r-3)',
+              background: 'var(--md-surface-container-low)',
+              border: '1px solid var(--md-outline-hair)',
+              borderRadius: 'var(--md-shape-md)',
               overflow: 'hidden',
             }}>
               {group.shortcuts.map((s, i) => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px',
-                  borderBottom: i < group.shortcuts.length - 1 ? '1px solid var(--border-1)' : 'none',
+                  borderBottom: i < group.shortcuts.length - 1 ? '1px solid var(--md-outline-hair)' : 'none',
                 }}>
-                  <span style={{ fontSize: 'var(--t-body)', color: 'var(--fg-1)' }}>
+                  <span style={{ fontSize: 'var(--t-body)', color: 'var(--md-on-surface-variant)' }}>
                     {s.desc}
                   </span>
                   <span style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 16 }}>
                     {s.keys.map((k, j) => (
                       <React.Fragment key={j}>
-                        {j > 0 && <span style={{ color: 'var(--fg-4)', fontSize: 11 }}>/</span>}
+                        {j > 0 && <span style={{ color: 'var(--md-on-surface-decor)', fontSize: 11 }}>/</span>}
                         <kbd style={{
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                           minWidth: 24, height: 22,
                           padding: '0 6px',
-                          background: 'var(--bg-2)',
-                          border: '1px solid var(--border-2)',
-                          borderRadius: 'var(--r-2)',
+                          background: 'var(--md-surface-container-high)',
+                          border: '1px solid var(--md-outline-variant)',
+                          borderRadius: 'var(--md-shape-sm)',
                           fontFamily: 'var(--mono)',
                           fontSize: 11,
-                          color: 'var(--fg-0)',
+                          color: 'var(--md-on-surface)',
                           lineHeight: 1,
                         }}>
                           {k}

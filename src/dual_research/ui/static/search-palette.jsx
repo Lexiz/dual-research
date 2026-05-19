@@ -120,9 +120,9 @@ function SearchPalette({ open, onClose }) {
           transform: 'translateX(-50%)',
           width: 'min(560px, 90vw)',
           maxHeight: '60vh',
-          background: 'var(--bg-0)',
-          border: '1px solid var(--border-2)',
-          borderRadius: 'var(--r-3)',
+          background: 'var(--md-surface)',
+          border: '1px solid var(--md-outline-variant)',
+          borderRadius: 'var(--md-shape-md)',
           boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
           display: 'flex',
           flexDirection: 'column',
@@ -134,9 +134,9 @@ function SearchPalette({ open, onClose }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 14px',
-          borderBottom: '1px solid var(--border-1)',
+          borderBottom: '1px solid var(--md-outline-hair)',
         }}>
-          <Mdi name="magnify" size={16} style={{ color: 'var(--fg-3)', flexShrink: 0 }} />
+          <Mdi name="magnify" size={16} style={{ color: 'var(--md-on-surface-faint)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -151,16 +151,16 @@ function SearchPalette({ open, onClose }) {
               outline: 'none',
               fontSize: 14,
               fontFamily: 'var(--sans)',
-              color: 'var(--fg-0)',
+              color: 'var(--md-on-surface)',
             }}
           />
           <kbd style={{
             padding: '2px 6px',
             fontSize: 10,
             fontFamily: 'var(--mono)',
-            color: 'var(--fg-4)',
-            background: 'var(--bg-2)',
-            border: '1px solid var(--border-1)',
+            color: 'var(--md-on-surface-decor)',
+            background: 'var(--md-surface-container-high)',
+            border: '1px solid var(--md-outline-hair)',
             borderRadius: 3,
           }}>esc</kbd>
         </div>
@@ -175,7 +175,7 @@ function SearchPalette({ open, onClose }) {
             <div style={{
               padding: '24px 14px',
               textAlign: 'center',
-              color: 'var(--fg-3)',
+              color: 'var(--md-on-surface-faint)',
               fontSize: 13,
             }}>
               No results for &ldquo;{query}&rdquo;
@@ -193,15 +193,15 @@ function SearchPalette({ open, onClose }) {
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 14px',
                   cursor: 'pointer',
-                  background: isActive ? 'var(--bg-2)' : 'transparent',
+                  background: isActive ? 'var(--md-surface-container-high)' : 'transparent',
                   borderLeft: isActive ? '2px solid var(--info)' : '2px solid transparent',
                 }}
               >
                 {item.type === 'nav' && (
                   <>
-                    <Mdi name={item.icon} size={14} style={{ color: 'var(--fg-3)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: 'var(--fg-0)' }}>{item.label}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--mono)' }}>navigate</span>
+                    <Mdi name={item.icon} size={14} style={{ color: 'var(--md-on-surface-faint)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: 'var(--md-on-surface)' }}>{item.label}</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--mono)' }}>navigate</span>
                   </>
                 )}
                 {item.type === 'run' && (
@@ -213,7 +213,7 @@ function SearchPalette({ open, onClose }) {
                       {item.displayId}
                     </span>
                     <span style={{
-                      fontSize: 13, color: 'var(--fg-1)',
+                      fontSize: 13, color: 'var(--md-on-surface-variant)',
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       minWidth: 0,
                     }}>
@@ -221,7 +221,7 @@ function SearchPalette({ open, onClose }) {
                     </span>
                     <span style={{
                       marginLeft: 'auto', flexShrink: 0,
-                      fontSize: 10, color: 'var(--fg-3)',
+                      fontSize: 10, color: 'var(--md-on-surface-faint)',
                       fontFamily: 'var(--mono)',
                     }}>
                       {item.status}
@@ -236,13 +236,13 @@ function SearchPalette({ open, onClose }) {
         {/* Footer hint */}
         <div style={{
           padding: '6px 14px',
-          borderTop: '1px solid var(--border-1)',
+          borderTop: '1px solid var(--md-outline-hair)',
           display: 'flex', gap: 12, alignItems: 'center',
-          fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--mono)',
+          fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--mono)',
         }}>
-          <span><kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-1)', borderRadius: 3, fontSize: 10 }}>&uarr;&darr;</kbd> navigate</span>
-          <span><kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-1)', borderRadius: 3, fontSize: 10 }}>enter</kbd> select</span>
-          <span><kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-1)', borderRadius: 3, fontSize: 10 }}>esc</kbd> close</span>
+          <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>&uarr;&darr;</kbd> navigate</span>
+          <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>enter</kbd> select</span>
+          <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>esc</kbd> close</span>
         </div>
       </div>
     </div>

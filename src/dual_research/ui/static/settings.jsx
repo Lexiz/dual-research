@@ -17,7 +17,7 @@ function SettingsScreen({ me }) {
     return (
       <div style={{
         height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--fg-2)', fontSize: 14, padding: 24, textAlign: 'center',
+        color: 'var(--md-on-surface-muted)', fontSize: 14, padding: 24, textAlign: 'center',
       }}>
         Settings are admin-only. Ask an admin to add you to the allowlist
         with admin rights if you need access.
@@ -92,10 +92,10 @@ function AllowlistManager({ myEmail }) {
   };
 
   return (
-    <div style={{ padding: 24, color: 'var(--fg-0)', maxWidth: 720, margin: '0 auto', overflow: 'auto', height: '100%' }}>
+    <div style={{ padding: 24, color: 'var(--md-on-surface)', maxWidth: 720, margin: '0 auto', overflow: 'auto', height: '100%' }}>
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 18, fontWeight: 600 }}>Email allowlist</div>
-        <div style={{ fontSize: 13, color: 'var(--fg-2)', marginTop: 4 }}>
+        <div style={{ fontSize: 13, color: 'var(--md-on-surface-muted)', marginTop: 4 }}>
           Anyone with a Google account at one of these addresses can sign in.
           Admins can manage this list.
         </div>
@@ -112,10 +112,10 @@ function AllowlistManager({ myEmail }) {
         </div>
       )}
 
-      <div style={{ marginTop: 16, border: '1px solid var(--border-1)', borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ marginTop: 16, border: '1px solid var(--md-outline-hair)', borderRadius: 8, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style={{ background: 'var(--bg-1)', color: 'var(--fg-2)' }}>
+            <tr style={{ background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface-muted)' }}>
               <th style={th}>Email</th>
               <th style={{ ...th, width: 100 }}>Role</th>
               <th style={{ ...th, width: 100, textAlign: 'right' }}></th>
@@ -123,22 +123,22 @@ function AllowlistManager({ myEmail }) {
           </thead>
           <tbody>
             {rows === null && (
-              <tr><td colSpan={3} style={{ ...td, color: 'var(--fg-2)' }}>Loading…</td></tr>
+              <tr><td colSpan={3} style={{ ...td, color: 'var(--md-on-surface-muted)' }}>Loading…</td></tr>
             )}
             {rows && rows.length === 0 && (
-              <tr><td colSpan={3} style={{ ...td, color: 'var(--fg-2)' }}>No allowlist rows.</td></tr>
+              <tr><td colSpan={3} style={{ ...td, color: 'var(--md-on-surface-muted)' }}>No allowlist rows.</td></tr>
             )}
             {rows && rows.map(row => (
-              <tr key={row.email} style={{ borderTop: '1px solid var(--border-1)' }}>
+              <tr key={row.email} style={{ borderTop: '1px solid var(--md-outline-hair)' }}>
                 <td style={td}>{row.email}</td>
                 <td style={td}>
                   {row.isAdmin
                     ? <span style={adminBadge}>admin</span>
-                    : <span style={{ color: 'var(--fg-2)' }}>member</span>}
+                    : <span style={{ color: 'var(--md-on-surface-muted)' }}>member</span>}
                 </td>
                 <td style={{ ...td, textAlign: 'right' }}>
                   {row.email === myEmail
-                    ? <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>(you)</span>
+                    ? <span style={{ color: 'var(--md-on-surface-muted)', fontSize: 11 }}>(you)</span>
                     : <button onClick={() => onRemove(row.email)} disabled={busy} style={removeBtn}>Remove</button>}
                 </td>
               </tr>
@@ -148,7 +148,7 @@ function AllowlistManager({ myEmail }) {
       </div>
 
       <div style={{
-        marginTop: 16, padding: 16, border: '1px dashed var(--border-2)',
+        marginTop: 16, padding: 16, border: '1px dashed var(--md-outline-variant)',
         borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       }}>
         <input
@@ -161,7 +161,7 @@ function AllowlistManager({ myEmail }) {
           disabled={busy}
           style={input}
         />
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--fg-1)' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--md-on-surface-variant)' }}>
           <input type="checkbox" checked={newAdmin} onChange={e => setNewAdmin(e.target.checked)} />
           Admin
         </label>
@@ -181,18 +181,18 @@ const adminBadge = {
 const input = {
   flex: 1, minWidth: 220,
   padding: '8px 12px', borderRadius: 6, fontSize: 13,
-  background: 'var(--bg-1)', color: 'var(--fg-0)',
-  border: '1px solid var(--border-2)', fontFamily: 'inherit',
+  background: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)',
+  border: '1px solid var(--md-outline-variant)', fontFamily: 'inherit',
 };
 const addBtn = {
   padding: '8px 14px', borderRadius: 6, cursor: 'pointer',
-  background: 'var(--bg-2)', color: 'var(--fg-0)',
-  border: '1px solid var(--border-2)', fontSize: 13, fontFamily: 'inherit',
+  background: 'var(--md-surface-container-high)', color: 'var(--md-on-surface)',
+  border: '1px solid var(--md-outline-variant)', fontSize: 13, fontFamily: 'inherit',
 };
 const removeBtn = {
   padding: '4px 10px', borderRadius: 5, cursor: 'pointer',
-  background: 'transparent', color: 'var(--fg-2)',
-  border: '1px solid var(--border-2)', fontSize: 12, fontFamily: 'inherit',
+  background: 'transparent', color: 'var(--md-on-surface-muted)',
+  border: '1px solid var(--md-outline-variant)', fontSize: 12, fontFamily: 'inherit',
 };
 
 window.SettingsScreen = SettingsScreen;

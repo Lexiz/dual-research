@@ -687,7 +687,7 @@
                       border="var(--agent-b-border)" {...props} />;
   }
 
-  function Arrow({ x1, y1, x2, y2, dashed, color = 'var(--border-3)' }) {
+  function Arrow({ x1, y1, x2, y2, dashed, color = 'var(--md-outline)' }) {
     return (
       <line x1={x1} y1={y1} x2={x2} y2={y2}
             stroke={color} strokeWidth="1.5"
@@ -701,7 +701,7 @@
       <defs>
         <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
                 markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--border-3)" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--md-outline)" />
         </marker>
       </defs>
     );
@@ -714,34 +714,34 @@
       { tag: 'parallel',    color: 'var(--agent-b)', label: 'P0 · Preflight',  sub: 'brief critique' },
       { tag: 'parallel',    color: 'var(--agent-b)', label: 'P1 · Research',   sub: 'independent drafts' },
       { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'plan convergence' },
-      { tag: 'single-shot', color: 'var(--fg-2)',    label: 'P3 · Draft',      sub: 'drafter writes doc' },
+      { tag: 'single-shot', color: 'var(--md-on-surface-muted)',    label: 'P3 · Draft',      sub: 'drafter writes doc' },
       { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P4 · Review',     sub: 'cross-review + revise' },
       { tag: 'output',      color: 'var(--ok)',      label: 'final.md',         sub: 'single document' },
     ];
     return (
       <div style={{
         display: 'flex', gap: 6, padding: '14px 16px',
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
         borderRadius: 8,
       }}>
         {cells.map((c, i) => (
           <div key={c.label} style={{
             flex: 1, minWidth: 0, position: 'relative',
-            padding: '8px 10px', background: 'var(--bg-2)',
-            border: '1px solid var(--border-2)', borderRadius: 6,
+            padding: '8px 10px', background: 'var(--md-surface-container-high)',
+            border: '1px solid var(--md-outline-variant)', borderRadius: 6,
           }}>
             <div className="mono" style={{
               fontSize: 9.5, color: c.color, letterSpacing: '0.06em',
               textTransform: 'uppercase',
             }}>{c.tag}</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)', marginTop: 4 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--md-on-surface)', marginTop: 4 }}>
               {c.label}
             </div>
-            <div className="mono" style={{ fontSize: 9.5, color: 'var(--fg-3)', marginTop: 2 }}>{c.sub}</div>
+            <div className="mono" style={{ fontSize: 9.5, color: 'var(--md-on-surface-faint)', marginTop: 2 }}>{c.sub}</div>
             {i < cells.length - 1 && (
               <span style={{
                 position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',
-                color: 'var(--border-3)', fontFamily: 'IBM Plex Sans, ui-monospace, monospace',
+                color: 'var(--md-outline)', fontFamily: 'IBM Plex Sans, ui-monospace, monospace',
                 fontSize: 14, zIndex: 1,
               }}>▶</span>
             )}
@@ -758,40 +758,40 @@
       <svg viewBox="0 0 720 320" style={{ display: 'block', width: '100%', maxWidth: 720, margin: '0 auto' }}>
         <ArrowDefs />
         <rect x={30} y={20} width={200} height={80} rx={8}
-              fill="var(--bg-2)" stroke="var(--border-2)" />
+              fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
         <text x={130} y={44} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--fg-1)">disk: prior turns inlined</text>
+              fill="var(--md-on-surface-variant)">disk: prior turns inlined</text>
         <text x={130} y={62} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--fg-3)">round 1..N-1, both agents</text>
+              fill="var(--md-on-surface-faint)">round 1..N-1, both agents</text>
         <text x={130} y={76} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--fg-3)">+ brief + phase-1 drafts</text>
+              fill="var(--md-on-surface-faint)">+ brief + phase-1 drafts</text>
         <text x={130} y={92} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--fg-3)">+ CACHE_BREAKPOINT</text>
+              fill="var(--md-on-surface-faint)">+ CACHE_BREAKPOINT</text>
 
         <text x={370} y={50} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--fg-1)">orchestrator assembles</text>
+              fill="var(--md-on-surface-variant)">orchestrator assembles</text>
         <text x={370} y={66} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
-              fill="var(--fg-3)">a fresh prompt</text>
+              fill="var(--md-on-surface-faint)">a fresh prompt</text>
 
         <Arrow x1={230} y1={60} x2={510} y2={60} />
 
         <rect x={510} y={20} width={180} height={80} rx={8}
-              fill="var(--bg-2)" stroke="var(--border-2)" />
+              fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
         <text x={600} y={44} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--fg-1)">round N prompt</text>
+              fill="var(--md-on-surface-variant)">round N prompt</text>
         <text x={600} y={62} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--fg-3)">identical to both, except</text>
+              fill="var(--md-on-surface-faint)">identical to both, except</text>
         <text x={600} y={78} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--fg-3)">agent_name substitution</text>
+              fill="var(--md-on-surface-faint)">agent_name substitution</text>
 
         <Arrow x1={560} y1={108} x2={180} y2={170} />
         <Arrow x1={640} y1={108} x2={550} y2={170} />
@@ -800,7 +800,7 @@
         <GptDisc    cx={580} cy={195} r={30} />
 
         <text x={365} y={200} textAnchor="middle"
-              fontSize={11} fill="var(--fg-3)" fontFamily="IBM Plex Sans, ui-monospace, monospace">
+              fontSize={11} fill="var(--md-on-surface-faint)" fontFamily="IBM Plex Sans, ui-monospace, monospace">
           asyncio.gather
         </text>
 
@@ -820,10 +820,10 @@
               fill="var(--agent-b)">phase2/round-NN-openai.md</text>
 
         <rect x={260} y={294} width={200} height={22} rx={6}
-              fill="var(--bg-1)" stroke="var(--border-2)" />
+              fill="var(--md-surface-container-low)" stroke="var(--md-outline-variant)" />
         <text x={360} y={309} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
-              fill="var(--fg-1)">both AGREED + plan-hash match?</text>
+              fill="var(--md-on-surface-variant)">both AGREED + plan-hash match?</text>
       </svg>
     );
   }
@@ -844,16 +844,16 @@
       }}>
         {cards.map(c => (
           <div key={c.kicker} style={{
-            padding: '14px 14px 12px', background: 'var(--bg-1)',
-            border: '1px solid var(--border-1)', borderRadius: 8,
+            padding: '14px 14px 12px', background: 'var(--md-surface-container-low)',
+            border: '1px solid var(--md-outline-hair)', borderRadius: 8,
           }}>
             <div className="mono" style={{
-              fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.08em',
+              fontSize: 11, color: 'var(--md-on-surface-faint)', letterSpacing: '0.08em',
             }}>{c.kicker}</div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)', margin: '6px 0 2px' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--md-on-surface)', margin: '6px 0 2px' }}>
               {c.head}
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.45 }}>{c.body}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)', lineHeight: 1.45 }}>{c.body}</div>
           </div>
         ))}
       </div>
@@ -886,8 +886,8 @@
     if (silent) {
       return (
         <div style={{
-          padding: '10px 12px', borderRadius: 6, border: '1px dashed var(--border-2)',
-          color: 'var(--fg-3)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '10px 12px', borderRadius: 6, border: '1px dashed var(--md-outline-variant)',
+          color: 'var(--md-on-surface-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontStyle: 'italic', fontSize: 11.5, minHeight: 86,
         }}>silent — other agent does not fire</div>
       );
@@ -903,29 +903,29 @@
         background: bg, border: `1px solid ${border}`,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-0)' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface)' }}>
             <span className="mono" style={{ color: letterColor, marginRight: 4 }}>{letter}</span>
             new chat
             {noteIf && (
-              <em style={{ fontStyle: 'normal', color: 'var(--fg-3)', fontSize: 10.5, marginLeft: 4 }}>
+              <em style={{ fontStyle: 'normal', color: 'var(--md-on-surface-faint)', fontSize: 10.5, marginLeft: 4 }}>
                 ({noteIf})
               </em>
             )}
           </span>
           {fresh && (
             <span className="mono" style={{
-              fontSize: 9.5, padding: '1px 6px', background: 'var(--bg-3)',
-              border: '1px solid var(--border-2)', borderRadius: 999,
-              color: 'var(--fg-2)',
+              fontSize: 9.5, padding: '1px 6px', background: 'var(--md-surface-container-highest)',
+              border: '1px solid var(--md-outline-variant)', borderRadius: 999,
+              color: 'var(--md-on-surface-muted)',
             }}>fresh prompt</span>
           )}
         </div>
-        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>
           {lines.map((line, i) => <li key={i} style={{ listStyle: 'disc' }}>{line}</li>)}
         </ul>
         {out && (
-          <div className="mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--fg-2)' }}>
-            <span style={{ color: 'var(--fg-3)' }}>→ </span>{out}
+          <div className="mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--md-on-surface-muted)' }}>
+            <span style={{ color: 'var(--md-on-surface-faint)' }}>→ </span>{out}
           </div>
         )}
       </div>
@@ -937,12 +937,12 @@
       <React.Fragment>
         <div style={{
           display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          padding: '12px 10px', background: 'var(--bg-2)',
-          border: '1px solid var(--border-2)', borderRadius: 6,
+          padding: '12px 10px', background: 'var(--md-surface-container-high)',
+          border: '1px solid var(--md-outline-variant)', borderRadius: 6,
         }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--fg-0)' }}>{phase}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--md-on-surface)' }}>{phase}</div>
           <div className="mono" style={{
-            fontSize: 9.5, color: 'var(--fg-3)', letterSpacing: '0.06em',
+            fontSize: 9.5, color: 'var(--md-on-surface-faint)', letterSpacing: '0.06em',
             textTransform: 'uppercase', marginTop: 3,
           }}>{tag}</div>
         </div>
@@ -951,7 +951,7 @@
         {gather && (
           <div className="mono" style={{
             gridColumn: '2 / 4', textAlign: 'center', fontSize: 10,
-            color: 'var(--fg-3)', padding: '2px 0', letterSpacing: '0.04em',
+            color: 'var(--md-on-surface-faint)', padding: '2px 0', letterSpacing: '0.04em',
           }}>{gather}</div>
         )}
       </React.Fragment>
@@ -973,8 +973,8 @@
     return (
       <div style={{
         display: 'grid', gridTemplateColumns: '110px 1fr 1fr', gap: 10,
-        padding: 14, background: 'var(--bg-1)',
-        border: '1px solid var(--border-1)', borderRadius: 8,
+        padding: 14, background: 'var(--md-surface-container-low)',
+        border: '1px solid var(--md-outline-hair)', borderRadius: 8,
       }}>
         <div className="mono" style={{
           fontSize: 10.5, color: 'transparent', letterSpacing: '0.08em',
@@ -1060,12 +1060,12 @@
     return (
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '8px 14px',
-        marginTop: 14, padding: '12px 14px', background: 'var(--bg-2)',
-        border: '1px solid var(--border-1)', borderRadius: 6,
+        marginTop: 14, padding: '12px 14px', background: 'var(--md-surface-container-high)',
+        border: '1px solid var(--md-outline-hair)', borderRadius: 6,
       }}>
         {items.map(i => (
           <div key={i.kind} style={{
-            display: 'flex', gap: 6, alignItems: 'center', fontSize: 11.5, color: 'var(--fg-1)',
+            display: 'flex', gap: 6, alignItems: 'center', fontSize: 11.5, color: 'var(--md-on-surface-variant)',
           }}>
             <Tk kind={i.kind}>{i.label}</Tk>
             <span>{i.hint}</span>
@@ -1082,10 +1082,10 @@
       }}>
         <div style={{
           padding: '14px 16px', borderRadius: 8,
-          background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+          background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
         }}>
           <h3 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8,
-                       fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+                       fontSize: 13.5, fontWeight: 600, color: 'var(--md-on-surface)' }}>
             What we don't do
             <span className="mono" style={{
               fontSize: 10, padding: '1px 7px', borderRadius: 999,
@@ -1093,10 +1093,10 @@
               border: '1px solid rgba(217,106,106,0.32)',
             }}>×</span>
           </h3>
-          <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', margin: '0 0 6px', lineHeight: 1.55 }}>
             A long-running ChatGPT-style thread per agent where each round appends a message.
           </p>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>
             <li>No <code style={codeS}>thread_id</code> or <code style={codeS}>conversation_id</code>.</li>
             <li>No OpenAI Assistants API. No Anthropic stateful messages.</li>
             <li>The provider holds no state for us between calls.</li>
@@ -1104,11 +1104,11 @@
         </div>
         <div style={{
           padding: '14px 16px', borderRadius: 8,
-          background: 'var(--bg-1)', border: '1px solid var(--agent-b-border)',
+          background: 'var(--md-surface-container-low)', border: '1px solid var(--agent-b-border)',
           boxShadow: 'inset 0 0 0 1px var(--agent-b-border)',
         }}>
           <h3 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8,
-                       fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>
+                       fontSize: 13.5, fontWeight: 600, color: 'var(--md-on-surface)' }}>
             What we actually do
             <span className="mono" style={{
               display: 'inline-flex', alignItems: 'center',
@@ -1117,10 +1117,10 @@
               border: '1px solid var(--agent-b-border)',
             }}><Mdi name="check" size={10} /></span>
           </h3>
-          <p style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
+          <p style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', margin: '0 0 6px', lineHeight: 1.55 }}>
             Stateless re-inlining. Each turn rebuilds the entire prompt from disk + run state.
           </p>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>
             <li>Every call sends a single <code style={codeS}>user</code> message with the whole context.</li>
             <li>The orchestrator owns truth on the filesystem (and in Supabase).</li>
             <li>Anthropic prompt caching makes the repeated prefix cheap — see below.</li>
@@ -1134,8 +1134,8 @@
 
   const codeS = {
     fontFamily: 'IBM Plex Sans, ui-monospace, monospace', fontSize: '0.88em',
-    padding: '1px 5px', background: 'var(--bg-2)',
-    border: '1px solid var(--border-1)', borderRadius: 4, color: 'var(--fg-0)',
+    padding: '1px 5px', background: 'var(--md-surface-container-high)',
+    border: '1px solid var(--md-outline-hair)', borderRadius: 4, color: 'var(--md-on-surface)',
   };
 
   function ContextGrowthBars() {
@@ -1154,30 +1154,30 @@
     };
     return (
       <div style={{
-        padding: '16px 18px', background: 'var(--bg-1)',
-        border: '1px solid var(--border-1)', borderRadius: 8,
+        padding: '16px 18px', background: 'var(--md-surface-container-low)',
+        border: '1px solid var(--md-outline-hair)', borderRadius: 8,
       }}>
         {rows.map(r => (
           <div key={r.label} style={{
             display: 'grid', gridTemplateColumns: '90px 1fr 100px', gap: 10,
             alignItems: 'center', marginBottom: 6,
           }}>
-            <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>{r.label}</div>
+            <div className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-muted)' }}>{r.label}</div>
             <div style={{
-              display: 'flex', height: 16, borderRadius: 3, overflow: 'hidden', background: 'var(--bg-2)',
+              display: 'flex', height: 16, borderRadius: 3, overflow: 'hidden', background: 'var(--md-surface-container-high)',
             }}>
               {r.segs.map((s, i) => (
                 <span key={i} style={{ display: 'block', height: '100%', width: `${s.w}%`, background: colors[s.kind] }} />
               ))}
             </div>
-            <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)', textAlign: 'right' }}>{r.total}</div>
+            <div className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)', textAlign: 'right' }}>{r.total}</div>
           </div>
         ))}
         <div style={{
           display: 'grid', gridTemplateColumns: '90px 1fr 100px', gap: 10, marginTop: 10,
         }}>
           <div />
-          <div style={{ position: 'relative', height: 8, borderTop: '1px solid var(--border-2)' }}>
+          <div style={{ position: 'relative', height: 8, borderTop: '1px solid var(--md-outline-variant)' }}>
             <span className="mono" style={tickS(0)}>0</span>
             <span className="mono" style={tickS(16)}>brief</span>
             <span className="mono" style={tickS(40)}>+drafts</span>
@@ -1187,9 +1187,9 @@
           <div />
         </div>
         <div style={{
-          marginTop: 14, padding: '10px 12px', background: 'var(--bg-2)',
+          marginTop: 14, padding: '10px 12px', background: 'var(--md-surface-container-high)',
           borderLeft: '2px solid var(--agent-b)', borderRadius: '0 6px 6px 0',
-          fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55,
+          fontSize: 11.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.55,
         }}>
           Anthropic cache hits return at ~25% of base cost; the volatile tail after the
           marker (round instructions, output schema) is the only piece billed at full rate every round.
@@ -1199,7 +1199,7 @@
   }
   const tickS = leftPct => ({
     position: 'absolute', top: 0, left: `${leftPct}%`, transform: 'translateX(-50%)',
-    paddingTop: 4, fontSize: 9.5, color: 'var(--fg-3)',
+    paddingTop: 4, fontSize: 9.5, color: 'var(--md-on-surface-faint)',
   });
 
   // ─── Phase deep-dive accordions ───────────────────────────────────────
@@ -1208,16 +1208,16 @@
     return (
       <dl style={{
         display: 'grid', gridTemplateColumns: '110px 1fr', gap: '4px 14px',
-        fontSize: 11.5, padding: '10px 12px', background: 'var(--bg-2)',
-        border: '1px solid var(--border-1)', borderRadius: 6, margin: '8px 0',
+        fontSize: 11.5, padding: '10px 12px', background: 'var(--md-surface-container-high)',
+        border: '1px solid var(--md-outline-hair)', borderRadius: 6, margin: '8px 0',
       }}>
         {rows.map(([k, v]) => (
           <React.Fragment key={k}>
             <dt className="mono" style={{
-              color: 'var(--fg-3)', fontSize: 10.5, letterSpacing: '0.06em',
+              color: 'var(--md-on-surface-faint)', fontSize: 10.5, letterSpacing: '0.06em',
               textTransform: 'uppercase', paddingTop: 2,
             }}>{k}</dt>
-            <dd style={{ margin: 0, color: 'var(--fg-1)' }}>{v}</dd>
+            <dd style={{ margin: 0, color: 'var(--md-on-surface-variant)' }}>{v}</dd>
           </React.Fragment>
         ))}
       </dl>
@@ -1227,10 +1227,10 @@
   function PhaseAccordion({ ph, name, tag, defaultOpen, children }) {
     const tagBg = tag === 'parallel'    ? { bg: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)', border: 'var(--agent-b-border)' }
                 : tag === 'turn-based'  ? { bg: 'var(--agent-a-bg-strong)', color: 'var(--agent-a)', border: 'var(--agent-a-border)' }
-                : { bg: 'var(--bg-3)', color: 'var(--fg-1)', border: 'var(--border-2)' };
+                : { bg: 'var(--md-surface-container-highest)', color: 'var(--md-on-surface-variant)', border: 'var(--md-outline-variant)' };
     return (
       <details open={defaultOpen} style={{
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
         borderRadius: 8, marginBottom: 10, overflow: 'hidden',
       }}>
         <summary style={{
@@ -1238,21 +1238,21 @@
           display: 'flex', alignItems: 'center', gap: 14, userSelect: 'none',
         }}>
           <span className="mono" style={{
-            fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.08em', minWidth: 50,
+            fontSize: 10.5, color: 'var(--md-on-surface-faint)', letterSpacing: '0.08em', minWidth: 50,
           }}>PHASE {ph}</span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--fg-0)' }}>{name}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--md-on-surface)' }}>{name}</span>
           <span className="mono" style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 999,
             background: tagBg.bg, color: tagBg.color, border: `1px solid ${tagBg.border}`,
             marginLeft: 'auto',
           }}>{tag}</span>
           <span className="mono" style={{
-            color: 'var(--fg-3)', fontSize: 12,
+            color: 'var(--md-on-surface-faint)', fontSize: 12,
           }}>▶</span>
         </summary>
         <div style={{
-          padding: '4px 18px 18px', borderTop: '1px solid var(--border-1)',
-          fontSize: 13, color: 'var(--fg-1)', lineHeight: 1.65,
+          padding: '4px 18px 18px', borderTop: '1px solid var(--md-outline-hair)',
+          fontSize: 13, color: 'var(--md-on-surface-variant)', lineHeight: 1.65,
         }}>
           {children}
         </div>
@@ -1265,19 +1265,19 @@
   function Faq({ q, children }) {
     return (
       <details style={{
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
         borderRadius: 6, marginBottom: 6,
       }}>
         <summary style={{
           listStyle: 'none', cursor: 'pointer', padding: '10px 14px',
-          fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
         }}>
           <span>{q}</span>
-          <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 11 }}>▶</span>
+          <span className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 11 }}>▶</span>
         </summary>
         <div style={{
-          padding: '0 14px 12px', fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6,
+          padding: '0 14px 12px', fontSize: 12.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.6,
         }}>{children}</div>
       </details>
     );
@@ -1289,18 +1289,18 @@
     return (
       <section style={{ marginBottom: 44 }}>
         <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.08em',
+          fontSize: 10.5, color: 'var(--md-on-surface-faint)', letterSpacing: '0.08em',
           textTransform: 'uppercase', marginBottom: 6,
         }}>{kicker}</div>
         <h2 style={{
-          fontSize: 17, fontWeight: 600, color: 'var(--fg-0)',
+          fontSize: 17, fontWeight: 600, color: 'var(--md-on-surface)',
           margin: '0 0 14px', letterSpacing: '-0.005em',
         }}>{title}</h2>
         {lede && (
-          <p style={{ fontSize: 13.5, color: 'var(--fg-1)', lineHeight: 1.65, margin: '0 0 12px' }}>{lede}</p>
+          <p style={{ fontSize: 13.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.65, margin: '0 0 12px' }}>{lede}</p>
         )}
         {mutedLede && (
-          <p style={{ fontSize: 13.5, color: 'var(--fg-2)', lineHeight: 1.65, margin: '0 0 12px' }}>{mutedLede}</p>
+          <p style={{ fontSize: 13.5, color: 'var(--md-on-surface-muted)', lineHeight: 1.65, margin: '0 0 12px' }}>{mutedLede}</p>
         )}
         {children}
       </section>
@@ -1613,39 +1613,39 @@
   function ProtocolOverviewFold() {
     return (
       <details style={{
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
         borderRadius: 8, overflow: 'hidden', marginTop: 14,
       }}>
         <summary style={{
           listStyle: 'none', cursor: 'pointer', padding: '14px 18px',
           display: 'flex', alignItems: 'center', gap: 12, userSelect: 'none',
         }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--fg-0)' }}>View full process map</span>
-          <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--md-on-surface)' }}>View full process map</span>
+          <span style={{ fontSize: 12, color: 'var(--md-on-surface-muted)' }}>
             — every phase, sub-card, gate, callout and exit code in one page
           </span>
           <span className="mono" style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 999,
-            background: 'var(--bg-3)', color: 'var(--fg-2)',
-            border: '1px solid var(--border-2)', marginLeft: 'auto',
+            background: 'var(--md-surface-container-highest)', color: 'var(--md-on-surface-muted)',
+            border: '1px solid var(--md-outline-variant)', marginLeft: 'auto',
             letterSpacing: '0.04em',
           }}>v3.5 · landscape</span>
-          <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>▶</span>
+          <span className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>▶</span>
         </summary>
         <div style={{
-          padding: 0, borderTop: '1px solid var(--border-1)', background: '#f5f1ea',
+          padding: 0, borderTop: '1px solid var(--md-outline-hair)', background: '#f5f1ea',
         }}>
           <ProtocolOverviewMap />
         </div>
         <div style={{
-          padding: '10px 18px', borderTop: '1px solid var(--border-1)',
-          fontSize: 11.5, color: 'var(--fg-2)',
+          padding: '10px 18px', borderTop: '1px solid var(--md-outline-hair)',
+          fontSize: 11.5, color: 'var(--md-on-surface-muted)',
           display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
         }}>
           <span>Reference diagram — light surface, doesn't follow theme toggle.</span>
           <a href="protocol-overview.svg" target="_blank" rel="noopener"
              style={{ color: 'var(--info)' }}>Open SVG ↗</a>
-          <span className="mono" style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--fg-3)' }}>
+          <span className="mono" style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
             1660 × 880 · Inter · cream &amp; indigo design system
           </span>
         </div>
@@ -1659,18 +1659,18 @@
     return (
       <div style={{
         padding: '14px 16px', marginBottom: 10,
-        background: 'var(--bg-1)', border: '1px solid var(--border-1)',
+        background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
         borderRadius: 8,
       }}>
         <div style={{
           display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 6,
           flexWrap: 'wrap',
         }}>
-          <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>{entry.version}</span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{entry.date}</span>
-          <span style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>{entry.summary}</span>
+          <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--md-on-surface)' }}>{entry.version}</span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>{entry.date}</span>
+          <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-muted)' }}>{entry.summary}</span>
         </div>
-        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6 }}>
+        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.6 }}>
           {entry.items.map((item, i) => <li key={i}>{item}</li>)}
         </ul>
       </div>
@@ -2021,9 +2021,9 @@
     return (
       <div style={{
         height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg-0)', color: 'var(--fg-0)',
+        background: 'var(--md-surface)', color: 'var(--md-on-surface)',
       }}>
-        <p style={{ color: 'var(--fg-2)' }}>
+        <p style={{ color: 'var(--md-on-surface-muted)' }}>
           Use the "How it works" button in the top bar to open the overlay.
         </p>
       </div>

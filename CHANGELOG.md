@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.8] — 2026-05-19
+
+### Refactored
+
+- **Spec 0109 — Modal chrome + overlay JSX M3 migration** ([spec 0109](specs/0109-modal-overlay-m3-migration.md)). After v0.76.7 every modal opened over an M3-styled page still looked v1 because the legacy `.dr-modal-*` CSS rules used v1 tokens (the Modal JSX primitive already emitted `.md-dialog` markup via spec 0096; only the sub-rules lagged). Swapped every `var(--bg-N)`, `var(--fg-N)`, `var(--border-N)`, `var(--r-N)` reference inside `.dr-modal`, `.dr-modal-header`, `.dr-modal-title`, `.dr-modal-sub`, `.dr-modal-close`, `.dr-modal-tabs`, `.dr-modal-body` to M3 equivalents. Outer frame radius now 28 px (M3 shape-xl), header band reads `--md-surface-container-high`, body reads `--md-surface-container-low`, close button uses `--md-outline-hair` border. Sable / sage left-border tints reroute to `--p-sable` / `--p-sage` (palette source vars). Same token sweep applied to the four overlay JSX files: `settings.jsx` (18 refs), `shortcuts-overlay.jsx` (11 refs), `search-palette.jsx` (21 refs), `how-it-works.jsx` (103 refs) — 153 v1 token references replaced across the four files, 0 remaining. Tests 924 green, no new pageerrors, hand-verified via Playwright with a modal opened in both themes (cream M3 surface in light, dark surface in dark, sable left border on Claude-tinted modals). Cache-bust `?v=0097` → `?v=0098`.
+
 ## [0.76.7] — 2026-05-19
 
 ### Refactored
