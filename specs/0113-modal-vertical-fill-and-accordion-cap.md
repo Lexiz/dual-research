@@ -3,10 +3,10 @@ spec: 0113
 title: Full-view modals — fixed 92vh height + remove the 360px accordion-body cap
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.76.15
 created: 2026-05-19
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/121"
 ---
 
 # Spec 0113 — Modal vertical fill + accordion cap removal
