@@ -26,9 +26,7 @@ from dual_research.events import (
     ItemTransitioned,
     PhaseConverged,
 )
-from dual_research.events.legacy_shim import (
-    phase2_round_complete_legacy_fields,
-)
+# Spec 0115 — legacy_shim removed; the shim-test below is also gone.
 from dual_research.orchestrator.deep_research import (
     AgentTurnRequest,
     DeepResearchPhase,
@@ -488,57 +486,8 @@ def test_raise_in_closeout_round_dropped_with_violation():
     assert raised[0].item_kind == "disagreement"
 
 
-# ─── Scenario: legacy shim derives byte-stable counter fields ─────────
-
-
-def test_legacy_shim_derives_phase2_counters():
-    """Run a small Deep Research phase, then ask the legacy shim to
-    produce the legacy Phase2RoundComplete kwargs from the resulting
-    ledger snapshot. Confirms the shim sees the right counts."""
-    caps = PhaseCaps(soft=2, hard=8, closeout_budget=2)
-
-    scripts: dict[tuple[int, str], str] = {}
-    # Round 1: claude raises 2 questions, 1 disagreement; openai raises 1 question.
-    claude_raises = (
-        _raise_block(kind="question", body="q1.")
-        + _raise_block(kind="question", body="q2.")
-        + _raise_block(kind="disagreement", body="d1.")
-    )
-    openai_raises = _raise_block(kind="question", body="q3.")
-    scripts[(1, "claude")] = _wrap_turn(
-        status="IN_PROGRESS",
-        body_sections={"New items I'm raising": claude_raises},
-    )
-    scripts[(1, "openai")] = _wrap_turn(
-        status="IN_PROGRESS",
-        body_sections={"New items I'm raising": openai_raises},
-    )
-
-    # Round 2: nothing happens — let the phase stay in flight so we can
-    # snapshot before convergence.
-    scripts[(2, "claude")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
-    scripts[(2, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
-
-    phase = DeepResearchPhase(
-        phase=2,
-        agent_turn=make_scripted_agent(scripts),
-        caps_override=caps,
-    )
-    # Run just two rounds manually rather than .run() to keep items open.
-    phase.run_round(round=1, is_closeout_round=False)
-    phase.run_round(round=2, is_closeout_round=False)
-
-    snapshot = phase.state.snapshot()
-    fields = phase2_round_complete_legacy_fields(
-        snapshot,
-        round=2,
-        agreed=False,
-        claude_status="IN_PROGRESS",
-        openai_status="IN_PROGRESS",
-    )
-    assert fields["claude_open_questions"] == 2
-    assert fields["openai_open_questions"] == 1
-    assert fields["claude_blocking"] == 1
-    assert fields["openai_blocking"] == 0
-    assert fields["claude_fsd"] == 0
-    assert fields["openai_fsd"] == 0
+# Spec 0115 — the "legacy shim derives counters" scenario was deleted
+# along with events/legacy_shim.py. The new-protocol UI reads
+# per-category counters directly from the ItemRaised /
+# ItemTransitioned event stream via ui.items.aggregate_items;
+# verified in tests/ui/test_items.py.
