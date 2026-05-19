@@ -2004,7 +2004,40 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   font: 11px/1 var(--md-font-data);
   color: var(--md-on-surface-faint);
 }
-.tl-phase__body { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
+.tl-phase__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 14px; }
+
+/* SPEC polish — Timeline turn rows now reuse the critique-pane .qthread card
+   anatomy verbatim (background, border, radius, hover lift, status side
+   border). .tl-thread is a thin override layer for the timeline's tighter
+   padding + smaller font, since timeline rows show a one-line glance rather
+   than the multi-turn critique thread. */
+.qthread.tl-thread {
+  padding: 10px 14px;
+  margin: 0;
+  gap: 0;
+  cursor: pointer;
+}
+.qthread.tl-thread .qt-head {
+  gap: 8px;
+}
+.qthread.tl-thread .qref-n {
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
+.qthread.tl-thread .tl-thread__body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--md-outline-hair);
+  font: 13px/1.55 var(--md-font-brand); font-style: italic;
+  color: var(--md-on-surface-variant);
+}
+.qthread.tl-thread .tl-thread__actions {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--md-outline-hair);
+  flex-wrap: wrap;
+}
 
 /* Turn row — one-line summary */
 .tl-turn {
