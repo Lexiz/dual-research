@@ -749,76 +749,62 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .cc-overflow:hover { background: var(--bg-3); color: var(--fg-0); }
 
 /* ─────────────────────────────────────────────────────────────
-   PhaseRail (.phase-rail) — sticky vertical indicator for timeline
-   SPEC-0057 (SUR-09).
-   SPEC-0087 § D.2 — pills can either flow naturally (initial render)
-   or anchor absolutely to a measured y-offset matching the
-   corresponding phase header in the timeline. The container is
-   `position: relative` so absolutely-positioned `is-anchored` pills
-   resolve against its top edge.
+   PhaseRail (.phase-rail) — M3 horizontal 5-cell phase indicator
+   SPEC-0101. Replaces the old vertical dot-rail from SPEC-0057.
+   Renders inside modals as a horizontal strip with per-phase anatomy.
    ───────────────────────────────────────────────────────────── */
 .phase-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  padding: var(--s-3) 0;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+}
+.phase-rail__cell {
   position: relative;
-  z-index: 2;
-  flex-shrink: 0;
-  width: 64px;
-  min-height: 100%;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
 }
-.phase-rail-node.is-anchored {
-  position: absolute;
-  left: 0; right: 0;
-  margin: 0 auto;
-  transition: top var(--m-fast) var(--ease);
+.phase-rail__cell .ph { font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain); letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-faint); }
+.phase-rail__cell .name { font: var(--md-w-medium) var(--md-title-s-size)/1.3 var(--md-font-plain); color: var(--md-on-surface); }
+.phase-rail__cell .meta { font: 12px/1.3 var(--md-font-plain); color: var(--md-on-surface-faint); }
+.phase-rail__cell--done {
+  background: color-mix(in srgb, var(--p-ok) 14%, var(--md-surface-container-high));
+  color: var(--md-on-surface);
 }
-.phase-rail-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: var(--r-2);
-  transition: background var(--m-fast) var(--ease);
+.phase-rail__cell--current {
+  background: color-mix(in srgb, var(--p-info) 16%, var(--md-surface-container-high));
+  color: var(--md-on-surface);
+  outline: 2px solid color-mix(in srgb, var(--p-info) 50%, transparent);
 }
-.phase-rail-node:hover { background: var(--bg-2); }
-.phase-rail-node .pr-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--border-3);
-  transition: background var(--m-fast) var(--ease);
-  flex-shrink: 0;
+
+/* ─────────────────────────────────────────────────────────────
+   Agent input panel (.agent-input) — M3 two-pane tonal layout
+   SPEC-0101. Two panes, one per agent, inside the agent-input modal.
+   ───────────────────────────────────────────────────────────── */
+.agent-input {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
 }
-.phase-rail-node.is-completed .pr-dot { background: var(--ok); }
-.phase-rail-node.is-current .pr-dot { background: var(--info); }
-.phase-rail-node.is-failed .pr-dot { background: var(--err); }
-.phase-rail-node .pr-label {
-  font-family: var(--sans);
-  font-size: 9px;
-  font-weight: var(--w-semi);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  margin-top: 2px;
-  white-space: nowrap;
+.agent-input__pane {
+  border-radius: var(--md-shape-md);
+  border: 1px solid var(--md-outline-hair);
+  padding: 16px;
+  background: var(--md-surface-container);
+  min-height: 220px;
+  position: relative;
 }
-.phase-rail-node.is-current .pr-label { color: var(--fg-0); }
-.phase-rail-connector {
-  width: 1px;
-  height: 12px;
-  background: var(--border-2);
-  flex-shrink: 0;
+.agent-input__pane--a { background: color-mix(in srgb, var(--md-primary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-primary) 28%, var(--md-outline-hair)); }
+.agent-input__pane--b { background: color-mix(in srgb, var(--md-secondary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-secondary) 28%, var(--md-outline-hair)); }
+.agent-input__head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.agent-input__body {
+  font-family: var(--md-font-data); font-size: 13px; line-height: 1.55;
+  color: var(--md-on-surface-variant); white-space: pre-wrap;
 }
-.phase-rail-node.is-completed + .phase-rail-connector,
-.phase-rail-connector + .phase-rail-node.is-completed { background: var(--ok); opacity: 0.5; }
-/* SPEC-0087 § D — drop the green-on-green legibility regression flagged
-   by delta 14.23. The dot still carries the `--ok` color signal; the
-   label now uses `--fg-2` so it remains readable against the rail's
-   tinted background. */
-.phase-rail-node.is-completed .pr-label { color: var(--fg-2); }
+
+@media (max-width: 1499px) { .agent-input { grid-template-columns: 1fr; } }
 
 /* ─────────────────────────────────────────────────────────────
    CollapsibleSection (.cs) — generic disclosure primitive

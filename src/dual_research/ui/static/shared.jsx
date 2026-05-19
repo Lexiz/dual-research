@@ -1181,8 +1181,9 @@ function ChipCluster({ max = 5, children, className }) {
   );
 }
 
-// ── SPEC-0058 — RoundScrubber ──────────────────────────────────────────────────
-// Horizontal round-stepping bar for split modals (SUR-12).
+// ── SPEC-0101 — RoundScrubber (M3 segmented-button + icon-btn) ─────────────────
+// Horizontal round-stepping bar for split modals. Uses M3 .md-seg
+// segmented buttons for round pills and .md-icon-btn for prev/next.
 // rounds: array of round numbers available (e.g. [1,2,3,4,5]).
 // current: the currently selected round number.
 // onChange(roundNum): called when user clicks a round or arrow.
@@ -1192,39 +1193,42 @@ function RoundScrubber({ rounds, current, onChange }) {
   const hasPrev = idx > 0;
   const hasNext = idx < rounds.length - 1;
   return (
-    <div className="round-scrubber">
+    <div className="round-scrubber" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 16px', borderTop: '1px solid var(--md-outline-hair)', flexShrink: 0 }}>
       <button
         type="button"
-        className="round-scrubber-btn"
+        className="md-icon-btn"
         disabled={!hasPrev}
         onClick={() => hasPrev && onChange(rounds[idx - 1])}
-        title="Previous round"
         aria-label="Previous round"
       >
-        <Mdi name="chevron-left" size={14} />
+        <span className="ms ms-20">chevron_left</span>
       </button>
-      <span className="round-scrubber-label">round</span>
-      {rounds.map((r) => (
-        <button
-          key={r}
-          type="button"
-          className={_cn('round-scrubber-pill', r === current && 'is-active')}
-          onClick={() => onChange(r)}
-          title={`Round ${r}`}
-        >
-          r{r}
-        </button>
-      ))}
+      <div className="md-seg" role="tablist">
+        {rounds.map((r) => (
+          <button
+            key={r}
+            type="button"
+            role="tab"
+            className="md-seg__opt"
+            aria-selected={r === current ? 'true' : 'false'}
+            onClick={() => onChange(r)}
+          >
+            r{r}
+          </button>
+        ))}
+      </div>
       <button
         type="button"
-        className="round-scrubber-btn"
+        className="md-icon-btn"
         disabled={!hasNext}
         onClick={() => hasNext && onChange(rounds[idx + 1])}
-        title="Next round"
         aria-label="Next round"
       >
-        <Mdi name="chevron-right" size={14} />
+        <span className="ms ms-20">chevron_right</span>
       </button>
+      <span style={{ font: '12px/1 var(--md-font-plain)', color: 'var(--md-on-surface-faint)', marginLeft: 4 }}>
+        round {current} of {rounds.length}
+      </span>
     </div>
   );
 }
