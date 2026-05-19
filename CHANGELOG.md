@@ -12,6 +12,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.15] — 2026-05-19
+
+### Fixed
+
+- **Spec 0113 — Full-view modal vertical fill + accordion cap** ([spec 0113](specs/0113-modal-vertical-fill-and-accordion-cap.md)). Two visual bugs from [Notion · Known issues v2](https://www.notion.so/Known-issues-v2-36599f3e507f80a8ad5fdb26b143a695) (issues 6 + the modal-half of 9; the accordion-half of 9; defensive verification on 7).
+  - **`.md-dialog` switched from `min-height: 72vh; max-height: 92vh` to `height: 92vh; max-height: 92vh`.** Modals are now always exactly 92 % of the viewport — short content (e.g. Input — brief) no longer floors at 72vh and leaves a dead 20vh strip below. Measured pre-fix: Input — brief modal at 648 / 900 viewport; post-fix: 828 / 900 viewport (= 92vh).
+  - **`.agent-input-body` lost its `max-height: 360px; overflow: auto`.** Accordion sections inside the Agent Input tab now grow to their natural height; the outer `.dr-modal-body` (which has `overflow: auto` from spec 0110) is the single scroll surface inside any modal. Nested per-accordion scrollbars are gone.
+  - **Notion issue 7 (Phase 1 draft horizontal fill)** was already resolved by spec 0110's bump of the modal canvas to 1300 px; verified via Playwright measurement that the brief column now renders at expected width on the canonical run. No structural change.
+
+  Cache-bust `?v=0104` → `?v=0105`. Backend untouched.
+
 ## [0.76.14] — 2026-05-19
 
 ### Fixed

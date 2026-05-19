@@ -888,12 +888,13 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .agent-input-body {
   border-top: 1px solid var(--border-1);
   padding: 10px 12px;
-  max-height: 360px;
-  overflow: auto;
   background: var(--bg-0);
   font-size: 12px;
   line-height: 1.6;
   color: var(--fg-1);
+  /* Spec 0113 — dropped `max-height: 360px; overflow: auto`. The outer
+     .dr-modal-body (spec 0110) is the single scroll surface inside the
+     modal; nested per-accordion scrollbars are out (Notion issue 9). */
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1044,7 +1045,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
   border-left: 3px solid var(--md-tertiary);
   display: flex;
   flex-direction: column;
-  min-height: 72vh;
+  /* Spec 0113 — harmonised with .md-dialog (the modal element carries
+     both classes). Fixed 92vh height; the prior 72vh floor was the
+     cause of Notion issues 6 + 9. */
+  height: 92vh;
   max-height: 92vh;
 }
 .dr-modal.is-a { border-left-color: var(--p-sable); }
@@ -1147,7 +1151,12 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   max-width: 560px;
   display: flex;
   flex-direction: column;
-  min-height: 72vh;
+  /* Spec 0113 — fixed 92vh height (replaces the min:72vh / max:92vh
+     range). Modal is always the same size regardless of content length,
+     so short briefs no longer floor at 72vh and leave a dead strip
+     below (Notion issues 6 + 9). Tall content scrolls inside
+     .dr-modal-body which already carries `overflow: auto`. */
+  height: 92vh;
   max-height: 92vh;
   overflow: hidden;
   border-left: 4px solid transparent;
