@@ -93,7 +93,7 @@ def render(spec_number: str, next_spec: str | None, repo_root: Path | None = Non
 
     lines.append("## Current state of main\n")
     lines.append(f"- Commit: `{head_commit}`")
-    lines.append(f"- Working tree: {'clean' if not tree_status.strip() else 'dirty (' + tree_status.strip().count(chr(10)) + ' modified files)'}")
+    lines.append(f"- Working tree: {'clean' if not tree_status.strip() else 'dirty (' + str(tree_status.strip().count(chr(10))) + ' modified files)'}")
     lines.append(f"- Deployed version: `{deploy_detail.get('deployed_version', '?')}`")
     lines.append("")
 
