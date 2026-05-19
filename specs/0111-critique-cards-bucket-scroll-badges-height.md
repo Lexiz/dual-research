@@ -3,10 +3,10 @@ spec: 0111
 title: Critique cards — bucket correctness, expanded-card scroll, badge cleanup, height parity with Timeline
 label: bug
 version-bump: PATCH
-status: proposed
+status: merged
 target-version: 0.76.13
 created: 2026-05-19
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/119"
 ---
 
 # Spec 0111 — Critique cards: bucket · scroll · badges · height
