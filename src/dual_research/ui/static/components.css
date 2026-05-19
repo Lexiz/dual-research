@@ -1008,75 +1008,73 @@ body.light .tab-group.tabs-solid .tab.is-active,
   animation: dr-modal-in 120ms ease-out;
 }
 .light .dr-backdrop { background: rgba(20,23,28,0.45); }
+/* SPEC-0109 — modal chrome migrated to M3 surface tokens. The .md-dialog
+   block below provides M3-only styling on the outer frame; these
+   .dr-modal-* rules style the legacy header / tabs / body / close button
+   markup that every modal in the app still emits via the shared Modal
+   primitive. Migrating them here flips every modal at once. */
 .dr-modal {
-  background: var(--bg-1);
-  border: 1px solid var(--border-2);
-  border-radius: var(--r-4);
-  box-shadow: 0 24px 80px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-xl);
+  box-shadow: var(--md-elev-3);
   width: 100%;
   max-width: 1100px;
   overflow: hidden;
-  border-left: 3px solid var(--info);
+  border-left: 3px solid var(--md-tertiary);
   display: flex;
   flex-direction: column;
-  /* Spec 0085 — claim the available vertical space. Every modal in
-     this app is content-rich (tabbed body, Markdown rendering,
-     Agent Input panel) — capping at the natural content height left
-     the user reading a half-empty modal with greyed-out backdrop
-     stretching below. The body's ``flex: 1; min-height: 0;
-     overflow: auto`` continues to handle scroll inside the modal
-     between 72vh and 92vh. */
   min-height: 72vh;
   max-height: 92vh;
 }
-.dr-modal.is-a { border-left-color: var(--agent-a); }
-.dr-modal.is-b { border-left-color: var(--agent-b); }
+.dr-modal.is-a { border-left-color: var(--p-sable); }
+.dr-modal.is-b { border-left-color: var(--p-sage); }
 .dr-modal.is-split { max-width: 1300px; }
 .dr-modal-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-1);
-  background: var(--bg-0);
+  border-bottom: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container-high);
   flex-shrink: 0;
 }
 .dr-modal-title {
-  font-size: 14px; font-weight: var(--w-semi); color: var(--fg-0);
-  line-height: var(--lh-snug);
+  font-size: 14px; font-weight: var(--md-w-semi); color: var(--md-on-surface);
+  line-height: 1.30;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   letter-spacing: -0.005em;
 }
 .dr-modal-sub {
-  font-family: var(--sans);
+  font-family: var(--md-font-plain);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-medium);
-  color: var(--fg-3);
+  font-size: 11px;
+  font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-faint);
   margin-top: 2px;
   letter-spacing: -0.005em;
 }
 .dr-modal-close {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px;
-  background: transparent; border: 1px solid var(--border-1);
-  border-radius: var(--r-2);
-  color: var(--fg-2);
+  background: transparent; border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-muted);
   cursor: pointer;
   flex-shrink: 0;
 }
-.dr-modal-close:hover { background: var(--bg-2); color: var(--fg-0); }
+.dr-modal-close:hover { background: var(--md-surface-container-highest); color: var(--md-on-surface); }
 .dr-modal-tabs {
-  display: flex; gap: var(--s-2);
+  display: flex; gap: var(--md-sp-2);
   padding: 0 16px;
-  border-bottom: 1px solid var(--border-1);
-  background: var(--bg-0);
+  border-bottom: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container);
   flex-shrink: 0;
 }
 .dr-modal-tabs > .tab-group { width: 100%; }
 .dr-modal-body {
   flex: 1; min-height: 0; overflow: auto;
   padding: 18px 22px 22px;
-  background: var(--bg-1);
+  background: var(--md-surface-container-low);
 }
 .dr-modal-split {
   display: grid;
