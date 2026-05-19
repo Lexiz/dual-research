@@ -106,7 +106,9 @@ green "✓ queue v2 package importable"
 if [[ -f queue/state.json ]]; then
   yellow "ℹ queue/state.json exists — resuming previous run"
   uv run python -m dual_research.queue_v2.cli status > /tmp/queue-v2-status.json
-  active="$(grep -o '"spec": "[^"]*"' /tmp/queue-v2-status.json | head -1 | cut -d'"' -f4)"
+  # grep returns 1 when no active spec is present; absorb so set -o pipefail
+  # doesn't kill the script during a normal "queue staged but idle" run.
+  active="$(grep -o '"spec": "[^"]*"' /tmp/queue-v2-status.json 2>/dev/null | head -1 | cut -d'"' -f4 || true)"
   if [[ -n "$active" ]]; then
     yellow "  in-flight spec: $active"
   fi
