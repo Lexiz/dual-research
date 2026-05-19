@@ -364,8 +364,8 @@ body.light, .light {
    SPEC-0092 — M3 light-mode role-token overrides.
    Parallel to the v1 body.light block above. Mirrors
    docs/design-system-v2/assets/styles/v2-m3.css:200-245.
-   Only --md-* tokens flip here; v1 components keep reading
-   their --bg-*/--fg-*/etc from the v1 block.
+   Only --md tokens flip here; v1 components keep reading
+   their v1 surface and foreground tokens from the v1 block.
    ============================================================= */
 body.light {
   --md-on-primary:             #1f1407;
