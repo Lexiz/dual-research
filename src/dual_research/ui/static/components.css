@@ -2490,3 +2490,72 @@ body.light .ccx-bar .reuse {
     padding-right: 0;
   }
 }
+
+/* ── Tour overlay (SPEC-0103) ──────────────────────── */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: auto;
+}
+.tour-overlay__mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  pointer-events: none;
+}
+body.light .tour-overlay__mask {
+  background: rgba(20,23,28,0.30);
+}
+.tour-overlay__cutout {
+  position: fixed;
+  pointer-events: none;
+  border-radius: var(--md-shape-md);
+  box-shadow: 0 0 0 2px var(--p-info);
+  z-index: 1;
+}
+
+/* ── ProgressSegs (admin, SPEC-0103) ───────────────── */
+.seg-track {
+  display: flex; gap: 2px; height: 12px;
+  width: 100%; border-radius: var(--md-shape-full); overflow: hidden;
+  background: var(--md-surface-container);
+}
+.seg-track__seg { flex: 1; min-width: 8px; background: var(--md-surface-container-highest); }
+.seg-track__seg--done   { background: var(--p-ok); }
+.seg-track__seg--curr   { background: var(--p-info); }
+.seg-track__seg--queued { background: var(--md-outline-variant); }
+
+/* ── Callout (tour bubble, SPEC-0103) ──────────────── */
+.callout {
+  position: absolute;
+  width: 360px;
+  background: var(--md-surface-3);
+  color: var(--md-on-surface);
+  border-radius: var(--md-shape-lg);
+  border: 1px solid var(--md-outline-hair);
+  padding: 20px;
+  box-shadow: var(--md-elev-3);
+  z-index: 2;
+}
+.callout__step {
+  font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-primary);
+  margin-bottom: 8px;
+}
+.callout__title {
+  font: var(--md-w-medium) var(--md-title-l-size)/var(--md-title-l-lh) var(--md-font-brand);
+  margin: 0 0 8px;
+}
+.callout__body { color: var(--md-on-surface-variant); margin-bottom: 16px; font: var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain); }
+.callout__progress {
+  display: inline-flex; gap: 4px; vertical-align: middle; margin-right: 16px;
+}
+.callout__progress span {
+  width: 18px; height: 4px; border-radius: 4px;
+  background: var(--md-outline-variant);
+}
+.callout__progress span.on { background: var(--md-primary); }
+.callout__actions { display: flex; align-items: center; }
+.callout__spacer { flex: 1; }

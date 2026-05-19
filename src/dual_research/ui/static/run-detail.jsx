@@ -115,7 +115,7 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
     (run.agents.gpt.tokens?.in || 0) + (run.agents.gpt.tokens?.out || 0);
 
   return (
-    <header style={{
+    <header data-tour-anchor="run-detail-header" style={{
       display: 'flex', flexDirection: 'column',
       padding: '12px 20px',
       borderBottom: '1px solid var(--border-1)',
@@ -819,7 +819,7 @@ function Timeline({ run, highlightedTurnKeys }) {
           {/* BODY — rail + phases. Grid is 40px 1fr. */}
           <div className="tl__body">
             {/* RAIL — one .seg per visible phase */}
-            <div className="tl__rail" aria-hidden="true">
+            <div className="tl__rail" aria-hidden="true" data-tour-anchor="timeline-phase-rail">
               {visiblePhases.map(vp => (
                 <div key={vp.pid} className={`seg${vp.allDone ? ' is-done' : ''}${vp.isCurrent ? ' is-current' : ''}`}>
                   <span className="marker"></span>
@@ -1529,10 +1529,10 @@ function ConsumptionView({ run }) {
   return (
     <div className="ccx-pane">
       <div className="ccx-pane__body">
-        {groups.map((group) => (
+        {groups.map((group, gi) => (
           <div key={group.phase}>
             <div className="phase-group-head">{group.name}</div>
-            {group.rows.map((row) => {
+            {group.rows.map((row, ri) => {
               const hasRound = !!row.label;
               const roundCount = group.rounds || 0;
               const phaseCode = `P${row.phase}`;
@@ -1541,7 +1541,7 @@ function ConsumptionView({ run }) {
                 : null;
               return (
                 <div key={row.id} className="cards-2up" style={{ marginBottom: 16 }}>
-                  {['claude', 'gpt'].map((agent) => (
+                  {['claude', 'gpt'].map((agent, ai) => (
                     <div key={agent}>
                       {hasRound && (
                         <div className="round-label">
@@ -1557,6 +1557,7 @@ function ConsumptionView({ run }) {
                         scale={scale}
                         expanded={expanded.has(row.id)}
                         onToggle={() => toggleRow(row.id)}
+                        tourAnchor={gi === 0 && ri === 0 && ai === 0}
                       />
                     </div>
                   ))}
@@ -1585,7 +1586,7 @@ function ConsumptionCard() { return null; }
 
 // SPEC-0100 — CcxCard: M3 consumption card with collapsed + unfolded anatomy.
 // Issues 12 (collapsed), 13 (unfolded), 14 (uniform width).
-function CcxCard({ usage, agent, run, scale, expanded = false, onToggle }) {
+function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnchor }) {
   const meta = AGENT_META[agent];
   const iconClass = agent === 'claude' ? 'a' : 'b';
   const fillIn = agent === 'claude' ? 'in' : 'in-b';
@@ -1593,7 +1594,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle }) {
 
   if (!usage) {
     return (
-      <article className="ccx" style={{ opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 60 }}>
+      <article className="ccx" data-tour-anchor={tourAnchor ? 'consumption-card' : undefined} style={{ opacity: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 60 }}>
         <span style={{ fontSize: 12, color: 'var(--md-on-surface-faint)' }}>
           {meta.name} &middot; silent this turn
         </span>
@@ -1641,7 +1642,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle }) {
     : 0;
 
   return (
-    <article className="ccx" onClick={onToggle} style={{ cursor: 'pointer' }}>
+    <article className="ccx" data-tour-anchor={tourAnchor ? 'consumption-card' : undefined} onClick={onToggle} style={{ cursor: 'pointer' }}>
       {/* Header trio — Issue 12 */}
       <header className="ccx-header">
         <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
@@ -5932,7 +5933,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   };
 
   return (
-    <section className="crit2">
+    <section className="crit2" data-tour-anchor="critique-pane">
       {/* BAR 1 — Title + Phase tabs + Totals + Drift chip */}
       <header className="bar1">
         <span className="ttl">Critique</span>
