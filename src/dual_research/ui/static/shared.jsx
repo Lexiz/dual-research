@@ -379,7 +379,7 @@ function Markdown({ text, className, style }) {
 //   variant   'single'|'split'|'basic'|'rich' — default 'single'/'basic'.
 //   footer    node     — optional fixed footer below the body (e.g. RoundScrubber).
 //   children  node     — body content (ignored when `tabs` is provided).
-function Modal({ open, onClose, title, subtitle, tabs, agent, agentTint, variant = 'single', footer, children }) {
+function Modal({ open, onClose, title, subtitle, tabs, agent, agentTint, variant = 'split', footer, children }) {
   const [activeId, setActiveId] = React.useState(null);
   const modalRef = React.useRef(null);
   const previousFocusRef = React.useRef(null);

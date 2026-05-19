@@ -582,13 +582,19 @@ body.light .tab-group.tabs-solid .tab.is-active,
   gap: 8px;
   padding: 0;
 }
+/* SPEC-0110 — turn rows stack vertically: pill on top, quote text below
+   using the full card width. The legacy 2-column grid (pill | quote)
+   indented the text and limited line length; the user wanted the body
+   to breathe across the full card. */
 .qt-row {
-  display: grid; grid-template-columns: minmax(160px, auto) 1fr;
-  gap: 12px; align-items: flex-start;
-  padding: 10px 12px;
-  border-radius: var(--r-2);
-  background: var(--bg-2);
+  display: flex; flex-direction: column;
+  gap: 8px; align-items: stretch;
+  padding: 12px 14px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-high);
 }
+.qt-row .qt-pill { align-self: flex-start; }
+.qt-row .qt-quote { width: 100%; }
 .qt-row.is-a { background: var(--agent-a-bg); }
 .qt-row.is-b { background: var(--agent-b-bg); }
 .qt-row.is-ghosted { background: color-mix(in srgb, var(--warn) 12%, var(--bg-2)); }
@@ -660,17 +666,9 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .qref[data-kind="I"] .qref-k { color: var(--err); }
 .qref[data-kind="C"] .qref-k { color: var(--info); }
 
-/* ── QuestionThread single-column override (<900px) ── */
-@media (max-width: 899px) {
-  .qt-row {
-    display: flex; flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 12px 14px;
-  }
-  .qt-row .qt-pill { align-self: flex-start; }
-  .qt-row .qt-quote { width: 100%; }
-}
+/* SPEC-0110 — single-column .qt-row is now the default at every breakpoint;
+   the <900px media-query override that used to flip the grid to flex is no
+   longer needed. */
 
 /* ── .sci — side-by-side inline variant for Spec 0098 ── */
 .sci {
@@ -1087,6 +1085,15 @@ body.light .tab-group.tabs-solid .tab.is-active,
   min-height: 0; min-width: 0;
   display: flex; flex-direction: column;
 }
+/* SPEC-0110 — Inner body content (single column, tab content, or split
+   pane) stretches to fill the available vertical space between the modal
+   header and footer. Without this, content sits at its natural height
+   and leaves a large dead strip below. */
+.dr-modal-body { display: flex; flex-direction: column; }
+.dr-modal-body > * { min-height: 0; }
+.dr-modal-body > div:only-child,
+.dr-modal-body > article:only-child,
+.dr-modal-body > section:only-child { flex: 1; }
 
 /* ─────────────────────────────────────────────────────────────
    M3 Dialog (.md-dialog) — SPEC-0096
@@ -1123,8 +1130,11 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   overflow: hidden;
   border-left: 4px solid transparent;
 }
-.md-dialog--basic { max-width: 560px; }
-.md-dialog--rich  { max-width: 1080px; }
+/* SPEC-0110 — both variants open at the rich (full) width by default so
+   every modal in the app gets the same canvas. The 560 px basic was an
+   M3-doc default; in this app every modal is content-rich. */
+.md-dialog--basic { max-width: 1080px; }
+.md-dialog--rich  { max-width: 1300px; }
 .md-dialog--agent-a { border-left: 4px solid var(--p-sable); }
 .md-dialog--agent-b { border-left: 4px solid var(--p-sage); }
 .md-dialog__icon {
@@ -1240,7 +1250,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .md-btn--outlined { background: transparent; color: var(--md-primary); box-shadow: inset 0 0 0 1px var(--md-outline); }
 .md-btn--outlined:hover { box-shadow: inset 0 0 0 1px var(--md-primary); }
 
-.md-btn--text     { background: transparent; color: var(--md-primary); padding: 0 12px; }
+.md-btn--text     { background: transparent; color: var(--md-on-surface); padding: 0 12px; }
 
 .md-btn--elevated { background: var(--md-surface-1); color: var(--md-primary); box-shadow: var(--md-elev-1); }
 .md-btn--elevated:hover { box-shadow: var(--md-elev-2); }
@@ -1915,46 +1925,32 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 
 /* Body — grid: 40px rail + 1fr phases */
 .tl__body {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  gap: 0;
+  display: flex; flex-direction: column;
   padding: 12px 20px 16px;
-  align-items: stretch;
 }
 
-/* Vertical phase-indicator rail (Issue 5) */
-.tl__rail {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 0;
-  padding-top: 18px;
-  position: relative;
+/* SPEC-0110 — phase marker lives inside each .tl-phase__hd so it stays
+   anchored to its phase header regardless of collapse / expand state.
+   The old .tl__rail layout used flex:1 equal segments and drifted as soon
+   as phase heights diverged. */
+.tl-phase__marker {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
 }
-.tl__rail .seg {
-  flex: 1; min-height: 100px;
-  position: relative;
-  display: flex; flex-direction: column;
-  align-items: center;
-}
-.tl__rail .seg::before {
-  content: ""; position: absolute; top: 14px; bottom: -14px; width: 1px;
-  background: var(--md-outline-hair);
-}
-.tl__rail .seg:last-child::before { display: none; }
-.tl__rail .seg .marker {
+.tl-phase__marker .dot {
   width: 10px; height: 10px; border-radius: 50%;
   background: var(--md-outline-variant);
-  z-index: 1;
-  margin-top: 8px;
+  flex-shrink: 0;
 }
-.tl__rail .seg.is-done    .marker { background: var(--p-ok); }
-.tl__rail .seg.is-current .marker { background: var(--p-err); box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-err) 22%, transparent); }
-.tl__rail .seg .lbl {
+.tl-phase__marker .lbl {
   font: var(--md-w-medium) 10px/1 var(--md-font-data);
   color: var(--md-on-surface-faint);
-  margin-top: 4px;
+  letter-spacing: 0.04em;
 }
-.tl__rail .seg.is-current .lbl { color: var(--p-err); }
-.tl__rail .seg.is-done    .lbl { color: var(--md-on-surface); }
+.tl-phase__marker.is-done    .dot { background: var(--p-ok); }
+.tl-phase__marker.is-done    .lbl { color: var(--md-on-surface); }
+.tl-phase__marker.is-current .dot { background: var(--p-err); box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-err) 22%, transparent); }
+.tl-phase__marker.is-current .lbl { color: var(--p-err); }
 
 /* Phase list container */
 .tl__phases { display: flex; flex-direction: column; gap: var(--md-sp-2); }
@@ -1970,7 +1966,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   overflow: hidden;
 }
 .tl-phase__hd {
-  display: grid; grid-template-columns: 20px auto 1fr auto;
+  display: grid; grid-template-columns: auto 20px auto auto 1fr auto;
   gap: 10px; align-items: center;
   padding: 10px 14px;
   cursor: pointer;

@@ -12,6 +12,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.12] — 2026-05-19
+
+### Refactored
+
+- **Spec 0110 — pre-test polish bundle** ([spec 0110](specs/0110-modal-rail-contrast-critique-polish.md)). Four small but visible fixes:
+  1. **Modal sizing.** Modal primitive's `variant` default flipped from `'single'` (560 px basic) to `'split'` (1300 px rich). `.md-dialog--basic` max-width bumped 560 → 1080 px and `.md-dialog--rich` 1080 → 1300 px so every modal opens on a consistent wide canvas. Added `.dr-modal-body > div:only-child / article:only-child / section:only-child { flex: 1; }` so the inner content stretches to fill the vertical space between header and footer. Result: `Input — brief` opens at 1300×936 (72vh) with the brief body filling the full pane; `GPT — Phase 1 draft` and `GPT — turn 1` also fill the wider canvas.
+  2. **Phase rail anchoring.** The `F0/F1/F2/F3/F4` markers moved into each `.tl-phase__hd` as a `.tl-phase__marker` element (dot + `P{n}` label). The old `.tl__rail` flex-segment column is gone. Now the marker is laid out inside the header itself, so collapse / expand can never desync it. Verified across four collapse states (all expanded, all collapsed, alt 0+2+4 collapsed, only-0 expanded) — every marker sits at `delta_y = 0.0` from its phase header's vertical centre.
+  3. **Button text contrast.** `.md-btn--text` foreground swapped from `var(--md-primary)` (sable, low contrast on cream) to `var(--md-on-surface)` (high contrast). Top-bar `All runs / Compare / Search` and `How it works` buttons now read cleanly on the M3 light chrome surface. Hover state preserved via the `::before` overlay.
+  4. **Critique card content layout.** `.qt-row` changed from `display: grid; grid-template-columns: minmax(160px, auto) 1fr` to `display: flex; flex-direction: column`. The agent metadata pill (`Claude · r1 · RAISED`) now sits on its own line, with the quote text below using the full card width. The old `<900px` media-query override was removed since stacking is now the default.
+
+  Tests 924 green. Cache-bust `?v=0101` → `?v=0102`.
+
 ## [0.76.11] — 2026-05-19
 
 ### Refactored
