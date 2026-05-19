@@ -112,37 +112,29 @@ function AgentIcon({ agent, size = 16, variant = 'solid' }) {
   );
 }
 
-function StatusBadge({ status }) {
-  const map = {
-    running:    { label: 'running',    color: COLORS.info, pulse: 'pulse-a' },
-    converged:  { label: 'converged',  color: COLORS.ok,   pulse: null },
-    deadlocked: { label: 'deadlocked', color: COLORS.warn, pulse: 'pulse-warn' },
-    errored:    { label: 'errored',    color: COLORS.err,  pulse: 'pulse-err' },
-    completed:  { label: 'completed',  color: COLORS.ok,   pulse: null },
-    idle:       { label: 'idle',       color: COLORS.idle, pulse: null },
-    thinking:   { label: 'thinking',   color: COLORS.info, pulse: 'pulse-a' },
-    drafting:   { label: 'drafting',   color: COLORS.info, pulse: 'pulse-a' },
-    responding: { label: 'responding', color: COLORS.info, pulse: 'pulse-a' },
-    reviewing:  { label: 'reviewing',  color: COLORS.info, pulse: 'pulse-a' },
-    waiting:    { label: 'waiting',    color: COLORS.idle, pulse: null },
-  };
-  const m = map[status] || map.idle;
+// SPEC-0093 — StatusBadge now emits M3 `.md-status` class names.
+// Maps every known status string to one of the six M3 status pill
+// modifiers. Prop API unchanged — callers pass `status="running"` etc.
+const _STATUS_TO_M3 = {
+  running:    'running',
+  converged:  'converged',
+  completed:  'converged',
+  deadlocked: 'drift',
+  errored:    'errored',
+  idle:       'idle',
+  queued:     'queued',
+  thinking:   'running',
+  drafting:   'running',
+  responding: 'running',
+  reviewing:  'running',
+  waiting:    'idle',
+};
+function StatusBadge({ status, label }) {
+  const m3 = _STATUS_TO_M3[status] || 'idle';
+  const text = label || status || 'idle';
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-      padding: '3px 8px 3px 7px',
-      minWidth: 88,
-      background: 'var(--bg-2)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 999,
-      fontSize: 11,
-      color: 'var(--fg-1)',
-      fontFamily: 'var(--mono)',
-      letterSpacing: '0.01em',
-      textAlign: 'center',
-    }}>
-      <Dot color={m.color} pulse={m.pulse} size={6} />
-      {m.label}
+    <span className={`md-status md-status--${m3}`}>
+      {text}
     </span>
   );
 }
@@ -674,12 +666,18 @@ function scrollAndFlash(container, { blockId, text, afterHeading } = {}) {
 
 function _cn(...parts) { return parts.filter(Boolean).join(' '); }
 
-// Button — three sizes (sm/md/lg), four variants (primary/secondary/ghost/danger).
+// Button — SPEC-0093: emits M3 `md-btn md-btn--{variant}` class names.
+// Variant map: primary→filled, secondary→outlined, ghost→text, danger→outlined.
+// Size map: sm→md-btn--sm, md→(default 40dp), lg→md-btn--lg.
+// Keeps the existing prop API so call sites don't break.
+const _BTN_VARIANT_MAP = { primary: 'filled', secondary: 'outlined', ghost: 'text', danger: 'outlined' };
+const _BTN_SIZE_MAP = { sm: 'md-btn--sm', lg: 'md-btn--lg' };
 function Button({ size = 'md', variant = 'secondary', leadingIcon, trailingIcon, children, onClick, disabled, className, type = 'button', title }) {
-  const variantClass = variant === 'secondary' ? null : `btn-${variant}`;
+  const m3Variant = _BTN_VARIANT_MAP[variant] || 'outlined';
+  const sizeClass = _BTN_SIZE_MAP[size] || null;
   return (
     <button type={type} onClick={onClick} disabled={disabled} title={title}
-            className={_cn('btn', `btn-${size}`, variantClass, className)}>
+            className={_cn('md-btn', `md-btn--${m3Variant}`, sizeClass, className)}>
       {leadingIcon && <Mdi name={leadingIcon} size={14} />}
       {children && <span>{children}</span>}
       {trailingIcon && <Mdi name={trailingIcon} size={14} />}
@@ -701,10 +699,15 @@ function SB({ tone = 'idle', size = 'md', children, live = false, className }) {
   );
 }
 
-// Chip — count + label, eight tones, two shape modifiers.
-// tone: 'info' | 'ok' | 'warn' | 'err' | 'a' | 'b' | 'muted' (optional)
-function Chip({ tone, pill, lg, icon, children, asButton, onClick, className, title, style }) {
-  const cls = _cn('chip', tone && `tone-${tone}`, pill && 'chip-pill', lg && 'chip-lg', className);
+// Chip — SPEC-0093: emits tonal `.chip .tone-{tone}` (when tone is set)
+// or M3 `.md-chip` (when m3 prop is true or no tone). Prop API unchanged.
+// tone: 'info' | 'ok' | 'warn' | 'err' | 'a' | 'b' | 'muted' | 'info-strong' | 'idle' | 'neutral' (optional)
+function Chip({ tone, pill, lg, icon, children, asButton, onClick, className, title, style, m3, noDot }) {
+  // When tone is provided, use tonal chip classes; otherwise M3 chip.
+  const isTonal = tone && !m3;
+  const cls = isTonal
+    ? _cn('chip', `tone-${tone}`, pill && 'chip-pill', lg && 'chip-lg', noDot && 'no-dot', className)
+    : _cn('md-chip', lg && 'md-chip--sm', className);
   const content = (
     <>
       {icon && <Mdi name={icon} size={12} className="ico" />}
@@ -1266,4 +1269,6 @@ Object.assign(window, {
   QuoteCallout,
   // SPEC-0084 primitives
   LoadingState,
+  // SPEC-0093 primitives
+  _STATUS_TO_M3,
 });
