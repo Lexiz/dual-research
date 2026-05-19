@@ -15,6 +15,19 @@
 (function () {
   const VERSION_NOTES = [
     {
+      version: '1.2.0',
+      date: '2026-05-20',
+      summary: 'Spec 0117 -- canonical artifact registry, Deep Research how-it-works diagram, and display-name propagation across the UI.',
+      items: [
+        'New artifact registry at contract/artifacts.py: ArtifactKind enum, ArtifactDef dataclass, 33-entry REGISTRY tuple, display_name() / is_known() / kind_of(). Single source of truth for every artifact name surfaced to the user. Hashing machinery (canonical_hash, AGREED_* templates) unchanged.',
+        'Hand-authored Deep Research pipeline SVGs bundled under /diagrams/ (light + dark variants). The how-it-works "View full process map" panel now embeds the variant matching the active theme; toggling the theme swaps the SVG in real time via a MutationObserver on body.classList.',
+        'Inline diagrams in how-it-works.jsx updated to the Deep Research protocol: PhaseStrip flags P0 as multi-round; NegotiationRoundDiagram rewritten around the five-operation turn structure (RAISE / ADDRESS / RESOLVE / ACKNOWLEDGE / WITHDRAW + status footer); ChatLifecycle now shows the P0 multi-round loop feeding Agreed interpretation into P1, Agreed plan into P3, and the ledger of standing items per-agent each round.',
+        'JS-side registry mirror at static/artifacts.jsx (window.DrArtifacts.displayName / isKnown / truncateTitle). A pytest sync test parses both registries and fails CI if Python and JS drift apart.',
+        'Display-name propagation: every modal header in run-detail.jsx resolves through the registry ("Negotiation turn · Claude · round 3", "Claude\'s research plan", "Current draft (latest version) · drafted by Claude"). Every timeline card carries the full registry display name as a title + aria-label tooltip; the visible chip stays short for layout. validate-run CLI prints the display name alongside each location tag in its audit report.',
+        'CI drift guard: a pytest scans src/dual_research/ for string literals matching the registry\'s ID prefixes and fails if any unregistered ID slips in.',
+      ],
+    },
+    {
       version: '0.69.1',
       date: '2026-05-18',
       summary: 'Hotfix -- run-detail page white-screen regression fixed.',
@@ -711,9 +724,9 @@
 
   function PhaseStrip() {
     const cells = [
-      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P0 · Preflight',  sub: 'brief critique' },
-      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P1 · Research',   sub: 'independent drafts' },
-      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'plan convergence' },
+      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P0 · Preflight',  sub: 'agreed_interpretation' },
+      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P1 · Research',   sub: 'independent plans' },
+      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'agreed_plan + drafter' },
       { tag: 'single-shot', color: 'var(--md-on-surface-muted)',    label: 'P3 · Draft',      sub: 'drafter writes doc' },
       { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P4 · Review',     sub: 'cross-review + revise' },
       { tag: 'output',      color: 'var(--ok)',      label: 'final.md',         sub: 'single document' },
@@ -754,76 +767,75 @@
   // ─── Diagram: one Phase 2 round (kept from spec 0023) ────────────────
 
   function NegotiationRoundDiagram() {
+    // Spec 0117 step 4 — depicts the five operation blocks of one agent's
+    // negotiation turn plus the status footer that gates convergence.
+    const dn = (id) => (window.DrArtifacts ? window.DrArtifacts.displayName(id) : id);
+    const ops = [
+      { name: 'RAISE',       hint: 'new Q / D / I / C' },
+      { name: 'ADDRESS',     hint: 'reply to other agent' },
+      { name: 'RESOLVE',     hint: 'mark items resolved' },
+      { name: 'ACKNOWLEDGE', hint: 'confirm closure' },
+      { name: 'WITHDRAW',    hint: 'retract own item' },
+    ];
     return (
-      <svg viewBox="0 0 720 320" style={{ display: 'block', width: '100%', maxWidth: 720, margin: '0 auto' }}>
+      <svg viewBox="0 0 720 280" style={{ display: 'block', width: '100%', maxWidth: 720, margin: '0 auto' }}>
         <ArrowDefs />
-        <rect x={30} y={20} width={200} height={80} rx={8}
-              fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
-        <text x={130} y={44} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--md-on-surface-variant)">disk: prior turns inlined</text>
-        <text x={130} y={62} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">round 1..N-1, both agents</text>
-        <text x={130} y={76} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">+ brief + phase-1 drafts</text>
-        <text x={130} y={92} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">+ CACHE_BREAKPOINT</text>
 
-        <text x={370} y={50} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--md-on-surface-variant)">orchestrator assembles</text>
-        <text x={370} y={66} textAnchor="middle"
+        <text x={360} y={20} textAnchor="middle"
+              fontFamily="IBM Plex Serif, system-ui, sans-serif" fontSize={13.5} fontWeight={600}
+              fill="var(--md-on-surface)">One agent's negotiation turn</text>
+        <text x={360} y={36} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
-              fill="var(--md-on-surface-faint)">a fresh prompt</text>
+              fill="var(--md-on-surface-faint)">{dn('phase2.claude.r3')} or {dn('phase2.openai.r3')} — same shape every round</text>
 
-        <Arrow x1={230} y1={60} x2={510} y2={60} />
+        {ops.map((op, i) => {
+          const w = 130;
+          const gap = 8;
+          const x = 30 + i * (w + gap);
+          return (
+            <React.Fragment key={op.name}>
+              <rect x={x} y={56} width={w} height={70} rx={8}
+                    fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
+              <text x={x + w / 2} y={84} textAnchor="middle"
+                    fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11.5} fontWeight={600}
+                    fill="var(--agent-a)" letterSpacing="0.06em">{op.name}</text>
+              <text x={x + w / 2} y={104} textAnchor="middle"
+                    fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={10}
+                    fill="var(--md-on-surface-variant)">{op.hint}</text>
+              {i < ops.length - 1 && (
+                <Arrow x1={x + w + 2} y1={91} x2={x + w + gap - 2} y2={91} />
+              )}
+            </React.Fragment>
+          );
+        })}
 
-        <rect x={510} y={20} width={180} height={80} rx={8}
-              fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
-        <text x={600} y={44} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--md-on-surface-variant)">round N prompt</text>
-        <text x={600} y={62} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">identical to both, except</text>
-        <text x={600} y={78} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">agent_name substitution</text>
-
-        <Arrow x1={560} y1={108} x2={180} y2={170} />
-        <Arrow x1={640} y1={108} x2={550} y2={170} />
-
-        <ClaudeDisc cx={150} cy={195} r={30} />
-        <GptDisc    cx={580} cy={195} r={30} />
-
-        <text x={365} y={200} textAnchor="middle"
-              fontSize={11} fill="var(--md-on-surface-faint)" fontFamily="IBM Plex Sans, ui-monospace, monospace">
-          asyncio.gather
+        <rect x={30} y={148} width={660} height={44} rx={8}
+              fill="var(--md-surface-container-low)" stroke="var(--md-outline-variant)" />
+        <text x={50} y={170} fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11} fontWeight={600}
+              fill="var(--md-on-surface-variant)" letterSpacing="0.06em">STATUS FOOTER</text>
+        <text x={50} y={186} fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
+              fill="var(--md-on-surface-faint)">
+          STATUS: NEGOTIATING | AGREED   ·   OPEN_QUESTIONS: N   ·   OPEN_DISAGREEMENTS: N   ·   STRONGEST_REMAINING_OBJECTION: …
         </text>
 
-        <Arrow x1={150} y1={225} x2={150} y2={258} />
-        <Arrow x1={580} y1={225} x2={580} y2={258} />
-
-        <rect x={50} y={258} width={200} height={28} rx={6}
-              fill="var(--agent-a-bg)" stroke="var(--agent-a-border)" />
-        <text x={150} y={276} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10.5}
-              fill="var(--agent-a)">phase2/round-NN-claude.md</text>
-
-        <rect x={480} y={258} width={200} height={28} rx={6}
-              fill="var(--agent-b-bg)" stroke="var(--agent-b-border)" />
-        <text x={580} y={276} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10.5}
-              fill="var(--agent-b)">phase2/round-NN-openai.md</text>
-
-        <rect x={260} y={294} width={200} height={22} rx={6}
-              fill="var(--md-surface-container-low)" stroke="var(--md-outline-variant)" />
-        <text x={360} y={309} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
-              fill="var(--md-on-surface-variant)">both AGREED + plan-hash match?</text>
+        <text x={30} y={220}
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={11}
+              fill="var(--md-on-surface-variant)">
+          <tspan fontWeight={600}>Convergence gate:</tspan>{' '}
+          both agents emit <tspan className="mono" fill="var(--md-on-surface)">STATUS: AGREED</tspan>{' '}
+          and Agreed-plan blocks hash-match.
+        </text>
+        <text x={30} y={240}
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={11}
+              fill="var(--md-on-surface-variant)">
+          <tspan fontWeight={600}>Closeout round:</tspan>{' '}
+          if items linger after AGREED, only RESOLVE / ACKNOWLEDGE / WITHDRAW are allowed.
+        </text>
+        <text x={30} y={260}
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={11}
+              fill="var(--md-on-surface-faint)" fontStyle="italic">
+          Both turns fire in parallel via asyncio.gather.
+        </text>
       </svg>
     );
   }
@@ -882,7 +894,7 @@
     );
   }
 
-  function CallBox({ agent, fresh = true, lines, out, silent, noteIf }) {
+  function CallBox({ agent, fresh = true, lines, out, outId, silent, noteIf }) {
     if (silent) {
       return (
         <div style={{
@@ -897,6 +909,12 @@
     const border = isClaude ? 'var(--agent-a-border)' : 'var(--agent-b-border)';
     const letter = isClaude ? 'C' : 'G';
     const letterColor = isClaude ? 'var(--agent-a)' : 'var(--agent-b)';
+    // Prefer the canonical artifact ID and resolve to a display name
+    // via the registry mirror; fall back to the literal ``out`` prop
+    // for legacy callers passing free-form text.
+    const outLabel = outId && window.DrArtifacts
+      ? window.DrArtifacts.displayName(outId)
+      : out;
     return (
       <div style={{
         padding: '10px 12px', borderRadius: 6,
@@ -923,9 +941,9 @@
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>
           {lines.map((line, i) => <li key={i} style={{ listStyle: 'disc' }}>{line}</li>)}
         </ul>
-        {out && (
-          <div className="mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--md-on-surface-muted)' }}>
-            <span style={{ color: 'var(--md-on-surface-faint)' }}>→ </span>{out}
+        {outLabel && (
+          <div style={{ marginTop: 8, fontSize: 10.5, color: 'var(--md-on-surface-muted)' }}>
+            <span style={{ color: 'var(--md-on-surface-faint)' }}>→ </span>{outLabel}
           </div>
         )}
       </div>
@@ -959,16 +977,22 @@
   }
 
   function ChatLifecycle() {
-    const claudeCall = (lines, out, noteIf) => <CallBox agent="claude" lines={lines} out={out} noteIf={noteIf} />;
-    const openaiCall = (lines, out, noteIf) => <CallBox agent="openai" lines={lines} out={out} noteIf={noteIf} />;
+    const claudeCall = (lines, outId, noteIf) => <CallBox agent="claude" lines={lines} outId={outId} noteIf={noteIf} />;
+    const openaiCall = (lines, outId, noteIf) => <CallBox agent="openai" lines={lines} outId={outId} noteIf={noteIf} />;
     const silent     = <CallBox silent />;
-    const tkBrief  = <Tk kind="brief">brief</Tk>;
-    const tkD1     = <Tk kind="d1">P1 draft-claude</Tk>;
-    const tkD2     = <Tk kind="d2">P1 draft-openai</Tk>;
-    const tkHist   = <Tk kind="hist">all prior P2 turns</Tk>;
-    const tkPlan   = <Tk kind="plan">agreed plan</Tk>;
-    const tkDraft  = <Tk kind="draft">current draft-vK.md</Tk>;
-    const tkHistP  = <Tk kind="histp">all prior P4 turns</Tk>;
+    // Tk labels resolve through the registry mirror — text matches
+    // what the rest of the UI surfaces show.
+    const dn = (id) => (window.DrArtifacts ? window.DrArtifacts.displayName(id) : id);
+    const tkBrief    = <Tk kind="brief">{dn('user_prompt')}</Tk>;
+    const tkD1       = <Tk kind="d1">{dn('phase1.claude')}</Tk>;
+    const tkD2       = <Tk kind="d2">{dn('phase1.openai')}</Tk>;
+    const tkInterp   = <Tk kind="plan">{dn('phase0.agreement.interpretation')}</Tk>;
+    const tkP0Hist   = <Tk kind="hist">{dn('prior_turns.phase0')}</Tk>;
+    const tkP2Hist   = <Tk kind="hist">{dn('prior_turns.phase2')}</Tk>;
+    const tkPlan     = <Tk kind="plan">{dn('phase2.agreement.plan')}</Tk>;
+    const tkDraft    = <Tk kind="draft">{dn('current_draft')}</Tk>;
+    const tkP4Hist   = <Tk kind="histp">{dn('prior_turns.phase4')}</Tk>;
+    const tkLedger   = <Tk kind="hist">{dn('ledger.standing_items')}</Tk>;
 
     return (
       <div style={{
@@ -987,26 +1011,41 @@
         <div className="mono" style={{
           fontSize: 10.5, color: 'var(--agent-b)', letterSpacing: '0.08em',
           textTransform: 'uppercase', padding: '6px 0',
-        }}>OpenAI lane</div>
+        }}>GPT lane</div>
 
         <LifecycleRow
-          phase="P0 Preflight" tag="1 call / agent"
-          claude={claudeCall([tkBrief], 'preflight-claude.md')}
-          openai={openaiCall([tkBrief], 'preflight-openai.md')}
+          phase="P0 Preflight" tag="Round 1"
+          claude={claudeCall([tkBrief], 'phase0.claude.r1')}
+          openai={openaiCall([tkBrief], 'phase0.openai.r1')}
           gather="⎯⎯  asyncio.gather  · both fire at once  ⎯⎯"
         />
 
         <LifecycleRow
+          phase="P0 Preflight" tag="Round 2..N"
+          claude={claudeCall([
+            tkBrief,
+            <span key="h">{tkP0Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase0.claude.r3')}
+          openai={openaiCall([
+            tkBrief,
+            <span key="h">{tkP0Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase0.openai.r3')}
+          gather={`⎯⎯  loop until ${dn('phase0.agreement.interpretation')} is hash-matched  ⎯⎯`}
+        />
+
+        <LifecycleRow
           phase="P1 Research" tag="1 call / agent"
-          claude={claudeCall([tkBrief], 'phase1/draft-claude.md')}
-          openai={openaiCall([tkBrief], 'phase1/draft-openai.md')}
+          claude={claudeCall([tkBrief, tkInterp], 'phase1.claude')}
+          openai={openaiCall([tkBrief, tkInterp], 'phase1.openai')}
           gather="⎯⎯  asyncio.gather  ⎯⎯"
         />
 
         <LifecycleRow
           phase="P2 Negotiate" tag="Round 1"
-          claude={claudeCall([tkBrief, <span key="d">{tkD1} · {tkD2}</span>], 'phase2/round-01-claude.md')}
-          openai={openaiCall([tkBrief, <span key="d">{tkD1} · {tkD2}</span>], 'phase2/round-01-openai.md')}
+          claude={claudeCall([tkBrief, tkInterp, <span key="d">{tkD1} · {tkD2}</span>], 'phase2.claude.r1')}
+          openai={openaiCall([tkBrief, tkInterp, <span key="d">{tkD1} · {tkD2}</span>], 'phase2.openai.r1')}
           gather="⎯⎯  asyncio.gather  ⎯⎯"
         />
 
@@ -1014,14 +1053,18 @@
           phase="P2 Negotiate" tag="Round 2..N"
           claude={claudeCall([
             tkBrief,
+            tkInterp,
             <span key="d">{tkD1} · {tkD2}</span>,
-            <span key="h">{tkHist} (both agents, every round)</span>,
-          ], 'phase2/round-NN-claude.md')}
+            <span key="h">{tkP2Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase2.claude.r3')}
           openai={openaiCall([
             tkBrief,
+            tkInterp,
             <span key="d">{tkD1} · {tkD2}</span>,
-            <span key="h">{tkHist} (both agents, every round)</span>,
-          ], 'phase2/round-NN-openai.md')}
+            <span key="h">{tkP2Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase2.openai.r3')}
           gather="⎯⎯  asyncio.gather · loop until convergence or hard-cap  ⎯⎯"
         />
 
@@ -1029,33 +1072,37 @@
           phase="P3 Drafting" tag="drafter only"
           claude={claudeCall([
             tkBrief,
+            tkInterp,
             <span key="d">{tkD1} · {tkD2}</span>,
             <span key="p">{tkPlan} (hash-verified)</span>,
-            <span key="h">{tkHist} as context</span>,
-          ], 'phase3/draft-v1.md', 'if drafter')}
+            <span key="h">{tkP2Hist} as context</span>,
+          ], 'phase3.draft.v1', 'if drafter')}
           openai={silent}
-          gather="⎯⎯  single call · drafter chosen by tiebreak.pick_drafter  ⎯⎯"
+          gather={`⎯⎯  single call · ${dn('phase2.agreement.drafter')} → drafter  ⎯⎯`}
         />
 
         <LifecycleRow
           phase="P4 Review" tag="Round 1..N"
-          claude={claudeCall([tkBrief, tkDraft, tkHistP], 'phase4/round-NN-claude.md')}
-          openai={openaiCall([tkBrief, tkDraft, tkHistP], 'phase4/round-NN-openai.md')}
-          gather='⎯⎯  asyncio.gather · drafter may emit a "## Revised draft" → draft-vK+1.md  ⎯⎯'
+          claude={claudeCall([tkBrief, tkInterp, tkDraft, tkP4Hist, tkLedger], 'phase4.claude.r2')}
+          openai={openaiCall([tkBrief, tkInterp, tkDraft, tkP4Hist, tkLedger], 'phase4.openai.r2')}
+          gather='⎯⎯  asyncio.gather · drafter may emit a "## Revised draft" → phase4.draft.v2  ⎯⎯'
         />
       </div>
     );
   }
 
   function Legend() {
+    const dn = (id) => (window.DrArtifacts ? window.DrArtifacts.displayName(id) : id);
     const items = [
-      { kind: 'brief', label: 'brief',           hint: 'the ingested brief.md, identical for both agents' },
-      { kind: 'd1',    label: 'P1 draft-claude', hint: "Claude's Phase 1 research" },
-      { kind: 'd2',    label: 'P1 draft-openai', hint: "OpenAI's Phase 1 research" },
-      { kind: 'hist',  label: 'P2 turns',        hint: 'every prior negotiation turn, both sides' },
-      { kind: 'plan',  label: 'agreed plan',     hint: 'the SHA-256-matched canonical plan from P2' },
-      { kind: 'draft', label: 'current draft',   hint: 'the latest P3/P4 doc version' },
-      { kind: 'histp', label: 'P4 turns',        hint: 'every prior review turn' },
+      { kind: 'brief', label: dn('user_prompt'),                       hint: 'chat message + each attached source — composite' },
+      { kind: 'd1',    label: dn('phase1.claude'),                     hint: "Claude's Phase 1 research plan" },
+      { kind: 'd2',    label: dn('phase1.openai'),                     hint: "GPT's Phase 1 research plan" },
+      { kind: 'plan',  label: dn('phase0.agreement.interpretation'),   hint: 'hash-matched scope + approach from P0' },
+      { kind: 'plan',  label: dn('phase2.agreement.plan'),             hint: 'hash-matched canonical plan from P2' },
+      { kind: 'hist',  label: dn('prior_turns.phase2'),                hint: 'every prior P2 turn, both sides — re-inlined each round' },
+      { kind: 'hist',  label: dn('ledger.standing_items'),             hint: 'per-agent open-item ledger, fed back next round' },
+      { kind: 'draft', label: dn('current_draft'),                     hint: 'the latest P3/P4 document version' },
+      { kind: 'histp', label: dn('prior_turns.phase4'),                hint: 'every prior P4 review turn' },
     ];
     return (
       <div style={{
@@ -1064,7 +1111,7 @@
         border: '1px solid var(--md-outline-hair)', borderRadius: 6,
       }}>
         {items.map(i => (
-          <div key={i.kind} style={{
+          <div key={i.label} style={{
             display: 'flex', gap: 6, alignItems: 'center', fontSize: 11.5, color: 'var(--md-on-surface-variant)',
           }}>
             <Tk kind={i.kind}>{i.label}</Tk>
@@ -1307,310 +1354,50 @@
     );
   }
 
-  // ─── Full v3.5 protocol overview (cream-and-indigo reference) ─────────
-  // Authored via the diagram skill (spec 0026). Inlined as JSX so it
-  // doesn't depend on a static-asset fetch — the same file ships as
-  // protocol-overview.svg in this directory for download.
+  // ─── Deep Research pipeline reference (spec 0117) ─────────────────────
+  // Hand-authored SVG bundled under /diagrams/. The variant served
+  // follows the app's theme toggle (light/dark). The legacy v3.5
+  // inline-JSX overview lived here previously and is replaced by the
+  // SVG embed below as part of spec 0117 step 3.
+
+  function useThemeMode() {
+    const [isDark, setIsDark] = React.useState(() => (
+      typeof document !== 'undefined' && !document.body.classList.contains('light')
+    ));
+    React.useEffect(() => {
+      if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+      const observer = new MutationObserver(() => {
+        setIsDark(!document.body.classList.contains('light'));
+      });
+      observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      return () => observer.disconnect();
+    }, []);
+    return isDark ? 'dark' : 'light';
+  }
 
   function ProtocolOverviewMap() {
+    const themeMode = useThemeMode();
+    const src = themeMode === 'dark'
+      ? '/diagrams/deep-research-pipeline.dark.svg?v=0117'
+      : '/diagrams/deep-research-pipeline.light.svg?v=0117';
     return (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 880"
-           fontFamily="Inter, system-ui, -apple-system, sans-serif"
-           style={{ display: 'block', width: '100%', height: 'auto' }}
-           role="img"
-           aria-label="Dual Research Protocol v3.5 — full landscape process map showing all five phases, agent cards, convergence and approval gates, source verification, repair mechanism, and exit codes.">
-        <defs>
-          <filter id="mapCardShadow" x="-4%" y="-4%" width="108%" height="116%">
-            <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#1a1a18" floodOpacity="0.10" />
-          </filter>
-          <filter id="mapCardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-            <feDropShadow dx="0" dy="3" stdDeviation="8" floodColor="#1a1a18" floodOpacity="0.22" />
-          </filter>
-          <linearGradient id="mapBgGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#f5f1ea" />
-            <stop offset="100%" stopColor="#ece8e0" />
-          </linearGradient>
-          <linearGradient id="mapSurfacePrimary" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#6573c9" />
-            <stop offset="100%" stopColor="#3a4a8a" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#252521" />
-            <stop offset="100%" stopColor="#1a1a18" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceSlate" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#4a5568" />
-            <stop offset="100%" stopColor="#2d3748" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceSecure" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#2a5e40" />
-            <stop offset="100%" stopColor="#1e4530" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceStore" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#5e3f1c" />
-            <stop offset="100%" stopColor="#3f2810" />
-          </linearGradient>
-          <marker id="mapArrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8" />
-          </marker>
-          <marker id="mapArrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L7,3 z" fill="#4f5fb8" />
-          </marker>
-          <marker id="mapArrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#3d7f5b" />
-          </marker>
-        </defs>
-
-        <rect width="1660" height="880" fill="url(#mapBgGrad)" />
-
-        <text x="830" y="58" textAnchor="middle" fontSize="24" fontWeight="600" fill="#1a1a18" letterSpacing="-0.3">Dual Research Protocol v3.5</text>
-        <text x="830" y="82" textAnchor="middle" fontSize="13" fill="#706e67">Two models research independently, negotiate a shared plan, one drafts, both review, single approved document.</text>
-
-        <rect x="1346" y="42" width="138" height="24" rx="6" fill="url(#mapSurfacePrimary)" />
-        <text x="1415" y="58" textAnchor="middle" fontSize="10" fontWeight="600" fill="white" letterSpacing="0.4">Claude Sonnet 4.6</text>
-        <rect x="1494" y="42" width="110" height="24" rx="6" fill="url(#mapSurfaceSlate)" />
-        <text x="1549" y="58" textAnchor="middle" fontSize="10" fontWeight="600" fill="white" letterSpacing="0.4">GPT-5.5</text>
-
-        <text x="151"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 0</text>
-        <text x="151"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Brief &amp; Preflight</text>
-        <text x="381"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 1</text>
-        <text x="381"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Independent Research</text>
-        <text x="641"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 2</text>
-        <text x="641"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Plan Negotiation</text>
-        <text x="911"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 3</text>
-        <text x="911"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Drafting</text>
-        <text x="1181" y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 4</text>
-        <text x="1181" y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Review Loop</text>
-        <text x="1480" y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">OUTPUT</text>
-        <text x="1480" y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Approved Document</text>
-
-        <rect x="56" y="148" width="190" height="84" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <circle cx="80" cy="178" r="13" fill="#1a1a18" />
-        <text x="80" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">B</text>
-        <text x="104" y="174" fontSize="13" fontWeight="600" fill="#1a1a18">Research Brief</text>
-        <text x="104" y="190" fontSize="10" fill="#4a4845">prompt · .md · Notion URL</text>
-        <text x="74"  y="210" fontSize="9" fontStyle="italic" fill="#706e67">Notion pages pre-fetched</text>
-        <text x="74"  y="223" fontSize="9" fontStyle="italic" fill="#706e67">captured to brief.md</text>
-
-        <rect x="56" y="252" width="190" height="186" rx="10" fill="url(#mapSurfaceSecure)" filter="url(#mapCardShadowDark)" />
-        <text x="151" y="276" textAnchor="middle" fontSize="13" fontWeight="600" fill="white">Preflight</text>
-        <text x="151" y="292" textAnchor="middle" fontSize="9" fontWeight="600" fill="#6aad86" letterSpacing="1.4">BOTH AGENTS · PARALLEL</text>
-        <line x1="74" y1="304" x2="228" y2="304" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <circle cx="78" cy="322" r="4" fill="#5aad80" />
-        <text x="90" y="326" fontSize="10" fill="rgba(255,255,255,0.9)">Brief clarity</text>
-        <circle cx="78" cy="342" r="4" fill="#5aad80" />
-        <text x="90" y="346" fontSize="10" fill="rgba(255,255,255,0.9)">Missing inputs</text>
-        <circle cx="78" cy="362" r="4" fill="#5aad80" />
-        <text x="90" y="366" fontSize="10" fill="rgba(255,255,255,0.9)">Framing concerns</text>
-        <line x1="74" y1="382" x2="228" y2="382" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="151" y="400" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.6)">BRIEF_OK → proceed</text>
-        <text x="151" y="414" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.6)">NEEDS_INPUT → pause</text>
-        <text x="151" y="430" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.45)" fontFamily="monospace">harness · python</text>
-
-        <line x1="151" y1="232" x2="151" y2="252" stroke="#4f5fb8" strokeWidth="1.6" markerEnd="url(#mapArrowAccentSm)" />
-
-        <rect x="286" y="148" width="190" height="156" rx="10" fill="url(#mapSurfacePrimary)" filter="url(#mapCardShadowDark)" />
-        <circle cx="310" cy="178" r="14" fill="rgba(0,0,0,0.22)" />
-        <text x="310" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">C</text>
-        <text x="334" y="175" fontSize="13" fontWeight="600" fill="white">Claude</text>
-        <text x="334" y="190" fontSize="9" fill="rgba(255,255,255,0.7)">Sonnet 4.6 · thinking=med</text>
-        <line x1="304" y1="204" x2="464" y2="204" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="304" y="222" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary + thesis</text>
-        <text x="304" y="238" fontSize="10" fill="rgba(255,255,255,0.92)">· Findings  [V] / [U]</text>
-        <text x="304" y="254" fontSize="10" fill="rgba(255,255,255,0.92)">· Disputable claims</text>
-        <text x="304" y="270" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions + sources</text>
-        <text x="381" y="292" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)">web search · no hedging · commit</text>
-
-        <text x="381" y="324" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="1.4">PARALLEL</text>
-        <line x1="346" y1="330" x2="416" y2="330" stroke="#4f5fb8" strokeWidth="1" strokeDasharray="3,3" opacity="0.55" />
-
-        <rect x="286" y="338" width="190" height="156" rx="10" fill="url(#mapSurfaceSlate)" filter="url(#mapCardShadowDark)" />
-        <circle cx="310" cy="368" r="14" fill="rgba(255,255,255,0.14)" />
-        <text x="310" y="368" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">G</text>
-        <text x="334" y="365" fontSize="13" fontWeight="600" fill="white">GPT</text>
-        <text x="334" y="380" fontSize="9" fill="rgba(255,255,255,0.7)">GPT-5.5 · reasoning=med</text>
-        <line x1="304" y1="394" x2="464" y2="394" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="304" y="412" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary + thesis</text>
-        <text x="304" y="428" fontSize="10" fill="rgba(255,255,255,0.92)">· Findings  [V] / [U]</text>
-        <text x="304" y="444" fontSize="10" fill="rgba(255,255,255,0.92)">· Disputable claims</text>
-        <text x="304" y="460" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions + sources</text>
-        <text x="381" y="482" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)">asyncio.gather · fires at the same moment</text>
-
-        <path d="M 246 282 Q 270 270 286 220" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccent)" />
-        <text x="260" y="252" textAnchor="middle" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">PASS</text>
-        <path d="M 246 408 Q 270 420 286 414" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccent)" />
-
-        <rect x="516" y="148" width="250" height="378" rx="14" fill="url(#mapSurfaceNeutral)" filter="url(#mapCardShadowDark)" />
-        <text x="641" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Plan Negotiation</text>
-        <text x="641" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">TURN-BASED · UP TO 12 ROUNDS</text>
-        <line x1="536" y1="202" x2="746" y2="202" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-
-        <rect x="536" y="214" width="210" height="58" rx="7" fill="rgba(79,95,184,0.22)" stroke="rgba(79,95,184,0.4)" strokeWidth="1" />
-        <text x="548" y="233" fontSize="10" fontWeight="600" fill="#c5cdf0">Round 1 · Diff inventory</text>
-        <text x="548" y="249" fontSize="9" fill="rgba(255,255,255,0.7)">diff vs other draft · gap research</text>
-        <text x="548" y="263" fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="monospace">STATUS: NEGOTIATING (forced)</text>
-
-        <rect x="536" y="282" width="210" height="82" rx="7" fill="rgba(255,255,255,0.06)" />
-        <text x="548" y="301" fontSize="10" fontWeight="600" fill="rgba(255,255,255,0.92)">Rounds 2+ · Negotiation</text>
-        <text x="548" y="316" fontSize="9" fill="rgba(255,255,255,0.7)">· corroborate [U] / central [V]</text>
-        <text x="548" y="330" fontSize="9" fill="rgba(255,255,255,0.7)">· anti-sycophancy guard / turn</text>
-        <text x="548" y="344" fontSize="9" fill="rgba(255,255,255,0.7)">· D-N IDs track disagreements</text>
-        <text x="548" y="358" fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="monospace">BLOCKING / FINAL_SURFACED</text>
-
-        <line x1="536" y1="378" x2="746" y2="378" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="641" y="396" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">CONVERGENCE GATE</text>
-        <text x="536" y="412" fontSize="9" fill="rgba(255,255,255,0.78)">+ Both STATUS: AGREED</text>
-        <text x="536" y="426" fontSize="9" fill="rgba(255,255,255,0.78)">+ AGREED_PLAN SHA-256 match</text>
-        <text x="536" y="440" fontSize="9" fill="rgba(255,255,255,0.78)">+ BLOCKING_DISAGREEMENTS = 0</text>
-        <text x="536" y="454" fontSize="9" fill="rgba(255,255,255,0.78)">+ OPEN_QUESTIONS = 0</text>
-        <text x="536" y="468" fontSize="9" fill="rgba(255,255,255,0.78)">+ STRONGEST_REMAINING_OBJECTION</text>
-        <text x="536" y="484" fontSize="9" fill="rgba(255,255,255,0.55)">FSD IDs aligned · pickDrafter() tiebreak</text>
-
-        <line x1="536" y1="498" x2="746" y2="498" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="641" y="514" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">soft cap 6 · hard cap 12 · resumable</text>
-
-        <line x1="476" y1="220" x2="510" y2="290" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccentSm)" />
-        <text x="488" y="248" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">DRAFT-C</text>
-        <line x1="476" y1="414" x2="510" y2="340" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccentSm)" />
-        <text x="488" y="388" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">DRAFT-G</text>
-
-        <line x1="766" y1="337" x2="816" y2="337" stroke="#4f5fb8" strokeWidth="2" markerEnd="url(#mapArrowAccent)" />
-        <text x="791" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="0.8">AGREED</text>
-
-        <rect x="816" y="148" width="190" height="260" rx="10" fill="url(#mapSurfacePrimary)" filter="url(#mapCardShadowDark)" />
-        <circle cx="840" cy="178" r="14" fill="rgba(255,255,255,0.18)" />
-        <text x="840" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">★</text>
-        <text x="864" y="175" fontSize="13" fontWeight="600" fill="white">Drafter</text>
-        <text x="864" y="190" fontSize="9" fill="rgba(255,255,255,0.7)">tiebreak winner · single-shot</text>
-        <line x1="836" y1="204" x2="996" y2="204" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="836" y="220" fontSize="9" fontWeight="600" fill="#c5cdf0" letterSpacing="1.4">INPUTS</text>
-        <text x="836" y="236" fontSize="10" fill="rgba(255,255,255,0.92)">· hash-verified AGREED_PLAN</text>
-        <text x="836" y="252" fontSize="10" fill="rgba(255,255,255,0.92)">· both Phase 1 drafts</text>
-        <text x="836" y="268" fontSize="10" fill="rgba(255,255,255,0.92)">· full Phase 2 conversation</text>
-        <text x="836" y="284" fontSize="10" fill="rgba(255,255,255,0.92)">· injected FSD array</text>
-        <line x1="836" y1="298" x2="996" y2="298" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="836" y="314" fontSize="9" fontWeight="600" fill="#c5cdf0" letterSpacing="1.4">OUTPUT SECTIONS</text>
-        <text x="836" y="330" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary · Findings · FSD</text>
-        <text x="836" y="346" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions · Sources</text>
-        <text x="836" y="362" fontSize="10" fill="rgba(255,255,255,0.92)">· Confidence ledger [V] / [U]</text>
-        <text x="911" y="388" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)" fontFamily="monospace">draft-v1.md</text>
-
-        <line x1="1006" y1="337" x2="1056" y2="337" stroke="#4f5fb8" strokeWidth="2" markerEnd="url(#mapArrowAccent)" />
-        <text x="1031" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="0.8">DRAFT V1</text>
-
-        <rect x="1056" y="148" width="250" height="378" rx="14" fill="url(#mapSurfaceNeutral)" filter="url(#mapCardShadowDark)" />
-        <text x="1181" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Review Loop</text>
-        <text x="1181" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">TURN-BASED · DRAFTER vs REVIEWER</text>
-        <line x1="1076" y1="202" x2="1286" y2="202" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-
-        <rect x="1076" y="214" width="210" height="76" rx="7" fill="rgba(74,85,104,0.4)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-        <text x="1088" y="232" fontSize="10" fontWeight="600" fill="rgba(255,255,255,0.92)">Reviewer · non-drafter</text>
-        <text x="1088" y="248" fontSize="9" fill="rgba(255,255,255,0.7)">· evidence checked / round (req)</text>
-        <text x="1088" y="262" fontSize="9" fill="rgba(255,255,255,0.7)">· issue ledger · stable IDs</text>
-        <text x="1088" y="276" fontSize="9" fill="rgba(255,255,255,0.5)">corroborates [U] + central [V]</text>
-
-        <rect x="1076" y="300" width="210" height="76" rx="7" fill="rgba(79,95,184,0.22)" stroke="rgba(79,95,184,0.4)" strokeWidth="1" />
-        <text x="1088" y="318" fontSize="10" fontWeight="600" fill="#c5cdf0">Drafter · revision note</text>
-        <text x="1088" y="334" fontSize="9" fill="rgba(255,255,255,0.7)">· answers every open issue</text>
-        <text x="1088" y="348" fontSize="9" fill="rgba(255,255,255,0.7)">· writes draft-v(N+1).md</text>
-        <text x="1088" y="362" fontSize="9" fill="rgba(255,255,255,0.5)">updates Confidence on each rev</text>
-
-        <line x1="1076" y1="390" x2="1286" y2="390" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="1181" y="408" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">APPROVAL GATE</text>
-        <text x="1076" y="424" fontSize="9" fill="rgba(255,255,255,0.78)">+ Both STATUS: APPROVED</text>
-        <text x="1076" y="438" fontSize="9" fill="rgba(255,255,255,0.78)">+ OPEN_ISSUES = 0</text>
-        <text x="1076" y="452" fontSize="9" fill="rgba(255,255,255,0.78)">+ ENDORSEMENT + NON-BLOCKING</text>
-        <text x="1076" y="466" fontSize="9" fill="rgba(255,255,255,0.78)">+ STRONGEST_REMAINING_OBJECTION</text>
-        <text x="1076" y="480" fontSize="9" fill="rgba(255,255,255,0.55)">carryover audit: FSD-N verified in draft</text>
-
-        <line x1="1076" y1="498" x2="1286" y2="498" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="1181" y="514" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">soft cap 6 · hard cap 12 · deadlock = 51</text>
-
-        <line x1="1306" y1="337" x2="1356" y2="337" stroke="#3d7f5b" strokeWidth="2" markerEnd="url(#mapArrowGreen)" />
-        <text x="1331" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#3d7f5b" letterSpacing="0.8">APPROVED</text>
-
-        <rect x="1356" y="148" width="248" height="280" rx="10" fill="url(#mapSurfaceStore)" filter="url(#mapCardShadowDark)" />
-        <text x="1480" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Final Document</text>
-        <text x="1480" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#cba075" letterSpacing="1.4">BOTH MODELS ENDORSED</text>
-        <circle cx="1592" cy="166" r="5" fill="#3d7f5b" />
-        <line x1="1376" y1="202" x2="1584" y2="202" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-
-        <rect x="1376" y="212" width="208" height="40" rx="6" fill="rgba(0,0,0,0.22)" />
-        <text x="1388" y="230" fontSize="10" fill="#cba075" fontFamily="monospace">## How this document</text>
-        <text x="1388" y="244" fontSize="10" fill="#cba075" fontFamily="monospace">##   was produced</text>
-
-        <text x="1376" y="270" fontSize="10" fill="rgba(255,255,255,0.88)">· Outcome: APPROVED</text>
-        <text x="1376" y="286" fontSize="10" fill="rgba(255,255,255,0.88)">· Plan rounds · drafter · review rounds</text>
-        <text x="1376" y="302" fontSize="10" fill="rgba(255,255,255,0.88)">· Confidence: HIGH / MOD / LOW</text>
-        <text x="1376" y="318" fontSize="10" fill="rgba(255,255,255,0.88)">· Token cost estimate</text>
-
-        <line x1="1376" y1="334" x2="1584" y2="334" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="1376" y="352" fontSize="9" fontWeight="600" fill="#cba075" letterSpacing="1.4">CONFIDENCE LEDGER</text>
-        <text x="1376" y="370" fontSize="10" fill="rgba(255,255,255,0.78)">claim · [V] / [U] · CORROBORATED</text>
-        <text x="1376" y="386" fontSize="10" fill="rgba(255,255,255,0.78)">material claims only · body prose clean</text>
-        <text x="1376" y="412" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">final.md · written once, both models endorse</text>
-
-        <text x="56" y="562" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PROTOCOL DETAILS</text>
-        <line x1="56" y1="572" x2="200" y2="572" stroke="#9e9b95" strokeWidth="0.5" />
-
-        <rect x="56" y="588" width="496" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <text x="76" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">SOURCE VERIFICATION  ·  v3.1</text>
-        <line x1="76" y1="620" x2="532" y2="620" stroke="#e8e2d8" strokeWidth="1" />
-        <rect x="76" y="632" width="40" height="20" rx="4" fill="#4f5fb8" />
-        <text x="96" y="646" textAnchor="middle" fontSize="10" fontWeight="700" fill="white">[V]</text>
-        <text x="124" y="646" fontSize="11" fill="#4a4845">verified this run — tool retrieved a source</text>
-        <rect x="76" y="660" width="40" height="20" rx="4" fill="#9e9b95" />
-        <text x="96" y="674" textAnchor="middle" fontSize="10" fontWeight="700" fill="white">[U]</text>
-        <text x="124" y="674" fontSize="11" fill="#4a4845">unverified — from training weights, must be corroborated</text>
-        <text x="76" y="698" fontSize="9" fontStyle="italic" fill="#706e67">CORROBORATED  ·  UNCORROBORATED  ·  CONTRADICTED</text>
-
-        <rect x="572" y="588" width="496" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <text x="592" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">REPAIR MECHANISM</text>
-        <line x1="592" y1="620" x2="1048" y2="620" stroke="#e8e2d8" strokeWidth="1" />
-        <text x="592" y="640" fontSize="11" fill="#4a4845">1.  malformed turn  →  rename to <tspan fontFamily="monospace" fill="#3a4a8a">.malformed-N.md</tspan></text>
-        <text x="592" y="660" fontSize="11" fill="#4a4845">2.  repair prompt  →  re-check well-formedness</text>
-        <text x="592" y="680" fontSize="11" fill="#4a4845">3.  2 consecutive failures  →  <tspan fontWeight="600" fill="#cc6e55">exit 52</tspan></text>
-        <text x="592" y="700" fontSize="9" fontStyle="italic" fill="#706e67">repair events logged · invisible to the other agent</text>
-
-        <rect x="1088" y="588" width="516" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <text x="1108" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">EXIT CODES</text>
-        <line x1="1108" y1="620" x2="1584" y2="620" stroke="#e8e2d8" strokeWidth="1" />
-        <text x="1108" y="640" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="700" fill="#3d7f5b" fontFamily="monospace">0</tspan>
-          <tspan>  approved</tspan>
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">1</tspan>
-          <tspan>  preflight failure</tspan>
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">2</tspan>
-          <tspan>  runtime error</tspan>
-        </text>
-        <text x="1108" y="660" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="700" fill="#4a9eca" fontFamily="monospace">50</tspan>
-          <tspan>  soft cap (resumable)</tspan>
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">51</tspan>
-          <tspan>  hard cap / deadlock</tspan>
-        </text>
-        <text x="1108" y="680" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace">52</tspan>
-          <tspan>  protocol parse failure (2 consecutive malformed turns)</tspan>
-        </text>
-        <text x="1108" y="700" fontSize="9" fontStyle="italic" fill="#706e67"><tspan fontFamily="monospace">state.json</tspan> persisted  ·  resume with <tspan fontFamily="monospace">--resume</tspan></text>
-
-        <line x1="56" y1="752" x2="1604" y2="752" stroke="#d8d4cc" strokeWidth="1" opacity="0.7" />
-        <text x="56" y="778" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="600" fill="#1a1a18">Agreement is valuable only when it improves the final answer.</tspan>
-          <tspan>  Do not agree for politeness, speed, symmetry, or fatigue · do not disagree for performance or to appear rigorous.</tspan>
-        </text>
-        <text x="56" y="800" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="600" fill="#1a1a18">Phase 2 and Phase 4 each run internally until convergence.</tspan>
-          <tspan>  No cross-phase back-propagation occurs in a single run.</tspan>
-        </text>
-
-        <text x="1604" y="836" textAnchor="end" fontSize="9" fontStyle="italic" fill="#9e9b95">Dual Research Protocol v3.5  ·  Claude Sonnet 4.6 + GPT-5.5  ·  Python orchestrator</text>
-      </svg>
+      <figure className="hiw-overview-figure" style={{ margin: 0 }}>
+        <img
+          src={src}
+          alt="Deep Research pipeline · phase columns left to right; per-phase inputs stacked top to bottom in the order the orchestrator feeds them."
+          className="hiw-overview-svg"
+          loading="lazy"
+          style={{ display: 'block', width: '100%', height: 'auto' }}
+        />
+      </figure>
     );
   }
 
   function ProtocolOverviewFold() {
+    const themeMode = useThemeMode();
+    const svgHref = themeMode === 'dark'
+      ? '/diagrams/deep-research-pipeline.dark.svg?v=0117'
+      : '/diagrams/deep-research-pipeline.light.svg?v=0117';
     return (
       <details style={{
         background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
@@ -1622,18 +1409,19 @@
         }}>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--md-on-surface)' }}>View full process map</span>
           <span style={{ fontSize: 12, color: 'var(--md-on-surface-muted)' }}>
-            — every phase, sub-card, gate, callout and exit code in one page
+            — every phase, every input, every artifact passed forward
           </span>
           <span className="mono" style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 999,
             background: 'var(--md-surface-container-highest)', color: 'var(--md-on-surface-muted)',
             border: '1px solid var(--md-outline-variant)', marginLeft: 'auto',
             letterSpacing: '0.04em',
-          }}>v3.5 · landscape</span>
+          }}>deep research · landscape</span>
           <span className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>▶</span>
         </summary>
         <div style={{
-          padding: 0, borderTop: '1px solid var(--md-outline-hair)', background: '#f5f1ea',
+          padding: 0, borderTop: '1px solid var(--md-outline-hair)',
+          background: 'var(--md-surface-container-lowest)',
         }}>
           <ProtocolOverviewMap />
         </div>
@@ -1642,11 +1430,11 @@
           fontSize: 11.5, color: 'var(--md-on-surface-muted)',
           display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
         }}>
-          <span>Reference diagram — light surface, doesn't follow theme toggle.</span>
-          <a href="protocol-overview.svg" target="_blank" rel="noopener"
+          <span>Reference diagram — light + dark variants, follows the theme toggle.</span>
+          <a href={svgHref} target="_blank" rel="noopener"
              style={{ color: 'var(--info)' }}>Open SVG ↗</a>
           <span className="mono" style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
-            1660 × 880 · Inter · cream &amp; indigo design system
+            1660 × 1200 · IBM Plex · cream &amp; indigo design system
           </span>
         </div>
       </details>
