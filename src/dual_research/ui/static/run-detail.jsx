@@ -981,7 +981,7 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
         {repairExplainer || summary || gist || '\u2014'}
       </div>
       <div className="actions">
-        <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); setOpenId && onToggle(); }}>
+        <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
           Open full view
         </button>
         <span style={{ flex: 1 }}></span>

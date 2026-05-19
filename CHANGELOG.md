@@ -12,6 +12,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.9] — 2026-05-19
+
+### Fixed
+
+- **Hand-fix — `setOpenId is not defined` in TurnRow expanded state**. The Step 4 final visual sweep caught a second dead reference of the same class as the `_parseSelfRaised` regression. The expanded-turn "Open full view" button's onClick referenced a `setOpenId` that wasn't in scope — leftover from a parent component that was refactored away during spec 0099. The `setOpenId &&` guard was dead and falsy in this scope, so the `onToggle()` after it never fired. Stripped the dead guard. Cache-bust `?v=0098` → `?v=0099`.
+
 ## [0.76.8] — 2026-05-19
 
 ### Refactored
