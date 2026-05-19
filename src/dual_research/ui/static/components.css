@@ -1513,3 +1513,180 @@ body.light .tab-group.tabs-solid .tab.is-active,
     transition: none;
   }
 }
+
+/* =============================================================
+   SPEC-0095 — M3 Tabs, top app bar, chrome compaction
+   Primary tabs, top app bar, segmented-pill tab variants,
+   phase/kind tabs, fgroup filters, vertical divider.
+   ============================================================= */
+
+/* ── M3 Top app bar ──────────────────────────────────────── */
+.md-appbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 16px;
+  height: 64px; padding: 0 24px;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.md-appbar__title { font: var(--md-w-medium) var(--md-title-l-size)/1 var(--md-font-plain); }
+.md-appbar__spacer { flex: 1; }
+
+/* ── M3 Primary tabs ────────────────────────────────────── */
+.md-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.md-tab {
+  position: relative;
+  padding: 0 24px; height: 48px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-medium) var(--md-title-s-size)/1 var(--md-font-plain);
+}
+.md-tab::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-tab:hover::before { opacity: var(--md-state-hover); }
+.md-tab[aria-selected="true"] { color: var(--md-primary); }
+.md-tab[aria-selected="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px; background: var(--md-primary);
+  border-radius: 3px 3px 0 0;
+}
+.md-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -2px;
+}
+
+/* ── Segmented-pill tab group (.tab-group-solid) ─────────── */
+.tab-group-solid {
+  display: inline-flex;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  padding: 4px;
+  gap: 2px;
+}
+.tab-solid {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 12px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.tab-solid.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+.tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ── Phase tabs (.phase-tab) ─────────────────────────────── */
+.phase-tabs { display: inline-flex; gap: 4px; }
+.phase-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px;
+  border: 0; cursor: pointer;
+  background: transparent;
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  position: relative;
+}
+.phase-tab::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.phase-tab:hover::before { opacity: var(--md-state-hover); }
+.phase-tab.is-active {
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+}
+.phase-tab .pcode {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+.phase-tab .pname { font-weight: var(--md-w-medium); }
+.phase-tab .sigma { font-family: var(--md-font-brand); font-size: 16px; font-weight: var(--md-w-regular); line-height: 1; }
+.phase-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Kind tabs (.kind-tab) ───────────────────────────────── */
+.kind-tabs { display: inline-flex; gap: 2px; }
+.kind-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 12px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  position: relative;
+}
+.kind-tab::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.kind-tab:hover::before { opacity: var(--md-state-hover); }
+.kind-tab.is-active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.kind-tab.is-zero  { color: var(--md-on-surface-faint); opacity: 0.55; }
+.kind-tab .ct {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+  padding: 4px 6px;
+  border-radius: var(--md-shape-xs);
+  min-width: 18px; text-align: center;
+}
+.kind-tab .ct.is-info { background: color-mix(in srgb, var(--p-info) 22%, transparent); color: var(--p-info); }
+.kind-tab .ct.is-warn { background: color-mix(in srgb, var(--p-warn) 22%, transparent); color: var(--p-warn); }
+.kind-tab .ct.is-err  { background: color-mix(in srgb, var(--p-err)  22%, transparent); color: var(--p-err); }
+.kind-tab.is-active .ct { background: rgba(0,0,0,0.18); color: inherit; }
+.kind-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Filter group (.fgroup) ──────────────────────────────── */
+.fgroup {
+  display: inline-flex;
+  background: var(--md-surface-container);
+  border-radius: var(--md-shape-full);
+  padding: 3px;
+  gap: 2px;
+}
+.fgroup .ft {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 26px; padding: 0 10px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.fgroup .ft.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+.fgroup .ft .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ── Vertical divider (.vbar) ────────────────────────────── */
+.vbar { width: 1px; height: 20px; background: var(--md-outline-hair); flex-shrink: 0; }
+
+/* ── Reduced motion for M3 tabs ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .md-tab::before,
+  .md-tab[aria-selected="true"]::after,
+  .phase-tab::before,
+  .kind-tab::before {
+    transition: none;
+  }
+}
+
+/* ── Focus ring for tab variants ─────────────────────────── */
+.tab-solid:focus-visible,
+.tab-group-solid:focus-visible,
+.fgroup .ft:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}

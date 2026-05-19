@@ -173,47 +173,38 @@ function RunListView({ runs, loading, onSelect }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Top bar */}
+      {/* Header 1 — top app bar: brand mark + title | spacer | chips + search */}
       <header style={{
-        display: 'grid',
-        gridTemplateColumns: 'auto 1fr auto',
-        gap: 18,
+        display: 'flex',
         alignItems: 'center',
-        padding: '10px 18px',
+        gap: 16,
+        padding: '0 18px',
+        height: 44,
         borderBottom: '1px solid var(--border-1)',
         background: 'var(--bg-1)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, whiteSpace: 'nowrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <div style={{
-              width: 16, height: 16, borderRadius: 4,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              position: 'relative', overflow: 'hidden',
-              background: 'var(--bg-3)',
-              flexShrink: 0,
-            }}>
-              <BrandMark name="claude" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', top: 1, left: 1 }} />
-              <BrandMark name="openai" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', bottom: 1, right: 1 }} />
-            </div>
-            <span className="mono" style={{ fontSize: 12, color: 'var(--fg-1)', letterSpacing: '0.02em' }}>
-              dual&#8209;research
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+          <div style={{
+            width: 16, height: 16, borderRadius: 4,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative', overflow: 'hidden',
+            background: 'var(--bg-3)',
+            flexShrink: 0,
+          }}>
+            <BrandMark name="claude" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', top: 1, left: 1 }} />
+            <BrandMark name="openai" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', bottom: 1, right: 1 }} />
           </div>
-          <span style={{ color: 'var(--fg-4)' }}>&middot;</span>
-          <span style={{ color: 'var(--fg-1)', fontSize: 12 }}>runs</span>
+          <span className="mono" style={{ fontSize: 12, color: 'var(--fg-1)', letterSpacing: '0.02em' }}>
+            dual&#8209;research
+          </span>
         </div>
-
-        <div style={{ minWidth: 0, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* SPEC-0087 § C — tooltips on the header chips per delta 13.03's
-              "what does each count mean" mandate. The tooltip closes the
-              only remaining gap from the 13.03 audit verdict. */}
+        <div style={{ flex: 1 }} />
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           <Chip icon="format-list-bulleted" title="Total runs in the current filter">{runs.length} run{runs.length === 1 ? '' : 's'}</Chip>
           {runningCount > 0 && <Chip tone="info" icon="circle-medium" title="Runs currently in progress">{runningCount} running</Chip>}
           <Chip icon="currency-usd" title="Aggregate cost across the visible runs">{fmt.costShort(totalCost)} spent</Chip>
         </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', whiteSpace: 'nowrap' }}>
-          {/* Search input */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <input
               ref={searchRef}
@@ -257,7 +248,7 @@ function RunListView({ runs, loading, onSelect }) {
         </div>
       </header>
 
-      {/* Filter strip -- SPEC-0053 D6: Tab primitives in TabGroup */}
+      {/* Header 2 — filter-tab strip (was header 3; header 2's brand row deleted) */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 18px',
