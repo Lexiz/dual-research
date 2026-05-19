@@ -711,9 +711,9 @@
 
   function PhaseStrip() {
     const cells = [
-      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P0 · Preflight',  sub: 'brief critique' },
-      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P1 · Research',   sub: 'independent drafts' },
-      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'plan convergence' },
+      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P0 · Preflight',  sub: 'agreed_interpretation' },
+      { tag: 'parallel',    color: 'var(--agent-b)', label: 'P1 · Research',   sub: 'independent plans' },
+      { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P2 · Negotiate',  sub: 'agreed_plan + drafter' },
       { tag: 'single-shot', color: 'var(--md-on-surface-muted)',    label: 'P3 · Draft',      sub: 'drafter writes doc' },
       { tag: 'turn-based',  color: 'var(--agent-a)', label: 'P4 · Review',     sub: 'cross-review + revise' },
       { tag: 'output',      color: 'var(--ok)',      label: 'final.md',         sub: 'single document' },
@@ -754,76 +754,75 @@
   // ─── Diagram: one Phase 2 round (kept from spec 0023) ────────────────
 
   function NegotiationRoundDiagram() {
+    // Spec 0117 step 4 — depicts the five operation blocks of one agent's
+    // negotiation turn plus the status footer that gates convergence.
+    const dn = (id) => (window.DrArtifacts ? window.DrArtifacts.displayName(id) : id);
+    const ops = [
+      { name: 'RAISE',       hint: 'new Q / D / I / C' },
+      { name: 'ADDRESS',     hint: 'reply to other agent' },
+      { name: 'RESOLVE',     hint: 'mark items resolved' },
+      { name: 'ACKNOWLEDGE', hint: 'confirm closure' },
+      { name: 'WITHDRAW',    hint: 'retract own item' },
+    ];
     return (
-      <svg viewBox="0 0 720 320" style={{ display: 'block', width: '100%', maxWidth: 720, margin: '0 auto' }}>
+      <svg viewBox="0 0 720 280" style={{ display: 'block', width: '100%', maxWidth: 720, margin: '0 auto' }}>
         <ArrowDefs />
-        <rect x={30} y={20} width={200} height={80} rx={8}
-              fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
-        <text x={130} y={44} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--md-on-surface-variant)">disk: prior turns inlined</text>
-        <text x={130} y={62} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">round 1..N-1, both agents</text>
-        <text x={130} y={76} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">+ brief + phase-1 drafts</text>
-        <text x={130} y={92} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">+ CACHE_BREAKPOINT</text>
 
-        <text x={370} y={50} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--md-on-surface-variant)">orchestrator assembles</text>
-        <text x={370} y={66} textAnchor="middle"
+        <text x={360} y={20} textAnchor="middle"
+              fontFamily="IBM Plex Serif, system-ui, sans-serif" fontSize={13.5} fontWeight={600}
+              fill="var(--md-on-surface)">One agent's negotiation turn</text>
+        <text x={360} y={36} textAnchor="middle"
               fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
-              fill="var(--md-on-surface-faint)">a fresh prompt</text>
+              fill="var(--md-on-surface-faint)">{dn('phase2.claude.r3')} or {dn('phase2.openai.r3')} — same shape every round</text>
 
-        <Arrow x1={230} y1={60} x2={510} y2={60} />
+        {ops.map((op, i) => {
+          const w = 130;
+          const gap = 8;
+          const x = 30 + i * (w + gap);
+          return (
+            <React.Fragment key={op.name}>
+              <rect x={x} y={56} width={w} height={70} rx={8}
+                    fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
+              <text x={x + w / 2} y={84} textAnchor="middle"
+                    fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11.5} fontWeight={600}
+                    fill="var(--agent-a)" letterSpacing="0.06em">{op.name}</text>
+              <text x={x + w / 2} y={104} textAnchor="middle"
+                    fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={10}
+                    fill="var(--md-on-surface-variant)">{op.hint}</text>
+              {i < ops.length - 1 && (
+                <Arrow x1={x + w + 2} y1={91} x2={x + w + gap - 2} y2={91} />
+              )}
+            </React.Fragment>
+          );
+        })}
 
-        <rect x={510} y={20} width={180} height={80} rx={8}
-              fill="var(--md-surface-container-high)" stroke="var(--md-outline-variant)" />
-        <text x={600} y={44} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11}
-              fill="var(--md-on-surface-variant)">round N prompt</text>
-        <text x={600} y={62} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">identical to both, except</text>
-        <text x={600} y={78} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
-              fill="var(--md-on-surface-faint)">agent_name substitution</text>
-
-        <Arrow x1={560} y1={108} x2={180} y2={170} />
-        <Arrow x1={640} y1={108} x2={550} y2={170} />
-
-        <ClaudeDisc cx={150} cy={195} r={30} />
-        <GptDisc    cx={580} cy={195} r={30} />
-
-        <text x={365} y={200} textAnchor="middle"
-              fontSize={11} fill="var(--md-on-surface-faint)" fontFamily="IBM Plex Sans, ui-monospace, monospace">
-          asyncio.gather
+        <rect x={30} y={148} width={660} height={44} rx={8}
+              fill="var(--md-surface-container-low)" stroke="var(--md-outline-variant)" />
+        <text x={50} y={170} fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={11} fontWeight={600}
+              fill="var(--md-on-surface-variant)" letterSpacing="0.06em">STATUS FOOTER</text>
+        <text x={50} y={186} fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={9.5}
+              fill="var(--md-on-surface-faint)">
+          STATUS: NEGOTIATING | AGREED   ·   OPEN_QUESTIONS: N   ·   OPEN_DISAGREEMENTS: N   ·   STRONGEST_REMAINING_OBJECTION: …
         </text>
 
-        <Arrow x1={150} y1={225} x2={150} y2={258} />
-        <Arrow x1={580} y1={225} x2={580} y2={258} />
-
-        <rect x={50} y={258} width={200} height={28} rx={6}
-              fill="var(--agent-a-bg)" stroke="var(--agent-a-border)" />
-        <text x={150} y={276} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10.5}
-              fill="var(--agent-a)">phase2/round-NN-claude.md</text>
-
-        <rect x={480} y={258} width={200} height={28} rx={6}
-              fill="var(--agent-b-bg)" stroke="var(--agent-b-border)" />
-        <text x={580} y={276} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10.5}
-              fill="var(--agent-b)">phase2/round-NN-openai.md</text>
-
-        <rect x={260} y={294} width={200} height={22} rx={6}
-              fill="var(--md-surface-container-low)" stroke="var(--md-outline-variant)" />
-        <text x={360} y={309} textAnchor="middle"
-              fontFamily="IBM Plex Sans, ui-monospace, monospace" fontSize={10}
-              fill="var(--md-on-surface-variant)">both AGREED + plan-hash match?</text>
+        <text x={30} y={220}
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={11}
+              fill="var(--md-on-surface-variant)">
+          <tspan fontWeight={600}>Convergence gate:</tspan>{' '}
+          both agents emit <tspan className="mono" fill="var(--md-on-surface)">STATUS: AGREED</tspan>{' '}
+          and Agreed-plan blocks hash-match.
+        </text>
+        <text x={30} y={240}
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={11}
+              fill="var(--md-on-surface-variant)">
+          <tspan fontWeight={600}>Closeout round:</tspan>{' '}
+          if items linger after AGREED, only RESOLVE / ACKNOWLEDGE / WITHDRAW are allowed.
+        </text>
+        <text x={30} y={260}
+              fontFamily="IBM Plex Sans, system-ui, sans-serif" fontSize={11}
+              fill="var(--md-on-surface-faint)" fontStyle="italic">
+          Both turns fire in parallel via asyncio.gather.
+        </text>
       </svg>
     );
   }
@@ -882,7 +881,7 @@
     );
   }
 
-  function CallBox({ agent, fresh = true, lines, out, silent, noteIf }) {
+  function CallBox({ agent, fresh = true, lines, out, outId, silent, noteIf }) {
     if (silent) {
       return (
         <div style={{
@@ -897,6 +896,12 @@
     const border = isClaude ? 'var(--agent-a-border)' : 'var(--agent-b-border)';
     const letter = isClaude ? 'C' : 'G';
     const letterColor = isClaude ? 'var(--agent-a)' : 'var(--agent-b)';
+    // Prefer the canonical artifact ID and resolve to a display name
+    // via the registry mirror; fall back to the literal ``out`` prop
+    // for legacy callers passing free-form text.
+    const outLabel = outId && window.DrArtifacts
+      ? window.DrArtifacts.displayName(outId)
+      : out;
     return (
       <div style={{
         padding: '10px 12px', borderRadius: 6,
@@ -923,9 +928,9 @@
         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>
           {lines.map((line, i) => <li key={i} style={{ listStyle: 'disc' }}>{line}</li>)}
         </ul>
-        {out && (
-          <div className="mono" style={{ marginTop: 8, fontSize: 10, color: 'var(--md-on-surface-muted)' }}>
-            <span style={{ color: 'var(--md-on-surface-faint)' }}>→ </span>{out}
+        {outLabel && (
+          <div style={{ marginTop: 8, fontSize: 10.5, color: 'var(--md-on-surface-muted)' }}>
+            <span style={{ color: 'var(--md-on-surface-faint)' }}>→ </span>{outLabel}
           </div>
         )}
       </div>
@@ -959,16 +964,22 @@
   }
 
   function ChatLifecycle() {
-    const claudeCall = (lines, out, noteIf) => <CallBox agent="claude" lines={lines} out={out} noteIf={noteIf} />;
-    const openaiCall = (lines, out, noteIf) => <CallBox agent="openai" lines={lines} out={out} noteIf={noteIf} />;
+    const claudeCall = (lines, outId, noteIf) => <CallBox agent="claude" lines={lines} outId={outId} noteIf={noteIf} />;
+    const openaiCall = (lines, outId, noteIf) => <CallBox agent="openai" lines={lines} outId={outId} noteIf={noteIf} />;
     const silent     = <CallBox silent />;
-    const tkBrief  = <Tk kind="brief">brief</Tk>;
-    const tkD1     = <Tk kind="d1">P1 draft-claude</Tk>;
-    const tkD2     = <Tk kind="d2">P1 draft-openai</Tk>;
-    const tkHist   = <Tk kind="hist">all prior P2 turns</Tk>;
-    const tkPlan   = <Tk kind="plan">agreed plan</Tk>;
-    const tkDraft  = <Tk kind="draft">current draft-vK.md</Tk>;
-    const tkHistP  = <Tk kind="histp">all prior P4 turns</Tk>;
+    // Tk labels resolve through the registry mirror — text matches
+    // what the rest of the UI surfaces show.
+    const dn = (id) => (window.DrArtifacts ? window.DrArtifacts.displayName(id) : id);
+    const tkBrief    = <Tk kind="brief">{dn('user_prompt')}</Tk>;
+    const tkD1       = <Tk kind="d1">{dn('phase1.claude')}</Tk>;
+    const tkD2       = <Tk kind="d2">{dn('phase1.openai')}</Tk>;
+    const tkInterp   = <Tk kind="plan">{dn('phase0.agreement.interpretation')}</Tk>;
+    const tkP0Hist   = <Tk kind="hist">{dn('prior_turns.phase0')}</Tk>;
+    const tkP2Hist   = <Tk kind="hist">{dn('prior_turns.phase2')}</Tk>;
+    const tkPlan     = <Tk kind="plan">{dn('phase2.agreement.plan')}</Tk>;
+    const tkDraft    = <Tk kind="draft">{dn('current_draft')}</Tk>;
+    const tkP4Hist   = <Tk kind="histp">{dn('prior_turns.phase4')}</Tk>;
+    const tkLedger   = <Tk kind="hist">{dn('ledger.standing_items')}</Tk>;
 
     return (
       <div style={{
@@ -987,26 +998,41 @@
         <div className="mono" style={{
           fontSize: 10.5, color: 'var(--agent-b)', letterSpacing: '0.08em',
           textTransform: 'uppercase', padding: '6px 0',
-        }}>OpenAI lane</div>
+        }}>GPT lane</div>
 
         <LifecycleRow
-          phase="P0 Preflight" tag="1 call / agent"
-          claude={claudeCall([tkBrief], 'preflight-claude.md')}
-          openai={openaiCall([tkBrief], 'preflight-openai.md')}
+          phase="P0 Preflight" tag="Round 1"
+          claude={claudeCall([tkBrief], 'phase0.claude.r1')}
+          openai={openaiCall([tkBrief], 'phase0.openai.r1')}
           gather="⎯⎯  asyncio.gather  · both fire at once  ⎯⎯"
         />
 
         <LifecycleRow
+          phase="P0 Preflight" tag="Round 2..N"
+          claude={claudeCall([
+            tkBrief,
+            <span key="h">{tkP0Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase0.claude.r3')}
+          openai={openaiCall([
+            tkBrief,
+            <span key="h">{tkP0Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase0.openai.r3')}
+          gather={`⎯⎯  loop until ${dn('phase0.agreement.interpretation')} is hash-matched  ⎯⎯`}
+        />
+
+        <LifecycleRow
           phase="P1 Research" tag="1 call / agent"
-          claude={claudeCall([tkBrief], 'phase1/draft-claude.md')}
-          openai={openaiCall([tkBrief], 'phase1/draft-openai.md')}
+          claude={claudeCall([tkBrief, tkInterp], 'phase1.claude')}
+          openai={openaiCall([tkBrief, tkInterp], 'phase1.openai')}
           gather="⎯⎯  asyncio.gather  ⎯⎯"
         />
 
         <LifecycleRow
           phase="P2 Negotiate" tag="Round 1"
-          claude={claudeCall([tkBrief, <span key="d">{tkD1} · {tkD2}</span>], 'phase2/round-01-claude.md')}
-          openai={openaiCall([tkBrief, <span key="d">{tkD1} · {tkD2}</span>], 'phase2/round-01-openai.md')}
+          claude={claudeCall([tkBrief, tkInterp, <span key="d">{tkD1} · {tkD2}</span>], 'phase2.claude.r1')}
+          openai={openaiCall([tkBrief, tkInterp, <span key="d">{tkD1} · {tkD2}</span>], 'phase2.openai.r1')}
           gather="⎯⎯  asyncio.gather  ⎯⎯"
         />
 
@@ -1014,14 +1040,18 @@
           phase="P2 Negotiate" tag="Round 2..N"
           claude={claudeCall([
             tkBrief,
+            tkInterp,
             <span key="d">{tkD1} · {tkD2}</span>,
-            <span key="h">{tkHist} (both agents, every round)</span>,
-          ], 'phase2/round-NN-claude.md')}
+            <span key="h">{tkP2Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase2.claude.r3')}
           openai={openaiCall([
             tkBrief,
+            tkInterp,
             <span key="d">{tkD1} · {tkD2}</span>,
-            <span key="h">{tkHist} (both agents, every round)</span>,
-          ], 'phase2/round-NN-openai.md')}
+            <span key="h">{tkP2Hist} (both agents, every round)</span>,
+            <span key="l">{tkLedger} (per-agent)</span>,
+          ], 'phase2.openai.r3')}
           gather="⎯⎯  asyncio.gather · loop until convergence or hard-cap  ⎯⎯"
         />
 
@@ -1029,33 +1059,37 @@
           phase="P3 Drafting" tag="drafter only"
           claude={claudeCall([
             tkBrief,
+            tkInterp,
             <span key="d">{tkD1} · {tkD2}</span>,
             <span key="p">{tkPlan} (hash-verified)</span>,
-            <span key="h">{tkHist} as context</span>,
-          ], 'phase3/draft-v1.md', 'if drafter')}
+            <span key="h">{tkP2Hist} as context</span>,
+          ], 'phase3.draft.v1', 'if drafter')}
           openai={silent}
-          gather="⎯⎯  single call · drafter chosen by tiebreak.pick_drafter  ⎯⎯"
+          gather={`⎯⎯  single call · ${dn('phase2.agreement.drafter')} → drafter  ⎯⎯`}
         />
 
         <LifecycleRow
           phase="P4 Review" tag="Round 1..N"
-          claude={claudeCall([tkBrief, tkDraft, tkHistP], 'phase4/round-NN-claude.md')}
-          openai={openaiCall([tkBrief, tkDraft, tkHistP], 'phase4/round-NN-openai.md')}
-          gather='⎯⎯  asyncio.gather · drafter may emit a "## Revised draft" → draft-vK+1.md  ⎯⎯'
+          claude={claudeCall([tkBrief, tkInterp, tkDraft, tkP4Hist, tkLedger], 'phase4.claude.r2')}
+          openai={openaiCall([tkBrief, tkInterp, tkDraft, tkP4Hist, tkLedger], 'phase4.openai.r2')}
+          gather='⎯⎯  asyncio.gather · drafter may emit a "## Revised draft" → phase4.draft.v2  ⎯⎯'
         />
       </div>
     );
   }
 
   function Legend() {
+    const dn = (id) => (window.DrArtifacts ? window.DrArtifacts.displayName(id) : id);
     const items = [
-      { kind: 'brief', label: 'brief',           hint: 'the ingested brief.md, identical for both agents' },
-      { kind: 'd1',    label: 'P1 draft-claude', hint: "Claude's Phase 1 research" },
-      { kind: 'd2',    label: 'P1 draft-openai', hint: "OpenAI's Phase 1 research" },
-      { kind: 'hist',  label: 'P2 turns',        hint: 'every prior negotiation turn, both sides' },
-      { kind: 'plan',  label: 'agreed plan',     hint: 'the SHA-256-matched canonical plan from P2' },
-      { kind: 'draft', label: 'current draft',   hint: 'the latest P3/P4 doc version' },
-      { kind: 'histp', label: 'P4 turns',        hint: 'every prior review turn' },
+      { kind: 'brief', label: dn('user_prompt'),                       hint: 'chat message + each attached source — composite' },
+      { kind: 'd1',    label: dn('phase1.claude'),                     hint: "Claude's Phase 1 research plan" },
+      { kind: 'd2',    label: dn('phase1.openai'),                     hint: "GPT's Phase 1 research plan" },
+      { kind: 'plan',  label: dn('phase0.agreement.interpretation'),   hint: 'hash-matched scope + approach from P0' },
+      { kind: 'plan',  label: dn('phase2.agreement.plan'),             hint: 'hash-matched canonical plan from P2' },
+      { kind: 'hist',  label: dn('prior_turns.phase2'),                hint: 'every prior P2 turn, both sides — re-inlined each round' },
+      { kind: 'hist',  label: dn('ledger.standing_items'),             hint: 'per-agent open-item ledger, fed back next round' },
+      { kind: 'draft', label: dn('current_draft'),                     hint: 'the latest P3/P4 document version' },
+      { kind: 'histp', label: dn('prior_turns.phase4'),                hint: 'every prior P4 review turn' },
     ];
     return (
       <div style={{
