@@ -1307,310 +1307,50 @@
     );
   }
 
-  // ─── Full v3.5 protocol overview (cream-and-indigo reference) ─────────
-  // Authored via the diagram skill (spec 0026). Inlined as JSX so it
-  // doesn't depend on a static-asset fetch — the same file ships as
-  // protocol-overview.svg in this directory for download.
+  // ─── Deep Research pipeline reference (spec 0117) ─────────────────────
+  // Hand-authored SVG bundled under /diagrams/. The variant served
+  // follows the app's theme toggle (light/dark). The legacy v3.5
+  // inline-JSX overview lived here previously and is replaced by the
+  // SVG embed below as part of spec 0117 step 3.
+
+  function useThemeMode() {
+    const [isDark, setIsDark] = React.useState(() => (
+      typeof document !== 'undefined' && !document.body.classList.contains('light')
+    ));
+    React.useEffect(() => {
+      if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+      const observer = new MutationObserver(() => {
+        setIsDark(!document.body.classList.contains('light'));
+      });
+      observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+      return () => observer.disconnect();
+    }, []);
+    return isDark ? 'dark' : 'light';
+  }
 
   function ProtocolOverviewMap() {
+    const themeMode = useThemeMode();
+    const src = themeMode === 'dark'
+      ? '/diagrams/deep-research-pipeline.dark.svg?v=0117'
+      : '/diagrams/deep-research-pipeline.light.svg?v=0117';
     return (
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 880"
-           fontFamily="Inter, system-ui, -apple-system, sans-serif"
-           style={{ display: 'block', width: '100%', height: 'auto' }}
-           role="img"
-           aria-label="Dual Research Protocol v3.5 — full landscape process map showing all five phases, agent cards, convergence and approval gates, source verification, repair mechanism, and exit codes.">
-        <defs>
-          <filter id="mapCardShadow" x="-4%" y="-4%" width="108%" height="116%">
-            <feDropShadow dx="0" dy="2" stdDeviation="6" floodColor="#1a1a18" floodOpacity="0.10" />
-          </filter>
-          <filter id="mapCardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-            <feDropShadow dx="0" dy="3" stdDeviation="8" floodColor="#1a1a18" floodOpacity="0.22" />
-          </filter>
-          <linearGradient id="mapBgGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#f5f1ea" />
-            <stop offset="100%" stopColor="#ece8e0" />
-          </linearGradient>
-          <linearGradient id="mapSurfacePrimary" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#6573c9" />
-            <stop offset="100%" stopColor="#3a4a8a" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#252521" />
-            <stop offset="100%" stopColor="#1a1a18" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceSlate" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#4a5568" />
-            <stop offset="100%" stopColor="#2d3748" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceSecure" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#2a5e40" />
-            <stop offset="100%" stopColor="#1e4530" />
-          </linearGradient>
-          <linearGradient id="mapSurfaceStore" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%"   stopColor="#5e3f1c" />
-            <stop offset="100%" stopColor="#3f2810" />
-          </linearGradient>
-          <marker id="mapArrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8" />
-          </marker>
-          <marker id="mapArrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L7,3 z" fill="#4f5fb8" />
-          </marker>
-          <marker id="mapArrowGreen" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#3d7f5b" />
-          </marker>
-        </defs>
-
-        <rect width="1660" height="880" fill="url(#mapBgGrad)" />
-
-        <text x="830" y="58" textAnchor="middle" fontSize="24" fontWeight="600" fill="#1a1a18" letterSpacing="-0.3">Dual Research Protocol v3.5</text>
-        <text x="830" y="82" textAnchor="middle" fontSize="13" fill="#706e67">Two models research independently, negotiate a shared plan, one drafts, both review, single approved document.</text>
-
-        <rect x="1346" y="42" width="138" height="24" rx="6" fill="url(#mapSurfacePrimary)" />
-        <text x="1415" y="58" textAnchor="middle" fontSize="10" fontWeight="600" fill="white" letterSpacing="0.4">Claude Sonnet 4.6</text>
-        <rect x="1494" y="42" width="110" height="24" rx="6" fill="url(#mapSurfaceSlate)" />
-        <text x="1549" y="58" textAnchor="middle" fontSize="10" fontWeight="600" fill="white" letterSpacing="0.4">GPT-5.5</text>
-
-        <text x="151"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 0</text>
-        <text x="151"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Brief &amp; Preflight</text>
-        <text x="381"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 1</text>
-        <text x="381"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Independent Research</text>
-        <text x="641"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 2</text>
-        <text x="641"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Plan Negotiation</text>
-        <text x="911"  y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 3</text>
-        <text x="911"  y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Drafting</text>
-        <text x="1181" y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PHASE 4</text>
-        <text x="1181" y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Review Loop</text>
-        <text x="1480" y="116" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">OUTPUT</text>
-        <text x="1480" y="132" textAnchor="middle" fontSize="12" fontWeight="600" fill="#1a1a18">Approved Document</text>
-
-        <rect x="56" y="148" width="190" height="84" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <circle cx="80" cy="178" r="13" fill="#1a1a18" />
-        <text x="80" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">B</text>
-        <text x="104" y="174" fontSize="13" fontWeight="600" fill="#1a1a18">Research Brief</text>
-        <text x="104" y="190" fontSize="10" fill="#4a4845">prompt · .md · Notion URL</text>
-        <text x="74"  y="210" fontSize="9" fontStyle="italic" fill="#706e67">Notion pages pre-fetched</text>
-        <text x="74"  y="223" fontSize="9" fontStyle="italic" fill="#706e67">captured to brief.md</text>
-
-        <rect x="56" y="252" width="190" height="186" rx="10" fill="url(#mapSurfaceSecure)" filter="url(#mapCardShadowDark)" />
-        <text x="151" y="276" textAnchor="middle" fontSize="13" fontWeight="600" fill="white">Preflight</text>
-        <text x="151" y="292" textAnchor="middle" fontSize="9" fontWeight="600" fill="#6aad86" letterSpacing="1.4">BOTH AGENTS · PARALLEL</text>
-        <line x1="74" y1="304" x2="228" y2="304" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <circle cx="78" cy="322" r="4" fill="#5aad80" />
-        <text x="90" y="326" fontSize="10" fill="rgba(255,255,255,0.9)">Brief clarity</text>
-        <circle cx="78" cy="342" r="4" fill="#5aad80" />
-        <text x="90" y="346" fontSize="10" fill="rgba(255,255,255,0.9)">Missing inputs</text>
-        <circle cx="78" cy="362" r="4" fill="#5aad80" />
-        <text x="90" y="366" fontSize="10" fill="rgba(255,255,255,0.9)">Framing concerns</text>
-        <line x1="74" y1="382" x2="228" y2="382" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="151" y="400" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.6)">BRIEF_OK → proceed</text>
-        <text x="151" y="414" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.6)">NEEDS_INPUT → pause</text>
-        <text x="151" y="430" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.45)" fontFamily="monospace">harness · python</text>
-
-        <line x1="151" y1="232" x2="151" y2="252" stroke="#4f5fb8" strokeWidth="1.6" markerEnd="url(#mapArrowAccentSm)" />
-
-        <rect x="286" y="148" width="190" height="156" rx="10" fill="url(#mapSurfacePrimary)" filter="url(#mapCardShadowDark)" />
-        <circle cx="310" cy="178" r="14" fill="rgba(0,0,0,0.22)" />
-        <text x="310" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">C</text>
-        <text x="334" y="175" fontSize="13" fontWeight="600" fill="white">Claude</text>
-        <text x="334" y="190" fontSize="9" fill="rgba(255,255,255,0.7)">Sonnet 4.6 · thinking=med</text>
-        <line x1="304" y1="204" x2="464" y2="204" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="304" y="222" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary + thesis</text>
-        <text x="304" y="238" fontSize="10" fill="rgba(255,255,255,0.92)">· Findings  [V] / [U]</text>
-        <text x="304" y="254" fontSize="10" fill="rgba(255,255,255,0.92)">· Disputable claims</text>
-        <text x="304" y="270" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions + sources</text>
-        <text x="381" y="292" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)">web search · no hedging · commit</text>
-
-        <text x="381" y="324" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="1.4">PARALLEL</text>
-        <line x1="346" y1="330" x2="416" y2="330" stroke="#4f5fb8" strokeWidth="1" strokeDasharray="3,3" opacity="0.55" />
-
-        <rect x="286" y="338" width="190" height="156" rx="10" fill="url(#mapSurfaceSlate)" filter="url(#mapCardShadowDark)" />
-        <circle cx="310" cy="368" r="14" fill="rgba(255,255,255,0.14)" />
-        <text x="310" y="368" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">G</text>
-        <text x="334" y="365" fontSize="13" fontWeight="600" fill="white">GPT</text>
-        <text x="334" y="380" fontSize="9" fill="rgba(255,255,255,0.7)">GPT-5.5 · reasoning=med</text>
-        <line x1="304" y1="394" x2="464" y2="394" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="304" y="412" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary + thesis</text>
-        <text x="304" y="428" fontSize="10" fill="rgba(255,255,255,0.92)">· Findings  [V] / [U]</text>
-        <text x="304" y="444" fontSize="10" fill="rgba(255,255,255,0.92)">· Disputable claims</text>
-        <text x="304" y="460" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions + sources</text>
-        <text x="381" y="482" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)">asyncio.gather · fires at the same moment</text>
-
-        <path d="M 246 282 Q 270 270 286 220" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccent)" />
-        <text x="260" y="252" textAnchor="middle" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">PASS</text>
-        <path d="M 246 408 Q 270 420 286 414" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccent)" />
-
-        <rect x="516" y="148" width="250" height="378" rx="14" fill="url(#mapSurfaceNeutral)" filter="url(#mapCardShadowDark)" />
-        <text x="641" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Plan Negotiation</text>
-        <text x="641" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">TURN-BASED · UP TO 12 ROUNDS</text>
-        <line x1="536" y1="202" x2="746" y2="202" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-
-        <rect x="536" y="214" width="210" height="58" rx="7" fill="rgba(79,95,184,0.22)" stroke="rgba(79,95,184,0.4)" strokeWidth="1" />
-        <text x="548" y="233" fontSize="10" fontWeight="600" fill="#c5cdf0">Round 1 · Diff inventory</text>
-        <text x="548" y="249" fontSize="9" fill="rgba(255,255,255,0.7)">diff vs other draft · gap research</text>
-        <text x="548" y="263" fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="monospace">STATUS: NEGOTIATING (forced)</text>
-
-        <rect x="536" y="282" width="210" height="82" rx="7" fill="rgba(255,255,255,0.06)" />
-        <text x="548" y="301" fontSize="10" fontWeight="600" fill="rgba(255,255,255,0.92)">Rounds 2+ · Negotiation</text>
-        <text x="548" y="316" fontSize="9" fill="rgba(255,255,255,0.7)">· corroborate [U] / central [V]</text>
-        <text x="548" y="330" fontSize="9" fill="rgba(255,255,255,0.7)">· anti-sycophancy guard / turn</text>
-        <text x="548" y="344" fontSize="9" fill="rgba(255,255,255,0.7)">· D-N IDs track disagreements</text>
-        <text x="548" y="358" fontSize="9" fill="rgba(255,255,255,0.5)" fontFamily="monospace">BLOCKING / FINAL_SURFACED</text>
-
-        <line x1="536" y1="378" x2="746" y2="378" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="641" y="396" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">CONVERGENCE GATE</text>
-        <text x="536" y="412" fontSize="9" fill="rgba(255,255,255,0.78)">+ Both STATUS: AGREED</text>
-        <text x="536" y="426" fontSize="9" fill="rgba(255,255,255,0.78)">+ AGREED_PLAN SHA-256 match</text>
-        <text x="536" y="440" fontSize="9" fill="rgba(255,255,255,0.78)">+ BLOCKING_DISAGREEMENTS = 0</text>
-        <text x="536" y="454" fontSize="9" fill="rgba(255,255,255,0.78)">+ OPEN_QUESTIONS = 0</text>
-        <text x="536" y="468" fontSize="9" fill="rgba(255,255,255,0.78)">+ STRONGEST_REMAINING_OBJECTION</text>
-        <text x="536" y="484" fontSize="9" fill="rgba(255,255,255,0.55)">FSD IDs aligned · pickDrafter() tiebreak</text>
-
-        <line x1="536" y1="498" x2="746" y2="498" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="641" y="514" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">soft cap 6 · hard cap 12 · resumable</text>
-
-        <line x1="476" y1="220" x2="510" y2="290" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccentSm)" />
-        <text x="488" y="248" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">DRAFT-C</text>
-        <line x1="476" y1="414" x2="510" y2="340" stroke="#4f5fb8" strokeWidth="1.8" fill="none" markerEnd="url(#mapArrowAccentSm)" />
-        <text x="488" y="388" fontSize="8" fontWeight="600" fill="#4f5fb8" letterSpacing="0.6">DRAFT-G</text>
-
-        <line x1="766" y1="337" x2="816" y2="337" stroke="#4f5fb8" strokeWidth="2" markerEnd="url(#mapArrowAccent)" />
-        <text x="791" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="0.8">AGREED</text>
-
-        <rect x="816" y="148" width="190" height="260" rx="10" fill="url(#mapSurfacePrimary)" filter="url(#mapCardShadowDark)" />
-        <circle cx="840" cy="178" r="14" fill="rgba(255,255,255,0.18)" />
-        <text x="840" y="178" textAnchor="middle" dominantBaseline="central" fontSize="11" fontWeight="700" fill="white">★</text>
-        <text x="864" y="175" fontSize="13" fontWeight="600" fill="white">Drafter</text>
-        <text x="864" y="190" fontSize="9" fill="rgba(255,255,255,0.7)">tiebreak winner · single-shot</text>
-        <line x1="836" y1="204" x2="996" y2="204" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="836" y="220" fontSize="9" fontWeight="600" fill="#c5cdf0" letterSpacing="1.4">INPUTS</text>
-        <text x="836" y="236" fontSize="10" fill="rgba(255,255,255,0.92)">· hash-verified AGREED_PLAN</text>
-        <text x="836" y="252" fontSize="10" fill="rgba(255,255,255,0.92)">· both Phase 1 drafts</text>
-        <text x="836" y="268" fontSize="10" fill="rgba(255,255,255,0.92)">· full Phase 2 conversation</text>
-        <text x="836" y="284" fontSize="10" fill="rgba(255,255,255,0.92)">· injected FSD array</text>
-        <line x1="836" y1="298" x2="996" y2="298" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="836" y="314" fontSize="9" fontWeight="600" fill="#c5cdf0" letterSpacing="1.4">OUTPUT SECTIONS</text>
-        <text x="836" y="330" fontSize="10" fill="rgba(255,255,255,0.92)">· Summary · Findings · FSD</text>
-        <text x="836" y="346" fontSize="10" fill="rgba(255,255,255,0.92)">· Open questions · Sources</text>
-        <text x="836" y="362" fontSize="10" fill="rgba(255,255,255,0.92)">· Confidence ledger [V] / [U]</text>
-        <text x="911" y="388" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.55)" fontFamily="monospace">draft-v1.md</text>
-
-        <line x1="1006" y1="337" x2="1056" y2="337" stroke="#4f5fb8" strokeWidth="2" markerEnd="url(#mapArrowAccent)" />
-        <text x="1031" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#4f5fb8" letterSpacing="0.8">DRAFT V1</text>
-
-        <rect x="1056" y="148" width="250" height="378" rx="14" fill="url(#mapSurfaceNeutral)" filter="url(#mapCardShadowDark)" />
-        <text x="1181" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Review Loop</text>
-        <text x="1181" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">TURN-BASED · DRAFTER vs REVIEWER</text>
-        <line x1="1076" y1="202" x2="1286" y2="202" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-
-        <rect x="1076" y="214" width="210" height="76" rx="7" fill="rgba(74,85,104,0.4)" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-        <text x="1088" y="232" fontSize="10" fontWeight="600" fill="rgba(255,255,255,0.92)">Reviewer · non-drafter</text>
-        <text x="1088" y="248" fontSize="9" fill="rgba(255,255,255,0.7)">· evidence checked / round (req)</text>
-        <text x="1088" y="262" fontSize="9" fill="rgba(255,255,255,0.7)">· issue ledger · stable IDs</text>
-        <text x="1088" y="276" fontSize="9" fill="rgba(255,255,255,0.5)">corroborates [U] + central [V]</text>
-
-        <rect x="1076" y="300" width="210" height="76" rx="7" fill="rgba(79,95,184,0.22)" stroke="rgba(79,95,184,0.4)" strokeWidth="1" />
-        <text x="1088" y="318" fontSize="10" fontWeight="600" fill="#c5cdf0">Drafter · revision note</text>
-        <text x="1088" y="334" fontSize="9" fill="rgba(255,255,255,0.7)">· answers every open issue</text>
-        <text x="1088" y="348" fontSize="9" fill="rgba(255,255,255,0.7)">· writes draft-v(N+1).md</text>
-        <text x="1088" y="362" fontSize="9" fill="rgba(255,255,255,0.5)">updates Confidence on each rev</text>
-
-        <line x1="1076" y1="390" x2="1286" y2="390" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="1181" y="408" textAnchor="middle" fontSize="10" fontWeight="600" fill="#9aa3d4" letterSpacing="1.4">APPROVAL GATE</text>
-        <text x="1076" y="424" fontSize="9" fill="rgba(255,255,255,0.78)">+ Both STATUS: APPROVED</text>
-        <text x="1076" y="438" fontSize="9" fill="rgba(255,255,255,0.78)">+ OPEN_ISSUES = 0</text>
-        <text x="1076" y="452" fontSize="9" fill="rgba(255,255,255,0.78)">+ ENDORSEMENT + NON-BLOCKING</text>
-        <text x="1076" y="466" fontSize="9" fill="rgba(255,255,255,0.78)">+ STRONGEST_REMAINING_OBJECTION</text>
-        <text x="1076" y="480" fontSize="9" fill="rgba(255,255,255,0.55)">carryover audit: FSD-N verified in draft</text>
-
-        <line x1="1076" y1="498" x2="1286" y2="498" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
-        <text x="1181" y="514" textAnchor="middle" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">soft cap 6 · hard cap 12 · deadlock = 51</text>
-
-        <line x1="1306" y1="337" x2="1356" y2="337" stroke="#3d7f5b" strokeWidth="2" markerEnd="url(#mapArrowGreen)" />
-        <text x="1331" y="328" textAnchor="middle" fontSize="9" fontWeight="600" fill="#3d7f5b" letterSpacing="0.8">APPROVED</text>
-
-        <rect x="1356" y="148" width="248" height="280" rx="10" fill="url(#mapSurfaceStore)" filter="url(#mapCardShadowDark)" />
-        <text x="1480" y="174" textAnchor="middle" fontSize="14" fontWeight="600" fill="white">Final Document</text>
-        <text x="1480" y="190" textAnchor="middle" fontSize="9" fontWeight="600" fill="#cba075" letterSpacing="1.4">BOTH MODELS ENDORSED</text>
-        <circle cx="1592" cy="166" r="5" fill="#3d7f5b" />
-        <line x1="1376" y1="202" x2="1584" y2="202" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-
-        <rect x="1376" y="212" width="208" height="40" rx="6" fill="rgba(0,0,0,0.22)" />
-        <text x="1388" y="230" fontSize="10" fill="#cba075" fontFamily="monospace">## How this document</text>
-        <text x="1388" y="244" fontSize="10" fill="#cba075" fontFamily="monospace">##   was produced</text>
-
-        <text x="1376" y="270" fontSize="10" fill="rgba(255,255,255,0.88)">· Outcome: APPROVED</text>
-        <text x="1376" y="286" fontSize="10" fill="rgba(255,255,255,0.88)">· Plan rounds · drafter · review rounds</text>
-        <text x="1376" y="302" fontSize="10" fill="rgba(255,255,255,0.88)">· Confidence: HIGH / MOD / LOW</text>
-        <text x="1376" y="318" fontSize="10" fill="rgba(255,255,255,0.88)">· Token cost estimate</text>
-
-        <line x1="1376" y1="334" x2="1584" y2="334" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-        <text x="1376" y="352" fontSize="9" fontWeight="600" fill="#cba075" letterSpacing="1.4">CONFIDENCE LEDGER</text>
-        <text x="1376" y="370" fontSize="10" fill="rgba(255,255,255,0.78)">claim · [V] / [U] · CORROBORATED</text>
-        <text x="1376" y="386" fontSize="10" fill="rgba(255,255,255,0.78)">material claims only · body prose clean</text>
-        <text x="1376" y="412" fontSize="9" fontStyle="italic" fill="rgba(255,255,255,0.5)">final.md · written once, both models endorse</text>
-
-        <text x="56" y="562" fontSize="10" fontWeight="600" fill="#9e9b95" letterSpacing="2">PROTOCOL DETAILS</text>
-        <line x1="56" y1="572" x2="200" y2="572" stroke="#9e9b95" strokeWidth="0.5" />
-
-        <rect x="56" y="588" width="496" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <text x="76" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">SOURCE VERIFICATION  ·  v3.1</text>
-        <line x1="76" y1="620" x2="532" y2="620" stroke="#e8e2d8" strokeWidth="1" />
-        <rect x="76" y="632" width="40" height="20" rx="4" fill="#4f5fb8" />
-        <text x="96" y="646" textAnchor="middle" fontSize="10" fontWeight="700" fill="white">[V]</text>
-        <text x="124" y="646" fontSize="11" fill="#4a4845">verified this run — tool retrieved a source</text>
-        <rect x="76" y="660" width="40" height="20" rx="4" fill="#9e9b95" />
-        <text x="96" y="674" textAnchor="middle" fontSize="10" fontWeight="700" fill="white">[U]</text>
-        <text x="124" y="674" fontSize="11" fill="#4a4845">unverified — from training weights, must be corroborated</text>
-        <text x="76" y="698" fontSize="9" fontStyle="italic" fill="#706e67">CORROBORATED  ·  UNCORROBORATED  ·  CONTRADICTED</text>
-
-        <rect x="572" y="588" width="496" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <text x="592" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">REPAIR MECHANISM</text>
-        <line x1="592" y1="620" x2="1048" y2="620" stroke="#e8e2d8" strokeWidth="1" />
-        <text x="592" y="640" fontSize="11" fill="#4a4845">1.  malformed turn  →  rename to <tspan fontFamily="monospace" fill="#3a4a8a">.malformed-N.md</tspan></text>
-        <text x="592" y="660" fontSize="11" fill="#4a4845">2.  repair prompt  →  re-check well-formedness</text>
-        <text x="592" y="680" fontSize="11" fill="#4a4845">3.  2 consecutive failures  →  <tspan fontWeight="600" fill="#cc6e55">exit 52</tspan></text>
-        <text x="592" y="700" fontSize="9" fontStyle="italic" fill="#706e67">repair events logged · invisible to the other agent</text>
-
-        <rect x="1088" y="588" width="516" height="124" rx="10" fill="white" stroke="#e8e2d8" strokeWidth="1" filter="url(#mapCardShadow)" />
-        <text x="1108" y="610" fontSize="10" fontWeight="600" fill="#1a1a18" letterSpacing="1.4">EXIT CODES</text>
-        <line x1="1108" y1="620" x2="1584" y2="620" stroke="#e8e2d8" strokeWidth="1" />
-        <text x="1108" y="640" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="700" fill="#3d7f5b" fontFamily="monospace">0</tspan>
-          <tspan>  approved</tspan>
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">1</tspan>
-          <tspan>  preflight failure</tspan>
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">2</tspan>
-          <tspan>  runtime error</tspan>
-        </text>
-        <text x="1108" y="660" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="700" fill="#4a9eca" fontFamily="monospace">50</tspan>
-          <tspan>  soft cap (resumable)</tspan>
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace" dx="20">51</tspan>
-          <tspan>  hard cap / deadlock</tspan>
-        </text>
-        <text x="1108" y="680" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="700" fill="#cc6e55" fontFamily="monospace">52</tspan>
-          <tspan>  protocol parse failure (2 consecutive malformed turns)</tspan>
-        </text>
-        <text x="1108" y="700" fontSize="9" fontStyle="italic" fill="#706e67"><tspan fontFamily="monospace">state.json</tspan> persisted  ·  resume with <tspan fontFamily="monospace">--resume</tspan></text>
-
-        <line x1="56" y1="752" x2="1604" y2="752" stroke="#d8d4cc" strokeWidth="1" opacity="0.7" />
-        <text x="56" y="778" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="600" fill="#1a1a18">Agreement is valuable only when it improves the final answer.</tspan>
-          <tspan>  Do not agree for politeness, speed, symmetry, or fatigue · do not disagree for performance or to appear rigorous.</tspan>
-        </text>
-        <text x="56" y="800" fontSize="11" fill="#4a4845">
-          <tspan fontWeight="600" fill="#1a1a18">Phase 2 and Phase 4 each run internally until convergence.</tspan>
-          <tspan>  No cross-phase back-propagation occurs in a single run.</tspan>
-        </text>
-
-        <text x="1604" y="836" textAnchor="end" fontSize="9" fontStyle="italic" fill="#9e9b95">Dual Research Protocol v3.5  ·  Claude Sonnet 4.6 + GPT-5.5  ·  Python orchestrator</text>
-      </svg>
+      <figure className="hiw-overview-figure" style={{ margin: 0 }}>
+        <img
+          src={src}
+          alt="Deep Research pipeline · phase columns left to right; per-phase inputs stacked top to bottom in the order the orchestrator feeds them."
+          className="hiw-overview-svg"
+          loading="lazy"
+          style={{ display: 'block', width: '100%', height: 'auto' }}
+        />
+      </figure>
     );
   }
 
   function ProtocolOverviewFold() {
+    const themeMode = useThemeMode();
+    const svgHref = themeMode === 'dark'
+      ? '/diagrams/deep-research-pipeline.dark.svg?v=0117'
+      : '/diagrams/deep-research-pipeline.light.svg?v=0117';
     return (
       <details style={{
         background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)',
@@ -1622,18 +1362,19 @@
         }}>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--md-on-surface)' }}>View full process map</span>
           <span style={{ fontSize: 12, color: 'var(--md-on-surface-muted)' }}>
-            — every phase, sub-card, gate, callout and exit code in one page
+            — every phase, every input, every artifact passed forward
           </span>
           <span className="mono" style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 999,
             background: 'var(--md-surface-container-highest)', color: 'var(--md-on-surface-muted)',
             border: '1px solid var(--md-outline-variant)', marginLeft: 'auto',
             letterSpacing: '0.04em',
-          }}>v3.5 · landscape</span>
+          }}>deep research · landscape</span>
           <span className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>▶</span>
         </summary>
         <div style={{
-          padding: 0, borderTop: '1px solid var(--md-outline-hair)', background: '#f5f1ea',
+          padding: 0, borderTop: '1px solid var(--md-outline-hair)',
+          background: 'var(--md-surface-container-lowest)',
         }}>
           <ProtocolOverviewMap />
         </div>
@@ -1642,11 +1383,11 @@
           fontSize: 11.5, color: 'var(--md-on-surface-muted)',
           display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap',
         }}>
-          <span>Reference diagram — light surface, doesn't follow theme toggle.</span>
-          <a href="protocol-overview.svg" target="_blank" rel="noopener"
+          <span>Reference diagram — light + dark variants, follows the theme toggle.</span>
+          <a href={svgHref} target="_blank" rel="noopener"
              style={{ color: 'var(--info)' }}>Open SVG ↗</a>
           <span className="mono" style={{ marginLeft: 'auto', fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
-            1660 × 880 · Inter · cream &amp; indigo design system
+            1660 × 1200 · IBM Plex · cream &amp; indigo design system
           </span>
         </div>
       </details>
