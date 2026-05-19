@@ -12,6 +12,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 (Nothing yet.)
 
+## [0.76.10] — 2026-05-19
+
+### Refactored
+
+- **Polish — agent strip widths + header alignment + timeline/critique card consistency**. Three small mismatches the user flagged after testing v0.76.9:
+  1. **Agent strips** above the timeline were 400px each, just tight enough that `claude-sonnet-4-6` model id pressed against the right edge. Bumped `.as.as-timeline` to 460px so the long model id sits comfortably without wrapping. GPT pill stays the same width (so Claude and GPT pills are visually identical outer rectangles).
+  2. **Timeline + Critique header bands** weren't aligned at the bottom — timeline was 93px tall (43px `.tl__head` + 38px `.tl__tabs`), critique was 108px (53px `.bar1` + 55px `.bar2`). Restructured `.tl__head` to match `.bar1` (53px, surface-container-high, full-width band) and `.tl__tabs` to match `.bar2` (55px, surface-container, full-width band with inner pill `.tl__tabs-inner` for the Conversation/Consumption toggle). Shrunk inner `.tl__tab` button height 30 → 26px so the 55px target is hit exactly. Result: timeline and critique pane bottoms align at the centre divider; the first card on each side starts at the same y-coordinate.
+  3. **Timeline phase cards** (`.tl-phase`) and Critique question/section cards (`.crit-group`) used different surface tiers and radii — phase cards read as a different design language than the critique cards next to them. Mirrored `.tl-phase` to `.crit-group` exactly: `background: var(--md-surface-container)`, `border-radius: var(--md-shape-sm)` (8px), `border: 1px solid var(--md-outline-hair)`, and added `.tl-phase__hd { background: var(--md-surface-container-high); border-bottom: 1px solid var(--md-outline-hair); }` so the header band tiering matches `.crit-group__hd`. Both panes now read as one design system.
+
+  Tests 924 green. Hand-verified via Playwright at 2200×1300 dark + light. Cache-bust `?v=0099` → `?v=0100`.
+
 ## [0.76.9] — 2026-05-19
 
 ### Fixed

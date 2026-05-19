@@ -185,7 +185,7 @@ button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
    live in separate flex containers (Claude on PaneHeader row, GPT on
    PaneToolbar row) so flex-grow can't equalize them naturally;
    pinning the width is the cleanest fix per delta 14.28. */
-.as.as-timeline { width: 400px; min-width: 400px; flex: 0 0 auto; }
+.as.as-timeline { width: 460px; min-width: 460px; flex: 0 0 auto; }
 .as .as-name { color: var(--fg-0); font-weight: var(--w-medium); }
 .as .as-model { font-family: var(--mono); font-size: var(--t-mono); color: var(--fg-2); }
 
@@ -1871,26 +1871,40 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .rdvc__pane {
   background: var(--md-surface-container-low);
 }
+/* SPEC-0107 / polish — match the critique pane's two-tier header band
+   (.bar1 + .bar2). Both bands span full width with their own surface tier
+   + bottom outline, so the timeline + critique pane bottoms align across
+   the centre divider. */
 .tl__head {
-  display: flex; align-items: baseline; gap: 10px;
-  padding: 14px 20px 12px;
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 20px;
   background: var(--md-surface-container-high);
   border-bottom: 1px solid var(--md-outline-hair);
+  min-height: 53px;
+  flex-shrink: 0;
 }
-.tl__head .ttl { font: var(--md-w-medium) 16px/1 var(--md-font-plain); }
+.tl__head .ttl { font: var(--md-w-medium) var(--md-title-m-size)/1 var(--md-font-plain); white-space: nowrap; }
 .tl__head .ct  { font: 12px/1 var(--md-font-data); color: var(--md-on-surface-faint); }
 
-/* Pill tabs — Conversation / Consumption */
+/* Pill tabs — Conversation / Consumption. Full-width band matching .bar2. */
 .tl__tabs {
-  display: inline-flex; gap: 4px; align-self: flex-start;
-  margin: 12px 20px 0;
-  padding: 4px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
   background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  min-height: 55px;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+.tl__tabs-inner {
+  display: inline-flex; gap: 4px;
+  padding: 4px;
+  background: var(--md-surface-container-high);
   border-radius: var(--md-shape-full);
 }
 .tl__tab {
   display: inline-flex; align-items: center; gap: 6px;
-  height: 30px; padding: 0 14px;
+  height: 26px; padding: 0 14px;
   background: transparent; border: 0; cursor: pointer;
   border-radius: var(--md-shape-full);
   font: var(--md-w-medium) 12px/1 var(--md-font-plain);
@@ -1945,21 +1959,25 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 /* Phase list container */
 .tl__phases { display: flex; flex-direction: column; gap: var(--md-sp-2); }
 
-/* SPEC-0107 — Phase sections render as M3 cards on the timeline body
-   so the timeline reads as a stack of cards, not a flat text list. */
+/* SPEC-0107 / polish — phase cards mirror the critique pane's .crit-group
+   anatomy exactly: same surface tier, same outline, same radius, same
+   header-band tier. Visually the two sides of the run-detail page read
+   as a single design language. */
 .tl-phase {
-  background: var(--md-surface-container-low);
+  background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
-  border-radius: var(--md-shape-md);
+  border-radius: var(--md-shape-sm);
   overflow: hidden;
 }
 .tl-phase__hd {
   display: grid; grid-template-columns: 20px auto 1fr auto;
   gap: 10px; align-items: center;
-  padding: 10px 8px;
+  padding: 10px 14px;
   cursor: pointer;
   position: relative;
   user-select: none;
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
 }
 .tl-phase__hd::before {
   content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
