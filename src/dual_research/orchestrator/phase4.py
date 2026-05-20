@@ -36,7 +36,6 @@ from dual_research.protocol.convergence import is_review_approved_lenient
 # consecutive rounds where agents have emitted aligned APPROVED but the
 # ledger cross-check kept blocking, the stuck-AGREED escape valve fires.
 STUCK_AGREED_K = 2
-from dual_research.protocol.prompt_pieces import pieces_for_review
 from dual_research.protocol.prompts import review_input_bundle
 
 
@@ -218,14 +217,10 @@ async def run_phase4(
             standing_items=openai_standing,
             blocked_warning=blocked_warning,
         )
-        # Spec 0030: per-piece sizes for the Consumption tab. Both agents
-        # share the same input shape this round (same brief + same draft
-        # + same prior P4 turns).
-        round_pieces = pieces_for_review(
-            brief=brief_content,
-            draft=current_draft,
-            prior_turns=prior,
-        )
+        # Spec 0118: legacy run_phase4 path no longer emits Consumption-tab
+        # piece breakdowns; dr_run.run_dr_phase4 is the active code path
+        # and builds canonical-key pieces directly.
+        round_pieces = None
         # Spec 0033: per-piece TEXT bundles (per-agent system templates).
         claude_bundle = review_input_bundle(
             brief=brief_content,

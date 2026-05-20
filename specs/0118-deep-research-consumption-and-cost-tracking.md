@@ -3,7 +3,7 @@ spec: 0118
 title: Deep Research consumption & cost tracking — collapsed/unfolded redesign, canonical piece aggregation
 label: refactoring
 version-bump: MINOR
-status: proposed
+status: implemented
 target-version: 1.3.0
 created: 2026-05-19
 pr: ""

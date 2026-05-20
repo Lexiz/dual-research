@@ -1,10 +1,14 @@
 """Spec 0033 — per-turn input bundles for the UI Input tab.
 
 These tests assert that ``*_input_bundle()`` siblings produce dicts with
-the canonical Tk-vocab key set, that content keys match the
-corresponding ``pieces_for_*`` size dict (so sizes and text can never
-drift), and that the ``system`` text is a clean rendering of the prompt
-template (no cache marker, preamble present, placeholders preserved).
+the canonical Tk-vocab key set, and that the ``system`` text is a clean
+rendering of the prompt template (no cache marker, preamble present,
+placeholders preserved).
+
+Spec 0118 note: the previous bundle-vs-pieces cross-check (sizes can't
+drift from text) is gone because the two vocabularies are now deliberately
+decoupled — the Input tab keeps the legacy Tk vocab on the bundle side,
+while the Consumption tab pieces use spec 0117's canonical artifact IDs.
 """
 
 from __future__ import annotations
@@ -20,14 +24,6 @@ from dual_research.protocol.prompts import (
     repair_input_bundle,
     research_input_bundle,
     review_input_bundle,
-)
-from dual_research.protocol.prompt_pieces import (
-    pieces_for_drafting,
-    pieces_for_negotiation_round1,
-    pieces_for_negotiation_turn,
-    pieces_for_preflight,
-    pieces_for_research,
-    pieces_for_review,
 )
 
 
@@ -82,64 +78,29 @@ class TestBundleKeySetIsCanonical:
         assert set(b.keys()) == CANONICAL_KEYS
 
 
-class TestContentKeysMatchPieces:
-    """The cross-check: bundle's non-empty Tk keys equal pieces_for_*'s keys.
+class TestBundleContentKeys:
+    """Sanity-check that the bundle includes the expected Tk content keys
+    for each phase (the per-phase set of inlined inputs).
 
-    This is the test that prevents sizes-vs-text drift. ``system`` is added
-    by the bundle (no analogue on the sizes side) and is excluded from the
-    comparison.
+    Spec 0118 dropped the previous cross-check against ``pieces_for_*``
+    because the two vocabularies no longer share keys; these residual
+    assertions still catch bundles that forget to inline a required input.
     """
-
-    def test_preflight(self) -> None:
-        b = preflight_input_bundle(brief="B")
-        pieces = pieces_for_preflight(brief="B")
-        assert _content_keys(b) - {"system"} == set(pieces.keys())
-
-    def test_research(self) -> None:
-        b = research_input_bundle(brief="B")
-        pieces = pieces_for_research(brief="B")
-        assert _content_keys(b) - {"system"} == set(pieces.keys())
-
-    def test_negotiation_round1(self) -> None:
-        b = negotiation_round1_input_bundle(brief="B", claude_draft="C", openai_draft="O")
-        pieces = pieces_for_negotiation_round1(brief="B", claude_draft="C", openai_draft="O")
-        assert _content_keys(b) - {"system"} == set(pieces.keys())
-
-    def test_negotiation_turn_with_history(self) -> None:
-        prior = [PriorTurn(agent="claude", round=1, content="x" * 350)]
-        b = negotiation_turn_input_bundle(
-            brief="B", claude_draft="C", openai_draft="O",
-            prior_turns=prior, round=2,
-        )
-        pieces = pieces_for_negotiation_turn(
-            brief="B", claude_draft="C", openai_draft="O", prior_turns=prior,
-        )
-        # `pieces_for_negotiation_turn` always emits a `hist` key (zero
-        # when prior is empty); the bundle's `hist` is non-empty when
-        # there's prior content. Equality holds when both are non-empty.
-        non_zero_pieces = {k for k, v in pieces.items() if v}
-        assert _content_keys(b) - {"system"} == non_zero_pieces
 
     def test_drafting_includes_plan(self) -> None:
         b = drafting_input_bundle(
             brief="B", claude_draft="C", openai_draft="O",
             plan="P", prior_turns=[],
         )
-        # The bundle has `plan` because we pass one in. `hist` still
-        # carries the "(No prior turns yet.)" stub the prompt builder
-        # emits — the bundle deliberately mirrors what the model saw,
-        # not the heuristic char-count from pieces_for_*.
         assert "plan" in _content_keys(b)
+        # Empty prior still inlines a stub via the prompt builder.
         assert "No prior turns yet" in b["hist"]
 
-    def test_review(self) -> None:
+    def test_review_uses_histp(self) -> None:
         prior = [PriorTurn(agent="claude", round=1, content="x" * 350)]
         b = review_input_bundle(brief="B", draft="D", prior_turns=prior, round=1)
-        pieces = pieces_for_review(brief="B", draft="D", prior_turns=prior)
-        # Phase 4 uses `histp` not `hist`; check it shows up in the bundle.
+        # Phase 4 uses `histp` not `hist`.
         assert "histp" in _content_keys(b)
-        non_zero_pieces = {k for k, v in pieces.items() if v}
-        assert _content_keys(b) - {"system"} == non_zero_pieces
 
 
 class TestSystemText:

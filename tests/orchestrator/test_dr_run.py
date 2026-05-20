@@ -14,7 +14,8 @@ from pathlib import Path
 import pytest
 
 from dual_research.agents.base import AgentResult, TokenUsage
-from dual_research.events import EventBus, Phase1Complete, PhaseEntered
+from dual_research.contract.artifacts import is_known
+from dual_research.events import EventBus, Phase1Complete, PhaseEntered, TurnEnded
 from dual_research.orchestrator.dr_run import run_dr_phase1
 from dual_research.persistence import (
     Metrics,
@@ -108,3 +109,32 @@ async def test_dr_phase1_writes_drafts_and_emits_events(tmp_path: Path) -> None:
     assert "phase_entered" in received
     assert "phase1_complete" in received
     assert "phase_exited" in received
+
+
+@pytest.mark.asyncio
+async def test_dr_phase1_emits_only_canonical_piece_keys(tmp_path: Path) -> None:
+    """Spec 0118: every piece-dict key emitted via TurnEnded must be a
+    canonical artifact ID known to spec 0117's registry. Regression for
+    orphan keys slipping through the orchestrator."""
+    ctx, bus = _make_ctx(tmp_path)
+    turn_pieces: list[dict[str, int]] = []
+
+    def sub(ev):
+        if isinstance(ev, TurnEnded):
+            turn_pieces.append(dict(ev.prompt_pieces or {}))
+
+    bus.subscribe(sub)
+
+    await run_dr_phase1(
+        ctx=ctx,
+        claude_agent=StubAgent(label="claude", model_id="claude-sonnet-4-6", text=_PHASE1_DRAFT),
+        openai_agent=StubAgent(label="openai", model_id="gpt-5.5", text=_PHASE1_DRAFT),
+        event_bus=bus,
+        brief_content="the brief",
+    )
+
+    assert turn_pieces, "expected at least one TurnEnded with prompt_pieces"
+    for pieces in turn_pieces:
+        assert pieces, "phase 1 turn should carry a non-empty pieces dict"
+        for k in pieces:
+            assert is_known(k), f"orphan piece key {k!r} not in spec 0117 registry"

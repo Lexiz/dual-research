@@ -17,7 +17,6 @@ from dual_research.orchestrator._call import run_one_call
 from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import Status, parse_preflight_turn, preflight_prompt
-from dual_research.protocol.prompt_pieces import pieces_for_preflight
 from dual_research.protocol.prompts import preflight_input_bundle
 
 logger = logging.getLogger(__name__)
@@ -47,8 +46,10 @@ async def run_phase0(
 
     claude_prompt = preflight_prompt(brief_content=brief_content, agent_name="claude")
     openai_prompt = preflight_prompt(brief_content=brief_content, agent_name="openai")
-    # Spec 0030: per-piece token sizes for the Consumption tab.
-    p0_pieces = pieces_for_preflight(brief=brief_content)
+    # Spec 0118: legacy run_phase0 path no longer emits Consumption-tab
+    # piece breakdowns; dr_run.run_dr_phase0 is the active code path and
+    # builds canonical-key pieces directly.
+    p0_pieces = None
     # Spec 0033: per-piece TEXT for the Input tab. One bundle per agent
     # (the system template differs by agent_name).
     claude_bundle = preflight_input_bundle(brief=brief_content, agent_name="claude")

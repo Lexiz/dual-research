@@ -16,7 +16,6 @@ from dual_research.orchestrator._turns import list_turns
 from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import FsdItem, drafting_prompt
-from dual_research.protocol.prompt_pieces import pieces_for_drafting
 from dual_research.protocol.prompts import drafting_input_bundle
 
 
@@ -64,17 +63,12 @@ async def run_phase3(
         agreed_plan_block=ctx.state.agreed_plan,
         final_surfaced_disagreements=fsd_items,
     )
-    # Spec 0030: claude_draft / openai_draft naming is canonical across the
-    # bar palette regardless of who's drafting in this run.
+    # Spec 0118: legacy run_phase3 path no longer emits Consumption-tab
+    # piece breakdowns; dr_run.run_dr_phase3 is the active code path and
+    # builds canonical-key pieces directly.
+    p3_pieces = None
     claude_draft = own_draft if drafter == "claude" else other_draft
     openai_draft = own_draft if drafter == "openai" else other_draft
-    p3_pieces = pieces_for_drafting(
-        brief=brief_content,
-        claude_draft=claude_draft,
-        openai_draft=openai_draft,
-        plan=ctx.state.agreed_plan,
-        prior_turns=prior_turns,
-    )
     # Spec 0033: per-piece TEXT bundle for the Input tab.
     p3_bundle = drafting_input_bundle(
         brief=brief_content,

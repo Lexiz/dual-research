@@ -1,23 +1,21 @@
-"""Spec 0030 — per-piece token-size estimators.
+"""Spec 0118 — per-piece token-size estimators emit canonical artifact IDs.
 
-The Consumption tab's segmented bars are powered by ``prompt_pieces`` —
-a dict-of-int the aggregator records per turn. Each helper here mirrors
-one phase's prompt-assembly call site; the test surface confirms shapes
-(which kinds appear) and rough magnitude (renormalisation maintains
-order, zero-history yields no `hist` segment, etc.).
+Every key emitted by ``pieces_for_*`` must be a recognised artifact ID
+in spec 0117's registry (``dual_research.contract.artifacts``). The
+``TestRegistryMembership`` class is the regression that catches drift.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from dual_research.contract.artifacts import is_known
 from dual_research.protocol.prompt_pieces import (
     estimate_tokens,
     pieces_for_drafting,
-    pieces_for_negotiation_round1,
-    pieces_for_negotiation_turn,
+    pieces_for_plan_negotiation,
     pieces_for_preflight,
-    pieces_for_research,
+    pieces_for_research_plan,
     pieces_for_review,
     renormalize,
 )
@@ -41,123 +39,239 @@ class TestEstimateTokens:
         assert estimate_tokens("hello world") == 3
 
     def test_long_text_scales_linearly(self) -> None:
-        big = "x" * 7000
         # 7000 / 3.5 = 2000
-        assert estimate_tokens(big) == 2000
+        assert estimate_tokens("x" * 7000) == 2000
 
 
-class TestPhase0:
-    def test_only_brief(self) -> None:
-        pieces = pieces_for_preflight(brief="brief text here")
-        assert set(pieces.keys()) == {"brief"}
-        assert pieces["brief"] > 0
+class TestPhase0Preflight:
+    def test_round1_minimum(self) -> None:
+        pieces = pieces_for_preflight(system_task="sys", user_prompt="brief")
+        assert set(pieces.keys()) == {"system.task.input", "user_prompt"}
+        assert pieces["system.task.input"] > 0
+        assert pieces["user_prompt"] > 0
 
-
-class TestPhase1:
-    def test_only_brief(self) -> None:
-        pieces = pieces_for_research(brief="another brief")
-        assert set(pieces.keys()) == {"brief"}
-
-
-class TestPhase2:
-    def test_round1_has_brief_d1_d2_no_hist(self) -> None:
-        pieces = pieces_for_negotiation_round1(
-            brief="b", claude_draft="claude says X", openai_draft="gpt says Y"
+    def test_round_n_with_history_and_ledger_and_closeout(self) -> None:
+        pieces = pieces_for_preflight(
+            system_task="sys",
+            user_prompt="brief",
+            prior_turns=[
+                _Turn("claude", 1, "a" * 350),
+                _Turn("openai", 1, "b" * 350),
+            ],
+            ledger="standing items text",
+            closeout_request="closeout text",
         )
-        assert set(pieces.keys()) == {"brief", "d1", "d2"}
-        assert "hist" not in pieces
-
-    def test_round2plus_adds_hist_from_prior_turns(self) -> None:
-        prior = [
-            _Turn(agent="claude", round=1, content="a" * 350),
-            _Turn(agent="openai", round=1, content="b" * 350),
-        ]
-        pieces = pieces_for_negotiation_turn(
-            brief="b",
-            claude_draft="d",
-            openai_draft="d",
-            prior_turns=prior,
-        )
-        assert set(pieces.keys()) == {"brief", "d1", "d2", "hist"}
+        assert set(pieces.keys()) == {
+            "system.task.input",
+            "user_prompt",
+            "prior_turns.phase0",
+            "ledger.standing_items",
+            "closeout.request",
+        }
         # 700 chars / 3.5 = 200
-        assert pieces["hist"] == 200
+        assert pieces["prior_turns.phase0"] == 200
 
-    def test_round2plus_empty_prior_yields_zero_hist(self) -> None:
-        pieces = pieces_for_negotiation_turn(
-            brief="b",
-            claude_draft="d",
-            openai_draft="d",
-            prior_turns=[],
+    def test_empty_prior_omits_key(self) -> None:
+        pieces = pieces_for_preflight(
+            system_task="s", user_prompt="b", prior_turns=[],
         )
-        assert pieces["hist"] == 0
+        assert "prior_turns.phase0" not in pieces
 
 
-class TestPhase3:
-    def test_includes_plan_and_hist(self) -> None:
-        prior = [_Turn(agent="claude", round=1, content="x" * 70)]
+class TestPhase1ResearchPlan:
+    def test_emits_three_canonical_keys(self) -> None:
+        pieces = pieces_for_research_plan(
+            system_task="sys", user_prompt="brief", agreed_interpretation="interp",
+        )
+        assert set(pieces.keys()) == {
+            "system.task.research_plan",
+            "user_prompt",
+            "phase0.agreement.interpretation",
+        }
+
+
+class TestPhase2PlanNegotiation:
+    def test_round1_no_prior_turns(self) -> None:
+        pieces = pieces_for_plan_negotiation(
+            system_task="sys",
+            user_prompt="brief",
+            agreed_interpretation="interp",
+            phase1_claude="claude plan",
+            phase1_openai="gpt plan",
+        )
+        assert set(pieces.keys()) == {
+            "system.task.plan_negotiation",
+            "user_prompt",
+            "phase0.agreement.interpretation",
+            "phase1.claude",
+            "phase1.openai",
+        }
+        assert "prior_turns.phase2" not in pieces
+
+    def test_round_n_with_history_ledger_closeout(self) -> None:
+        pieces = pieces_for_plan_negotiation(
+            system_task="sys",
+            user_prompt="brief",
+            agreed_interpretation="interp",
+            phase1_claude="c",
+            phase1_openai="o",
+            prior_turns=[_Turn("claude", 1, "x" * 700)],
+            ledger="ledger",
+            closeout_request="closeout",
+        )
+        assert {"prior_turns.phase2", "ledger.standing_items", "closeout.request"} <= set(pieces.keys())
+        # 700 / 3.5 = 200
+        assert pieces["prior_turns.phase2"] == 200
+
+
+class TestPhase3Drafting:
+    def test_emits_full_input_set(self) -> None:
         pieces = pieces_for_drafting(
-            brief="b",
-            claude_draft="d1",
-            openai_draft="d2",
-            plan="plan body",
-            prior_turns=prior,
+            system_task="sys",
+            user_prompt="brief",
+            agreed_interpretation="interp",
+            phase1_claude="claude plan",
+            phase1_openai="gpt plan",
+            agreed_plan="plan body",
+            all_p2_turns=[_Turn("claude", 1, "x" * 700)],
+            carry_forward="cf body",
         )
-        assert set(pieces.keys()) == {"brief", "d1", "d2", "plan", "hist"}
-        assert pieces["plan"] > 0
-        assert pieces["hist"] > 0
+        assert set(pieces.keys()) == {
+            "system.task.drafting",
+            "user_prompt",
+            "phase0.agreement.interpretation",
+            "phase1.claude",
+            "phase1.openai",
+            "phase2.agreement.plan",
+            "all_p2_turns",
+            "carry_forward.phase2",
+        }
+        assert pieces["all_p2_turns"] == 200
 
-    def test_missing_plan_yields_zero(self) -> None:
+    def test_omits_optional_when_absent(self) -> None:
         pieces = pieces_for_drafting(
-            brief="b",
-            claude_draft="d",
-            openai_draft="d",
-            plan=None,
-            prior_turns=[],
+            system_task="s",
+            user_prompt="b",
+            agreed_interpretation="i",
+            phase1_claude="c",
+            phase1_openai="o",
+            agreed_plan="p",
         )
-        assert pieces["plan"] == 0
+        assert "all_p2_turns" not in pieces
+        assert "carry_forward.phase2" not in pieces
 
 
-class TestPhase4:
-    def test_uses_histp_not_hist(self) -> None:
-        """Phase 4's history segment must be ``histp`` (matches the Tk
-        chip in how-it-works) — distinct from Phase 2's ``hist``."""
+class TestPhase4Review:
+    def test_round1_emits_three_keys(self) -> None:
         pieces = pieces_for_review(
-            brief="b",
-            draft="draft text",
-            prior_turns=[_Turn(agent="claude", round=1, content="z" * 70)],
+            system_task="sys", user_prompt="brief", current_draft="draft body",
         )
-        assert "hist" not in pieces
-        assert "histp" in pieces
-        assert set(pieces.keys()) == {"brief", "draft", "histp"}
+        assert set(pieces.keys()) == {
+            "system.task.review",
+            "user_prompt",
+            "current_draft",
+        }
 
-    def test_empty_prior_yields_zero_histp(self) -> None:
-        pieces = pieces_for_review(brief="b", draft="d", prior_turns=[])
-        assert pieces["histp"] == 0
+    def test_round_n_with_history_ledger_closeout(self) -> None:
+        pieces = pieces_for_review(
+            system_task="sys",
+            user_prompt="brief",
+            current_draft="draft",
+            prior_turns=[_Turn("openai", 1, "z" * 700)],
+            ledger="ledger",
+            closeout_request="closeout",
+        )
+        assert {"prior_turns.phase4", "ledger.standing_items", "closeout.request"} <= set(pieces.keys())
+        assert pieces["prior_turns.phase4"] == 200
+
+
+class TestRegistryMembership:
+    """Every emitted key must exist in spec 0117's artifact registry.
+
+    Regression that catches drift between this module and the registry.
+    """
+
+    def test_preflight_keys_in_registry(self) -> None:
+        pieces = pieces_for_preflight(
+            system_task="s",
+            user_prompt="u",
+            prior_turns=[_Turn("c", 1, "x" * 10)],
+            ledger="l",
+            closeout_request="c",
+        )
+        for k in pieces:
+            assert is_known(k), f"unknown artifact ID: {k!r}"
+
+    def test_research_plan_keys_in_registry(self) -> None:
+        pieces = pieces_for_research_plan(
+            system_task="s", user_prompt="u", agreed_interpretation="i",
+        )
+        for k in pieces:
+            assert is_known(k), f"unknown artifact ID: {k!r}"
+
+    def test_plan_negotiation_keys_in_registry(self) -> None:
+        pieces = pieces_for_plan_negotiation(
+            system_task="s",
+            user_prompt="u",
+            agreed_interpretation="i",
+            phase1_claude="c",
+            phase1_openai="o",
+            prior_turns=[_Turn("c", 1, "x" * 10)],
+            ledger="l",
+            closeout_request="c",
+        )
+        for k in pieces:
+            assert is_known(k), f"unknown artifact ID: {k!r}"
+
+    def test_drafting_keys_in_registry(self) -> None:
+        pieces = pieces_for_drafting(
+            system_task="s",
+            user_prompt="u",
+            agreed_interpretation="i",
+            phase1_claude="c",
+            phase1_openai="o",
+            agreed_plan="p",
+            all_p2_turns=[_Turn("c", 1, "x" * 10)],
+            carry_forward="cf",
+        )
+        for k in pieces:
+            assert is_known(k), f"unknown artifact ID: {k!r}"
+
+    def test_review_keys_in_registry(self) -> None:
+        pieces = pieces_for_review(
+            system_task="s",
+            user_prompt="u",
+            current_draft="d",
+            prior_turns=[_Turn("c", 1, "x" * 10)],
+            ledger="l",
+            closeout_request="c",
+        )
+        for k in pieces:
+            assert is_known(k), f"unknown artifact ID: {k!r}"
 
 
 class TestRenormalize:
     def test_sums_to_target(self) -> None:
-        pieces = {"brief": 100, "d1": 200, "d2": 100}
+        pieces = {"user_prompt": 100, "phase1.claude": 200, "phase1.openai": 100}
         out = renormalize(pieces, target_total=1000)
         # 400 raw → 1000 target, scale 2.5. Allow rounding drift ±1 token
         # per piece.
-        assert abs(out["brief"] - 250) <= 1
-        assert abs(out["d1"] - 500) <= 1
-        assert abs(out["d2"] - 250) <= 1
+        assert abs(out["user_prompt"] - 250) <= 1
+        assert abs(out["phase1.claude"] - 500) <= 1
+        assert abs(out["phase1.openai"] - 250) <= 1
 
     def test_zero_target_passes_through(self) -> None:
-        pieces = {"brief": 100, "d1": 50}
+        pieces = {"user_prompt": 100, "phase1.claude": 50}
         assert renormalize(pieces, target_total=0) == pieces
 
     def test_all_zero_pieces_unchanged(self) -> None:
-        pieces = {"brief": 0, "d1": 0}
+        pieces = {"user_prompt": 0, "phase1.claude": 0}
         assert renormalize(pieces, target_total=1000) == pieces
 
     def test_zero_entries_stay_zero(self) -> None:
-        pieces = {"brief": 100, "d1": 0, "d2": 0, "plan": 0}
+        pieces = {"user_prompt": 100, "phase1.claude": 0, "phase1.openai": 0}
         out = renormalize(pieces, target_total=500)
-        assert out["d1"] == 0
-        assert out["d2"] == 0
-        assert out["plan"] == 0
-        # brief absorbs the full target.
-        assert out["brief"] == 500
+        assert out["phase1.claude"] == 0
+        assert out["phase1.openai"] == 0
+        # The non-zero piece absorbs the full target.
+        assert out["user_prompt"] == 500

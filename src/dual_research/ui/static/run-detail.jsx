@@ -1785,6 +1785,7 @@ function ConsumptionView({ run }) {
                         agent={agent}
                         run={run}
                         scale={scale}
+                        phase={row.phase}
                         expanded={expanded.has(row.id)}
                         onToggle={() => toggleRow(row.id)}
                         tourAnchor={gi === 0 && ri === 0 && ai === 0}
@@ -1814,9 +1815,155 @@ function ConsumptionRow() { return null; }
 // SPEC-0086 ConsumptionCard — kept as stub; SPEC-0100 replaces with CcxCard.
 function ConsumptionCard() { return null; }
 
+// ── Spec 0118 — Consumption-tab piece grouping & vocabulary detection ──
+
+// Spec 0030 legacy piece-vocabulary keys. Detection is by key-presence:
+// if a turn carries ANY non-legacy key, the new renderer is used; otherwise
+// the legacy fallback path renders pre-0118 runs with their original labels.
+const LEGACY_PIECE_KEYS = new Set(['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp']);
+
+// Legacy display names for the legacy renderer path. Tied to the 7-key
+// spec 0030 vocabulary; only consulted when a turn's piecesRaw matches
+// the legacy pattern (no spec-0118 canonical keys present).
+const LEGACY_PIECE_LABELS = {
+  brief: 'Brief',
+  d1:    "Claude's Phase 1 draft",
+  d2:    "GPT's Phase 1 draft",
+  plan:  'Agreed plan',
+  hist:  'Prior Phase 2 turns',
+  draft: 'Current draft',
+  histp: 'Prior Phase 4 turns',
+};
+
+// Spec 0118: detect new vocab by key-presence. Returns true iff piecesRaw
+// contains any key NOT in the legacy 7-key set (i.e. at least one spec-
+// 0117 canonical artifact ID). Empty dicts return false → legacy renderer.
+function hasNewVocabPieces(piecesRaw) {
+  if (!piecesRaw) return false;
+  for (const k of Object.keys(piecesRaw)) {
+    if (!LEGACY_PIECE_KEYS.has(k)) return true;
+  }
+  return false;
+}
+
+// Spec 0118 master grouping table (NORMATIVE). For each phase, which
+// canonical artifact IDs collapse into the "System prompt" aggregate row,
+// and which appear as their own separate rows. Output is handled outside.
+const SYSTEM_PROMPT_AGGREGATE_KEYS = {
+  0: ['system.task.input', 'prior_turns.phase0', 'ledger.standing_items', 'closeout.request'],
+  1: ['system.task.research_plan', 'phase0.agreement.interpretation'],
+  2: ['system.task.plan_negotiation', 'phase0.agreement.interpretation',
+      'prior_turns.phase2', 'ledger.standing_items', 'closeout.request'],
+  3: ['system.task.drafting', 'phase0.agreement.interpretation',
+      'phase2.agreement.plan', 'carry_forward.phase2'],
+  4: ['system.task.review', 'ledger.standing_items', 'closeout.request'],
+};
+
+const PHASE_SEPARATE_KEYS = {
+  0: [],
+  1: [],
+  2: ['phase1.claude', 'phase1.openai'],
+  3: ['phase1.claude', 'phase1.openai', 'all_p2_turns'],
+  4: ['current_draft', 'prior_turns.phase4'],
+};
+
+// Group a piecesRaw dict (canonical-key vocab) into the per-phase row
+// structure described in the spec 0118 master table.
+//
+// Returns { rows: [{ id, label, tokens, breakdown? }, ...] } where rows
+// are in display order: user_prompt → phase-specific separates →
+// System prompt aggregate. (Output is rendered separately.) The System
+// prompt entry has a `breakdown: [{ id, tokens }, ...]` for the tooltip.
+function groupPiecesForPhase(piecesRaw, phase) {
+  const get = (k) => Number(piecesRaw?.[k]) || 0;
+  const p = Number(phase);
+  const sysKeys = SYSTEM_PROMPT_AGGREGATE_KEYS[p] || [];
+  const sepKeys = PHASE_SEPARATE_KEYS[p] || [];
+
+  const rows = [];
+  // user_prompt always first (per spec § "Always-separate rows").
+  rows.push({ id: 'user_prompt', tokens: get('user_prompt') });
+
+  // Phase-specific separate rows.
+  for (const k of sepKeys) {
+    rows.push({ id: k, tokens: get(k) });
+  }
+
+  // System prompt aggregate (always present, even if tokens=0).
+  const breakdown = sysKeys
+    .map((k) => ({ id: k, tokens: get(k) }))
+    .filter((x) => x.tokens > 0);
+  const sysTotal = breakdown.reduce((s, x) => s + x.tokens, 0);
+  rows.push({
+    id: 'system_prompt',
+    label: 'System prompt',
+    tokens: sysTotal,
+    breakdown,
+  });
+
+  return { rows };
+}
+
+// Spec 0030 fallback for pre-0118 runs. Returns rows in the order the
+// legacy renderer used (brief, d1, d2, plan, hist, draft, histp), with
+// legacy display names. Each row that ends up with zero tokens is dropped.
+function legacyGroupPieces(piecesRaw) {
+  const rows = [];
+  for (const k of ['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp']) {
+    const tokens = Number(piecesRaw?.[k]) || 0;
+    if (tokens > 0) {
+      rows.push({
+        id: k,
+        label: LEGACY_PIECE_LABELS[k] || k,
+        tokens,
+        legacy: true,
+      });
+    }
+  }
+  return { rows };
+}
+
+// Proportional cost share for a piece. The total INPUT cost is exact
+// (API-billed); each piece's cost is its proportional share of that
+// total. Returns 0 when billed_input_tokens is zero (defensive).
+function piecePropCost(pieceTokens, billedInputTokens, totalInputCost) {
+  if (!billedInputTokens || billedInputTokens <= 0) return 0;
+  return (pieceTokens / billedInputTokens) * totalInputCost;
+}
+
+// Display-name resolver. Routes through the spec 0117 registry
+// (window.DrArtifacts.displayName) so no display strings are hardcoded
+// in the Consumption tab. Falls back to the artifact ID if the registry
+// is missing (paranoid; the artifacts.jsx module always loads).
+function consumptionLabel(artifactId) {
+  if (window.DrArtifacts && typeof window.DrArtifacts.displayName === 'function') {
+    return window.DrArtifacts.displayName(artifactId);
+  }
+  return artifactId;
+}
+
+// Multiline tooltip text for the System prompt aggregate row. Each line:
+// "<display name>  <tokens>t". The "(proportional)" annotation on the
+// header line signals the cost-share heuristic.
+function systemPromptTooltip(breakdown, totalTokens, proportionalCost) {
+  const lines = [];
+  lines.push(
+    `System prompt · ${fmt.tokens(totalTokens)}t · ${fmt.cost(proportionalCost)} (proportional)`,
+    '',
+  );
+  for (const item of breakdown) {
+    const lbl = consumptionLabel(item.id);
+    const tokensStr = `${fmt.tokens(item.tokens)}t`;
+    lines.push(`  ${lbl.padEnd(40, ' ')} ${tokensStr.padStart(8, ' ')}`);
+  }
+  return lines.join('\n');
+}
+
 // SPEC-0100 — CcxCard: M3 consumption card with collapsed + unfolded anatomy.
-// Issues 12 (collapsed), 13 (unfolded), 14 (uniform width).
-function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnchor }) {
+// Spec 0118 redesign: single Total tokens bar (collapsed) + per-phase
+// canonical input rows (unfolded). Legacy 7-key vocab still renders via
+// the fallback path so pre-0118 runs look reasonable.
+function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnchor, phase }) {
   const meta = AGENT_META[agent];
   const iconClass = agent === 'claude' ? 'a' : 'b';
   const fillIn = agent === 'claude' ? 'in' : 'in-b';
@@ -1832,24 +1979,19 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
     );
   }
 
-  const tokensIn  = effectiveTokensIn(usage);
-  const tokensOut = Number(usage.out) || 0;
-  const cost      = Number(usage.cost) || 0;
-  const ctxWindow = contextWindowFor(usage, run, agent);
-  const pctOfCap  = ctxWindow > 0 ? (tokensIn / ctxWindow * 100) : 0;
-  const denom     = scale?.denom || 1;
-  const reuse     = reuseInfo(usage);
-  const piecesRaw = usage.promptPieces || {};
+  const tokensIn   = effectiveTokensIn(usage);
+  const tokensOut  = Number(usage.out) || 0;
+  const totalTok   = tokensIn + tokensOut;
+  const cost       = Number(usage.cost) || 0;
+  const ctxWindow  = contextWindowFor(usage, run, agent);
+  // Spec 0118 collapsed-card: context-window percent now uses
+  // total = input + output (one bar = total tokens).
+  const pctOfCap   = ctxWindow > 0 ? (totalTok / ctxWindow * 100) : 0;
+  const denom      = scale?.denom || 1;
+  const reuse      = reuseInfo(usage);
+  const piecesRaw  = usage.promptPieces || {};
   const outputCost = outputCostFor(usage);
 
-  // Input sub-buckets — only show present ones.
-  const inputPieces = KIND_ORDER.filter((k) => Number(piecesRaw[k]) > 0)
-    .map((k) => ({ kind: k, tokens: Number(piecesRaw[k]) || 0 }));
-
-  // Total tokens formatted for the header.
-  const totalKt = fmt.tokens(tokensIn + tokensOut);
-
-  // Input cost: tokenCost - outputCost
   const tokenCost  = Number(usage?.tokenCost ?? usage?.cost ?? 0) || 0;
   const outCostUsd = Number(outputCost?.cost) || 0;
   const inputCost  = Math.max(0, tokenCost - outCostUsd);
@@ -1858,31 +2000,74 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const queries    = Number(usage?.searchQueries) || 0;
   const hasSearches = searches > 0 || queries > 0 || searchCost > 0;
 
-  // Bar widths
-  const totalInPct  = denom > 0 ? Math.min(100, (tokensIn / denom) * 100) : 0;
-  const totalOutPct = denom > 0 ? Math.min(100, (tokensOut / denom) * 100) : 0;
+  // Spec 0118: single Total tokens bar. Scale is shared per-card-pair so
+  // claude vs gpt widths remain comparable; we widen the denom slightly
+  // for the total bar so input+output fits without saturating at 100%.
+  const totalDenom = denom > 0 ? denom : Math.max(1, totalTok);
+  const totalPct   = totalDenom > 0 ? Math.min(100, (totalTok / totalDenom) * 100) : 0;
 
-  // Reuse overlay on total in bar
-  const reusePct = reuse.reused > 0 && tokensIn > 0
-    ? Math.min(100, (reuse.reused / tokensIn) * 100)
+  // Reuse overlay on the total bar (cache-reuse stripe). Covers the
+  // billed-but-not-unique portion of the input — stays on the total bar
+  // only (no per-row stripes per spec 0118).
+  const reusePct = reuse.reused > 0 && totalDenom > 0
+    ? Math.min(totalPct, (reuse.reused / totalDenom) * 100)
     : 0;
-  const reuseLeft = reusePct > 0 ? 0 : 0;
-  const reuseWidth = reusePct > 0
-    ? (reuse.reused / denom) * 100
-    : 0;
+
+  // Vocabulary detection: new canonical-key vocab vs legacy 7-key vocab.
+  const isNewVocab = hasNewVocabPieces(piecesRaw);
+  const grouped = isNewVocab
+    ? groupPiecesForPhase(piecesRaw, phase)
+    : legacyGroupPieces(piecesRaw);
+
+  // Sum of piece tokens used as denominator for proportional cost.
+  // Use billed input tokens (exact) so per-piece costs sum to inputCost.
+  const billedIn = tokensIn;
+
+  // Row renderer: 3-column grid [label] [bar] [tokens · cost]
+  const renderInputRow = (row) => {
+    const label = row.label || consumptionLabel(row.id);
+    const tokens = row.tokens || 0;
+    const piecePct = totalDenom > 0 ? Math.min(100, (tokens / totalDenom) * 100) : 0;
+    const propCost = piecePropCost(tokens, billedIn, inputCost);
+    const isSystem = row.id === 'system_prompt';
+    const tip = isSystem && row.breakdown
+      ? systemPromptTooltip(row.breakdown, tokens, propCost)
+      : undefined;
+    return (
+      <div key={row.id} className="ccx-bar-row" title={tip} style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+        alignItems: 'center', gap: 10,
+        padding: '2px 0',
+      }}>
+        <span className="lbl" style={{
+          fontSize: 11, color: 'var(--fg-2)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{label}</span>
+        <div className="ccx-bar" style={{ height: 6 }}>
+          <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%` }} />
+        </div>
+        <span className="num" style={{
+          fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap',
+          textAlign: 'right',
+        }}>
+          {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <article className="ccx" data-tour-anchor={tourAnchor ? 'consumption-card' : undefined} onClick={onToggle} style={{ cursor: 'pointer' }}>
-      {/* Header trio — Issue 12 */}
+      {/* Spec 0118 header: provider badge + agent name (left), bracketed
+          context-window-% (right). No more separate total/cost in header. */}
       <header className="ccx-header">
         <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
         <span className="nm">{meta.name}</span>
-        <span className="stats">
-          <span>{totalKt}t total</span>
-          <span className="sep">&middot;</span>
-          <span>{fmt.cost(cost)}</span>
-          <span className="sep">&middot;</span>
-          <span className="pct">{pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)}</span>
+        <span className="stats" style={{ marginLeft: 'auto' }}>
+          <span className="pct" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+            ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
+          </span>
         </span>
         <span className="chev" tabIndex={0} role="button" aria-expanded={expanded}
               aria-label={expanded ? 'Collapse' : 'Expand'}
@@ -1891,107 +2076,83 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
         </span>
       </header>
 
-      {/* Total in bar — always visible */}
-      <div className="ccx-bar-row is-total">
-        <span className="lbl">total in</span>
+      {/* Spec 0118 Total tokens bar (single bar replaces total-in / total-out).
+          tokens · cost at the right edge. Cache stripe overlay retained. */}
+      <div className="ccx-bar-row is-total" style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+        alignItems: 'center', gap: 10,
+      }}>
+        <span className="lbl">Total tokens</span>
         <div className="ccx-bar">
-          <div className={`fl ${fillIn}`} style={{ width: `${totalInPct}%` }} />
+          <div className={`fl ${fillIn}`} style={{ width: `${totalPct}%` }} />
           {reuse.hasReuse && (
-            <div className="reuse" style={{ left: 0, width: `${reuseWidth}%` }} />
+            <div className="reuse" style={{ left: 0, width: `${reusePct}%` }} />
           )}
         </div>
-        <span className="num">{fmt.tokens(tokensIn)}t</span>
+        <span className="num" style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+          {fmt.tokens(totalTok)}t &middot; {fmt.cost(cost)}
+        </span>
       </div>
 
-      {/* Total out bar — always visible */}
-      <div className="ccx-bar-row is-total">
-        <span className="lbl">total out</span>
-        <div className="ccx-bar">
-          <div className={`fl ${fillOut}`} style={{ width: `${totalOutPct}%` }} />
+      {/* Cache-reuse signal text (collapsed; spec 0051 line, retained) */}
+      {reuse.hasReuse && (
+        <div className="mono" style={{
+          fontSize: 10.5, color: 'var(--fg-3)', paddingTop: 2,
+        }}>
+          {fmt.tokens(reuse.content)}kt seen &middot; {fmt.tokens(reuse.billed)}kt billed
+          {' '}(&times; {reuse.multiplier.toFixed(1)} token reuse)
+          {' '}&middot; {fmt.tokens(tokensOut)}t out
         </div>
-        <span className="num">{fmt.tokens(tokensOut)}t</span>
-      </div>
+      )}
 
-      {/* ── UNFOLDED SECTION — Issue 13 ── */}
+      {/* ── UNFOLDED SECTION (Spec 0118) ── */}
       {expanded && (
         <React.Fragment>
-          {/* Input sub-rows */}
-          <div className="ccx-divider" />
-          {inputPieces.map((p) => {
-            const fillClass = CCX_INPUT_FILL[p.kind] || 'sys';
-            const label = CCX_INPUT_LABEL[p.kind] || INPUT_PIECE_LABEL[p.kind] || p.kind;
-            const piecePct = denom > 0 ? Math.min(100, (p.tokens / denom) * 100) : 0;
-            return (
-              <div key={p.kind} className="ccx-sub-row">
-                <span className="lbl">{label}</span>
-                <div className="ccx-bar thin">
-                  <div className={`fl ${fillClass}`} style={{ width: `${piecePct}%` }} />
-                </div>
-                <span className="num">{fmt.tokens(p.tokens)}</span>
-              </div>
-            );
-          })}
-
-          {/* Input totals block */}
-          <div className="ccx-totals">
-            <div className="line">
-              <span className="v">{tokensIn.toLocaleString()}</span>
-              <span className="l">input tokens &middot; billed</span>
-            </div>
-            <div className="line">
-              <span className="v">{fmt.cost(inputCost)}</span>
-              <span className="l">input cost</span>
-            </div>
-            {hasSearches && (
-              <div className="line">
-                <span className="v">{fmt.cost(searchCost)}</span>
-                <span className="l">web search &middot; {queries || searches} queries</span>
-              </div>
-            )}
-            <div className="line is-grand">
-              <span className="v">{fmt.cost(inputCost + searchCost)}</span>
-              <span className="l">total input</span>
-            </div>
-          </div>
-
-          <div className="ccx-section-spacer" />
-
-          {/* Output total bar (repeated in unfolded) */}
-          <div className="ccx-bar-row is-total">
-            <span className="lbl">total out</span>
-            <div className="ccx-bar">
-              <div className={`fl ${fillOut}`} style={{ width: `${totalOutPct}%` }} />
-            </div>
-            <span className="num">{fmt.tokens(tokensOut)}t</span>
-          </div>
+          {/* Divider between total bar and input rows */}
           <div className="ccx-divider" />
 
-          {/* Output sub-rows — show if output breakdown exists */}
-          {tokensOut > 0 && (
-            <div className="ccx-sub-row">
-              <span className="lbl">response</span>
-              <div className="ccx-bar thin">
-                <div className="fl resp" style={{ width: `${totalOutPct}%` }} />
-              </div>
-              <span className="num">{fmt.tokens(tokensOut)}</span>
+          {/* Per-phase input rows. Always-separate user_prompt + phase-
+              specific separates + System prompt aggregate. */}
+          {grouped.rows.map(renderInputRow)}
+
+          {/* Divider between inputs and output row */}
+          <div className="ccx-divider" />
+
+          {/* Output row */}
+          <div className="ccx-bar-row" style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+            alignItems: 'center', gap: 10,
+            padding: '2px 0',
+          }}>
+            <span className="lbl" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+              Output
+            </span>
+            <div className="ccx-bar" style={{ height: 6 }}>
+              <div className={`fl ${fillOut}`} style={{
+                width: `${totalDenom > 0 ? Math.min(100, (tokensOut / totalDenom) * 100) : 0}%`,
+              }} />
+            </div>
+            <span className="num" style={{
+              fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap',
+              textAlign: 'right',
+            }}>
+              {fmt.tokens(tokensOut)}t &middot; {fmt.cost(outCostUsd)}
+            </span>
+          </div>
+
+          {/* Web-search cost line (orthogonal to spec 0118; kept here
+              because it's the only place per-turn search cost surfaces). */}
+          {hasSearches && (
+            <div className="mono" style={{
+              fontSize: 10.5, color: 'var(--fg-3)', paddingTop: 4,
+              textAlign: 'right',
+            }}>
+              Web search &middot; {queries || searches} queries &middot;{' '}
+              {fmt.cost(searchCost)}
             </div>
           )}
-
-          {/* Output totals block */}
-          <div className="ccx-totals">
-            <div className="line">
-              <span className="v">{tokensOut.toLocaleString()}</span>
-              <span className="l">output tokens</span>
-            </div>
-            <div className="line">
-              <span className="v">{fmt.cost(outCostUsd)}</span>
-              <span className="l">output cost</span>
-            </div>
-            <div className="line is-grand">
-              <span className="v">{fmt.cost(outCostUsd)}</span>
-              <span className="l">total output</span>
-            </div>
-          </div>
         </React.Fragment>
       )}
     </article>

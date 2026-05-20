@@ -16,7 +16,6 @@ from dual_research.orchestrator._call import run_one_call
 from dual_research.persistence import SessionContext
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import research_prompt
-from dual_research.protocol.prompt_pieces import pieces_for_research
 from dual_research.protocol.prompts import research_input_bundle
 
 
@@ -43,8 +42,10 @@ async def run_phase1(
 
     claude_prompt = research_prompt(brief_content=brief_content, agent_name="claude")
     openai_prompt = research_prompt(brief_content=brief_content, agent_name="openai")
-    # Spec 0030: per-piece token sizes for the Consumption tab.
-    p1_pieces = pieces_for_research(brief=brief_content)
+    # Spec 0118: legacy run_phase1 path no longer emits Consumption-tab
+    # piece breakdowns; dr_run.run_dr_phase1 is the active code path and
+    # builds canonical-key pieces directly.
+    p1_pieces = None
     # Spec 0033: per-piece TEXT for the Input tab (per-agent system).
     claude_bundle = research_input_bundle(brief=brief_content, agent_name="claude")
     openai_bundle = research_input_bundle(brief=brief_content, agent_name="openai")

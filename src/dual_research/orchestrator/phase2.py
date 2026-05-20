@@ -51,10 +51,6 @@ from dual_research.protocol.convergence import (
 # § C standing-items prompt one round of nudging before the orchestrator
 # accepts agent judgment over the ledger cross-check.
 STUCK_AGREED_K = 2
-from dual_research.protocol.prompt_pieces import (
-    pieces_for_negotiation_round1,
-    pieces_for_negotiation_turn,
-)
 from dual_research.protocol.prompts import (
     force_verbatim_copy_input_bundle,
     negotiation_round1_input_bundle,
@@ -146,13 +142,10 @@ async def run_phase2(
                 other_name="claude",
             )
             validator = assert_well_formed_round1_turn
-            # Spec 0030: per-piece token sizes — same shape for both agents
-            # in round 1 (brief + d1 + d2, no history yet).
-            round_pieces = pieces_for_negotiation_round1(
-                brief=brief_content,
-                claude_draft=claude_draft,
-                openai_draft=openai_draft,
-            )
+            # Spec 0118: legacy run_phase2 path no longer emits Consumption-
+            # tab piece breakdowns; dr_run.run_dr_phase2 is the active code
+            # path and builds canonical-key pieces directly.
+            round_pieces = None
             # Spec 0033: per-piece TEXT — per-agent system templates.
             claude_bundle = negotiation_round1_input_bundle(
                 brief=brief_content,
@@ -223,13 +216,10 @@ async def run_phase2(
                 blocked_warning=blocked_warning,
             )
             validator = assert_well_formed_plan_turn
-            # Spec 0030: rounds 2+ also carry the growing P2 history.
-            round_pieces = pieces_for_negotiation_turn(
-                brief=brief_content,
-                claude_draft=claude_draft,
-                openai_draft=openai_draft,
-                prior_turns=prior,
-            )
+            # Spec 0118: legacy run_phase2 path no longer emits Consumption-
+            # tab piece breakdowns; dr_run.run_dr_phase2 is the active code
+            # path and builds canonical-key pieces directly.
+            round_pieces = None
             # Spec 0033: per-piece TEXT bundles (per-agent system templates).
             claude_bundle = negotiation_turn_input_bundle(
                 brief=brief_content,

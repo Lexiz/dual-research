@@ -463,31 +463,58 @@ async def run_dr_phase0(
     from dual_research.protocol.prompts import preflight_input_bundle
 
     def _build(*, agent_name, round, is_closeout_round, standing_items, closeout_request, ctx):
+        other_name = "openai" if agent_name == "claude" else "claude"
         if round == 1:
             prompt = preflight_prompt_v2(
                 brief_content=brief_content,
                 agent_name=agent_name,
-                other_name="openai" if agent_name == "claude" else "claude",
+                other_name=other_name,
             )
+            # Spec 0118: system_task = the framing template with empty
+            # inputs. Rebuilding with brief_content="" yields exactly the
+            # surrounding instructions; estimate_tokens counts char-length.
+            system_task = preflight_prompt_v2(
+                brief_content="",
+                agent_name=agent_name,
+                other_name=other_name,
+            )
+            prior = None
         else:
-            prior_turns = list_turns(
+            prior = list_turns(
                 ctx.session, phase="phase0", up_to_round=round,
             )
             caps = caps_for(0)
             prompt = input_negotiation_prompt_v2(
                 brief_content=brief_content,
-                prior_turns=prior_turns,
+                prior_turns=prior,
                 standing_items=standing_items,
                 agent_name=agent_name,
-                other_name="openai" if agent_name == "claude" else "claude",
+                other_name=other_name,
                 round=round,
                 soft_cap=caps.soft,
                 hard_cap=caps.hard,
                 is_closeout_round=is_closeout_round,
                 closeout_request=closeout_request,
             )
-        # Pre-existing pieces helper covers brief sizing.
-        pieces = pieces_for_preflight(brief=brief_content)
+            system_task = input_negotiation_prompt_v2(
+                brief_content="",
+                prior_turns=[],
+                standing_items="",
+                agent_name=agent_name,
+                other_name=other_name,
+                round=round,
+                soft_cap=caps.soft,
+                hard_cap=caps.hard,
+                is_closeout_round=is_closeout_round,
+                closeout_request="",
+            )
+        pieces = pieces_for_preflight(
+            system_task=system_task,
+            user_prompt=brief_content,
+            prior_turns=prior,
+            ledger=(standing_items or None),
+            closeout_request=(closeout_request if is_closeout_round else None),
+        )
         bundle = preflight_input_bundle(
             brief=brief_content, agent_name=agent_name,
         )
@@ -595,7 +622,7 @@ async def run_dr_phase1(
 ) -> Phase1Outcome:
     """Phase 1 (research-plan): single-shot parallel plan + thesis using
     the new prompt with the agreed interpretation inlined."""
-    from dual_research.protocol.prompt_pieces import pieces_for_research
+    from dual_research.protocol.prompt_pieces import pieces_for_research_plan
     from dual_research.protocol.prompts import research_input_bundle
 
     phase_dir = ctx.session.phase_dir("phase1")
@@ -615,7 +642,25 @@ async def run_dr_phase1(
         agreed_interpretation=agreed,
         agent_name="openai",
     )
-    pieces = pieces_for_research(brief=brief_content)
+    # Spec 0118: system_task = the framing template (no brief, no
+    # agreed_interpretation inlined). Built once per agent so the
+    # agent-name interpolation inside the template is faithful.
+    claude_system_task = research_plan_prompt_v2(
+        brief_content="", agreed_interpretation="", agent_name="claude",
+    )
+    openai_system_task = research_plan_prompt_v2(
+        brief_content="", agreed_interpretation="", agent_name="openai",
+    )
+    claude_pieces = pieces_for_research_plan(
+        system_task=claude_system_task,
+        user_prompt=brief_content,
+        agreed_interpretation=agreed,
+    )
+    openai_pieces = pieces_for_research_plan(
+        system_task=openai_system_task,
+        user_prompt=brief_content,
+        agreed_interpretation=agreed,
+    )
     claude_bundle = research_input_bundle(brief=brief_content, agent_name="claude")
     openai_bundle = research_input_bundle(brief=brief_content, agent_name="openai")
 
@@ -636,7 +681,7 @@ async def run_dr_phase1(
             stream_to=sys.stdout,
             stream_prefix="[claude] ",
             max_output_tokens=_DRAFT_MAX_OUTPUT_TOKENS,
-            prompt_pieces=pieces,
+            prompt_pieces=claude_pieces,
             prompt_bundle=claude_bundle,
         ),
         run_one_call(
@@ -649,7 +694,7 @@ async def run_dr_phase1(
             event_bus=event_bus,
             stream_to=None,
             max_output_tokens=_DRAFT_MAX_OUTPUT_TOKENS,
-            prompt_pieces=pieces,
+            prompt_pieces=openai_pieces,
             prompt_bundle=openai_bundle,
         ),
     )
@@ -699,10 +744,7 @@ async def run_dr_phase2(
 ) -> Phase2Outcome:
     """Phase 2 (negotiate-plan): multi-round plan negotiation under the
     new protocol with closeout mechanism (no escape valves)."""
-    from dual_research.protocol.prompt_pieces import (
-        pieces_for_negotiation_round1,
-        pieces_for_negotiation_turn,
-    )
+    from dual_research.protocol.prompt_pieces import pieces_for_plan_negotiation
     from dual_research.protocol.prompts import (
         negotiation_round1_input_bundle,
         negotiation_turn_input_bundle,
@@ -726,11 +768,17 @@ async def run_dr_phase2(
                 agent_name=agent_name,
                 other_name=other_name,
             )
-            pieces = pieces_for_negotiation_round1(
-                brief=brief_content,
-                claude_draft=own_plan_claude,
-                openai_draft=own_plan_openai,
+            # Spec 0118: system_task = the framing template with all
+            # variable inputs replaced by empty strings.
+            system_task = plan_negotiation_round1_prompt_v2(
+                brief_content="",
+                agreed_interpretation="",
+                own_plan="",
+                other_plan="",
+                agent_name=agent_name,
+                other_name=other_name,
             )
+            prior = None
             bundle = negotiation_round1_input_bundle(
                 brief=brief_content,
                 claude_draft=own_plan_claude,
@@ -738,7 +786,7 @@ async def run_dr_phase2(
                 agent_name=agent_name,
             )
         else:
-            prior_turns = list_turns(
+            prior = list_turns(
                 ctx.session, phase="phase2", up_to_round=round,
             )
             prompt = plan_negotiation_round_n_prompt_v2(
@@ -746,7 +794,7 @@ async def run_dr_phase2(
                 agreed_interpretation=agreed_interp,
                 own_plan=own,
                 other_plan=other,
-                prior_turns=prior_turns,
+                prior_turns=prior,
                 standing_items=standing_items,
                 agent_name=agent_name,
                 other_name=other_name,
@@ -756,20 +804,39 @@ async def run_dr_phase2(
                 is_closeout_round=is_closeout_round,
                 closeout_request=closeout_request,
             )
-            pieces = pieces_for_negotiation_turn(
-                brief=brief_content,
-                claude_draft=own_plan_claude,
-                openai_draft=own_plan_openai,
-                prior_turns=prior_turns,
+            system_task = plan_negotiation_round_n_prompt_v2(
+                brief_content="",
+                agreed_interpretation="",
+                own_plan="",
+                other_plan="",
+                prior_turns=[],
+                standing_items="",
+                agent_name=agent_name,
+                other_name=other_name,
+                round=round,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+                is_closeout_round=is_closeout_round,
+                closeout_request="",
             )
             bundle = negotiation_turn_input_bundle(
                 brief=brief_content,
                 claude_draft=own_plan_claude,
                 openai_draft=own_plan_openai,
-                prior_turns=prior_turns,
+                prior_turns=prior,
                 agent_name=agent_name,
                 other_name=other_name,
             )
+        pieces = pieces_for_plan_negotiation(
+            system_task=system_task,
+            user_prompt=brief_content,
+            agreed_interpretation=agreed_interp,
+            phase1_claude=own_plan_claude,
+            phase1_openai=own_plan_openai,
+            prior_turns=prior,
+            ledger=(standing_items or None),
+            closeout_request=(closeout_request if is_closeout_round else None),
+        )
         return prompt, bundle, pieces
 
     print("\n[phase 2] plan negotiation — Deep Research protocol\n", flush=True)
@@ -924,25 +991,62 @@ async def run_dr_phase3(
 
     agent = claude_agent if drafter == "claude" else openai_agent
 
+    agreed_interp = ctx.state.agreed_interpretation or "(none)"
+    agreed_plan = ctx.state.agreed_plan or "(none)"
+    carry_forward_items = ctx.state.carry_forward_phase2 or []
+
     prompt = drafting_prompt_v2(
         brief_content=brief_content,
-        agreed_interpretation=ctx.state.agreed_interpretation or "(none)",
+        agreed_interpretation=agreed_interp,
         own_plan=own_plan,
         other_plan=other_plan,
-        agreed_plan=ctx.state.agreed_plan or "(none)",
-        carry_forward_items=ctx.state.carry_forward_phase2,
+        agreed_plan=agreed_plan,
+        carry_forward_items=carry_forward_items,
         prior_phase2_turns=prior_turns,
+        agent_name=drafter,
+        other_name=other,
+    )
+    # Spec 0118: system_task = framing template with empty inputs.
+    system_task = drafting_prompt_v2(
+        brief_content="",
+        agreed_interpretation="",
+        own_plan="",
+        other_plan="",
+        agreed_plan="",
+        carry_forward_items=[],
+        prior_phase2_turns=[],
         agent_name=drafter,
         other_name=other,
     )
     claude_draft = own_plan if drafter == "claude" else other_plan
     openai_draft = own_plan if drafter == "openai" else other_plan
+    # carry_forward serialized to text approximates _fmt_cf's output
+    # length (the same single-line-per-item format used in the prompt).
+    def _fmt_cf_text(items):
+        rows = []
+        for it in items or []:
+            if isinstance(it, dict):
+                iid, state, body, kind = (
+                    it.get("id", "?"), it.get("current_state", "?"),
+                    it.get("body", ""), it.get("kind", "?"),
+                )
+            else:
+                iid, state, body, kind = (
+                    getattr(it, "id", "?"), getattr(it, "current_state", "?"),
+                    getattr(it, "body", ""), getattr(it, "kind", "?"),
+                )
+            rows.append(f"- [{iid}] ({kind}, state: {state}): {body}")
+        return "\n".join(rows) if rows else "(none)"
+
     pieces = pieces_for_drafting(
-        brief=brief_content,
-        claude_draft=claude_draft,
-        openai_draft=openai_draft,
-        plan=ctx.state.agreed_plan,
-        prior_turns=prior_turns,
+        system_task=system_task,
+        user_prompt=brief_content,
+        agreed_interpretation=agreed_interp,
+        phase1_claude=own_plan if drafter == "claude" else other_plan,
+        phase1_openai=own_plan if drafter == "openai" else other_plan,
+        agreed_plan=agreed_plan,
+        all_p2_turns=prior_turns,
+        carry_forward=_fmt_cf_text(carry_forward_items) if carry_forward_items else None,
     )
     bundle = drafting_input_bundle(
         brief=brief_content,
@@ -1040,6 +1144,15 @@ async def run_dr_phase4(
                 agent_name=agent_name,
                 other_name=other_name,
             )
+            # Spec 0118: system_task = framing template with empty inputs.
+            system_task = review_round1_prompt_v2(
+                brief_content="",
+                draft_content="",
+                drafter_name=drafter,
+                agent_name=agent_name,
+                other_name=other_name,
+            )
+            prior_turns: list[PriorTurn] = []
         else:
             prior_turns = list_turns(
                 ctx.session, phase="phase4", up_to_round=round,
@@ -1059,11 +1172,28 @@ async def run_dr_phase4(
                 is_closeout_round=is_closeout_round,
                 closeout_request=closeout_request,
             )
-        prior_turns = list_turns(ctx.session, phase="phase4", up_to_round=round)
+            system_task = review_round_n_prompt_v2(
+                brief_content="",
+                draft_content="",
+                drafter_name=drafter,
+                prior_turns=[],
+                standing_items="",
+                agent_name=agent_name,
+                other_name=other_name,
+                round=round,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+                draft_version=ctx.state.draft_round,
+                is_closeout_round=is_closeout_round,
+                closeout_request="",
+            )
         pieces = pieces_for_review(
-            brief=brief_content,
-            draft=draft_content,
-            prior_turns=prior_turns,
+            system_task=system_task,
+            user_prompt=brief_content,
+            current_draft=draft_content,
+            prior_turns=(prior_turns or None),
+            ledger=(standing_items or None),
+            closeout_request=(closeout_request if is_closeout_round else None),
         )
         bundle = review_input_bundle(
             brief=brief_content,
