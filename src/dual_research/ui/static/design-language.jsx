@@ -10,7 +10,7 @@ function DesignLanguageView() {
   return (
     <div style={{
       height: '100vh', overflow: 'auto',
-      background: 'var(--bg-0)',
+      background: 'var(--md-surface)',
     }}>
       {showFull ? <FullReference /> : <DnaOnePager />}
     </div>
@@ -25,17 +25,17 @@ function DnaOnePager() {
     <div style={{ maxWidth: 1320, margin: '0 auto', padding: '36px 32px 72px' }}>
       {/* Hero */}
       <section style={{ marginBottom: 48 }}>
-        <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
           dual-research · design language
         </div>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, color: 'var(--fg-0)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, color: 'var(--md-on-surface)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
           A calm, dense observability surface for a two-agent convergence loop.
         </h1>
-        <p style={{ marginTop: 12, color: 'var(--fg-2)', fontSize: 13.5, maxWidth: 720, lineHeight: 1.55 }}>
+        <p style={{ marginTop: 12, color: 'var(--md-on-surface-muted)', fontSize: 13.5, maxWidth: 720, lineHeight: 1.55 }}>
           Read-only, terminal-adjacent, single user. Heavy emoji removed, dense Plex Sans on cream, never decoration that fights the signal. Information density is a feature.
         </p>
-        <div className="mono" style={{ marginTop: 8, fontSize: 10.5, color: 'var(--fg-3)' }}>
-          <a href="?full=1" style={{ color: 'var(--fg-3)', textDecoration: 'underline' }}>Full reference</a>
+        <div className="mono" style={{ marginTop: 8, fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
+          <a href="?full=1" style={{ color: 'var(--md-on-surface-faint)', textDecoration: 'underline' }}>Full reference</a>
         </div>
       </section>
 
@@ -44,21 +44,21 @@ function DnaOnePager() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
           <DnaSwatch label="Claude" color="var(--agent-a)" token="--agent-a" />
           <DnaSwatch label="OpenAI" color="var(--agent-b)" token="--agent-b" />
-          <span style={{ width: 1, background: 'var(--border-2)', margin: '0 4px' }} />
-          <DnaSwatch label="bg-0" color="var(--bg-0)" token="--bg-0" border />
-          <DnaSwatch label="bg-1" color="var(--bg-1)" token="--bg-1" border />
-          <DnaSwatch label="bg-2" color="var(--bg-2)" token="--bg-2" border />
-          <DnaSwatch label="bg-3" color="var(--bg-3)" token="--bg-3" border />
-          <span style={{ width: 1, background: 'var(--border-2)', margin: '0 4px' }} />
+          <span style={{ width: 1, background: 'var(--md-outline-variant)', margin: '0 4px' }} />
+          <DnaSwatch label="surface"   color="var(--md-surface)"                  token="--md-surface" border />
+          <DnaSwatch label="surf-low"  color="var(--md-surface-container-low)"    token="--md-surface-container-low" border />
+          <DnaSwatch label="surf-mid"  color="var(--md-surface-container)"        token="--md-surface-container" border />
+          <DnaSwatch label="surf-high" color="var(--md-surface-container-high)"   token="--md-surface-container-high" border />
+          <span style={{ width: 1, background: 'var(--md-outline-variant)', margin: '0 4px' }} />
           <DnaSwatch label="info" color="var(--info)" token="--info" />
           <DnaSwatch label="warn" color="var(--warn)" token="--warn" />
           <DnaSwatch label="ok"   color="var(--ok)"   token="--ok" />
           <DnaSwatch label="err"  color="var(--err)"  token="--err" />
-          <span style={{ width: 1, background: 'var(--border-2)', margin: '0 4px' }} />
-          <DnaSwatch label="fg-0" color="var(--fg-0)" token="--fg-0" />
-          <DnaSwatch label="fg-1" color="var(--fg-1)" token="--fg-1" />
-          <DnaSwatch label="fg-2" color="var(--fg-2)" token="--fg-2" />
-          <DnaSwatch label="fg-3" color="var(--fg-3)" token="--fg-3" />
+          <span style={{ width: 1, background: 'var(--md-outline-variant)', margin: '0 4px' }} />
+          <DnaSwatch label="on-surface" color="var(--md-on-surface)"          token="--md-on-surface" />
+          <DnaSwatch label="on-variant" color="var(--md-on-surface-variant)"  token="--md-on-surface-variant" />
+          <DnaSwatch label="on-muted"   color="var(--md-on-surface-muted)"    token="--md-on-surface-muted" />
+          <DnaSwatch label="on-faint"   color="var(--md-on-surface-faint)"    token="--md-on-surface-faint" />
         </div>
       </DnaSection>
 
@@ -69,7 +69,7 @@ function DnaOnePager() {
             ['claude', 'Claude', 'Used everywhere a Claude turn is rendered — list rows, run-detail header, AgentStrip pills, timeline cards, critique cards, the disagreement explorer.'],
             ['openai', 'OpenAI', 'Used everywhere a GPT turn is rendered — list rows, run-detail header, AgentStrip pills, timeline cards, critique cards, the disagreement explorer.'],
           ].map(([name, label, description]) => (
-            <div key={name} style={{ background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)', padding: 14 }}>
+            <div key={name} style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', padding: 14 }}>
               <div className="uppercase-label" style={{ marginBottom: 10 }}>{label}</div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
                 {/* SPEC-0087 § N — `solid 48` variant added back to the
@@ -79,20 +79,20 @@ function DnaOnePager() {
                 {[48, 32, 24, 16].map(s => (
                   <div key={s} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <BrandMark name={name} size={s} variant="solid" />
-                    <span className="mono" style={{ fontSize: 9, color: 'var(--fg-3)' }}>{s}</span>
+                    <span className="mono" style={{ fontSize: 9, color: 'var(--md-on-surface-faint)' }}>{s}</span>
                   </div>
                 ))}
                 {[16, 12].map(s => (
                   <div key={'g'+s} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <BrandMark name={name} size={s} variant="ghost" />
-                    <span className="mono" style={{ fontSize: 9, color: 'var(--fg-3)' }}>ghost {s}</span>
+                    <span className="mono" style={{ fontSize: 9, color: 'var(--md-on-surface-faint)' }}>ghost {s}</span>
                   </div>
                 ))}
               </div>
               {/* SPEC-0087 § N — per-card description text restored from
                   the original 20.41 briefing. Self-documents where the
                   glyph appears in the app. */}
-              <p style={{ marginTop: 12, fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>
+              <p style={{ marginTop: 12, fontSize: 11, color: 'var(--md-on-surface-faint)', lineHeight: 1.5 }}>
                 {description}
               </p>
             </div>
@@ -143,8 +143,8 @@ function DnaOnePager() {
 
           <Spotlight label="<Card>" caption="Expandable container for timeline entries and critique items.">
             <Card style={{ padding: 10 }}>
-              <div style={{ fontSize: 12, color: 'var(--fg-1)' }}>Phase 2 draft</div>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 4 }}>Claude · R4 · 2,847 tokens</div>
+              <div style={{ fontSize: 12, color: 'var(--md-on-surface-variant)' }}>Phase 2 draft</div>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', marginTop: 4 }}>Claude · R4 · 2,847 tokens</div>
             </Card>
           </Spotlight>
 
@@ -174,8 +174,8 @@ function DnaOnePager() {
           </Spotlight>
 
           <Spotlight label="<CollapsibleSection>" caption="Generic disclosure primitive. Persists open/closed state to localStorage. Used by timeline phase headers and critique pane sections.">
-            <CollapsibleSection title="Example section" count={3} countColor="var(--fg-2)">
-              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--fg-2)' }}>Collapsed content appears here. Click the header to toggle.</div>
+            <CollapsibleSection title="Example section" count={3} countColor="var(--md-on-surface-muted)">
+              <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--md-on-surface-muted)' }}>Collapsed content appears here. Click the header to toggle.</div>
             </CollapsibleSection>
           </Spotlight>
 
@@ -187,35 +187,35 @@ function DnaOnePager() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)' }}>&#9654;</span>
+                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)' }}>&#9654;</span>
                   <span style={{ fontWeight: 500, fontSize: 12 }}>System prompt</span>
-                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>(system)</span>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>(system)</span>
                   <span style={{ flex: 1 }} />
-                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>4,915 chars</span>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>4,915 chars</span>
                 </div>
               </div>
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)', transform: 'rotate(90deg)' }}>&#9654;</span>
+                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)', transform: 'rotate(90deg)' }}>&#9654;</span>
                   <span style={{ fontWeight: 500, fontSize: 12 }}>User prompt</span>
                   <span style={{ flex: 1 }} />
-                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>245,378 chars</span>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>245,378 chars</span>
                 </div>
                 <div style={{ paddingLeft: 22, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <div style={{ padding: '4px 10px', fontSize: 11, color: 'var(--fg-2)', borderLeft: '1px solid var(--border-2)' }}>
-                    From chat <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>3,142 chars</span>
+                  <div style={{ padding: '4px 10px', fontSize: 11, color: 'var(--md-on-surface-muted)', borderLeft: '1px solid var(--md-outline-variant)' }}>
+                    From chat <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)', marginLeft: 6 }}>3,142 chars</span>
                   </div>
-                  <div style={{ padding: '4px 10px', fontSize: 11, color: 'var(--fg-2)', borderLeft: '1px solid var(--border-2)' }}>
-                    External resources mentioned <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>2 resources</span>
+                  <div style={{ padding: '4px 10px', fontSize: 11, color: 'var(--md-on-surface-muted)', borderLeft: '1px solid var(--md-outline-variant)' }}>
+                    External resources mentioned <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)', marginLeft: 6 }}>2 resources</span>
                   </div>
                 </div>
               </div>
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--fg-3)' }}>&#9654;</span>
+                  <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)' }}>&#9654;</span>
                   <span style={{ fontWeight: 500, fontSize: 12 }}>Child page: Notion ADR-014</span>
                   <span style={{ flex: 1 }} />
-                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>12,847 chars</span>
+                  <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>12,847 chars</span>
                 </div>
               </div>
             </div>
@@ -231,10 +231,10 @@ function DnaOnePager() {
                 <div className="consumption-card" style={{ border: '1px solid var(--agent-a-border)' }}>
                   <div className="consumption-data-zone">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>Claude</span>
-                      <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>86.5kt seen</span>
+                      <span style={{ fontWeight: 500, color: 'var(--md-on-surface)' }}>Claude</span>
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)' }}>86.5kt seen</span>
                     </div>
-                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.56 · Total: $0.72</div>
+                    <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>Input: $0.56 · Total: $0.72</div>
                   </div>
                   <hr className="consumption-divider" />
                   <div className="consumption-bars-zone">
@@ -245,10 +245,10 @@ function DnaOnePager() {
                 <div className="consumption-card" style={{ border: '1px solid var(--agent-b-border)' }}>
                   <div className="consumption-data-zone">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--fg-0)' }}>GPT</span>
-                      <span className="mono" style={{ fontSize: 10, color: 'var(--fg-2)' }}>42.1kt seen</span>
+                      <span style={{ fontWeight: 500, color: 'var(--md-on-surface)' }}>GPT</span>
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)' }}>42.1kt seen</span>
                     </div>
-                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>Input: $0.21 · Total: $0.35</div>
+                    <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>Input: $0.21 · Total: $0.35</div>
                   </div>
                   <hr className="consumption-divider" />
                   <div className="consumption-bars-zone">
@@ -338,8 +338,8 @@ function DnaOnePager() {
           ].map(([title, bp, rules], i) => (
             <div key={i} className="resp-card">
               <div className="lbl">{bp}</div>
-              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 500, color: 'var(--fg-0)' }}>{title}</h4>
-              <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--fg-2)', fontSize: 13, lineHeight: 1.6 }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 500, color: 'var(--md-on-surface)' }}>{title}</h4>
+              <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--md-on-surface-muted)', fontSize: 13, lineHeight: 1.6 }}>
                 {rules.map((r, j) => <li key={j}>{r}</li>)}
               </ul>
             </div>
@@ -357,9 +357,9 @@ function DnaOnePager() {
             // SPEC-0087 § N — Accessibility principle added per delta 20.46.
             ['Accessibility', ':focus-visible ring on every interactive primitive; prefers-reduced-motion honored on every animation; semantic ARIA where the markup needs it.'],
           ].map(([t, d], i) => (
-            <div key={i} style={{ padding: '10px 14px', background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)' }}>
-              <span style={{ color: 'var(--fg-0)', fontWeight: 600, fontSize: 12.5 }}>{t}</span>
-              <span style={{ color: 'var(--fg-2)', fontSize: 12, marginLeft: 8 }}>{d}</span>
+            <div key={i} style={{ padding: '10px 14px', background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)' }}>
+              <span style={{ color: 'var(--md-on-surface)', fontWeight: 600, fontSize: 12.5 }}>{t}</span>
+              <span style={{ color: 'var(--md-on-surface-muted)', fontSize: 12, marginLeft: 8 }}>{d}</span>
             </div>
           ))}
         </div>
@@ -371,7 +371,7 @@ function DnaOnePager() {
 function DnaSection({ title, children }) {
   return (
     <section style={{ marginBottom: 36 }}>
-      <h2 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: 'var(--fg-0)', borderBottom: '1px solid var(--border-1)', paddingBottom: 8 }}>{title}</h2>
+      <h2 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: 'var(--md-on-surface)', borderBottom: '1px solid var(--md-outline-hair)', paddingBottom: 8 }}>{title}</h2>
       {children}
     </section>
   );
@@ -380,8 +380,8 @@ function DnaSection({ title, children }) {
 function DnaSwatch({ label, color, token, border }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <div style={{ width: 28, height: 28, borderRadius: 4, background: color, border: border ? '1px solid var(--border-2)' : 'none' }} />
-      <span className="mono" style={{ fontSize: 9, color: 'var(--fg-3)' }}>{label}</span>
+      <div style={{ width: 28, height: 28, borderRadius: 4, background: color, border: border ? '1px solid var(--md-outline-variant)' : 'none' }} />
+      <span className="mono" style={{ fontSize: 9, color: 'var(--md-on-surface-faint)' }}>{label}</span>
     </div>
   );
 }
@@ -390,12 +390,12 @@ function Spotlight({ label, caption, children }) {
   return (
     <div role="figure" aria-label={label + ': ' + caption}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-        <span className="mono" style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>{label}</span>
+        <span className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>{label}</span>
       </div>
-      <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)', padding: 12, marginBottom: 6 }}>
+      <div style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', padding: 12, marginBottom: 6 }}>
         {children}
       </div>
-      <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.4 }}>{caption}</div>
+      <div style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', lineHeight: 1.4 }}>{caption}</div>
     </div>
   );
 }
@@ -409,19 +409,19 @@ function FullReference() {
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32 }}>
         <div>
-          <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
+          <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
             dual-research · design language · full reference
           </div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, color: 'var(--fg-0)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, color: 'var(--md-on-surface)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
             A calm, dense observability surface for a two-agent convergence loop.
           </h1>
-          <p style={{ marginTop: 12, color: 'var(--fg-2)', fontSize: 13.5, maxWidth: 720, lineHeight: 1.55 }}>
+          <p style={{ marginTop: 12, color: 'var(--md-on-surface-muted)', fontSize: 13.5, maxWidth: 720, lineHeight: 1.55 }}>
             Read-only, terminal-adjacent, single user. Information density is a feature.
             The whole document follows three rules: never compete with the agent output, never compete with the terminal next to it, and never hide the one number that matters.
           </p>
         </div>
-        <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'right' }}>
-          <a href="?" style={{ color: 'var(--fg-3)', textDecoration: 'underline' }}>DNA view</a>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', textAlign: 'right' }}>
+          <a href="?" style={{ color: 'var(--md-on-surface-faint)', textDecoration: 'underline' }}>DNA view</a>
           <div style={{ marginTop: 4 }}>v0.1 · {new Date().toLocaleDateString('en-CA')}</div>
         </div>
       </div>
@@ -510,29 +510,29 @@ function FullReference() {
 
         <div style={{
           marginTop: 18,
-          border: '1px solid var(--border-1)',
-          borderRadius: 'var(--r-3)',
-          background: 'var(--bg-1)',
+          border: '1px solid var(--md-outline-hair)',
+          borderRadius: 'var(--md-shape-md)',
+          background: 'var(--md-surface-container-low)',
           overflow: 'hidden',
         }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-1)', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>Type scale</span>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>13px body · 1.45 line-height</span>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>Type scale</span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>13px body · 1.45 line-height</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 90px 1fr', borderTop: '1px solid var(--border-1)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 90px 1fr', borderTop: '1px solid var(--md-outline-hair)' }}>
             {[
               ['Display',  '28 / 600',  'A calm, dense observability surface', 'var(--sans)'],
               ['Title',    '20 / 600',  'Section heading',                     'var(--sans)'],
               ['Body lg',  '14 / 400',  'Default reading size for body prose', 'var(--sans)'],
               ['Body',     '13 / 400',  'Run topic, last-turn summary',         'var(--sans)'],
-              ['Meta',     '12 / 400',  'Disagreement positions, agent output', 'var(--mono)'],
-              ['Caption',  '11 / 500',  'Metric values, run IDs',               'var(--mono)'],
+              ['Meta',     '12 / 400',  'Disagreement positions, agent output', 'var(--md-font-data)'],
+              ['Caption',  '11 / 500',  'Metric values, run IDs',               'var(--md-font-data)'],
               ['Label',    '10 / 500',  'Uppercase labels, column headers',     'var(--sans)'],
             ].map(([name, spec, sample, family], i) => (
               <React.Fragment key={i}>
-                <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--border-1)', color: 'var(--fg-1)', fontSize: 12 }}>{name}</div>
-                <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--border-1)', color: 'var(--fg-3)', fontSize: 11, fontFamily: 'var(--mono)' }}>{spec}</div>
-                <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--border-1)', fontFamily: family, fontSize: Number(spec.split(' /')[0]), fontWeight: Number(spec.split('/ ')[1]), color: 'var(--fg-0)', letterSpacing: name === 'Display' ? '-0.02em' : 0 }}>{sample}</div>
+                <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--md-outline-hair)', color: 'var(--md-on-surface-variant)', fontSize: 12 }}>{name}</div>
+                <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--md-outline-hair)', color: 'var(--md-on-surface-faint)', fontSize: 11, fontFamily: 'var(--md-font-data)' }}>{spec}</div>
+                <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--md-outline-hair)', fontFamily: family, fontSize: Number(spec.split(' /')[0]), fontWeight: Number(spec.split('/ ')[1]), color: 'var(--md-on-surface)', letterSpacing: name === 'Display' ? '-0.02em' : 0 }}>{sample}</div>
               </React.Fragment>
             ))}
           </div>
@@ -542,24 +542,24 @@ function FullReference() {
       {/* Spacing */}
       <Section title="03 — Spacing & shape" subtitle="A 4px scale. Generous outside, dense inside — there are five tabular numbers per row and they should still breathe.">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-          <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)', overflow: 'hidden' }}>
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-1)' }}>
-              <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>Spacing scale (4px base)</span>
+          <div style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', overflow: 'hidden' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)' }}>
+              <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>Spacing scale (4px base)</span>
             </div>
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[2, 4, 6, 8, 10, 12, 14, 18, 24, 32, 48].map(s => (
                 <div key={s} style={{ display: 'grid', gridTemplateColumns: '40px 60px 1fr', alignItems: 'center', gap: 12 }}>
-                  <span className="mono num" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{s}px</span>
-                  <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>s-{s}</span>
+                  <span className="mono num" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>{s}px</span>
+                  <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>s-{s}</span>
                   <div style={{ height: 4, width: s * 3, background: 'var(--agent-a)', borderRadius: 999, opacity: 0.6 }} />
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ background: 'var(--bg-1)', border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)', overflow: 'hidden' }}>
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-1)' }}>
-              <span style={{ fontSize: 12, color: 'var(--fg-0)', fontWeight: 600 }}>Radii & borders</span>
+          <div style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', overflow: 'hidden' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)' }}>
+              <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>Radii & borders</span>
             </div>
             <div style={{ padding: 14, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
               {[
@@ -570,20 +570,20 @@ function FullReference() {
                 ['r-5', '14px', 'Tweaks panel'],
               ].map(([name, val, role]) => (
                 <div key={name}>
-                  <div style={{ height: 60, background: 'var(--bg-3)', borderRadius: val, border: '1px solid var(--border-2)' }} />
-                  <div className="mono" style={{ fontSize: 10, color: 'var(--fg-2)', marginTop: 6 }}>{name} · {val}</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--fg-3)', lineHeight: 1.4 }}>{role}</div>
+                  <div style={{ height: 60, background: 'var(--md-surface-container-high)', borderRadius: val, border: '1px solid var(--md-outline-variant)' }} />
+                  <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)', marginTop: 6 }}>{name} · {val}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)', lineHeight: 1.4 }}>{role}</div>
                 </div>
               ))}
             </div>
-            <div style={{ borderTop: '1px solid var(--border-1)', padding: 14 }}>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--fg-2)', marginBottom: 6 }}>Hairlines</div>
+            <div style={{ borderTop: '1px solid var(--md-outline-hair)', padding: 14 }}>
+              <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginBottom: 6 }}>Hairlines</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ height: 1, background: 'var(--border-1)' }} />
-                <div style={{ height: 1, background: 'var(--border-2)' }} />
-                <div style={{ height: 1, background: 'var(--border-3)' }} />
+                <div style={{ height: 1, background: 'var(--md-outline-hair)' }} />
+                <div style={{ height: 1, background: 'var(--md-outline-variant)' }} />
+                <div style={{ height: 1, background: 'var(--md-outline)' }} />
               </div>
-              <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 6 }}>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 6 }}>
                 border-1 (#1c1f24) hairline · border-2 medium · border-3 strong
               </div>
             </div>
@@ -616,9 +616,9 @@ function FullReference() {
       {/* Component vocabulary */}
       <Section title="05 — Component vocabulary" subtitle="Six primitives compose the entire surface.">
         <div style={{
-          background: 'var(--bg-1)',
-          border: '1px solid var(--border-1)',
-          borderRadius: 'var(--r-3)',
+          background: 'var(--md-surface-container-low)',
+          border: '1px solid var(--md-outline-hair)',
+          borderRadius: 'var(--md-shape-md)',
           padding: 18,
           display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18,
         }}>
@@ -649,21 +649,21 @@ function FullReference() {
 
           <PrimitiveCard name="PhaseMini" role="6-dot strip that fits in a table cell. Each dot = one phase.">
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><PhaseMini phase={2} status="running" /><span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>P2 running</span></div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><PhaseMini phase={5} status="completed" /><span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>done</span></div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><PhaseMini phase={2} status="deadlocked" /><span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>deadlock</span></div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><PhaseMini phase={2} status="running" /><span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>P2 running</span></div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><PhaseMini phase={5} status="completed" /><span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>done</span></div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><PhaseMini phase={2} status="deadlocked" /><span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>deadlock</span></div>
             </div>
           </PrimitiveCard>
 
           <PrimitiveCard name="Streaming box" role="Bordered well that hosts streaming agent output. Agent-tinted border, never agent-tinted fill.">
             <div style={{
-              background: 'var(--bg-0)',
+              background: 'var(--md-surface)',
               border: '1px solid var(--agent-a-border)',
-              borderRadius: 'var(--r-3)',
+              borderRadius: 'var(--md-shape-md)',
               padding: 10,
-              fontFamily: 'var(--mono)',
+              fontFamily: 'var(--md-font-data)',
               fontSize: 11.5,
-              color: 'var(--fg-0)',
+              color: 'var(--md-on-surface)',
             }}>
               Tokens stream here <span className="caret" style={{ color: 'var(--agent-a)' }} />
             </div>
@@ -672,7 +672,7 @@ function FullReference() {
           <PrimitiveCard name="Cap bar" role="Round counter against soft + hard caps. Soft mark is a tick, hard cap is the end.">
             <div style={{ padding: '6px 0' }}>
               <div className="cap-bar"><i style={{ width: '66%', background: COLORS.info }} /><span className="soft-mark" style={{ left: '50%' }} /></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--fg-3)', marginTop: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--md-font-data)', fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 4 }}>
                 <span>0</span><span>up soft (6)</span><span>hard (12)</span>
               </div>
             </div>
@@ -680,9 +680,9 @@ function FullReference() {
 
           <PrimitiveCard name="Disagreement row" role="Three columns: contested point | claude position | gpt position. 2px left border per agent.">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, fontSize: 11 }}>
-              <div style={{ color: 'var(--fg-1)' }}>"temperate" scope</div>
-              <div className="mono" style={{ paddingLeft: 6, borderLeft: `2px solid ${COLORS.agentA}`, color: 'var(--fg-1)' }}>Cfa + Cfb</div>
-              <div className="mono" style={{ paddingLeft: 6, borderLeft: `2px solid ${COLORS.agentB}`, color: 'var(--fg-1)' }}>Cfa only</div>
+              <div style={{ color: 'var(--md-on-surface-variant)' }}>"temperate" scope</div>
+              <div className="mono" style={{ paddingLeft: 6, borderLeft: `2px solid ${COLORS.agentA}`, color: 'var(--md-on-surface-variant)' }}>Cfa + Cfb</div>
+              <div className="mono" style={{ paddingLeft: 6, borderLeft: `2px solid ${COLORS.agentB}`, color: 'var(--md-on-surface-variant)' }}>Cfa only</div>
             </div>
           </PrimitiveCard>
         </div>
@@ -701,15 +701,15 @@ function FullReference() {
           ].map(([t, d], i) => (
             <div key={i} style={{
               padding: '12px 14px',
-              background: 'var(--bg-1)',
-              border: '1px solid var(--border-1)',
-              borderRadius: 'var(--r-3)',
+              background: 'var(--md-surface-container-low)',
+              border: '1px solid var(--md-outline-hair)',
+              borderRadius: 'var(--md-shape-md)',
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>{String(i + 1).padStart(2, '0')}</span>
-                <span style={{ color: 'var(--fg-0)', fontWeight: 600, fontSize: 13 }}>{t}</span>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>{String(i + 1).padStart(2, '0')}</span>
+                <span style={{ color: 'var(--md-on-surface)', fontWeight: 600, fontSize: 13 }}>{t}</span>
               </div>
-              <p style={{ margin: 0, color: 'var(--fg-2)', fontSize: 12, lineHeight: 1.55 }}>{d}</p>
+              <p style={{ margin: 0, color: 'var(--md-on-surface-muted)', fontSize: 12, lineHeight: 1.55 }}>{d}</p>
             </div>
           ))}
         </div>
@@ -723,9 +723,9 @@ function FullReference() {
 function Section({ title, subtitle, children }) {
   return (
     <section style={{ marginBottom: 48 }}>
-      <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border-1)' }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--fg-0)', letterSpacing: '-0.01em' }}>{title}</div>
-        {subtitle && <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--fg-2)' }}>{subtitle}</div>}
+      <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--md-outline-hair)' }}>
+        <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--md-on-surface)', letterSpacing: '-0.01em' }}>{title}</div>
+        {subtitle && <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--md-on-surface-muted)' }}>{subtitle}</div>}
       </div>
       {children}
     </section>
@@ -735,9 +735,9 @@ function Section({ title, subtitle, children }) {
 function AgentSwatch({ name, hex, role, dim, alpha, border, isFirst }) {
   return (
     <div style={{
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-3)',
+      background: 'var(--md-surface-container-low)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
       overflow: 'hidden',
     }}>
       <div style={{ height: 56, background: hex, position: 'relative' }}>
@@ -753,11 +753,11 @@ function AgentSwatch({ name, hex, role, dim, alpha, border, isFirst }) {
       </div>
       <div style={{ padding: '10px 14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 600, whiteSpace: 'nowrap' }}>{name}</span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-1)', whiteSpace: 'nowrap' }}>{hex.toUpperCase()}</span>
+          <span style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 600, whiteSpace: 'nowrap' }}>{name}</span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-variant)', whiteSpace: 'nowrap' }}>{hex.toUpperCase()}</span>
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 4 }}>{role}</div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 8, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--fg-3)' }}>
+        <div style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)', marginTop: 4 }}>{role}</div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 8, fontFamily: 'var(--md-font-data)', fontSize: 10, color: 'var(--md-on-surface-faint)' }}>
           <span><span style={{ display: 'inline-block', width: 6, height: 6, background: hex, marginRight: 4, borderRadius: 1 }} />base</span>
           <span><span style={{ display: 'inline-block', width: 6, height: 6, background: alpha, marginRight: 4, borderRadius: 1, border: `1px solid ${border}` }} />alpha/16</span>
           <span><span style={{ display: 'inline-block', width: 6, height: 6, background: dim, marginRight: 4, borderRadius: 1 }} />dim {dim.toUpperCase()}</span>
@@ -774,18 +774,18 @@ function SwatchGrid({ title, items, cols }) {
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8 }}>
         {items.map((s) => (
           <div key={s.name} style={{
-            background: 'var(--bg-1)',
-            border: '1px solid var(--border-1)',
-            borderRadius: 'var(--r-3)',
+            background: 'var(--md-surface-container-low)',
+            border: '1px solid var(--md-outline-hair)',
+            borderRadius: 'var(--md-shape-md)',
             overflow: 'hidden',
           }}>
-            <div style={{ height: 44, background: s.hex, borderBottom: '1px solid var(--border-1)' }} />
+            <div style={{ height: 44, background: s.hex, borderBottom: '1px solid var(--md-outline-hair)' }} />
             <div style={{ padding: '8px 10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span className="mono" style={{ fontSize: 11, color: 'var(--fg-1)' }}>{s.name}</span>
-                <span className="mono" style={{ fontSize: 10, color: 'var(--fg-3)' }}>{s.hex.toUpperCase()}</span>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-variant)' }}>{s.name}</span>
+                <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>{s.hex.toUpperCase()}</span>
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--fg-3)', marginTop: 2, lineHeight: 1.4 }}>{s.role}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)', marginTop: 2, lineHeight: 1.4 }}>{s.role}</div>
             </div>
           </div>
         ))}
@@ -799,9 +799,9 @@ function BrandCard({ agent, name, sourceNote }) {
   const brandName = agent === 'claude' ? 'claude' : 'openai';
   return (
     <div style={{
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-3)',
+      background: 'var(--md-surface-container-low)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
       padding: 18,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -816,10 +816,10 @@ function BrandCard({ agent, name, sourceNote }) {
         <BrandSwatch brandName={brandName} agent={agent} size={16} variant="ghost" caption="ghost 16" />
         <BrandSwatch brandName={brandName} agent={agent} size={12} variant="ghost" caption="ghost 12" />
       </div>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 8 }}>
+      <div style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', lineHeight: 1.55, marginBottom: 8 }}>
         Used everywhere the {name} agent is identified — list rows, run-detail headers, timeline cards, error rows, and the disagreement explorer.
       </div>
-      <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{sourceNote}</div>
+      <div className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{sourceNote}</div>
     </div>
   );
 }
@@ -828,7 +828,7 @@ function BrandSwatch({ brandName, agent, size, variant, caption }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
       <BrandMark name={brandName} size={size} variant={variant} aria-hidden="true" />
-      <span className="mono" style={{ fontSize: 9.5, color: 'var(--fg-3)' }}>{caption}</span>
+      <span className="mono" style={{ fontSize: 9.5, color: 'var(--md-on-surface-faint)' }}>{caption}</span>
     </div>
   );
 }
@@ -836,23 +836,23 @@ function BrandSwatch({ brandName, agent, size, variant, caption }) {
 function FontCard({ kind, face, fallback, role, sampleFamily, weights, mono }) {
   return (
     <div style={{
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-3)',
+      background: 'var(--md-surface-container-low)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
       padding: 18,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
         <span className="uppercase-label">{kind}</span>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>weights {weights.join(', ')}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>weights {weights.join(', ')}</span>
       </div>
-      <div style={{ fontFamily: sampleFamily, fontSize: 36, color: 'var(--fg-0)', letterSpacing: mono ? 0 : '-0.02em', lineHeight: 1.05, marginBottom: 4 }}>
+      <div style={{ fontFamily: sampleFamily, fontSize: 36, color: 'var(--md-on-surface)', letterSpacing: mono ? 0 : '-0.02em', lineHeight: 1.05, marginBottom: 4 }}>
         {face}
       </div>
-      <div style={{ fontFamily: sampleFamily, fontSize: 14, color: 'var(--fg-2)', marginBottom: 12 }}>
+      <div style={{ fontFamily: sampleFamily, fontSize: 14, color: 'var(--md-on-surface-muted)', marginBottom: 12 }}>
         {mono ? 'Aa Bb Cc · 0123 · ()<>{}/' : 'AaBbCc 0123 — Aa Bb Cc 0 1 2 3'}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.55, marginBottom: 8 }}>{role}</div>
-      <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+      <div style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', lineHeight: 1.55, marginBottom: 8 }}>{role}</div>
+      <div className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
         fallback: {fallback}
       </div>
     </div>
@@ -862,20 +862,20 @@ function FontCard({ kind, face, fallback, role, sampleFamily, weights, mono }) {
 function MotionCard({ title, spec, detail, demo }) {
   return (
     <div style={{
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-3)',
+      background: 'var(--md-surface-container-low)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
       overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 600 }}>{title}</span>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{spec}</span>
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 600 }}>{title}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{spec}</span>
       </div>
-      <div style={{ padding: 14, background: 'var(--bg-0)', borderBottom: '1px solid var(--border-1)' }}>
+      <div style={{ padding: 14, background: 'var(--md-surface)', borderBottom: '1px solid var(--md-outline-hair)' }}>
         {demo}
       </div>
-      <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.55 }}>
+      <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--md-on-surface-muted)', lineHeight: 1.55 }}>
         {detail}
       </div>
     </div>
@@ -895,13 +895,13 @@ contested: section 4 financing split`;
   return (
     <div style={{
       height: 110,
-      background: 'var(--bg-0)',
+      background: 'var(--md-surface)',
       border: '1px solid var(--agent-a-border)',
-      borderRadius: 'var(--r-2)',
+      borderRadius: 'var(--md-shape-sm)',
       padding: 10,
       overflow: 'hidden',
     }}>
-      <StreamingText key={k} content={sample} speed={45} color="var(--fg-0)" />
+      <StreamingText key={k} content={sample} speed={45} color="var(--md-on-surface)" />
     </div>
   );
 }
@@ -932,17 +932,17 @@ function PrimitiveCard({ name, role, children }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 600 }}>{name}</span>
+        <span style={{ fontSize: 12.5, color: 'var(--md-on-surface)', fontWeight: 600 }}>{name}</span>
       </div>
       <div style={{
-        background: 'var(--bg-0)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 'var(--r-3)',
+        background: 'var(--md-surface)',
+        border: '1px solid var(--md-outline-hair)',
+        borderRadius: 'var(--md-shape-md)',
         padding: 12,
         minHeight: 80,
         marginBottom: 8,
       }}>{children}</div>
-      <div style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.5 }}>{role}</div>
+      <div style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', lineHeight: 1.5 }}>{role}</div>
     </div>
   );
 }
@@ -952,10 +952,10 @@ function Note({ children }) {
     <div style={{
       marginTop: 18,
       padding: '12px 14px',
-      background: 'var(--bg-1)',
+      background: 'var(--md-surface-container-low)',
       borderLeft: '2px solid var(--agent-b)',
-      borderRadius: '0 var(--r-3) var(--r-3) 0',
-      fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6,
+      borderRadius: '0 var(--md-shape-md) var(--md-shape-md) 0',
+      fontSize: 12.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.6,
     }}>
       {children}
     </div>
