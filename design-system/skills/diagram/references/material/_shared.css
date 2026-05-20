@@ -1,63 +1,79 @@
 /* ============================================================
-   diagram skill — material mode — reviewer site
-   Material 3 inspired by dual-research: sable + sage palette,
-   info-blue accent, Roboto Flex + Roboto Serif, M3 surfaces.
-   Mirrors references/pixel/_shared.css class-for-class so the
-   two reviewer sites stay structurally parallel.
+   diagram skill — Material mode — reviewer site
+   ----------------------------------------------------------------
+   This stylesheet is a THIN doc-chrome layer on top of the V2
+   production M3 CSS. The Material reference pages each load:
+     <link rel="stylesheet" href="../app-v2/styles/v2-m3.css">
+     <link rel="stylesheet" href="_shared.css">
+   This means the Material design system literally consumes the same
+   --md-* tokens, the same M3 type utilities (.t-display-l, etc.),
+   and the same primitive classes (.md-card, .md-chip, .md-status,
+   .md-btn, .md-tabs, .md-seg, .md-list) as the dual-research V2 app.
+   Single source of truth.
+   ----------------------------------------------------------------
+   What this file adds:
+     - Doc-site shell (sidebar nav, hero, section dividers)
+     - Reference-page primitives (.frame, .pair, .swatch, .icon-grid,
+       .tokens table)
+     - diagram-skill extensions to V2: .md-card--service-* (the 7
+       categorical service surfaces derived from V2 surface-container
+       tiers + V2 palette color-mix tints)
    ============================================================ */
 
-:root {
-  /* canvas — M3 surface tonal scale (light) */
-  --bg-1: #faf9f6;            /* --md-surface */
-  --bg-2: #ece8de;            /* --md-surface-dim */
-  --bg-tint: #f0ede4;         /* --md-surface-container */
-  --rule: #d2cdc0;            /* --md-outline-variant */
-  --rule-soft: #e7e3d9;       /* --md-outline-hair */
 
-  /* ink — M3 on-surface ladder (light) */
-  --ink-1: #04060a;           /* --md-on-surface */
-  --ink-2: #3a3f47;           /* --md-on-surface-variant */
-  --ink-3: #4d5159;           /* --md-on-surface-muted */
-  --ink-4: #6f7480;           /* --md-on-surface-faint */
+/* =============================================================
+   Diagram-skill extension to V2: categorical service cards
+   ============================================================ */
 
-  /* accent — M3 tertiary (= V2 info-blue) — theme-portable */
-  --accent: #6b9cf0;          /* --md-tertiary / --p-info */
-  --accent-1: #4f86e2;        /* darkened for stops */
-  --accent-2: #3a6ec9;        /* darker stop */
-  --accent-tint: #d6e3ff;     /* --md-on-tertiary-container (light) */
-  --accent-bg: rgba(107,156,240,0.10);
+/* These are the 7 service-category cards. Each is structurally an
+   md-card--filled (M3 surface-container-high background, M3 elev-0
+   shadow, --md-shape-md radius, --md-pad-card padding) with a
+   category-specific surface-tint applied via color-mix.
 
-  /* semantic status — V2 palette */
-  --green: #6fb380;           /* --p-ok */
-  --green-2: #8ac99c;
-  --red: #d96a6a;             /* --p-err */
-  --blue: #6b9cf0;            /* --p-info */
-  --amber: #d4a056;           /* --p-warn */
-  --slate: #5e636d;           /* --p-idle */
-  --sable: #d4a574;           /* --p-sable — claude warm */
-  --sage:  #7cc4b8;           /* --p-sage  — gpt cool */
+   The tint is subtle — V2's pattern is "calm dense observability";
+   categorical hue communicates identity without overwhelming.
 
-  /* type — M3 default pair: Roboto Flex (plain) + Roboto Serif (brand) */
-  --font:       "Roboto Flex", "Roboto", system-ui, -apple-system, "Helvetica Neue", sans-serif;
-  --font-brand: "Roboto Serif", ui-serif, Charter, Georgia, serif;
-  --mono:       "Roboto Flex", "Roboto", ui-monospace, "SF Mono", Menlo, monospace;
+   Each service surface has a paired text tint (the on-* container
+   color) used for card titles, ensuring AAA contrast.
+*/
+
+.md-card--service-primary {
+  background: color-mix(in srgb, var(--md-primary) 22%, var(--md-surface-container));
+  color: var(--md-on-primary-container);
+}
+.md-card--service-secondary {
+  background: color-mix(in srgb, var(--md-secondary) 22%, var(--md-surface-container));
+  color: var(--md-on-secondary-container);
+}
+.md-card--service-sql {
+  background: color-mix(in srgb, var(--md-tertiary) 22%, var(--md-surface-container));
+  color: var(--md-on-tertiary-container);
+}
+.md-card--service-secure {
+  background: color-mix(in srgb, var(--p-ok) 20%, var(--md-surface-container));
+  color: color-mix(in srgb, var(--p-ok) 60%, var(--md-on-surface));
+}
+.md-card--service-store {
+  background: color-mix(in srgb, var(--p-sable) 20%, var(--md-surface-container));
+  color: color-mix(in srgb, var(--p-sable-dim) 60%, var(--md-on-surface));
+}
+.md-card--service-cache {
+  background: color-mix(in srgb, var(--p-warn) 18%, var(--md-surface-container));
+  color: color-mix(in srgb, var(--p-warn) 60%, var(--md-on-surface));
+}
+.md-card--service-slate {
+  background: color-mix(in srgb, var(--p-idle) 18%, var(--md-surface-container));
+  color: color-mix(in srgb, var(--p-idle) 70%, var(--md-on-surface));
+}
+.md-card--service-neutral {
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
 }
 
-* { box-sizing: border-box; }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: var(--font);
-  font-feature-settings: "tnum", "ss01";
-  color: var(--ink-1);
-  background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
-  background-attachment: fixed;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-/* ---------- layout shell ---------- */
+/* =============================================================
+   Doc-site shell — sidebar + main column
+   ============================================================ */
 
 .shell {
   display: grid;
@@ -72,38 +88,33 @@ html, body {
   height: 100vh;
   overflow: auto;
   padding: 36px 28px 28px;
-  border-right: 1px solid var(--rule);
-  background: rgba(250, 249, 246, 0.6);
+  border-right: 1px solid var(--md-outline-hair);
+  background: color-mix(in srgb, var(--md-surface) 80%, transparent);
   backdrop-filter: blur(6px);
 }
 
 .sidebar .brand {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1.4;
+  font: var(--md-w-medium) var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-m-track);
   text-transform: uppercase;
-  color: var(--ink-3);
-  margin-bottom: 4px;
+  color: var(--md-on-surface-muted);
+  margin-bottom: 6px;
 }
-
 .sidebar .brand .dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--accent);
-  border-radius: 2px;
+  width: 10px; height: 10px;
+  background: var(--md-tertiary);
+  border-radius: 3px;
   margin-right: 8px;
-  vertical-align: 1px;
+  vertical-align: 0;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-tertiary) 30%, transparent);
 }
 
 .sidebar h1 {
-  font-family: var(--font-brand);
-  font-size: 19px;
-  font-weight: 500;
-  letter-spacing: -0.3;
+  font: var(--md-w-medium) var(--md-title-l-size)/var(--md-title-l-lh) var(--md-font-brand);
   margin: 0 0 28px;
-  color: var(--ink-1);
-  line-height: 1.25;
+  color: var(--md-on-surface);
+  letter-spacing: -0.3;
 }
 
 .sidebar nav {
@@ -113,11 +124,10 @@ html, body {
 }
 
 .sidebar nav .group {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.6;
+  font: var(--md-w-semi) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
   text-transform: uppercase;
-  color: var(--ink-4);
+  color: var(--md-on-surface-faint);
   margin: 18px 0 6px;
   padding-left: 10px;
 }
@@ -126,29 +136,28 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--ink-2);
+  padding: 8px 12px;
+  border-radius: var(--md-shape-sm);
+  font: var(--md-w-regular) var(--md-body-m-size)/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
   text-decoration: none;
-  line-height: 1;
+  position: relative;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              color var(--md-dur-short-3) var(--md-easing-standard);
 }
-
 .sidebar nav a:hover {
-  background: rgba(107, 156, 240, 0.08);
-  color: var(--ink-1);
+  background: color-mix(in srgb, var(--md-tertiary) 8%, transparent);
+  color: var(--md-on-surface);
 }
-
 .sidebar nav a.active {
-  background: var(--accent-bg);
-  color: var(--accent-2);
-  font-weight: 600;
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+  font-weight: var(--md-w-medium);
 }
 
 .sidebar nav a .n {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink-4);
+  font: var(--md-w-regular) 10px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
   width: 18px;
   font-variant-numeric: tabular-nums;
 }
@@ -158,143 +167,145 @@ html, body {
   bottom: 28px;
   left: 28px;
   right: 28px;
-  font-size: 10px;
-  color: var(--ink-4);
-  line-height: 1.5;
-  letter-spacing: 0.2;
+  font: var(--md-w-regular) var(--md-body-s-size)/1.55 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+  letter-spacing: 0.2px;
 }
 
-/* ---------- main column ---------- */
+
+/* =============================================================
+   Main column
+   ============================================================ */
 
 main {
   padding: 56px 72px 120px;
   max-width: 1280px;
 }
-
 @media (max-width: 1100px) {
   main { padding: 48px 40px 100px; }
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; }
 }
 
 .eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 2;
+  font: var(--md-w-semi) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--md-tertiary);
   margin: 0 0 12px;
 }
 
 h1.page {
-  font-family: var(--font-brand);
-  font-size: 40px;
-  font-weight: 500;
-  letter-spacing: -0.8;
-  line-height: 1.1;
+  font: var(--md-w-medium) var(--md-display-s-size)/var(--md-display-s-lh) var(--md-font-brand);
+  letter-spacing: -0.8px;
   margin: 0 0 16px;
+  color: var(--md-on-surface);
 }
 
 p.lede {
-  font-size: 16px;
-  line-height: 1.55;
-  color: var(--ink-2);
+  font: var(--md-w-regular) var(--md-body-l-size)/var(--md-body-l-lh) var(--md-font-plain);
+  color: var(--md-on-surface-variant);
   max-width: 70ch;
   margin: 0 0 40px;
   text-wrap: pretty;
 }
 
 h2 {
-  font-family: var(--font-brand);
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: -0.4;
+  font: var(--md-w-medium) var(--md-headline-s-size)/var(--md-headline-s-lh) var(--md-font-brand);
+  letter-spacing: -0.4px;
   margin: 64px 0 8px;
   padding-bottom: 14px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--md-outline-variant);
   display: flex;
   align-items: baseline;
   gap: 14px;
+  color: var(--md-on-surface);
 }
 
 h2 .num {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--ink-4);
+  font: var(--md-w-regular) var(--md-body-s-size)/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
   letter-spacing: 0;
 }
 
 h2 + p.section-lede {
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--ink-2);
-  max-width: 68ch;
+  font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  max-width: 70ch;
   margin: 0 0 28px;
   text-wrap: pretty;
 }
 
 h3 {
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.1;
+  font: var(--md-w-medium) var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-plain);
+  letter-spacing: var(--md-title-m-track);
   margin: 36px 0 10px;
-  color: var(--ink-1);
+  color: var(--md-on-surface);
 }
 
 h4 {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 1.6;
+  font: var(--md-w-semi) var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-m-track);
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--md-on-surface-muted);
   margin: 24px 0 8px;
 }
 
-p { font-size: 14px; line-height: 1.6; color: var(--ink-2); margin: 0 0 12px; text-wrap: pretty; }
-strong { color: var(--ink-1); font-weight: 600; }
+p {
+  font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  margin: 0 0 12px;
+  text-wrap: pretty;
+}
+strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
 
 code, kbd, .mono {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--md-font-data);
+  font-size: var(--md-body-s-size);
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
 
 p code, li code, td code {
-  background: rgba(107, 156, 240, 0.10);
-  color: var(--accent-2);
+  background: color-mix(in srgb, var(--md-tertiary) 10%, transparent);
+  color: var(--md-tertiary);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--md-shape-xs);
   font-size: 12px;
 }
 
 pre {
-  background: #0d0f12;            /* --md-surface (dark) */
-  color: rgba(255, 255, 255, 0.92);
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface);
   padding: 18px 20px;
-  border-radius: 12px;            /* --md-shape-md */
+  border-radius: var(--md-shape-md);
   overflow: auto;
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 12px;
   line-height: 1.55;
   margin: 12px 0 20px;
+  border: 1px solid var(--md-outline-hair);
 }
+body.dark pre {
+  background: var(--md-surface-container);
+}
+pre .k { color: var(--md-on-tertiary-container); }
+pre .a { color: var(--md-on-secondary-container); }
+pre .s { color: var(--md-on-primary-container); }
+pre .c { color: var(--md-on-surface-faint); font-style: italic; }
 
-pre .k { color: #d6e3ff; }       /* tag — light info */
-pre .a { color: #cfece6; }       /* attr name — light sage */
-pre .s { color: #f3deca; }       /* string — light sable */
-pre .c { color: #7d8290; font-style: italic; } /* comment — md-on-surface-faint */
 
-/* ---------- generic cards in the doc ---------- */
+/* =============================================================
+   Doc card (generic prose card — not the .md-card primitive)
+   ============================================================ */
 
-.card {
-  background: white;             /* --md-surface-container-lowest (light) */
-  border: 1px solid var(--rule-soft);
-  border-radius: 12px;           /* --md-shape-md */
+.doc-card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
   padding: 22px 24px;
-  box-shadow: 0 1px 2px rgba(20,23,28,0.10), 0 2px 6px 2px rgba(20,23,28,0.06);   /* --md-elev-2 (light) */
+  box-shadow: var(--md-elev-1);
 }
-
-.card.flush { padding: 0; overflow: hidden; }
 
 .grid {
   display: grid;
@@ -303,29 +314,32 @@ pre .c { color: #7d8290; font-style: italic; } /* comment — md-on-surface-fain
 .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
 .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
 .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-
 @media (max-width: 900px) {
   .grid.cols-3, .grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
 }
 
+
+/* =============================================================
+   Palette swatches
+   ============================================================ */
+
 .swatch {
-  border-radius: 12px;
+  border-radius: var(--md-shape-md);
   height: 88px;
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--rule-soft);
+  border: 1px solid var(--md-outline-hair);
 }
 .swatch .hex {
   position: absolute;
   bottom: 8px;
   left: 10px;
-  font-family: var(--mono);
-  font-size: 10px;
-  background: rgba(0,0,0,0.6);
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  letter-spacing: 0.4;
+  font: var(--md-w-medium) 10px/1 var(--md-font-data);
+  background: rgba(0,0,0,0.65);
+  color: #ffffff;
+  padding: 3px 7px;
+  border-radius: var(--md-shape-xs);
+  letter-spacing: 0.4px;
 }
 
 .swatch-row {
@@ -335,212 +349,139 @@ pre .c { color: #7d8290; font-style: italic; } /* comment — md-on-surface-fain
   align-items: stretch;
   margin: 12px 0;
 }
-.swatch-row .label {
-  align-self: center;
-}
+.swatch-row .label { align-self: center; }
 .swatch-row .label .name {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--accent-2);
+  font: var(--md-w-medium) var(--md-body-s-size)/1.4 var(--md-font-data);
+  color: var(--md-tertiary);
 }
 .swatch-row .label .desc {
-  font-size: 13px;
-  color: var(--ink-2);
-  margin-top: 2px;
+  font: var(--md-w-regular) var(--md-body-m-size)/1.55 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  margin-top: 4px;
 }
 
-/* ---------- token table ---------- */
+
+/* =============================================================
+   Token table
+   ============================================================ */
 
 table.tokens {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--md-body-m-size);
   margin: 4px 0 18px;
 }
 table.tokens th, table.tokens td {
   text-align: left;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--md-outline-hair);
   vertical-align: top;
 }
 table.tokens th {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.5;
+  font: var(--md-w-semi) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
   text-transform: uppercase;
-  color: var(--ink-3);
-  border-bottom: 1px solid var(--rule);
+  color: var(--md-on-surface-muted);
+  border-bottom: 1px solid var(--md-outline-variant);
 }
 table.tokens td.token {
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 12px;
-  color: var(--accent-2);
+  color: var(--md-tertiary);
   white-space: nowrap;
-  width: 220px;
+  width: 240px;
 }
 table.tokens td.value {
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 12px;
-  color: var(--ink-1);
+  color: var(--md-on-surface);
   white-space: nowrap;
-  width: 140px;
+  width: 160px;
 }
 table.tokens td.note {
-  color: var(--ink-2);
+  color: var(--md-on-surface-variant);
 }
 
-/* ---------- spec card (used everywhere) ---------- */
 
-.spec {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 0;
-  background: white;
-  border: 1px solid var(--rule-soft);
-  border-radius: 16px;            /* --md-shape-lg */
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(20,23,28,0.10), 0 2px 6px 2px rgba(20,23,28,0.06);
-  margin: 18px 0;
-}
-.spec .preview {
-  background: linear-gradient(180deg, #faf9f6, #ece8de);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 28px;
-  border-right: 1px solid var(--rule-soft);
-  min-height: 220px;
-}
-.spec .preview.no-bg { background: white; border-right: 1px solid var(--rule-soft); }
-.spec .meta { padding: 22px 24px; }
-.spec .name {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--accent-2);
-  margin-bottom: 4px;
-}
-.spec .title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.1;
-  margin-bottom: 8px;
-}
-.spec .when {
-  font-size: 12px;
-  color: var(--ink-3);
-  margin-bottom: 12px;
-  line-height: 1.5;
-}
-.spec dl {
-  font-size: 12px;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 4px 12px;
-}
-.spec dt { color: var(--ink-3); font-weight: 500; }
-.spec dd { color: var(--ink-1); margin: 0; font-family: var(--mono); font-size: 11px; }
-
-@media (max-width: 900px) {
-  .spec { grid-template-columns: 1fr; }
-  .spec .preview { border-right: none; border-bottom: 1px solid var(--rule-soft); }
-}
-
-/* ---------- callout boxes ---------- */
+/* =============================================================
+   Callout boxes
+   ============================================================ */
 
 .callout {
-  border-left: 3px solid var(--accent);
-  background: rgba(107, 156, 240, 0.07);
+  border-left: 3px solid var(--md-tertiary);
+  background: color-mix(in srgb, var(--md-tertiary) 6%, transparent);
   padding: 14px 18px;
-  border-radius: 0 8px 8px 0;     /* --md-shape-sm corners */
+  border-radius: 0 var(--md-shape-sm) var(--md-shape-sm) 0;
   margin: 18px 0;
-  font-size: 13px;
-  color: var(--ink-2);
-  line-height: 1.55;
+  font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain);
+  color: var(--md-on-surface-variant);
 }
 .callout.warn {
-  border-left-color: var(--amber);
-  background: rgba(212, 160, 86, 0.08);
+  border-left-color: var(--md-warning);
+  background: color-mix(in srgb, var(--md-warning) 8%, transparent);
 }
 .callout.good {
-  border-left-color: var(--green);
-  background: rgba(111, 179, 128, 0.08);
+  border-left-color: var(--md-success);
+  background: color-mix(in srgb, var(--md-success) 8%, transparent);
 }
 .callout.err {
-  border-left-color: var(--red);
-  background: rgba(217, 106, 106, 0.06);
+  border-left-color: var(--md-error);
+  background: color-mix(in srgb, var(--md-error) 6%, transparent);
 }
-.callout strong { color: var(--ink-1); }
+.callout strong { color: var(--md-on-surface); }
 
-/* ---------- chip styles in prose ---------- */
 
-.tag {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.2;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 9999px;          /* --md-shape-full — M3 chips are pills */
-  background: var(--accent-bg);
-  color: var(--accent-2);
-  vertical-align: 1px;
-}
-.tag.warn { background: rgba(212, 160, 86, 0.14); color: #7a5320; }
-.tag.good { background: rgba(111, 179, 128, 0.14); color: #2f6840; }
-.tag.muted { background: rgba(94, 99, 109, 0.12); color: var(--ink-3); }
-.tag.err  { background: rgba(217, 106, 106, 0.12); color: #8b2f2f; }
-
-/* ---------- big visual frames ---------- */
+/* =============================================================
+   Visual frame — wraps a rendered SVG specimen
+   ============================================================ */
 
 .frame {
-  background: linear-gradient(180deg, #faf9f6, #ece8de);
-  border: 1px solid var(--rule-soft);
-  border-radius: 16px;            /* --md-shape-lg */
+  background: linear-gradient(180deg, var(--md-surface) 0%, var(--md-surface-dim) 100%);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
   padding: 0;
   margin: 18px 0;
   overflow: hidden;
-  box-shadow: 0 4px 8px 3px rgba(20,23,28,0.08), 0 1px 3px 0 rgba(20,23,28,0.10);  /* --md-elev-3 (light) */
+  box-shadow: var(--md-elev-2);
 }
 .frame .frame-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background: rgba(255,255,255,0.55);
-  border-bottom: 1px solid var(--rule-soft);
-  font-size: 11px;
-  letter-spacing: 1.4;
+  background: color-mix(in srgb, var(--md-surface) 60%, transparent);
+  border-bottom: 1px solid var(--md-outline-hair);
+  font: var(--md-w-semi) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
   text-transform: uppercase;
-  font-weight: 600;
-  color: var(--ink-3);
+  color: var(--md-on-surface-muted);
 }
 .frame .frame-head .meta {
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 10px;
-  color: var(--ink-4);
-  letter-spacing: 0.4;
+  color: var(--md-on-surface-faint);
+  letter-spacing: 0.4px;
   text-transform: none;
 }
-.frame svg { display: block; width: 100%; height: auto; }
-.frame img { display: block; width: 100%; height: auto; }
+.frame svg, .frame img { display: block; width: 100%; height: auto; }
 
-/* ---------- dark variant of a frame, for showing dark-theme previews ---------- */
-
+/* Dark variant of frame — for showing dark-theme previews on a light doc page */
 .frame.dark {
-  background: linear-gradient(180deg, #0d0f12, #08090b);  /* --md-surface → --md-surface-dim (dark) */
-  border: 1px solid #262a31;        /* --md-outline-variant (dark) */
-  box-shadow: 0 4px 8px 3px rgba(0,0,0,0.15), 0 1px 3px 0 rgba(0,0,0,0.30);
+  background: linear-gradient(180deg, #0d0f12 0%, #08090b 100%);
+  border-color: #262a31;
+  box-shadow: 0 4px 8px 3px rgba(0,0,0,0.18), 0 1px 3px 0 rgba(0,0,0,0.30);
 }
 .frame.dark .frame-head {
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom: 1px solid #262a31;
-  color: #9aa0ac;                   /* --md-on-surface-muted (dark) */
+  background: rgba(255,255,255,0.04);
+  border-bottom-color: #262a31;
+  color: #9aa0ac;
 }
 .frame.dark .frame-head .meta { color: #7d8290; }
 
-/* ---------- side-by-side light + dark pair ---------- */
+
+/* =============================================================
+   Light + dark pair (side-by-side)
+   ============================================================ */
 
 .pair {
   display: grid;
@@ -548,106 +489,55 @@ table.tokens td.note {
   gap: 14px;
   margin: 18px 0;
 }
-@media (max-width: 1100px) {
-  .pair { grid-template-columns: 1fr; }
-}
+@media (max-width: 1100px) { .pair { grid-template-columns: 1fr; } }
 .pair .frame { margin: 0; }
 .pair .frame .frame-head .theme {
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 10px;
-  letter-spacing: 1.4;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(107, 156, 240, 0.14);
-  color: var(--accent-2);
+  font-weight: var(--md-w-semi);
+  padding: 2px 8px;
+  border-radius: var(--md-shape-full);
+  background: color-mix(in srgb, var(--md-tertiary) 14%, transparent);
+  color: var(--md-tertiary);
 }
 .pair .frame.dark .frame-head .theme {
   background: rgba(107, 156, 240, 0.20);
   color: #d6e3ff;
 }
 
-/* ---------- dark-theme swatches in dark-token tables ---------- */
-
-.swatch.dark { background: #0d0f12; }
-.swatch.dark .hex { background: rgba(255, 255, 255, 0.10); color: #ffffff; }
-
-/* ---------- token table that pairs light & dark values in two columns ---------- */
-
-table.tokens-paired {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  margin: 4px 0 18px;
+.swatch.dark {
+  background: #0d0f12;
 }
-table.tokens-paired th, table.tokens-paired td {
-  text-align: left;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--rule-soft);
-  vertical-align: top;
-}
-table.tokens-paired th {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.5;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  border-bottom: 1px solid var(--rule);
-}
-table.tokens-paired td.token {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--accent-2);
-  white-space: nowrap;
-  width: 200px;
-}
-table.tokens-paired td.value,
-table.tokens-paired td.value-dark {
-  font-family: var(--mono);
-  font-size: 12px;
-  white-space: nowrap;
-  width: 180px;
-}
-table.tokens-paired td.value { color: var(--ink-1); }
-table.tokens-paired td.value-dark { color: var(--accent-2); background: rgba(107, 156, 240, 0.06); }
-table.tokens-paired td.note { color: var(--ink-2); }
-table.tokens-paired th.dark-col {
-  color: var(--accent);
-  background: rgba(107, 156, 240, 0.06);
+.swatch.dark .hex {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
 }
 
-/* tiny inline color chip used in token tables */
-.chip-color {
-  display: inline-block;
-  width: 11px;
-  height: 11px;
-  border-radius: 3px;
-  vertical-align: -1px;
-  margin-right: 6px;
-  border: 1px solid rgba(0,0,0,0.1);
-}
 
-/* ---------- "theme model" banner block for foundations §01.0 ---------- */
+/* =============================================================
+   Theme-banner block (for foundations §01.0 "theme model")
+   ============================================================ */
 
 .theme-banner {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
-  border: 1px solid var(--rule-soft);
-  border-radius: 16px;
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
   overflow: hidden;
   margin: 18px 0 28px;
-  box-shadow: 0 4px 8px 3px rgba(20,23,28,0.08), 0 1px 3px 0 rgba(20,23,28,0.10);
+  box-shadow: var(--md-elev-2);
 }
 .theme-banner > div {
   padding: 28px 28px 26px;
-  font-family: var(--font);
+  font-family: var(--md-font-plain);
 }
 .theme-banner .lt {
   background: linear-gradient(180deg, #faf9f6, #ece8de);
-  color: var(--ink-1);
-  border-right: 1px solid var(--rule-soft);
+  color: #04060a;
+  border-right: 1px solid var(--md-outline-hair);
 }
 .theme-banner .dk {
   background: linear-gradient(180deg, #0d0f12, #08090b);
@@ -655,51 +545,54 @@ table.tokens-paired th.dark-col {
 }
 .theme-banner .badge {
   display: inline-block;
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 10px;
-  letter-spacing: 1.6;
+  letter-spacing: var(--md-label-m-track);
   text-transform: uppercase;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 9999px;
+  font-weight: var(--md-w-semi);
+  padding: 4px 10px;
+  border-radius: var(--md-shape-full);
   margin-bottom: 14px;
 }
 .theme-banner .lt .badge {
-  background: rgba(107, 156, 240, 0.14);
-  color: var(--accent-2);
+  background: color-mix(in srgb, #6b9cf0 14%, transparent);
+  color: #3a6ec9;
 }
 .theme-banner .dk .badge {
   background: rgba(107, 156, 240, 0.20);
   color: #d6e3ff;
 }
 .theme-banner h3 {
-  font-family: var(--font-brand);
+  font: var(--md-w-medium) var(--md-title-l-size)/var(--md-title-l-lh) var(--md-font-brand);
   margin: 0 0 8px;
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.2;
+  letter-spacing: -0.2px;
 }
 .theme-banner .dk h3 { color: #ffffff; }
 .theme-banner p {
-  font-size: 13px;
+  font-size: var(--md-body-m-size);
   line-height: 1.55;
   margin: 0 0 10px;
 }
-.theme-banner .lt p { color: var(--ink-2); }
-.theme-banner .dk p { color: #b4bac4; }   /* --md-on-surface-variant (dark) */
+.theme-banner .lt p { color: #3a3f47; }
+.theme-banner .dk p { color: #b4bac4; }
 .theme-banner code {
-  font-family: var(--mono);
+  font-family: var(--md-font-data);
   font-size: 11px;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--md-shape-xs);
 }
-.theme-banner .lt code { background: rgba(107, 156, 240, 0.12); color: var(--accent-2); }
+.theme-banner .lt code { background: color-mix(in srgb, #6b9cf0 12%, transparent); color: #3a6ec9; }
 .theme-banner .dk code { background: rgba(107, 156, 240, 0.20); color: #d6e3ff; }
 
 @media (max-width: 900px) {
   .theme-banner { grid-template-columns: 1fr; }
-  .theme-banner .lt { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+  .theme-banner .lt { border-right: none; border-bottom: 1px solid var(--md-outline-hair); }
 }
+
+
+/* =============================================================
+   Spec list (checked items)
+   ============================================================ */
 
 ul.checks {
   list-style: none;
@@ -708,11 +601,10 @@ ul.checks {
 }
 ul.checks li {
   position: relative;
-  padding-left: 22px;
-  font-size: 13px;
-  color: var(--ink-2);
-  line-height: 1.55;
-  margin-bottom: 6px;
+  padding-left: 24px;
+  font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  margin-bottom: 8px;
 }
 ul.checks li::before {
   content: "";
@@ -722,7 +614,183 @@ ul.checks li::before {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--md-tertiary);
 }
-ul.checks li.no::before { background: var(--red); }
-ul.checks li.ok::before { background: var(--green); }
+ul.checks li.no::before { background: var(--md-error); }
+ul.checks li.ok::before { background: var(--md-success); }
+
+
+/* =============================================================
+   Material Symbols Outlined — base sizing
+   (Material doc pages load the Material Symbols Outlined font via
+   the same Google Fonts <link> the V2 app uses.)
+   ============================================================ */
+
+.ms {
+  font-family: 'Material Symbols Outlined';
+  font-weight: 400;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  vertical-align: middle;
+  user-select: none;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.ms-32 { font-size: 32px; }
+.ms-24 { font-size: 24px; }
+.ms-20 { font-size: 20px; }
+.ms-18 { font-size: 18px; }
+.ms-16 { font-size: 16px; }
+
+
+/* =============================================================
+   Icon grid (for icons.html — Material Symbols catalogue)
+   ============================================================ */
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
+  overflow: hidden;
+  box-shadow: var(--md-elev-1);
+  margin: 14px 0 32px;
+}
+@media (max-width: 1100px) { .icon-grid { grid-template-columns: repeat(4, 1fr); } }
+.icon-cell {
+  padding: 20px 14px 18px;
+  border-right: 1px solid var(--md-outline-hair);
+  border-bottom: 1px solid var(--md-outline-hair);
+  text-align: center;
+  background: var(--md-surface-container-lowest);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.icon-cell .ms { color: var(--md-on-surface); }
+.icon-cell .name {
+  font-family: var(--md-font-data);
+  font-size: 11px;
+  color: var(--md-tertiary);
+  margin-top: 4px;
+}
+.icon-cell .desc {
+  font: var(--md-w-regular) var(--md-body-s-size)/1.3 var(--md-font-plain);
+  color: var(--md-on-surface-muted);
+}
+.cat-head {
+  grid-column: 1 / -1;
+  background: var(--md-surface-container);
+  padding: 12px 18px;
+  font: var(--md-w-semi) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
+  text-transform: uppercase;
+  color: var(--md-on-surface-muted);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+
+/* =============================================================
+   Spec / template contract block (used in templates.html)
+   ============================================================ */
+
+.contract {
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
+  overflow: hidden;
+  box-shadow: var(--md-elev-1);
+  margin: 14px 0 28px;
+}
+.contract .ch {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container);
+}
+.contract .ch .name {
+  font-family: var(--md-font-data);
+  font-size: 12px;
+  color: var(--md-tertiary);
+}
+.contract .ch .title {
+  font: var(--md-w-medium) var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-brand);
+  color: var(--md-on-surface);
+  margin-top: 4px;
+  letter-spacing: -0.2px;
+}
+.contract .body {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.contract .body .field {
+  padding: 18px 24px;
+  border-right: 1px solid var(--md-outline-hair);
+}
+.contract .body .field:last-child { border-right: none; }
+.contract .body .field .lbl {
+  font: var(--md-w-semi) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  margin-bottom: 8px;
+}
+.contract .body .field .val {
+  font: var(--md-w-regular) var(--md-body-s-size)/1.55 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.contract .body .field code {
+  background: color-mix(in srgb, var(--md-tertiary) 10%, transparent);
+  color: var(--md-tertiary);
+  padding: 1px 5px;
+  border-radius: var(--md-shape-xs);
+  font-size: 11px;
+}
+@media (max-width: 1100px) {
+  .contract .body { grid-template-columns: repeat(2, 1fr); }
+  .contract .body .field:nth-child(2n) { border-right: none; }
+  .contract .body .field { border-bottom: 1px solid var(--md-outline-hair); }
+}
+.contract .anti {
+  padding: 14px 24px;
+  background: color-mix(in srgb, var(--md-error) 5%, transparent);
+  border-top: 1px solid var(--md-outline-hair);
+  font: var(--md-w-regular) var(--md-body-s-size)/1.55 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.contract .anti strong {
+  color: var(--md-error);
+  font-size: var(--md-label-s-size);
+  letter-spacing: var(--md-label-s-track);
+  text-transform: uppercase;
+  margin-right: 8px;
+  font-weight: var(--md-w-semi);
+}
+
+
+/* =============================================================
+   Mode badge (replaces the v2-derived tag chip pattern)
+   ============================================================ */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--md-w-semi) var(--md-label-s-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-s-track);
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--md-shape-full);
+  background: color-mix(in srgb, var(--md-tertiary) 14%, transparent);
+  color: var(--md-tertiary);
+  vertical-align: middle;
+}
+.tag.warn { background: color-mix(in srgb, var(--md-warning) 14%, transparent); color: var(--md-warning); }
+.tag.good { background: color-mix(in srgb, var(--md-success) 14%, transparent); color: var(--md-success); }
+.tag.err  { background: color-mix(in srgb, var(--md-error) 14%, transparent); color: var(--md-error); }
+.tag.muted{ background: color-mix(in srgb, var(--md-on-surface-faint) 14%, transparent); color: var(--md-on-surface-muted); }

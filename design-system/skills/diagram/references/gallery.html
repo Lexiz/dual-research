@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design systems · dual-research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --bg-2: #11141a;
+    --bg-3: #181c24;
+    --ink-1: #ffffff;
+    --ink-2: #c7ccd6;
+    --ink-3: #9aa0ac;
+    --ink-4: #6f7480;
+    --rule: rgba(255,255,255,0.10);
+    --rule-soft: rgba(255,255,255,0.06);
+    --tab-bg: rgba(255,255,255,0.03);
+    --tab-hover: rgba(255,255,255,0.06);
+    --tab-active-bg: rgba(107,156,240,0.16);
+    --tab-active-fg: #d6e3ff;
+    --tab-active-border: #6b9cf0;
+    --sans: "Roboto Flex", "Roboto", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --serif: "Roboto Serif", ui-serif, Charter, Georgia, serif;
+    --mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    height: 100vh;
+    overflow: hidden;
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink-1);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ───── top tab bar ───── */
+  .topbar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 24px;
+    align-items: stretch;
+    height: 64px;
+    border-bottom: 1px solid var(--rule);
+    background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+    padding: 0 24px;
+  }
+  .topbar .title {
+    display: flex; align-items: center; gap: 12px;
+    padding-right: 24px;
+    border-right: 1px solid var(--rule);
+  }
+  .topbar .title .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #6b9cf0;
+    box-shadow: 0 0 0 3px rgba(107,156,240,0.18);
+  }
+  .topbar .title h1 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.2;
+    color: var(--ink-1);
+  }
+  .topbar .title .sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.6;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .topbar .title .stack {
+    display: flex; flex-direction: column; justify-content: center;
+  }
+
+  .topbar nav.tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .topbar nav.tabs a {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8px 18px;
+    text-decoration: none;
+    color: var(--ink-3);
+    border-radius: 10px;
+    margin: 8px 0;
+    background: var(--tab-bg);
+    border: 1px solid transparent;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+    min-width: 200px;
+  }
+  .topbar nav.tabs a:hover {
+    background: var(--tab-hover);
+    color: var(--ink-1);
+  }
+  .topbar nav.tabs a.active {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
+    border-color: var(--tab-active-border);
+  }
+  .topbar nav.tabs a .label {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.1;
+    line-height: 1;
+  }
+  .topbar nav.tabs a .meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.3;
+    margin-top: 4px;
+    line-height: 1.2;
+  }
+  .topbar nav.tabs a.active .meta {
+    color: rgba(214, 227, 255, 0.7);
+  }
+
+  .topbar .actions {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar .actions .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.4;
+    padding: 4px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 9999px;
+  }
+  .topbar .actions a.open-new {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .topbar .actions a.open-new:hover {
+    color: var(--ink-1);
+    border-color: var(--tab-active-border);
+  }
+  .topbar .actions a.open-new::after {
+    content: " ↗";
+    font-size: 11px;
+    margin-left: 2px;
+    color: var(--ink-4);
+  }
+
+  /* ───── iframe stage ───── */
+  .stage {
+    width: 100%;
+    height: calc(100vh - 64px);
+    background: var(--bg);
+    position: relative;
+  }
+  .stage iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--bg);
+  }
+
+  /* keyboard hint footer */
+  .keyhint {
+    position: absolute;
+    bottom: 12px; right: 16px;
+    z-index: 5;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    background: rgba(10, 12, 16, 0.85);
+    backdrop-filter: blur(8px);
+    padding: 6px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    letter-spacing: 0.3;
+  }
+  .keyhint kbd {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-2);
+    background: var(--bg-3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--rule-soft);
+    margin: 0 2px;
+  }
+
+  @media (max-width: 1100px) {
+    .topbar { grid-template-columns: 1fr; gap: 0; height: auto; padding: 12px 16px; }
+    .topbar .title { border-right: none; border-bottom: 1px solid var(--rule); padding: 0 0 12px; }
+    .topbar nav.tabs { overflow-x: auto; padding-top: 12px; }
+    .topbar nav.tabs a { min-width: 160px; flex-shrink: 0; }
+    .topbar .actions { display: none; }
+    .stage { height: calc(100vh - 180px); }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="title">
+    <span class="dot"></span>
+    <div class="stack">
+      <h1>Design systems</h1>
+      <span class="sub">dual-research · 3 surfaces</span>
+    </div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <a data-tab="app" data-src="app-v2/design-system-v2.html" class="active">
+      <span class="label">App · Design System v2</span>
+      <span class="meta">dual-research · M3 · sable + sage · production</span>
+    </a>
+    <a data-tab="pixel" data-src="pixel/flow.html">
+      <span class="label">Diagram · Pixel</span>
+      <span class="meta">diagram skill · cream + indigo · Inter</span>
+    </a>
+    <a data-tab="material" data-src="material/flow.html">
+      <span class="label">Diagram · Material</span>
+      <span class="meta">diagram skill · M3 · Roboto Flex + Serif</span>
+    </a>
+  </nav>
+
+  <div class="actions">
+    <a class="open-new" id="open-new" target="_blank">Open in new tab</a>
+  </div>
+</header>
+
+<div class="stage">
+  <iframe id="stage" src="app-v2/design-system-v2.html" title="Design system"></iframe>
+  <div class="keyhint">
+    <kbd>1</kbd> App &nbsp; <kbd>2</kbd> Pixel &nbsp; <kbd>3</kbd> Material
+  </div>
+</div>
+
+<script>
+  const tabsEl = document.getElementById('tabs');
+  const stage = document.getElementById('stage');
+  const openNew = document.getElementById('open-new');
+  const tabs = Array.from(tabsEl.querySelectorAll('a'));
+  const tabMap = new Map(tabs.map(a => [a.dataset.tab, a]));
+
+  function setTab(name, opts = {}) {
+    const a = tabMap.get(name);
+    if (!a) return;
+    tabs.forEach(t => t.classList.toggle('active', t === a));
+    if (stage.src !== new URL(a.dataset.src, location.href).href) {
+      stage.src = a.dataset.src;
+    }
+    openNew.href = a.dataset.src;
+    if (!opts.skipHash) {
+      const newHash = '#' + name;
+      if (location.hash !== newHash) {
+        history.replaceState(null, '', newHash);
+      }
+    }
+    document.title = a.querySelector('.label').textContent + ' · design systems';
+  }
+
+  // Wire clicks
+  tabs.forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      setTab(a.dataset.tab);
+    });
+  });
+
+  // Initial state from URL hash
+  const initial = (location.hash || '#app').slice(1);
+  if (tabMap.has(initial)) {
+    setTab(initial, { skipHash: true });
+  }
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === '1') setTab('app');
+    else if (e.key === '2') setTab('pixel');
+    else if (e.key === '3') setTab('material');
+  });
+
+  // Sync if user hits back/forward
+  window.addEventListener('hashchange', () => {
+    const name = (location.hash || '#app').slice(1);
+    if (tabMap.has(name)) setTab(name, { skipHash: true });
+  });
+</script>
+
+</body>
+</html>
