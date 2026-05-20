@@ -14,8 +14,10 @@ function parseHash(hash) {
   // Normalize: '', '/' → list
   if (h === '' || h === '/') return { view: 'list' };
   if (h === '/language') return { view: 'language' };
-  if (h === '/settings') return { view: 'settings' };
-  if (h === '/how-it-works') return { view: 'how-it-works' };
+  // Spec 0125 — /settings supports a sub-hash for its sub-tabs
+  // (e.g. /settings#users), so we match the prefix.
+  if (h === '/settings' || h.startsWith('/settings#')) return { view: 'settings' };
+  if (h === '/how-it-works' || h.startsWith('/how-it-works#')) return { view: 'how-it-works' };
   if (h === '/compare') return { view: 'compare' };
   if (h === '/search') return { view: 'search' };
   // Spec 0125 — /admin/users folded into /settings#users.
