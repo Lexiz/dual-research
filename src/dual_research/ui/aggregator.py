@@ -1740,4 +1740,48 @@ def _attach_item_aggregation(run, transcript_path, session_dir=None):
                 existing = slot.get(ui_agent) or TurnStats()
                 existing.categories = cat_stats
                 slot[ui_agent] = existing
+
+    # Spec 0122 — carry-forward standing for rounds where neither agent
+    # raised or transitioned anything (e.g. both agents emit
+    # ``STATUS: AGREED`` with empty operation arrays before convergence
+    # is actually reached). Without this, the timeline card for that
+    # round renders no chips at all instead of "0 +0/-0 on standing N".
+    _fill_carry_forward_categories(run)
     return bundle
+
+
+def _fill_carry_forward_categories(run) -> None:
+    """For every round file present on disk where ``stats.categories``
+    is None, populate it with a carry-forward ``TurnCategoryStats`` whose
+    ``standing`` matches the same agent's most recent populated round.
+    ``raised`` and ``closed`` stay at zero — nothing happened that round.
+
+    This is a presentation fix only: convergence math reads from
+    ``phase_ledgers`` (the item pipeline), which already accounts for
+    every item regardless of whether the round had any operations.
+    """
+    from dual_research.ui.models import CategoryCounters, TurnCategoryStats
+    for phase_dict in (run.phase_stats.phase2, run.phase_stats.phase4):
+        if not phase_dict:
+            continue
+        # Per-agent running standing across rounds, in ascending order.
+        running: dict[str, dict[str, int]] = {}
+        for round_no in sorted(phase_dict.keys()):
+            for ui_agent, ts in phase_dict[round_no].items():
+                agent_run = running.setdefault(ui_agent, {
+                    "questions": 0, "disagreements": 0,
+                    "issues": 0, "comments": 0,
+                })
+                if ts.categories is None:
+                    # Carry-forward: zeros for raised/closed; standing
+                    # inherits the prior round's running total.
+                    new_cats = TurnCategoryStats()
+                    for kind in ("questions", "disagreements", "issues", "comments"):
+                        getattr(new_cats, kind).standing = agent_run[kind]
+                    ts.categories = new_cats
+                else:
+                    # Update running totals from this round's absolute
+                    # standing (``_finalise_running_totals`` already
+                    # converted deltas to absolutes).
+                    for kind in ("questions", "disagreements", "issues", "comments"):
+                        agent_run[kind] = getattr(ts.categories, kind).standing
