@@ -656,6 +656,17 @@ body.light .tab-group.tabs-solid .tab.is-active,
   cursor: pointer;
 }
 .tl-card-head > .spacer { flex: 1; min-width: 8px; }
+/* Spec 0124 — right-aligned cluster (Q/D/I/C counters + status check
+   + chevron). margin-left:auto pushes it to the trailing edge so the
+   left group is just [agent] [turn/brief]. Tighter inner gap so the
+   cluster reads as one stack on the right edge across a column of
+   cards. */
+.tl-card-head__right {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .tl-card-chev,
 .crit-card-chev {
   display: inline-flex; align-items: center; justify-content: center;
@@ -674,15 +685,41 @@ body.light .tab-group.tabs-solid .tab.is-active,
 /* Spec 0119 §8.3 — critique-pane filter row (the legend). Same
    chip primitives across the entire row; the leading dividers are
    visual separators between the kind cluster, the open/resolved
-   cluster, and the agent cluster. */
-.crit-filter-row {
+   cluster, and the agent cluster.
+   Spec 0124 — height parity with .tl__tabs (55 px) and nowrap so the
+   row can't grow on narrow viewports. Selectors below intentionally
+   carry .crit2 .bar2 prefixes so they beat the shared .crit2 .bar2
+   rule at line ~1870 (which sets flex-wrap: wrap + padding: 10px 20px). */
+.crit2 .bar2.crit-filter-row {
   display: flex; align-items: center; gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   padding: 10px 14px;
+  min-height: 55px;
   border-bottom: 1px solid var(--md-outline-hair);
 }
 .crit-filter-spacer {
   width: 12px; height: 1px; flex: 0 0 12px;
+}
+
+/* Spec 0124 — narrow-desktop compaction. Below 1500 px the kind-filter
+   chips (Questions/Disagreements/Issues/Comments/All) collapse to
+   bubble+count only; status and agent chips keep their labels but the
+   row tightens via reduced gap and thinner spacers. Reuses the same
+   1499 px narrow-desktop breakpoint used at line 902 (.agent-input).
+   Targets are tagged with data-kind-filter at the call site in
+   run-detail.jsx so the rule is local and the Chip primitive stays
+   single-purpose. */
+@media (max-width: 1499px) {
+  .crit2 .bar2.crit-filter-row {
+    gap: 4px;
+    padding: 10px 10px;
+  }
+  .crit2 .bar2.crit-filter-row .chip[data-kind-filter] .chip-label {
+    display: none;
+  }
+  .crit2 .bar2.crit-filter-row .crit-filter-spacer {
+    width: 6px; flex: 0 0 6px;
+  }
 }
 
 /* Spec 0119 §8.4 — critique card header. Same anatomy as the

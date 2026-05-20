@@ -1115,47 +1115,53 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
           <Chip mono tone="neutral" label={activityLabel.toLowerCase()} />
         )}
 
-        {/* Spec 0119 §8.1 — per-category summary chips in fixed
-            Q→D→I→C order. Always present (zero-activity dims to
-            0.55 opacity) so columns align across rounds. Clicking
-            a chip jumps the critique pane to (category, round). */}
-        {showCategoryChips && chipCategories.map((cat) => {
-          const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
-          const noActivity = (c.raised + c.closed) === 0;
-          return (
-            <Chip
-              key={cat}
-              tone={CATEGORY_TONE[cat]}
-              categoryBubble={CATEGORY_BUBBLE[cat]}
-              value={c.standing}
-              add={c.raised}
-              sub={c.closed}
-              trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
-              dim={noActivity}
-              ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                dispatchCritiqueJump({
-                  category: cat,
-                  round: item.round,
-                  phase,
-                });
-              }}
-            />
-          );
-        })}
+        {/* Spec 0124 — right-aligned cluster: per-category Q/D/I/C
+            counter chips + status chip + chevron. margin-left:auto on
+            .tl-card-head__right pins it to the trailing edge so the
+            left group reads as [agent] [turn/brief] and the right
+            edge reads as a stable counters→status→expand stack across
+            a column of cards. */}
+        <div className="tl-card-head__right">
+          {/* Spec 0119 §8.1 — per-category summary chips in fixed
+              Q→D→I→C order. Always present (zero-activity dims to
+              0.55 opacity) so columns align across rounds. Clicking
+              a chip jumps the critique pane to (category, round). */}
+          {showCategoryChips && chipCategories.map((cat) => {
+            const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
+            const noActivity = (c.raised + c.closed) === 0;
+            return (
+              <Chip
+                key={cat}
+                tone={CATEGORY_TONE[cat]}
+                categoryBubble={CATEGORY_BUBBLE[cat]}
+                value={c.standing}
+                add={c.raised}
+                sub={c.closed}
+                trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
+                dim={noActivity}
+                ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatchCritiqueJump({
+                    category: cat,
+                    round: item.round,
+                    phase,
+                  });
+                }}
+              />
+            );
+          })}
 
-        <span className="spacer" />
+          <TlStatusChip item={item} isLive={isLive} />
 
-        <TlStatusChip item={item} isLive={isLive} />
-
-        <span
-          className="tl-card-chev"
-          aria-hidden="true"
-          data-open={isOpen ? 'true' : undefined}
-        >
-          <Icon.Chevron />
-        </span>
+          <span
+            className="tl-card-chev"
+            aria-hidden="true"
+            data-open={isOpen ? 'true' : undefined}
+          >
+            <Icon.Chevron />
+          </span>
+        </div>
       </header>
 
       {isOpen && (
@@ -6129,6 +6135,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
               value={kindCounts[cat] || 0}
               onClick={() => setKindFilter(cat)}
               data-active={kindFilter === cat ? 'true' : undefined}
+              data-kind-filter="true"
               title={`Show only ${CATEGORY_LABEL_PLURAL[cat]}`}
             />
           ))}
@@ -6138,6 +6145,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
             value={kindCounts.all || 0}
             onClick={() => setKindFilter('all')}
             data-active={kindFilter === 'all' ? 'true' : undefined}
+            data-kind-filter="true"
             title="Show all critique item types"
           />
           <span className="crit-filter-spacer" aria-hidden="true" />
