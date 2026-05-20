@@ -153,7 +153,7 @@ function CrossRunSearchScreen({ navigate }) {
                 {group.displayId}
               </span>
               <span style={{
-                fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
+                fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {group.topic || group.runId}

@@ -2329,7 +2329,7 @@ function CostsCluster({ usage, outputCost }) {
         )}
         <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
         <span>Total:{' '}
-          <span className="num" style={{ color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>
+          <span className="num" style={{ color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>
             {fmt.cost(total)}
           </span>
         </span>
@@ -2895,7 +2895,7 @@ function ConsumptionEmptyState() {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', gap: 12,
     }}>
-      <div style={{ fontSize: 13, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>
+      <div style={{ fontSize: 13, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>
         No per-turn token data
       </div>
       <div className="mono" style={{
@@ -7029,10 +7029,10 @@ function ProgressionStep({ step, last, pending }) {
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>R{step.round}</span>
           )}
           {meta && (
-            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>{meta.name}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>{meta.name}</span>
           )}
           {step.agent === 'both' && (
-            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>Both agents</span>
+            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>Both agents</span>
           )}
           <span className="mono" style={{
             fontSize: 10.5, color: actionColor, letterSpacing: '0.02em',

@@ -424,7 +424,7 @@ function AvatarMenu({ navigate, route, client, session, me }) {
           boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
         }}>
           <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--md-outline-hair)', marginBottom: 4 }}>
-            <div style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500, lineHeight: 1.2 }}>
+            <div style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)', lineHeight: 1.2 }}>
               {fullName}
             </div>
             <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2 }}>

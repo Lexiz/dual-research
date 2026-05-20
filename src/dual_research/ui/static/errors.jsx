@@ -191,7 +191,7 @@ function ErrorsView() {
         }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
           <span style={{ color: COLORS.err }}><Icon.Warn /></span>
-          <span style={{ fontSize: 14, color: 'var(--md-on-surface)', fontWeight: 600 }}>Errors</span>
+          <span style={{ fontSize: 14, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>Errors</span>
           <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
             {ERRORS_LOG.length} total · last 7 days
           </span>

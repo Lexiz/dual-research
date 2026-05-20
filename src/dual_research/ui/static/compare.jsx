@@ -226,7 +226,7 @@ function RunSummaryPanel({ run, label, navigate }) {
           )}
         </div>
         <div style={{
-          fontSize: 14, color: 'var(--md-on-surface)', fontWeight: 500,
+          fontSize: 14, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
           cursor: 'pointer',
         }}
         onClick={() => navigate('detail', run.id)}
@@ -279,7 +279,7 @@ function PhaseCard({ phase, index }) {
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <span style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface)',
+          fontSize: 12, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)',
         }}>
           {label}
         </span>
@@ -385,7 +385,7 @@ function DeltaColumn({ runA, runB }) {
       background: 'var(--md-surface)',
     }}>
       <div style={{
-        fontSize: 10, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+        fontSize: 10, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
         textTransform: 'uppercase', letterSpacing: '0.06em',
         marginBottom: 12, textAlign: 'center',
       }}>
@@ -408,7 +408,7 @@ function DeltaColumn({ runA, runB }) {
           borderRadius: 'var(--md-shape-sm)',
         }}>
           <div style={{
-            fontSize: 10, fontWeight: 600, color: 'var(--warn)',
+            fontSize: 10, fontWeight: 'var(--md-w-semi)', color: 'var(--warn)',
             marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4,
           }}>
             <span style={{ fontSize: 11 }}>&#916;</span>
