@@ -40,6 +40,7 @@ from dual_research.events import (
     ItemRaised,
     ItemTransitioned,
     Phase0Complete,
+    Phase0RoundComplete,
     Phase1Complete,
     Phase2Complete,
     Phase2RoundComplete,
@@ -423,8 +424,19 @@ async def _publish_legacy_round_complete(
 
     The legacy counter fields stay at their None defaults; all
     per-category data now flows via ItemRaised / ItemTransitioned.
+
+    Spec 0135 — Phase 0 now emits its own ``Phase0RoundComplete`` per
+    round so the UI can render the same per-round-per-agent timeline
+    cards Phase 2 / Phase 4 already render.
     """
-    if phase_int == 2:
+    if phase_int == 0:
+        await bus.publish(Phase0RoundComplete(
+            round=round,
+            agreed=agreed,
+            claude_status=claude_status,
+            openai_status=openai_status,
+        ))
+    elif phase_int == 2:
         await bus.publish(Phase2RoundComplete(
             round=round,
             agreed=agreed,
@@ -439,7 +451,6 @@ async def _publish_legacy_round_complete(
             openai_status=openai_status,
             draft_round=ctx.state.draft_round,
         ))
-    # Phase 0 has no per-round event in the legacy schema.
 
 
 # ─── Phase 0 ──────────────────────────────────────────────────────────

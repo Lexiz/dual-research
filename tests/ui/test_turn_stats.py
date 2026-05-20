@@ -57,6 +57,55 @@ class TestBuildPhaseStatsSynthetic:
         assert ps.phase0["gpt"].status == "BRIEF_NEEDS_INPUT"
         assert ps.phase0["gpt"].brief_issues == 5
 
+    def test_phase0_multi_round_parsed_round_keyed(self, tmp_path):
+        # Spec 0135 — new-protocol Phase 0 round files take precedence
+        # over legacy preflight-{agent}.md (the legacy fallback only
+        # fires when no round files exist).
+        _make_round(tmp_path, 0, 1, "claude", dedent("""\
+            STATUS: NEGOTIATING
+            OPEN_QUESTIONS: 3
+            BRIEF_ISSUES: 2
+            BLOCKING_DISAGREEMENTS: 1
+        """))
+        _make_round(tmp_path, 0, 1, "openai", dedent("""\
+            STATUS: NEGOTIATING
+            OPEN_QUESTIONS: 2
+            BRIEF_ISSUES: 1
+            BLOCKING_DISAGREEMENTS: 0
+        """))
+        _make_round(tmp_path, 0, 2, "claude", dedent("""\
+            STATUS: AGREED
+            OPEN_QUESTIONS: 0
+            BRIEF_ISSUES: 0
+            BLOCKING_DISAGREEMENTS: 0
+        """))
+        _make_round(tmp_path, 0, 2, "openai", dedent("""\
+            STATUS: AGREED
+            OPEN_QUESTIONS: 0
+            BRIEF_ISSUES: 0
+            BLOCKING_DISAGREEMENTS: 0
+        """))
+        ps = build_phase_stats(tmp_path)
+        # Round-keyed shape: int keys.
+        assert set(ps.phase0.keys()) == {1, 2}
+        assert ps.phase0[1]["claude"].status == "NEGOTIATING"
+        assert ps.phase0[1]["claude"].open_questions == 3
+        assert ps.phase0[1]["claude"].brief_issues == 2
+        assert ps.phase0[1]["gpt"].open_questions == 2
+        assert ps.phase0[2]["claude"].status == "AGREED"
+        assert ps.phase0[2]["gpt"].status == "AGREED"
+
+    def test_phase0_legacy_fallback_when_no_round_files(self, tmp_path):
+        # Pre-0114 transcripts: only ``preflight-{agent}.md`` exists; the
+        # builder produces the legacy per-agent shape.
+        _make_phase0(tmp_path, "claude", "STATUS: BRIEF_OK\nBRIEF_ISSUES: 0\n")
+        _make_phase0(tmp_path, "openai", "STATUS: BRIEF_OK\nBRIEF_ISSUES: 1\n")
+        ps = build_phase_stats(tmp_path)
+        # Legacy shape: string keys (agent names).
+        assert set(ps.phase0.keys()) == {"claude", "gpt"}
+        assert ps.phase0["claude"].status == "BRIEF_OK"
+        assert ps.phase0["gpt"].brief_issues == 1
+
     def test_phase1_drafts_parse_negotiation_markers_when_present(self, tmp_path):
         _make_phase1(tmp_path, "claude", dedent("""\
             # Independent plan — claude
