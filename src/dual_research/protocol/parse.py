@@ -928,14 +928,67 @@ def _other_section_patterns(this: "re.Pattern[str]") -> list["re.Pattern[str]"]:
 
 
 def _extract_section_body(text: str, pattern: "re.Pattern[str]") -> str | None:
-    m = pattern.search(text)
-    if not m:
+    """Return the body of the section identified by ``pattern``.
+
+    Spec 0122 follow-up: agents sometimes emit duplicate section
+    headings — typically a "private reasoning" preamble with a stray
+    ``## Stance`` / ``## Addressing items raised against me`` followed
+    by the canonical structured turn. The naive ``pattern.search(...)``
+    grabs the FIRST occurrence, which for the duplicate-heading case
+    points at the freeform preamble and contains none of the real
+    operation blocks.
+
+    Heuristic: when a section heading matches multiple times, score
+    each candidate body by how many operation-block openers it contains
+    and keep the highest-scoring body. Ties break by the LATER position
+    (the canonical structure typically follows any preamble). When all
+    candidates score zero (e.g. the section legitimately has no
+    operation blocks, like ``## Stance`` itself), the FIRST occurrence
+    wins — matching legacy behaviour.
+    """
+    matches = list(pattern.finditer(text))
+    if not matches:
         return None
-    return _section_body(
-        text,
-        start_match=m,
-        end_patterns=_other_section_patterns(pattern),
-    ).strip() or None
+    if len(matches) == 1:
+        return _section_body(
+            text,
+            start_match=matches[0],
+            end_patterns=_other_section_patterns(pattern),
+        ).strip() or None
+
+    end_patterns = _other_section_patterns(pattern)
+    best_body: str | None = None
+    best_score: tuple[int, int] = (-1, -1)
+    for m in matches:
+        body = _section_body(
+            text, start_match=m, end_patterns=end_patterns,
+        ).strip()
+        score = _operation_block_density(body)
+        # Higher density wins; on tie, the later occurrence wins.
+        key = (score, m.start())
+        if key > best_score:
+            best_score = key
+            best_body = body or None
+    return best_body
+
+
+# Block openers we use to score section candidates. Cheap substring
+# checks — false positives don't matter since the operation parser
+# re-validates each opener with its full regex.
+_OP_OPENER_SNIPPETS = (
+    "### RAISE",
+    "### ADDRESS",
+    "### RESOLVE",
+    "### ACKNOWLEDGE",
+    "### WITHDRAW",
+)
+
+
+def _operation_block_density(body: str) -> int:
+    """Cheap heuristic — count operation-block openers in ``body``."""
+    if not body:
+        return 0
+    return sum(body.count(snippet) for snippet in _OP_OPENER_SNIPPETS)
 
 
 # ─── Operation-block extraction ───────────────────────────────────────

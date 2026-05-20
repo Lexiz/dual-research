@@ -52,24 +52,30 @@ SECTION_CLOSEOUT_CONSTRAINTS_RE = re.compile(
 
 # ─── Operation-block headings (### level) ─────────────────────────────
 
-OP_RAISE_RE = re.compile(r"^###\s+RAISE\b\s*$", re.MULTILINE)
+OP_RAISE_RE = re.compile(r"^###\s+RAISE\b", re.MULTILINE)
 # ADDRESS / RESOLVE / ACKNOWLEDGE / WITHDRAW are all followed by an
-# item ID on the same line. The trailing portion may be the item ID or
-# empty (the parser handles the empty case as malformed).
+# item ID on the same line. The ID is constrained to the canonical
+# spec-0114 format (``ID_PATTERN`` in ``contract/ids.py``) so the
+# parser stops cleanly at the end of the ID even when agents glue the
+# response body onto the same line without a newline (e.g.
+# ``### ADDRESS Q-plan-c-01The rest of the response...``). Spec 0122
+# follow-up: the previous ``\S+\s*$`` form rejected those glued lines
+# entirely, silently dropping every ADDRESS operation in the turn.
+_ID_TAIL = r"(?:\s+(?P<id>[QDIC]-(?:input|plan|review)-[cg]-\d{2}))?"
 OP_ADDRESS_RE = re.compile(
-    r"^###\s+ADDRESS(?:\s+(?P<id>\S+))?\s*$",
+    r"^###\s+ADDRESS\b" + _ID_TAIL,
     re.MULTILINE,
 )
 OP_RESOLVE_RE = re.compile(
-    r"^###\s+RESOLVE(?:\s+(?P<id>\S+))?\s*$",
+    r"^###\s+RESOLVE\b" + _ID_TAIL,
     re.MULTILINE,
 )
 OP_ACKNOWLEDGE_RE = re.compile(
-    r"^###\s+ACKNOWLEDGE(?:\s+(?P<id>\S+))?\s*$",
+    r"^###\s+ACKNOWLEDGE\b" + _ID_TAIL,
     re.MULTILINE,
 )
 OP_WITHDRAW_RE = re.compile(
-    r"^###\s+WITHDRAW(?:\s+(?P<id>\S+))?\s*$",
+    r"^###\s+WITHDRAW\b" + _ID_TAIL,
     re.MULTILINE,
 )
 # Linked EVIDENCE record headings — appear inside an ADDRESS block.
