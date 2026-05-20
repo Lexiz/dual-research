@@ -178,6 +178,26 @@ class Phase0Complete(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class Phase0RoundComplete(Event):
+    """Phase 0 round marker event (spec 0135).
+
+    Mirrors the ``Phase2RoundComplete`` / ``Phase4RoundComplete`` shape:
+    counter fields default to ``None`` and are not populated on
+    new-protocol runs — the UI reads per-category data from
+    ``ItemRaised`` / ``ItemTransitioned`` just like phases 2 and 4 do
+    since spec 0115. Emitted from ``dr_run._publish_legacy_round_complete``
+    once per Phase 0 negotiation round (matching the per-round granularity
+    Phase 2 and Phase 4 already publish).
+    """
+
+    round: int
+    agreed: bool
+    claude_status: str | None = None
+    openai_status: str | None = None
+    kind: str = "phase0_round_complete"
+
+
+@dataclass(frozen=True, kw_only=True)
 class Phase1Complete(Event):
     claude_chars: int
     openai_chars: int

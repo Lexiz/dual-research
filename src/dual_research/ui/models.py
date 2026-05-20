@@ -483,8 +483,20 @@ class TurnStats:
 class PhaseStats:
     """All per-turn stats keyed by phase + (round, agent).
 
-    - ``phase0`` and ``phase1`` are single-shot per-agent.
+    - ``phase1`` is single-shot per-agent.
     - ``phase2`` and ``phase4`` are round-keyed dicts of per-agent stats.
+    - ``phase0`` is **dual-shape** during the spec-0135 transition:
+        - New-protocol runs (round files on disk): round-keyed
+          ``dict[int, dict[str, TurnStats]]`` like phase 2 / phase 4.
+        - Legacy single-shot transcripts (pre-0114, only
+          ``preflight-{agent}.md`` on disk): per-agent
+          ``dict[str, TurnStats]`` keyed by ``"claude"`` / ``"gpt"``.
+      The frontend distinguishes by inspecting key types — integer
+      (or stringified integer after camelCase wire pass) keys → new
+      protocol; ``"claude"``/``"gpt"`` keys → legacy. ``dict[Any, Any]``
+      annotation is intentional for the transition; collapse to the
+      pure round-keyed shape once hosted-deployment transcripts confirm
+      zero pre-0114 runs remain.
 
     Spec 0115 — the new-protocol runs also populate:
     - ``items``: list of every ``Item`` raised during the run, in
@@ -493,7 +505,7 @@ class PhaseStats:
       (across both agents, phase-end state).
     """
 
-    phase0: dict[str, TurnStats] = field(default_factory=dict)
+    phase0: dict = field(default_factory=dict)
     phase1: dict[str, TurnStats] = field(default_factory=dict)
     phase2: dict[int, dict[str, TurnStats]] = field(default_factory=dict)
     phase4: dict[int, dict[str, TurnStats]] = field(default_factory=dict)

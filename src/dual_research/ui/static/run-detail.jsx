@@ -3241,6 +3241,27 @@ function composeGist(item, run) {
     return '';
   }
 
+  // ─── Phase 0 — multi-round brief critique (spec 0135) ──────────────────
+  if (phase === 0 && item.round != null) {
+    const parts = [];
+    if (status === 'AGREED' || status === 'BRIEF_OK') parts.push(`${agentName} agreed`);
+    else if (status === 'NEGOTIATING' || status === 'BRIEF_NEEDS_INPUT') parts.push(`${agentName} still negotiating`);
+    else parts.push(agentName);
+    if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
+      parts.push(`raised ${plur(stats.openQuestions, 'question')}`);
+    }
+    if (typeof stats.blocking === 'number' && stats.blocking > 0) {
+      parts.push(`${plur(stats.blocking, 'blocking disagreement')}`);
+    }
+    if (typeof stats.fsd === 'number' && stats.fsd > 0) {
+      parts.push(`${stats.fsd} final-surfaced`);
+    }
+    if (typeof stats.briefIssues === 'number' && stats.briefIssues > 0) {
+      parts.push(`${plur(stats.briefIssues, 'brief issue')}`);
+    }
+    return parts.length === 1 ? '' : parts[0] + ', ' + parts.slice(1).join(', ') + '.';
+  }
+
   // ─── Phase 1 — independent draft ───────────────────────────────────────
   if (phase === 1) {
     return `${agentName} wrote an independent Phase 1 draft (no critique stats this phase).`;
@@ -3364,6 +3385,62 @@ function composeSentiment(item, run) {
     return briefIssues > 0
       ? lead('Cautious', `${agentName} flagged ${plur(briefIssues, 'issue')} on the brief.`)
       : lead('Neutral', `${agentName} reviewed the brief.`);
+  }
+
+  // ─── Phase 0 — multi-round critique turn (spec 0135) ────────────────────
+  if (phase === 0 && item.round != null) {
+    const myNewQs = allQuestions.filter(
+      q => q.phase === 0 && q.raisedBy === agent && q.raisedRound === round
+    );
+    const otherQsAnsweredHere = allQuestions.filter(
+      q => q.phase === 0 && q.answeredRound === round && q.answeredBy === agent
+    );
+    const myOpenedDsHere = allDis.filter(
+      d => d.phase === 0 && d.openedRound === round
+              && (d.progression || []).some(p => p.round === round && p.agent === agent)
+    );
+    const myClosedDsHere = allDis.filter(
+      d => d.phase === 0 && d.closedRound === round
+              && (d.progression || []).some(p => p.round === round && p.agent === agent)
+    );
+
+    let sentimentWord = 'Neutral';
+    let leadRest;
+    if (status === 'AGREED' || status === 'BRIEF_OK') {
+      sentimentWord = 'Positive';
+      leadRest = `${agentName} agreed the brief is ready to research.`;
+    } else if (status === 'NEGOTIATING' || status === 'BRIEF_NEEDS_INPUT' || !status) {
+      if (round === 1) {
+        sentimentWord = 'Cautious';
+        leadRest = `${agentName}'s round-1 brief critique.`;
+      } else if (myClosedDsHere.length === 0 && otherQsAnsweredHere.length === 0
+                 && myOpenedDsHere.length === 0 && myNewQs.length === 0) {
+        sentimentWord = 'Critical';
+        leadRest = `${agentName} still negotiating in round ${round} with no movement.`;
+      } else {
+        sentimentWord = 'Cautious';
+        leadRest = `${agentName} still negotiating in round ${round}.`;
+      }
+    } else {
+      leadRest = `${agentName} · ${status.toLowerCase()}.`;
+    }
+
+    const sentences = [lead(sentimentWord, leadRest)];
+    const movements = [];
+    if (myNewQs.length > 0) movements.push(`raised ${plur(myNewQs.length, 'new question')}`);
+    if (otherQsAnsweredHere.length > 0) movements.push(
+      `answered ${plur(otherQsAnsweredHere.length, 'prior question')}`,
+    );
+    if (myOpenedDsHere.length > 0) movements.push(
+      `surfaced ${plur(myOpenedDsHere.length, 'disagreement')}`,
+    );
+    if (myClosedDsHere.length > 0) movements.push(
+      `resolved ${plur(myClosedDsHere.length, 'disagreement')}`,
+    );
+    if (movements.length > 0) {
+      sentences.push(`This round, ${agentName} ${movements.join(', ')}.`);
+    }
+    return sentences.join(' ');
   }
 
   // ─── Phase 0 — shared input card ────────────────────────────────────────
@@ -3763,7 +3840,11 @@ function ArtifactModal({ item, run, onClose }) {
     return <PreflightResponseModal item={item} run={run} onClose={onClose} accent={accent} />;
   }
   if ((item.kind === 'turn' || item.kind === 'turn-live')
-      && (item.statsPhase === 2 || item.statsPhase === 4)) {
+      && (item.statsPhase === 0 || item.statsPhase === 2 || item.statsPhase === 4)) {
+    // Spec 0135 — Phase 0 multi-round critique cards open the same
+    // side-by-side modal Phase 2 / Phase 4 use, with the brief on the
+    // left at round 1 and the other agent's prior phase-0 turn at
+    // round ≥ 2.
     return <NegotiateReviewModal item={item} run={run} meta={meta} onClose={onClose} accent={accent} />;
   }
   // Spec 0034: Phase 1 plan drafts open a side-by-side viewer (brief on
@@ -3968,9 +4049,20 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
   // clue for readers.
   const turnLabel = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
   const title = displayNameForItem(item, `${meta?.name || 'Agent'} — ${turnLabel}`);
-  const subtitle = item.statsPhase === 4
-    ? `reviewing the converged document`
-    : `reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+  // Spec 0135 — Phase 0 gets its own subtitle phrasing: round 1
+  // critiques the brief directly; round ≥ 2 responds to the other
+  // agent's prior phase-0 turn.
+  let subtitle;
+  if (item.statsPhase === 4) {
+    subtitle = 'reviewing the converged document';
+  } else if (item.statsPhase === 0) {
+    const otherName = otherAgent === 'claude' ? 'Claude' : 'GPT';
+    subtitle = (Number(item.round) || 1) === 1
+      ? 'critiquing the brief'
+      : `responding to ${otherName}'s prior critique`;
+  } else {
+    subtitle = `reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+  }
   const agentSlot = item.agent === 'claude' ? 'a' : 'b';
 
   // SPEC-0058 SUR-12: RoundScrubber — find available rounds for this agent+phase.
@@ -4754,7 +4846,18 @@ function ReviewCard({ item, panelKind, color, raiser, raisedRound, active, onCli
 //     aggregator on `run.currentDraftPath`. Falls back to `phase3/draft-v1.md`
 //     server-side; null when neither file exists yet.
 function priorContentPathFor(item, otherUiAgent, run) {
-  const phase = item.statsPhase || 2;
+  // Spec 0135 — accept `statsPhase === 0` explicitly (the legacy
+  // `item.statsPhase || 2` fallback collapsed Phase 0 onto the Phase 2
+  // path, which would point the left pane at a non-existent
+  // `phase1/draft-<other>.md`).
+  const phase = item.statsPhase != null ? item.statsPhase : 2;
+  if (phase === 0) {
+    const beAgent = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
+    const round = Number(item.round) || 1;
+    if (round <= 1) return 'brief.md';
+    const rr = String(round - 1).padStart(2, '0');
+    return `phase0/round-${rr}-${beAgent}.md`;
+  }
   if (phase === 1) {
     return 'brief.md';
   }
@@ -4779,10 +4882,26 @@ function priorContentPathFor(item, otherUiAgent, run) {
 // document context (caller falls back to the legacy ``priorFilePath``
 // rendering).
 function leftPaneTabsFor(item, otherUiAgent, run) {
-  const phase = item.statsPhase || 2;
+  // Spec 0135 — accept `statsPhase === 0` explicitly. See
+  // `priorContentPathFor` for the same fix.
+  const phase = item.statsPhase != null ? item.statsPhase : 2;
   const otherBe = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
   const ownBe   = otherBe === 'openai' ? 'claude' : 'openai';
   const round   = Number(item.round) || 1;
+
+  if (phase === 0) {
+    // Phase 0 — brief is the artefact being critiqued. From round 2
+    // onward the other agent's prior phase-0 turn joins as the default
+    // tab.
+    const tabs = [];
+    if (round >= 2) {
+      const rr = String(round - 1).padStart(2, '0');
+      tabs.push({ id: 'priorTurn', label: "Other's prior turn",
+                  path: `phase0/round-${rr}-${otherBe}.md` });
+    }
+    tabs.push({ id: 'brief', label: 'Brief', path: 'brief.md' });
+    return tabs;
+  }
 
   if (phase === 4) {
     const tabs = [];

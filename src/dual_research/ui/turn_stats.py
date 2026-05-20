@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from dual_research.protocol.parse import parse_preflight_turn, parse_turn
+from dual_research.protocol.parse import BRIEF_ISSUES_RE, parse_preflight_turn, parse_turn
 from dual_research.ui.labels import ui_agent
 from dual_research.ui.models import PhaseStats, TurnStats
 
@@ -163,16 +163,41 @@ def build_phase_stats(session_dir: Path) -> PhaseStats:
 
     Returns an empty ``PhaseStats`` (all dicts empty) if the session-dir
     has no files yet — graceful degradation for fresh runs.
+
+    Spec 0135 — Phase 0 is now dual-shape during the transition:
+    - New-protocol runs (``phase0/round-NN-*.md`` files on disk) →
+      round-keyed ``{1: {claude, gpt}, 2: {...}, …}`` (matches
+      phase 2 / phase 4 shape).
+    - Legacy single-shot transcripts (only ``preflight-{agent}.md``
+      on disk) → per-agent ``{claude: stats, gpt: stats}``.
+    The FE distinguishes by inspecting key types.
     """
-    phase0: dict[str, TurnStats] = {}
+    phase0: dict = {}
     phase1: dict[str, TurnStats] = {}
     phase2: dict[int, dict[str, TurnStats]] = {}
     phase4: dict[int, dict[str, TurnStats]] = {}
 
+    # Spec 0135 — prefer the new-protocol round files when present.
+    phase0_dir = session_dir / "phase0"
+    phase0_rounds = _discover_rounds(phase0_dir)
+    if phase0_rounds:
+        for r in phase0_rounds:
+            per_agent: dict[str, TurnStats] = {}
+            for be in _BACKEND_AGENTS:
+                st = _phase0_round_stats(session_dir, r, be)
+                if st is not None:
+                    per_agent[ui_agent(be)] = st
+            if per_agent:
+                phase0[r] = per_agent
+    else:
+        # Legacy fallback (pre-0114 transcripts with only
+        # ``preflight-{agent}.md`` files).
+        for be in _BACKEND_AGENTS:
+            s0 = _phase0_stats(session_dir, be)
+            if s0 is not None:
+                phase0[ui_agent(be)] = s0
+
     for be in _BACKEND_AGENTS:
-        s0 = _phase0_stats(session_dir, be)
-        if s0 is not None:
-            phase0[ui_agent(be)] = s0
         s1 = _phase1_stats(session_dir, be)
         if s1 is not None:
             phase1[ui_agent(be)] = s1
@@ -188,3 +213,30 @@ def build_phase_stats(session_dir: Path) -> PhaseStats:
                 bucket[r] = per_agent
 
     return PhaseStats(phase0=phase0, phase1=phase1, phase2=phase2, phase4=phase4)
+
+
+def _phase0_round_stats(session_dir: Path, round_n: int, backend_ag: str) -> TurnStats | None:
+    """Spec 0135 — per-round Phase 0 stats from
+    ``phase0/round-NN-{agent}.md``. Most marker fields come through
+    ``parse_turn``; ``BRIEF_ISSUES`` is parsed separately since it's not
+    on ``ParsedTurn`` (the marker only appears in Phase 0 turn bodies).
+    """
+    text = _read(session_dir / "phase0" / f"round-{round_n:02d}-{backend_ag}.md")
+    if text is None:
+        return None
+    p = parse_turn(text)
+    brief_issues_m = BRIEF_ISSUES_RE.search(text)
+    brief_issues: int | None = None
+    if brief_issues_m is not None:
+        try:
+            brief_issues = int(brief_issues_m.group(1))
+        except (TypeError, ValueError):
+            brief_issues = None
+    return TurnStats(
+        status=p.status,
+        open_questions=p.open_questions,
+        open_issues=p.open_issues,
+        blocking=p.blocking_disagreements,
+        fsd=p.final_surfaced_disagreements,
+        brief_issues=brief_issues,
+    )
