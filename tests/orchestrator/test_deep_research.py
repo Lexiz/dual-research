@@ -279,6 +279,40 @@ def test_organic_convergence_after_closeout_cleanup():
 # ─── Scenario: hard cap fires when agents never converge ──────────────
 
 
+def test_hard_cap_with_no_remaining_items_still_marks_via_hard_cap():
+    """Spec 0136 — agents never reach AGREED but never raise any items
+    either. Hard cap fires at round 4; ``hard_cap_remaining_items``
+    returns ``[]`` because there are no items to cap. Pre-spec the
+    gating ``if hard_caps:`` predicate let this case return
+    ``converged=False, via_hard_cap=False`` and the orchestrator
+    exit code stayed at 0 (silent-exit deadlock). Post-spec the
+    predicate is gone: ``via_hard_cap=True`` regardless of
+    remaining-item count."""
+    caps = PhaseCaps(soft=2, hard=4, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    for r in range(1, 5):
+        for agent in ("claude", "openai"):
+            scripts[(r, agent)] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        caps_override=caps,
+    )
+    result, events = phase.run()
+
+    assert result.converged is True
+    assert result.via_hard_cap is True
+    # No items raised → no items capped.
+    capped = [e for e in events if isinstance(e, ItemTransitioned) and e.to_state == "capped"]
+    assert capped == []
+    # PhaseConverged event still emits with via_hard_cap=True.
+    converged_events = [e for e in events if isinstance(e, PhaseConverged)]
+    assert len(converged_events) == 1
+    assert converged_events[0].via_hard_cap is True
+
+
 def test_hard_cap_auto_caps_remaining_items():
     """Agents never reach AGREED. Hard cap fires at round 4 (caps.hard
     overridden to 4). All non-terminal items auto-cap via hard_cap."""

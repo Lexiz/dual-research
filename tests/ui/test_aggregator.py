@@ -263,12 +263,18 @@ class TestApplyEvent:
         assert run.agents["gpt"].status == "idle"
 
     def test_run_completed_exit_codes(self, tmp_path):
+        # Spec 0136 — unified truth table. exit_code 0 maps to
+        # "deadlocked" when the run hasn't reached ``done`` (silent-exit
+        # defence); a separate sub-test below covers exit_code 0 with
+        # the run having reached Phase 5 (final emitted) → "completed".
+        # 1 was never a documented exit code under the pre-spec mapping;
+        # it now falls through to "deadlocked" via the silent-exit
+        # branch (any non-zero non-failure code without done = deadlock).
         for exit_code, expected_status in [
-            (0, "completed"),
-            (51, "deadlocked"),
-            (1, "errored"),
-            (2, "errored"),
-            (52, "errored"),
+            (0, "deadlocked"),     # silent-exit defence
+            (51, "deadlocked"),    # EXIT_HARD_CAP
+            (2, "errored"),        # EXIT_RUNTIME
+            (52, "errored"),       # EXIT_PROTOCOL_PARSE_FAILURE
         ]:
             run = _empty_run()
             apply_event(
@@ -285,6 +291,39 @@ class TestApplyEvent:
             assert run.status == expected_status, (
                 f"exit_code={exit_code} expected {expected_status}, got {run.status}"
             )
+
+    def test_run_completed_exit_code_0_reaches_done(self, tmp_path):
+        # Spec 0136 — exit_code 0 + run reached Phase 5 (final_emitted)
+        # → "completed". The ``final_emitted`` event advances ``run.phase``
+        # to 5; the subsequent ``run_completed{exit_code: 0}`` then
+        # resolves to "completed" via the truth-table's final-emitted
+        # branch instead of the silent-exit defence.
+        run = _empty_run()
+        # Phase progression to 5 via the final_emitted handler.
+        apply_event(run, {"event": "phase_entered", "phase": "phase4"}, tmp_path)
+        apply_event(
+            run,
+            {
+                "event": "final_emitted",
+                "session_final_path": "final.md",
+                "out_path": "out.md",
+                "char_count": 1234,
+                "confidence": "HIGH",
+            },
+            tmp_path,
+        )
+        apply_event(
+            run,
+            {
+                "event": "run_completed",
+                "phase_reached": "phase4",
+                "exit_code": 0,
+                "total_cost_usd": 1.0,
+                "duration_ms": 1000,
+            },
+            tmp_path,
+        )
+        assert run.status == "completed"
 
     def test_unknown_event_is_ignored(self, tmp_path):
         run = _empty_run()

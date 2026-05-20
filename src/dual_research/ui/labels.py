@@ -116,15 +116,51 @@ def derive_run_status(
     final_emitted: bool,
     hard_cap_hit: bool,
     run_failed: bool,
+    run_completed_exit_code: int | None = None,
 ) -> str:
-    """Derive the top-level Run.status from terminal-event presence.
+    """Single source of truth for ``Run.status``.
 
-    Precedence: errored > deadlocked > completed > running.
+    Consumed by both ``summarize_run`` (All-Runs list, state.json +
+    transcript-tail scan) and ``load_run_snapshot`` (run-detail page,
+    transcript replay). Spec 0136 consolidated these two paths onto one
+    truth table — pre-spec they each derived status independently and
+    occasionally disagreed (e.g. a Phase 2 run that exited at the hard
+    cap without convergence emitted ``run_completed{exit_code: 0}`` and
+    the detail page reported ``completed`` while the list reported
+    ``running`` forever).
+
+    Precedence (highest first):
+
+    1. ``run_failed`` event present → ``errored``.
+    2. ``run_completed.exit_code`` ∈ {``EXIT_RUNTIME (2)``,
+       ``EXIT_PROTOCOL_PARSE_FAILURE (52)``} → ``errored``.
+    3. ``hard_cap_hit`` event present OR
+       ``run_completed.exit_code == EXIT_HARD_CAP (51)`` → ``deadlocked``.
+    4. ``final_emitted`` OR ``state_phase == "done"`` → ``completed``.
+    5. ``run_completed.exit_code == 0`` (orchestrator exited cleanly)
+       AND not (``final_emitted`` OR ``state_phase == "done"``) →
+       ``deadlocked``. This is the "silent-exit" defence branch: pre-
+       spec-0136 orchestrators sometimes emitted ``exit_code 0`` even
+       when Phase 2 / Phase 4 failed to converge. After the
+       ``dr_run._drive_interaction_phase`` predicate fix (also spec
+       0136) this branch is unreachable for new runs, but it stays as
+       defence-in-depth so existing on-disk transcripts render correctly.
+    6. else → ``running``.
+
+    Exit-code constants live in ``orchestrator/run.py``. The magic
+    numbers ``2``, ``51``, ``52`` are kept inline here to avoid the
+    inverted dependency direction (``labels`` is a leaf module that the
+    orchestrator imports indirectly). ``_on_run_completed`` already
+    uses the same convention.
     """
     if run_failed:
         return "errored"
-    if hard_cap_hit and not final_emitted:
+    if run_completed_exit_code in (2, 52):
+        return "errored"
+    if hard_cap_hit or run_completed_exit_code == 51:
         return "deadlocked"
     if final_emitted or state_phase == "done":
         return "completed"
+    if run_completed_exit_code == 0:
+        return "deadlocked"
     return "running"
