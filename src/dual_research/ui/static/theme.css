@@ -116,7 +116,7 @@
    subsequent specs (0093…0104) can flip agent tint (sable ⇄
    sage) and density (comfortable ⇄ compact) via a single body
    class without touching component CSS per route.
-   Mirrors docs/design-system-v2/assets/styles/v2-m3.css:177-198.
+   Mirrors design-system/assets/styles/tokens-and-primitives.css:177-198.
    ============================================================= */
 
 /* Agent-tint flip: sable on Claude routes (default), sage on GPT routes. */

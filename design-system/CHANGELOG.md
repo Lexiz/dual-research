@@ -12,6 +12,20 @@ Format:
 
 ---
 
+## 2026-05-20 — v2 canonicalization (spec 0127)
+- **V2 (Material 3) design system promoted to canonical.** `SPEC.md` rewritten end-to-end to describe the Material 3 design system as the single current design system. No more "v1" / "v2" framing in active text — the previous design system is archived.
+- **V1 SPEC.md archived** at [`_archive/v1/SPEC.md`](_archive/v1/SPEC.md), with a brief `_archive/v1/README.md` pointing readers at the current SPEC.
+- **V2 brief contents moved into `design-system/`.** The old `docs/design-system-v2/` location was retired entirely. Its contents now sit at:
+  - `design-system/assets/Design System v2.html` — canonical visual reference.
+  - `design-system/assets/styles/tokens-and-primitives.css` (renamed from `v2-m3.css`) — source-of-truth M3 token + primitive CSS.
+  - `design-system/assets/styles/composed-components.css` (renamed from `v2-m3-page.css`) — source-of-truth composed-component CSS.
+  - `design-system/notion-issues/` — the 17 known-issues batch (21 screenshots) that drove specs 0098–0117.
+  - `design-system/_archive/seeding/V2-BRIEFING.md` + `CLAUDE-CODE-PROMPT.md` — historical record of how v2 entered the repo.
+- **CSS source-of-truth files renamed.** `v2-m3.css` → `tokens-and-primitives.css`; `v2-m3-page.css` → `composed-components.css`. The `v2-m3-` prefix was a briefing-phase artifact and became noise once v1 was archived.
+- **`README.md` rewritten.** Drops v1/v2 framing; updated folder map; clarified that `_archive/` and `skills/` are reference material the design-system invariant doesn't apply to.
+- **`PROMPT-FOR-CLAUDE-DESIGN.md` updated to v2 conventions** — Roboto Flex + Roboto Serif (replacing the v1 "IBM Plex Sans" guidance), `--md-*` token vocabulary (replacing v1 `--bg-*` / `--fg-*` examples), Material Symbols Outlined for icons, M3 elevation + state-layer + motion language. Added a heads-up about the active live-code migration (specs 0128–0131 to follow).
+- **Live frontend code untouched** — the live `tokens.css` / `base.css` / `components.css` / `theme.css` / JSX files continue to run on the additive layering pattern introduced by spec 0092 (v1 + v2 token vocabularies coexist). The live-code v2 migration is deferred to specs 0128–0131; tracked in `SPEC.md § 12 Migration status` (that section is removed when 0131 lands).
+
 ## 2026-05-19 — diagram skill vendored as agent-facing reference
 - New `design-system/skills/` subfolder introduced as the canonical home for agent-facing skills consulted while authoring design-system proposals. Companion `skills/README.md` documents the index and authoring conventions.
 - Vendored the `diagram` skill at [`design-system/skills/diagram/`](skills/diagram/) — paired light + dark SVG production in the locked cream-and-indigo style. Includes `SKILL.md` plus `references/` (templates, examples, troubleshooting, foundations/components/connectors/icons HTML, `_shared.css`). `_archive/` excluded.

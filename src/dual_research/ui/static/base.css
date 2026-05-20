@@ -230,7 +230,7 @@ a:hover { text-decoration-color: var(--info); }
    plus .t-data. Existing v1 .t-display / .t-title / .t-h3 /
    .t-body / .t-meta / .t-mono / .t-label classes above are
    untouched so v1 components keep rendering identically.
-   Mirrors docs/design-system-v2/assets/styles/v2-m3.css:247-298.
+   Mirrors design-system/assets/styles/tokens-and-primitives.css:247-298.
    ============================================================= */
 
 .t-display-l  { font: var(--md-w-regular) var(--md-display-l-size)/var(--md-display-l-lh) var(--md-font-brand); letter-spacing: var(--md-display-l-track); }
