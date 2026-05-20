@@ -4252,10 +4252,12 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
     }
   }, [sub]);
 
-  // Spec 0044 D6 — structured items (Phase 1 claims + open questions
-  // extracted by spec 0042 D1) get clickable cards that jump-to-brief
-  // on the left pane. Anchors flow from each item's ``quote`` / ``after``
-  // / ``blockId`` to ``scrollAndFlash`` on the left pane's brief view.
+  // Spec 0044 D6 — structured items (Phase 1 open questions extracted
+  // by spec 0042 D1; the legacy ``claim`` kind was retired by spec 0114
+  // and the data path by spec 0119) get clickable cards that jump-to-
+  // brief on the left pane. Anchors flow from each item's ``quote`` /
+  // ``after`` / ``blockId`` to ``scrollAndFlash`` on the left pane's
+  // brief view.
   const items = reviewItemsFor(run, item);
   const onItemClick = React.useCallback((it) => {
     if (!leftRef.current || sub !== 'original') return;
@@ -4325,7 +4327,7 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
             Spec 0038: a Draft|Web Search sub-tab strip surfaces the
             draft turn's audit bundle without changing the modal frame.
             Spec 0044 D6: structured items strip lets the user click
-            into each Phase 1 claim/question and jump-to-brief. */}
+            into each Phase 1 open question and jump-to-brief. */}
         <DraftRightPane
           filePath={item.filePath}
           turnKey={item.turnKey}
