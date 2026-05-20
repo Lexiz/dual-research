@@ -84,17 +84,32 @@ _IMMUTABLE_CACHE_CONTROL = "public, max-age=86400, immutable"
 # orchestrator, the recompute/reconcile CLIs, and direct SQL — but the hosted
 # UI's list view, search, and per-run endpoints all behave as if these IDs
 # don't exist. Add to this set to retire a run from the public surface.
+#
+# Spec 0122 follow-up (2026-05-20) — every run that landed before the parser
+# tolerance + transcript bridge + replay-from-disk fixes shipped is now stale
+# from a UI standpoint: their snapshots were rendered against a broken
+# aggregator pipeline and their lifecycle counters under-reported reality.
+# The data is preserved server-side; the hosted UI hides them so the next
+# run starts against a clean list.
 HIDDEN_RUN_IDS: frozenset[str] = frozenset({
-    "20260516-023449-web-components-catalogue",       # bcd3
-    "20260515-171500-live-verify-webcomp-catalogue",  # db46
-    "20260515-163105-live-integration-test",          # 70e3
-    "20260515-124552-cache-multi-round",              # 009f
-    "20260515-122538-prod-cached-e2e",                # 48b1
-    "20260515-120623-prod-postgres-vs-sqlite",        # 76e1
-    "20260515-114303-full-e2e",                       # 5455
-
-    "20260515-112634-p2-asyncio-vs-goroutines",       # 1ab9
+    # Pre-spec-0082 retirements.
     "20260515-111151-asyncio-vs-goroutines",          # 38f9
+    "20260515-112634-p2-asyncio-vs-goroutines",       # 1ab9
+    "20260515-114303-full-e2e",                       # 5455
+    "20260515-120623-prod-postgres-vs-sqlite",        # 76e1
+    "20260515-122538-prod-cached-e2e",                # 48b1
+    "20260515-124552-cache-multi-round",              # 009f
+    "20260515-163105-live-integration-test",          # 70e3
+    "20260515-171500-live-verify-webcomp-catalogue",  # db46
+    "20260516-023449-web-components-catalogue",       # bcd3
+
+    # Spec 0122 follow-up — pre-parser-fix runs, hidden so the hosted
+    # UI presents a clean slate for fresh end-to-end runs.
+    "20260516-035048-partner-vetting-arch-critique",
+    "20260518-065852-backend-language-choice-briefing-for-dual-research",
+    "20260518-083618-backend-language-choice",
+    "20260519-132908-backend-language-choice",
+    "20260520-025406-pv-backend-language-choice",
 })
 
 
