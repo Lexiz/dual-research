@@ -160,7 +160,7 @@
       <div style={{
         minHeight: '100vh', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, rgba(124, 196, 184, 0.06), transparent 60%), radial-gradient(ellipse at bottom, rgba(212, 165, 116, 0.06), transparent 60%), var(--md-surface)',
+        background: 'radial-gradient(ellipse at top, color-mix(in srgb, var(--md-secondary) 6%, transparent), transparent 60%), radial-gradient(ellipse at bottom, color-mix(in srgb, var(--md-primary) 6%, transparent), transparent 60%), var(--md-surface)',
         color: 'var(--md-on-surface)', padding: 24,
       }}>
         <div style={{
@@ -169,7 +169,7 @@
         }}>
           <AgentDuoVisual />
           <div>
-            <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em' }}>dual-research</div>
+            <div style={{ fontSize: 28, fontWeight: 'var(--md-w-semi)', letterSpacing: '-0.02em' }}>dual-research</div>
             <div style={{ fontSize: 14, color: 'var(--md-on-surface-muted)', marginTop: 6, maxWidth: 380, lineHeight: 1.5 }}>
               Two AI agents in conversation, converging toward a single research document.
             </div>
@@ -178,7 +178,7 @@
             display: 'inline-flex', alignItems: 'center', gap: 10,
             padding: '10px 18px', borderRadius: 999, cursor: 'pointer',
             border: '1px solid #dadce0', background: '#fff',
-            color: '#3c4043', fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+            color: '#3c4043', fontFamily: 'inherit', fontSize: 14, fontWeight: 'var(--md-w-medium)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.10)',
           }}>
             <GoogleGlyph />
@@ -205,7 +205,7 @@
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, rgba(124, 196, 184, 0.06), transparent 60%), var(--md-surface)',
+        background: 'radial-gradient(ellipse at top, color-mix(in srgb, var(--md-secondary) 6%, transparent), transparent 60%), var(--md-surface)',
         color: 'var(--md-on-surface)', padding: 24,
       }}>
         <div style={{
@@ -213,7 +213,7 @@
           alignItems: 'center', gap: 14, textAlign: 'center',
         }}>
           <AgentDuoVisual />
-          <div style={{ fontSize: 20, fontWeight: 600 }}>Not approved</div>
+          <div style={{ fontSize: 20, fontWeight: 'var(--md-w-semi)' }}>Not approved</div>
           <div style={{ fontSize: 13, color: 'var(--md-on-surface-muted)', lineHeight: 1.5 }}>
             Signed in as <strong>{email}</strong>, but this address isn't on the allowlist.
             Ask an admin to add you, or sign in with a different Google account.
@@ -279,7 +279,7 @@
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--md-on-surface)' }}>
+            <div style={{ fontSize: 13, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)' }}>
               Demo run
             </div>
             <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2, maxWidth: 280 }}>

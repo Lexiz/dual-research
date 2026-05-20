@@ -353,14 +353,14 @@ function BlockingItemCallout({ run }) {
            style={{ color: counts.ghosted > 0 ? COLORS.warn : COLORS.info }} />
       <span className="mono" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
         {counts.open > 0 && (
-          <span><span className="num" style={{ fontWeight: 600 }}>{counts.open}</span> open</span>
+          <span><span className="num" style={{ fontWeight: 'var(--md-w-semi)' }}>{counts.open}</span> open</span>
         )}
         {counts.open > 0 && counts.ghosted > 0 && (
           <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
         )}
         {counts.ghosted > 0 && (
           <span style={{ color: COLORS.warn }}>
-            <span className="num" style={{ fontWeight: 600 }}>{counts.ghosted}</span> ghosted
+            <span className="num" style={{ fontWeight: 'var(--md-w-semi)' }}>{counts.ghosted}</span> ghosted
           </span>
         )}
       </span>
@@ -373,7 +373,7 @@ function Topic({ text }) {
   return (
     <div title={text}
          style={{
-           color: 'var(--md-on-surface)', fontSize: 14, lineHeight: 1.35, fontWeight: 500,
+           color: 'var(--md-on-surface)', fontSize: 14, lineHeight: 1.35, fontWeight: 'var(--md-w-medium)',
            flex: 1, minWidth: 0,
            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
          }}>
@@ -2446,7 +2446,7 @@ function TotalInputBar({ label, content, reused, billed, scale, color }) {
       minWidth: 0,
     }}>
       <span style={{
-        fontSize: 11, color: 'var(--md-on-surface-variant)', fontWeight: 500,
+        fontSize: 11, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {label}
@@ -2946,7 +2946,7 @@ function PaneHeader({ title, count, left, right, accentGradient, accentColor }) 
             this twice — see the critique-pane chrome screenshot. */}
         <span style={{
           fontSize: 14,
-          fontWeight: 600,
+          fontWeight: 'var(--md-w-semi)',
           color: 'var(--md-on-surface)',
           letterSpacing: '-0.005em',
         }}>
@@ -3007,13 +3007,13 @@ function GroupHeader({ label, color, count, style, tone = 'tinted' }) {
       ...style,
     }}>
       <span style={{
-        fontSize: 11, fontWeight: 700, color: labelColor,
+        fontSize: 11, fontWeight: 'var(--md-w-bold)', color: labelColor,
         letterSpacing: '0.08em', textTransform: 'uppercase',
       }}>{label}</span>
       <span style={{ flex: 1 }} />
       {count != null && (
         <span className="mono num" style={{
-          fontSize: 11.5, color: labelColor, fontWeight: 600,
+          fontSize: 11.5, color: labelColor, fontWeight: 'var(--md-w-semi)',
         }}>{count}</span>
       )}
     </div>
@@ -3071,12 +3071,12 @@ function PhaseDividerHeader({ item, run, open }) {
       <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
       <span className="mono" style={{
         fontSize: 10.5, color: 'var(--md-on-surface-muted)',
-        letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 'var(--md-w-bold)',
       }}>
         Phase&nbsp;{item.phaseId}
       </span>
       <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
-      <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', fontWeight: current ? 700 : 600 }}>
+      <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', fontWeight: current ? 'var(--md-w-bold)' : 'var(--md-w-semi)' }}>
         {p.label}
       </span>
       <span style={{ flex: 1 }} />
@@ -3100,7 +3100,7 @@ function renderInlineBold(text) {
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} style={{ color: 'var(--md-on-surface)', fontWeight: 600 }}>
+        <strong key={i} style={{ color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>
           {part.slice(2, -2)}
         </strong>
       );
@@ -3149,7 +3149,7 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
             border: '1px solid var(--md-outline-hair)',
             borderRadius: 999,
             fontFamily: 'inherit',
-            fontWeight: 500,
+            fontWeight: 'var(--md-w-medium)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}>
@@ -4542,7 +4542,7 @@ function Phase1ItemStrip({ items, onItemClick }) {
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
-            <span className="mono num" style={{ fontWeight: 600 }}>{glyph}-{i + 1}</span>
+            <span className="mono num" style={{ fontWeight: 'var(--md-w-semi)' }}>{glyph}-{i + 1}</span>
             <span style={{
               color: 'var(--md-on-surface-muted)',
               overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180,
@@ -4994,7 +4994,7 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
         renderTitle={({ open }) => (
           <>
             <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-            <span className="cs-title" style={{ fontWeight: 500, fontSize: 12 }}>{label}</span>
+            <span className="cs-title" style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>{label}</span>
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>({piece})</span>
             {isAgentDefault && (
               <span
@@ -5144,7 +5144,7 @@ function HallucinationBanner({ unmatched }) {
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        fontSize: 12, color: COLORS.warn, fontWeight: 600,
+        fontSize: 12, color: COLORS.warn, fontWeight: 'var(--md-w-semi)',
       }}>
         <Mdi name="alert" size={12} />
         <span>
@@ -5231,7 +5231,7 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
           display: 'inline-block', width: 10, textAlign: 'center',
           color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
         }}>{open ? '▾' : '▸'}</span>
-        <span style={{ fontWeight: 500, flex: 1, minWidth: 0,
+        <span style={{ fontWeight: 'var(--md-w-medium)', flex: 1, minWidth: 0,
                        overflow: 'hidden', textOverflow: 'ellipsis',
                        whiteSpace: 'nowrap' }}>
           {queryLabel}
@@ -5324,7 +5324,7 @@ function ConsultedSourceCard({ source, isCited, citationsForSource }) {
            title={url}
            style={{
              color: title ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
-             fontSize: 12.5, fontWeight: 500,
+             fontSize: 12.5, fontWeight: 'var(--md-w-medium)',
              textDecoration: 'none', wordBreak: 'break-word', minWidth: 0,
              fontStyle: title ? 'normal' : 'italic',
            }}>
@@ -5409,7 +5409,7 @@ function CitationOnlyCard({ citation }) {
            title={url}
            style={{
              color: title ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
-             fontSize: 12.5, fontWeight: 500,
+             fontSize: 12.5, fontWeight: 'var(--md-w-medium)',
              textDecoration: 'none', wordBreak: 'break-word',
              fontStyle: title ? 'normal' : 'italic',
            }}>
@@ -5629,7 +5629,7 @@ function SourceRowAttachment({ attachment }) {
         color: 'var(--md-on-surface)',
       }}>
       <div style={{
-        fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
+        fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{displayTitle}</div>
       <div className="mono" style={{
@@ -5691,7 +5691,7 @@ function FileCard({ attachment, runId }) {
       </div>
       <div style={{ padding: '10px 12px' }}>
         <div title={title || ''} style={{
-          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
+          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{title || '(unnamed)'}</div>
         <div className="mono" style={{
@@ -5732,7 +5732,7 @@ function formatBytes(n) {
 function FinalDocPreview() {
   return (
     <div>
-      <h2 style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--md-on-surface)', fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35 }}>
+      <h2 style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', letterSpacing: '-0.01em', lineHeight: 1.35 }}>
         Effects of urban density on residential heat-pump retrofit economics in temperate climates
       </h2>
       <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--md-on-surface-muted)', lineHeight: 1.6 }}>
@@ -6547,7 +6547,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
       return (
         <section style={{ marginBottom: 22 }}>
           <h3 style={{
-            fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+            fontSize: 12, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
             letterSpacing: '0.04em', textTransform: 'uppercase',
             margin: '0 0 8px',
           }}>{label}</h3>
@@ -6566,7 +6566,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     return (
       <section style={{ marginBottom: 22 }}>
         <h3 style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+          fontSize: 12, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
           letterSpacing: '0.04em', textTransform: 'uppercase',
           margin: '0 0 10px',
         }}>{label}</h3>
@@ -6697,7 +6697,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
         {highestLeverageThread && (
           <div style={{ marginBottom: 20 }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+              fontSize: 11, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
               letterSpacing: '0.06em', textTransform: 'uppercase',
               marginBottom: 8,
             }}>
@@ -6747,7 +6747,7 @@ function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
         display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
         marginBottom: 6,
       }}>
-        <span style={{ color: 'var(--md-on-surface-variant)', fontWeight: 600 }}>{KIND_PLURAL[kind] || kind}</span>
+        <span style={{ color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-semi)' }}>{KIND_PLURAL[kind] || kind}</span>
         <span>·</span>
         <span>{items.length} total</span>
         {!isStateless && (
@@ -6830,7 +6830,7 @@ const _summaryTh = {
   padding: '8px 10px',
   fontSize: 10, color: 'var(--md-on-surface-faint)',
   letterSpacing: '0.06em', textTransform: 'uppercase',
-  fontWeight: 600,
+  fontWeight: 'var(--md-w-semi)',
 };
 const _summaryTd = {
   padding: '7px 10px',
@@ -6871,7 +6871,7 @@ function SmallStat({ label, value, color }) {
     <span style={{
       display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap',
     }}>
-      <span className="mono num" style={{ fontSize: 13, color, fontWeight: 600 }}>{value}</span>
+      <span className="mono num" style={{ fontSize: 13, color, fontWeight: 'var(--md-w-semi)' }}>{value}</span>
       <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{label}</span>
     </span>
   );
@@ -6966,7 +6966,7 @@ function SmallLabel({ children, color, style }) {
     <div style={{
       fontSize: 10, color: color || 'var(--md-on-surface-faint)',
       letterSpacing: '0.08em', textTransform: 'uppercase',
-      fontWeight: 500,
+      fontWeight: 'var(--md-w-medium)',
       marginBottom: 8,
       ...style,
     }}>{children}</div>

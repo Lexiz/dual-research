@@ -192,12 +192,12 @@ function PanelHeader({ icon, agent, title, status, right }) {
           fontFamily: 'var(--md-font-data)',
           color: meta.color,
           fontSize: 11,
-          fontWeight: 600,
+          fontWeight: 'var(--md-w-semi)',
         }}>{meta.name[0]}</div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ color: meta ? meta.color : 'var(--md-on-surface)', fontWeight: 600, fontSize: 13, letterSpacing: '-0.005em' }}>
+          <span style={{ color: meta ? meta.color : 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', fontSize: 13, letterSpacing: '-0.005em' }}>
             {meta ? meta.name : title}
           </span>
           {meta && (

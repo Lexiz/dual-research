@@ -298,7 +298,7 @@ function ErrorCard({ error, open, onToggle }) {
               <span style={{ color: 'var(--md-on-surface-decor)', marginLeft: 8 }}>· {fmt.relTime(error.relAgo)}</span>
             </span>
             <span className="mono" style={{
-              fontSize: 12.5, color: sev.color, fontWeight: 600, letterSpacing: '0.02em',
+              fontSize: 12.5, color: sev.color, fontWeight: 'var(--md-w-semi)', letterSpacing: '0.02em',
               whiteSpace: 'nowrap',
             }}>{error.code}</span>
           </div>
@@ -368,7 +368,7 @@ function ErrorCard({ error, open, onToggle }) {
             <div style={{
               fontSize: 10, color: 'var(--md-on-surface-faint)',
               letterSpacing: '0.08em', textTransform: 'uppercase',
-              fontWeight: 500, marginBottom: 6,
+              fontWeight: 'var(--md-w-medium)', marginBottom: 6,
             }}>Location</div>
             <div className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface-variant)' }}>{error.where}</div>
           </div>
@@ -376,7 +376,7 @@ function ErrorCard({ error, open, onToggle }) {
             <div style={{
               fontSize: 10, color: 'var(--md-on-surface-faint)',
               letterSpacing: '0.08em', textTransform: 'uppercase',
-              fontWeight: 500, marginBottom: 6,
+              fontWeight: 'var(--md-w-medium)', marginBottom: 6,
             }}>Detail</div>
             <pre className="mono" style={{
               margin: 0, padding: '10px 12px',
