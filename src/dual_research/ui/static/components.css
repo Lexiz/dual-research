@@ -656,7 +656,8 @@ body.light .tab-group.tabs-solid .tab.is-active,
   cursor: pointer;
 }
 .tl-card-head > .spacer { flex: 1; min-width: 8px; }
-.tl-card-chev {
+.tl-card-chev,
+.crit-card-chev {
   display: inline-flex; align-items: center; justify-content: center;
   width: 16px; height: 16px;
   flex-shrink: 0;
@@ -664,9 +665,41 @@ body.light .tab-group.tabs-solid .tab.is-active,
   opacity: 0.25;
   transition: opacity var(--m-fast) var(--ease), transform var(--m-fast) var(--ease);
 }
-.tl-card-chev[data-open="true"] {
+.tl-card-chev[data-open="true"],
+.crit-card-chev[data-open="true"] {
   opacity: 0.6;
   transform: rotate(90deg);
+}
+
+/* Spec 0119 §8.3 — critique-pane filter row (the legend). Same
+   chip primitives across the entire row; the leading dividers are
+   visual separators between the kind cluster, the open/resolved
+   cluster, and the agent cluster. */
+.crit-filter-row {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit-filter-spacer {
+  width: 12px; height: 1px; flex: 0 0 12px;
+}
+
+/* Spec 0119 §8.4 — critique card header. Same anatomy as the
+   timeline turn card head but with a singular-label category chip
+   instead of the dense-form bubble + value/add/sub. */
+.crit-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  cursor: pointer;
+  padding: 0;
+}
+.crit-card-head__spacer { flex: 1; min-width: 8px; }
+.crit-card-id {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  padding: 2px 0 0;
+  user-select: text;
 }
 
 /* QuestionRef (.qref) — decoded reference for a critique question.

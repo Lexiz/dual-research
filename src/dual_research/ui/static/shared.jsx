@@ -1228,39 +1228,62 @@ function QuestionThread({
          (8 px parent + 8 px child); Timeline was 8 px (child overridden
          to 0 via `.qthread.tl-thread { margin: 0 }`). Both panes at 8 px now. */
     >
-      {/* HEADER — Spec 0111: five discrete chips, each carrying one fact.
-          No abbreviations (rounds spelled out, phases spelled out). */}
-      <header className="qt-head" onClick={onCardClick}>
-        <QuestionRef
-          id={threadKind === 'question' ? id : null}
-          number={displayNum}
-          kindLetter={kindLetter}
-          format="split"
-        />
+      {/* HEADER — Spec 0119 §8.4. Provider FIRST. Category chip
+          (bubble + singular label). Raised-in chip. Status chip
+          right-aligned with leading dot. Public-ID moves out of
+          the header into a small mono text element inside the
+          card body. */}
+      <header className="crit-card-head" onClick={onCardClick}>
         {agentLabel && (
-          <Chip tone="neutral" noDot>
-            <AgentIcon agent={raisedBy} size={14} />
-            <span style={{ marginLeft: 4 }}>Raised by {agentLabel}</span>
-          </Chip>
+          <Chip
+            tone={raisedBy === 'gpt' ? 'gpt' : 'claude'}
+            leadingIcon={<AgentIcon agent={raisedBy} size={12} />}
+            label={agentLabel}
+          />
         )}
+        {(() => {
+          // QuestionThread receives `kind` in singular form; the
+          // canonical CATEGORY_* maps live in run-detail.jsx and key
+          // on the plural form (`questions` / `disagreements` / …).
+          // A thin singular-to-plural shim keeps shared.jsx
+          // dependency-free.
+          const pluralKind = threadKind === 'question' ? 'questions'
+                           : threadKind === 'disagreement' ? 'disagreements'
+                           : threadKind === 'issue' ? 'issues'
+                           : threadKind === 'comment' ? 'comments'
+                           : 'questions';
+          const tones = { questions: 'info', disagreements: 'warn', issues: 'err', comments: 'idle' };
+          const bubbles = { questions: 'Q', disagreements: 'D', issues: 'I', comments: 'C' };
+          const labels = { questions: 'Question', disagreements: 'Disagreement', issues: 'Issue', comments: 'Comment' };
+          return (
+            <Chip
+              tone={tones[pluralKind]}
+              categoryBubble={bubbles[pluralKind]}
+              label={labels[pluralKind]}
+              ariaLabel={labels[pluralKind]}
+            />
+          );
+        })()}
         {raisedRound != null && (
-          <Chip tone="neutral" noDot>Raised on round {raisedRound}</Chip>
+          <Chip mono tone="neutral" label={`raised in r${raisedRound}`} />
         )}
-        <Chip tone={statusTone}>{verboseStatusLabel}</Chip>
-        {showPhaseChip && phase && <span className="md-chip md-chip--sm">Phase {phase}</span>}
-        <span className="right">
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--fg-2)',
-            transform: open ? 'rotate(90deg)' : 'none',
-          }}>
-            <Icon.Chevron />
-          </span>
+        {showPhaseChip && phase && (
+          <Chip mono tone="neutral" label={`phase ${phase}`} />
+        )}
+        <span className="crit-card-head__spacer" />
+        <Chip tone={statusTone} leadingDot label={verboseStatusLabel.toLowerCase()} />
+        <span
+          className="crit-card-chev"
+          aria-hidden="true"
+          data-open={open ? 'true' : undefined}
+        >
+          <Icon.Chevron />
         </span>
       </header>
+      {/* Spec 0119 §8.4 — public ID renders as small mono inline text,
+          not as a chip in the header. Always visible (collapsed or
+          expanded) so it's copyable. */}
+      {id && <div className="crit-card-id">id: {id}</div>}
 
       {/* TIMELINE + FOOTER — visible when expanded */}
       {open && <>

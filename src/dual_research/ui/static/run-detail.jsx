@@ -6613,44 +6613,80 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
         </div>
       </header>
 
-      {/* BAR 2 — Kind tabs + Agent/Status filters. Hidden in Summary. */}
+      {/* BAR 2 — Spec 0119 §8.3 — chip-row legend.
+          The filter row at the top of the Critique pane IS the
+          canonical legend: every bubble + full-word + count appears
+          here so anywhere a dense-form chip appears on the timeline,
+          the reader can scroll to this row to confirm what each
+          bubble means. */}
       {!isSummary && (
-        <header className="bar2">
-          <div className="kind-tabs">
-            {KIND_TABS.map((kt) => {
-              const count = kindCounts[kt.id] || 0;
-              const isActive = kindFilter === kt.id;
-              const isZero = count === 0 && kt.id !== 'all';
-              return (
-                <button
-                  key={kt.id}
-                  className={`kind-tab${isActive ? ' is-active' : ''}${isZero ? ' is-zero' : ''}`}
-                  onClick={() => setKindFilter(kt.id)}>
-                  <span>{kt.label}</span>
-                  <span className={`ct${kt.tone && count > 0 ? ` ${kt.tone}` : ''}`}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="right">
-            <div className="tab-group-solid">
-              <button className={`tab-solid${agentFilter === 'all' ? ' is-active' : ''}`} onClick={() => setAgentFilter('all')}>All</button>
-              <button className={`tab-solid${agentFilter === 'claude' ? ' is-active' : ''}`} onClick={() => setAgentFilter('claude')}>
-                <span className="dot" style={{ background: 'var(--p-sable)' }}></span>Claude
-              </button>
-              <button className={`tab-solid${agentFilter === 'gpt' ? ' is-active' : ''}`} onClick={() => setAgentFilter('gpt')}>
-                <span className="dot" style={{ background: 'var(--p-sage)' }}></span>GPT
-              </button>
-            </div>
-            <div className="tab-group-solid">
-              <button className={`tab-solid${statusFilter === 'all' ? ' is-active' : ''}`} onClick={() => setStatusFilter('all')}>All</button>
-              <button className={`tab-solid${statusFilter === 'open' ? ' is-active' : ''}`} onClick={() => setStatusFilter('open')}>Open</button>
-              <button className={`tab-solid${statusFilter === 'resolved' ? ' is-active' : ''}`} onClick={() => setStatusFilter('resolved')}>Resolved</button>
-              <button className={`tab-solid${statusFilter === 'drift' ? ' is-active' : ''}`}
-                onClick={kindFilter === 'questions' ? undefined : () => setStatusFilter('drift')}
-                style={kindFilter === 'questions' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}>Drift</button>
-            </div>
-          </div>
+        <header className="bar2 crit-filter-row">
+          {['questions', 'disagreements', 'issues', 'comments'].map((cat) => (
+            <Chip
+              key={cat}
+              tone={CATEGORY_TONE[cat]}
+              categoryBubble={CATEGORY_BUBBLE[cat]}
+              label={CATEGORY_LABEL_PLURAL[cat]}
+              value={kindCounts[cat] || 0}
+              onClick={() => setKindFilter(cat)}
+              data-active={kindFilter === cat ? 'true' : undefined}
+              title={KIND_FILTER_TOOLTIP[cat] || `Show only ${CATEGORY_LABEL_PLURAL[cat]}`}
+            />
+          ))}
+          <Chip
+            tone="neutral"
+            label="All"
+            value={kindCounts.all || 0}
+            onClick={() => setKindFilter('all')}
+            data-active={kindFilter === 'all' ? 'true' : undefined}
+            title={KIND_FILTER_TOOLTIP.all || 'Show all critique item types'}
+          />
+          <span className="crit-filter-spacer" aria-hidden="true" />
+          <Chip
+            tone="info"
+            leadingDot
+            label="Open"
+            value={runWideOpen}
+            onClick={() => setStatusFilter(statusFilter === 'open' ? 'all' : 'open')}
+            data-active={statusFilter === 'open' ? 'true' : undefined}
+            title="Show only open items"
+          />
+          <Chip
+            tone="ok"
+            leadingDot
+            label="Resolved"
+            value={runWideResolved}
+            onClick={() => setStatusFilter(statusFilter === 'resolved' ? 'all' : 'resolved')}
+            data-active={statusFilter === 'resolved' ? 'true' : undefined}
+            title="Show only resolved items"
+          />
+          {kindFilter !== 'questions' && (
+            <Chip
+              tone="warn"
+              leadingDot
+              label="Drift"
+              onClick={() => setStatusFilter(statusFilter === 'drift' ? 'all' : 'drift')}
+              data-active={statusFilter === 'drift' ? 'true' : undefined}
+              title="Show only items with ledger drift"
+            />
+          )}
+          <span className="crit-filter-spacer" aria-hidden="true" />
+          <Chip
+            tone={agentFilter === 'claude' ? 'claude' : 'neutral'}
+            leadingIcon={<AgentIcon agent="claude" size={12} />}
+            label="Claude"
+            onClick={() => setAgentFilter(agentFilter === 'claude' ? 'all' : 'claude')}
+            data-active={agentFilter === 'claude' ? 'true' : undefined}
+            title="Show only items raised by Claude"
+          />
+          <Chip
+            tone={agentFilter === 'gpt' ? 'gpt' : 'neutral'}
+            leadingIcon={<AgentIcon agent="gpt" size={12} />}
+            label="GPT"
+            onClick={() => setAgentFilter(agentFilter === 'gpt' ? 'all' : 'gpt')}
+            data-active={agentFilter === 'gpt' ? 'true' : undefined}
+            title="Show only items raised by GPT"
+          />
         </header>
       )}
 
