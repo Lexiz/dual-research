@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1660 1280" font-family="Inter, system-ui, -apple-system, sans-serif">
+
+  <!-- ================= DEFS ================= -->
+  <defs>
+    <!-- shadows (dark theme bodies) -->
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"/>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+
+    <!-- canvas + surfaces (dark stops) -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1f"/><stop offset="100%" stop-color="#14141a"/>
+    </linearGradient>
+    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a3a40"/><stop offset="100%" stop-color="#28282d"/>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7785d4"/><stop offset="100%" stop-color="#4d5db0"/>
+    </linearGradient>
+
+    <!-- terminal-state surfaces (lifted for dark) -->
+    <linearGradient id="surfaceOk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8fd98c"/><stop offset="100%" stop-color="#5fb262"/>
+    </linearGradient>
+    <linearGradient id="surfaceWarn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#edc079"/><stop offset="100%" stop-color="#c89146"/>
+    </linearGradient>
+    <linearGradient id="surfaceErr" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ef8e8e"/><stop offset="100%" stop-color="#c05c5c"/>
+    </linearGradient>
+    <linearGradient id="surfaceInfo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7cc6e8"/><stop offset="100%" stop-color="#4d93b8"/>
+    </linearGradient>
+
+    <!-- decision-diamond fill (dark mid-tone) -->
+    <linearGradient id="diamondFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a2a35"/><stop offset="100%" stop-color="#22222c"/>
+    </linearGradient>
+
+    <!-- arrow markers (dark inks + lifted accents) -->
+    <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#c4c2bc"/>
+    </marker>
+    <marker id="arrowOk" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#7fcf7e"/>
+    </marker>
+    <marker id="arrowWarn" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#e5b97a"/>
+    </marker>
+    <marker id="arrowErr" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#e88787"/>
+    </marker>
+    <marker id="arrowInfo" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#6cb6e0"/>
+    </marker>
+    <marker id="arrowIndigo" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#7785d4"/>
+    </marker>
+
+    <!-- motion-dots path (same geometry as light) -->
+    <path id="happyPath" d="M 640 200 L 640 215 M 640 325 L 640 360 M 640 460 L 800 460 L 920 460" fill="none"/>
+  </defs>
+
+  <!-- ================= CANVAS ================= -->
+  <rect width="1660" height="1280" fill="url(#bgGrad)"/>
+
+  <!-- ================= TITLE ================= -->
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Convergence — How a Phase Ends</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9a988f">Two-agent negotiation · four terminal states · mutual-ACK handshake</text>
+
+  <!-- ================= MAIN COLUMN SECTION LABEL ================= -->
+  <text x="60" y="116" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="2">ORCHESTRATOR · END-OF-ROUND DECISION TREE</text>
+
+  <!-- soft column boundary -->
+  <rect x="60" y="125" width="1060" height="970" rx="20" fill="rgba(255,255,255,0.02)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.45"/>
+
+  <!-- ================= TOP NODE ================= -->
+  <rect id="topNode" x="440" y="142" width="400" height="64" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"/>
+  <text x="640" y="170" text-anchor="middle" font-size="14" font-weight="600" fill="#ebebe5">End of round N</text>
+  <text x="640" y="190" text-anchor="middle" font-size="11" fill="#c4c2bc">orchestrator update step · evaluate convergence</text>
+
+  <!-- arrow top → D1 -->
+  <line x1="640" y1="206" x2="640" y2="219" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+
+  <!-- ================= DECISION D1 ================= -->
+  <polygon points="640,225 870,280 640,335 410,280" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
+  <text x="640" y="270" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 1</text>
+  <text x="640" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">Both agents emitted</text>
+  <text x="640" y="307" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">STATUS: AGREED this round?</text>
+
+  <!-- D1 "No" branch → left to oval -->
+  <path d="M 410 280 L 320 280" fill="none" stroke="#6cb6e0" stroke-width="1.6" marker-end="url(#arrowInfo)"/>
+  <text x="365" y="272" text-anchor="middle" font-size="10" font-weight="600" fill="#6cb6e0" letter-spacing="1.2">NO</text>
+
+  <!-- "Advance to round N+1" oval (info, dark) -->
+  <ellipse cx="200" cy="280" rx="118" ry="32" fill="url(#surfaceInfo)" filter="url(#cardShadowDark)"/>
+  <text x="200" y="276" text-anchor="middle" font-size="12" font-weight="600" fill="#0f1f29">Advance to round N+1</text>
+  <text x="200" y="292" text-anchor="middle" font-size="10" fill="rgba(15,31,41,0.82)">no terminal state yet</text>
+
+  <!-- curved loop-back to top node -->
+  <path d="M 200 248 C 200 170, 280 130, 440 162" fill="none" stroke="#6cb6e0" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#arrowInfo)"/>
+  <text x="288" y="158" text-anchor="middle" font-size="10" font-weight="600" fill="#6cb6e0" letter-spacing="1.2">NEXT ROUND</text>
+
+  <!-- D1 "Yes" branch → D2 -->
+  <line x1="640" y1="335" x2="640" y2="395" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <rect x="616" y="345" width="48" height="18" rx="4" fill="#1a1a1f" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+  <text x="640" y="358" text-anchor="middle" font-size="10" font-weight="600" fill="#c4c2bc" letter-spacing="1.2">YES</text>
+
+  <!-- ================= DECISION D2 ================= -->
+  <polygon points="640,400 880,460 640,520 400,460" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
+  <text x="640" y="448" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 2</text>
+  <text x="640" y="468" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">All raised items in this phase</text>
+  <text x="640" y="485" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">are terminal?</text>
+
+  <!-- D2 "Yes" → right to Organic -->
+  <line x1="880" y1="460" x2="930" y2="460" stroke="#7fcf7e" stroke-width="2" marker-end="url(#arrowOk)"/>
+  <text x="905" y="452" text-anchor="middle" font-size="10" font-weight="600" fill="#7fcf7e" letter-spacing="1.2">YES</text>
+
+  <!-- Organic convergence box -->
+  <rect x="940" y="402" width="160" height="116" rx="14" fill="url(#surfaceOk)" filter="url(#cardShadowDark)"/>
+  <text x="1020" y="424" text-anchor="middle" font-size="9" font-weight="600" fill="rgba(15,40,15,0.82)" letter-spacing="1.6">TERMINAL · OK</text>
+  <text x="1020" y="448" text-anchor="middle" font-size="14" font-weight="600" fill="#0f2810">Organic</text>
+  <text x="1020" y="465" text-anchor="middle" font-size="14" font-weight="600" fill="#0f2810">convergence</text>
+  <line x1="958" y1="478" x2="1082" y2="478" stroke="rgba(15,40,15,0.30)"/>
+  <text x="1020" y="496" text-anchor="middle" font-size="10" fill="rgba(15,40,15,0.88)" font-style="italic">Phase ends.</text>
+  <text x="1020" y="510" text-anchor="middle" font-size="10" fill="rgba(15,40,15,0.88)" font-style="italic">Agreement artifact emitted.</text>
+
+  <!-- motion-dot on happy-path -->
+  <circle r="4" fill="#7785d4" opacity="0">
+    <animateMotion dur="4.2s" repeatCount="indefinite" rotate="auto">
+      <mpath xlink:href="#happyPath"/>
+    </animateMotion>
+    <animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.1;0.9;1" dur="4.2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- D2 "No" → D3 -->
+  <line x1="640" y1="520" x2="640" y2="555" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <rect x="616" y="528" width="48" height="18" rx="4" fill="#1a1a1f" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+  <text x="640" y="541" text-anchor="middle" font-size="10" font-weight="600" fill="#c4c2bc" letter-spacing="1.2">NO</text>
+
+  <!-- ================= DECISION D3 ================= -->
+  <polygon points="640,560 880,620 640,680 400,620" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
+  <text x="640" y="608" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 3</text>
+  <text x="640" y="628" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">Either agent's closeout</text>
+  <text x="640" y="645" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">budget &gt; 0?</text>
+
+  <!-- D3 "Yes" → right to Closeout -->
+  <line x1="880" y1="620" x2="930" y2="620" stroke="#e5b97a" stroke-width="2" marker-end="url(#arrowWarn)"/>
+  <text x="905" y="612" text-anchor="middle" font-size="10" font-weight="600" fill="#e5b97a" letter-spacing="1.2">YES</text>
+
+  <!-- Closeout round box (warn) -->
+  <rect x="940" y="548" width="160" height="144" rx="14" fill="url(#surfaceWarn)" filter="url(#cardShadowDark)"/>
+  <text x="1020" y="570" text-anchor="middle" font-size="9" font-weight="600" fill="rgba(45,28,8,0.82)" letter-spacing="1.6">INTERIM · WARN</text>
+  <text x="1020" y="594" text-anchor="middle" font-size="14" font-weight="600" fill="#2d1c08">Closeout round</text>
+  <line x1="958" y1="606" x2="1082" y2="606" stroke="rgba(45,28,8,0.30)"/>
+  <text x="1020" y="624" text-anchor="middle" font-size="9.5" fill="rgba(45,28,8,0.92)" font-style="italic">RAISE forbidden.</text>
+  <text x="1020" y="638" text-anchor="middle" font-size="9.5" fill="rgba(45,28,8,0.92)" font-style="italic">Only RESOLVE / ACK /</text>
+  <text x="1020" y="652" text-anchor="middle" font-size="9.5" fill="rgba(45,28,8,0.92)" font-style="italic">WITHDRAW / counter.</text>
+  <text x="1020" y="672" text-anchor="middle" font-size="9.5" fill="#2d1c08" font-weight="600">Budget = 2 per phase per agent</text>
+
+  <!-- dashed loop-back to top -->
+  <path d="M 1020 548 C 1020 380, 1020 240, 840 174" fill="none" stroke="#e5b97a" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#arrowWarn)"/>
+  <text x="1110" y="370" font-size="10" font-weight="600" fill="#e5b97a" letter-spacing="1.0">RE-EVALUATE</text>
+  <text x="1110" y="384" font-size="10" font-weight="600" fill="#e5b97a" letter-spacing="1.0">CONVERGENCE</text>
+  <text x="1110" y="400" font-size="9.5" fill="#9a988f" font-style="italic">(next round, back to D1)</text>
+
+  <!-- D3 "No" → D4 -->
+  <line x1="640" y1="680" x2="640" y2="725" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <rect x="616" y="691" width="48" height="18" rx="4" fill="#1a1a1f" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+  <text x="640" y="704" text-anchor="middle" font-size="10" font-weight="600" fill="#c4c2bc" letter-spacing="1.2">NO</text>
+
+  <!-- ================= DECISION D4 ================= -->
+  <polygon points="640,730 870,790 640,850 410,790" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
+  <text x="640" y="778" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 4</text>
+  <text x="640" y="798" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">Round number</text>
+  <text x="640" y="815" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">&lt; hard cap?</text>
+
+  <!-- D4 Yes → down-left to Ghost cap -->
+  <path d="M 530 820 L 460 820 L 380 870" fill="none" stroke="#e88787" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrowErr)"/>
+  <text x="440" y="810" text-anchor="middle" font-size="10" font-weight="600" fill="#e88787" letter-spacing="1.2">YES</text>
+
+  <!-- D4 No → down-right to Hard cap -->
+  <path d="M 750 820 L 820 820 L 900 870" fill="none" stroke="#e88787" stroke-width="2" marker-end="url(#arrowErr)"/>
+  <text x="840" y="810" text-anchor="middle" font-size="10" font-weight="600" fill="#e88787" letter-spacing="1.2">NO</text>
+
+  <!-- Ghost cap terminal (err, dashed outline) -->
+  <rect x="120" y="880" width="320" height="170" rx="14" fill="url(#surfaceErr)" filter="url(#cardShadowDark)" stroke="#ffffff" stroke-width="1.8" stroke-dasharray="7,4" stroke-opacity="0.75"/>
+  <text x="280" y="906" text-anchor="middle" font-size="9" font-weight="600" fill="rgba(50,15,15,0.85)" letter-spacing="1.6">TERMINAL · ERR · DASHED</text>
+  <text x="280" y="932" text-anchor="middle" font-size="15" font-weight="600" fill="#321010">Ghost cap</text>
+  <line x1="148" y1="946" x2="412" y2="946" stroke="rgba(50,15,15,0.30)"/>
+  <text x="280" y="966" text-anchor="middle" font-size="10.5" fill="rgba(50,15,15,0.92)" font-style="italic">Items still non-terminal flip to</text>
+  <text x="280" y="982" text-anchor="middle" font-size="10.5" fill="#321010" font-family="monospace">capped</text>
+  <text x="280" y="998" text-anchor="middle" font-size="10.5" fill="rgba(50,15,15,0.92)" font-style="italic">with orchestrator-generated</text>
+  <text x="280" y="1014" text-anchor="middle" font-size="10.5" fill="rgba(50,15,15,0.92)" font-style="italic">rationale. Phase converges via</text>
+  <text x="280" y="1032" text-anchor="middle" font-size="10.5" fill="#321010" font-family="monospace">via_ghost_cap: true</text>
+
+  <!-- Hard cap terminal (err, solid outline) -->
+  <rect x="640" y="880" width="320" height="170" rx="14" fill="url(#surfaceErr)" filter="url(#cardShadowDark)" stroke="#ffffff" stroke-width="1.8" stroke-opacity="0.75"/>
+  <text x="800" y="906" text-anchor="middle" font-size="9" font-weight="600" fill="rgba(50,15,15,0.85)" letter-spacing="1.6">TERMINAL · ERR · SOLID</text>
+  <text x="800" y="932" text-anchor="middle" font-size="15" font-weight="600" fill="#321010">Hard cap</text>
+  <line x1="668" y1="946" x2="932" y2="946" stroke="rgba(50,15,15,0.30)"/>
+  <text x="800" y="966" text-anchor="middle" font-size="10.5" fill="rgba(50,15,15,0.92)" font-style="italic">Every remaining non-terminal item</text>
+  <text x="800" y="982" text-anchor="middle" font-size="10.5" fill="rgba(50,15,15,0.92)" font-style="italic">flips to</text>
+  <text x="853" y="982" text-anchor="middle" font-size="10.5" fill="#321010" font-family="monospace">capped</text>
+  <text x="800" y="1000" text-anchor="middle" font-size="10.5" fill="rgba(50,15,15,0.92)" font-style="italic">Phase converges via</text>
+  <text x="800" y="1016" text-anchor="middle" font-size="10.5" fill="#321010" font-family="monospace">via_hard_cap: true</text>
+  <text x="800" y="1036" text-anchor="middle" font-size="10" fill="rgba(50,15,15,0.85)">Caps: P0=4 · P2=8 · P4=8</text>
+
+  <!-- ================= SIDEBAR · MUTUAL-ACK HANDSHAKE ================= -->
+  <path d="M 1100 620 L 1150 620 L 1150 175 L 1190 175" fill="none" stroke="#7a7873" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+
+  <text x="1180" y="116" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="2">SIDEBAR · ITEM-LEVEL DETAIL</text>
+
+  <rect x="1180" y="125" width="440" height="970" rx="20" fill="rgba(255,255,255,0.02)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.55"/>
+
+  <text x="1400" y="160" text-anchor="middle" font-size="15" font-weight="600" fill="#ebebe5">Mutual-ACK handshake</text>
+  <text x="1400" y="178" text-anchor="middle" font-size="11" fill="#9a988f" font-style="italic">how an item reaches the terminal <tspan font-family="monospace" font-style="normal">acknowledged</tspan> state</text>
+
+  <!-- agent lifelines -->
+  <text x="1260" y="216" text-anchor="middle" font-size="11" font-weight="600" fill="#ebebe5">Raiser</text>
+  <text x="1260" y="230" text-anchor="middle" font-size="9" fill="#9a988f">(opened the item)</text>
+  <text x="1540" y="216" text-anchor="middle" font-size="11" font-weight="600" fill="#ebebe5">Counterpart</text>
+  <text x="1540" y="230" text-anchor="middle" font-size="9" fill="#9a988f">(must echo ACK)</text>
+
+  <line x1="1260" y1="245" x2="1260" y2="780" stroke="#7a7873" stroke-width="1" stroke-dasharray="3,4" opacity="0.45"/>
+  <line x1="1540" y1="245" x2="1540" y2="780" stroke="#7a7873" stroke-width="1" stroke-dasharray="3,4" opacity="0.45"/>
+
+  <!-- Round N marker -->
+  <rect x="1200" y="258" width="400" height="22" rx="6" fill="rgba(119,133,212,0.15)" stroke="rgba(119,133,212,0.45)" stroke-width="0.8"/>
+  <text x="1400" y="273" text-anchor="middle" font-size="10" font-weight="600" fill="#c5cdf0" letter-spacing="1.2">ROUND N</text>
+
+  <!-- Round N: ACK arrow → -->
+  <line x1="1260" y1="310" x2="1540" y2="310" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowIndigo)"/>
+  <text x="1400" y="302" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7785d4" font-family="monospace">ACKNOWLEDGE &lt;id&gt;</text>
+  <text x="1400" y="326" text-anchor="middle" font-size="9.5" fill="#9a988f" font-style="italic">raiser emits the ACK</text>
+
+  <!-- state chip -->
+  <rect x="1240" y="350" width="320" height="36" rx="8" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <text x="1400" y="364" text-anchor="middle" font-size="10" fill="#9a988f">item state →</text>
+  <text x="1400" y="380" text-anchor="middle" font-size="11" fill="#ebebe5" font-family="monospace" font-weight="600">acknowledged_proposed</text>
+
+  <text x="1400" y="412" text-anchor="middle" font-size="9.5" fill="#7a7873" font-style="italic">…orchestrator advances rounds…</text>
+
+  <!-- Round N+1 marker -->
+  <rect x="1200" y="430" width="400" height="22" rx="6" fill="rgba(119,133,212,0.15)" stroke="rgba(119,133,212,0.45)" stroke-width="0.8"/>
+  <text x="1400" y="445" text-anchor="middle" font-size="10" font-weight="600" fill="#c5cdf0" letter-spacing="1.2">ROUND N+1</text>
+
+  <!-- ACK back arrow -->
+  <line x1="1540" y1="490" x2="1260" y2="490" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowIndigo)"/>
+  <text x="1400" y="482" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7785d4" font-family="monospace">ACKNOWLEDGE &lt;id&gt;</text>
+  <text x="1400" y="506" text-anchor="middle" font-size="9.5" fill="#9a988f" font-style="italic">counterpart echoes the ACK</text>
+
+  <!-- terminal chip (ok) -->
+  <rect x="1240" y="530" width="320" height="40" rx="8" fill="url(#surfaceOk)" filter="url(#cardShadowDark)"/>
+  <text x="1400" y="546" text-anchor="middle" font-size="10" fill="rgba(15,40,15,0.85)">item state →</text>
+  <text x="1400" y="562" text-anchor="middle" font-size="11.5" fill="#0f2810" font-family="monospace" font-weight="600">acknowledged · TERMINAL</text>
+
+  <!-- caption card -->
+  <rect x="1200" y="598" width="400" height="92" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <text x="1220" y="620" font-size="10.5" font-style="italic" fill="#c4c2bc">Without the counterpart's ACK, the item</text>
+  <text x="1220" y="636" font-size="10.5" font-style="italic" fill="#c4c2bc">stays in <tspan font-family="monospace" font-style="normal" fill="#ebebe5">acknowledged_proposed</tspan></text>
+  <text x="1220" y="652" font-size="10.5" font-style="italic" fill="#c4c2bc">and re-appears as non-terminal in the</text>
+  <text x="1220" y="668" font-size="10.5" font-style="italic" fill="#c4c2bc">next convergence check (Decision 2).</text>
+  <text x="1220" y="684" font-size="9.5" fill="#9a988f">This is the mechanism that keeps closeout rounds honest.</text>
+
+  <!-- unilateral terminals footer -->
+  <text x="1200" y="720" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.4">UNILATERAL TERMINALS</text>
+  <text x="1200" y="740" font-size="10.5" fill="#c4c2bc"><tspan font-family="monospace" fill="#ebebe5">RESOLVE</tspan> · <tspan font-family="monospace" fill="#ebebe5">WITHDRAW</tspan> · <tspan font-family="monospace" fill="#ebebe5">capped</tspan> are terminal on</text>
+  <text x="1200" y="756" font-size="10.5" fill="#c4c2bc">a single agent's emission; <tspan font-family="monospace" fill="#ebebe5">acknowledged</tspan> needs both.</text>
+
+  <!-- ================= LEGEND ================= -->
+  <text x="60" y="1130" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="2">LEGEND · FOUR TERMINAL PHASE-END STATES</text>
+
+  <!-- organic pill -->
+  <rect x="60" y="1146" width="270" height="56" rx="28" fill="url(#surfaceOk)" filter="url(#cardShadowDark)"/>
+  <circle cx="92" cy="1174" r="9" fill="rgba(15,40,15,0.22)"/>
+  <text x="92" y="1178" text-anchor="middle" font-size="11" font-weight="700" fill="#0f2810">OK</text>
+  <text x="116" y="1170" font-size="13" font-weight="600" fill="#0f2810" font-family="monospace">organic</text>
+  <text x="116" y="1188" font-size="10" fill="rgba(15,40,15,0.85)">all items terminal · happy path</text>
+
+  <!-- closeout pill -->
+  <rect x="350" y="1146" width="290" height="56" rx="28" fill="url(#surfaceWarn)" filter="url(#cardShadowDark)"/>
+  <circle cx="382" cy="1174" r="9" fill="rgba(45,28,8,0.22)"/>
+  <text x="382" y="1178" text-anchor="middle" font-size="10" font-weight="700" fill="#2d1c08">!</text>
+  <text x="406" y="1170" font-size="13" font-weight="600" fill="#2d1c08" font-family="monospace">via_closeout</text>
+  <text x="406" y="1188" font-size="10" fill="rgba(45,28,8,0.85)">budget burned · then converged</text>
+
+  <!-- ghost cap pill (dashed) -->
+  <rect x="660" y="1146" width="310" height="56" rx="28" fill="url(#surfaceErr)" filter="url(#cardShadowDark)" stroke="#ffffff" stroke-width="1.6" stroke-dasharray="6,4" stroke-opacity="0.75"/>
+  <circle cx="692" cy="1174" r="9" fill="rgba(50,15,15,0.22)"/>
+  <text x="692" y="1178" text-anchor="middle" font-size="10" font-weight="700" fill="#321010">X</text>
+  <text x="716" y="1170" font-size="13" font-weight="600" fill="#321010" font-family="monospace">via_ghost_cap</text>
+  <text x="716" y="1188" font-size="10" fill="rgba(50,15,15,0.85)">orchestrator capped early · dashed</text>
+
+  <!-- hard cap pill (solid) -->
+  <rect x="990" y="1146" width="310" height="56" rx="28" fill="url(#surfaceErr)" filter="url(#cardShadowDark)" stroke="#ffffff" stroke-width="1.6" stroke-opacity="0.75"/>
+  <circle cx="1022" cy="1174" r="9" fill="rgba(50,15,15,0.22)"/>
+  <text x="1022" y="1178" text-anchor="middle" font-size="10" font-weight="700" fill="#321010">X</text>
+  <text x="1046" y="1170" font-size="13" font-weight="600" fill="#321010" font-family="monospace">via_hard_cap</text>
+  <text x="1046" y="1188" font-size="10" fill="rgba(50,15,15,0.85)">round cap hit · solid</text>
+
+  <text x="1620" y="1170" text-anchor="end" font-size="10.5" font-style="italic" fill="#9a988f">Every phase ends in exactly one of these four states.</text>
+  <text x="1620" y="1186" text-anchor="end" font-size="10" fill="#7a7873">The terminal flag is stamped on the phase artifact.</text>
+
+  <!-- ================= FOOTER ================= -->
+  <text x="60" y="1232" font-size="10" fill="#7a7873" font-style="italic">Dual Research · convergence protocol · v1 — diamonds are orchestrator-side checks; agents see only their next prompt.</text>
+  <text x="1620" y="1232" text-anchor="end" font-size="10" font-family="monospace" fill="#7a7873">06 / how-it-works</text>
+
+</svg>
