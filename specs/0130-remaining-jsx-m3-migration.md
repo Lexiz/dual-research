@@ -46,17 +46,17 @@ After this spec lands, **every `.jsx` file in `src/dual_research/ui/static/` is 
 
 ## 4. Current-state audit
 
-Per-file v1 token counts (audited 2026-05-20 against main `93d0538`):
+Per-file v1 token counts (re-audited 2026-05-20 post-rebase, against main after 0129 merged):
 
 | File | `var(--bg|fg|border|r|t)-*)` | `var(--mono)` | Approx total |
 |---|---:|---:|---:|
 | `app.jsx` | 40 | 3 | 43 |
 | `errors.jsx` | 39 | 1 | 40 |
-| `compare.jsx` | 34 | 7 | 41 |
+| `compare.jsx` | 35 | 7 | 42 |
 | `auth.jsx` | 33 | 3 | 36 |
-| `search.jsx` | 23 | 3 | 26 |
-| `shared.jsx` | 15 | 3 | 18 |
-| **Total** | **184** | **20** | **204** |
+| `search.jsx` | 24 | 3 | 27 |
+| `shared.jsx` | 16 | 3 | 19 |
+| **Total** | **187** | **20** | **207** |
 
 > **Execution note:** drift will happen between draft and execution. Re-run `for f in app errors compare auth search shared; do printf "%4d (+ %d mono) %s.jsx\n" $(grep -cE 'var\(--(bg|fg|border|r|t)-' src/dual_research/ui/static/$f.jsx) $(grep -cE 'var\(--mono' src/dual_research/ui/static/$f.jsx) $f; done` at execution start and update the table.
 
@@ -92,6 +92,24 @@ Per-file scope notes:
 | `var(--mono)` | `var(--md-font-data)` |
 
 Type tokens (`var(--t-*)`) — same handling as spec 0129 § 5b. If a target file uses `--t-*` size tokens, prefer the `.t-<category>-<size>` utility class when the call site uses `className`; otherwise inline the `--md-<role>-size` + `--md-<role>-lh` pair.
+
+### 5b. Type-token resolutions (4 call sites — re-audit identified)
+
+Unlike 0128 (none) and 0129 (none), this spec hits four real `--t-*` call sites. All four are `fontSize:` inside inline-style objects (no `className` route), so we inline the M3 `<role>-size` + `<role>-lh` pair per § 5 / 0129 § 5b. Decision table:
+
+| File:line | Call site | v1 value | M3 role chosen | New tokens | Δ |
+|---|---|---|---|---|---|
+| `compare.jsx:89` | chrome-bar `<span>` "Compare runs" (semibold) | `--t-title` (20px) | `title-l` (22 / 28) | `fontSize: 'var(--md-title-l-size)', lineHeight: 'var(--md-title-l-lh)'` | +2 px |
+| `search.jsx:69` | page `<h2>` "Cross-run search" (semibold) | `--t-title` (20px) | `title-l` (22 / 28) | same as above | +2 px |
+| `search.jsx:78` | subtitle `<p>` under the h2 | `--t-body` (13px) | `body-m` (14 / 20) | `fontSize: 'var(--md-body-m-size)', lineHeight: 'var(--md-body-m-lh)'` | +1 px |
+| `shared.jsx:930` | `<AgentStrip>` model-ID `<span>` | `--t-mono` (11px) | `label-s` (11 / 16) | `fontSize: 'var(--md-label-s-size)', lineHeight: 'var(--md-label-s-lh)'` | 0 |
+
+Rationale:
+- `--t-title` (20 px) falls between `title-l` (22) and `title-m` (16). `title-l` is the closer match by size and the matching role for "section H2 / modal title" in `SPEC.md § 2.5`. The +2 px bump is consistent with the radius-bump pattern of the rest of the arc.
+- `--t-body` (13 px) → `body-m` (14 px) per `SPEC.md § 2.5`: "Body default is `body-m` (14 / 20)."
+- `--t-mono` (11 px) → `label-s` (11 px) is an exact size match. Skip the M3 letter-spacing token (`--md-label-s-track: 0.5px`) — that's intended for uppercase labels; this call site is a model-ID string, not a label.
+
+These four edits replace four lines of inline style and are committed alongside the file's surface/ink/outline/shape sweep — one commit per file per § 6.
 
 ## 6. Per-file execution order (recommended)
 
@@ -149,6 +167,8 @@ For each of the 6 files, capture the primary surface in both themes at the wide 
 Compared against same-route screenshots captured from `main` immediately before branch.
 
 ## 9. Risks
+
+0. **Out-of-scope landmine spotted during audit: `var(--w-semibold)` is undefined.** `compare.jsx:90`, `search.jsx:70`, and `shortcuts-overlay.jsx:43` all reference `var(--w-semibold)`, but `tokens.css` only defines `--w-regular / --w-medium / --w-semi / --w-bold`. The token is a typo (should be `--w-semi`) and currently resolves to default weight (400, not 600) — a quiet pre-existing visual bug. The `--w-*` family is **outside** this arc's removal scope (0131 only removes `--bg/fg/border/r/t/mono`), so 0130 does NOT touch these lines. Flag in the handover; consider a follow-up spec.
 
 1. **Radius visual bump.** Same as 0128/0129: `--r-2: 6px` → `--md-shape-sm: 8px`; `--r-3: 8px` → `--md-shape-md: 12px`. Acceptable per design-system contract. Captured in visual matrix.
 
