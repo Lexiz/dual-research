@@ -68,7 +68,7 @@ function CrossRunSearchScreen({ navigate }) {
           <h2 style={{
             fontSize: 'var(--md-title-l-size)',
             lineHeight: 'var(--md-title-l-lh)',
-            fontWeight: 'var(--w-semibold)',
+            fontWeight: 'var(--md-w-semi)',
             color: 'var(--md-on-surface)',
             margin: 0,
             display: 'flex', alignItems: 'center', gap: 8,

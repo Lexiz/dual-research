@@ -4998,7 +4998,7 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>({piece})</span>
             {isAgentDefault && (
               <span
-                className="chip tone-muted chip-pill"
+                className="chip tone-muted"
                 style={{ marginLeft: 6, fontSize: 10, padding: '0 6px' }}
                 title="The per-run system prompt was not recorded; showing the agent's current default."
               >
