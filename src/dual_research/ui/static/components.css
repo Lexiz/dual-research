@@ -162,6 +162,21 @@
 }
 .chip.no-dot::before { display: none; }
 
+/* Spec 0133 §5.7 — safety net for the auto-dot vs slot collision.
+   Mirrors the JSX `usesNewSlots` heuristic in shared.jsx (the
+   upgraded <Chip> auto-adds .no-dot whenever any slot prop is set).
+   Active even when a callsite bypasses the Chip primitive and writes
+   raw `<span className="chip tone-X">` markup (audited at spec time:
+   compare.jsx, run-detail.jsx:5003, how-it-works.jsx all carry such
+   call sites). Result: zero double-dots anywhere. */
+.chip:has(.chip-label)::before,
+.chip:has(.chip-value)::before,
+.chip:has(.chip-dot)::before,
+.chip:has(.cat-bubble)::before,
+.chip:has(.chip-leading-icon)::before {
+  display: none;
+}
+
 /* Slot children */
 .chip .chip-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -207,6 +222,30 @@
 }
 .chip.dim .chip-add,
 .chip.dim .chip-sub { color: var(--md-on-surface-faint); }
+
+/* Spec 0133 §5.9 — subtle vertical separator between .chip-add and
+   .chip-sub when they sit adjacent. The slim Δ-pair presentation used
+   by timeline turn-card category chips (after Goal 8 drops bubble +
+   standing-total) reads "+raised | −closed"; without a separator the
+   two figures bleed into each other and a column of cards becomes
+   unreadable. Universal rule — applies to any chip with both add+sub
+   slots, including the unchanged TlPhaseHeadChips, so the design
+   language stays consistent across surfaces. */
+.chip .chip-add + .chip-sub {
+  position: relative;
+  padding-left: 8px;
+  margin-left: 2px;
+}
+.chip .chip-add + .chip-sub::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 1px;
+  background: currentColor;
+  opacity: 0.28;
+}
 .chip .chip-suffix {
   font-family: var(--md-font-data);
   font-size: 10.5px;
@@ -308,6 +347,35 @@ button.chip:focus-visible {
   white-space: nowrap;
   font-size: 11px;
 }
+
+/* Spec 0133 — `.as.in-header` relocates the AgentStrip into a Timeline
+   pane header (`.tl__head` for Claude, `.tl__tabs` for GPT). Relative
+   to `.as-timeline` (the agent-bar placement), the chip:
+   - Drops the agent name (logo + model carry identity).
+   - Uses tight vertical padding so it never grows .tl__head / .tl__tabs
+     past their `min-height` contract.
+   - Right-aligns inside the row via `margin-left: auto`.
+   - Sizes its `min-width` to fit the longest activity phrase
+     (`drafting parallel plan` / `drafting converged doc` /
+     `negotiating · round NN` — all 22 chars) without truncation.
+   - Both chips share an identical wide-mode min-width so they appear
+     equal-sized despite different model-name lengths. */
+.as.in-header {
+  min-width: 600px;
+  max-width: 100%;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 4px 24px;
+  gap: 18px;
+  border-radius: var(--md-shape-full);
+  font-size: 13px;
+  align-self: center;
+}
+.as.in-header .as-left  { gap: 16px; }
+.as.in-header .as-right { gap: 16px; font-size: 13px; }
+.as.in-header .as-name  { display: none; }   /* logo carries identity */
+.as.in-header .as-model { font-size: 13px; }
+.as.in-header .num      { font-size: 13px; }
 
 /* AgentIcon (.ai) — agent logo tile */
 .ai {
@@ -702,6 +770,91 @@ body.light .tab-group.tabs-solid .tab.is-active,
   }
   .crit2 .bar2.crit-filter-row .crit-filter-spacer {
     width: 6px; flex: 0 0 6px;
+  }
+
+  /* Spec 0133 §5.6 — extend the kind-filter label collapse to the
+     status filter cluster (Open / Resolved / Drift — identified by
+     .chip-dot) and the agent filter cluster (Claude / GPT — identified
+     by .chip-leading-icon). The dot color + agent icon already carry
+     the identity at this width; the text is redundant. */
+  .crit2 .bar2.crit-filter-row .chip:has(.chip-dot) .chip-label,
+  .crit2 .bar2.crit-filter-row .chip:has(.chip-leading-icon) .chip-label {
+    display: none;
+  }
+
+  /* Spec 0133 §5.5 — Critique Bar 1 narrow compaction. The shared
+     `.bar1, .bar2 { flex-wrap: wrap }` rule wraps Bar 1's right cluster
+     onto a second row at narrow viewports, blowing the height match
+     with .tl__head. Force nowrap and drop redundant labels so the bar
+     stays single-row at the same `min-height` as .tl__head. */
+  .crit2 .bar1 {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  /* Phase tabs lose their textual label — the P-code / Σ glyph reads
+     on its own and the active-tab tint disambiguates Negotiate vs
+     Review vs Summary. */
+  .crit2 .bar1 .phase-tab .pname {
+    display: none;
+  }
+  /* Counter labels (uppercase "INTRODUCED / OPEN / RESOLVED") are
+     signal at wide widths but redundant alongside the colored number;
+     drop them in narrow, keep just the three numerals. */
+  .crit2 .bar1 .crit-totals .lbl {
+    display: none;
+  }
+  /* Prevent the right cluster itself from wrapping its three counters. */
+  .crit2 .right {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+
+  /* Spec 0133 §5.3 — narrow-view AgentStrip compaction (the relocated
+     pills introduced by §5.1 / §5.2). Drop the tokens + cost slots
+     (they read at the run-total level via CostBadge in the top bar);
+     keep logo + model + activity. Both chips lock to the same `width`
+     (Claude's natural content width with the longest activity phrase)
+     so they remain visually equal-sized despite "gpt-5.5" being much
+     shorter than "claude-sonnet-4-6". */
+  .as.in-header {
+    width: 380px;
+    min-width: 0;
+    max-width: none;
+    padding: 4px 14px;
+    gap: 10px;
+  }
+  .as.in-header .as-left  { gap: 10px; }
+  .as.in-header .as-right { gap: 8px; }
+  /* Hide every child of .as-right except the activity span (the last
+     child). The .as-right contents are tokens, sep, cost, sep, activity
+     — in that order — per AgentStrip's render in shared.jsx. The
+     activity is always the last `right` slot, so :not(:last-child) hits
+     the four token/cost-related children and leaves the activity. */
+  .as.in-header .as-right > *:not(:last-child) {
+    display: none;
+  }
+
+  /* The Conversation / Consumption segmented control labels can't share
+     the .tl__tabs row with a 380 px chip — collapse to icons-only at
+     the same breakpoint. `font-size: 0` collapses the text node next
+     to the icon span; the icon span re-asserts its own font-size so
+     the glyph stays visible. No HTML change needed. */
+  .tl__tab {
+    font-size: 0;
+    gap: 0;
+    padding: 0 10px;
+  }
+  .tl__tab .ms {
+    font-size: 18px;
+  }
+
+  /* Bring the chip closer to the right edge — the shared .tl__head /
+     .tl__tabs `padding: 10px 20px` is too generous in narrow when the
+     chip is the dominant element on the right. */
+  .tl__head,
+  .tl__tabs {
+    padding-right: 10px;
   }
 }
 
@@ -2849,6 +3002,30 @@ body.light .tour-overlay__mask {
   border-bottom: 1px solid var(--md-outline-hair);
   flex-shrink: 0;
 }
+
+/* ── Spec 0133 — M3 segmented linear phase-progress indicator ──────
+   Replaces the legacy <PhaseDots> circles-and-lines treatment with one
+   rounded bar segment per PHASES entry. Cell state drives background
+   color via the palette tokens — `--md-outline-variant` for the track
+   / pending state, the status palette (--p-ok / --p-info / --p-err /
+   --p-warn) for done / current / errored / deadlocked respectively. */
+.phase-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.phase-progress__seg {
+  width: 26px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--md-outline-variant);
+  transition: background var(--md-dur-short-4) var(--md-easing-standard);
+}
+.phase-progress__seg.is-done    { background: var(--p-ok); }
+.phase-progress__seg.is-current { background: var(--p-info); }
+.phase-progress__seg.is-error   { background: var(--p-err); }
+.phase-progress__seg.is-warn    { background: var(--p-warn); }
 
 /* ── Spec 0120 — Turn-modal right-pane (review cards) ─────────────
    Right-pane structure: a stack of `ReviewGroup` panels, each one a
