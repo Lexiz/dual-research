@@ -1,0 +1,1299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>spec 0121 — How it works + Changelog mockup</title>
+<style>
+/* =============================================================
+   Tokens (copied verbatim from src/dual_research/ui/static/tokens.css)
+   — only the subset this mockup actually references.
+   ============================================================= */
+:root {
+  --bg-0: #08090b; --bg-1: #0d0f12; --bg-2: #131519; --bg-3: #191c21; --bg-4: #1f2329;
+  --border-1: #1c1f24; --border-2: #262a31; --border-3: #343941;
+  --fg-0: #ffffff; --fg-1: #b4bac4; --fg-2: #9aa0ac; --fg-3: #7d8290; --fg-4: #50545d;
+  --agent-a: #d4a574; --agent-a-bg: rgba(212,165,116,0.08); --agent-a-border: rgba(212,165,116,0.22);
+  --agent-b: #7cc4b8; --agent-b-bg: rgba(124,196,184,0.08); --agent-b-border: rgba(124,196,184,0.22);
+  --ok: #6fb380; --info: #6b9cf0; --warn: #d4a056; --err: #d96a6a; --idle: #5e636d;
+  --ok-bg: rgba(111,179,128,0.08); --info-bg: rgba(107,156,240,0.08);
+  --warn-bg: rgba(212,160,86,0.08); --err-bg: rgba(217,106,106,0.06); --idle-bg: rgba(94,99,109,0.18);
+  --ok-border: rgba(111,179,128,0.28); --info-border: rgba(107,156,240,0.28);
+  --warn-border: rgba(212,160,86,0.28); --err-border: rgba(217,106,106,0.28); --idle-border: rgba(94,99,109,0.32);
+  --claude: var(--agent-a); --claude-bg: var(--agent-a-bg); --claude-border: var(--agent-a-border);
+  --gpt: var(--agent-b); --gpt-bg: var(--agent-b-bg); --gpt-border: var(--agent-b-border);
+  --on-accent: #14110a;
+
+  --sans:  "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "IBM Plex Serif", ui-serif, "Iowan Old Style", Charter, Georgia, serif;
+  --mono:  var(--sans);
+
+  --t-display: 28px; --t-title: 20px; --t-h3: 16px; --t-body: 13px;
+  --t-meta: 12px; --t-mono: 11px; --t-label: 10px;
+  --lh-tight: 1.15; --lh-snug: 1.30; --lh-body: 1.45; --lh-prose: 1.60;
+  --w-regular: 400; --w-medium: 500; --w-semi: 600; --w-bold: 700;
+
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px;
+  --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px; --s-20: 80px;
+
+  --r-1: 4px; --r-2: 6px; --r-3: 8px; --r-4: 12px; --r-pill: 999px;
+  --e-1: 0 4px 12px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --e-2: 0 24px 80px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
+  --m-fast: 120ms; --m-base: 180ms; --ease: cubic-bezier(0.2, 0, 0, 1);
+  --focus-ring: 2px solid var(--info); --focus-offset: 2px;
+}
+
+body.light {
+  --bg-0: #faf9f6; --bg-1: #ffffff; --bg-2: #f3f0e9; --bg-3: #ddd8cb; --bg-4: #d6d1c4;
+  --border-1: #e7e3d9; --border-2: #d2cdc0; --border-3: #aaa599;
+  --fg-0: #04060a; --fg-1: #3a3f47; --fg-2: #4d5159; --fg-3: #6f7480; --fg-4: #a8aab0;
+  --agent-a-bg: rgba(212,165,116,0.14); --agent-a-border: rgba(212,165,116,0.42);
+  --agent-b-bg: rgba(124,196,184,0.14); --agent-b-border: rgba(124,196,184,0.42);
+  --ok-bg: rgba(111,179,128,0.14); --info-bg: rgba(107,156,240,0.14);
+  --warn-bg: rgba(212,160,86,0.14); --err-bg: rgba(217,106,106,0.10);
+  --on-accent: #1a160d;
+  --e-1: 0 4px 12px rgba(20,23,28,0.10), 0 1px 2px rgba(20,23,28,0.06);
+  --e-2: 0 24px 60px rgba(20,23,28,0.22), 0 4px 12px rgba(20,23,28,0.10);
+}
+
+/* =============================================================
+   Base
+   ============================================================= */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  color: var(--fg-1);
+  background: var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--m-base) var(--ease), color var(--m-base) var(--ease);
+}
+
+/* =============================================================
+   Chip (copied verbatim from components.css §Chip)
+   ============================================================= */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 22px; padding: 0 9px;
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: 11px; font-weight: var(--w-medium);
+  letter-spacing: -0.005em;
+  background: var(--bg-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  color: var(--fg-1);
+  white-space: nowrap;
+  line-height: 1;
+}
+.chip-lg { height: 26px; padding: 0 11px; }
+.chip.chip-square { border-radius: var(--r-1); }
+.chip.mono { font-family: var(--mono); font-size: 10.5px; }
+.chip.dim  { opacity: 0.55; }
+.chip-icon-only { padding: 0 6px; gap: 0; }
+
+.chip.tone-info        { color: var(--info);    background: color-mix(in srgb, var(--info) 18%, transparent); border-color: transparent; }
+.chip.tone-info-strong { color: var(--info);    background: color-mix(in srgb, var(--info) 28%, transparent); border-color: transparent; }
+.chip.tone-ok          { color: var(--ok);      background: color-mix(in srgb, var(--ok) 18%, transparent);   border-color: transparent; }
+.chip.tone-warn        { color: var(--warn);    background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: transparent; }
+.chip.tone-err         { color: var(--err);     background: color-mix(in srgb, var(--err) 18%, transparent);  border-color: transparent; }
+.chip.tone-idle        { color: var(--idle);    background: color-mix(in srgb, var(--idle) 28%, transparent); border-color: transparent; }
+.chip.tone-muted       { color: var(--fg-3);    background: var(--bg-2); border-color: transparent; }
+.chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
+.chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+.chip.tone-neutral     { color: var(--fg-1);    background: var(--bg-3); border-color: transparent; }
+
+.chip.tone-info::before, .chip.tone-info-strong::before, .chip.tone-ok::before,
+.chip.tone-warn::before, .chip.tone-err::before, .chip.tone-idle::before,
+.chip.tone-muted::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.chip.no-dot::before { display: none; }
+.chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 6px; }
+.chip .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+.chip .cat-bubble {
+  width: 14px; height: 14px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800;
+  font-family: var(--sans); letter-spacing: 0;
+  flex: 0 0 14px;
+  color: #ffffff;
+  background: currentColor;
+}
+.chip.tone-info  .cat-bubble { background: var(--info); }
+.chip.tone-warn  .cat-bubble { background: var(--warn); }
+.chip.tone-err   .cat-bubble { background: var(--err);  }
+.chip.tone-idle  .cat-bubble { background: var(--idle); }
+.chip .chip-label { color: currentColor; }
+.chip .chip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 12px;
+  color: var(--fg-0);
+}
+.chip .chip-suffix { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3); }
+
+/* SVG brand mark inside provider chips */
+.chip .brand-mark { width: 12px; height: 12px; display: inline-block; }
+.chip .brand-mark svg { width: 100%; height: 100%; display: block; }
+
+/* =============================================================
+   Mockup-only chrome
+   ============================================================= */
+.mockup-banner {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg-1); border-bottom: 1px solid var(--border-1);
+  padding: var(--s-3) var(--s-6);
+  display: flex; align-items: center; gap: var(--s-4);
+  font-size: var(--t-meta); color: var(--fg-2);
+}
+.mockup-banner__title { font-weight: var(--w-semi); color: var(--fg-0); font-size: var(--t-h3); margin-right: var(--s-4); }
+.mockup-banner__spacer { flex: 1; }
+.mockup-banner__hint { color: var(--fg-3); font-style: italic; }
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: var(--bg-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+  color: var(--fg-1); font-size: var(--t-body); font-family: var(--sans);
+  cursor: pointer;
+}
+.theme-toggle:hover { background: var(--bg-3); }
+.theme-toggle__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--info); }
+
+/* =============================================================
+   Modal overlay (mockup is the modal at full viewport width — no scrim)
+   ============================================================= */
+.dr-modal {
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-4);
+  margin: var(--s-6) auto;
+  max-width: 1080px;
+  box-shadow: var(--e-2);
+  overflow: hidden;
+}
+.dr-modal-header {
+  padding: var(--s-4) var(--s-6);
+  display: flex; align-items: center; gap: var(--s-4);
+  border-bottom: 1px solid var(--border-1);
+  background: var(--bg-1);
+}
+.dr-modal-header h2 {
+  margin: 0; font-size: var(--t-title); font-weight: var(--w-semi);
+  color: var(--fg-0);
+}
+.dr-modal-header .spacer { flex: 1; }
+.dr-modal-tabs {
+  display: inline-flex; gap: 2px;
+  background: var(--bg-2); padding: 2px;
+  border-radius: var(--r-2);
+}
+.dr-modal-tabs .tab {
+  appearance: none; background: transparent; border: none;
+  padding: 6px 14px; border-radius: var(--r-2);
+  font-family: var(--sans); font-size: var(--t-body); font-weight: var(--w-medium);
+  color: var(--fg-2); cursor: pointer;
+}
+.dr-modal-tabs .tab.is-active { background: var(--bg-1); color: var(--fg-0); box-shadow: var(--e-1); }
+.dr-modal-close {
+  appearance: none; background: transparent; border: 1px solid var(--border-1);
+  width: 32px; height: 32px; border-radius: var(--r-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--fg-2); font-size: 18px;
+}
+
+.hiw-overlay__layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  min-height: 600px;
+}
+.hiw-overlay__menu {
+  border-right: 1px solid var(--border-1);
+  padding: var(--s-5) var(--s-4);
+  background: var(--bg-1);
+  position: sticky; top: 0;
+}
+.hiw-overlay__menu-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.hiw-overlay__menu-list a {
+  display: block; padding: 6px 10px;
+  border-radius: var(--r-2);
+  color: var(--fg-2); text-decoration: none;
+  font-size: var(--t-meta);
+}
+.hiw-overlay__menu-list a:hover { color: var(--fg-0); background: var(--bg-2); }
+.hiw-overlay__menu-list .menu-section-num {
+  display: inline-block; width: 18px; color: var(--fg-3);
+  font-family: var(--mono); font-size: var(--t-mono);
+}
+.hiw-overlay__content {
+  padding: var(--s-6) var(--s-8);
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+/* =============================================================
+   How-it-Works structural patterns
+   ============================================================= */
+.hiw { display: flex; flex-direction: column; gap: var(--s-8); }
+.hiw-sec { scroll-margin-top: 80px; }
+
+/* Collapsible section */
+.cs-section {
+  border-top: 1px solid var(--border-1);
+  padding-top: var(--s-5);
+}
+.cs-section:first-child { border-top: none; padding-top: 0; }
+.cs-header {
+  display: flex; align-items: center; gap: var(--s-3);
+  cursor: pointer; user-select: none;
+  padding: var(--s-2) 0;
+}
+.cs-chevron {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--fg-3);
+  transition: transform var(--m-fast) var(--ease);
+}
+.cs-section.is-open .cs-chevron { transform: rotate(90deg); }
+.cs-title {
+  font-size: var(--t-h3); font-weight: var(--w-semi);
+  color: var(--fg-0);
+  display: flex; align-items: center; gap: var(--s-3);
+  flex: 1;
+}
+.cs-body { padding: var(--s-3) 0 var(--s-5) 28px; display: none; }
+.cs-section.is-open .cs-body { display: block; }
+
+/* Lede */
+.lede {
+  font-size: var(--t-body); line-height: var(--lh-prose);
+  color: var(--fg-1);
+  margin: 0 0 var(--s-5) 0;
+}
+
+/* TL;DR card grid */
+.hiw-tldr {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+.dr-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+}
+.dr-card-body { padding: var(--s-4); }
+.dr-card-body h4 {
+  margin: 0 0 var(--s-2) 0;
+  font-size: var(--t-body); font-weight: var(--w-semi);
+  color: var(--fg-0);
+}
+.dr-card-body p {
+  margin: 0; font-size: var(--t-meta); color: var(--fg-2);
+  line-height: var(--lh-snug);
+}
+
+/* Small-caps section title (spec 0120) */
+.crit-section-title {
+  font-size: 11px;
+  color: var(--fg-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--w-semi);
+  margin: var(--s-5) 0 var(--s-2) 0;
+}
+
+/* Diagram embed */
+.hiw-diagram {
+  margin: var(--s-5) 0;
+  padding: var(--s-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+}
+.hiw-diagram img { width: 100%; height: auto; display: block; }
+.hiw-caption {
+  font-size: var(--t-meta); color: var(--fg-3);
+  margin: var(--s-2) 0 0 0; font-style: italic;
+}
+
+/* Chip row */
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.chip-row + .chip-row { margin-top: var(--s-2); }
+
+/* Input / output lists */
+.hiw-input-list, .hiw-output-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.hiw-input-list li, .hiw-output-list li {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+}
+.hiw-input-name { font-size: var(--t-body); color: var(--fg-1); flex: 1; }
+.hiw-input-note { font-size: var(--t-meta); color: var(--fg-3); font-style: italic; }
+.hiw-muted { color: var(--fg-3); font-style: italic; }
+
+/* Note callout (spec 0121 fill-in) */
+.hiw-note {
+  border-left: 3px solid var(--info);
+  background: var(--bg-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-2);
+  margin: var(--s-3) 0;
+  font-size: var(--t-body);
+  color: var(--fg-1);
+}
+.hiw-note[data-tone="warn"] { border-left-color: var(--warn); }
+.hiw-note[data-tone="err"]  { border-left-color: var(--err);  }
+.hiw-note[data-tone="ok"]   { border-left-color: var(--ok);   }
+.hiw-note[data-tone="idle"] { border-left-color: var(--idle); }
+.hiw-note__label {
+  font-size: var(--t-mono); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--fg-3); margin-right: var(--s-2); font-weight: var(--w-semi);
+}
+
+/* Table (spec 0121 fill-in) */
+.hiw-table { width: 100%; border-collapse: collapse; font-size: var(--t-body); }
+.hiw-table th, .hiw-table td {
+  text-align: left; padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--border-1);
+  vertical-align: top;
+}
+.hiw-table th {
+  background: var(--bg-2);
+  font-weight: var(--w-semi); color: var(--fg-2);
+  font-size: var(--t-meta); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.hiw-table td.num { font-variant-numeric: tabular-nums; }
+
+/* Code block (spec 0121 fill-in) */
+.hiw-code {
+  font-family: var(--mono); font-size: var(--t-mono);
+  background: var(--bg-2); padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-2); overflow-x: auto;
+  margin: var(--s-3) 0; color: var(--fg-1);
+  border: 1px solid var(--border-1);
+}
+
+/* Phase title — chip cluster next to heading */
+.hiw-section-title {
+  display: inline-flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* =============================================================
+   Changelog tab
+   ============================================================= */
+.cl-list { display: flex; flex-direction: column; gap: var(--s-4); }
+.cl-filter-row {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--border-1);
+  margin-bottom: var(--s-4);
+}
+.cl-filter-row .spacer { flex: 1; }
+.hiw-search {
+  background: var(--bg-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  padding: 4px 12px; font-size: var(--t-meta);
+  color: var(--fg-1); font-family: var(--sans);
+  width: 200px;
+}
+.changelog-head {
+  display: flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap; flex: 1;
+}
+.changelog-date {
+  color: var(--fg-3); font-family: var(--mono); font-size: var(--t-mono);
+}
+.changelog-summary {
+  color: var(--fg-0); font-size: var(--t-body); font-weight: var(--w-semi);
+  flex: 1;
+}
+.changelog-bullets {
+  list-style: disc; padding-left: var(--s-5); margin: var(--s-2) 0 0 0;
+  color: var(--fg-1); font-size: var(--t-body); line-height: var(--lh-snug);
+}
+.changelog-bullets li + li { margin-top: var(--s-2); }
+.changelog-bullets li strong { color: var(--fg-0); font-weight: var(--w-semi); }
+.changelog-shots {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.changelog-shots figure {
+  margin: 0; background: var(--bg-2);
+  border: 1px solid var(--border-1); border-radius: var(--r-2);
+  padding: var(--s-2); overflow: hidden;
+}
+.changelog-shots .stub {
+  height: 160px; background: repeating-linear-gradient(
+    45deg, var(--bg-3), var(--bg-3) 8px, var(--bg-2) 8px, var(--bg-2) 16px
+  );
+  border-radius: var(--r-1);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--fg-3); font-size: var(--t-meta); font-style: italic;
+}
+.changelog-shots figcaption {
+  font-size: var(--t-meta); color: var(--fg-3);
+  margin-top: var(--s-2); text-align: center;
+}
+.changelog-spec-link { margin-top: var(--s-3); }
+.changelog-spec-link button {
+  appearance: none; background: transparent; border: 1px solid var(--border-1);
+  padding: 6px 12px; border-radius: var(--r-2);
+  color: var(--fg-1); font-family: var(--sans); font-size: var(--t-meta);
+  cursor: pointer;
+}
+.changelog-spec-link button:hover { background: var(--bg-2); }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     Mockup chrome
+     ============================================================ -->
+<div class="mockup-banner">
+  <span class="mockup-banner__title">spec 0121 — preview mockup</span>
+  <span class="mockup-banner__hint">Click anything to verify. Theme toggle on the right →</span>
+  <span class="mockup-banner__spacer"></span>
+  <button class="theme-toggle" id="theme-toggle">
+    <span class="theme-toggle__dot"></span>
+    <span id="theme-label">dark</span>
+  </button>
+</div>
+
+<!-- ============================================================
+     Modal (the overlay shell)
+     ============================================================ -->
+<div class="dr-modal">
+
+  <div class="dr-modal-header">
+    <h2>How it works</h2>
+    <span class="spacer"></span>
+    <div class="dr-modal-tabs" role="tablist">
+      <button class="tab is-active" data-tab="hiw" role="tab">How it works</button>
+      <button class="tab" data-tab="cl" role="tab">Changelog</button>
+    </div>
+    <button class="dr-modal-close" aria-label="Close">×</button>
+  </div>
+
+  <!-- ============================================================
+       TAB 1 — How it works
+       ============================================================ -->
+  <div class="hiw-overlay__layout" data-tab-content="hiw">
+
+    <nav class="hiw-overlay__menu" aria-label="Section navigation">
+      <ul class="hiw-overlay__menu-list">
+        <li><a href="#hiw-overview"><span class="menu-section-num">1</span>Protocol overview</a></li>
+        <li><a href="#hiw-p0"><span class="menu-section-num">2</span>Phase 0 — Input</a></li>
+        <li><a href="#hiw-p1"><span class="menu-section-num">3</span>Phase 1 — Research plan</a></li>
+        <li><a href="#hiw-p2"><span class="menu-section-num">4</span>Phase 2 — Negotiate plan</a></li>
+        <li><a href="#hiw-p3"><span class="menu-section-num">5</span>Phase 3 — Draft</a></li>
+        <li><a href="#hiw-p4"><span class="menu-section-num">6</span>Phase 4 — Review draft</a></li>
+        <li><a href="#hiw-modal"><span class="menu-section-num">7</span>How turns are reviewed</a></li>
+        <li><a href="#hiw-items"><span class="menu-section-num">8</span>Item taxonomy &amp; categories</a></li>
+        <li><a href="#hiw-lifecycle"><span class="menu-section-num">9</span>Item lifecycle</a></li>
+        <li><a href="#hiw-converge"><span class="menu-section-num">10</span>Convergence &amp; escape hatches</a></li>
+        <li><a href="#hiw-cost"><span class="menu-section-num">11</span>Cost &amp; consumption</a></li>
+      </ul>
+    </nav>
+
+    <div class="hiw-overlay__content">
+      <div class="hiw">
+
+        <!-- ───────── 1. Protocol overview ───────── -->
+        <section class="hiw-sec cs-section is-open" id="hiw-overview" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">Protocol overview</span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Dual Research runs two large language models — <strong>Claude</strong> and <strong>GPT</strong> — through a six-phase protocol on a single brief, in parallel where possible and one-after-the-other where the next phase needs the previous phase's output. Both agents see the same brief, the same prior turns, and the same ledger of unresolved items. The orchestrator is deterministic; the agents are not. A run ends with a single approved document and an audit trail of every claim, disagreement, and source.</p>
+
+            <div class="hiw-tldr">
+              <div class="dr-card"><div class="dr-card-body">
+                <h4>Two agents, one document</h4>
+                <p>Two providers research the same brief. They negotiate a plan, one of them drafts, both review. The output is one document — not two.</p>
+              </div></div>
+              <div class="dr-card"><div class="dr-card-body">
+                <h4>Every claim has a source</h4>
+                <p>Each agent cites the URLs it consulted. Every cited URL is checked against a recorded web-search event; fabricated sources are flagged with <span class="chip mono tone-err no-dot">⚠ unverified</span>.</p>
+              </div></div>
+              <div class="dr-card"><div class="dr-card-body">
+                <h4>Orchestrator owns convergence</h4>
+                <p>Agents propose to converge; the orchestrator enforces caps and closeout. No agent can extend a phase past its hard cap.</p>
+              </div></div>
+            </div>
+
+            <div class="hiw-diagram">
+              <img data-diagram="01-pipeline" alt="Full Dual Research protocol pipeline" />
+            </div>
+            <p class="hiw-caption">Six phases, left to right. Phases 0, 1, 2, 4 run both agents in parallel; phase 3 runs one drafter. Phases 0 / 2 / 4 are multi-round (each round = one turn per agent + an orchestrator update step). The "Agreed interpretation", "Agreed plan + drafter", "Agreed draft acceptance" capsules are the artifacts each multi-round phase emits when both agents reach AGREED with zero non-terminal items.</p>
+          </div>
+        </section>
+
+        <!-- ───────── 2. Phase 0 ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-p0" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <span class="hiw-section-title">
+                Phase 0 — Input
+                <span class="chip mono tone-neutral no-dot">soft 2 / hard 4 rounds</span>
+                <span class="chip mono tone-neutral no-dot">parallel</span>
+              </span>
+            </span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Both agents read the user's brief and raise questions or disagreements about scope, framing, missing inputs, or the intended audience. Round 1 is a first-look critique; round 2+ both addresses the counterpart's raised items and ratifies (or counter-argues) the responses. The phase converges on an <strong>agreed interpretation</strong> — scope, approach, and any items that should carry forward into later phases.</p>
+
+            <div class="crit-section-title">Inputs</div>
+            <ul class="hiw-input-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.preamble</span><span class="hiw-input-name">shared system preamble</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.task.input</span><span class="hiw-input-name">phase-0 task instructions</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">user_prompt</span><span class="hiw-input-name">the user's brief (message + attachments)</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">prior_turns.phase0</span><span class="hiw-input-name">both agents' turns from prior rounds, perspective-flipped</span><span class="hiw-input-note">round ≥ 2</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">ledger.standing_items</span><span class="hiw-input-name">open items raised so far</span><span class="hiw-input-note">round ≥ 2</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">closeout.request</span><span class="hiw-input-name">orchestrator-injected closeout instruction</span><span class="hiw-input-note">closeout rounds only</span></li>
+            </ul>
+
+            <div class="crit-section-title">Allowed categories</div>
+            <div class="chip-row">
+              <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span></span>
+              <span class="chip tone-warn no-dot"><span class="cat-bubble">D</span><span class="chip-label">Disagreements</span></span>
+            </div>
+
+            <div class="crit-section-title">Convergence condition</div>
+            <p>Both agents emit <code>STATUS: AGREED</code> in the same round AND every raised item is in a terminal state (<code>resolved</code>, <code>acknowledged</code>, <code>withdrawn</code>, or <code>capped</code>) AND both agents emit the <code>AGREED_INTERPRETATION</code> block in matching form.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="02-phase-inputs" alt="Per-phase input composition (generic)" />
+            </div>
+            <p class="hiw-caption">In Phase 0, <code>system.task.input</code> fills the system-task row; carry-forward inputs are absent in round 1. From round 2, <code>prior_turns.phase0</code> + <code>ledger.standing_items</code> activate (dashed rows in the diagram).</p>
+
+            <div class="crit-section-title">Outputs</div>
+            <ul class="hiw-output-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase0.&lt;agent&gt;.r&lt;N&gt;</span><span class="hiw-input-name">per-round turn artifact (one per agent per round)</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase0.agreement.interpretation</span><span class="hiw-input-name">emitted on AGREED</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ───────── 3. Phase 1 ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-p1" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <span class="hiw-section-title">
+                Phase 1 — Research plan
+                <span class="chip mono tone-neutral no-dot">one-shot</span>
+                <span class="chip mono tone-neutral no-dot">parallel</span>
+              </span>
+            </span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Each agent writes a complete research plan + thesis, independently. <strong>No operation blocks</strong> — agents don't raise items in this phase. Inline <code>[V]</code> / <code>[U]</code> source tagging is required on prose claims. The phase ends when both plans are present.</p>
+
+            <div class="crit-section-title">Inputs</div>
+            <ul class="hiw-input-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.preamble</span><span class="hiw-input-name">shared system preamble</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.task.research_plan</span><span class="hiw-input-name">phase-1 task instructions</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">user_prompt</span><span class="hiw-input-name">the user's brief</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase0.agreement.interpretation</span><span class="hiw-input-name">carry-forward from Phase 0</span></li>
+            </ul>
+
+            <div class="crit-section-title">Allowed categories</div>
+            <div class="chip-row"><span class="hiw-muted">(none — this is a production phase, not a negotiation phase)</span></div>
+
+            <div class="crit-section-title">Convergence condition</div>
+            <p>Both <code>phase1.claude</code> and <code>phase1.openai</code> artifacts present and well-formed.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="02-phase-inputs" alt="Per-phase input composition — Phase 1 variant" />
+            </div>
+            <p class="hiw-caption">Phase 1 has no round-conditional inputs (one-shot) and no agreement-emitted output — the dashed rows and ok-green output pill in the diagram are absent here.</p>
+
+            <div class="crit-section-title">Outputs</div>
+            <ul class="hiw-output-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase1.claude</span><span class="hiw-input-name">Claude's research plan + thesis (Summary · Thesis · Detailed findings · Sources)</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase1.openai</span><span class="hiw-input-name">GPT's research plan + thesis (same shape)</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ───────── 4. Phase 2 ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-p2" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <span class="hiw-section-title">
+                Phase 2 — Negotiate plan
+                <span class="chip mono tone-neutral no-dot">soft 4 / hard 8 rounds</span>
+                <span class="chip mono tone-neutral no-dot">parallel</span>
+              </span>
+            </span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Each agent reads both phase-1 plans (their own and the counterpart's). They raise questions and disagreements about scope, methodology, source quality, missing angles, and structure. The phase converges on an <strong>agreed plan</strong> — a section-by-section outline + the key claims each section will make — plus a <strong>drafter selection</strong> (which agent will write the unified document in Phase 3).</p>
+
+            <div class="crit-section-title">Inputs</div>
+            <ul class="hiw-input-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.preamble</span><span class="hiw-input-name"></span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.task.plan_negotiation</span><span class="hiw-input-name">phase-2 task instructions</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">user_prompt</span><span class="hiw-input-name"></span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase0.agreement.interpretation</span><span class="hiw-input-name">carry-forward</span></li>
+              <li><span class="chip mono chip-square tone-claude no-dot">phase1.claude</span><span class="hiw-input-name">Claude's research plan</span></li>
+              <li><span class="chip mono chip-square tone-gpt no-dot">phase1.openai</span><span class="hiw-input-name">GPT's research plan</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">prior_turns.phase2</span><span class="hiw-input-name"></span><span class="hiw-input-note">round ≥ 2</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">ledger.standing_items</span><span class="hiw-input-name"></span><span class="hiw-input-note">round ≥ 2</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">closeout.request</span><span class="hiw-input-name"></span><span class="hiw-input-note">closeout rounds</span></li>
+            </ul>
+
+            <div class="crit-section-title">Allowed categories</div>
+            <div class="chip-row">
+              <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span></span>
+              <span class="chip tone-warn no-dot"><span class="cat-bubble">D</span><span class="chip-label">Disagreements</span></span>
+            </div>
+
+            <div class="crit-section-title">Convergence condition</div>
+            <p>Both AGREED + every raised item terminal + both emit the <code>AGREED_PLAN</code> block in matching form + both emit a matching <code>DRAFTER:</code> line (tiebreak resolves disagreements per <code>tiebreak.pick_drafter</code>).</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="02-phase-inputs" alt="Per-phase input composition — Phase 2 variant" />
+            </div>
+            <p class="hiw-caption">Phase 2 is the densest-input phase: both research plans (one per agent, in agent-tinted pills) plus the agreed-interpretation carry-forward plus round-conditional inputs from round 2 onward. Outputs include the agreement-emitted plan + drafter pair (ok-green) when convergence lands.</p>
+
+            <div class="crit-section-title">Outputs</div>
+            <ul class="hiw-output-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase2.&lt;agent&gt;.r&lt;N&gt;</span><span class="hiw-input-name">per-round turn artifact</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase2.agreement.plan</span><span class="hiw-input-name">section-by-section outline + key claims</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase2.agreement.drafter</span><span class="hiw-input-name">which agent drafts in Phase 3</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ───────── 5. Phase 3 ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-p3" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <span class="hiw-section-title">
+                Phase 3 — Draft
+                <span class="chip mono tone-neutral no-dot">one-shot</span>
+                <span class="chip mono tone-neutral no-dot">single drafter</span>
+              </span>
+            </span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">The drafter chosen in Phase 2 writes the unified document, section-by-section, following the agreed plan. The non-drafter agent does <strong>not</strong> run in this phase. The draft emits a <code>## Disagreements left open</code> section listing every Phase-2 disagreement that ended in <code>acknowledged</code> or <code>capped</code> (i.e. <em>known</em> but unresolved); same for <code>## Open questions</code>.</p>
+
+            <div class="crit-section-title">Inputs</div>
+            <ul class="hiw-input-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.preamble</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.task.drafting</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">user_prompt</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase0.agreement.interpretation</span></li>
+              <li><span class="chip mono chip-square tone-claude no-dot">phase1.claude</span></li>
+              <li><span class="chip mono chip-square tone-gpt no-dot">phase1.openai</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase2.agreement.plan</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">carry_forward.phase2</span><span class="hiw-input-name">acknowledged / capped Phase 2 items</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">all_p2_turns</span><span class="hiw-input-name">every Phase 2 turn (concatenated)</span></li>
+            </ul>
+
+            <div class="crit-section-title">Allowed categories</div>
+            <div class="chip-row"><span class="hiw-muted">(none)</span></div>
+
+            <div class="crit-section-title">Convergence condition</div>
+            <p>Drafter emits the <code>phase3.draft.v1</code> artifact.</p>
+
+            <div class="crit-section-title">Outputs</div>
+            <ul class="hiw-output-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase3.draft.v1</span><span class="hiw-input-name">initial unified draft</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- ───────── 6. Phase 4 ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-p4" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <span class="hiw-section-title">
+                Phase 4 — Review draft
+                <span class="chip mono tone-neutral no-dot">soft 4 / hard 8 rounds</span>
+                <span class="chip mono tone-neutral no-dot">parallel</span>
+              </span>
+            </span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Both agents read the current draft. Either may raise questions (<code>Q</code>), disagreements (<code>D</code>), issues (<code>I</code> — defects in the draft), or comments (<code>C</code> — non-defect improvements). The drafter may mid-phase revise via a <code>## Revised draft</code> section, which advances the <code>draft_version</code> pointer (<code>v1 → v2 → …</code>). The phase converges on an <strong>agreed draft acceptance</strong> — <code>draft_version</code> + <code>draft_hash</code> + a mutual endorsement.</p>
+
+            <div class="crit-section-title">Inputs</div>
+            <ul class="hiw-input-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.preamble</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">system.task.review</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">user_prompt</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">current_draft</span><span class="hiw-input-name">latest phase{3,4}.draft.v&lt;N&gt;</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">prior_turns.phase4</span><span class="hiw-input-note">round ≥ 2</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">ledger.standing_items</span><span class="hiw-input-note">round ≥ 2</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">closeout.request</span><span class="hiw-input-note">closeout rounds</span></li>
+            </ul>
+
+            <div class="crit-section-title">Allowed categories — the full four</div>
+            <div class="chip-row">
+              <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span></span>
+              <span class="chip tone-warn no-dot"><span class="cat-bubble">D</span><span class="chip-label">Disagreements</span></span>
+              <span class="chip tone-err no-dot"><span class="cat-bubble">I</span><span class="chip-label">Issues</span></span>
+              <span class="chip tone-idle no-dot"><span class="cat-bubble">C</span><span class="chip-label">Comments</span></span>
+            </div>
+
+            <div class="crit-section-title">Convergence condition</div>
+            <p>Both AGREED on the <strong>same</strong> <code>draft_version</code> + every raised item terminal + both emit the <code>AGREED_DRAFT_ACCEPTANCE</code> block matching on <code>(draft_version, draft_hash)</code>.</p>
+
+            <div class="crit-section-title">Outputs</div>
+            <ul class="hiw-output-list">
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase4.&lt;agent&gt;.r&lt;N&gt;</span><span class="hiw-input-name">per-round turn artifact</span></li>
+              <li><span class="chip mono chip-square tone-neutral no-dot">phase4.draft.v&lt;N&gt;</span><span class="hiw-input-name">versioned draft (when drafter revises)</span></li>
+              <li><span class="chip mono chip-square tone-ok no-dot">phase4.agreement.draft_acceptance</span></li>
+            </ul>
+
+            <div class="hiw-note" data-tone="ok">
+              <span class="hiw-note__label">Finalize</span>
+              <span class="chip mono tone-neutral no-dot" style="margin-right:8px">programmatic</span>
+              When Phase 4 converges, the orchestrator assembles <code>final.document</code> from the latest draft version, plus an <code>## Appendix — Unresolved items</code> section listing every item across the run that ended in <code>acknowledged</code> or <code>capped</code> (with the verb chip + reason). No LLM call.
+            </div>
+          </div>
+        </section>
+
+        <!-- ───────── 7. Modal anatomy ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-modal" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">How turns are reviewed</span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Click any phase row on the timeline to open the turn modal. The modal has two panes: on the left, the <strong>artifact you're reviewing</strong> (the counterpart's prior turn, the converged draft, etc.) with sub-tabs to switch between adjacent artifacts. On the right, the <strong>items extracted from this turn</strong> — grouped by category, each card shows who raised it, what part of the source it anchors to, its title, its rationale, and (if the agent cited any) its sources.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="07-modal-anatomy" alt="Turn-review modal anatomy" />
+            </div>
+            <p class="hiw-caption">Left pane: artifact + sub-tabs. Right pane: category-grouped item cards in canonical Q → D → I → C order. Each card header begins with the <strong>provider</strong> chip, then the <strong>category</strong> chip, then the <strong>raised-in-r&lt;N&gt;</strong> chip, then (optional) <strong>Sources &lt;count&gt;</strong> chip. Body: Anchor → Title → Rationale → Sources.</p>
+
+            <div class="crit-section-title">The left pane</div>
+            <p>Sub-tabs let you compare adjacent artifacts. <code>Original</code> is the default; <code>Input</code> is one click away. The "Original" default flips per phase:</p>
+            <table class="hiw-table">
+              <thead><tr><th>Phase</th><th>"Original" default</th></tr></thead>
+              <tbody>
+                <tr><td>Phase 4</td><td>Current draft</td></tr>
+                <tr><td>Phase 2, round ≥ 2</td><td>Other agent's prior turn</td></tr>
+                <tr><td>Phase 2, round 1</td><td>Other agent's draft</td></tr>
+              </tbody>
+            </table>
+
+            <div class="crit-section-title">The right pane</div>
+            <p>Category-grouped panels. Each panel header is a <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span><span class="chip-value">5</span></span> — the same Chip primitive that renders the critique-pane filter legend. Pre-0114 legacy runs render an additional <code>Claims</code> panel via a separate code path; new-protocol runs do not.</p>
+
+            <div class="hiw-note">
+              <span class="hiw-note__label">Why "Anchored to &lt;agent&gt;'s draft" instead of "Anchored to text"?</span>
+              The anchor identifies <em>which artifact and where in it</em> the item refers to. Naming the source agent makes it unambiguous which pane to scan when reading the anchor.
+            </div>
+          </div>
+        </section>
+
+        <!-- ───────── 8. Item taxonomy ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-items" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">Item taxonomy &amp; categories</span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Every structured item raised in any negotiation phase has a <strong>kind</strong>. There are four kinds; together they are the entire vocabulary. The kind is fixed at raise-time and never changes.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="04-categories" alt="Category taxonomy and chip composition reference" />
+            </div>
+
+            <table class="hiw-table">
+              <thead><tr><th>Chip</th><th>Kind</th><th>Raisable in</th><th>Meaning</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Question</span></span></td>
+                  <td>question</td>
+                  <td><span class="chip mono tone-neutral no-dot">P0</span> <span class="chip mono tone-neutral no-dot">P2</span> <span class="chip mono tone-neutral no-dot">P4</span></td>
+                  <td><em>"I don't know; the other agent does or should research."</em></td>
+                </tr>
+                <tr>
+                  <td><span class="chip tone-warn no-dot"><span class="cat-bubble">D</span><span class="chip-label">Disagreement</span></span></td>
+                  <td>disagreement</td>
+                  <td><span class="chip mono tone-neutral no-dot">P0</span> <span class="chip mono tone-neutral no-dot">P2</span> <span class="chip mono tone-neutral no-dot">P4</span></td>
+                  <td><em>"I hold X; they hold Y; we differ on substance."</em></td>
+                </tr>
+                <tr>
+                  <td><span class="chip tone-err no-dot"><span class="cat-bubble">I</span><span class="chip-label">Issue</span></span></td>
+                  <td>issue</td>
+                  <td><span class="chip mono tone-neutral no-dot">P4</span> <strong>only</strong></td>
+                  <td><em>"The drafted document is defective in a specific way."</em></td>
+                </tr>
+                <tr>
+                  <td><span class="chip tone-idle no-dot"><span class="cat-bubble">C</span><span class="chip-label">Comment</span></span></td>
+                  <td>comment</td>
+                  <td><span class="chip mono tone-neutral no-dot">P4</span> <strong>only</strong></td>
+                  <td><em>"Could be improved in a non-defect way."</em></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="crit-section-title">Why no <code>claim</code>?</div>
+            <div class="hiw-note" data-tone="warn">
+              <span class="hiw-note__label">retired</span>
+              The <code>claim</code> kind was removed in spec 0114 (Deep Research protocol). The old <code>## Claims I expect the other agent might dispute</code> section is gone — the new prompts never ask for it. Disagreements that used to be raised pre-emptively as claims are now raised reactively as <span class="chip tone-warn no-dot"><span class="cat-bubble">D</span></span> items in Phase 2 or Phase 4 when an agent actually objects. Pre-0114 runs in the archive still show a <code>Claims</code> panel via the legacy renderer; new runs do not.
+            </div>
+
+            <div class="crit-section-title">Chip composition rule</div>
+            <p>Every chip-bearing card header reads, left-to-right: <strong>Provider → Activity → Category → Modifier → Status</strong>. Provider always first; status always right-aligned (and never bare). Categories in canonical Q → D → I → C order.</p>
+
+            <div class="crit-section-title">Example: a resolved Phase-2 question card header</div>
+            <div class="chip-row">
+              <span class="chip tone-claude no-dot"><span class="chip-leading-icon"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg></span><span class="chip-label">Claude</span></span>
+              <span class="chip mono tone-neutral no-dot">turn 3</span>
+              <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Question</span></span>
+              <span class="chip mono tone-neutral no-dot">raised in r2</span>
+              <span class="chip tone-neutral no-dot"><span class="chip-label">Sources</span><span class="chip-value">4</span></span>
+              <span class="chip tone-ok"><span class="chip-label">✓ resolved in r4</span></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ───────── 9. Item lifecycle ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-lifecycle" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">Item lifecycle</span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Once raised, an item moves through a small state machine. Six states, with named transitions. The orchestrator (not the agents) decides which state an item is in at the end of each round; agents propose, the orchestrator ratifies.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="03-item-lifecycle" alt="Item lifecycle state machine" />
+            </div>
+
+            <table class="hiw-table">
+              <thead><tr><th>From → To</th><th>Verb chip</th><th>Actor</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>(new) → open</code></td><td><span class="chip tone-info no-dot"><span class="chip-label">raised</span></span></td><td>raiser</td><td>Item enters <code>open</code> with an ID stamped by the orchestrator.</td></tr>
+                <tr><td><code>open → addressed</code></td><td><span class="chip tone-info no-dot"><span class="chip-label">addressed</span></span></td><td>addressee</td><td>The other agent responds with <code>### ADDRESS &lt;id&gt;</code>.</td></tr>
+                <tr><td><code>addressed → resolved</code></td><td><span class="chip tone-ok no-dot"><span class="chip-label">resolved</span></span></td><td>raiser</td><td>Terminal. Raiser ratifies the response.</td></tr>
+                <tr><td><code>addressed → acknowledged_proposed</code></td><td><span class="chip tone-warn no-dot"><span class="chip-label">acknowledged</span></span></td><td>raiser</td><td>Not yet terminal — needs mutual handshake.</td></tr>
+                <tr><td><code>acknowledged_proposed → acknowledged</code></td><td><span class="chip tone-warn no-dot"><span class="chip-label">acknowledged</span></span></td><td>both</td><td>Terminal when both have ACK'd.</td></tr>
+                <tr><td><code>open / addressed → withdrawn</code></td><td><span class="chip tone-idle no-dot"><span class="chip-label">withdrawn</span></span></td><td>raiser</td><td>Terminal. Raiser drops the item with a stated reason.</td></tr>
+                <tr><td><code>addressed → open</code></td><td><span class="chip tone-info no-dot"><span class="chip-label">raised again</span></span></td><td>raiser</td><td>Raiser counter-argues; item flips back to <code>open</code>.</td></tr>
+                <tr><td><code>any → capped</code></td><td><span class="chip tone-err no-dot"><span class="chip-label">capped</span></span></td><td><strong>orchestrator</strong></td><td>Terminal. Closeout budget exhausted or hard cap reached.</td></tr>
+              </tbody>
+            </table>
+
+            <div class="hiw-note" data-tone="warn">
+              <span class="hiw-note__label">important</span>
+              <strong>Rationale is mandatory at every transition.</strong> Every operation block (<code>RAISE</code>, <code>ADDRESS</code>, <code>RESOLVE</code>, <code>ACKNOWLEDGE</code>, <code>WITHDRAW</code>, counter) requires a <code>reason:</code> field with non-empty content. The validator rejects operations without it.
+            </div>
+
+            <div class="crit-section-title">Anchors</div>
+            <p>Each item carries an <strong>anchor</strong> — a pointer to the part of the source artifact it refers to. Three formats:</p>
+            <ul>
+              <li><code>quote</code> — a verbatim ≤25-word span from the source. Most common.</li>
+              <li><code>after</code> — a section heading from the source (<code>anchor_text: "## Methodology"</code>).</li>
+              <li><code>none</code> — the item refers to the artifact as a whole.</li>
+            </ul>
+
+            <div class="crit-section-title">Evidence</div>
+            <p>When an item's resolution turns on a factual claim, the agent must attach <code>EvidenceRecord</code> entries (URL, page title, search query, fetched-at, content excerpt). The orchestrator validates every cited URL against the recorded web-search events for that turn; fabricated sources are flagged with <span class="chip mono tone-err no-dot">⚠ unverified</span>.</p>
+          </div>
+        </section>
+
+        <!-- ───────── 10. Convergence ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-converge" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">Convergence &amp; escape hatches</span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Multi-round phases (P0, P2, P4) need a deterministic way to end. The default is <strong>organic convergence</strong>: both agents simultaneously emit <code>STATUS: AGREED</code> with zero non-terminal items. When that doesn't happen, three escape hatches engage in sequence — <strong>closeout → ghost cap → hard cap</strong> — to ensure every run terminates.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="06-convergence" alt="Convergence and escape hatches" />
+            </div>
+
+            <div class="crit-section-title">Organic convergence</div>
+            <p>Both AGREED in the same round + every item terminal + matching agreement-artifact block.</p>
+
+            <div class="crit-section-title">Closeout</div>
+            <p>Triggered when both AGREED but non-terminal items remain. The next round is a <strong>closeout round</strong>: <code>RAISE</code> is forbidden; only <code>RESOLVE</code>, <code>ACKNOWLEDGE</code>, <code>WITHDRAW</code>, or counter on listed items. Each agent has a closeout budget of <strong>2 per phase</strong>.</p>
+
+            <div class="crit-section-title">Ghost cap</div>
+            <p>When an agent exhausts their closeout budget with items still non-terminal, those items auto-flip to <code>capped</code> with an orchestrator-generated rationale (<code>"ghost-capped — closeout budget exhausted with item still non-terminal"</code>). The phase converges via <code>via_ghost_cap: true</code>.</p>
+
+            <div class="crit-section-title">Hard cap</div>
+            <p>Independent ceiling per phase (<strong>P0 = 4, P2 = 8, P4 = 8</strong>). When the round counter hits the hard cap, every remaining non-terminal item flips to <code>capped</code>. The phase converges via <code>via_hard_cap: true</code>.</p>
+
+            <div class="crit-section-title">Mutual-acknowledge handshake</div>
+            <p><code>ACKNOWLEDGE</code> proposed by the raiser doesn't terminalize the item; it requires the other agent to also <code>ACKNOWLEDGE</code> (in the same or next round) before transitioning to terminal <code>acknowledged</code>. Until then it stays in <code>acknowledged_proposed</code>.</p>
+
+            <div class="hiw-note">
+              <span class="hiw-note__label">spec 0114</span>
+              <strong>No partial convergence, no canonical-FSD synthesis, no stuck-AGREED promotion.</strong> The closeout → ghost cap → hard cap sequence is the only convergence-failure path.
+            </div>
+          </div>
+        </section>
+
+        <!-- ───────── 11. Cost ───────── -->
+        <section class="hiw-sec cs-section" id="hiw-cost" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">Cost &amp; consumption</span>
+          </div>
+          <div class="cs-body">
+            <p class="lede">Every model call has a token cost. The Consumption tab on each run breaks that cost down per phase and per turn. This section explains where the numbers come from and how the per-piece costs are computed.</p>
+
+            <div class="hiw-diagram">
+              <img data-diagram="05-cost-flow" alt="Cost calculation flow" />
+            </div>
+
+            <div class="crit-section-title">Where the totals come from</div>
+            <p>The <strong>Total bar</strong> on every cost card shows <code>billedInputTokens + billedOutputTokens</code> and the exact API-billed cost. These come straight from the provider response (Anthropic / OpenAI), unmodified.</p>
+
+            <div class="crit-section-title">Where the per-piece costs come from</div>
+            <p>The per-canonical-piece rows are computed proportionally:</p>
+            <div class="hiw-code">pieceCost = (pieceTokens / billedInputTokens) × totalInputCost</div>
+            <p>This is a heuristic — the API doesn't tell us which tokens belonged to which prompt piece. The tooltip on every per-piece row says <code>(proportional)</code> to flag this.</p>
+
+            <div class="crit-section-title">The <code>System prompt</code> aggregate</div>
+            <p>Every per-phase <code>system.task.*</code> artifact, plus <code>prior_turns.*</code>, <code>ledger.standing_items</code>, and <code>closeout.request</code>, are rolled into a single <strong>System prompt</strong> row to keep the per-piece table readable. The tooltip on the row shows the per-sub-artifact breakdown.</p>
+
+            <div class="crit-section-title">Cache savings</div>
+            <p>Anthropic prompt caching reuses tokens across turns within the 5-minute cache window. The Total bar renders a 45° diagonal stripe over the <code>cache_read_tokens</code> proportion at 0.5 opacity. The per-turn meta line reads e.g. <code>"3.5kt seen · 1.0kt billed (× 3.5 token reuse) · 980t out"</code>.</p>
+
+            <div class="crit-section-title">Which canonical pieces appear where</div>
+            <table class="hiw-table">
+              <thead><tr><th>Piece</th><th>Phases</th><th>Always-present?</th></tr></thead>
+              <tbody>
+                <tr><td><code>user_prompt</code></td><td>every phase</td><td>yes</td></tr>
+                <tr><td><code>System prompt</code> aggregate</td><td>every phase</td><td>yes</td></tr>
+                <tr><td><code>phase0.agreement.interpretation</code></td><td>P1, P2, P3</td><td>yes (carry-forward)</td></tr>
+                <tr><td><code>phase1.claude</code>, <code>phase1.openai</code></td><td>P2, P3</td><td>yes (both shown)</td></tr>
+                <tr><td><code>phase2.agreement.plan</code></td><td>P3</td><td>yes</td></tr>
+                <tr><td><code>all_p2_turns</code></td><td>P3</td><td>yes</td></tr>
+                <tr><td><code>current_draft</code></td><td>P4</td><td>yes</td></tr>
+                <tr><td><code>prior_turns.phase{0,2,4}</code></td><td>round ≥ 2 of that phase</td><td>conditional</td></tr>
+                <tr><td><code>ledger.standing_items</code></td><td>round ≥ 2 of multi-round phases</td><td>conditional</td></tr>
+                <tr><td><code>closeout.request</code></td><td>closeout rounds only</td><td>conditional</td></tr>
+              </tbody>
+            </table>
+
+            <div class="crit-section-title">Models used</div>
+            <div class="chip-row">
+              <span class="chip tone-claude no-dot"><span class="chip-leading-icon"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg></span><span class="chip-label">Claude Sonnet 4.6</span></span>
+              <span class="chip mono tone-neutral no-dot">default</span>
+            </div>
+            <div class="chip-row">
+              <span class="chip tone-gpt no-dot"><span class="chip-leading-icon"><svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6"/></svg></span><span class="chip-label">GPT-5.5</span></span>
+              <span class="chip mono tone-neutral no-dot">default</span>
+            </div>
+
+            <div class="hiw-note" data-tone="idle">
+              <span class="hiw-note__label">test tier</span>
+              Internal runs use Haiku 4.5 + GPT-5-mini for ~10× cost reduction during development; production runs use the chips above.
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TAB 2 — Changelog
+       ============================================================ -->
+  <div class="hiw-overlay__layout" data-tab-content="cl" style="display:none;">
+    <nav class="hiw-overlay__menu" aria-label="Changelog navigation">
+      <ul class="hiw-overlay__menu-list">
+        <li><a href="#cl-141"><span class="menu-section-num">1.4.1</span>Turn-modal items panel</a></li>
+        <li><a href="#cl-140"><span class="menu-section-num">1.4.0</span>Badge governance</a></li>
+        <li><a href="#cl-130"><span class="menu-section-num">1.3.0</span>Consumption + cost</a></li>
+        <li><a href="#cl-120"><span class="menu-section-num">1.2.0</span>Deep Research artifact registry</a></li>
+        <li><a href="#cl-110"><span class="menu-section-num">1.1.0</span>Deep Research UI + validator</a></li>
+        <li><a href="#cl-100"><span class="menu-section-num">1.0.0</span>Deep Research protocol cutover</a></li>
+      </ul>
+    </nav>
+
+    <div class="hiw-overlay__content">
+      <div class="cl-filter-row">
+        <span class="chip tone-info"><span class="chip-label">All</span><span class="chip-value">6</span></span>
+        <span class="chip tone-err  dim"><span class="chip-label">MAJOR</span><span class="chip-value">0</span></span>
+        <span class="chip tone-info"><span class="chip-label">MINOR</span><span class="chip-value">4</span></span>
+        <span class="chip tone-ok"><span class="chip-label">PATCH</span><span class="chip-value">2</span></span>
+        <span class="spacer"></span>
+        <input type="search" class="hiw-search" placeholder="search…" />
+      </div>
+
+      <div class="cl-list">
+
+        <!-- 1.4.1 -->
+        <section class="cs-section is-open" id="cl-141" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <div class="changelog-head">
+                <span class="chip mono tone-neutral no-dot">v1.4.1</span>
+                <span class="changelog-date">2026-05-20</span>
+                <span class="changelog-summary">Turn-modal items panel rework — provider chip + Anchor/Title/Rationale split + Claims panel removed.</span>
+                <span class="chip mono chip-square tone-neutral no-dot">spec 0120</span>
+                <span class="chip tone-ok">PATCH</span>
+              </div>
+            </span>
+          </div>
+          <div class="cs-body">
+            <div class="dr-card"><div class="dr-card-body">
+              <div class="crit-section-title">What changed</div>
+              <ul class="changelog-bullets">
+                <li><strong>Provider chip on every item card.</strong> Each card in the turn-modal right pane now begins with a <span class="chip tone-claude no-dot"><span class="chip-label">Claude</span></span> or <span class="chip tone-gpt no-dot"><span class="chip-label">GPT</span></span> chip so you can see at a glance who raised the item.</li>
+                <li><strong>Three labelled body segments.</strong> Each card body splits into <strong>Anchored to &lt;agent&gt;'s draft</strong> (the quoted reference), <strong>Title</strong> (the one-line bold summary), and <strong>Rationale</strong> (the elaborating paragraph). Labels are small caps so the body stays visually quiet.</li>
+                <li><strong>Claims panel removed</strong> from new-protocol render paths. Legacy renderer (for pre-0114 runs) unchanged.</li>
+                <li><strong>Panel headers use spec-0119 category chips.</strong> "Questions 5" panel header is now <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span><span class="chip-value">5</span></span> — identical to the critique pane's filter legend.</li>
+                <li><strong>Sources widget unchanged.</strong> When an item carries evidence, the existing <code>SourceRow</code> renders verbatim.</li>
+              </ul>
+              <div class="crit-section-title">Screenshots</div>
+              <div class="changelog-shots">
+                <figure><div class="stub">before: pre-0120 raw-markdown card</div><figcaption>turn-modal right pane (before)</figcaption></figure>
+                <figure><div class="stub">after: labelled-segment card</div><figcaption>turn-modal right pane (after)</figcaption></figure>
+              </div>
+              <div class="changelog-spec-link"><button>Open spec 0120 ↗</button></div>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- 1.4.0 -->
+        <section class="cs-section" id="cl-140" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <div class="changelog-head">
+                <span class="chip mono tone-neutral no-dot">v1.4.0</span>
+                <span class="changelog-date">2026-05-20</span>
+                <span class="changelog-summary">Badge governance — unified <code>&lt;Chip&gt;</code> primitive + canonical vocabulary (Q/D/I/C bubbles, lifecycle verb chips, never-bare status).</span>
+                <span class="chip mono chip-square tone-neutral no-dot">spec 0119</span>
+                <span class="chip tone-info">MINOR</span>
+              </div>
+            </span>
+          </div>
+          <div class="cs-body">
+            <div class="dr-card"><div class="dr-card-body">
+              <div class="crit-section-title">What changed</div>
+              <ul class="changelog-bullets">
+                <li><strong>One Chip primitive.</strong> Eight pre-0119 chip-like JSX patterns and their CSS rules deleted. <code>shared.jsx</code>'s <code>&lt;Chip&gt;</code> gains a slot API: leadingDot / leadingIcon / categoryBubble, then label / value / +add / −sub / trailingSuffix, plus iconOnly / dim / mono / shape / size modifiers.</li>
+                <li><strong>Category bubble icon glyph.</strong> Q / D / I / C render as a 14 px filled circle with a knockout-white letter (designed icon, not a raw abbreviation). Fixed color map (Q=info, D=warn, I=err, C=idle) and fixed order (Q→D→I→C). The critique-pane filter row at the top is the canonical legend.</li>
+                <li><strong>Never-bare status.</strong> Every completed timeline card carries a right-aligned status chip — running / ✓ agreed / ✓ / queued.</li>
+                <li><strong>Provider + activity split.</strong> The combined <code>.qref qref-full</code> span replaced by two adjacent chips — <span class="chip tone-claude no-dot"><span class="chip-label">Claude</span></span> and <span class="chip mono tone-neutral no-dot">turn 1</span>.</li>
+                <li><strong>Cross-pane chip jumps.</strong> Clicking a category chip on a timeline turn card fires a <code>dr-critique-jump</code> event; the critique pane applies the matching filter and scrolls into view.</li>
+                <li><strong>Phase-header chip cluster.</strong> Each visible phase header carries a right-aligned aggregate-across-both-agents category-summary chip cluster.</li>
+                <li><strong>Vocabulary cleanup.</strong> Strict per-spec removal of the legacy <code>claim</code> data path. <code>'conceded'</code>, <code>'answered'</code>, <code>'noted'</code>, <code>'ghosted'</code>, <code>'repair'</code>, legacy abbreviations <code>QCR1</code> / <code>OQ</code> / <code>BD</code> / <code>OI</code> all gone.</li>
+                <li><strong>Lifecycle-verbs.js helper.</strong> Mirrors <code>contract/lifecycle.py:TRANSITIONS</code>; cross-language sync test enforces it.</li>
+                <li><strong>Backend untouched.</strong> No edits to <code>contract/</code>, <code>orchestrator/</code>, <code>protocol/</code>, or <code>events/</code>.</li>
+              </ul>
+              <div class="crit-section-title">Screenshots</div>
+              <div class="changelog-shots">
+                <figure><div class="stub">critique pane filter row</div><figcaption>spec 0119: chip-only legend</figcaption></figure>
+                <figure><div class="stub">timeline turn card header</div><figcaption>provider + turn + status chips</figcaption></figure>
+                <figure><div class="stub">phase-header chip cluster</div><figcaption>aggregate Q/D/I/C across both agents</figcaption></figure>
+              </div>
+              <div class="changelog-spec-link"><button>Open spec 0119 ↗</button></div>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- 1.3.0 -->
+        <section class="cs-section" id="cl-130" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <div class="changelog-head">
+                <span class="chip mono tone-neutral no-dot">v1.3.0</span>
+                <span class="changelog-date">2026-05-20</span>
+                <span class="changelog-summary">Consumption tab redesign + canonical-piece aggregation + per-piece proportional cost tracking.</span>
+                <span class="chip mono chip-square tone-neutral no-dot">spec 0118</span>
+                <span class="chip tone-info">MINOR</span>
+              </div>
+            </span>
+          </div>
+          <div class="cs-body">
+            <div class="dr-card"><div class="dr-card-body">
+              <div class="crit-section-title">What changed</div>
+              <ul class="changelog-bullets">
+                <li><strong>Canonical-piece keys</strong> replace the legacy 7-key vocabulary (<code>brief</code> / <code>d1</code> / <code>d2</code> / <code>plan</code> / <code>hist</code> / <code>draft</code> / <code>histp</code>). Each per-turn <code>TurnEnded</code> event's <code>promptPieces</code> now keys by spec-0117 artifact registry IDs.</li>
+                <li><strong>Per-phase grouping rules (NORMATIVE).</strong> Always-separate rows: <code>user_prompt</code> + <code>System prompt</code> aggregate. Phase-specific separate rows include <code>phase1.claude</code> / <code>phase1.openai</code> (P2/P3), <code>all_p2_turns</code> (P3), <code>current_draft</code> + <code>prior_turns.phase4</code> (P4).</li>
+                <li><strong>Total bar shows exact billed numbers.</strong> Tokens + cost = exact API-billed values. The cache-reuse stripe (45° overlay at 0.5 opacity) renders over <code>cache_read_tokens</code> proportion.</li>
+                <li><strong>Per-piece cost is proportional.</strong> <code>pieceCost = (pieceTokens / billedInputTokens) × totalInputCost</code>. Tooltip annotates <code>(proportional)</code>.</li>
+                <li><strong>System prompt aggregate.</strong> Per-phase <code>system.task.*</code> + <code>prior_turns.*</code> + <code>ledger.standing_items</code> + <code>closeout.request</code> rolled into a single "System prompt" row with hover tooltip showing the per-sub-artifact breakdown.</li>
+                <li><strong>Collapsed vs unfolded card.</strong> Collapsed: single "Total tokens" bar with <code>&lt;tokens&gt;t · $&lt;cost&gt;</code>, cache-reuse meta line. Unfolded: 3-column grid per row (description · bar · tokens·cost).</li>
+              </ul>
+              <div class="crit-section-title">Screenshots</div>
+              <div class="changelog-shots">
+                <figure><div class="stub">collapsed cost card</div><figcaption>total bar with cache-reuse stripe</figcaption></figure>
+                <figure><div class="stub">unfolded cost card</div><figcaption>per-piece rows + System prompt tooltip</figcaption></figure>
+              </div>
+              <div class="changelog-spec-link"><button>Open spec 0118 ↗</button></div>
+            </div></div>
+          </div>
+        </section>
+
+        <!-- 1.2.0 (representative older entry) -->
+        <section class="cs-section" id="cl-120" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <div class="changelog-head">
+                <span class="chip mono tone-neutral no-dot">v1.2.0</span>
+                <span class="changelog-date">2026-05-20</span>
+                <span class="changelog-summary">Deep Research artifact registry + How-It-Works pipeline diagram + display-name propagation.</span>
+                <span class="chip mono chip-square tone-neutral no-dot">spec 0117</span>
+                <span class="chip tone-info">MINOR</span>
+              </div>
+            </span>
+          </div>
+          <div class="cs-body">
+            <div class="dr-card"><div class="dr-card-body">
+              <div class="crit-section-title">What changed</div>
+              <ul class="changelog-bullets">
+                <li><strong>Artifact registry</strong> as single source of truth for canonical IDs and display names of every artifact in a run.</li>
+                <li><strong>How-It-Works pipeline SVG</strong> embedded in the overlay, theme-aware swap.</li>
+                <li><strong>display_name(artifact_id)</strong> helper propagated to timeline, consumption, modal, and run header.</li>
+              </ul>
+            </div></div>
+          </div>
+        </section>
+
+        <section class="cs-section" id="cl-110" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <div class="changelog-head">
+                <span class="chip mono tone-neutral no-dot">v1.1.0</span>
+                <span class="changelog-date">2026-05-19</span>
+                <span class="changelog-summary">Deep Research UI: Item model unification, SourceRow + ItemCard, count-augmented filter chips, validate-run CLI.</span>
+                <span class="chip mono chip-square tone-neutral no-dot">spec 0115</span>
+                <span class="chip tone-info">MINOR</span>
+              </div>
+            </span>
+          </div>
+          <div class="cs-body">
+            <div class="dr-card"><div class="dr-card-body">
+              <div class="crit-section-title">What changed</div>
+              <ul class="changelog-bullets">
+                <li>Unified <code>Item</code> dataclass replaces per-kind classes; one Item per (kind, raiser, raised_round) tuple.</li>
+                <li><code>SourceRow</code> with collapsible URL / fetched-at / query / excerpt body; <code>⚠ unverified</code> chip for fabricated evidence.</li>
+                <li>Count-augmented filter chips in the critique pane.</li>
+                <li><code>validate-run</code> CLI surfaces parser + evidence-validator findings.</li>
+              </ul>
+            </div></div>
+          </div>
+        </section>
+
+        <section class="cs-section" id="cl-100" data-cs>
+          <div class="cs-header" data-cs-toggle>
+            <span class="cs-chevron">▶</span>
+            <span class="cs-title">
+              <div class="changelog-head">
+                <span class="chip mono tone-neutral no-dot">v1.0.0</span>
+                <span class="changelog-date">2026-05-19</span>
+                <span class="changelog-summary">Deep Research protocol cutover — new phase shapes, Q/D/I/C category model, closeout mechanism, ghost cap, hard cap. Claims kind removed.</span>
+                <span class="chip mono chip-square tone-neutral no-dot">spec 0114</span>
+                <span class="chip tone-info">MINOR</span>
+              </div>
+            </span>
+          </div>
+          <div class="cs-body">
+            <div class="dr-card"><div class="dr-card-body">
+              <div class="crit-section-title">What changed</div>
+              <ul class="changelog-bullets">
+                <li><code>run.py</code> uses the Deep Research path by default.</li>
+                <li>New per-phase prompts (input / research-plan / negotiate-plan / draft / review-draft).</li>
+                <li>Six-state item lifecycle: open / addressed / acknowledged_proposed / acknowledged / resolved / withdrawn / capped.</li>
+                <li>Closeout → ghost cap → hard cap escape hatches replace legacy convergence loopholes.</li>
+                <li>Legacy <code>claim</code> kind removed; old prompts retired.</li>
+              </ul>
+            </div></div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =============================================================
+// Theme toggle
+// =============================================================
+const toggle = document.getElementById('theme-toggle');
+const themeLabel = document.getElementById('theme-label');
+function applyTheme(isLight) {
+  document.body.classList.toggle('light', isLight);
+  themeLabel.textContent = isLight ? 'light' : 'dark';
+  swapAllDiagrams();
+}
+toggle.addEventListener('click', () => applyTheme(!document.body.classList.contains('light')));
+
+// =============================================================
+// Tab switch
+// =============================================================
+document.querySelectorAll('.dr-modal-tabs .tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.dr-modal-tabs .tab').forEach(t => t.classList.toggle('is-active', t === btn));
+    document.querySelectorAll('[data-tab-content]').forEach(c => {
+      c.style.display = c.dataset.tabContent === target ? '' : 'none';
+    });
+  });
+});
+
+// =============================================================
+// Collapsibles
+// =============================================================
+document.querySelectorAll('[data-cs-toggle]').forEach(head => {
+  head.addEventListener('click', () => {
+    head.closest('[data-cs]').classList.toggle('is-open');
+  });
+});
+
+// =============================================================
+// Diagram theme-aware swap
+// =============================================================
+function swapAllDiagrams() {
+  const variant = document.body.classList.contains('light') ? 'light' : 'dark';
+  document.querySelectorAll('img[data-diagram]').forEach(img => {
+    const name = img.dataset.diagram;
+    img.src = `../../../diagrams/how-it-works/${name}.${variant}.svg?v=0121`;
+  });
+}
+swapAllDiagrams();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="760" viewBox="0 0 1660 760" preserveAspectRatio="xMidYMid meet" font-family="Inter, system-ui, -apple-system, sans-serif">
+
+  <!-- ================= DEFS ================= -->
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.12"/>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/>
+    </linearGradient>
+
+    <!-- Node surface gradients -->
+    <linearGradient id="surfInfoOpen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7eaef5"/><stop offset="100%" stop-color="#5a8de0"/>
+    </linearGradient>
+    <linearGradient id="surfInfoAddr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a8de0"/><stop offset="100%" stop-color="#3e6cbf"/>
+    </linearGradient>
+    <linearGradient id="surfWarn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e0b568"/><stop offset="100%" stop-color="#c89348"/>
+    </linearGradient>
+    <linearGradient id="surfOk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#65b585"/><stop offset="100%" stop-color="#3d8a5c"/>
+    </linearGradient>
+    <linearGradient id="surfIdle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9099a0"/><stop offset="100%" stop-color="#6d747a"/>
+    </linearGradient>
+    <linearGradient id="surfErr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e07d7d"/><stop offset="100%" stop-color="#c25555"/>
+    </linearGradient>
+
+    <!-- Arrow markers, one per tone -->
+    <marker id="arrInfo" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#3e6cbf"/>
+    </marker>
+    <marker id="arrOk" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#3d8a5c"/>
+    </marker>
+    <marker id="arrWarn" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#b07e2c"/>
+    </marker>
+    <marker id="arrIdle" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#6d747a"/>
+    </marker>
+    <marker id="arrErr" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#c25555"/>
+    </marker>
+  </defs>
+
+  <rect width="1660" height="760" fill="url(#bgGrad)"/>
+
+  <!-- ================= TITLE ================= -->
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Item lifecycle · state machine</text>
+  <text x="830" y="80" text-anchor="middle" font-size="12.5" fill="#706e67">A question / disagreement / issue / comment moves through these seven states across a Dual Research run.</text>
+  <text x="830" y="100" text-anchor="middle" font-size="11.5" fill="#9e9b95" font-style="italic">States <tspan font-weight="600" fill="#706e67" font-style="normal">open</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">addressed</tspan> are non-terminal. States <tspan font-weight="600" fill="#706e67" font-style="normal">resolved</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">acknowledged</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">withdrawn</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">capped</tspan> are terminal. The orchestrator (not the agents) sets <tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#c25555" font-style="normal">capped</tspan>.</text>
+
+  <!-- ================= LEGEND (tones) ================= -->
+  <g transform="translate(56, 130)">
+    <text x="0" y="0" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.8">TONE LEGEND</text>
+    <g transform="translate(0, 14)">
+      <rect x="0"   y="0" width="10" height="10" rx="2" fill="url(#surfInfoOpen)"/>
+      <text x="16"  y="9" font-size="10.5" fill="#4a4845">info</text>
+      <rect x="62"  y="0" width="10" height="10" rx="2" fill="url(#surfWarn)"/>
+      <text x="78"  y="9" font-size="10.5" fill="#4a4845">warn</text>
+      <rect x="128" y="0" width="10" height="10" rx="2" fill="url(#surfOk)"/>
+      <text x="144" y="9" font-size="10.5" fill="#4a4845">ok</text>
+      <rect x="180" y="0" width="10" height="10" rx="2" fill="url(#surfIdle)"/>
+      <text x="196" y="9" font-size="10.5" fill="#4a4845">idle</text>
+      <rect x="242" y="0" width="10" height="10" rx="2" fill="url(#surfErr)"/>
+      <text x="258" y="9" font-size="10.5" fill="#4a4845">err</text>
+    </g>
+  </g>
+
+  <!-- legend: dashed = non-terminal proposal -->
+  <g transform="translate(1340, 130)">
+    <text x="0" y="0" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.8">OUTLINE LEGEND</text>
+    <g transform="translate(0, 14)">
+      <rect x="0" y="0" width="22" height="10" rx="2" fill="none" stroke="#b07e2c" stroke-width="1.4" stroke-dasharray="3,3"/>
+      <text x="30" y="9" font-size="10.5" fill="#4a4845">dashed = proposal (not yet terminal)</text>
+    </g>
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="22" height="10" rx="2" fill="none" stroke="#3d8a5c" stroke-width="1.4"/>
+      <text x="30" y="9" font-size="10.5" fill="#4a4845">solid = terminal</text>
+    </g>
+  </g>
+
+  <!-- ================= ENTRY ARROW ((new) → open) ================= -->
+  <g>
+    <text x="50" y="370" font-size="10" font-style="italic" fill="#9e9b95">(new item)</text>
+    <line x1="50" y1="380" x2="118" y2="380" stroke="#3e6cbf" stroke-width="2" marker-end="url(#arrInfo)"/>
+    <!-- chip: raised -->
+    <g transform="translate(58, 340)">
+      <rect x="0" y="0" width="58" height="20" rx="10" fill="#e7eef8" stroke="#a9c2e8"/>
+      <text x="29" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2e5599">raised</text>
+    </g>
+    <text x="87" y="402" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+  </g>
+
+  <!-- ================= NODES (rounded rect cards) ================= -->
+
+  <!-- open: x=120, y=340, w=180, h=80 -->
+  <g>
+    <rect x="120" y="340" width="180" height="80" rx="14" fill="url(#surfInfoOpen)" stroke="#3e6cbf" stroke-width="1" filter="url(#cardShadow)"/>
+    <text x="210" y="372" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.78)" letter-spacing="1.4">NON-TERMINAL</text>
+    <text x="210" y="395" text-anchor="middle" font-size="17" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">open</text>
+  </g>
+
+  <!-- addressed: x=400, y=340 -->
+  <g>
+    <rect x="400" y="340" width="180" height="80" rx="14" fill="url(#surfInfoAddr)" stroke="#2a4f8f" stroke-width="1" filter="url(#cardShadow)"/>
+    <text x="490" y="372" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.78)" letter-spacing="1.4">NON-TERMINAL</text>
+    <text x="490" y="395" text-anchor="middle" font-size="17" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">addressed</text>
+  </g>
+
+  <!-- resolved (top, terminal): x=720, y=200 -->
+  <g>
+    <rect x="720" y="200" width="180" height="80" rx="14" fill="url(#surfOk)" stroke="#2d6a45" stroke-width="1" filter="url(#cardShadow)"/>
+    <text x="810" y="232" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="1.4">TERMINAL</text>
+    <text x="810" y="255" text-anchor="middle" font-size="17" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">resolved</text>
+    <!-- ✓ icon top-right -->
+    <g transform="translate(884, 218)">
+      <circle r="9" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+      <path d="M-4,0 L-1,3 L4,-3" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- acknowledged_proposed (middle, non-terminal warn, dashed): x=720, y=340 -->
+  <g>
+    <rect x="720" y="340" width="220" height="80" rx="14" fill="url(#surfWarn)" stroke="#8a6420" stroke-width="1.5" stroke-dasharray="6,4" filter="url(#cardShadow)"/>
+    <text x="830" y="372" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="1.4">NON-TERMINAL · PROPOSAL</text>
+    <text x="830" y="395" text-anchor="middle" font-size="15" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">acknowledged_proposed</text>
+  </g>
+
+  <!-- acknowledged (middle-right, terminal warn, solid): x=1020, y=340 -->
+  <g>
+    <rect x="1020" y="340" width="200" height="80" rx="14" fill="url(#surfWarn)" stroke="#8a6420" stroke-width="1" filter="url(#cardShadow)"/>
+    <text x="1120" y="372" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="1.4">TERMINAL</text>
+    <text x="1120" y="395" text-anchor="middle" font-size="17" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">acknowledged</text>
+    <!-- ✓ icon top-right -->
+    <g transform="translate(1204, 358)">
+      <circle r="9" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+      <path d="M-4,0 L-1,3 L4,-3" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- withdrawn (bottom, terminal idle): x=720, y=520 -->
+  <g>
+    <rect x="720" y="520" width="180" height="80" rx="14" fill="url(#surfIdle)" stroke="#525860" stroke-width="1" filter="url(#cardShadow)"/>
+    <text x="810" y="552" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="1.4">TERMINAL</text>
+    <text x="810" y="575" text-anchor="middle" font-size="17" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">withdrawn</text>
+    <!-- ✓ icon top-right -->
+    <g transform="translate(884, 538)">
+      <circle r="9" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>
+      <path d="M-4,0 L-1,3 L4,-3" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <!-- capped (far-right, terminal-forced err): x=1340, y=340 -->
+  <g>
+    <rect x="1340" y="340" width="180" height="80" rx="14" fill="url(#surfErr)" stroke="#94343a" stroke-width="1" filter="url(#cardShadow)"/>
+    <text x="1430" y="372" text-anchor="middle" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="1.4">TERMINAL · FORCED</text>
+    <text x="1430" y="395" text-anchor="middle" font-size="17" font-weight="600" font-family="ui-monospace, Menlo, monospace" fill="#ffffff">capped</text>
+    <!-- ⊘ icon top-right -->
+    <g transform="translate(1504, 358)">
+      <circle r="9" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"/>
+      <line x1="-5" y1="5" x2="5" y2="-5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- ================= EDGES ================= -->
+
+  <!-- open → addressed (straight) -->
+  <g>
+    <line x1="300" y1="380" x2="395" y2="380" stroke="#3e6cbf" stroke-width="2" marker-end="url(#arrInfo)"/>
+    <g transform="translate(317, 340)">
+      <rect x="0" y="0" width="68" height="20" rx="10" fill="#e7eef8" stroke="#a9c2e8"/>
+      <text x="34" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2e5599">addressed</text>
+    </g>
+    <text x="348" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">addressee</text>
+  </g>
+
+  <!-- addressed → open (back-edge, curved above through y≈300) -->
+  <g>
+    <path d="M 410,340 C 410,290 290,290 290,340" fill="none" stroke="#3e6cbf" stroke-width="1.6" stroke-dasharray="0" marker-end="url(#arrInfo)"/>
+    <g transform="translate(316, 270)">
+      <rect x="0" y="0" width="78" height="20" rx="10" fill="#e7eef8" stroke="#a9c2e8"/>
+      <text x="39" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2e5599">raised again</text>
+    </g>
+    <text x="350" y="266" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+  </g>
+
+  <!-- addressed → resolved (curved up-right) -->
+  <g>
+    <path d="M 580,355 C 660,320 660,265 720,250" fill="none" stroke="#3d8a5c" stroke-width="2" marker-end="url(#arrOk)"/>
+    <g transform="translate(605, 270)">
+      <rect x="0" y="0" width="62" height="20" rx="10" fill="#e0efe5" stroke="#9ec9b0"/>
+      <text x="31" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2a6a47">resolved</text>
+    </g>
+    <text x="638" y="304" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+  </g>
+
+  <!-- addressed → acknowledged_proposed (straight) -->
+  <g>
+    <line x1="580" y1="380" x2="715" y2="380" stroke="#b07e2c" stroke-width="2" marker-end="url(#arrWarn)"/>
+    <g transform="translate(605, 340)">
+      <rect x="0" y="0" width="78" height="20" rx="10" fill="#f6ecd6" stroke="#d6b773"/>
+      <text x="39" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7e5a14">acknowledged</text>
+    </g>
+    <text x="647" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+  </g>
+
+  <!-- acknowledged_proposed → acknowledged (warn + → terminal) -->
+  <g>
+    <line x1="940" y1="380" x2="1015" y2="380" stroke="#b07e2c" stroke-width="2" marker-end="url(#arrWarn)"/>
+    <g transform="translate(944, 340)">
+      <rect x="0" y="0" width="68" height="20" rx="10" fill="#f6ecd6" stroke="#d6b773"/>
+      <text x="14" y="14" font-size="10.5" font-weight="700" fill="#7e5a14">+</text>
+      <text x="22" y="14" font-size="10.5" font-weight="600" fill="#7e5a14">both ACK</text>
+    </g>
+    <text x="978" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">both</text>
+  </g>
+
+  <!-- addressed → withdrawn (curved down-right) -->
+  <g>
+    <path d="M 580,405 C 660,440 660,495 720,570" fill="none" stroke="#6d747a" stroke-width="2" marker-end="url(#arrIdle)"/>
+    <g transform="translate(595, 478)">
+      <rect x="0" y="0" width="66" height="20" rx="10" fill="#ebecee" stroke="#b6bbc1"/>
+      <text x="33" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4d535a">withdrawn</text>
+    </g>
+    <text x="628" y="510" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+  </g>
+
+  <!-- open → withdrawn (curved down-right, longer arc; below the addressed→withdrawn arc to avoid collision) -->
+  <g>
+    <path d="M 215,420 C 215,540 540,640 720,605" fill="none" stroke="#6d747a" stroke-width="1.6" marker-end="url(#arrIdle)"/>
+    <g transform="translate(370, 600)">
+      <rect x="0" y="0" width="66" height="20" rx="10" fill="#ebecee" stroke="#b6bbc1"/>
+      <text x="33" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4d535a">withdrawn</text>
+    </g>
+    <text x="403" y="635" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+  </g>
+
+  <!-- open → capped (curved over top, dashed) -->
+  <g>
+    <path d="M 235,340 C 235,170 1370,170 1390,340" fill="none" stroke="#c25555" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrErr)"/>
+    <g transform="translate(778, 152)">
+      <rect x="0" y="0" width="80" height="20" rx="10" fill="#f7e3e3" stroke="#dca5a5"/>
+      <text x="40" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#8e3535">capped</text>
+    </g>
+    <text x="818" y="184" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">orchestrator</text>
+  </g>
+
+  <!-- addressed → capped (curved below, dashed) -->
+  <g>
+    <path d="M 515,420 C 515,680 1430,680 1430,425" fill="none" stroke="#c25555" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrErr)"/>
+    <g transform="translate(905, 655)">
+      <rect x="0" y="0" width="80" height="20" rx="10" fill="#f7e3e3" stroke="#dca5a5"/>
+      <text x="40" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#8e3535">capped</text>
+    </g>
+    <text x="945" y="687" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">orchestrator</text>
+  </g>
+
+  <!-- ================= MUTUAL HANDSHAKE CALLOUT ================= -->
+  <g transform="translate(750, 445)">
+    <rect x="0" y="0" width="460" height="58" rx="12" fill="#fbf4e0" stroke="#d6b773" stroke-width="1"/>
+    <text x="14" y="20" font-size="10" font-weight="700" fill="#7e5a14" letter-spacing="1.4">MUTUAL HANDSHAKE</text>
+    <text x="14" y="38" font-size="11" fill="#4a4845"><tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#7e5a14">acknowledged_proposed</tspan> becomes terminal <tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#7e5a14">acknowledged</tspan></text>
+    <text x="14" y="52" font-size="11" fill="#4a4845">only when both parties have ACK'd the same item in the same or next round.</text>
+  </g>
+
+</svg>

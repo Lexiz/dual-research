@@ -192,25 +192,56 @@
       ? buildClipPath(anchorRect, pad)
       : undefined;
 
-    // Compute callout position: right of anchor at >= 1500px viewport, below otherwise
+    // Compute callout position with overflow-aware placement (spec 0121 § 16).
+    // Earlier logic branched on viewport width alone — a full-width anchor (e.g. the
+    // run-row at step 2) made `anchorRect.right + 16` land off-screen, and the
+    // `maxWidth: calc(100vw - {anchorRect.right + 32}px)` term evaluated to a
+    // non-positive number, collapsing the callout to zero width. Fix: pick the first
+    // side with enough space among [right, below, left, above], then clamp inside
+    // the viewport.
     const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const CW = 360;             // callout width
+    const G = 16;               // gutter between anchor and callout
+    const CH_EST = 220;         // rough callout height for the vertical clamp
     let calloutStyle = {};
     if (anchorRect) {
-      if (vw >= 1500) {
+      const spaceRight = vw - anchorRect.right - G;
+      const spaceBelow = vh - anchorRect.bottom - G;
+      const spaceLeft  = anchorRect.left - G;
+      const clampY = (y) => Math.max(G, Math.min(y, vh - CH_EST - G));
+      const clampX = (x) => Math.max(G, Math.min(x, vw - CW - G));
+      if (spaceRight >= CW + G) {
+        // Right of the anchor — original >=1500px branch, now space-aware.
         calloutStyle = {
           position: 'fixed',
-          top: anchorRect.top,
-          left: anchorRect.right + 16,
-          width: 360,
-          maxWidth: `calc(100vw - ${anchorRect.right + 32}px)`,
+          top: clampY(anchorRect.top),
+          left: anchorRect.right + G,
+          width: CW,
+        };
+      } else if (spaceBelow >= CH_EST) {
+        // Below the anchor, left-aligned, clamped to viewport.
+        calloutStyle = {
+          position: 'fixed',
+          top: anchorRect.bottom + G,
+          left: clampX(anchorRect.left),
+          width: CW,
+        };
+      } else if (spaceLeft >= CW + G) {
+        // Left of the anchor — fallback for tall anchors hugging the right edge.
+        calloutStyle = {
+          position: 'fixed',
+          top: clampY(anchorRect.top),
+          left: anchorRect.left - CW - G,
+          width: CW,
         };
       } else {
+        // Last resort: above the anchor.
         calloutStyle = {
           position: 'fixed',
-          top: anchorRect.bottom + 16,
-          left: Math.max(16, anchorRect.left),
-          width: 360,
-          maxWidth: 'calc(100vw - 32px)',
+          top: Math.max(G, anchorRect.top - CH_EST - G),
+          left: clampX(anchorRect.left),
+          width: CW,
         };
       }
     } else {
