@@ -25,6 +25,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Now copy source + install the project itself.
 COPY src/ ./src/
 COPY README.md ./
+# Spec 0126 — bundle the specs/ directory so /api/specs/{spec_id} can serve
+# spec markdown for the Changelog tab's "Open spec ↗" modal.
+COPY specs/ ./specs/
 RUN uv sync --frozen --no-dev
 
 EXPOSE 8080
