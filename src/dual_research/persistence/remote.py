@@ -94,10 +94,10 @@ class RemoteSession:
         final_md = final_path.read_text(encoding="utf-8") if final_path.exists() else ""
 
         transcript_path = session_dir / "transcript.jsonl"
-        event_rows, run_started, run_completed = _read_transcript(run_id, transcript_path)
+        event_rows, run_started, run_completed, run_failed = _read_transcript(run_id, transcript_path)
 
         run_row = _build_run_row(
-            run_id, state, metrics, final_md, run_started, run_completed
+            run_id, state, metrics, final_md, run_started, run_completed, run_failed
         )
         self._client.table("runs").upsert([run_row], on_conflict="id").execute()
 
@@ -162,23 +162,39 @@ def _build_run_row(
     final_md: str,
     run_started: dict[str, Any] | None,
     run_completed: dict[str, Any] | None,
+    run_failed: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     created_at = _parse_session_dir_timestamp(run_id)
     slug = _slug_from_session_dir(run_id)
 
     # Prefer run_completed values (canonical end-of-run truth); fall back to
-    # state / metrics derivation when the transcript is incomplete.
+    # run_failed when the run errored; finally to state / metrics derivation
+    # when the transcript is incomplete.
     phase_reached = (
         (run_completed and run_completed.get("phase_reached"))
+        or (run_failed and run_failed.get("phase_reached"))
         or state.get("phase")
     )
-    exit_code = run_completed.get("exit_code") if run_completed else None
+    # exit_code is the canonical "did the run terminate, and how" signal
+    # consumed by the list-view's ``_status_from_columns``. For a clean
+    # success it comes from run_completed (0 or 51 for hard-cap deadlock).
+    # For a run_failed event we synthesise ``exit_code=1`` — a non-zero,
+    # non-51 sentinel that maps to "errored" in the UI's derive_run_status
+    # precedence (errored > deadlocked > completed > running).
+    if run_completed:
+        exit_code = run_completed.get("exit_code")
+    elif run_failed:
+        exit_code = 1
+    else:
+        exit_code = None
     duration_ms = (
         (run_completed and run_completed.get("duration_ms"))
+        or (run_failed and run_failed.get("duration_ms"))
         or (_metrics_duration_ms(metrics) if metrics else None)
     )
     total_cost = (
         (run_completed and run_completed.get("total_cost_usd"))
+        or (run_failed and run_failed.get("total_cost_usd"))
         or (float(metrics["total_cost_usd"]) if metrics and "total_cost_usd" in metrics else None)
     )
 
@@ -232,14 +248,23 @@ def _metrics_duration_ms(metrics: dict[str, Any]) -> int | None:
 def _read_transcript(
     run_id: str,
     transcript_path: Path,
-) -> tuple[list[dict[str, Any]], dict[str, Any] | None, dict[str, Any] | None]:
-    """One-pass scan: build event rows; capture run_started / run_completed payloads."""
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    """One-pass scan: build event rows; capture run_started / run_completed /
+    run_failed payloads.
+
+    ``run_failed`` is captured (alongside ``run_completed``) so the runs row
+    can carry a non-None ``exit_code`` for errored runs. Without this, the
+    list-view's ``_status_from_columns`` saw ``exit_code=None`` and fell
+    through to "running" — the bug where the run-list said "running" while
+    the run-detail view (via the aggregator that reads transcript events
+    directly) said "errored"."""
     rows: list[dict[str, Any]] = []
     run_started: dict[str, Any] | None = None
     run_completed: dict[str, Any] | None = None
+    run_failed: dict[str, Any] | None = None
 
     if not transcript_path.exists():
-        return rows, run_started, run_completed
+        return rows, run_started, run_completed, run_failed
 
     with transcript_path.open("r", encoding="utf-8") as f:
         seq = 0
@@ -254,6 +279,11 @@ def _read_transcript(
                 run_started = dict(record)
             elif kind == "run_completed":
                 run_completed = dict(record)
+            elif kind == "run_failed":
+                run_failed = dict(record)
+                # Preserve the originating timestamp so duration can be derived.
+                if ts is not None and "ts" not in run_failed:
+                    run_failed["ts"] = ts
             rows.append(
                 {
                     "run_id": run_id,
@@ -265,7 +295,7 @@ def _read_transcript(
             )
             seq += 1
 
-    return rows, run_started, run_completed
+    return rows, run_started, run_completed, run_failed
 
 
 def _iter_file_rows(run_id: str, session_dir: Path) -> Iterator[dict[str, Any]]:

@@ -203,6 +203,66 @@ def test_repush_replaces_not_duplicates(tmp_path: Path) -> None:
     assert len(fake.rows("session_files")) == files_before
 
 
+def test_run_failed_event_sets_exit_code_so_list_view_shows_errored(tmp_path: Path) -> None:
+    """Regression for the 2026-05-20 list-vs-detail status mismatch.
+
+    A run that ended via ``run_failed`` (not ``run_completed``) used to push
+    with ``exit_code=None``. The list view's ``_status_from_columns``
+    reads ``exit_code`` to decide errored / deadlocked / completed, so
+    ``None`` fell through to the default "running" — even though the
+    detail view (which materializes the transcript and runs the aggregator)
+    correctly showed "errored". The fix synthesises ``exit_code=1`` from
+    the ``run_failed`` event so the runs row carries the terminal signal."""
+    sd = tmp_path / "20260520-141001-dvs-backend-language-choice"
+    sd.mkdir()
+    # Minimal state.json — like a real session-dir for a run that died in phase1.
+    (sd / "state.json").write_text(json.dumps({
+        "phase": "phase1",
+        "drafter": None,
+        "agreed_plan": None,
+        "final_surfaced_disagreements": [],
+        "draft_round": 1,
+        "final_emitted_to": None,
+    }))
+    (sd / "brief.md").write_text("# Brief\n\nTesting.")
+    # Transcript carrying a run_failed event (no run_completed).
+    lines = [
+        json.dumps({
+            "ts": "2026-05-20T14:10:01+00:00",
+            "event": "run_started",
+            "session_dir": str(sd),
+            "slug": "dvs-backend-language-choice",
+            "model_tier": "prod",
+            "claude_model": "claude-sonnet-4-6",
+            "openai_model": "gpt-5.5",
+            "soft_cap": 6,
+            "hard_cap": 12,
+        }),
+        json.dumps({"ts": "2026-05-20T14:10:02+00:00", "event": "phase_entered", "phase": "phase0"}),
+        json.dumps({
+            "ts": "2026-05-20T14:36:25+00:00",
+            "event": "run_failed",
+            "phase_reached": "phase1",
+            "error_type": "ReadError",
+            "message": "",
+        }),
+    ]
+    (sd / "transcript.jsonl").write_text("\n".join(lines) + "\n")
+
+    fake = FakeSupabaseClient()
+    RemoteSession(fake).push_session_dir(sd)
+    runs = fake.rows("runs")
+    assert len(runs) == 1
+    row = runs[0]
+    # exit_code must be a non-zero, non-51 value so derive_run_status returns
+    # "errored" via _status_from_columns. The exact value isn't part of the
+    # contract — only the presence of a "this run failed" signal is.
+    assert row["exit_code"] is not None
+    assert row["exit_code"] not in (0, 51)
+    # phase_reached comes from the run_failed event payload.
+    assert row["phase_reached"] == "phase1"
+
+
 def test_missing_state_json_is_tolerated_and_pushes_in_flight_row(tmp_path: Path) -> None:
     """Spec 0032 regression — a session dir without state.json must still
     push (with default state.phase="phase0"), so --push-while-running can
