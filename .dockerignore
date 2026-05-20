@@ -9,7 +9,8 @@ __pycache__/
 
 runs/
 handoffs/
-specs/
+# Spec 0126 — specs/ IS bundled (so /api/specs/{spec_id} works on the
+# Fly container). Don't ignore it here.
 tests/
 
 CHANGELOG.md
