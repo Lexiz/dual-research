@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.7.1] — 2026-05-20
+
+### Changed
+
+- **Spec 0133 follow-up — bump narrow-mode breakpoint 1499 → 1799 px.** Post-deploy validation surfaced that the spec-0133 narrow-mode rules weren't kicking in for the most common laptop viewports. The original breakpoint (`max-width: 1499px`) was inherited from SPEC-0125's filter-row rule, but the spec-0133 block grew to govern much more (relocated agent pills + Bar 1 compaction + Bar 2 status/agent label collapse + segmented control icons-only). The combined wide-mode content (Timeline pill + Conversation/Consumption tabs in one row; Critique title + three phase tabs + three counter triples in another; ten filter chips with full labels in a third) needs each two-pane column at ≥ ~900 px to fit, which requires viewport ≥ ~1800 px. MacBook Pro 16" (1728 px), MacBook Pro 14" (1512 px), and the typical half-screen browser window on a 27" display all sit in the 1500–1799 range and were missing narrow rules entirely. Bumping the shared block at `components.css:763` from `1499 → 1799 px` covers them. The unrelated `.agent-input` (`components.css:1072`) and `.resp-grid` (`components.css:2987`) breakpoints stay at 1499 — different layouts, different threshold.
+  - **Cache-bust** `?v=0133c → ?v=0133d` on every `<link>` / `<script>` in `index.html` (25 occurrences).
+  - **Version bump** 1.7.0 → 1.7.1 (PATCH — visual threshold adjustment, no behavior change).
+
 ## [1.7.0] — 2026-05-20
 
 ### Added

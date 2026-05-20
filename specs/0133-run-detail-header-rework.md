@@ -18,6 +18,8 @@ pr: "https://github.com/Lexiz/dual-research/pull/153"
 
 > **Re-baseline note (2026-05-20).** The original draft of this spec was carried in tree across the 0127→0131 arc as `NNNN-…md` and filed in place by 0132. This revision rebases the spec onto the post-arc state: every CSS / JSX line reference below is verified against `main` after 0134 (`__version__ = "1.6.12"`); every token name is `--md-*` (no `--bg-*`, `--fg-*`, `--border-*`, `--r-*`, `--t-*`, `--mono`, `--sans`, `--serif` — those were retired by 0131); every font-weight is `--md-w-*` (no `--w-*` — those were retired by 0132); pill radius is `var(--md-shape-full)` (no literal `999px`); and the `.chip-pill` modifier referenced in the earlier draft is gone (0132 made pill the `.chip` default).
 
+> **Follow-up note (post-ship, v1.7.1).** The narrow-mode breakpoint was originally set at `1499 px` to match the existing SPEC-0125 rule. Post-deploy validation surfaced that the actual content threshold is higher: a 1600–1799 px viewport (e.g. MacBook Pro 16" = 1728 px) leaves each two-pane column at ~800–900 px, which can't comfortably hold the wide-mode pill (logo + model + tokens + cost + activity ≈ 700+ px) alongside the Conversation/Consumption segmented control in `.tl__tabs`. The shared breakpoint inside `components.css:763` was bumped from `1499 → 1799 px` so MacBook Pro 14"/16" and half-screen browser windows on 27" displays correctly receive narrow rules. The `.agent-input` and `.resp-grid` breakpoints elsewhere in `components.css` stay at 1499 — they govern unrelated layouts. References to "1499 px" below are historical; the live CSS authority is 1799 px.
+
 ---
 
 ## 1. Context
