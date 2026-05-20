@@ -60,22 +60,23 @@ function CrossRunSearchScreen({ navigate }) {
     <div style={{
       height: '100%', overflow: 'auto',
       padding: '24px 32px',
-      background: 'var(--bg-0)',
+      background: 'var(--md-surface)',
     }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <h2 style={{
-            fontSize: 'var(--t-title)',
+            fontSize: 'var(--md-title-l-size)',
+            lineHeight: 'var(--md-title-l-lh)',
             fontWeight: 'var(--w-semibold)',
-            color: 'var(--fg-0)',
+            color: 'var(--md-on-surface)',
             margin: 0,
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <Mdi name="magnify" size={20} />
             Cross-run search
           </h2>
-          <p style={{ fontSize: 'var(--t-body)', color: 'var(--fg-2)', margin: '4px 0 0' }}>
+          <p style={{ fontSize: 'var(--md-body-m-size)', lineHeight: 'var(--md-body-m-lh)', color: 'var(--md-on-surface-muted)', margin: '4px 0 0' }}>
             Search across all runs by topic, brief content, and final documents.
           </p>
         </div>
@@ -84,12 +85,12 @@ function CrossRunSearchScreen({ navigate }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 14px',
-          background: 'var(--bg-1)',
-          border: '1px solid var(--border-2)',
-          borderRadius: 'var(--r-3)',
+          background: 'var(--md-surface-container-low)',
+          border: '1px solid var(--md-outline-variant)',
+          borderRadius: 'var(--md-shape-md)',
           marginBottom: 20,
         }}>
-          <Mdi name="magnify" size={16} style={{ color: 'var(--fg-3)', flexShrink: 0 }} />
+          <Mdi name="magnify" size={16} style={{ color: 'var(--md-on-surface-faint)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
@@ -103,11 +104,11 @@ function CrossRunSearchScreen({ navigate }) {
               outline: 'none',
               fontSize: 14,
               fontFamily: 'var(--sans)',
-              color: 'var(--fg-0)',
+              color: 'var(--md-on-surface)',
             }}
           />
           {loading && (
-            <span style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)' }}>
+            <span style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)' }}>
               searching...
             </span>
           )}
@@ -118,7 +119,7 @@ function CrossRunSearchScreen({ navigate }) {
           <div style={{
             padding: '32px 0',
             textAlign: 'center',
-            color: 'var(--fg-3)',
+            color: 'var(--md-on-surface-faint)',
             fontSize: 13,
           }}>
             No results found for "{query}"
@@ -128,9 +129,9 @@ function CrossRunSearchScreen({ navigate }) {
         {grouped.map((group) => (
           <div key={group.runId} style={{
             marginBottom: 16,
-            background: 'var(--bg-1)',
-            border: '1px solid var(--border-1)',
-            borderRadius: 'var(--r-3)',
+            background: 'var(--md-surface-container-low)',
+            border: '1px solid var(--md-outline-hair)',
+            borderRadius: 'var(--md-shape-md)',
             overflow: 'hidden',
           }}>
             {/* Run header */}
@@ -139,27 +140,27 @@ function CrossRunSearchScreen({ navigate }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 14px',
-                borderBottom: '1px solid var(--border-1)',
+                borderBottom: '1px solid var(--md-outline-hair)',
                 cursor: 'pointer',
-                background: 'var(--bg-1)',
+                background: 'var(--md-surface-container-low)',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-1)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--md-surface-container)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--md-surface-container-low)'; }}
             >
               <span className="rid rid-sm" style={{
-                fontSize: 11, fontFamily: 'var(--mono)', flexShrink: 0,
+                fontSize: 11, fontFamily: 'var(--md-font-data)', flexShrink: 0,
               }}>
                 {group.displayId}
               </span>
               <span style={{
-                fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+                fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {group.topic || group.runId}
               </span>
               <span style={{
                 marginLeft: 'auto', flexShrink: 0,
-                fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+                fontSize: 10, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
               }}>
                 {group.matches.length} match{group.matches.length !== 1 ? 'es' : ''}
               </span>
@@ -173,10 +174,10 @@ function CrossRunSearchScreen({ navigate }) {
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 10,
                   padding: '8px 14px 8px 24px',
-                  borderBottom: i < group.matches.length - 1 ? '1px solid var(--border-1)' : 'none',
+                  borderBottom: i < group.matches.length - 1 ? '1px solid var(--md-outline-hair)' : 'none',
                   cursor: 'pointer',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-2)'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--md-surface-container)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 <span className="chip chip-sm" style={{
@@ -185,7 +186,7 @@ function CrossRunSearchScreen({ navigate }) {
                   {m.matchType}
                 </span>
                 <span style={{
-                  fontSize: 12.5, color: 'var(--fg-1)',
+                  fontSize: 12.5, color: 'var(--md-on-surface-variant)',
                   lineHeight: 1.4,
                   overflow: 'hidden',
                   display: '-webkit-box',
@@ -203,7 +204,7 @@ function CrossRunSearchScreen({ navigate }) {
           <div style={{
             padding: '48px 0',
             textAlign: 'center',
-            color: 'var(--fg-3)',
+            color: 'var(--md-on-surface-faint)',
           }}>
             <Mdi name="magnify" size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
             <div style={{ fontSize: 13 }}>Enter at least 2 characters to search</div>
