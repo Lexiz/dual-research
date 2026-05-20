@@ -117,9 +117,9 @@
         <circle cx="60" cy="60" r="56" fill="url(#claudeGlow)" />
         <circle cx="220" cy="60" r="56" fill="url(#gptGlow)" />
         <line x1="92" y1="60" x2="188" y2="60"
-              stroke="var(--border-3)" strokeWidth="1.5"
+              stroke="var(--md-outline)" strokeWidth="1.5"
               strokeDasharray="4 6" />
-        <circle cx="140" cy="60" r="3.5" fill="var(--fg-1)">
+        <circle cx="140" cy="60" r="3.5" fill="var(--md-on-surface-variant)">
           <animate attributeName="cx" values="92;188;92" dur="4s" repeatCount="indefinite" />
           <animate attributeName="opacity" values="0;1;1;0" dur="4s" repeatCount="indefinite" />
         </circle>
@@ -160,8 +160,8 @@
       <div style={{
         minHeight: '100vh', display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, rgba(124, 196, 184, 0.06), transparent 60%), radial-gradient(ellipse at bottom, rgba(212, 165, 116, 0.06), transparent 60%), var(--bg-0)',
-        color: 'var(--fg-0)', padding: 24,
+        background: 'radial-gradient(ellipse at top, rgba(124, 196, 184, 0.06), transparent 60%), radial-gradient(ellipse at bottom, rgba(212, 165, 116, 0.06), transparent 60%), var(--md-surface)',
+        color: 'var(--md-on-surface)', padding: 24,
       }}>
         <div style={{
           maxWidth: 460, width: '100%', display: 'flex', flexDirection: 'column',
@@ -170,7 +170,7 @@
           <AgentDuoVisual />
           <div>
             <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em' }}>dual-research</div>
-            <div style={{ fontSize: 14, color: 'var(--fg-2)', marginTop: 6, maxWidth: 380, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: 'var(--md-on-surface-muted)', marginTop: 6, maxWidth: 380, lineHeight: 1.5 }}>
               Two AI agents in conversation, converging toward a single research document.
             </div>
           </div>
@@ -184,7 +184,7 @@
             <GoogleGlyph />
             <span>Sign in with Google</span>
           </button>
-          <div style={{ fontSize: 11, color: 'var(--fg-2)', maxWidth: 360, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', maxWidth: 360, lineHeight: 1.5 }}>
             Access by invitation. Ask an admin to add your Google account to the allowlist.
           </div>
           {error && (
@@ -205,8 +205,8 @@
     return (
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, rgba(124, 196, 184, 0.06), transparent 60%), var(--bg-0)',
-        color: 'var(--fg-0)', padding: 24,
+        background: 'radial-gradient(ellipse at top, rgba(124, 196, 184, 0.06), transparent 60%), var(--md-surface)',
+        color: 'var(--md-on-surface)', padding: 24,
       }}>
         <div style={{
           maxWidth: 440, width: '100%', display: 'flex', flexDirection: 'column',
@@ -214,14 +214,14 @@
         }}>
           <AgentDuoVisual />
           <div style={{ fontSize: 20, fontWeight: 600 }}>Not approved</div>
-          <div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: 'var(--md-on-surface-muted)', lineHeight: 1.5 }}>
             Signed in as <strong>{email}</strong>, but this address isn't on the allowlist.
             Ask an admin to add you, or sign in with a different Google account.
           </div>
           <button onClick={onSignOut} style={{
             padding: '8px 14px', borderRadius: 6, cursor: 'pointer',
-            border: '1px solid var(--border-2)', background: 'var(--bg-1)',
-            color: 'var(--fg-0)', fontSize: 13, fontFamily: 'inherit', marginTop: 6,
+            border: '1px solid var(--md-outline-variant)', background: 'var(--md-surface-container-low)',
+            color: 'var(--md-on-surface)', fontSize: 13, fontFamily: 'inherit', marginTop: 6,
           }}>
             Sign out
           </button>
@@ -259,38 +259,38 @@
     if (!demo) return null;
 
     const cardStyle = {
-      background: 'var(--bg-1)', border: '1px solid var(--border-2)',
-      borderRadius: 'var(--r-3)', padding: '10px 14px',
-      fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.5,
+      background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-variant)',
+      borderRadius: 'var(--md-shape-md)', padding: '10px 14px',
+      fontSize: 12, color: 'var(--md-on-surface-variant)', lineHeight: 1.5,
     };
-    const labelStyle = { fontSize: 10, color: 'var(--fg-3)', textTransform: 'uppercase',
+    const labelStyle = { fontSize: 10, color: 'var(--md-on-surface-faint)', textTransform: 'uppercase',
                          letterSpacing: '0.05em', marginBottom: 4 };
     const agentColor = (a) => a === 'claude' ? 'var(--agent-a)' : 'var(--agent-b)';
 
     return (
       <div style={{
         maxWidth: 460, width: '100%', textAlign: 'left',
-        border: '1px solid var(--border-2)', borderRadius: 'var(--r-3)',
-        background: 'var(--bg-1)', overflow: 'hidden',
+        border: '1px solid var(--md-outline-variant)', borderRadius: 'var(--md-shape-md)',
+        background: 'var(--md-surface-container-low)', overflow: 'hidden',
       }}>
         {/* Header */}
         <div style={{
-          padding: '12px 16px', borderBottom: '1px solid var(--border-1)',
+          padding: '12px 16px', borderBottom: '1px solid var(--md-outline-hair)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-0)' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--md-on-surface)' }}>
               Demo run
             </div>
-            <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, maxWidth: 280 }}>
+            <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2, maxWidth: 280 }}>
               {demo.topic}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+            <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
               ${demo.total_cost_usd.toFixed(2)}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>
+            <div style={{ fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 2 }}>
               {demo.duration_display}
             </div>
           </div>
@@ -303,9 +303,9 @@
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {demo.phases.map((p, i) => (
                 <div key={i} style={{
-                  padding: '3px 8px', borderRadius: 'var(--r-1)',
-                  background: 'var(--bg-2)', border: '1px solid var(--border-1)',
-                  fontSize: 10.5, color: 'var(--fg-2)', fontFamily: 'var(--mono)',
+                  padding: '3px 8px', borderRadius: 'var(--md-shape-xs)',
+                  background: 'var(--md-surface-container)', border: '1px solid var(--md-outline-hair)',
+                  fontSize: 10.5, color: 'var(--md-on-surface-muted)', fontFamily: 'var(--md-font-data)',
                 }}>
                   {i}. {p.name.split(' \u2014 ')[1]} ({p.turns})
                 </div>
@@ -320,15 +320,15 @@
               {demo.timeline_samples.map((t, i) => (
                 <div key={i} style={cardStyle}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: agentColor(t.agent) }}>
+                    <span style={{ fontFamily: 'var(--md-font-data)', fontSize: 11, color: agentColor(t.agent) }}>
                       {t.label}
                     </span>
-                    <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>
+                    <span style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>
                       ${t.cost_usd.toFixed(2)}
                       {t.searches > 0 && ` \u00b7 ${t.searches} searches`}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{t.summary}</div>
+                  <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>{t.summary}</div>
                 </div>
               ))}
             </div>
@@ -342,18 +342,18 @@
                 <div key={i} style={cardStyle}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                     <span style={{
-                      fontFamily: 'var(--mono)', fontSize: 10,
-                      padding: '1px 6px', borderRadius: 'var(--r-1)',
+                      fontFamily: 'var(--md-font-data)', fontSize: 10,
+                      padding: '1px 6px', borderRadius: 'var(--md-shape-xs)',
                       background: c.status === 'resolved' ? 'var(--ok-bg)' : 'var(--warn-bg)',
                       color: c.status === 'resolved' ? 'var(--ok)' : 'var(--warn)',
                       border: `1px solid ${c.status === 'resolved' ? 'var(--ok-border)' : 'var(--warn-border)'}`,
                     }}>
                       {c.id}
                     </span>
-                    <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.kind}</span>
+                    <span style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>{c.kind}</span>
                     <span style={{ fontSize: 10, color: agentColor(c.agent) }}>{c.agent}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{c.body}</div>
+                  <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>{c.body}</div>
                 </div>
               ))}
             </div>
@@ -362,10 +362,10 @@
           {/* Outcome */}
           <div style={{
             textAlign: 'center', padding: '8px 0 4px',
-            borderTop: '1px solid var(--border-1)',
+            borderTop: '1px solid var(--md-outline-hair)',
           }}>
-            <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>{demo.outcome}</div>
-            <div style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>{demo.outcome}</div>
+            <div style={{ fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 2 }}>
               Confidence: {demo.confidence}
             </div>
           </div>
