@@ -6806,13 +6806,17 @@ function _normalizeToThread(item, run, phaseId) {
     const turns = [];
     turns.push({ agent: q.raisedBy, round: q.raisedRound, verdict: 'raised', quote: q.body || null });
     if (isAnswered && q.answeredBy) {
-      turns.push({ agent: q.answeredBy, round: q.answeredRound, verdict: 'conceded', quote: q.answerBody || null });
+      // Spec 0119 §7.1 — legacy 'conceded'/'answered' resolution
+      // collapses onto the canonical 'resolved' lifecycle verb.
+      turns.push({ agent: q.answeredBy, round: q.answeredRound, verdict: 'resolved', quote: q.answerBody || null });
     }
     if (ghostedRounds > 0 && !isAnswered) {
+      // Spec 0119 §7.1 — legacy 'ghosted' (unaddressed across rounds)
+      // canonicalises to 'capped' (orchestrator-cap terminal state).
       turns.push({
         agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
         round: q.raisedRound + ghostedRounds,
-        verdict: 'ghosted',
+        verdict: 'capped',
         kind: 'ghosted',
       });
     }
@@ -6888,15 +6892,27 @@ function _normalizeToThread(item, run, phaseId) {
   return null;
 }
 
-// Map non-vocab verdicts to the canonical six-word set.
+// Spec 0119 §7.1 — canonicalize legacy verbs into the lifecycle
+// vocabulary: raised · addressed · resolved · acknowledged ·
+// withdrawn · capped · "raised again". The lifecycle vocab is the
+// source of truth across critique-card surfaces; this map lets the
+// legacy negotiation-parser action strings ("conceded", "pushback",
+// "ghosted") flow through into the new chip cluster without
+// surfacing pre-0114 verbs to the user.
 function _mapVerdict(action) {
   if (!action) return undefined;
   const a = action.toLowerCase().trim();
-  if (['raised', 'pushback', 'conceded', 'resolved', 'ghosted', 'drift'].includes(a)) return a;
-  if (a === 'answered' || a === 'agreed' || a === 'accepted') return 'conceded';
-  if (a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'pushback';
+  // Already canonical.
+  if (['raised', 'addressed', 'resolved', 'acknowledged', 'withdrawn', 'capped', 'raised again'].includes(a)) return a;
+  // Item creation aliases.
   if (a === 'opened' || a === 'introduced' || a === 'flagged by') return 'raised';
-  return a; // fallback — will trigger dev console.error from VERDICT_VOCAB check
+  // Addressee response → addressed.
+  if (a === 'pushback' || a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'addressed';
+  // Raiser accepts addressee's response → resolved.
+  if (a === 'conceded' || a === 'answered' || a === 'agreed' || a === 'accepted') return 'resolved';
+  // Orchestrator cap aliases (legacy "ghosted" = unaddressed across rounds; "drift" = ledger drift).
+  if (a === 'ghosted' || a === 'drift') return 'capped';
+  return a; // fallback — flagged by the VERDICT_VOCAB dev assertion
 }
 
 function CritiquePhaseContent({ run, phaseId, openNewItems, openCarriedItems, resolvedItems, driftItems, latestRound, onHighlight, renderItem, renderGroup }) {
@@ -7151,7 +7167,8 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     }
     if (bestGhost > 0) {
       const other = best.raisedBy === 'claude' ? 'gpt' : 'claude';
-      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'ghosted', kind: 'ghosted' });
+      // Spec 0119 §7.1 — legacy 'ghosted' → 'capped' canonical verb.
+      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'capped', kind: 'ghosted' });
     }
     const threadStatus = bestGhost > 0 ? 'drift' : 'open';
     const footer = bestGhost > 0 ? `Not addressed for ${bestGhost} round(s) — highest-leverage open item.` : null;

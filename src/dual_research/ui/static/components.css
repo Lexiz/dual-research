@@ -702,6 +702,42 @@ body.light .tab-group.tabs-solid .tab.is-active,
   user-select: text;
 }
 
+/* Spec 0119 §8.5 — lifecycle row inside an expanded critique card.
+   Each row is a chip cluster (provider + round + verb chip) above
+   an indented quote body. Dashed top-border separator between rows;
+   first row has no border. */
+.crit-section-title {
+  color: var(--fg-3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--w-semi);
+  margin: 14px 0 8px;
+}
+.lc-rows { display: flex; flex-direction: column; gap: 0; }
+.lc-row {
+  padding: 8px 0;
+  border-top: 1px dashed var(--border-1);
+}
+.lc-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.lc-row-chips {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.lc-row-body {
+  color: var(--fg-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-2);
+  margin-left: 4px;
+}
+.lc-row-body p { margin: 0; }
+.lc-row-body p + p { margin-top: 6px; }
+
 /* QuestionRef (.qref) — decoded reference for a critique question.
    Replaces the legacy cryptic "Q-g-r1-04" text spans. Two shapes:
      .qref         — compact "Q · 04". Used inside QuestionThread

@@ -1134,7 +1134,25 @@ function QuestionRef({ id, number, raisedBy, round, format = 'compact', kindLett
 }
 
 // Spec 0097 — canonical six-word verdict vocabulary.
-const VERDICT_VOCAB = ['raised', 'pushback', 'conceded', 'resolved', 'ghosted', 'drift'];
+// Spec 0119 §7.1 — canonical lifecycle verbs for chip labels on the
+// expanded critique-card lifecycle rows. Mirrors contract/lifecycle.py
+// states (open / addressed / resolved / acknowledged / withdrawn /
+// capped) plus 'raised' for item creation and 'raised again' for the
+// addressed→open counter-argument transition.
+const VERDICT_VOCAB = ['raised', 'addressed', 'resolved', 'acknowledged', 'withdrawn', 'capped', 'raised again'];
+
+// Spec 0119 §8.5 — verb → tone for the lifecycle-row chip. Mirrors
+// the contract module's state semantics (open/addressed = info; the
+// four terminal states get their own tones).
+const VERDICT_TONE = {
+  raised:          'info',
+  addressed:       'info',
+  'raised again':  'info',
+  resolved:        'ok',
+  acknowledged:    'warn',
+  withdrawn:       'idle',
+  capped:          'err',
+};
 
 // QuestionThread — unified item-card for Q · D · I · C critique items.
 // Spec 0097: single anatomy with expand/collapse, tonal bubbles, dashed footer.
@@ -1285,31 +1303,43 @@ function QuestionThread({
           expanded) so it's copyable. */}
       {id && <div className="crit-card-id">id: {id}</div>}
 
-      {/* TIMELINE + FOOTER — visible when expanded */}
+      {/* TIMELINE + FOOTER — visible when expanded. Spec 0119 §8.5:
+          each row is a chip cluster (provider + round + verb) above
+          an indented quote body. */}
       {open && <>
-        <ol className="qt-timeline" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {turns.length > 0 && (
+          <div className="crit-section-title">Lifecycle</div>
+        )}
+        <ol className="qt-timeline lc-rows" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {turns.map((t, i) => {
-            const agent = t.agent === 'both' ? 'claude' : (t.agent || 'claude');
-            const slot = _agentSlot(agent);
-            const agentLabel = t.agent === 'both' ? 'Both' : (agent === 'claude' ? 'Claude' : 'GPT');
-            const isGhosted = t.verdict === 'ghosted' || t.kind === 'ghosted';
+            const isMutual = t.agent === 'both';
+            const agent = isMutual ? 'claude' : (t.agent || 'claude');
+            const agentLabel = isMutual ? 'Both' : (agent === 'claude' ? 'Claude' : 'GPT');
+            const verdictTone = (t.verdict && VERDICT_TONE[t.verdict]) || 'info';
             return (
-              <li key={i} className={_cn('qt-row', 'is-' + slot, isGhosted && 'is-ghosted')}>
-                <span className="qt-pill" aria-label={agentLabel + ' round ' + t.round + (t.verdict ? ' \u2014 ' + t.verdict : '')}>
-                  <AgentIcon agent={agent} size={14} />
-                  <span className="qt-agent">{agentLabel}</span>
-                  {t.round != null && <>
-                    <span className="qt-sep" aria-hidden="true">&middot;</span>
-                    <span className="qt-round num">r{t.round}</span>
-                  </>}
-                  {t.verdict && <>
-                    <span className="qt-sep" aria-hidden="true">&middot;</span>
-                    <span className="qt-verdict">{t.verdict}</span>
-                  </>}
-                </span>
-                {t.quote && <p className="qt-quote">
-                  {typeof t.quote === 'string' ? <Markdown text={t.quote} /> : t.quote}
-                </p>}
+              <li key={i} className="lc-row">
+                <div className="lc-row-chips">
+                  {isMutual ? (
+                    <Chip tone="warn" leadingDot label="Both agents" />
+                  ) : (
+                    <Chip
+                      tone={agent === 'gpt' ? 'gpt' : 'claude'}
+                      leadingIcon={<AgentIcon agent={agent} size={12} />}
+                      label={agentLabel}
+                    />
+                  )}
+                  {t.round != null && (
+                    <Chip mono tone="neutral" label={`round ${t.round}`} />
+                  )}
+                  {t.verdict && (
+                    <Chip tone={verdictTone} label={t.verdict} />
+                  )}
+                </div>
+                {t.quote && (
+                  <div className="lc-row-body">
+                    {typeof t.quote === 'string' ? <Markdown text={t.quote} /> : t.quote}
+                  </div>
+                )}
               </li>
             );
           })}
