@@ -149,7 +149,9 @@ def load_run_snapshot(session_dir: Path) -> Run:
     )
 
     run.phase_stats = build_phase_stats(session_dir)
-    _attach_item_aggregation(run, session_dir / "transcript.jsonl")
+    _item_bundle = _attach_item_aggregation(
+        run, session_dir / "transcript.jsonl", session_dir=session_dir
+    )
 
     # Summary cards (spec 0025): heuristic TL;DR of brief.md + extracted
     # `## Summary` sections from every completed turn file.
@@ -173,6 +175,39 @@ def load_run_snapshot(session_dir: Path) -> Run:
         2: [_asdict(e) for e in build_phase_ledger(session_dir, phase=2).entries],
         4: [_asdict(e) for e in build_phase_ledger(session_dir, phase=4).entries],
     }
+
+    # Spec 0122 — when the spec-0114 item pipeline produced a non-empty
+    # bundle (either via the transcript bridge or via the replay-from-
+    # disk fallback), overwrite the legacy typed lists + phase_ledgers
+    # with projections derived from the items. The legacy reconstructors
+    # always return ``[]`` for v2 runs (their section regexes no longer
+    # match), so this is what makes the badges/filters non-empty.
+    if _item_bundle is not None and _item_bundle.items:
+        from dual_research.ui.item_projection import (
+            project_phase_ledgers,
+            project_typed_lists,
+        )
+        questions, disagreements, issues, comments = project_typed_lists(_item_bundle)
+        run.questions = questions
+        # Preserve the deadlocked-marker pass — once disagreements come
+        # from the item pipeline, the hard-cap signal flows through
+        # ``Item.current_state == "capped"`` and is already reflected on
+        # the projected ``Disagreement.deadlocked`` flag, but we keep
+        # the old pipeline's ordering (open first, resolved second) for
+        # UI consistency.
+        run.disagreements = sorted(
+            disagreements,
+            key=lambda d: (
+                0 if d.status == "open" else 1,
+                d.opened_round if d.status == "open" else -(d.closed_round or 0),
+            ),
+        )
+        run.issues = issues
+        run.comments = comments
+        run.phase_ledgers = project_phase_ledgers(_item_bundle)
+        # Spec 0122 — for v2 runs, the "suspected miss" banner is not
+        # meaningful (the parser either finds items or there are none).
+        run.disagreements_parse_suspected_miss = False
     # Spec 0043 D8 — drift events: end-of-phase self-counter ↔ ledger
     # open-count mismatches, surfaced in the UI as a small ⚠ chip.
     run.drifts = _compute_ledger_drifts(run)
@@ -1297,9 +1332,58 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
     text-scan only when None.
     """
     from dual_research.protocol.blocks import assign_block_ids
-    from dual_research.protocol.parse import resolve_review_items
+    from dual_research.protocol.parse import (
+        ReviewItem,
+        _normalize_for_match,
+        parse_turn_v2,
+        resolve_review_items,
+    )
 
     out: dict[str, list[dict]] = {}
+
+    def _v2_review_items(text: str, prior_blocks) -> list | None:
+        """Try the spec-0114 schema first. Returns a list of ReviewItem
+        when at least one RaiseBlock parsed (i.e. this is clearly a v2
+        turn file), or ``None`` to signal that the legacy extractor
+        should run.
+
+        Anchor resolution (``block_id``) mirrors the legacy path: if
+        the RaiseBlock's anchor type is ``quote``/``after`` and the
+        anchor text matches a prior block, the block id is attached.
+        """
+        parsed = parse_turn_v2(text)
+        raise_blocks = [b for b in parsed.blocks if hasattr(b, "kind") and hasattr(b, "anchor_type")]
+        if not raise_blocks:
+            return None
+        # Map blocks to IDs positionally — the orchestrator stamps
+        # ``raised_this_turn`` in the same order the RAISE blocks
+        # appear in the body, and the same convention is preserved
+        # on disk via the ``RAISED_THIS_TURN: [...]`` footer.
+        ids = list(parsed.raised_this_turn)
+        # Pre-normalise prior blocks once.
+        norm_blocks = [(b, _normalize_for_match(b.text)) for b in (prior_blocks or [])]
+        items: list[ReviewItem] = []
+        for idx, blk in enumerate(raise_blocks):
+            stamped_id = ids[idx] if idx < len(ids) else None
+            quote = blk.anchor_text if blk.anchor_type == "quote" else None
+            after = blk.anchor_text if blk.anchor_type == "after" else None
+            block_id: str | None = None
+            for b, btxt in norm_blocks:
+                if quote and _normalize_for_match(quote) in btxt:
+                    block_id = b.id
+                    break
+                if after and _normalize_for_match(after) == btxt:
+                    block_id = b.id
+                    break
+            items.append(ReviewItem(
+                kind=blk.kind.value if hasattr(blk.kind, "value") else str(blk.kind),
+                body=blk.body,
+                quote=quote,
+                after=after,
+                item_id=stamped_id,
+                block_id=block_id,
+            ))
+        return items
     # Cache the current-draft path lookup so we don't probe the
     # phase4 directory once per turn.
     cached_current_draft: str | None = None
@@ -1352,7 +1436,11 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
             except OSError:
                 continue
             prior_blocks = _resolve_prior_blocks(1, 1, agent)
-            items = resolve_review_items(text, prior_blocks)
+            v2_items = _v2_review_items(text, prior_blocks)
+            if v2_items is not None:
+                items = v2_items
+            else:
+                items = resolve_review_items(text, prior_blocks)
             # Spec 0042 D7 — always create the bucket so absence-as-empty
             # ambiguity is resolved. An empty list means "we looked; nothing
             # there" instead of "we never looked."
@@ -1378,7 +1466,11 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
             except OSError:
                 continue
             prior_blocks = _resolve_prior_blocks(phase_n, round_n, agent)
-            items = resolve_review_items(text, prior_blocks)
+            v2_items = _v2_review_items(text, prior_blocks)
+            if v2_items is not None:
+                items = v2_items
+            else:
+                items = resolve_review_items(text, prior_blocks)
             # Spec 0042 D7 — always create the bucket, even when items
             # is empty, so the frontend can distinguish "parsed and got
             # nothing" from "never parsed" (the latter is now impossible
@@ -1604,17 +1696,27 @@ def _compute_ledger_drifts(run: Run) -> list[dict]:
 # ─── Spec 0115 — per-category Item aggregation ────────────────────────
 
 
-def _attach_item_aggregation(run, transcript_path) -> None:
+def _attach_item_aggregation(run, transcript_path, session_dir=None):
     """Populate the new per-category Item fields on PhaseStats by walking
     the new ``item_raised`` / ``item_transitioned`` event stream.
 
     Pre-spec-0114 runs produce no such events; the new fields stay empty
     and the legacy UI path uses the scalar fields on ``TurnStats``.
+
+    Spec 0122 — when the transcript carries no item events but the
+    session directory has v2 round files on disk, fall back to
+    ``replay_items_from_disk`` so historical runs (created before the
+    event-bus → transcript bridge landed) still surface their items.
+    Returns the ``AggregatedItems`` bundle so the caller can project
+    it into the legacy typed lists + ``phase_ledgers``.
     """
     from dual_research.ui.items import aggregate_items_from_transcript
     from dual_research.ui.models import TurnStats
 
     bundle = aggregate_items_from_transcript(transcript_path)
+    if not bundle.items and session_dir is not None:
+        from dual_research.ledger.replay import replay_items_from_disk
+        bundle = replay_items_from_disk(session_dir)
     run.phase_stats.items = list(bundle.items)
     if 0 in bundle.phase_category_stats:
         run.phase_stats.phase_summary_0 = bundle.phase_category_stats[0]
@@ -1638,3 +1740,4 @@ def _attach_item_aggregation(run, transcript_path) -> None:
                 existing = slot.get(ui_agent) or TurnStats()
                 existing.categories = cat_stats
                 slot[ui_agent] = existing
+    return bundle

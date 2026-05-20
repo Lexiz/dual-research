@@ -10,8 +10,13 @@ from dataclasses import dataclass
 from dual_research.agents import ClaudeAgent, GptAgent, make_agents
 from dual_research.config import Credentials, ModelTier, SupabaseCredentials
 from dual_research.events import (
+    CloseoutUrged,
+    CloseoutViolation,
     CostUpdate,
     EventBus,
+    ItemRaised,
+    ItemTransitioned,
+    PhaseConverged,
     RunCompleted,
     RunFailed,
     RunStarted,
@@ -89,10 +94,45 @@ def _install_cost_ticker(event_bus: EventBus, metrics: Metrics) -> None:
 
 
 def _install_transcript_publisher(event_bus: EventBus, ctx: SessionContext) -> None:
-    """Future event subscribers (UI) get a hook here. For now we just keep
-    metrics.json fresh after every event burst."""
+    """Metrics save-on-every-event subscriber. Item-lifecycle event
+    mirroring is handled separately by ``_install_transcript_bridge`` so
+    the two concerns are independently testable."""
     async def on_event(_event):
         ctx.metrics.save(ctx.session.metrics_path)
+
+    event_bus.subscribe(on_event)
+
+
+# Spec 0122 — event types the bridge mirrors into transcript.jsonl.
+# Limited to types the orchestrator does NOT already double-write via a
+# direct ``transcript.write(...)`` call; adding any of those here would
+# duplicate lines.
+_TRANSCRIPT_MIRRORED_EVENTS = (
+    ItemRaised,
+    ItemTransitioned,
+    CloseoutUrged,
+    CloseoutViolation,
+    PhaseConverged,
+)
+
+
+def _install_transcript_bridge(event_bus: EventBus, ctx: SessionContext) -> None:
+    """Spec 0122 — mirror Deep-Research lifecycle events to the transcript.
+
+    Without this bridge, ``ItemRaised`` / ``ItemTransitioned`` /
+    ``CloseoutUrged`` / ``CloseoutViolation`` / ``PhaseConverged`` events
+    are published to the bus but never persisted, so the UI aggregator
+    (``aggregate_items_from_transcript``) finds nothing and every per-
+    category badge/filter renders empty.
+    """
+    async def on_event(event):
+        if not isinstance(event, _TRANSCRIPT_MIRRORED_EVENTS):
+            return
+        payload = event.to_dict()
+        name = payload.pop("kind", None)
+        if not name:
+            return
+        ctx.transcript.write(name, **payload)
 
     event_bus.subscribe(on_event)
 
@@ -130,6 +170,7 @@ async def run_session(
     bus = event_bus or EventBus()
     _install_cost_ticker(bus, metrics)
     _install_transcript_publisher(bus, ctx)
+    _install_transcript_bridge(bus, ctx)
 
     # Spec 0032 — live-push setup. Spawn the periodic-push task once
     # the run is about to start; cleanly stop it in the finally block
