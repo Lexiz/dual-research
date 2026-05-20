@@ -21,11 +21,30 @@
   // ─── In-app release notes ─────────────────────────────────────
   const VERSION_NOTES = [
     {
+      version: '1.6.0',
+      date: '2026-05-20',
+      bump: 'MINOR',
+      specs: ['0125'],
+      summary: 'Onboarding tour visual rewrite + unified Admin/Settings + server-persisted onboarding state.',
+      items: [
+        '<strong>Tour visuals rewritten.</strong> Real SVG-based <code>&lt;TourSpotlight&gt;</code> with <code>&lt;mask&gt;</code> cutout + radial-gradient halo + crisp info-toned outline ring. Callout card gets M3 elevation-2 + info-border + CSS arrow pointing at the anchor. Card placement uses the overflow-aware positioner from spec 0121 (right → below → left → above with viewport clamp).',
+        '<strong>Skip-on-missing-anchor.</strong> If the anchor isn\'t on the page after a ~1 s retry window, the step is auto-skipped with a bottom-right toast <code>"Step N skipped — no &lt;anchor&gt; on this page."</code> The tour advances; users are never stuck on a centered card with nothing to point at.',
+        '<strong>Cross-route navigation.</strong> Spotlight steps 3, 5, 6, 7 (all anchor inside a run-detail page) navigate to the most-recent run before they fire. If no run exists, the skip-on-missing-anchor path quietly handles it.',
+        '<strong>Phase vocabulary refresh.</strong> Step 4\'s inlined <code>PHASES_SVG</code> replaced by the spec-0121 <code>/diagrams/how-it-works/01-pipeline.{light,dark}.svg</code> (theme-aware). Step 4 body + step 5 body updated to the spec-0114 vocabulary (Input / Research plan / Negotiate plan / Draft / Review draft / Finalize).',
+        '<strong>Unified Admin/Settings.</strong> <code>/admin/users</code> folded into <code>/settings</code> as a sub-tab. Settings page now renders <code>[Allowlist] [Users]</code> tab strip, hash-routed. The <code>admin-users.jsx</code> file deleted; the avatar menu drops "Admin: users".',
+        '<strong>Users sub-tab.</strong> Real multi-user table backed by <code>/api/users</code>. Columns: select-checkbox · email · role · onboarding status · last seen · actions (<em>Reset onboarding</em>, <em>Remove</em>). Filter chips <code>[All N] [Admins N] [Pending N] [Completed N]</code> + search. Bulk-action bar appears when ≥1 row checked. Global onboarding control panel: <em>Required for all new sign-ins</em> toggle + <em>Reset for everyone</em> button.',
+        '<strong>Server-persisted onboarding state.</strong> New Supabase migration adds 5 columns to <code>approved_emails</code> (<code>onboarded_at</code>, <code>onboarded_at_version</code>, <code>tour_step</code>, <code>tour_force_reset_at</code>, <code>last_seen_at</code>) + a <code>system_settings</code> table. Eight new endpoints: <code>GET /api/users</code>, <code>POST /api/users/&lt;email&gt;/reset-onboarding</code>, <code>POST /api/users/bulk-reset-onboarding</code>, <code>POST /api/onboarding/broadcast-reset</code>, <code>GET /api/onboarding/state</code>, <code>PUT /api/onboarding/state</code>, <code>GET /api/system-settings</code>, <code>PUT /api/system-settings</code>.',
+        '<strong>One-shot localStorage migration.</strong> First authed boot per browser migrates <code>dr_onboarded === \'true\'</code> to server-side <code>onboarded_at = now()</code> and clears the legacy keys.',
+        '<strong>Defensive against missing migration.</strong> Every new endpoint catches schema errors and falls back to legacy columns / sensible defaults, so the deploy and the schema migration can land in either order without 500s.',
+        '<strong>22 new backend tests</strong> in <code>tests/ui/test_server_users_api.py</code>.',
+      ],
+      screenshots: [],
+    },
+    {
       version: '1.5.0',
       date: '2026-05-20',
       bump: 'MINOR',
       specs: ['0121'],
-      specPath: '/specs/0121-how-it-works-and-changelog-rework.md',
       summary: 'How-It-Works overlay + Changelog tab — full content & component rewrite.',
       items: [
         '<strong>Rewrote 100% of the in-overlay prose</strong> to match the live Deep Research protocol (specs 0114 → 0120). Phase vocabulary updated (input / research-plan / negotiate-plan / draft / review-draft). The legacy <code>claim</code> kind, pre-0114 D-N identifiers, and pre-0118 cost terminology are gone from the prose.',
@@ -38,21 +57,17 @@
         '<strong>Three new CSS utilities</strong> in components.css under a spec-0121 block: <code>.hiw-note</code> (info/warn/err/ok-toned callout), <code>.hiw-table</code> (styled prose table), <code>.hiw-code</code> (block code), plus the structural <code>.hiw-*</code> / <code>.changelog-*</code> / <code>.cs-section</code> / <code>.cl-filter-row</code> classes.',
         '<strong>Backend untouched.</strong> Pure frontend documentation surface; no edits to <code>contract/</code>, <code>orchestrator/</code>, <code>protocol/</code>, <code>events/</code>, or any other JSX file. Cache-bust <code>?v=0120b → ?v=0121a</code>.',
       ],
-      screenshots: [
-        { path: '/changelog-shots/1.5.0/overview-section-overview.dark.png',
-          alt: 'How-it-works overlay — Protocol overview',
-          caption: 'Protocol overview section (default-open)' },
-        { path: '/changelog-shots/1.5.0/overlay-section-categories.dark.png',
-          alt: 'How-it-works overlay — Item taxonomy & categories',
-          caption: 'Category taxonomy & chip composition' },
-      ],
+      // Spec 0126 — earlier screenshot paths 404'd because no PNGs were
+      // ever captured. The field stays for future entries with verified
+      // images. The "Open spec 0121 ↗" button below renders the full
+      // spec in a modal instead.
+      screenshots: [],
     },
     {
       version: '1.4.1',
       date: '2026-05-20',
       bump: 'PATCH',
       specs: ['0120'],
-      specPath: '/specs/0120-turn-modal-items-panel-rework.md',
       summary: 'Turn-modal items panel rework — provider chip + Anchor/Title/Rationale split + Claims panel removed.',
       items: [
         '<strong>Provider chip on every item card.</strong> Each card in the turn-modal right pane now begins with a <span class="chip tone-claude no-dot"><span class="chip-label">Claude</span></span> or <span class="chip tone-gpt no-dot"><span class="chip-label">GPT</span></span> chip so you can see at a glance who raised the item.',
@@ -61,21 +76,14 @@
         '<strong>Panel headers use spec-0119 category chips.</strong> "Questions 5" panel header is now <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span><span class="chip-value">5</span></span> — identical to the critique pane\'s filter legend.',
         '<strong>Sources widget unchanged.</strong> When an item carries evidence, the existing SourceRow renders verbatim.',
       ],
-      screenshots: [
-        { path: '/changelog-shots/1.4.1/turn-modal-right-pane-before.dark.png',
-          alt: 'pre-0120 raw-markdown turn-modal card',
-          caption: 'before: raw markdown body' },
-        { path: '/changelog-shots/1.4.1/turn-modal-right-pane-after.dark.png',
-          alt: 'post-0120 labelled-segment turn-modal card',
-          caption: 'after: Anchor / Title / Rationale labelled' },
-      ],
+      // Spec 0126 — was empty paths; the spec modal carries the prose.
+      screenshots: [],
     },
     {
       version: '1.4.0',
       date: '2026-05-20',
       bump: 'MINOR',
       specs: ['0119'],
-      specPath: '/specs/0119-badge-governance.md',
       summary: 'Badge governance — unified Chip primitive + canonical vocabulary (Q/D/I/C bubbles, lifecycle verb chips, never-bare status).',
       items: [
         '<strong>One Chip primitive.</strong> Eight pre-0119 chip-like JSX patterns and their CSS rules deleted. shared.jsx\'s &lt;Chip&gt; gains a slot API: leadingDot / leadingIcon / categoryBubble, then label / value / +add / −sub / trailingSuffix, plus iconOnly / dim / mono / shape / size modifiers.',
@@ -88,24 +96,14 @@
         '<strong>Lifecycle-verbs.js helper</strong> mirrors <code>contract/lifecycle.py:TRANSITIONS</code>; a cross-language sync test enforces it.',
         '<strong>Backend untouched.</strong> No edits to <code>contract/</code>, <code>orchestrator/</code>, <code>protocol/</code>, or <code>events/</code>.',
       ],
-      screenshots: [
-        { path: '/changelog-shots/1.4.0/critique-pane-filter-row.dark.png',
-          alt: 'critique-pane chip-only filter legend',
-          caption: 'chip-only filter legend (canonical category vocabulary)' },
-        { path: '/changelog-shots/1.4.0/timeline-card-header.dark.png',
-          alt: 'timeline turn card header',
-          caption: 'provider + turn + status chips' },
-        { path: '/changelog-shots/1.4.0/phase-header-chip-cluster.dark.png',
-          alt: 'phase-header chip cluster',
-          caption: 'aggregate Q/D/I/C across both agents' },
-      ],
+      // Spec 0126 — was empty paths; the spec modal carries the prose.
+      screenshots: [],
     },
     {
       version: '1.3.0',
       date: '2026-05-20',
       bump: 'MINOR',
       specs: ['0118'],
-      specPath: '/specs/0118-deep-research-consumption-and-cost-tracking.md',
       summary: 'Consumption tab redesign + canonical-piece aggregation + per-piece proportional cost tracking.',
       items: [
         '<strong>Canonical-piece keys</strong> replace the legacy 7-key vocabulary (brief / d1 / d2 / plan / hist / draft / histp). Each per-turn TurnEnded event\'s promptPieces dictionary now keys by spec-0117 artifact registry IDs.',
@@ -115,14 +113,8 @@
         '<strong>System prompt aggregate.</strong> Per-phase system.task.* + prior_turns.* + ledger.standing_items + closeout.request rolled into a single "System prompt" row with hover tooltip showing the per-sub-artifact breakdown.',
         '<strong>Collapsed vs unfolded card.</strong> Collapsed: single "Total tokens" bar with <code>&lt;tokens&gt;t · $&lt;cost&gt;</code>, cache-reuse meta line. Unfolded: 3-column grid per row (description · bar · tokens·cost).',
       ],
-      screenshots: [
-        { path: '/changelog-shots/1.3.0/cost-card-collapsed.dark.png',
-          alt: 'collapsed cost card',
-          caption: 'collapsed: total bar with cache-reuse stripe' },
-        { path: '/changelog-shots/1.3.0/cost-card-unfolded.dark.png',
-          alt: 'unfolded cost card',
-          caption: 'unfolded: per-piece rows + System prompt tooltip' },
-      ],
+      // Spec 0126 — was empty paths; the spec modal carries the prose.
+      screenshots: [],
     },
     {
       version: '1.2.0',
@@ -1160,7 +1152,55 @@
 
   // ─── Changelog ────────────────────────────────────────────────
 
-  function ChangelogEntry({ entry, defaultOpen }) {
+  // ─── SpecModal — Spec 0126 ──────────────────────────────────
+  // Renders a spec's markdown inside the same M3 <Modal variant="rich">
+  // the timeline cards use for full-view turn/draft modals. The body
+  // is fetched via GET /api/specs/{spec_id} (server.py strips YAML
+  // frontmatter before returning).
+
+  function SpecModal({ specId, version, date, summary, onClose }) {
+    const [body, setBody] = React.useState(null);
+    const [err, setErr] = React.useState(null);
+
+    React.useEffect(() => {
+      let cancelled = false;
+      setBody(null);
+      setErr(null);
+      const fetcher = typeof window.authedFetch === 'function' ? window.authedFetch : window.fetch;
+      fetcher(`/api/specs/${encodeURIComponent(specId)}`)
+        .then((r) => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))
+        .then((text) => { if (!cancelled) setBody(text); })
+        .catch((e) => { if (!cancelled) setErr(String(e.message || e)); });
+      return () => { cancelled = true; };
+    }, [specId]);
+
+    const title = `Spec ${specId}`;
+    const subtitle = `v${version} · ${date}${summary ? ' · ' + summary : ''}`;
+
+    return (
+      <window.Modal
+        open={true}
+        onClose={onClose}
+        title={title}
+        subtitle={subtitle}
+        variant="rich"
+      >
+        <div className="spec-modal__body">
+          {body === null && !err && (
+            <window.LoadingState size="inline" label="Loading spec…" />
+          )}
+          {err && (
+            <div className="spec-modal__error">
+              Couldn't load spec: {err}
+            </div>
+          )}
+          {body && <window.Markdown text={body} />}
+        </div>
+      </window.Modal>
+    );
+  }
+
+  function ChangelogEntry({ entry, defaultOpen, onOpenSpec }) {
     const bumpTone = entry.bump === 'MAJOR' ? 'err' : entry.bump === 'MINOR' ? 'info' : 'ok';
     return (
       <CollapsibleSection
@@ -1192,20 +1232,38 @@
               <div className="changelog-shots">
                 {entry.screenshots.map((s, i) =>
                   <figure key={i}>
-                    <img src={s.path} alt={s.alt} loading="lazy" />
+                    {/* Spec 0126: hide the figure if the image 404s so we
+                        never render a broken-image icon. */}
+                    <img
+                      src={s.path}
+                      alt={s.alt}
+                      loading="lazy"
+                      onError={(e) => {
+                        const fig = e.target.closest('figure');
+                        if (fig) fig.style.display = 'none';
+                      }}
+                    />
                     <figcaption>{s.caption}</figcaption>
                   </figure>
                 )}
               </div>
             </React.Fragment>
           )}
-          {entry.specPath && (
+          {entry.specs && entry.specs.length > 0 && (
             <div className="changelog-spec-link">
-              <button
-                type="button"
-                className="md-btn md-btn--text md-btn--sm"
-                onClick={() => window.open(entry.specPath, '_blank')}
-              >Open spec ↗</button>
+              {entry.specs.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="md-btn md-btn--text md-btn--sm"
+                  onClick={() => onOpenSpec({
+                    specId: s,
+                    version: entry.version,
+                    date: entry.date,
+                    summary: entry.summary,
+                  })}
+                >Open spec {s} ↗</button>
+              ))}
             </div>
           )}
         </div></div>
@@ -1216,6 +1274,7 @@
   function ChangelogList() {
     const [q, setQ] = React.useState('');
     const [bumpFilter, setBumpFilter] = React.useState(null);
+    const [openSpec, setOpenSpec] = React.useState(null);  // {specId, version, date, summary} | null
     const counts = React.useMemo(() => {
       const c = { MAJOR: 0, MINOR: 0, PATCH: 0 };
       VERSION_NOTES.forEach((e) => { if (e.bump && c[e.bump] !== undefined) c[e.bump]++; });
@@ -1273,9 +1332,23 @@
         </div>
         <div className="cl-list">
           {filtered.map((e, i) =>
-            <ChangelogEntry key={e.version} entry={e} defaultOpen={i === 0 && !q && !bumpFilter} />
+            <ChangelogEntry
+              key={e.version}
+              entry={e}
+              defaultOpen={i === 0 && !q && !bumpFilter}
+              onOpenSpec={setOpenSpec}
+            />
           )}
         </div>
+        {openSpec && (
+          <SpecModal
+            specId={openSpec.specId}
+            version={openSpec.version}
+            date={openSpec.date}
+            summary={openSpec.summary}
+            onClose={() => setOpenSpec(null)}
+          />
+        )}
       </React.Fragment>
     );
   }

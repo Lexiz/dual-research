@@ -169,6 +169,12 @@ def _make_app(runs_dir: Path) -> FastAPI:
             "runsDir": str(runs_dir),
         }
 
+    # Spec 0126 — serve spec markdown for the Changelog tab's "Open spec ↗"
+    # modal. Available in both fs and supabase modes.
+    @app.get("/api/specs/{spec_id}")
+    async def get_spec_markdown_fs(spec_id: str) -> PlainTextResponse:
+        return _serve_spec_markdown(spec_id)
+
     @app.get("/api/runs")
     async def list_runs() -> JSONResponse:
         rows: list[dict[str, Any]] = []
@@ -355,6 +361,15 @@ def _make_supabase_app(
     @app.get("/api/health")
     async def health() -> dict[str, Any]:
         return {"ok": True, "version": __version__, "backend": "supabase"}
+
+    # Spec 0126 — serve spec markdown for the Changelog tab's "Open spec ↗"
+    # modal. Auth gate: any authenticated user can read specs.
+    @app.get("/api/specs/{spec_id}")
+    async def get_spec_markdown_sb(request: Request, spec_id: str) -> PlainTextResponse:
+        user = request.scope.get("user") or {}
+        if not user.get("email"):
+            raise HTTPException(status_code=401, detail="unauthenticated")
+        return _serve_spec_markdown(spec_id)
 
     @app.get("/api/config")
     async def config() -> dict[str, str]:
@@ -903,6 +918,70 @@ def _make_supabase_app(
 
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+# ─── Spec 0126 — spec markdown serving ────────────────────────────────────────
+
+_SPEC_ID_RE = re.compile(r"^[0-9a-zA-Z][0-9a-zA-Z\-_]*$")
+_FRONTMATTER_RE = re.compile(r"^---\r?\n.*?\r?\n---\r?\n", re.DOTALL)
+
+
+def _resolve_specs_dir() -> Path:
+    """Resolve the repo's ``specs/`` directory.
+
+    Walks up from this module file until it finds a sibling ``specs/`` dir
+    with the expected layout. Defensive: returns a Path even if not found —
+    the endpoint then 404s on every request, which is the right behaviour
+    if the deploy stripped the specs/ directory.
+    """
+    here = Path(__file__).resolve()
+    for parent in (here.parent, *here.parents):
+        candidate = parent / "specs"
+        if candidate.is_dir():
+            return candidate
+    return here.parents[3] / "specs"
+
+
+def _strip_yaml_frontmatter(text: str) -> str:
+    """Drop a leading ``--- … ---`` YAML block, if present."""
+    m = _FRONTMATTER_RE.match(text)
+    if m:
+        return text[m.end():].lstrip("\n")
+    return text
+
+
+def _serve_spec_markdown(spec_id: str) -> PlainTextResponse:
+    """Locate, frontmatter-strip, and serve one spec file as markdown.
+
+    ``spec_id`` may be the full filename stem (``"0121-how-it-works-..."``)
+    or just the leading number (``"0121"``). Path traversal is impossible
+    because the id is constrained to ``[0-9a-zA-Z\\-_]+`` and never joined
+    with `/`.
+    """
+    spec_id = (spec_id or "").strip()
+    if not _SPEC_ID_RE.match(spec_id):
+        raise HTTPException(status_code=400, detail="invalid spec id")
+    specs_dir = _resolve_specs_dir()
+    if not specs_dir.is_dir():
+        raise HTTPException(status_code=404, detail="specs directory not available")
+    target: Path | None = None
+    exact = specs_dir / f"{spec_id}.md"
+    if exact.is_file():
+        target = exact
+    else:
+        # Prefix-by-leading-digits, e.g. "0121" → "0121-…md".
+        for f in sorted(specs_dir.glob(f"{spec_id}-*.md")):
+            target = f
+            break
+    if target is None or not target.is_file():
+        raise HTTPException(status_code=404, detail="spec not found")
+    try:
+        text = target.read_text(encoding="utf-8")
+    except OSError:
+        raise HTTPException(status_code=500, detail="failed to read spec")
+    return PlainTextResponse(
+        _strip_yaml_frontmatter(text),
+        media_type="text/markdown; charset=utf-8",
+    )
 
 
 def _looks_like_email(s: str) -> bool:

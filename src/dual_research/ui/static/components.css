@@ -3692,3 +3692,88 @@ body.light .tour-spotlight__dim {
 .users-status--info  { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
 .users-status--warn  { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
 .users-status--muted { background: var(--bg-2);    color: var(--fg-3); border: 1px solid var(--border-1); }
+
+/* =============================================================
+   SPEC-0126 — SpecModal (Changelog "Open spec ↗" full-view modal)
+   ============================================================= */
+.spec-modal__body {
+  max-height: 75vh;
+  overflow-y: auto;
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--t-body);
+  line-height: var(--lh-prose);
+  color: var(--fg-1);
+}
+.spec-modal__body h1 {
+  font-size: var(--t-title);
+  margin-top: 0;
+  color: var(--fg-0);
+}
+.spec-modal__body h2 {
+  font-size: var(--t-h3);
+  margin-top: var(--s-6);
+  color: var(--fg-0);
+}
+.spec-modal__body h3 {
+  font-size: var(--t-body);
+  font-weight: var(--w-semi);
+  margin-top: var(--s-4);
+  color: var(--fg-0);
+}
+.spec-modal__body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-meta);
+  margin: var(--s-3) 0;
+}
+.spec-modal__body th,
+.spec-modal__body td {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--border-1);
+  text-align: left;
+  vertical-align: top;
+}
+.spec-modal__body th {
+  background: var(--bg-2);
+  font-weight: var(--w-semi);
+  color: var(--fg-2);
+  font-size: var(--t-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.spec-modal__body code {
+  font-family: var(--mono);
+  background: var(--bg-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: var(--t-mono);
+}
+.spec-modal__body pre {
+  background: var(--bg-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-2);
+  overflow-x: auto;
+  font-size: var(--t-mono);
+  border: 1px solid var(--border-1);
+  margin: var(--s-3) 0;
+}
+.spec-modal__body pre code {
+  background: transparent;
+  padding: 0;
+}
+.spec-modal__body blockquote {
+  border-left: 3px solid var(--info);
+  background: var(--bg-2);
+  padding: var(--s-2) var(--s-4);
+  margin: var(--s-3) 0;
+  border-radius: var(--r-2);
+  color: var(--fg-1);
+}
+.spec-modal__error {
+  color: var(--err);
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
+  border-radius: var(--r-2);
+  padding: var(--s-3) var(--s-4);
+  margin: var(--s-4);
+}
