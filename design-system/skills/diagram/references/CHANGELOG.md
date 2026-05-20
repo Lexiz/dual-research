@@ -1,31 +1,41 @@
 # Changelog · diagram skill
 
-## v2.0.0 — mode-aware split + Material mode (in progress)
+## v2.0.1 — Material rebuilt against V2 reference, public-release polish
 
-The skill becomes mode-aware: the existing cream + indigo design system is preserved verbatim as **Pixel** mode (the default), and a second design system — **Material**, modeled on the dual-research Material 3 dashboard — is being added alongside as an opt-in mode. Both modes ship light + dark variants. Mode is part of the output filename so both versions of a diagram coexist without collision.
+The Material reference bundle is reworked in V2-native vocabulary: it now consumes a vendored Material 3 reference CSS (`references/app-v2/styles/v2-m3.css`) directly, rather than mirroring Pixel's structure with M3 colors swapped in. Reader-facing surfaces are cleaned for sharing outside the original author's environment.
 
-### Phase 1 — Pixel cleanup + mode scaffold (this release)
+### What changed
+- **Material reference pages** (`foundations.html`, `components.html`, `connectors.html`, `icons.html`, `templates.html`, `examples.html`) are rewritten in V2 vocabulary. Each page now loads `../app-v2/styles/v2-m3.css` first and adds doc-site chrome + diagram-specific extensions on top. Single source of truth: when V2 evolves, Material inherits.
+- **8 service-card extensions** (`md-card--service-{primary,secondary,sql,secure,store,cache,slate,neutral}`) are defined in `material/_shared.css` as `color-mix` tints over `--md-surface-container`. This replaces the dark-saturated categorical surfaces from the v2.0.0 mechanical-transform with a "calm dense observability" look at low saturation.
+- **Material Symbols Outlined** replaces the 78 hand-drawn icons. Reference pages load the Google Fonts CDN; canonical SVGs pre-convert glyphs to inline `<path>` data so output stays self-contained. `icons.html` catalogs ~80 glyphs across 9 categories plus a monogram fallback host.
+- **System-context anchor pair** (`system-context.material.{light,dark}.svg`) is hand-rebuilt from scratch in V2 vocabulary as the canonical Material reference. The other 8 canonical Material example SVGs remain mechanical transforms from Pixel originals and are flagged with a "pending V2 hand-rebuild" callout in `material/examples.html` — a future release rebuilds the rest using the §06.1 anchor as the pattern.
+- **`references/app-v2/` vendored.** The V2 Material 3 reference (CSS + a single design-system HTML page) ships in-tree so Material pages render correctly anywhere this folder is opened.
+- **Reader-facing surfaces cleaned.** Strip-out of internal project names, internal spec numbers, and personal file paths from the description, README, manifest, gallery, troubleshooting, and Material foundations. Naming generalized to "Material 3 design system" + "V2 reference bundle".
+- **CHANGELOG and README rewritten** to match shipped state. Historical planning artifacts and a Material "under construction" stub are removed.
 
-Files-only; no Material content yet.
+### What didn't change
+- **Pixel mode** — all files unchanged. Same SKILL.md routing, same 18 canonical SVGs, same reference pages.
+- **Mode + theme detection** — same SKILL.md Step 1 logic (`pixel` is the default; `material light` / `material dark` / `material both` opts in).
+- **Filename convention** — `<slug>.<mode>.{light,dark}.svg` unchanged.
+- **Manifest schema** — `mode:` and `theme:` pins unchanged.
 
-- **`SKILL.md` frontmatter** — added `version: 2.0.0` field. Description rewritten to name both modes and the mode-aware trigger surface.
-- **Workflow becomes mode-aware.** Step 1 detects mode (`pixel` / `material`, default `pixel`). Steps 3 and 5 route to `references/<mode>/...` for foundations / components / connectors / icons / templates / examples. Step 7 emits `<slug>.<mode>.{light,dark}.svg`.
-- **Destination convention inlined.** SKILL.md previously punted the save-path question to an external `design-doc/references/open-questions.md` Q12 (a reference to a different repo). Convention is now self-contained in the skill: save to `diagrams/<slug>.<mode>.{light,dark}.svg` adjacent to the document referencing them; if no anchoring document exists, ask the user.
-- **Reorganized `references/` into mode subfolders.** All mode-specific pages moved into `references/pixel/`: `foundations.html`, `components.html`, `connectors.html`, `icons.html`, `templates.html`, `examples.html`, `_shared.css`. Mode-agnostic content stays at root: `README.md`, `CHANGELOG.md`, `troubleshooting.md`, `OPEN-QUESTIONS-answers.md`, `index.html`, `manifest.html`, `templates/<name>.md`.
-- **Renamed 18 canonical Pixel SVGs.** `<slug>.{light,dark}.svg` → `<slug>.pixel.{light,dark}.svg`. **Clean break — no backward-compatibility symlinks.** Any external document linking to the old filenames will 404 and need a one-character path update.
-- **`references/material/` stub** — placeholder for the Material design system; full content lands in Phase 2 (foundations + anchor SVG) and Phase 3 (rest of the reference pages).
-- **Manifest gains `mode:` field.** Defaults to `pixel`. Pinned per-set; per-diagram override is a hard error (same rule as the existing `theme:` pin). New §07.5 "Mode pinning" in `manifest.html` mirrors §07.4 "Theme pinning". Schema and pin table updated.
-- **README rewrite.** First 30 lines now answer in order: what is this skill, what does it produce, when to invoke, input contract, output contract. Two-mode story up front. Folder map reflects the new structure.
-- **`index.html` reframed.** v2.0.0 hero; sidebar nav points the per-mode pages into `pixel/` (default mode); warn callout flags that the showcase below documents Pixel and Material's parallel showcase is deferred to P5.
+---
+
+## v2.0.0 — mode-aware split + Material mode
+
+The skill becomes mode-aware: the existing cream + indigo design system is preserved verbatim as **Pixel** mode (the default), and a second design system — **Material**, a Material 3 sibling — is added alongside as an opt-in mode. Both modes ship light + dark variants. Mode is part of the output filename so both versions of a diagram coexist without collision.
+
+### What changed
+- **`SKILL.md` frontmatter** — added `version: 2.0.0`. Description rewritten to name both modes and the mode-aware trigger surface. Workflow Step 1 detects mode (`pixel` / `material`, default `pixel`); Steps 3 and 5 route to `references/<mode>/...`; Step 7 emits `<slug>.<mode>.{light,dark}.svg`.
+- **Destination convention inlined.** SKILL.md previously punted the save-path question to an external doc. Convention is now self-contained: save to `diagrams/<slug>.<mode>.{light,dark}.svg` adjacent to the document referencing them; if no anchoring document exists, ask the user.
+- **`references/` reorganized into mode subfolders.** Mode-specific pages moved into `references/pixel/`: `foundations.html`, `components.html`, `connectors.html`, `icons.html`, `templates.html`, `examples.html`, `_shared.css`. Mode-agnostic content stays at root: `README.md`, `CHANGELOG.md`, `troubleshooting.md`, `index.html`, `manifest.html`, `templates/<name>.md`.
+- **Renamed 18 canonical Pixel SVGs.** `<slug>.{light,dark}.svg` → `<slug>.pixel.{light,dark}.svg`. Clean break — no backward-compatibility symlinks. Any external document linking to the old filenames will 404 and need a one-character path update.
+- **`references/material/` added.** Mirrors `pixel/` structure with foundations / components / connectors / icons / templates / examples / `_shared.css` and 18 canonical example SVGs.
+- **Manifest gains `mode:` field.** Defaults to `pixel`. Pinned per-set; per-diagram override is a hard error (same rule as the existing `theme:` pin). New §07.5 "Mode pinning" mirrors §07.4 "Theme pinning".
+- **README rewrite.** First 30 lines answer in order: what is this skill, what does it produce, when to invoke, input contract, output contract. Two-mode story up front. Folder map reflects the new structure.
+- **`index.html` reframed.** v2.0.0 hero; sidebar nav points the per-mode pages into `pixel/`; identity panels for both modes side-by-side.
 - **Footer text refreshed** across all reference pages: `v2.0.0 · mode-aware · pixel + material · light + dark`.
-
-### Phases 2–6 (forthcoming)
-
-- **P2** — Material `foundations.html` + `_shared.css` + anchor `system-context.material.{light,dark}.svg`.
-- **P3** — Material `components.html`, `connectors.html`, `icons.html` (78 icons hand-drawn in M3 style), `templates.html`.
-- **P4** — Remaining 16 Material canonical SVGs + regeneration of the 14 `dual-research/diagrams/` how-it-works SVGs in Material mode + `how-it-works.jsx` wiring.
-- **P5** — Cross-mode wiring: README polish, troubleshooting cross-mode entries, `index.html` Material showcase, final manifest doc.
-- **P6** — Sync personal copy ↔ `dual-research/design-system/skills/diagram/`; close `dual-research/design-system/SPEC.md` § 13 open item (alignment with dual-research palette shipped as the Material mode).
+- **`troubleshooting.md` extended** with three cross-mode entries (mode mixing in a set, wrong mode for purpose, token-name confusion).
 
 ---
 
@@ -34,8 +44,7 @@ Files-only; no Material content yet.
 Where the brief left a choice open, here's what we picked and why.
 
 ### Decisions
-
-- **Two-file output** over single-file-with-media-query. Notion's SVG `<style>` handling is unreliable; we tested. Every diagram ships as `<slug>.light.svg` + `<slug>.dark.svg`. *(v2.0.0 note: filename convention is now `<slug>.<mode>.{light,dark}.svg`.)*
+- **Two-file output** over single-file-with-media-query. Notion's SVG `<style>` handling is unreliable. Every diagram ships as `<slug>.light.svg` + `<slug>.dark.svg`. *(v2.0.0 note: filename convention is now `<slug>.<mode>.{light,dark}.svg`.)*
 - **Theme suffix on token names** (`--canvas-bg-dark`). Token registry doubles but every legacy reference keeps working unchanged. Surface gradient *IDs* inside SVGs stay theme-agnostic (`surfaceSql`); only their stop values differ between files.
 - **Always emit both.** Default `theme: both` for any ad-hoc diagram and any manifest without an explicit pin.
 - **Mixed elevation strategy.** Light cards on dark canvas: 1px stroke at `rgba(255,255,255,0.08)`, drop shadow removed. Dark categorical cards on dark canvas: deeper drop shadow with `#000000` flood at 0.55 (the `#1a1a18` flood from the light filter is a no-op against `#1a1a1f` canvas).
@@ -45,7 +54,6 @@ Where the brief left a choice open, here's what we picked and why.
 - **AAA-adjacent dark inks.** We picked `#7785d4` over `#6573c9` for primary indigo to clear AAA against the dark canvas.
 
 ### Files changed
-
 | File | What |
 |---|---|
 | `foundations.html` | Added §01.0 "Theme model" + dark column / dark variant for every token (canvas, palette, surfaces, inks, shadows, rules, status). Side-by-side light/dark previews. |
@@ -59,11 +67,9 @@ Where the brief left a choice open, here's what we picked and why.
 | `_shared.css` | Added `.frame.dark` and `.pair` for side-by-side previews. |
 | `SKILL.md` | Steps 3, 5, 6, 7 updated. Output rules rewritten. "What this produces" now says two files. |
 | `troubleshooting.md` | Four new dark-theme entries (cream leakage, invisible elevation, indigo legibility, light/dark drift). |
-| `OPEN-QUESTIONS-answers.md` | **New.** Our answers to all 11 questions. |
 | `README.md` | One paragraph added about dual-output. |
 
 ### What we didn't do
-
-- **Did not add a `<metadata>` "sibling pointer" inside the SVGs.** Open question A4 in `OPEN-QUESTIONS-answers.md`.
-- **Did not add a brighter `tick-dark` animation keyframe.** The existing greens clear the contrast bar. Trivial to add if you want; open question A2.
+- **Did not add a `<metadata>` "sibling pointer" inside the SVGs.** Bytes vs. value tradeoff; the filename pair is enough.
+- **Did not add a brighter `tick-dark` animation keyframe.** The existing greens clear the contrast bar.
 - **Did not change WCAG conformance gating.** Aiming AAA-adjacent; not measuring formally.

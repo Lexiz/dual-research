@@ -229,11 +229,11 @@ The entries below are specific to running two design systems side-by-side. They 
 
 ### Wrong mode for the diagram's purpose
 
-**Symptom:** A general-purpose architecture diagram (not related to dual-research at all) was rendered in Material mode, and it reads as "a dual-research diagram" — the sable-bronze blob storage tile in particular reads as Anthropic-warm and creates an unintended brand association.
+**Symptom:** A general-purpose architecture diagram was rendered in Material mode, and the warm sable-bronze surfaces produce an unintended brand association — readers infer a specific product context from the palette that doesn't fit the subject.
 
 **Cause:** The user's request didn't name a mode and the default kicked in correctly to Pixel — but the user later asked for "the Material version" without thinking about what it would imply.
 
-**Fix:** Default to Pixel for subject-agnostic architecture diagrams. Use Material when the diagram should share visual DNA with the dual-research app (e.g., the how-it-works set, in-app reference diagrams, dashboards documenting dual-research itself). The mode chip in the request matters — surface it during Step 1 restatement so the user sees what they're picking.
+**Fix:** Default to Pixel for subject-agnostic architecture diagrams. Use Material when the diagram should share visual DNA with an M3 product surface that this skill is documenting. The mode chip in the request matters — surface it during Step 1 restatement so the user sees what they're picking.
 
 ### Token-name confusion across modes
 
@@ -247,6 +247,6 @@ The entries below are specific to running two design systems side-by-side. They 
 
 **Symptom:** Info-blue `#6b9cf0` on Material's `#0d0f12` dark canvas reads "OK but not crisp" — visibly different from Pixel's lifted indigo `#7785d4` on the Pixel dark canvas at the same comparable elements.
 
-**Cause:** Not a bug. Material's accent is intentionally theme-portable — the same hex in both themes — because info-blue is the dual-research V2 focus-ring color and behaves predictably across both M3 surfaces. Pixel's accent lifts because indigo `#4f5fb8` would be unreadable on near-black; Material doesn't need that lift because `#6b9cf0` is already crisp on both.
+**Cause:** Not a bug. Material's accent is intentionally theme-portable — the same hex in both themes — because info-blue is the V2 reference's focus-ring color and behaves predictably across both M3 surfaces. Pixel's accent lifts because indigo `#4f5fb8` would be unreadable on near-black; Material doesn't need that lift because `#6b9cf0` is already crisp on both.
 
 **Fix:** Nothing to fix. Don't apply a Pixel-style lift inside a Material SVG — that would break the theme-portability contract documented in `references/material/foundations.html` §01.2 "Dark variant · accent stays put."

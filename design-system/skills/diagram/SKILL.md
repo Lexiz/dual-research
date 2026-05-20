@@ -1,7 +1,7 @@
 ---
 name: diagram
 version: 2.0.0
-description: Produces polished SVG diagrams in two parallel design systems — **Pixel** (cream + indigo, the default) and **Material** (dual-research M3, sable + sage). Every diagram emits a light + dark SVG pair under the requested mode, self-contained and host-portable to Notion, GitHub, Slack, PDF. Nine templates cover system context, layered architecture, pipeline/flow, sequence, data schema (ER), infrastructure/deployment, event-driven flow, connector/integration map, plus a freeform catch-all. The skill first restates the user's input, classifies the dominant structure, normalises into the canonical template spec, then renders. Use any time the user wants to visualise, diagram, or chart a system — "draw this", "show me X as a diagram", "create a chart for this", "visualise this architecture / data model / flow / topology", or "give me a Material dark version of this". Do NOT use for: prose explanations without a visual deliverable, mermaid-style text diagrams, hand-drawn aesthetic.
+description: Produces polished SVG diagrams in two parallel design systems — **Pixel** (cream + indigo, the default) and **Material** (Material 3, sable + sage). Every diagram emits a light + dark SVG pair under the requested mode, self-contained and host-portable to Notion, GitHub, Slack, PDF. Nine templates cover system context, layered architecture, pipeline/flow, sequence, data schema (ER), infrastructure/deployment, event-driven flow, connector/integration map, plus a freeform catch-all. The skill first restates the user's input, classifies the dominant structure, normalises into the canonical template spec, then renders. Use any time the user wants to visualise, diagram, or chart a system — "draw this", "show me X as a diagram", "create a chart for this", "visualise this architecture / data model / flow / topology", or "give me a Material dark version of this". Do NOT use for: prose explanations without a visual deliverable, mermaid-style text diagrams, hand-drawn aesthetic.
 ---
 
 # Diagram skill
@@ -9,7 +9,7 @@ description: Produces polished SVG diagrams in two parallel design systems — *
 You produce a pair of self-contained SVG files (light + dark variant of one diagram) matching a locked visual style. The skill ships **two design systems** — pick one per request:
 
 - **Pixel** (`pixel`) — cream + indigo on a polished document page. The default mode. Hand-tuned, general-purpose, subject-agnostic. 78-icon custom library.
-- **Material** (`material`) — Material 3 design language inspired by the dual-research application: sable + sage palette, Roboto Flex + Roboto Serif type, M3 surfaces / shape / motion. Use when the diagram needs to share visual DNA with the dual-research dashboard.
+- **Material** (`material`) — Material 3 design language: sable + sage palette, Roboto Flex + Roboto Serif type, M3 surfaces / shape / motion, Material Symbols Outlined icons. The Material reference pages consume an internal V2 design system (vendored at `references/app-v2/`) as their source of truth — when V2 evolves, Material inherits. Use when the diagram should share visual DNA with an M3 product surface.
 
 Each mode has its own reference bundle and its own 18 canonical example SVGs:
 

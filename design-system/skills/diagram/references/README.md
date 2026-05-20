@@ -19,7 +19,7 @@ The skill ships **two parallel design systems** — pick one per request:
 | Mode | Identity | Type | Icons |
 |---|---|---|---|
 | **Pixel** (`pixel`, default) | cream + indigo on a polished doc page | Inter | 78-icon custom library |
-| **Material** (`material`) | Material 3 inspired by dual-research — sable + sage palette | Roboto Flex (plain) + Roboto Serif (brand) | 78-icon library hand-drawn in M3 style |
+| **Material** (`material`) | Material 3 design system — sable + sage palette | Roboto Flex (plain) + Roboto Serif (brand) | Material Symbols Outlined (~80 curated glyphs + monogram fallback) |
 
 Both modes ship light + dark variants. Mode is part of the filename so both versions of the same diagram can coexist in one folder without collision.
 
@@ -47,12 +47,15 @@ The HTML reference pages are the visual reviewer; the canonical truth is the cum
 references/
 ├── README.md                       ← you are here
 ├── index.html                      ← entry · overview · mode picker · deliverables map
+├── gallery.html                    ← tabbed showcase: V2 reference · Pixel flow · Material flow
 ├── manifest.html                   ← cross-diagram consistency mechanism · mode + theme pinning
 ├── troubleshooting.md              ← common failure modes (mode-tagged where relevant)
-├── CHANGELOG.md                    ← v2.0.0 mode-aware split + Material mode arrival
-├── OPEN-QUESTIONS-answers.md       ← historical decision log (dual-theme rollout questions)
+├── CHANGELOG.md                    ← release history
 ├── templates/                      ← per-template input contracts · mode + theme agnostic
 │   └── <name>.md  × 9
+├── app-v2/                         ← vendored Material 3 reference (CSS + design-system HTML)
+│   ├── design-system-v2.html       ← visual reference for the source M3 system
+│   └── styles/v2-m3.css            ← canonical Material tokens · loaded by Material pages
 ├── pixel/                          ← Pixel mode (cream + indigo) — the default
 │   ├── foundations.html            ← D1 · color (light + dark), type, spacing, shadow, animation tokens
 │   ├── components.html             ← D2 · cards, chips, shapes, lanes, stages, groups, callouts
@@ -60,19 +63,21 @@ references/
 │   ├── connectors.html             ← D4 · arrow taxonomy, gutters, labels, crossings, density caps
 │   ├── templates.html              ← D5 · per-template visual contracts (all 9 filled)
 │   ├── examples.html               ← D6 · canonical worked SVGs viewer (9 paired galleries)
+│   ├── flow.html                   ← all 6 reference pages concatenated for end-to-end reading
 │   ├── _shared.css                 ← styles for the reviewer site
 │   └── examples/                   ← 18 canonical SVGs (9 templates × 2 themes)
 │       ├── <name>.pixel.light.svg  × 9    ← cream canvas, indigo accent
 │       └── <name>.pixel.dark.svg   × 9    ← near-black canvas, lifted surfaces
-└── material/                       ← Material mode (dual-research M3) — under construction in P2
-    ├── foundations.html            ← (P2)
-    ├── components.html             ← (P3)
-    ├── icons.html                  ← (P3) · 78 icons hand-drawn in M3 style
-    ├── connectors.html             ← (P3)
-    ├── templates.html              ← (P3)
-    ├── examples.html               ← (P3)
-    ├── _shared.css                 ← (P2)
-    └── examples/                   ← 18 canonical SVGs (P2 anchor + P4 rest)
+└── material/                       ← Material mode (Material 3 · sable + sage)
+    ├── foundations.html            ← D1 · M3 tokens + diagram extensions (8 service-card variants)
+    ├── components.html             ← D2 · V2 primitives (md-card / md-chip / md-status / …) + extensions
+    ├── icons.html                  ← D3 · Material Symbols Outlined catalog + inline-path conversion
+    ├── connectors.html             ← D4 · arrow taxonomy in V2 palette + M3 motion notes
+    ├── templates.html              ← D5 · per-template visual contracts in V2 vocabulary
+    ├── examples.html               ← D6 · canonical worked SVGs viewer
+    ├── flow.html                   ← all 6 reference pages concatenated for end-to-end reading
+    ├── _shared.css                 ← V2-consuming doc chrome + service-card extensions
+    └── examples/                   ← 18 canonical SVGs (system-context is V2-native; others pending V2 rebuild)
         ├── <name>.material.light.svg  × 9
         └── <name>.material.dark.svg   × 9
 ```
@@ -123,7 +128,12 @@ A closed library of slotted primitives:
 **Use it when:** drawing any structural element. If a primitive isn't in this list, the generator does not invent one — it picks the closest match, or uses the documented fallback.
 
 ### D3 · Icons (`<mode>/icons.html`)
-**78 icons** in 9 categories drawn to one density spec (32 × 32 bounding box, filled silhouettes, consistent radii), each with explicit light-card and dark-card variants. Each mode has its own full library — Pixel's is the hand-tuned cream + indigo set; Material's is the M3-style sibling.
+The two modes use different icon strategies:
+
+- **Pixel** — **78 icons** in 9 categories drawn to one density spec (32 × 32 bounding box, filled silhouettes, consistent radii), each with explicit light-card and dark-card variants. Hand-tuned for the cream + indigo system.
+- **Material** — **Material Symbols Outlined**, the same icon font Material 3 ships with. Reference pages load the Google Fonts CDN; canonical SVGs pre-convert glyphs to inline `<path>` data so output stays self-contained. ~80 curated glyphs across 9 service categories, plus a monogram fallback host (`extension` glyph + 2-letter overlay) for third-party services without a canonical glyph.
+
+The Pixel category breakdown:
 
 | Category | Count | Examples |
 |---|---|---|
@@ -160,7 +170,7 @@ The biggest source of visible failures today. Fixed in spec:
 The "no rotated labels" rule alone eliminates two of the screenshot's most visible failures.
 
 ### D5 · Templates (`<mode>/templates.html` + shared `templates/<name>.md`)
-A visual contract per template — five fields: components used, icons used, layout rules, arrow types, anti-patterns. **All nine templates are filled** in Pixel; Material fills them as part of P3. The nine: `layered-architecture`, `pipeline-flow`, `sequence`, `system-context`, `data-schema`, `infrastructure`, `event-flow`, `connector-map`, `freeform`. Each has a dark-variant note.
+A visual contract per template — five fields: components used, icons used, layout rules, arrow types, anti-patterns. **All nine templates are filled in both modes.** The nine: `layered-architecture`, `pipeline-flow`, `sequence`, `system-context`, `data-schema`, `infrastructure`, `event-flow`, `connector-map`, `freeform`. Each has a dark-variant note.
 
 **Input contracts (`templates/<name>.md`) are mode-shared** — they describe what the user must supply, not how it renders. One contract drives both modes.
 

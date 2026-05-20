@@ -10,89 +10,20 @@
 <link rel="stylesheet" href="_shared.css">
 <style>
 
-  .contract {
-    background: white;
-    border: 1px solid var(--rule-soft);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06);
-    margin: 14px 0 28px;
-  }
-  .contract .ch {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    padding: 16px 22px;
-    border-bottom: 1px solid var(--rule-soft);
-    background: var(--bg-tint);
-  }
-  .contract .ch .name {
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--indigo-2);
-  }
-  .contract .ch .title {
-    font-size: 17px;
-    font-weight: 600;
-    letter-spacing: -0.2;
-    color: var(--ink-1);
-    margin-top: 2px;
-  }
-  .contract .ch .badge {
-    font-family: var(--mono);
-    font-size: 10px;
-    font-weight: 600;
-    padding: 3px 9px;
-    border-radius: 4px;
-    letter-spacing: 0.4;
-  }
-  .contract .ch .badge.done { background: rgba(61, 127, 91, 0.14); color: #275a40; }
-  .contract .ch .badge.next { background: rgba(112, 110, 103, 0.14); color: var(--ink-3); }
-  .contract .body {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-  }
-  .contract .body .field {
-    padding: 16px 22px;
-    border-right: 1px solid var(--rule-soft);
-  }
-  .contract .body .field:last-child { border-right: none; }
-  .contract .body .field .lbl {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.4;
-    text-transform: uppercase;
-    color: var(--ink-4);
-    margin-bottom: 6px;
-  }
-  .contract .body .field .val {
-    font-size: 12px;
-    color: var(--ink-2);
-    line-height: 1.55;
-  }
-  .contract .body .field code {
-    background: rgba(79, 95, 184, 0.08);
-    color: var(--indigo-2);
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-size: 11px;
-    font-family: var(--mono);
-  }
-  @media (max-width: 1100px) {
-    .contract .body { grid-template-columns: repeat(2, 1fr); }
-    .contract .body .field:nth-child(2n) { border-right: none; }
-    .contract .body .field { border-bottom: 1px solid var(--rule-soft); }
-  }
-  .contract .anti {
-    padding: 14px 22px;
-    background: rgba(204, 110, 85, 0.05);
-    border-top: 1px solid var(--rule-soft);
-    font-size: 12px;
-    color: var(--ink-2);
-    line-height: 1.55;
-  }
-  .contract .anti strong { color: #8b3a25; font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; margin-right: 8px; }
+  /* shared inline defs used across the page so we don't duplicate */
+  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
+  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ex-frame.bad .ex-head { color: #8b3a25; }
+  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
+  .ex-frame.good .ex-head { color: #275a40; }
+  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
+  .ex-frame svg { display: block; width: 100%; height: auto; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
+  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
+  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
+  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
+  .rule .body strong { color:var(--ink-1); }
 
 
 
@@ -185,20 +116,89 @@
 
 
 
-  /* shared inline defs used across the page so we don't duplicate */
-  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
-  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
-  .ex-frame.bad .ex-head { color: #8b3a25; }
-  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
-  .ex-frame.good .ex-head { color: #275a40; }
-  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
-  .ex-frame svg { display: block; width: 100%; height: auto; }
-  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
-  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
-  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
-  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
-  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
-  .rule .body strong { color:var(--ink-1); }
+  .contract {
+    background: white;
+    border: 1px solid var(--rule-soft);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06);
+    margin: 14px 0 28px;
+  }
+  .contract .ch {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--rule-soft);
+    background: var(--bg-tint);
+  }
+  .contract .ch .name {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--indigo-2);
+  }
+  .contract .ch .title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.2;
+    color: var(--ink-1);
+    margin-top: 2px;
+  }
+  .contract .ch .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 4px;
+    letter-spacing: 0.4;
+  }
+  .contract .ch .badge.done { background: rgba(61, 127, 91, 0.14); color: #275a40; }
+  .contract .ch .badge.next { background: rgba(112, 110, 103, 0.14); color: var(--ink-3); }
+  .contract .body {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+  .contract .body .field {
+    padding: 16px 22px;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .contract .body .field:last-child { border-right: none; }
+  .contract .body .field .lbl {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.4;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    margin-bottom: 6px;
+  }
+  .contract .body .field .val {
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .contract .body .field code {
+    background: rgba(79, 95, 184, 0.08);
+    color: var(--indigo-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: var(--mono);
+  }
+  @media (max-width: 1100px) {
+    .contract .body { grid-template-columns: repeat(2, 1fr); }
+    .contract .body .field:nth-child(2n) { border-right: none; }
+    .contract .body .field { border-bottom: 1px solid var(--rule-soft); }
+  }
+  .contract .anti {
+    padding: 14px 22px;
+    background: rgba(204, 110, 85, 0.05);
+    border-top: 1px solid var(--rule-soft);
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .contract .anti strong { color: #8b3a25; font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; margin-right: 8px; }
 
 
 /* ───── flow.html — unified header + section frames ───── */
@@ -466,7 +466,7 @@ body {
 <h3>Dual-output workflow</h3>
 <p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token set to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
 
-<div class="callout"><strong>Decisions locked in this delivery</strong> — two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming; mixed elevation strategy (light cards lose shadow, dark cards deepen it); neutral mid-tone dark surfaces; renaming of the canonical 9 examples to <code>.light.svg</code>; manifest-level theme is authoritative. Rationale in <a href="../OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>.</div>
+<div class="callout"><strong>Decisions locked.</strong> Two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming; mixed elevation strategy (light cards lose shadow, dark cards deepen it); neutral mid-tone dark surfaces; manifest-level theme is authoritative.</div>
 
 <!-- =========================================================== -->
 <!--                          CANVAS                              -->
@@ -4327,8 +4327,8 @@ body {
 <table class="tokens">
   <thead><tr><th><code>mode:</code> value</th><th>Output behavior</th></tr></thead>
   <tbody>
-    <tr><td class="token">pixel</td><td class="note"><strong>Default</strong>. Cream + indigo on a polished doc page. Inter type. 78-icon custom library. Files emit as <code>&lt;slug&gt;.pixel.{light,dark}.svg</code>. Use for general-purpose architecture diagrams, subject-agnostic systems, anything outside the dual-research visual scope.</td></tr>
-    <tr><td class="token">material</td><td class="note">Material 3 inspired by dual-research — sable + sage palette. Roboto Flex + Roboto Serif. 78-icon M3-style library. Files emit as <code>&lt;slug&gt;.material.{light,dark}.svg</code>. Use when the diagram needs to share visual DNA with the dual-research dashboard.</td></tr>
+    <tr><td class="token">pixel</td><td class="note"><strong>Default</strong>. Cream + indigo on a polished doc page. Inter type. 78-icon custom library. Files emit as <code>&lt;slug&gt;.pixel.{light,dark}.svg</code>. Use for general-purpose architecture diagrams and subject-agnostic systems.</td></tr>
+    <tr><td class="token">material</td><td class="note">Material 3 design system — sable + sage palette. Roboto Flex + Roboto Serif. Material Symbols Outlined icons. Files emit as <code>&lt;slug&gt;.material.{light,dark}.svg</code>. Use when the diagram should share visual DNA with an M3 product surface.</td></tr>
   </tbody>
 </table>
 

@@ -8,7 +8,7 @@
    This means the Material design system literally consumes the same
    --md-* tokens, the same M3 type utilities (.t-display-l, etc.),
    and the same primitive classes (.md-card, .md-chip, .md-status,
-   .md-btn, .md-tabs, .md-seg, .md-list) as the dual-research V2 app.
+   .md-btn, .md-tabs, .md-seg, .md-list) as the source V2 reference.
    Single source of truth.
    ----------------------------------------------------------------
    What this file adds:

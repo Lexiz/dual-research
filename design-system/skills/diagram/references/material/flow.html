@@ -280,8 +280,8 @@ body {
     <p class="ds-section-blurb">Locked tokens — canvas, palette, type, spacing, shadows, animation.</p>
   </div>
   <p class="eyebrow">Deliverable 01 · Foundations</p>
-<h1 class="page">M3 tokens shared with the dual-research V2 app, plus diagram-specific extensions.</h1>
-<p class="lede">Material mode is not a sibling of Pixel — it is a <em>direct consumer</em> of the dual-research V2 design system. Every Material reference page loads <code>v2-m3.css</code> first (the same CSS shipped in production) and adds only the diagram-specific extensions on top. When V2 evolves, Material inherits. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
+<h1 class="page">M3 tokens consumed from the vendored V2 reference, plus diagram-specific extensions.</h1>
+<p class="lede">Material mode is not a sibling of Pixel — it is a <em>direct consumer</em> of an internal Material 3 reference (the V2 bundle vendored at <code>references/app-v2/</code>). Every Material reference page loads <code>v2-m3.css</code> first (the canonical CSS) and adds only the diagram-specific extensions on top. When V2 evolves, Material inherits. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
 
 <!-- =========================================================== -->
 <!--                       THEME MODEL                            -->
@@ -324,7 +324,7 @@ body {
 <h3>Dual-output workflow</h3>
 <p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token block to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
 
-<div class="callout"><strong>Decisions locked.</strong> Two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming includes the mode (<code>.material.light.svg</code>); single-tree color tokens with class-flip theme swap; mode is pinned per-set in the manifest (a proposal is entirely Pixel or entirely Material — never mixed). See <a href="../OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a> for the full decision log.</div>
+<div class="callout"><strong>Decisions locked.</strong> Two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming includes the mode (<code>.material.light.svg</code>); single-tree color tokens with class-flip theme swap; mode is pinned per-set in the manifest (a proposal is entirely Pixel or entirely Material — never mixed).</div>
 
 <!-- =========================================================== -->
 <!--                          CANVAS                              -->
@@ -2576,7 +2576,7 @@ body {
 <h1 class="page">Eighteen anchor SVGs — nine templates × two themes — of the same proposal in Material vocabulary.</h1>
 <p class="lede">Each template gets one canonical light + dark pair of the "Partner Vetting" proposal, built only from this mode's foundations, components, icons, and connectors. Compare a Material example side-by-side with its Pixel sibling in <a href="../pixel/examples.html">pixel/examples.html</a> — the structure is identical; the visual language differs.</p>
 
-<div class="callout"><strong>Generation note.</strong> The <code>system-context</code> anchor pair (§06.1) is the canonical V2-native hand-built reference — it uses <code>md-card--service-*</code> + Material Symbols Outlined + V2 vocabulary throughout. The other 16 SVGs (§06.2–06.9) are still the mechanical-transform-from-Pixel originals from earlier in spec-0133. A future spec rebuilds each in V2 vocabulary using the §06.1 anchor as the pattern.</div>
+<div class="callout"><strong>Generation note.</strong> The <code>system-context</code> anchor pair (§06.1) is the canonical V2-native hand-built reference — it uses <code>md-card--service-*</code> + Material Symbols Outlined + V2 vocabulary throughout. The other 16 SVGs (§06.2–06.9) are mechanical transforms from their Pixel counterparts, pending V2 hand-rebuild. A future release rebuilds each in V2 vocabulary using the §06.1 anchor as the pattern.</div>
 
 <h2><span class="num">06.1</span>System context</h2>
 <p>The platform, the people who use it, and what it touches. 3 columns: users (left), platform hub (center), external systems (right). Trust boundary around the platform. <strong>This pair is the V2-native anchor</strong> — hand-built in <code>md-card--service-primary</code> for the hub, <code>md-card--outlined</code> for users, <code>md-card--service-{sql,store,secure,cache}</code> for externals, with inline Material Symbols paths.</p>
@@ -2833,8 +2833,8 @@ body {
 <table class="tokens">
   <thead><tr><th><code>mode:</code> value</th><th>Output behavior</th></tr></thead>
   <tbody>
-    <tr><td class="token">pixel</td><td class="note"><strong>Default</strong>. Cream + indigo on a polished doc page. Inter type. 78-icon custom library. Files emit as <code>&lt;slug&gt;.pixel.{light,dark}.svg</code>. Use for general-purpose architecture diagrams, subject-agnostic systems, anything outside the dual-research visual scope.</td></tr>
-    <tr><td class="token">material</td><td class="note">Material 3 inspired by dual-research — sable + sage palette. Roboto Flex + Roboto Serif. 78-icon M3-style library. Files emit as <code>&lt;slug&gt;.material.{light,dark}.svg</code>. Use when the diagram needs to share visual DNA with the dual-research dashboard.</td></tr>
+    <tr><td class="token">pixel</td><td class="note"><strong>Default</strong>. Cream + indigo on a polished doc page. Inter type. 78-icon custom library. Files emit as <code>&lt;slug&gt;.pixel.{light,dark}.svg</code>. Use for general-purpose architecture diagrams and subject-agnostic systems.</td></tr>
+    <tr><td class="token">material</td><td class="note">Material 3 design system — sable + sage palette. Roboto Flex + Roboto Serif. Material Symbols Outlined icons. Files emit as <code>&lt;slug&gt;.material.{light,dark}.svg</code>. Use when the diagram should share visual DNA with an M3 product surface.</td></tr>
   </tbody>
 </table>
 

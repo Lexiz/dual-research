@@ -35,8 +35,8 @@
 <main>
 
 <p class="eyebrow">Deliverable 01 · Foundations</p>
-<h1 class="page">M3 tokens shared with the dual-research V2 app, plus diagram-specific extensions.</h1>
-<p class="lede">Material mode is not a sibling of Pixel — it is a <em>direct consumer</em> of the dual-research V2 design system. Every Material reference page loads <code>v2-m3.css</code> first (the same CSS shipped in production) and adds only the diagram-specific extensions on top. When V2 evolves, Material inherits. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
+<h1 class="page">M3 tokens consumed from the vendored V2 reference, plus diagram-specific extensions.</h1>
+<p class="lede">Material mode is not a sibling of Pixel — it is a <em>direct consumer</em> of an internal Material 3 reference (the V2 bundle vendored at <code>references/app-v2/</code>). Every Material reference page loads <code>v2-m3.css</code> first (the canonical CSS) and adds only the diagram-specific extensions on top. When V2 evolves, Material inherits. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
 
 <!-- =========================================================== -->
 <!--                       THEME MODEL                            -->
@@ -79,7 +79,7 @@
 <h3>Dual-output workflow</h3>
 <p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token block to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
 
-<div class="callout"><strong>Decisions locked.</strong> Two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming includes the mode (<code>.material.light.svg</code>); single-tree color tokens with class-flip theme swap; mode is pinned per-set in the manifest (a proposal is entirely Pixel or entirely Material — never mixed). See <a href="../OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a> for the full decision log.</div>
+<div class="callout"><strong>Decisions locked.</strong> Two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming includes the mode (<code>.material.light.svg</code>); single-tree color tokens with class-flip theme swap; mode is pinned per-set in the manifest (a proposal is entirely Pixel or entirely Material — never mixed).</div>
 
 <!-- =========================================================== -->
 <!--                          CANVAS                              -->
