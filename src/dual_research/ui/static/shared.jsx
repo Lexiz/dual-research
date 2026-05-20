@@ -777,7 +777,6 @@ function Chip({
     ? _cn(
         'chip',
         `tone-${tone}`,
-        pill && 'chip-pill',                                 // legacy no-op (pill is default)
         (lg || size === 'lg') && 'chip-lg',
         shape === 'square' && 'chip-square',
         mono && 'mono',

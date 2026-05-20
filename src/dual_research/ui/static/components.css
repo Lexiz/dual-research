@@ -1,19 +1,14 @@
 /* =============================================================
-   dual-research — V1 Component vocabulary
+   dual-research — Component vocabulary (Material 3)
    --------------------------------------------------------------
-   Sections landed in SPEC-0052 (primitive vocabulary):
-     · Button (.btn)
-     · StatusBadge (.sb)
-     · Chip (.chip)
-     · RunIDChip (.rid)
-     · AgentStrip + AgentIcon (.as / .ai)
-     · Card + variants (.card / .card-expandable / .card-live)
-     · ThemeToggle (.tt)
-   Other sections (Tab, QuestionThread, Modal, etc.) arrive in
-   their respective specs (SPEC-0053..0058).
+   Every component class the app uses. Reads tokens from
+   tokens.css; per-document hooks live in theme.css.
+   No hex codes here — tokens only.
 
-   Copied verbatim from the Claude Design brief's
-   `styles/components.css`. No hex codes — tokens only.
+   Primitives: Button (.btn) · StatusBadge (.sb) · Chip (.chip) ·
+   RunIDChip (.rid) · AgentStrip + AgentIcon (.as / .ai) ·
+   Card + variants (.card / .card-expandable / .card-live) ·
+   ThemeToggle (.tt) · Tab · QuestionThread · Modal · etc.
    ============================================================= */
 
 /* ─────────────────────────────────────────────────────────────
@@ -29,7 +24,7 @@
   height: 28px;
   font-family: var(--md-font-plain);
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   line-height: 1;
   color: var(--md-on-surface);
   background: var(--md-surface-container);
@@ -74,7 +69,7 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: -0.005em;
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
@@ -96,18 +91,15 @@
 
 /* ─────────────────────────────────────────────────────────────
    Chip (.chip) — Spec 0119 unified primitive
-   The single chip primitive across every surface. Replaces the
-   v1 .chip + the M3 .chip.tone-* cascade that previously lived
-   further down this file.
+   The single chip primitive across every surface.
 
    Slots (rendered in order, each emitted only when set):
      leadingDot | leadingIcon | cat-bubble  →  label  →
      value  →  add  →  sub  →  trailingSuffix  →  children
 
-   Tones:  info · ok · warn · err · idle · claude · gpt · neutral
-           (plus legacy aliases: a (=claude), b (=gpt),
-            muted, info-strong)
-   Shapes: pill (default, --r-pill) | square (.chip-square, --r-1)
+   Tones:  info · info-strong · ok · warn · err · idle · muted ·
+           claude · gpt · neutral
+   Shapes: pill (default, --md-shape-full) | square (.chip-square, --md-shape-xs)
    Sizes:  default 22px | lg 26px (.chip-lg)
    ───────────────────────────────────────────────────────────── */
 .chip {
@@ -120,7 +112,7 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: 11px;
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: -0.005em;
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
@@ -129,10 +121,6 @@
   white-space: nowrap;
   line-height: 1;
 }
-/* Legacy: .chip-pill was the opt-in to pill shape. Pill is now the
-   default; keep the class as a no-op so existing callsites don't
-   break. Same for .chip-lg (still flips to the larger 26px size). */
-.chip-pill { border-radius: var(--md-shape-full); }
 .chip-lg   { height: 26px; padding: 0 11px; }
 .chip.chip-square { border-radius: var(--md-shape-xs); }
 
@@ -156,10 +144,6 @@
 .chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
 .chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
 .chip.tone-neutral     { color: var(--md-on-surface-variant);    background: var(--md-surface-container-high); border-color: transparent; }
-/* Legacy tone names — alias to the canonical pair. Code is being
-   migrated to tone-claude / tone-gpt; until then both work. */
-.chip.tone-a           { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
-.chip.tone-b           { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
 
 /* Auto leading-dot for status tones only. Identity tones
    (claude/gpt/neutral) intentionally do not get one. Suppressed
@@ -236,7 +220,7 @@
   outline-offset: 1px;
 }
 
-/* Legacy slot — kept for back-compat with <Chip icon=…>. */
+/* Chip icon + unit slots — used by <Chip icon=…> across run-list, run-detail, and others. */
 .chip .unit { color: var(--md-on-surface-faint); }
 .chip .ico  { width: 12px; height: 12px; flex: 0 0 auto; }
 
@@ -263,7 +247,7 @@ button.chip:focus-visible {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
   border-radius: var(--md-shape-full);
@@ -309,7 +293,7 @@ button.chip:focus-visible {
    without forcing internal text wrap (Notion issue 3). The 720px cap
    keeps the row under --md-content-max on ultrawide displays. */
 .as.as-timeline { min-width: 460px; max-width: 720px; flex: 1 1 460px; }
-.as .as-name  { color: var(--md-on-surface); font-weight: var(--w-medium); white-space: nowrap; }
+.as .as-name  { color: var(--md-on-surface); font-weight: var(--md-w-medium); white-space: nowrap; }
 .as .as-model { font-family: var(--md-font-data); font-size: var(--md-label-s-size); color: var(--md-on-surface-muted); white-space: nowrap; }
 
 /* Spec 0112 — activity label inside .as-right. Absorbs whatever
@@ -457,7 +441,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   padding: 0 var(--s-3);
   font-family: var(--md-font-plain);
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted);
   background: transparent;
   border: 1px solid var(--md-outline-hair);
@@ -478,14 +462,14 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   color: var(--md-on-surface);
   background: var(--md-surface-container);
   border-color: var(--md-outline-variant);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .tab[disabled] { color: var(--md-on-surface-decor); cursor: not-allowed; }
 .tab .count {
   font-family: var(--md-font-data);
   font-size: var(--md-label-s-size);
   color: var(--md-on-surface-faint);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
 }
 .tab.is-active .count { color: var(--md-on-surface-variant); }
 
@@ -521,7 +505,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   color: var(--md-on-surface-muted);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   font-size: var(--md-body-m-size);
   transition: color var(--m-fast) var(--ease), border-color var(--m-base) var(--ease);
 }
@@ -538,7 +522,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   color: var(--md-on-surface);
   background: transparent;
   border-bottom-color: var(--md-on-surface);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .tab-group.tabs-line .tab .count {
   color: var(--md-on-surface-faint);
@@ -568,7 +552,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   border: 0;
   border-radius: var(--md-shape-xs);
   color: var(--md-on-surface-muted);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
 }
 .tab-group.tabs-solid .tab.tab-sm {
   height: 24px;
@@ -582,7 +566,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   color: var(--md-on-surface);
   background: var(--md-surface-container-highest);
   border: 0;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   box-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 0 1px var(--md-outline-variant);
 }
 body.light .tab-group.tabs-solid .tab.is-active,
@@ -612,7 +596,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--md-on-surface-muted);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   background: var(--md-surface-container);
   border-bottom: 1px solid var(--md-outline-variant);
 }
@@ -647,10 +631,9 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .qt-head .right { margin-left: auto; }
 
-/* Spec 0119 — timeline turn-card chip-row header. Replaces the
-   legacy .qt-head composition for new-protocol render. Tighter
-   6px gap fits four category chips + provider + activity + status
-   on one line at ~600 px column width; wraps gracefully below. */
+/* Spec 0119 — timeline turn-card chip-row header. Tighter 6px gap
+   fits four category chips + provider + activity + status on one
+   line at ~600 px column width; wraps gracefully below. */
 .tl-card-head {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   cursor: pointer;
@@ -748,7 +731,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   margin: 14px 0 8px;
 }
 .lc-rows { display: flex; flex-direction: column; gap: 0; }
@@ -775,13 +758,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .lc-row-body p { margin: 0; }
 .lc-row-body p + p { margin-top: 6px; }
 
-/* Spec 0119 §7.2 — legacy ``.qref*`` and ``.qt-pill / .qt-row / .qt-
-   agent / .qt-sep / .qt-round / .qt-verdict`` rules retired. The
-   timeline turn-card header now uses ``.tl-card-head`` + Chip slots;
-   the expanded critique-card lifecycle rows use ``.lc-row``. The
-   ``.qt-drift`` / ``.qt-resolved-foot`` footer hints are kept below
-   because the QuestionThread footer still surfaces "resolved at
-   round N" / drift summaries on legacy data. */
+/* QuestionThread timeline + footer hints. The timeline body uses
+   .tl-card-head + Chip slots (rendered in shared.jsx). The footer
+   surfaces "resolved at round N" / drift summaries via
+   .qt-drift / .qt-resolved-foot below. */
 .qt-timeline {
   display: flex; flex-direction: column;
   gap: 0;
@@ -790,7 +770,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
 
 .qt-drift, .qt-resolved-foot {
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--md-on-surface-faint);
@@ -855,7 +835,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
    Rendered in serif for editorial weight.
    ───────────────────────────────────────────────────────────── */
 .sentp { font-family: var(--md-font-brand); font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.6; letter-spacing: 0; }
-.sentp strong { color: var(--md-on-surface); font-weight: var(--w-semi); }
+.sentp strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
 
 /* ─────────────────────────────────────────────────────────────
    ChipCluster (.cc) — wraps multiple chips into a constrained row
@@ -869,7 +849,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
   padding: 0 8px;
   font-family: var(--md-font-plain);
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface-muted);
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
@@ -1141,11 +1121,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
   animation: dr-modal-in 120ms ease-out;
 }
 .light .dr-backdrop { background: rgba(20,23,28,0.45); }
-/* SPEC-0109 — modal chrome migrated to M3 surface tokens. The .md-dialog
-   block below provides M3-only styling on the outer frame; these
-   .dr-modal-* rules style the legacy header / tabs / body / close button
-   markup that every modal in the app still emits via the shared Modal
-   primitive. Migrating them here flips every modal at once. */
+/* Modal chrome (SPEC-0109). The .md-dialog block below provides
+   M3-only styling on the outer frame; these .dr-modal-* rules
+   style the header / tabs / body / close-button markup that every
+   modal emits via the shared Modal primitive. */
 .dr-modal {
   background: var(--md-surface-container-low);
   border: 1px solid var(--md-outline-variant);
@@ -1328,7 +1307,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   padding: 0 8px;
   font-family: var(--md-font-plain);
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted);
   background: transparent;
   border: 1px solid var(--md-outline-hair);
@@ -1341,7 +1320,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   background: var(--md-surface-container-high);
   color: var(--md-on-surface);
   border-color: var(--md-outline-variant);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .round-scrubber-label {
   font-family: var(--md-font-plain);
@@ -1353,10 +1332,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 }
 
 /* =============================================================
-   SPEC-0093 — M3 Atoms (buttons, chips, status pills, switch,
-   segmented buttons, FAB, icon-btn, tonal chips)
-   Mirrors v2-m3.css:299-494 verbatim. Additive — v1 classes above
-   remain for call sites not yet migrated.
+   M3 Atoms (SPEC-0093) — buttons, chips, status pills, switch,
+   segmented buttons, FAB, icon-btn, tonal chips.
+   Mirrors v2-m3.css:299-494.
    ============================================================= */
 
 /* ── M3 Buttons ─────────────────────────────────────────── */
@@ -1530,9 +1508,8 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   left: 28px; width: 24px; height: 24px; background: var(--md-on-primary);
 }
 
-/* Tonal chip tones + auto-dot moved into the canonical .chip section
-   near the top of this file (spec 0119). The duplicated cascade
-   that lived here was the source of the v1/M3 split. */
+/* Tonal chip tones + auto-dot live in the canonical .chip section
+   near the top of this file (spec 0119). */
 
 /* ── Focus ring for all M3 focusable atoms ──────────────── */
 .md-btn:focus-visible,
@@ -1560,12 +1537,11 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 }
 
 /* =============================================================
-   SPEC-0092 — Material Symbols Outlined sizing helpers (additive).
+   Material Symbols Outlined sizing helpers.
    Use as <span class="ms ms-20">check_circle</span>. The base
    .ms class names the family + the icon-rendering reset; .ms-18 /
    ms-20 / ms-24 set the three documented dp sizes
    (18 dp inside chips, 20 dp inside buttons, 24 dp in chrome).
-   No live component reads these yet — subsequent specs migrate.
    ============================================================= */
 .ms {
   font-family: "Material Symbols Outlined";
@@ -2922,7 +2898,7 @@ body.light .tour-overlay__mask {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .rp-anchor {
   margin: 0;
@@ -2941,7 +2917,7 @@ body.light .tour-overlay__mask {
 }
 .rp-title {
   font-size: 13px;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface-variant);
   line-height: 1.4;
 }
@@ -3015,7 +2991,7 @@ body.light .tour-overlay__mask {
   background: var(--md-surface-container-low);
 }
 .dr-modal-header h2 {
-  margin: 0; font-size: var(--md-title-l-size); font-weight: var(--w-semi);
+  margin: 0; font-size: var(--md-title-l-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .dr-modal-header .spacer { flex: 1; }
@@ -3027,7 +3003,7 @@ body.light .tour-overlay__mask {
 .dr-modal-tabs .tab {
   appearance: none; background: transparent; border: none;
   padding: 6px 14px; border-radius: var(--md-shape-sm);
-  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--w-medium);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted); cursor: pointer;
 }
 .dr-modal-tabs .tab.is-active {
@@ -3060,7 +3036,7 @@ body.light .tour-overlay__mask {
 }
 .cs-section.is-open .cs-chevron { transform: rotate(90deg); }
 .cs-title {
-  font-size: var(--md-title-m-size); font-weight: var(--w-semi);
+  font-size: var(--md-title-m-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
   display: flex; align-items: center; gap: var(--s-3);
   flex: 1;
@@ -3094,7 +3070,7 @@ body.light .tour-overlay__mask {
 .dr-card-body { padding: var(--s-4); }
 .dr-card-body h4 {
   margin: 0 0 var(--s-2) 0;
-  font-size: var(--md-body-m-size); font-weight: var(--w-semi);
+  font-size: var(--md-body-m-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .dr-card-body p {
@@ -3152,7 +3128,7 @@ body.light .tour-overlay__mask {
 .hiw-note[data-tone="idle"] { border-left-color: var(--idle); }
 .hiw-note__label {
   font-size: var(--md-label-s-size); text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--md-on-surface-faint); margin-right: var(--s-2); font-weight: var(--w-semi);
+  color: var(--md-on-surface-faint); margin-right: var(--s-2); font-weight: var(--md-w-semi);
 }
 
 /* ── Table ─────────────────────────────────────────────────── */
@@ -3164,7 +3140,7 @@ body.light .tour-overlay__mask {
 }
 .hiw-table th {
   background: var(--md-surface-container);
-  font-weight: var(--w-semi); color: var(--md-on-surface-muted);
+  font-weight: var(--md-w-semi); color: var(--md-on-surface-muted);
   font-size: var(--md-body-s-size); text-transform: uppercase; letter-spacing: 0.06em;
 }
 .hiw-table td.num { font-variant-numeric: tabular-nums; }
@@ -3202,7 +3178,7 @@ body.light .tour-overlay__mask {
   color: var(--md-on-surface-faint); font-family: var(--md-font-data); font-size: var(--md-label-s-size);
 }
 .changelog-summary {
-  color: var(--md-on-surface); font-size: var(--md-body-m-size); font-weight: var(--w-semi);
+  color: var(--md-on-surface); font-size: var(--md-body-m-size); font-weight: var(--md-w-semi);
   flex: 1;
 }
 .changelog-bullets {
@@ -3210,7 +3186,7 @@ body.light .tour-overlay__mask {
   color: var(--md-on-surface-variant); font-size: var(--md-body-m-size); line-height: var(--lh-snug);
 }
 .changelog-bullets li + li { margin-top: var(--s-2); }
-.changelog-bullets li strong { color: var(--md-on-surface); font-weight: var(--w-semi); }
+.changelog-bullets li strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
 .changelog-shots {
   display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3);
   margin-top: var(--s-3);
@@ -3255,7 +3231,7 @@ body.light .tour-overlay__mask {
   margin-bottom: var(--s-6);
 }
 .hiw-page__title {
-  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--w-semi);
+  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .hiw-page__spacer { flex: 1; }
@@ -3268,7 +3244,7 @@ body.light .tour-overlay__mask {
 .hiw-page__tabs .tab {
   appearance: none; background: transparent; border: none;
   padding: 8px 16px; border-radius: var(--md-shape-sm);
-  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--w-medium);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted); cursor: pointer;
 }
 .hiw-page__tabs .tab.is-active {
@@ -3422,13 +3398,13 @@ body.light .tour-spotlight__dim {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--info);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   margin-bottom: var(--s-2);
 }
 .tour-callout .callout__title {
   font-family: var(--md-font-brand);
   font-size: var(--md-title-l-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
   margin-bottom: var(--s-3);
   line-height: var(--lh-snug);
@@ -3524,7 +3500,7 @@ body.light .tour-spotlight__dim {
   margin-bottom: var(--s-6);
 }
 .settings-page__title {
-  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--w-semi);
+  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .settings-page__spacer { flex: 1; }
@@ -3538,7 +3514,7 @@ body.light .tour-spotlight__dim {
 .settings-tabs .tab {
   appearance: none; background: transparent; border: none;
   padding: 8px 16px; border-radius: var(--md-shape-sm);
-  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--w-medium);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted); cursor: pointer;
 }
 .settings-tabs .tab.is-active {
@@ -3573,7 +3549,7 @@ body.light .tour-spotlight__dim {
   margin: 12px 0;
 }
 .settings-admin-badge {
-  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  display: inline-block; padding: 1px 8px; border-radius: var(--md-shape-full);
   background: var(--agent-b-bg-strong); color: var(--agent-b);
   font-size: 11px; font-weight: 500;
   border: 1px solid var(--agent-b-border);
@@ -3602,7 +3578,7 @@ body.light .tour-spotlight__dim {
   border: 1px solid var(--md-outline-variant); font-family: inherit;
   min-width: 220px;
 }
-.settings-input--search { padding: 6px 12px; border-radius: 999px; min-width: 240px; }
+.settings-input--search { padding: 6px 12px; border-radius: var(--md-shape-full); min-width: 240px; }
 .settings-add-row {
   margin-top: 16px; padding: 16px;
   border: 1px dashed var(--md-outline-variant); border-radius: 8px;
@@ -3620,7 +3596,7 @@ body.light .tour-spotlight__dim {
 }
 .gop__title {
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--info);
   text-transform: uppercase; letter-spacing: 0.06em;
 }
@@ -3643,7 +3619,7 @@ body.light .tour-spotlight__dim {
 .users-chip {
   appearance: none;
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 10px; border-radius: 999px;
+  padding: 4px 10px; border-radius: var(--md-shape-full);
   background: var(--md-surface-container); color: var(--md-on-surface-muted);
   border: 1px solid var(--md-outline-hair);
   font-size: 12px; font-family: inherit;
@@ -3684,7 +3660,7 @@ body.light .tour-spotlight__dim {
 }
 .users-status {
   display: inline-flex; align-items: center;
-  padding: 2px 8px; border-radius: 999px;
+  padding: 2px 8px; border-radius: var(--md-shape-full);
   font-size: 11px; font-weight: 500;
   white-space: nowrap;
 }
@@ -3716,7 +3692,7 @@ body.light .tour-spotlight__dim {
 }
 .spec-modal__body h3 {
   font-size: var(--md-body-m-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   margin-top: var(--s-4);
   color: var(--md-on-surface);
 }
@@ -3735,7 +3711,7 @@ body.light .tour-spotlight__dim {
 }
 .spec-modal__body th {
   background: var(--md-surface-container);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface-muted);
   font-size: var(--md-label-s-size);
   text-transform: uppercase;
@@ -3779,16 +3755,11 @@ body.light .tour-spotlight__dim {
 }
 
 /* =============================================================
-   Spec 0131 — legacy classes drained from theme.css.
-   These five class families were moved here under M3 tokens
-   when theme.css was emptied of v1 component rules in the
-   v1 → v2 finalization arc (0127 → 0131).
+   Misc class helpers used by specific routes.
      - .uppercase-label   (4 consumers in design-language.jsx)
      - .dr-ghost-block + ::before + .dr-ghost-block-kind  (run-detail.jsx)
      - .dr-section-brief-btn + :hover  (run-detail.jsx)
      - .cap-bar + > i + > .soft-mark  (design-language.jsx)
-   .phase-step-line and .bg-grid had no remaining consumers
-   at audit time and were deleted, not moved.
    ============================================================= */
 
 /* Generic uppercase label helper — superseded by .t-label-s

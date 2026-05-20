@@ -88,7 +88,7 @@ function CompareScreen({ navigate }) {
           <span style={{
             fontSize: 'var(--md-title-l-size)',
             lineHeight: 'var(--md-title-l-lh)',
-            fontWeight: 'var(--w-semibold)',
+            fontWeight: 'var(--md-w-semi)',
             color: 'var(--md-on-surface)',
           }}>
             Compare runs
