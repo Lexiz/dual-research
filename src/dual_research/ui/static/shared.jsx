@@ -1090,48 +1090,10 @@ function parseQId(legacy) {
 // agentSlot — map "claude"/"gpt" to "a"/"b" for CSS class names.
 function _agentSlot(agent) { return agent === 'claude' ? 'a' : agent === 'gpt' ? 'b' : agent; }
 
-// QuestionRef — decoded reference for a critique question.
-// format='compact' (default): "Q · 04"
-// format='full': "Q · 04 · [Claude] · r1"
-// format='split' (Spec 0111): "Q · 04" only. Agent + round are rendered as
-// sibling chips by QuestionThread per Notion issue 4 ("no badge encodes
-// two facts; agent and round get their own pills").
-// kindLetter: 'Q' (default) | 'D' | 'I' | 'C' — Spec 0097
-function QuestionRef({ id, number, raisedBy, round, format = 'compact', kindLetter = 'Q', className }) {
-  if (id != null && (number == null || raisedBy == null || round == null)) {
-    const p = parseQId(id);
-    if (number == null)   number   = p.number;
-    if (raisedBy == null) raisedBy = p.raisedBy;
-    if (round == null)    round    = p.round;
-  }
-  const num = typeof number === 'number' ? String(number).padStart(2, '0') : (number || '');
-  const agentLabel = raisedBy === 'claude' ? 'Claude' : raisedBy === 'gpt' ? 'GPT' : null;
-  const slot = _agentSlot(raisedBy);
-  const kindName = { Q: 'Question', D: 'Disagreement', I: 'Issue', C: 'Comment' }[kindLetter] || kindLetter;
-  const title = [kindName + ' ' + num, agentLabel && 'raised by ' + agentLabel, round != null && 'in round ' + round].filter(Boolean).join(' — ');
-  const wantsAuthor = format === 'full' && agentLabel;
-  const wantsRound  = format === 'full' && round != null;
-  return (
-    <span
-      className={_cn('qref', format === 'full' && 'qref-full', format === 'split' && 'qref-split', className)}
-      data-kind={kindLetter}
-      title={title}
-    >
-      <span className="qref-k">{kindLetter}</span>
-      <span className="qref-sep" aria-hidden="true">&middot;</span>
-      <span className="qref-n num">{num}</span>
-      {wantsAuthor && (
-        <span className={_cn('qref-by', `is-${slot}`)}>
-          <AgentIcon agent={raisedBy} size={14} />
-          <span className="qref-by-n">{agentLabel}</span>
-        </span>
-      )}
-      {wantsRound && (
-        <span className="qref-round num">r{round}</span>
-      )}
-    </span>
-  );
-}
+// Spec 0119 §7.2 — ``QuestionRef`` retired. The critique card
+// header now leads with a provider Chip + category-bubble Chip;
+// the public ID renders as small mono inline text inside the card
+// body (``.crit-card-id``), not as a separate primitive.
 
 // Spec 0097 — canonical six-word verdict vocabulary.
 // Spec 0119 §7.1 — canonical lifecycle verbs for chip labels on the
@@ -1646,7 +1608,7 @@ Object.assign(window, {
   // SPEC-0053 primitives
   Tab, TabGroup,
   // SPEC-0054 + SPEC-0097 primitives
-  parseQId, QuestionRef, QuestionThread, VERDICT_VOCAB,
+  parseQId, QuestionThread, VERDICT_VOCAB,
   // SPEC-0057 primitives
   ChipCluster,
   // SPEC-0058 primitives

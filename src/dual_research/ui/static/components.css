@@ -738,143 +738,18 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .lc-row-body p { margin: 0; }
 .lc-row-body p + p { margin-top: 6px; }
 
-/* QuestionRef (.qref) — decoded reference for a critique question.
-   Replaces the legacy cryptic "Q-g-r1-04" text spans. Two shapes:
-     .qref         — compact "Q · 04". Used inside QuestionThread
-                     where the timeline already shows raised-by + round.
-     .qref-full    — adds the raised-by agent chip + round.
-                     Used in question lists / cards / standalone refs. */
-.qref {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 10px;
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: var(--r-2);
-  font-family: var(--sans);
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--fg-1);
-}
-.qref-full { height: 26px; padding: 0 4px 0 10px; }
-.qref .qref-k {
-  font-size: var(--t-label);
-  font-weight: var(--w-semi);
-  color: var(--fg-3);
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-}
-.qref .qref-n {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-semi);
-  color: var(--fg-0);
-  letter-spacing: -0.005em;
-}
-.qref .qref-sep { color: var(--fg-4); font-size: 10px; line-height: 1; }
-.qref .qref-by {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 20px;
-  padding: 0 8px 0 4px;
-  border-radius: var(--r-pill);
-  background: var(--bg-1);
-  border: 1px solid var(--border-2);
-}
-.qref .qref-by.is-a { background: var(--agent-a-bg); border-color: var(--agent-a-border); }
-.qref .qref-by.is-b { background: var(--agent-b-bg); border-color: var(--agent-b-border); }
-.qref .qref-by .ai { flex: 0 0 auto; }
-.qref .qref-by-n {
-  font-size: var(--t-mono);
-  font-weight: var(--w-semi);
-  color: var(--fg-1);
-}
-.qref .qref-by.is-a .qref-by-n { color: var(--agent-a); }
-.qref .qref-by.is-b .qref-by-n { color: var(--agent-b); }
-.qref .qref-round {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-medium);
-  color: var(--fg-3);
-  padding-right: 2px;
-}
-
+/* Spec 0119 §7.2 — legacy ``.qref*`` and ``.qt-pill / .qt-row / .qt-
+   agent / .qt-sep / .qt-round / .qt-verdict`` rules retired. The
+   timeline turn-card header now uses ``.tl-card-head`` + Chip slots;
+   the expanded critique-card lifecycle rows use ``.lc-row``. The
+   ``.qt-drift`` / ``.qt-resolved-foot`` footer hints are kept below
+   because the QuestionThread footer still surfaces "resolved at
+   round N" / drift summaries on legacy data. */
 .qt-timeline {
   display: flex; flex-direction: column;
-  gap: 8px;
+  gap: 0;
   padding: 0;
 }
-/* SPEC-0110 — turn rows stack vertically: pill on top, quote text below
-   using the full card width. The legacy 2-column grid (pill | quote)
-   indented the text and limited line length; the user wanted the body
-   to breathe across the full card. */
-.qt-row {
-  display: flex; flex-direction: column;
-  gap: 8px; align-items: stretch;
-  padding: 12px 14px;
-  border-radius: var(--md-shape-sm);
-  background: var(--md-surface-container-high);
-}
-.qt-row .qt-pill { align-self: flex-start; }
-.qt-row .qt-quote { width: 100%; }
-.qt-row.is-a { background: var(--agent-a-bg); }
-.qt-row.is-b { background: var(--agent-b-bg); }
-.qt-row.is-ghosted { background: color-mix(in srgb, var(--warn) 12%, var(--bg-2)); }
-
-/* ── The pill — one shape carries identity (icon + agent), round, and verdict. */
-.qt-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  width: fit-content;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: var(--r-pill);
-  background: rgba(0,0,0,0.12);
-  font-size: var(--t-meta);
-  line-height: 1;
-  white-space: nowrap;
-}
-[data-theme="light"] .qt-pill, body.light .qt-pill { background: rgba(255,255,255,0.45); }
-
-.qt-pill .ai { flex: 0 0 auto; }
-.qt-pill .qt-agent {
-  font-family: var(--sans);
-  font-weight: var(--w-semi);
-  font-size: var(--t-meta);
-}
-.qt-pill .qt-sep { opacity: 0.5; font-size: 11px; line-height: 1; }
-.qt-pill .qt-round {
-  font-family: var(--sans);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-medium);
-  opacity: 0.85;
-}
-.qt-pill .qt-verdict {
-  font-family: var(--sans);
-  font-size: var(--t-mono);
-  font-weight: var(--w-semi);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.qt-quote {
-  font-family: var(--serif);
-  font-size: 15px;
-  line-height: 1.55;
-  font-style: italic;
-  margin: 0;
-  letter-spacing: 0;
-}
-.qt-row.is-ghosted .qt-quote { color: var(--fg-3); }
 
 .qt-drift, .qt-resolved-foot {
   font-size: var(--t-meta);
@@ -887,11 +762,6 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .qthread.is-resolved .qt-resolved-foot { color: var(--ok); }
 .qthread.is-drift .qt-drift { color: var(--err); }
-
-/* ── qref data-kind color routing ── */
-.qref[data-kind="D"] .qref-k,
-.qref[data-kind="I"] .qref-k { color: var(--err); }
-.qref[data-kind="C"] .qref-k { color: var(--info); }
 
 /* SPEC-0110 — single-column .qt-row is now the default at every breakpoint;
    the <900px media-query override that used to flip the grid to flex is no
@@ -1755,17 +1625,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .delta-chip .up   { color: var(--p-info); }
 .delta-chip .down { color: var(--p-ok);   }
 
-/* ── Drift chip ────────────────────────────────────────────── */
-.drift-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 28px; padding: 0 10px;
-  border-radius: var(--md-shape-full);
-  background: color-mix(in srgb, var(--p-err) 18%, transparent);
-  color: var(--p-err);
-  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
-  letter-spacing: 0.4px;
-}
-.drift-chip svg { width: 12px; height: 12px; }
+/* Spec 0119 §8.6 — ``.drift-chip`` retired. Per-phase ledger-drift
+   surfaces on the timeline phase-header as a Modifier chip
+   (``⚠ ledger drift <count>``) per commit 4. */
 
 /* ── Badge-rich card container (.bcard) ────────────────────── */
 .bcard {
