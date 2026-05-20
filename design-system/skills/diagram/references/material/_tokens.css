@@ -1,7 +1,12 @@
 /* =============================================================
-   dual-research — Design System v2 — Material-flavored
-   M3 vocabulary mapped onto the existing pastel palette.
-   No palette change: sable (Claude) = primary, sage (GPT) = secondary.
+   diagram skill — Material mode — design tokens
+   M3 vocabulary mapped onto a pastel palette.
+   sable = primary identity, sage = secondary identity, info = tertiary accent.
+   Loaded by every Material reference HTML page before _shared.css.
+   Owns: M3 color roles, surface tiers, type scale, spacing, shape,
+   elevation, state layers, motion, plus the M3 primitive classes
+   (.md-card, .md-chip, .md-status, .md-btn, .md-tabs, .md-seg, .md-list)
+   the generator composes into diagram cards.
    ============================================================= */
 
 :root {

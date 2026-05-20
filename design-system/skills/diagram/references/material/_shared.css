@@ -1,23 +1,23 @@
 /* ============================================================
-   diagram skill — Material mode — reviewer site
+   diagram skill — Material mode — doc-site chrome + extensions
    ----------------------------------------------------------------
-   This stylesheet is a THIN doc-chrome layer on top of the V2
-   production M3 CSS. The Material reference pages each load:
-     <link rel="stylesheet" href="../app-v2/styles/v2-m3.css">
+   This stylesheet is a THIN doc-chrome layer on top of the Material
+   design tokens. The Material reference pages each load:
+     <link rel="stylesheet" href="_tokens.css">
      <link rel="stylesheet" href="_shared.css">
-   This means the Material design system literally consumes the same
-   --md-* tokens, the same M3 type utilities (.t-display-l, etc.),
-   and the same primitive classes (.md-card, .md-chip, .md-status,
-   .md-btn, .md-tabs, .md-seg, .md-list) as the source V2 reference.
-   Single source of truth.
+   _tokens.css owns the --md-* token registry, the M3 type utilities
+   (.t-display-l, etc.), and the M3 primitive classes (.md-card,
+   .md-chip, .md-status, .md-btn, .md-tabs, .md-seg, .md-list) that
+   the generator composes. Both files live in this folder; the skill
+   is fully self-contained.
    ----------------------------------------------------------------
    What this file adds:
      - Doc-site shell (sidebar nav, hero, section dividers)
      - Reference-page primitives (.frame, .pair, .swatch, .icon-grid,
        .tokens table)
-     - diagram-skill extensions to V2: .md-card--service-* (the 7
-       categorical service surfaces derived from V2 surface-container
-       tiers + V2 palette color-mix tints)
+     - diagram-skill extensions: .md-card--service-* (the 8 categorical
+       service surfaces derived from surface-container tiers + palette
+       color-mix tints)
    ============================================================ */
 
 

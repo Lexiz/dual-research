@@ -219,22 +219,18 @@
     <span class="dot"></span>
     <div class="stack">
       <h1>Design systems</h1>
-      <span class="sub">diagram skill · 3 surfaces</span>
+      <span class="sub">diagram skill · two parallel design systems</span>
     </div>
   </div>
 
   <nav class="tabs" id="tabs">
     <a data-tab="pixel" data-src="pixel/flow.html" class="active">
-      <span class="label">Diagram · Pixel</span>
-      <span class="meta">diagram skill · cream + indigo · Inter</span>
+      <span class="label">Pixel</span>
+      <span class="meta">cream + indigo · Inter · the default mode</span>
     </a>
     <a data-tab="material" data-src="material/flow.html">
-      <span class="label">Diagram · Material</span>
-      <span class="meta">diagram skill · M3 · Roboto Flex + Serif</span>
-    </a>
-    <a data-tab="app" data-src="app-v2/design-system-v2.html">
-      <span class="label">V2 reference</span>
-      <span class="meta">vendored M3 source · what Material consumes</span>
+      <span class="label">Material</span>
+      <span class="meta">M3 · Roboto Flex + Serif · Material Symbols</span>
     </a>
   </nav>
 
@@ -246,7 +242,7 @@
 <div class="stage">
   <iframe id="stage" src="pixel/flow.html" title="Design system"></iframe>
   <div class="keyhint">
-    <kbd>1</kbd> Pixel &nbsp; <kbd>2</kbd> Material &nbsp; <kbd>3</kbd> V2 reference
+    <kbd>1</kbd> Pixel &nbsp; <kbd>2</kbd> Material
   </div>
 </div>
 
@@ -294,7 +290,6 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '1') setTab('pixel');
     else if (e.key === '2') setTab('material');
-    else if (e.key === '3') setTab('app');
   });
 
   // Sync if user hits back/forward

@@ -53,9 +53,6 @@ references/
 ├── CHANGELOG.md                    ← release history
 ├── templates/                      ← per-template input contracts · mode + theme agnostic
 │   └── <name>.md  × 9
-├── app-v2/                         ← vendored Material 3 reference (CSS + design-system HTML)
-│   ├── design-system-v2.html       ← visual reference for the source M3 system
-│   └── styles/v2-m3.css            ← canonical Material tokens · loaded by Material pages
 ├── pixel/                          ← Pixel mode (cream + indigo) — the default
 │   ├── foundations.html            ← D1 · color (light + dark), type, spacing, shadow, animation tokens
 │   ├── components.html             ← D2 · cards, chips, shapes, lanes, stages, groups, callouts
@@ -64,23 +61,26 @@ references/
 │   ├── templates.html              ← D5 · per-template visual contracts (all 9 filled)
 │   ├── examples.html               ← D6 · canonical worked SVGs viewer (9 paired galleries)
 │   ├── flow.html                   ← all 6 reference pages concatenated for end-to-end reading
-│   ├── _shared.css                 ← styles for the reviewer site
+│   ├── _shared.css                 ← all Pixel styles: tokens + doc chrome + primitives
 │   └── examples/                   ← 18 canonical SVGs (9 templates × 2 themes)
 │       ├── <name>.pixel.light.svg  × 9    ← cream canvas, indigo accent
 │       └── <name>.pixel.dark.svg   × 9    ← near-black canvas, lifted surfaces
 └── material/                       ← Material mode (Material 3 · sable + sage)
-    ├── foundations.html            ← D1 · M3 tokens + diagram extensions (8 service-card variants)
-    ├── components.html             ← D2 · V2 primitives (md-card / md-chip / md-status / …) + extensions
+    ├── foundations.html            ← D1 · M3 tokens + 8 diagram-specific service-card extensions
+    ├── components.html             ← D2 · M3 primitives (md-card / md-chip / md-status / …) + extensions
     ├── icons.html                  ← D3 · Material Symbols Outlined catalog + inline-path conversion
-    ├── connectors.html             ← D4 · arrow taxonomy in V2 palette + M3 motion notes
-    ├── templates.html              ← D5 · per-template visual contracts in V2 vocabulary
+    ├── connectors.html             ← D4 · arrow taxonomy in M3 palette + M3 motion notes
+    ├── templates.html              ← D5 · per-template visual contracts in M3 vocabulary
     ├── examples.html               ← D6 · canonical worked SVGs viewer
     ├── flow.html                   ← all 6 reference pages concatenated for end-to-end reading
-    ├── _shared.css                 ← V2-consuming doc chrome + service-card extensions
-    └── examples/                   ← 18 canonical SVGs (system-context is V2-native; others pending V2 rebuild)
+    ├── _tokens.css                 ← M3 design tokens + M3 primitive classes (owned by this skill)
+    ├── _shared.css                 ← doc-site chrome + the 8 md-card--service-* extensions
+    └── examples/                   ← 18 canonical SVGs (9 templates × 2 themes)
         ├── <name>.material.light.svg  × 9
         └── <name>.material.dark.svg   × 9
 ```
+
+Both mode folders are fully self-contained: copy `references/` anywhere and every page renders without external dependencies (the Google Fonts CDN is the only network resource, and only the doc-site pages load it — emitted SVGs are entirely offline).
 
 ---
 

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Roboto+Flex:opsz,wght@8..144,300..700&family=Roboto+Serif:opsz,wght@8..144,400..700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../app-v2/styles/v2-m3.css">
+<link rel="stylesheet" href="_tokens.css">
 <link rel="stylesheet" href="_shared.css">
 <style>
 
@@ -280,8 +280,8 @@ body {
     <p class="ds-section-blurb">Locked tokens — canvas, palette, type, spacing, shadows, animation.</p>
   </div>
   <p class="eyebrow">Deliverable 01 · Foundations</p>
-<h1 class="page">M3 tokens consumed from the vendored V2 reference, plus diagram-specific extensions.</h1>
-<p class="lede">Material mode is not a sibling of Pixel — it is a <em>direct consumer</em> of an internal Material 3 reference (the V2 bundle vendored at <code>references/app-v2/</code>). Every Material reference page loads <code>v2-m3.css</code> first (the canonical CSS) and adds only the diagram-specific extensions on top. When V2 evolves, Material inherits. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
+<h1 class="page">The Material design tokens and the diagram-specific extensions on top.</h1>
+<p class="lede">Material mode owns its own design tokens. Every reference page loads <code>_tokens.css</code> first (M3 color roles, surface tiers, type scale, spacing, shape, elevation, motion, plus M3 primitive classes <code>.md-card</code> / <code>.md-chip</code> / <code>.md-status</code> / <code>.md-btn</code> / <code>.md-tabs</code> / <code>.md-seg</code> / <code>.md-list</code>) and then <code>_shared.css</code> (doc-site chrome plus the 8 diagram-specific <code>md-card--service-*</code> extensions). Both files live alongside this page in <code>material/</code>. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
 
 <!-- =========================================================== -->
 <!--                       THEME MODEL                            -->
@@ -787,7 +787,7 @@ body {
 <!-- =========================================================== -->
 
 <h2><span class="num">01.6</span>Elevation + state layers</h2>
-<p class="section-lede">M3 elevation runs 0–5. Diagrams use 0–3 in practice: outlined cards sit at 0, filled cards at 1, hero cards at 2, modals at 3. Levels 4–5 are reserved for V2 app UI (top-app-bar scroll state, dialog). State layers are M3's interaction mechanism — a <code>currentColor</code> overlay sandwiched into <code>::before</code>, opacity scaled by interaction state (hover 8%, focus 10%, pressed 12%). In emitted SVG, state layers are not rendered (the SVG is static); they exist here for completeness because the doc-site itself uses them.</p>
+<p class="section-lede">M3 elevation runs 0–5. Diagrams use 0–3 in practice: outlined cards sit at 0, filled cards at 1, hero cards at 2, modals at 3. Levels 4–5 are present in the token registry for full M3 coverage (interactive UI surfaces — top-app-bar scrolled state, dialog) but no diagram should reference them. State layers are M3's interaction mechanism — a <code>currentColor</code> overlay sandwiched into <code>::before</code>, opacity scaled by interaction state (hover 8%, focus 10%, pressed 12%). In emitted SVG, state layers are not rendered (the SVG is static); they exist here for completeness because the doc-site itself uses them.</p>
 
 <h3>Elevation · 6 levels</h3>
 <table class="tokens">
@@ -837,7 +837,7 @@ body {
   </tbody>
 </table>
 
-<p>State layers are implemented as a <code>::before</code> pseudo-element on the interactive element: <code>position: absolute; inset: 0; background: currentColor; opacity: 0</code>, ramping to the state-token value on the corresponding pseudo-class. SVG outputs are static and do not render state layers — they're for the doc site and the V2 app.</p>
+<p>State layers are implemented as a <code>::before</code> pseudo-element on the interactive element: <code>position: absolute; inset: 0; background: currentColor; opacity: 0</code>, ramping to the state-token value on the corresponding pseudo-class. SVG outputs are static and do not render state layers — they're for the doc site only.</p>
 
 <pre><code><span class="c">/* M3 state-layer pattern */</span>
 .thing<span class="k">::before</span> {
@@ -1864,8 +1864,8 @@ body {
     <p class="ds-section-blurb">78 icons across 9 categories + monogram fallback + icon→gradient map.</p>
   </div>
   <p class="eyebrow">Deliverable 03 · Icons</p>
-<h1 class="page">Material Symbols Outlined — the same icon font the V2 app uses.</h1>
-<p class="lede">Material mode adopts Google's <strong>Material Symbols Outlined</strong> — the variable icon font V2 uses in production. Reference pages load it via the same Google Fonts <code>&lt;link&gt;</code> the V2 app uses. Canonical emitted SVGs pre-convert each glyph to inline <code>&lt;path&gt;</code> data so the output stays self-contained and renders without a network dependency. The curated set below covers ~80 icons across 9 service categories — the closed list a diagram may pick from.</p>
+<h1 class="page">Material Symbols Outlined — the canonical M3 icon font.</h1>
+<p class="lede">Material mode adopts Google's <strong>Material Symbols Outlined</strong> — the variable icon font shipped with Material 3. Reference pages load it via the Google Fonts CDN. Canonical emitted SVGs pre-convert each glyph to inline <code>&lt;path&gt;</code> data so the output stays self-contained and renders without a network dependency. The curated set below covers ~80 icons across 9 service categories — the closed list a diagram may pick from.</p>
 
 <!-- =========================================================== -->
 <!--                          THEME                               -->
@@ -1890,7 +1890,7 @@ body {
 <!-- =========================================================== -->
 
 <h2><span class="num">03.1</span>Loading · the Google Fonts CDN link</h2>
-<p class="section-lede">For reference pages and any HTML context, load Material Symbols Outlined the same way V2 does — a single <code>&lt;link&gt;</code> with the Google Fonts CSS API. Use the variable-axis form so a single download covers every size and weight the skill emits.</p>
+<p class="section-lede">For reference pages and any HTML context, load Material Symbols Outlined via a single <code>&lt;link&gt;</code> against the Google Fonts CSS API. Use the variable-axis form so a single download covers every size and weight the skill emits.</p>
 
 <pre><code><span class="k">&lt;link</span> <span class="a">rel</span>=<span class="s">"preconnect"</span> <span class="a">href</span>=<span class="s">"https://fonts.googleapis.com"</span><span class="k">&gt;</span>
 <span class="k">&lt;link</span> <span class="a">rel</span>=<span class="s">"preconnect"</span> <span class="a">href</span>=<span class="s">"https://fonts.gstatic.com"</span> <span class="a">crossorigin</span><span class="k">&gt;</span>

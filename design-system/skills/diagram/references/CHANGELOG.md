@@ -1,17 +1,18 @@
 # Changelog · diagram skill
 
-## v2.0.1 — Material rebuilt against V2 reference, public-release polish
+## v2.0.1 — Material rebuilt natively, fully self-contained skill
 
-The Material reference bundle is reworked in V2-native vocabulary: it now consumes a vendored Material 3 reference CSS (`references/app-v2/styles/v2-m3.css`) directly, rather than mirroring Pixel's structure with M3 colors swapped in. Reader-facing surfaces are cleaned for sharing outside the original author's environment.
+The Material design system is rewritten as a first-class peer of Pixel: it owns its own M3 design tokens (`material/_tokens.css`), composes from M3 primitive classes verbatim, and pulls Material Symbols Outlined as its icon library. The skill directory is now fully autonomous — both modes are complete, parallel, copy-anywhere bundles with zero external dependencies beyond the Google Fonts CDN for doc-site rendering.
 
 ### What changed
-- **Material reference pages** (`foundations.html`, `components.html`, `connectors.html`, `icons.html`, `templates.html`, `examples.html`) are rewritten in V2 vocabulary. Each page now loads `../app-v2/styles/v2-m3.css` first and adds doc-site chrome + diagram-specific extensions on top. Single source of truth: when V2 evolves, Material inherits.
-- **8 service-card extensions** (`md-card--service-{primary,secondary,sql,secure,store,cache,slate,neutral}`) are defined in `material/_shared.css` as `color-mix` tints over `--md-surface-container`. This replaces the dark-saturated categorical surfaces from the v2.0.0 mechanical-transform with a "calm dense observability" look at low saturation.
+- **Material design tokens are now first-party.** `material/_tokens.css` owns the M3 color roles, surface tiers, 15-role type scale, spacing, shape, elevation, motion, plus the M3 primitive classes (`.md-card`, `.md-chip`, `.md-status`, `.md-btn`, `.md-tabs`, `.md-seg`, `.md-list`) that the generator composes. Paired with `_shared.css` (doc-site chrome + diagram-specific extensions). Both files live in `material/`.
+- **Material reference pages** (`foundations.html`, `components.html`, `connectors.html`, `icons.html`, `templates.html`, `examples.html`) are rewritten using the M3 primitive vocabulary throughout. Each page loads `_tokens.css` first and `_shared.css` second.
+- **8 service-card extensions** (`md-card--service-{primary,secondary,sql,secure,store,cache,slate,neutral}`) are defined in `material/_shared.css` as `color-mix` tints over `--md-surface-container`. This replaces the dark-saturated categorical surfaces from the v2.0.0 mechanical transform with a "calm dense observability" look at low saturation.
 - **Material Symbols Outlined** replaces the 78 hand-drawn icons. Reference pages load the Google Fonts CDN; canonical SVGs pre-convert glyphs to inline `<path>` data so output stays self-contained. `icons.html` catalogs ~80 glyphs across 9 categories plus a monogram fallback host.
-- **System-context anchor pair** (`system-context.material.{light,dark}.svg`) is hand-rebuilt from scratch in V2 vocabulary as the canonical Material reference. The other 8 canonical Material example SVGs remain mechanical transforms from Pixel originals and are flagged with a "pending V2 hand-rebuild" callout in `material/examples.html` — a future release rebuilds the rest using the §06.1 anchor as the pattern.
-- **`references/app-v2/` vendored.** The V2 Material 3 reference (CSS + a single design-system HTML page) ships in-tree so Material pages render correctly anywhere this folder is opened.
-- **Reader-facing surfaces cleaned.** Strip-out of internal project names, internal spec numbers, and personal file paths from the description, README, manifest, gallery, troubleshooting, and Material foundations. Naming generalized to "Material 3 design system" + "V2 reference bundle".
-- **CHANGELOG and README rewritten** to match shipped state. Historical planning artifacts and a Material "under construction" stub are removed.
+- **System-context anchor pair** (`system-context.material.{light,dark}.svg`) is hand-rebuilt from scratch in M3 vocabulary as the canonical Material reference. The other 8 canonical Material example SVGs remain mechanical transforms from their Pixel counterparts and are flagged with a "pending hand-rebuild" callout in `material/examples.html` — a future release rebuilds the rest using the §06.1 anchor as the pattern.
+- **Skill directory is now fully self-contained.** Removed: the vendored upstream reference at `references/app-v2/` (development scaffolding from the rewrite phase; design tokens now owned by `material/`). Both Pixel and Material modes are independent, complete, copy-anywhere bundles.
+- **Reader-facing surfaces cleaned.** Internal project names, internal spec numbers, personal file paths, and historical planning artifacts removed from `SKILL.md`, `README.md`, `index.html`, `manifest.html`, `gallery.html`, `troubleshooting.md`, and the Material foundations. `gallery.html` collapses to two tabs — Pixel and Material side-by-side.
+- **CHANGELOG and README rewritten** to match shipped state.
 
 ### What didn't change
 - **Pixel mode** — all files unchanged. Same SKILL.md routing, same 18 canonical SVGs, same reference pages.

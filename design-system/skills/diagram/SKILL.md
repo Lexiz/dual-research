@@ -9,7 +9,7 @@ description: Produces polished SVG diagrams in two parallel design systems — *
 You produce a pair of self-contained SVG files (light + dark variant of one diagram) matching a locked visual style. The skill ships **two design systems** — pick one per request:
 
 - **Pixel** (`pixel`) — cream + indigo on a polished document page. The default mode. Hand-tuned, general-purpose, subject-agnostic. 78-icon custom library.
-- **Material** (`material`) — Material 3 design language: sable + sage palette, Roboto Flex + Roboto Serif type, M3 surfaces / shape / motion, Material Symbols Outlined icons. The Material reference pages consume an internal V2 design system (vendored at `references/app-v2/`) as their source of truth — when V2 evolves, Material inherits. Use when the diagram should share visual DNA with an M3 product surface.
+- **Material** (`material`) — Material 3 design language: sable + sage palette, Roboto Flex + Roboto Serif type, M3 surfaces / shape / motion, Material Symbols Outlined icons. Self-contained: the Material design tokens live in `references/material/_tokens.css` alongside the doc chrome in `_shared.css`. Use when the diagram should share visual DNA with an M3 product surface.
 
 Each mode has its own reference bundle and its own 18 canonical example SVGs:
 
