@@ -2924,3 +2924,271 @@ body.light .tour-overlay__mask {
   color: var(--fg-3);
   user-select: text;
 }
+
+/* =============================================================
+   SPEC-0121 — How-It-Works overlay + Changelog tab
+   Layout, structural, and content classes for the rewritten
+   how-it-works.jsx. All chip / card / collapsible primitives
+   are reused unchanged from earlier specs (0094 + 0096 + 0119).
+   ============================================================= */
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.hiw { display: flex; flex-direction: column; gap: var(--s-8); }
+.hiw-sec { scroll-margin-top: 80px; }
+
+.hiw-overlay__layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  min-height: 600px;
+}
+.hiw-overlay__menu {
+  border-right: 1px solid var(--border-1);
+  padding: var(--s-5) var(--s-4);
+  background: var(--bg-1);
+  position: sticky;
+  top: 0;
+}
+.hiw-overlay__menu-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.hiw-overlay__menu-list a {
+  display: block; padding: 6px 10px;
+  border-radius: var(--r-2);
+  color: var(--fg-2); text-decoration: none;
+  font-size: var(--t-meta);
+}
+.hiw-overlay__menu-list a:hover { color: var(--fg-0); background: var(--bg-2); }
+.hiw-overlay__menu-list .menu-section-num {
+  display: inline-block; width: 18px; color: var(--fg-3);
+  font-family: var(--mono); font-size: var(--t-mono);
+}
+.hiw-overlay__content {
+  padding: var(--s-6) var(--s-8);
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+/* ── Header chrome (the rich-dialog header row) ─────────────── */
+.dr-modal-header {
+  padding: var(--s-4) var(--s-6);
+  display: flex; align-items: center; gap: var(--s-4);
+  border-bottom: 1px solid var(--border-1);
+  background: var(--bg-1);
+}
+.dr-modal-header h2 {
+  margin: 0; font-size: var(--t-title); font-weight: var(--w-semi);
+  color: var(--fg-0);
+}
+.dr-modal-header .spacer { flex: 1; }
+.dr-modal-tabs {
+  display: inline-flex; gap: 2px;
+  background: var(--bg-2); padding: 2px;
+  border-radius: var(--r-2);
+}
+.dr-modal-tabs .tab {
+  appearance: none; background: transparent; border: none;
+  padding: 6px 14px; border-radius: var(--r-2);
+  font-family: var(--sans); font-size: var(--t-body); font-weight: var(--w-medium);
+  color: var(--fg-2); cursor: pointer;
+}
+.dr-modal-tabs .tab.is-active {
+  background: var(--bg-1); color: var(--fg-0); box-shadow: var(--e-1);
+}
+.dr-modal-close {
+  appearance: none; background: transparent; border: 1px solid var(--border-1);
+  width: 32px; height: 32px; border-radius: var(--r-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--fg-2); font-size: 18px;
+}
+.dr-modal-close:hover { background: var(--bg-2); color: var(--fg-0); }
+
+/* ── Collapsible section (CSS-only — JS toggles .is-open) ─── */
+.cs-section {
+  border-top: 1px solid var(--border-1);
+  padding-top: var(--s-5);
+}
+.cs-section:first-child { border-top: none; padding-top: 0; }
+.cs-header {
+  display: flex; align-items: center; gap: var(--s-3);
+  cursor: pointer; user-select: none;
+  padding: var(--s-2) 0;
+}
+.cs-chevron {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--fg-3);
+  transition: transform var(--m-fast) var(--ease);
+}
+.cs-section.is-open .cs-chevron { transform: rotate(90deg); }
+.cs-title {
+  font-size: var(--t-h3); font-weight: var(--w-semi);
+  color: var(--fg-0);
+  display: flex; align-items: center; gap: var(--s-3);
+  flex: 1;
+}
+.cs-body { padding: var(--s-3) 0 var(--s-5) 28px; display: none; }
+.cs-section.is-open .cs-body { display: block; }
+
+/* ── Lede + section-title-cluster ──────────────────────────── */
+.lede {
+  font-size: var(--t-body); line-height: var(--lh-prose);
+  color: var(--fg-1);
+  margin: 0 0 var(--s-5) 0;
+}
+.hiw-section-title {
+  display: inline-flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* ── TL;DR card grid ────────────────────────────────────────── */
+.hiw-tldr {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+.dr-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+}
+.dr-card-body { padding: var(--s-4); }
+.dr-card-body h4 {
+  margin: 0 0 var(--s-2) 0;
+  font-size: var(--t-body); font-weight: var(--w-semi);
+  color: var(--fg-0);
+}
+.dr-card-body p {
+  margin: 0; font-size: var(--t-meta); color: var(--fg-2);
+  line-height: var(--lh-snug);
+}
+
+/* ── Diagram embed ─────────────────────────────────────────── */
+.hiw-diagram {
+  margin: var(--s-5) 0;
+  padding: var(--s-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-3);
+}
+.hiw-diagram img { width: 100%; height: auto; display: block; }
+.hiw-caption {
+  font-size: var(--t-meta); color: var(--fg-3);
+  margin: var(--s-2) 0 0 0; font-style: italic;
+}
+
+/* ── Chip row ──────────────────────────────────────────────── */
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.chip-row + .chip-row { margin-top: var(--s-2); }
+
+/* ── Input / output lists ──────────────────────────────────── */
+.hiw-input-list, .hiw-output-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.hiw-input-list li, .hiw-output-list li {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--r-2);
+}
+.hiw-input-name { font-size: var(--t-body); color: var(--fg-1); flex: 1; }
+.hiw-input-note { font-size: var(--t-meta); color: var(--fg-3); font-style: italic; }
+.hiw-muted { color: var(--fg-3); font-style: italic; }
+
+/* ── Note callout ──────────────────────────────────────────── */
+.hiw-note {
+  border-left: 3px solid var(--info);
+  background: var(--bg-2);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-2);
+  margin: var(--s-3) 0;
+  font-size: var(--t-body);
+  color: var(--fg-1);
+}
+.hiw-note[data-tone="warn"] { border-left-color: var(--warn); }
+.hiw-note[data-tone="err"]  { border-left-color: var(--err);  }
+.hiw-note[data-tone="ok"]   { border-left-color: var(--ok);   }
+.hiw-note[data-tone="idle"] { border-left-color: var(--idle); }
+.hiw-note__label {
+  font-size: var(--t-mono); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--fg-3); margin-right: var(--s-2); font-weight: var(--w-semi);
+}
+
+/* ── Table ─────────────────────────────────────────────────── */
+.hiw-table { width: 100%; border-collapse: collapse; font-size: var(--t-body); }
+.hiw-table th, .hiw-table td {
+  text-align: left; padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--border-1);
+  vertical-align: top;
+}
+.hiw-table th {
+  background: var(--bg-2);
+  font-weight: var(--w-semi); color: var(--fg-2);
+  font-size: var(--t-meta); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.hiw-table td.num { font-variant-numeric: tabular-nums; }
+
+/* ── Code block ────────────────────────────────────────────── */
+.hiw-code {
+  font-family: var(--mono); font-size: var(--t-mono);
+  background: var(--bg-2); padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-2); overflow-x: auto;
+  margin: var(--s-3) 0; color: var(--fg-1);
+  border: 1px solid var(--border-1);
+}
+
+/* ── Changelog ─────────────────────────────────────────────── */
+.cl-list { display: flex; flex-direction: column; gap: var(--s-4); }
+.cl-filter-row {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--border-1);
+  margin-bottom: var(--s-4);
+}
+.cl-filter-row .spacer { flex: 1; }
+.hiw-search {
+  background: var(--bg-2); border: 1px solid var(--border-1);
+  border-radius: var(--r-pill);
+  padding: 4px 12px; font-size: var(--t-meta);
+  color: var(--fg-1); font-family: var(--sans);
+  width: 200px;
+}
+.changelog-head {
+  display: flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap; flex: 1;
+}
+.changelog-date {
+  color: var(--fg-3); font-family: var(--mono); font-size: var(--t-mono);
+}
+.changelog-summary {
+  color: var(--fg-0); font-size: var(--t-body); font-weight: var(--w-semi);
+  flex: 1;
+}
+.changelog-bullets {
+  list-style: disc; padding-left: var(--s-5); margin: var(--s-2) 0 0 0;
+  color: var(--fg-1); font-size: var(--t-body); line-height: var(--lh-snug);
+}
+.changelog-bullets li + li { margin-top: var(--s-2); }
+.changelog-bullets li strong { color: var(--fg-0); font-weight: var(--w-semi); }
+.changelog-shots {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.changelog-shots figure {
+  margin: 0; background: var(--bg-2);
+  border: 1px solid var(--border-1); border-radius: var(--r-2);
+  padding: var(--s-2); overflow: hidden;
+}
+.changelog-shots figure img {
+  width: 100%; height: auto; display: block;
+  border-radius: var(--r-1);
+}
+.changelog-shots figcaption {
+  font-size: var(--t-meta); color: var(--fg-3);
+  margin-top: var(--s-2); text-align: center;
+}
+.changelog-spec-link { margin-top: var(--s-3); }
