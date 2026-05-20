@@ -10,6 +10,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-05-20
+
 ### Added
 
 - **Spec 0119 — Badge governance: unified chip primitive, vocabulary, and surface-level rollout** ([spec 0119](specs/0119-badge-governance.md)). Foundation for spec 0120 (turn-modal items rework) and every future chip-bearing surface. Frontend-only; no backend / contract / protocol changes.
@@ -29,7 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   - **Design-system documentation** (`design-system/SPEC.md`): new §4.5 Badge governance section codifying the nine canonical chip kinds, the fixed category-tone mapping, the four composition rules, and the canonical vocabulary tables. The in-app design-language `<Chip>` spotlight rebuilds to show every canonical kind with the new vocabulary.
   - **Backend untouched.** No edits to `src/dual_research/contract/`, `src/dual_research/orchestrator/`, `src/dual_research/protocol/`, or `src/dual_research/events/`. The Python disagreement-parser `_TERMINAL_STATES` literals stay in place (they parse on-disk pre-0114 turn files; the §13 vocabulary scan is scoped strictly to the static dir).
 
-  Targeted version bump: **MINOR** (1.4.0). Version bump + static cache-bust deferred to merge commit per the 0116 pattern.
+  Version bump (1.4.0) and static cache-bust (0118b → 0119a) land in the release commit (per the 0116 pattern).
 
 ### Fixed
 
