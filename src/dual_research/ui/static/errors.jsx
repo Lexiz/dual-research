@@ -172,7 +172,7 @@ function ErrorsView() {
     : ERRORS_LOG.filter(e => e.severity === filter);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-0)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--md-surface)' }}>
       {/* Header */}
       <header style={{
         display: 'grid',
@@ -180,8 +180,8 @@ function ErrorsView() {
         alignItems: 'center',
         gap: 24,
         padding: '14px 24px',
-        borderBottom: '1px solid var(--border-1)',
-        background: 'var(--bg-0)',
+        borderBottom: '1px solid var(--md-outline-hair)',
+        background: 'var(--md-surface)',
         flexShrink: 0,
         position: 'relative',
       }}>
@@ -191,14 +191,14 @@ function ErrorsView() {
         }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
           <span style={{ color: COLORS.err }}><Icon.Warn /></span>
-          <span style={{ fontSize: 14, color: 'var(--fg-0)', fontWeight: 600 }}>Errors</span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          <span style={{ fontSize: 14, color: 'var(--md-on-surface)', fontWeight: 600 }}>Errors</span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
             {ERRORS_LOG.length} total · last 7 days
           </span>
         </div>
         <div style={{ minWidth: 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, whiteSpace: 'nowrap' }}>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
             ingesting from orchestrator
           </span>
           <Dot color={COLORS.info} pulse="pulse-a" size={6} />
@@ -209,8 +209,8 @@ function ErrorsView() {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '12px 24px',
-        borderBottom: '1px solid var(--border-1)',
-        background: 'var(--bg-1)',
+        borderBottom: '1px solid var(--md-outline-hair)',
+        background: 'var(--md-surface-container-low)',
         flexShrink: 0,
       }}>
         <Tab active={filter === 'all'} onClick={() => setFilter('all')} count={ERRORS_LOG.length}>all</Tab>
@@ -218,7 +218,7 @@ function ErrorsView() {
         <Tab active={filter === 'error'}    onClick={() => setFilter('error')}    dot filterTone="errored" count={counts.error || 0}>error</Tab>
         <Tab active={filter === 'warning'}  onClick={() => setFilter('warning')}  dot filterTone="deadlocked" count={counts.warning || 0}>warning</Tab>
         <span style={{ flex: 1 }} />
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
           newest first · click row to expand
         </span>
       </div>
@@ -235,7 +235,7 @@ function ErrorsView() {
             />
           ))}
           {visible.length === 0 && (
-            <div style={{ padding: 60, textAlign: 'center', color: 'var(--fg-3)' }}>
+            <div style={{ padding: 60, textAlign: 'center', color: 'var(--md-on-surface-faint)' }}>
               <div className="mono" style={{ fontSize: 12 }}>no errors matching this filter</div>
             </div>
           )}
@@ -250,18 +250,18 @@ function FilterChip({ label, count, color, active, onClick }) {
     <button onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
       height: 28, padding: '0 12px',
-      background: active ? 'var(--bg-3)' : 'var(--bg-2)',
-      border: `1px solid ${active ? 'var(--border-3)' : 'var(--border-1)'}`,
-      borderRadius: 'var(--r-2)',
+      background: active ? 'var(--md-surface-container-high)' : 'var(--md-surface-container)',
+      border: `1px solid ${active ? 'var(--md-outline)' : 'var(--md-outline-hair)'}`,
+      borderRadius: 'var(--md-shape-sm)',
       whiteSpace: 'nowrap',
     }}>
       {color && <Dot color={color} size={6} />}
       <span style={{
-        fontSize: 12, color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+        fontSize: 12, color: active ? 'var(--md-on-surface)' : 'var(--md-on-surface-muted)',
         fontWeight: active ? 500 : 400,
         textTransform: 'lowercase',
       }}>{label}</span>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{count}</span>
+      <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{count}</span>
     </button>
   );
 }
@@ -277,25 +277,25 @@ function ErrorCard({ error, open, onToggle }) {
       onMouseLeave={() => setHover(false)}
       style={{
         marginBottom: 8,
-        background: 'var(--bg-1)',
-        border: `1px solid ${open ? 'var(--border-2)' : 'var(--border-1)'}`,
+        background: 'var(--md-surface-container-low)',
+        border: `1px solid ${open ? 'var(--md-outline-variant)' : 'var(--md-outline-hair)'}`,
         borderLeft: `3px solid ${sev.color}`,
-        borderRadius: 'var(--r-3)',
+        borderRadius: 'var(--md-shape-md)',
         overflow: 'hidden',
         transition: 'border-color 120ms',
       }}>
       <button onClick={onToggle} style={{
         display: 'block', width: '100%', textAlign: 'left',
         padding: '12px 14px',
-        background: hover && !open ? 'var(--bg-2)' : 'transparent',
+        background: hover && !open ? 'var(--md-surface-container)' : 'transparent',
         transition: 'background 120ms',
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           {/* Left side: timestamp + code */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200, flexShrink: 0 }}>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', whiteSpace: 'nowrap' }}>
               {error.timestamp}
-              <span style={{ color: 'var(--fg-4)', marginLeft: 8 }}>· {fmt.relTime(error.relAgo)}</span>
+              <span style={{ color: 'var(--md-on-surface-decor)', marginLeft: 8 }}>· {fmt.relTime(error.relAgo)}</span>
             </span>
             <span className="mono" style={{
               fontSize: 12.5, color: sev.color, fontWeight: 600, letterSpacing: '0.02em',
@@ -305,28 +305,28 @@ function ErrorCard({ error, open, onToggle }) {
 
           {/* Middle: summary */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, color: 'var(--fg-0)', lineHeight: 1.45, marginBottom: 4 }}>
+            <div style={{ fontSize: 13, color: 'var(--md-on-surface)', lineHeight: 1.45, marginBottom: 4 }}>
               {error.summary}
             </div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+              fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
               whiteSpace: 'nowrap',
             }}>
               {error.agent && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   <AgentIcon agent={error.agent} size={12} variant="ghost" />
-                  <span style={{ color: 'var(--fg-1)' }}>{AGENT_META[error.agent].name}</span>
+                  <span style={{ color: 'var(--md-on-surface-variant)' }}>{AGENT_META[error.agent].name}</span>
                 </span>
               )}
-              {!error.agent && <span style={{ color: 'var(--fg-2)' }}>orchestrator</span>}
-              <span style={{ color: 'var(--fg-4)' }}>·</span>
+              {!error.agent && <span style={{ color: 'var(--md-on-surface-muted)' }}>orchestrator</span>}
+              <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
               <span>P{error.phase}</span>
-              <span style={{ color: 'var(--fg-4)' }}>·</span>
-              <span>run <span style={{ color: 'var(--fg-1)' }}>{error.runId}</span></span>
+              <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
+              <span>run <span style={{ color: 'var(--md-on-surface-variant)' }}>{error.runId}</span></span>
               {error.retried > 0 && (
                 <>
-                  <span style={{ color: 'var(--fg-4)' }}>·</span>
+                  <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
                   <span>retried {error.retried}×</span>
                 </>
               )}
@@ -349,7 +349,7 @@ function ErrorCard({ error, open, onToggle }) {
               width: 18, height: 18,
               opacity: open ? 0.6 : hover ? 0.6 : 0.25,
               transition: 'opacity 120ms',
-              color: 'var(--fg-2)',
+              color: 'var(--md-on-surface-muted)',
               transform: open ? 'rotate(90deg)' : 'none',
             }}>
               <Icon.Chevron />
@@ -361,29 +361,29 @@ function ErrorCard({ error, open, onToggle }) {
       {open && (
         <div style={{
           padding: '14px',
-          borderTop: '1px dashed var(--border-1)',
-          background: 'var(--bg-0)',
+          borderTop: '1px dashed var(--md-outline-hair)',
+          background: 'var(--md-surface)',
         }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{
-              fontSize: 10, color: 'var(--fg-3)',
+              fontSize: 10, color: 'var(--md-on-surface-faint)',
               letterSpacing: '0.08em', textTransform: 'uppercase',
               fontWeight: 500, marginBottom: 6,
             }}>Location</div>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--fg-1)' }}>{error.where}</div>
+            <div className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface-variant)' }}>{error.where}</div>
           </div>
           <div>
             <div style={{
-              fontSize: 10, color: 'var(--fg-3)',
+              fontSize: 10, color: 'var(--md-on-surface-faint)',
               letterSpacing: '0.08em', textTransform: 'uppercase',
               fontWeight: 500, marginBottom: 6,
             }}>Detail</div>
             <pre className="mono" style={{
               margin: 0, padding: '10px 12px',
-              fontSize: 11.5, color: 'var(--fg-1)',
-              background: 'var(--bg-1)',
-              border: '1px solid var(--border-1)',
-              borderRadius: 'var(--r-2)',
+              fontSize: 11.5, color: 'var(--md-on-surface-variant)',
+              background: 'var(--md-surface-container-low)',
+              border: '1px solid var(--md-outline-hair)',
+              borderRadius: 'var(--md-shape-sm)',
               whiteSpace: 'pre-wrap', lineHeight: 1.6,
             }}>{error.detail}</pre>
           </div>
