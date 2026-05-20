@@ -2,8 +2,8 @@
 
 - Date: 2026-05-20
 - Spec: [`specs/0128-run-detail-jsx-m3-migration.md`](../specs/0128-run-detail-jsx-m3-migration.md)
-- PR: filled in by `gh pr create` after this file lands in the commit — see `git log --oneline -3` post-merge
-- Deployed version: `1.6.6`
+- PR: https://github.com/Lexiz/dual-research/pull/146 (squash-merged as `93d0538`)
+- Deployed version: `1.6.6` (verified live at https://dual-research-alex.fly.dev/api/health on 2026-05-20)
 
 ## Bottom line for the next session
 
