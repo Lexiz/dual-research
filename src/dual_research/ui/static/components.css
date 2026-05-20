@@ -95,46 +95,160 @@
 .sb-b > .dot { background: var(--agent-b); }
 
 /* ─────────────────────────────────────────────────────────────
-   Chip (.chip)
-   For counts, +N/-N deltas, single-data badges.
-   Variants: default | .tone-info | .tone-ok | .tone-warn | .tone-err |
-             .tone-a (agent-a) | .tone-b (agent-b) | .tone-muted
-   Shapes:   default (r-1) | .chip-pill (r-pill)
+   Chip (.chip) — Spec 0119 unified primitive
+   The single chip primitive across every surface. Replaces the
+   v1 .chip + the M3 .chip.tone-* cascade that previously lived
+   further down this file.
+
+   Slots (rendered in order, each emitted only when set):
+     leadingDot | leadingIcon | cat-bubble  →  label  →
+     value  →  add  →  sub  →  trailingSuffix  →  children
+
+   Tones:  info · ok · warn · err · idle · claude · gpt · neutral
+           (plus legacy aliases: a (=claude), b (=gpt),
+            muted, info-strong)
+   Shapes: pill (default, --r-pill) | square (.chip-square, --r-1)
+   Sizes:  default 22px | lg 26px (.chip-lg)
    ───────────────────────────────────────────────────────────── */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 20px;
-  padding: 0 8px;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
   font-family: var(--sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
+  font-size: 11px;
   font-weight: var(--w-medium);
   letter-spacing: -0.005em;
   background: var(--bg-2);
   border: 1px solid var(--border-1);
-  border-radius: var(--r-1);
+  border-radius: var(--r-pill);
   color: var(--fg-1);
   white-space: nowrap;
   line-height: 1;
 }
-.chip-pill { border-radius: var(--r-pill); padding: 0 10px; }
-.chip-lg   { height: 22px; padding: 0 10px; }
+/* Legacy: .chip-pill was the opt-in to pill shape. Pill is now the
+   default; keep the class as a no-op so existing callsites don't
+   break. Same for .chip-lg (still flips to the larger 26px size). */
+.chip-pill { border-radius: var(--r-pill); }
+.chip-lg   { height: 26px; padding: 0 11px; }
+.chip.chip-square { border-radius: var(--r-1); }
+
+/* Modifiers */
+.chip.mono { font-family: var(--mono); font-size: 10.5px; }
+.chip.dim  { opacity: 0.55; }
+.chip-icon-only { padding: 0 6px; gap: 0; }
+
+/* Tones — filled-tonal, no border. Backgrounds are
+   color-mix-style tints over the surface; foreground is the
+   tone hue. Status tones (info/ok/warn/err/idle) carry an auto
+   leading dot via ::before (see below); identity tones
+   (claude/gpt/neutral) do NOT. */
+.chip.tone-info        { color: var(--info);    background: color-mix(in srgb, var(--info) 18%, transparent); border-color: transparent; }
+.chip.tone-info-strong { color: var(--info);    background: color-mix(in srgb, var(--info) 28%, transparent); border-color: transparent; }
+.chip.tone-ok          { color: var(--ok);      background: color-mix(in srgb, var(--ok) 18%, transparent);   border-color: transparent; }
+.chip.tone-warn        { color: var(--warn);    background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: transparent; }
+.chip.tone-err         { color: var(--err);     background: color-mix(in srgb, var(--err) 18%, transparent);  border-color: transparent; }
+.chip.tone-idle        { color: var(--idle);    background: color-mix(in srgb, var(--idle) 28%, transparent); border-color: transparent; }
+.chip.tone-muted       { color: var(--fg-3);    background: var(--bg-2); border-color: transparent; }
+.chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
+.chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+.chip.tone-neutral     { color: var(--fg-1);    background: var(--bg-3); border-color: transparent; }
+/* Legacy tone names — alias to the canonical pair. Code is being
+   migrated to tone-claude / tone-gpt; until then both work. */
+.chip.tone-a           { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
+.chip.tone-b           { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+
+/* Auto leading-dot for status tones only. Identity tones
+   (claude/gpt/neutral) intentionally do not get one. Suppressed
+   when .no-dot is applied (the upgraded <Chip> auto-adds .no-dot
+   whenever any slot prop is set, so explicit slots never collide
+   with the auto-dot). */
+.chip.tone-info::before,
+.chip.tone-info-strong::before,
+.chip.tone-ok::before,
+.chip.tone-warn::before,
+.chip.tone-err::before,
+.chip.tone-idle::before,
+.chip.tone-muted::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.chip.no-dot::before { display: none; }
+
+/* Slot children */
+.chip .chip-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: 0 0 6px;
+}
+.chip .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+.chip .cat-bubble {
+  width: 14px; height: 14px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800;
+  font-family: var(--sans);
+  letter-spacing: 0;
+  flex: 0 0 14px;
+  color: #ffffff;                       /* knockout-white letter */
+  background: currentColor;             /* fall-back; overridden by tone-* below */
+}
+.chip.tone-info  .cat-bubble { background: var(--info); }
+.chip.tone-warn  .cat-bubble { background: var(--warn); }
+.chip.tone-err   .cat-bubble { background: var(--err);  }
+.chip.tone-idle  .cat-bubble { background: var(--idle); }
+.chip.dim .cat-bubble { opacity: 0.7; }
+
+.chip .chip-label { color: currentColor; }
+.chip .chip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 12px;
+  color: var(--fg-0);
+}
+.chip.dim .chip-value { color: var(--fg-2); }
+.chip .chip-add {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; font-size: 11px;
+  color: var(--ok);
+}
+.chip .chip-sub {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; font-size: 11px;
+  color: var(--err);
+}
+.chip.dim .chip-add,
+.chip.dim .chip-sub { color: var(--fg-3); }
+.chip .chip-suffix {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+
+/* Active state for clickable filter chips (e.g., critique pane legend).
+   Outline ring in the chip's own tone. */
+.chip[data-active="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* Legacy slot — kept for back-compat with <Chip icon=…>. */
 .chip .unit { color: var(--fg-3); }
 .chip .ico  { width: 12px; height: 12px; flex: 0 0 auto; }
 
-.chip.tone-info { color: var(--info); border-color: var(--info-border); background: var(--info-bg); }
-.chip.tone-ok   { color: var(--ok);   border-color: var(--ok-border);   background: var(--ok-bg); }
-.chip.tone-warn { color: var(--warn); border-color: var(--warn-border); background: var(--warn-bg); }
-.chip.tone-err  { color: var(--err);  border-color: var(--err-border);  background: var(--err-bg); }
-.chip.tone-a    { color: var(--agent-a); border-color: var(--agent-a-border); background: var(--agent-a-bg); }
-.chip.tone-b    { color: var(--agent-b); border-color: var(--agent-b-border); background: var(--agent-b-bg); }
-.chip.tone-muted { color: var(--fg-3); }
-
-button.chip { cursor: pointer; transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease); }
-button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
+button.chip {
+  cursor: pointer;
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+button.chip:hover { filter: brightness(1.12); }
+button.chip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
 
 /* ─────────────────────────────────────────────────────────────
    RunIDChip (.rid)
@@ -1418,22 +1532,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   left: 28px; width: 24px; height: 24px; background: var(--md-on-primary);
 }
 
-/* ── Tonal chips (v2-m3-page.css anatomy — M3 tokens) ──── */
-/* These cascade over the v1 .chip.tone-* rules above, adding
-   the M3 pastel-pill anatomy with leading dot and no border. */
-.chip.tone-ok    { background: color-mix(in srgb, var(--p-ok)    18%, transparent); color: var(--p-ok);   border: 0; }
-.chip.tone-info  { background: color-mix(in srgb, var(--p-info)  18%, transparent); color: var(--p-info); border: 0; }
-.chip.tone-info-strong { background: color-mix(in srgb, var(--p-info) 28%, transparent); color: var(--p-info); border: 0; }
-.chip.tone-warn  { background: color-mix(in srgb, var(--p-warn)  18%, transparent); color: var(--p-warn); border: 0; }
-.chip.tone-err   { background: color-mix(in srgb, var(--p-err)   18%, transparent); color: var(--p-err);  border: 0; }
-.chip.tone-idle  { background: color-mix(in srgb, var(--p-idle)  28%, transparent); color: var(--md-on-surface-variant); border: 0; }
-.chip.tone-a     { background: var(--md-primary-container);   color: var(--md-on-primary-container); border: 0; }
-.chip.tone-b     { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border: 0; }
-.chip.tone-neutral { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 0; }
-/* Dot pseudo-element for tonal chips — scoped to tone-* to avoid
-   regressing non-tonal chips that don't expect a leading dot. */
-.chip[class*="tone-"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-.chip.no-dot::before { display: none; }
+/* Tonal chip tones + auto-dot moved into the canonical .chip section
+   near the top of this file (spec 0119). The duplicated cascade
+   that lived here was the source of the v1/M3 split. */
 
 /* ── Focus ring for all M3 focusable atoms ──────────────── */
 .md-btn:focus-visible,

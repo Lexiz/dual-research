@@ -713,25 +713,132 @@ function SB({ tone = 'idle', size = 'md', children, live = false, className }) {
   );
 }
 
-// Chip — SPEC-0093: emits tonal `.chip .tone-{tone}` (when tone is set)
-// or M3 `.md-chip` (when m3 prop is true or no tone). Prop API unchanged.
-// tone: 'info' | 'ok' | 'warn' | 'err' | 'a' | 'b' | 'muted' | 'info-strong' | 'idle' | 'neutral' (optional)
-function Chip({ tone, pill, lg, icon, children, asButton, onClick, className, title, style, m3, noDot }) {
-  // When tone is provided, use tonal chip classes; otherwise M3 chip.
+// Chip — Spec 0119 unified primitive. The single chip across every
+// surface. Two prop tiers coexist:
+//
+//   • Slot API (preferred, spec 0119): leadingDot / leadingIcon /
+//     categoryBubble (mutually exclusive leading element), then
+//     label, value, add, sub, trailingSuffix, plus modifiers
+//     iconOnly / dim / mono / shape / size.
+//   • Legacy props: tone / pill / lg / icon / noDot / asButton /
+//     children. Still honored so existing callsites render
+//     unchanged until they're migrated.
+//
+// Tones: info · ok · warn · err · idle · claude · gpt · neutral
+//        (legacy aliases: a (=claude), b (=gpt), muted, info-strong)
+//
+// Auto leading-dot: when a tone is set and the caller is using the
+// LEGACY API, the chip auto-renders a ::before dot for status tones
+// (info/ok/warn/err/idle/muted/info-strong). New slot-API callers
+// auto-suppress the auto-dot, so explicit leadingDot / leadingIcon
+// / categoryBubble never collide with it.
+function Chip({
+  // ─── new slot API ───────────────────────────
+  leadingDot,
+  leadingIcon,
+  categoryBubble,
+  label,
+  value,
+  add,
+  sub,
+  trailingSuffix,
+  iconOnly,
+  dim,
+  shape,
+  size,
+  mono,
+  ariaLabel,
+  // ─── legacy ────────────────────────────────
+  tone,
+  pill,
+  lg,
+  icon,
+  children,
+  asButton,
+  onClick,
+  className,
+  title,
+  style,
+  m3,
+  noDot,
+  ...rest
+}) {
+  // Detect new-slot usage so the auto-dot ::before stays out of the way.
+  const usesNewSlots = (
+    leadingDot != null || leadingIcon != null || categoryBubble != null ||
+    iconOnly || value != null || add != null || sub != null ||
+    trailingSuffix != null || dim || mono || label != null
+  );
+  const suppressAutoDot = noDot || usesNewSlots;
+
   const isTonal = tone && !m3;
   const cls = isTonal
-    ? _cn('chip', `tone-${tone}`, pill && 'chip-pill', lg && 'chip-lg', noDot && 'no-dot', className)
+    ? _cn(
+        'chip',
+        `tone-${tone}`,
+        pill && 'chip-pill',                                 // legacy no-op (pill is default)
+        (lg || size === 'lg') && 'chip-lg',
+        shape === 'square' && 'chip-square',
+        mono && 'mono',
+        dim && 'dim',
+        iconOnly && 'chip-icon-only',
+        suppressAutoDot && 'no-dot',
+        className,
+      )
     : _cn('md-chip', lg && 'md-chip--sm', className);
+
   const content = (
     <>
+      {leadingDot && <span className="chip-dot" aria-hidden="true" />}
+      {leadingIcon && <span className="chip-leading-icon" aria-hidden="true">{leadingIcon}</span>}
+      {categoryBubble && (
+        <span className="cat-bubble" aria-hidden="true">{categoryBubble}</span>
+      )}
       {icon && <Mdi name={icon} size={12} className="ico" />}
+      {label != null && <span className="chip-label">{label}</span>}
+      {value != null && <span className="chip-value">{value}</span>}
+      {add != null && <span className="chip-add">+{add}</span>}
+      {sub != null && <span className="chip-sub">−{sub}</span>}
+      {trailingSuffix != null && <span className="chip-suffix">{trailingSuffix}</span>}
       {children}
     </>
   );
-  if (asButton) {
-    return <button type="button" className={cls} onClick={onClick} title={title} style={style}>{content}</button>;
+
+  // If onClick is set, render as a button so the click actually fires.
+  const renderButton = !!(asButton || onClick);
+  if (renderButton) {
+    return (
+      <button
+        type="button"
+        className={cls}
+        onClick={onClick}
+        title={title}
+        style={style}
+        aria-label={ariaLabel}
+        {...rest}
+      >
+        {content}
+      </button>
+    );
   }
-  return <span className={cls} title={title} style={style}>{content}</span>;
+  return (
+    <span
+      className={cls}
+      title={title}
+      style={style}
+      aria-label={ariaLabel}
+      {...rest}
+    >
+      {content}
+    </span>
+  );
+}
+
+// Spec 0119 — bare ✓ status chip glyph. Thin alias over Icon.Check at
+// the canonical 12 px size; lives here so chip callsites can read it
+// alongside the Chip primitive without a separate import dance.
+function CheckGlyph(props) {
+  return <Icon.Check {...props} />;
 }
 
 // RunIDChip — pure identity, pill-shaped 4-char hex. Size sm or md.

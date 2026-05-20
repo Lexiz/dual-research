@@ -50,11 +50,26 @@
   --info-bg:  rgba(107,156,240,0.08);
   --warn-bg:  rgba(212,160,86,0.08);
   --err-bg:   rgba(217,106,106,0.06);
+  --idle-bg:  rgba(94,99,109,0.18);
 
   --ok-border:   rgba(111,179,128,0.28);
   --info-border: rgba(107,156,240,0.28);
   --warn-border: rgba(212,160,86,0.28);
   --err-border:  rgba(217,106,106,0.28);
+  --idle-border: rgba(94,99,109,0.32);
+
+  /* Spec 0119 — chip-tone aliases. The agent palette is the canonical
+     identity (--agent-a / --agent-b). These aliases let chip tones use
+     readable role names (tone-claude / tone-gpt) while reading the
+     same underlying value. Do NOT use --claude / --gpt outside chip
+     rendering — agent-tinted backgrounds, borders, and accents read
+     --agent-a / --agent-b directly. */
+  --claude:        var(--agent-a);
+  --claude-bg:     var(--agent-a-bg);
+  --claude-border: var(--agent-a-border);
+  --gpt:           var(--agent-b);
+  --gpt-bg:        var(--agent-b-bg);
+  --gpt-border:    var(--agent-b-border);
 
   /* ── On-accent ──────────────────────────────────── */
   --on-accent: #14110a;     /* text/icon atop agent-color solid fills */
