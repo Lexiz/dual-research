@@ -6,7 +6,7 @@ version-bump: MINOR
 status: in-flight
 target-version: 1.7.0
 created: 2026-05-20
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/153"
 ---
 
 # Spec 0133 — Run-detail surface rework: agent chips into Timeline pane + narrow critique compaction + M3 segmented phase progress + timeline card chip slim-down
