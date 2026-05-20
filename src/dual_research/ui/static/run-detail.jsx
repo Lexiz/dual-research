@@ -153,8 +153,8 @@ function TimelineAgentPill({ agent, run }) {
   const modelId = ag.modelId || ag.model_id || meta?.name || agent;
   const { live, phrase } = composeAgentActivity(agent, run);
   const slot = agent === 'claude' ? 'a' : 'b';
-  const dotColor = live ? meta.color : 'var(--border-3)';
-  const phraseColor = live ? 'var(--fg-1)' : 'var(--fg-3)';
+  const dotColor = live ? meta.color : 'var(--md-outline)';
+  const phraseColor = live ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-faint)';
 
   const activityRight = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
@@ -227,20 +227,20 @@ function RunSearchSummary({ onJump }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '3px 10px',
-        background: 'var(--bg-2)',
-        border: `1px solid ${warnings > 0 ? COLORS.warn + '55' : 'var(--border-1)'}`,
+        background: 'var(--md-surface-container)',
+        border: `1px solid ${warnings > 0 ? COLORS.warn + '55' : 'var(--md-outline-hair)'}`,
         borderRadius: 999,
         fontFamily: 'inherit', cursor: 'pointer',
-        fontSize: 11, color: 'var(--fg-1)',
+        fontSize: 11, color: 'var(--md-on-surface-variant)',
         whiteSpace: 'nowrap', flexShrink: 0,
       }}>
       <Mdi name="magnify" size={11} />
       <span className="mono">{totalQueries}</span>
-      <span style={{ color: 'var(--fg-3)' }}>·</span>
+      <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
       <span className="mono">{totalUrls} URLs</span>
       {warnings > 0 && (
         <>
-          <span style={{ color: 'var(--fg-3)' }}>·</span>
+          <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
           <span className="mono" style={{ color: COLORS.warn, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
             <Mdi name="alert" size={11} /> {warnings} unmatched
           </span>
@@ -340,11 +340,11 @@ function BlockingItemCallout({ run }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         padding: '6px 20px',
         background: counts.ghosted > 0 ? `${COLORS.warn}0d` : `${COLORS.info}0d`,
-        borderBottom: '1px solid var(--border-1)',
+        borderBottom: '1px solid var(--md-outline-hair)',
         border: 'none',
-        borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: 'var(--border-1)',
+        borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: 'var(--md-outline-hair)',
         cursor: 'pointer',
-        fontFamily: 'inherit', fontSize: 11.5, color: 'var(--fg-1)',
+        fontFamily: 'inherit', fontSize: 11.5, color: 'var(--md-on-surface-variant)',
         flexShrink: 0,
         width: '100%',
       }}
@@ -356,7 +356,7 @@ function BlockingItemCallout({ run }) {
           <span><span className="num" style={{ fontWeight: 600 }}>{counts.open}</span> open</span>
         )}
         {counts.open > 0 && counts.ghosted > 0 && (
-          <span style={{ color: 'var(--fg-3)' }}>·</span>
+          <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
         )}
         {counts.ghosted > 0 && (
           <span style={{ color: COLORS.warn }}>
@@ -364,7 +364,7 @@ function BlockingItemCallout({ run }) {
           </span>
         )}
       </span>
-      <span style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>click to jump</span>
+      <span style={{ color: 'var(--md-on-surface-faint)', fontSize: 10.5 }}>click to jump</span>
     </button>
   );
 }
@@ -560,7 +560,7 @@ function ReconcileChip({ run, localCost }) {
   // background/border/text-color; `icon` prop renders the per-state Mdi; `pill`
   // modifier preserves the pill shape; `chip-lg` matches the prior 22-ish-px
   // height. Body's inline color spans override Chip's tone color where the
-  // copy needs to be neutral (var(--fg-1/2/3)) rather than tone-colored.
+  // copy needs to be neutral (var(--md-on-surface-variant/muted/faint)) rather than tone-colored.
   return (
     <Chip tone={p.tone} pill lg icon={p.icon} title={tooltip}>
       {body}
@@ -616,7 +616,7 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
       border: '1px solid var(--md-outline-hair)',
       background: 'var(--md-surface-container-high)',
       flexShrink: 0,
-      fontFamily: 'var(--mono)',
+      fontFamily: 'var(--md-font-data)',
       // SPEC-0087 § A — align the run-detail status pill's vertical
       // sizing with the run-list `.sb` primitive (20px tall). The
       // inner status half stays a bespoke layout to keep the
@@ -674,7 +674,7 @@ function PhaseDots({ run }) {
           ? (status === 'errored' ? COLORS.err : COLORS.warn)
           : current ? COLORS.info
           : completed ? COLORS.ok
-          : 'var(--border-3)';
+          : 'var(--md-outline)';
         const isLast = i === PHASES.length - 1;
         return (
           <React.Fragment key={p.id}>
@@ -690,7 +690,7 @@ function PhaseDots({ run }) {
             {!isLast && (
               <span style={{
                 width: 12, height: 1,
-                background: completed ? COLORS.ok : 'var(--border-2)',
+                background: completed ? COLORS.ok : 'var(--md-outline-variant)',
                 opacity: completed ? 0.5 : 1,
               }} />
             )}
@@ -1790,19 +1790,19 @@ function ProviderBilledLine({ report, agent, modelId }) {
   if (providerUsd === 0 && deltaUsd === 0) return null;
 
   const flagged = Boolean(match.flagged);
-  const c = flagged ? COLORS.warn : 'var(--fg-3)';
+  const c = flagged ? COLORS.warn : 'var(--md-on-surface-faint)';
   return (
     <div className="mono" style={{
       paddingTop: 4, marginTop: 2,
       fontSize: 10.5, color: c,
       display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
     }}>
-      <span style={{ color: 'var(--fg-3)' }}>Provider-billed:{' '}
-        <span className="num" style={{ color: 'var(--fg-2)' }}>
+      <span style={{ color: 'var(--md-on-surface-faint)' }}>Provider-billed:{' '}
+        <span className="num" style={{ color: 'var(--md-on-surface-muted)' }}>
           {fmt.cost(providerUsd)}
         </span>
       </span>
-      <span style={{ color: 'var(--fg-4)' }}>·</span>
+      <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
       <span style={{ color: c }}>
         Δ <span className="num">{deltaUsd >= 0 ? '+' : ''}{fmt.cost(deltaUsd)}</span>
         {' '}({deltaPct.toFixed(1)}%)
@@ -2146,14 +2146,14 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
         padding: '2px 0',
       }}>
         <span className="lbl" style={{
-          fontSize: 11, color: 'var(--fg-2)',
+          fontSize: 11, color: 'var(--md-on-surface-muted)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{label}</span>
         <div className="ccx-bar" style={{ height: 6 }}>
           <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%` }} />
         </div>
         <span className="num" style={{
-          fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap',
+          fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
           textAlign: 'right',
         }}>
           {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
@@ -2170,7 +2170,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
         <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
         <span className="nm">{meta.name}</span>
         <span className="stats" style={{ marginLeft: 'auto' }}>
-          <span className="pct" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          <span className="pct" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
             ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
           </span>
         </span>
@@ -2203,7 +2203,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
       {/* Cache-reuse signal text (collapsed; spec 0051 line, retained) */}
       {reuse.hasReuse && (
         <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--fg-3)', paddingTop: 2,
+          fontSize: 10.5, color: 'var(--md-on-surface-faint)', paddingTop: 2,
         }}>
           {fmt.tokens(reuse.content)}kt seen &middot; {fmt.tokens(reuse.billed)}kt billed
           {' '}(&times; {reuse.multiplier.toFixed(1)} token reuse)
@@ -2231,7 +2231,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
             alignItems: 'center', gap: 10,
             padding: '2px 0',
           }}>
-            <span className="lbl" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+            <span className="lbl" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
               Output
             </span>
             <div className="ccx-bar" style={{ height: 6 }}>
@@ -2240,7 +2240,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
               }} />
             </div>
             <span className="num" style={{
-              fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap',
+              fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
               textAlign: 'right',
             }}>
               {fmt.tokens(tokensOut)}t &middot; {fmt.cost(outCostUsd)}
@@ -2251,7 +2251,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
               because it's the only place per-turn search cost surfaces). */}
           {hasSearches && (
             <div className="mono" style={{
-              fontSize: 10.5, color: 'var(--fg-3)', paddingTop: 4,
+              fontSize: 10.5, color: 'var(--md-on-surface-faint)', paddingTop: 4,
               textAlign: 'right',
             }}>
               Web search &middot; {queries || searches} queries &middot;{' '}
@@ -2293,25 +2293,25 @@ function CostsCluster({ usage, outputCost }) {
   const hasOutputCost = outCostUsd > 0;
   return (
     <div className="mono" style={{
-      paddingTop: 6, borderTop: '1px solid var(--border-1)',
-      fontSize: 10.5, color: 'var(--fg-3)',
+      paddingTop: 6, borderTop: '1px solid var(--md-outline-hair)',
+      fontSize: 10.5, color: 'var(--md-on-surface-faint)',
       display: 'flex', flexDirection: 'column', gap: 2,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span>Input:{' '}
-          <span className="num" style={{ color: 'var(--fg-2)' }}>
+          <span className="num" style={{ color: 'var(--md-on-surface-muted)' }}>
             {fmt.cost(inputCost)}
           </span>
         </span>
         {hasOutputCost && (
           <>
-            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
             <span
               title={outApprox
                 ? 'Output cost approximated — model not in the frontend rate table; falling back to $10/MTok. Update OUTPUT_RATE_PER_MTOK in run-detail.jsx when a new model ships.'
                 : 'Output cost computed from the model\'s output_per_mtok rate (mirrors src/dual_research/agents/pricing.py).'}
             >Output:{' '}
-              <span className="num" style={{ color: 'var(--fg-2)' }}>
+              <span className="num" style={{ color: 'var(--md-on-surface-muted)' }}>
                 {outApprox ? '~' : ''}{fmt.cost(outCostUsd)}
               </span>
             </span>
@@ -2319,17 +2319,17 @@ function CostsCluster({ usage, outputCost }) {
         )}
         {hasSearches && (
           <>
-            <span style={{ color: 'var(--fg-4)' }}>·</span>
+            <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
             <span>Web search:{' '}
-              <span className="num" style={{ color: 'var(--fg-2)' }}>
+              <span className="num" style={{ color: 'var(--md-on-surface-muted)' }}>
                 {fmt.cost(searchCost)}
               </span>
             </span>
           </>
         )}
-        <span style={{ color: 'var(--fg-4)' }}>·</span>
+        <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
         <span>Total:{' '}
-          <span className="num" style={{ color: 'var(--fg-1)', fontWeight: 500 }}>
+          <span className="num" style={{ color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>
             {fmt.cost(total)}
           </span>
         </span>
@@ -2337,15 +2337,15 @@ function CostsCluster({ usage, outputCost }) {
       {hasSearches && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span>Searches:{' '}
-            <span className="num" style={{ color: 'var(--fg-1)' }}>
+            <span className="num" style={{ color: 'var(--md-on-surface-variant)' }}>
               {searches.toLocaleString()}
             </span>
           </span>
           {queries > 0 && (
             <>
-              <span style={{ color: 'var(--fg-4)' }}>·</span>
+              <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
               <span>Queries:{' '}
-                <span className="num" style={{ color: 'var(--fg-1)' }}>
+                <span className="num" style={{ color: 'var(--md-on-surface-variant)' }}>
                   {queries.toLocaleString()}
                 </span>
               </span>
@@ -2377,7 +2377,7 @@ function SubInputBar({ label, tokens, scale, color, accent }) {
     }}>
       <span style={{
         fontSize: accent ? 11 : 10.5,
-        color: accent ? 'var(--fg-1)' : 'var(--fg-2)',
+        color: accent ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-muted)',
         fontWeight: accent ? 500 : 400,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
@@ -2386,7 +2386,7 @@ function SubInputBar({ label, tokens, scale, color, accent }) {
       <div style={{
         position: 'relative',
         width: '100%', height: accent ? 14 : 10,
-        background: 'var(--bg-3)',
+        background: 'var(--md-surface-container-high)',
         borderRadius: 3, overflow: 'hidden',
         border: accent ? '1px solid rgba(0,0,0,0.10)' : 'none',
       }}>
@@ -2401,7 +2401,7 @@ function SubInputBar({ label, tokens, scale, color, accent }) {
         )}
       </div>
       <span className="mono num" style={{
-        fontSize: 10.5, color: 'var(--fg-2)',
+        fontSize: 10.5, color: 'var(--md-on-surface-muted)',
         textAlign: 'right', whiteSpace: 'nowrap',
       }}>
         {fmt.tokens(tokens)}t
@@ -2446,7 +2446,7 @@ function TotalInputBar({ label, content, reused, billed, scale, color }) {
       minWidth: 0,
     }}>
       <span style={{
-        fontSize: 11, color: 'var(--fg-1)', fontWeight: 500,
+        fontSize: 11, color: 'var(--md-on-surface-variant)', fontWeight: 500,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {label}
@@ -2454,7 +2454,7 @@ function TotalInputBar({ label, content, reused, billed, scale, color }) {
       <div style={{
         position: 'relative',
         width: '100%', height: 14,
-        background: 'var(--bg-3)',
+        background: 'var(--md-surface-container-high)',
         borderRadius: 3, overflow: 'hidden',
         border: '1px solid rgba(0,0,0,0.10)',
       }}>
@@ -2493,7 +2493,7 @@ function TotalInputBar({ label, content, reused, billed, scale, color }) {
         )}
       </div>
       <span className="mono num" style={{
-        fontSize: 10.5, color: 'var(--fg-2)',
+        fontSize: 10.5, color: 'var(--md-on-surface-muted)',
         textAlign: 'right', whiteSpace: 'nowrap',
       }}>
         {fmt.tokens(billed)}t
@@ -2538,7 +2538,7 @@ function OutputBar({ label, tokens, scale, color, outputCost, modelId, slot }) {
     >
       <span style={{
         fontSize: 10.5,
-        color: 'var(--fg-2)',
+        color: 'var(--md-on-surface-muted)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {label}
@@ -2546,7 +2546,7 @@ function OutputBar({ label, tokens, scale, color, outputCost, modelId, slot }) {
       <div style={{
         position: 'relative',
         width: '100%', height: 10,
-        background: 'var(--bg-3)',
+        background: 'var(--md-surface-container-high)',
         borderRadius: 3, overflow: 'hidden',
       }}>
         {widthPct > 0 && (
@@ -2559,7 +2559,7 @@ function OutputBar({ label, tokens, scale, color, outputCost, modelId, slot }) {
         )}
       </div>
       <span className="mono num" style={{
-        fontSize: 10.5, color: 'var(--fg-2)',
+        fontSize: 10.5, color: 'var(--md-on-surface-muted)',
         textAlign: 'right', whiteSpace: 'nowrap',
       }}>
         {fmt.tokens(tokens)}t
@@ -2604,14 +2604,14 @@ function ContextWindowMarker({ pct, label }) {
       <div style={{
         position: 'absolute', top: -2, bottom: -2,
         left: `${pct}%`, width: 1,
-        background: 'var(--fg-3)',
+        background: 'var(--md-on-surface-faint)',
         opacity: 0.55,
       }} />
       <span className="mono" style={{
         position: 'absolute', left: `${pct}%`,
         top: -1, transform: 'translateX(-50%) translateY(-100%)',
-        fontSize: 9, color: 'var(--fg-3)',
-        background: 'var(--bg-1)',
+        fontSize: 9, color: 'var(--md-on-surface-faint)',
+        background: 'var(--md-surface-container-low)',
         padding: '0 3px', borderRadius: 2,
         whiteSpace: 'nowrap',
       }}>
@@ -2622,10 +2622,10 @@ function ContextWindowMarker({ pct, label }) {
 }
 
 function searchCell(usage) {
-  if (!usage) return <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>—</span>;
+  if (!usage) return <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>—</span>;
   const n = Number(usage.searches) || 0;
   return (
-    <span className="mono num" style={{ fontSize: 11, color: 'var(--fg-1)' }}>
+    <span className="mono num" style={{ fontSize: 11, color: 'var(--md-on-surface-variant)' }}>
       {n.toLocaleString()}
     </span>
   );
@@ -2714,14 +2714,14 @@ function TokenBar({ usage, agent, run, scale }) {
     <div title={tooltip} style={{
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
       padding: '8px 10px', minHeight: 56,
-      background: 'var(--bg-2)',
+      background: 'var(--md-surface-container)',
       border: `1px solid ${meta.border}`, borderRadius: 6,
     }}>
       {/* Bar */}
       <div style={{
         position: 'relative',
         width: '100%', height: 14,
-        background: 'var(--bg-3)',
+        background: 'var(--md-surface-container-high)',
         borderRadius: 4, overflow: 'hidden',
       }}>
         {hasPieces ? (
@@ -2735,7 +2735,7 @@ function TokenBar({ usage, agent, run, scale }) {
           (() => {
             let offsetPct = 0;
             const segments = piecesList.map((p) => {
-              const colour = KIND_COLORS[p.kind]?.bg || 'var(--fg-3)';
+              const colour = KIND_COLORS[p.kind]?.bg || 'var(--md-on-surface-faint)';
               const widthPct = Math.min(100 - offsetPct, (p.tokens / denom) * 100);
               const segment = (
                 <div key={p.kind} style={{
@@ -2815,26 +2815,26 @@ function TokenBar({ usage, agent, run, scale }) {
       <div className="mono" style={{
         display: 'flex', alignItems: 'center', gap: 8,
         marginTop: 5,
-        fontSize: 10, color: 'var(--fg-3)',
+        fontSize: 10, color: 'var(--md-on-surface-faint)',
       }}>
         {reuse.hasReuse ? (
           <>
-            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(reuse.content)}t</span>
+            <span style={{ color: 'var(--md-on-surface-muted)' }}>{fmt.tokens(reuse.content)}t</span>
             <span>seen</span>
             <span>·</span>
-            <span style={{ color: 'var(--fg-3)' }}>{fmt.tokens(reuse.billed)}t</span>
+            <span style={{ color: 'var(--md-on-surface-faint)' }}>{fmt.tokens(reuse.billed)}t</span>
             <span>billed</span>
             <span>·</span>
-            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
+            <span style={{ color: 'var(--md-on-surface-muted)' }}>{fmt.tokens(tokensOut)}t</span>
             <span>out</span>
             <ReuseChip multiplier={reuse.multiplier} />
           </>
         ) : (
           <>
-            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensIn)}t</span>
+            <span style={{ color: 'var(--md-on-surface-muted)' }}>{fmt.tokens(tokensIn)}t</span>
             <span>in</span>
             <span>·</span>
-            <span style={{ color: 'var(--fg-2)' }}>{fmt.tokens(tokensOut)}t</span>
+            <span style={{ color: 'var(--md-on-surface-muted)' }}>{fmt.tokens(tokensOut)}t</span>
             <span>out</span>
           </>
         )}
@@ -2891,15 +2891,15 @@ function ConsumptionEmptyState() {
   return (
     <div style={{
       flex: 1, minHeight: 0, overflow: 'auto',
-      padding: '32px 24px', background: 'var(--bg-0)',
+      padding: '32px 24px', background: 'var(--md-surface)',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', gap: 12,
     }}>
-      <div style={{ fontSize: 13, color: 'var(--fg-1)', fontWeight: 500 }}>
+      <div style={{ fontSize: 13, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>
         No per-turn token data
       </div>
       <div className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-3)', textAlign: 'center',
+        fontSize: 10.5, color: 'var(--md-on-surface-faint)', textAlign: 'center',
         lineHeight: 1.6, maxWidth: 460,
       }}>
         This run was recorded before per-turn telemetry was added,<br/>
@@ -2925,8 +2925,8 @@ function PaneHeader({ title, count, left, right, accentGradient, accentColor }) 
       position: 'relative',
       display: 'flex', alignItems: 'center',
       padding: '0 24px',
-      background: 'var(--bg-1)',
-      borderBottom: '1px solid var(--border-1)',
+      background: 'var(--md-surface-container-low)',
+      borderBottom: '1px solid var(--md-outline-hair)',
       gap: 14,
     }}>
       {/* 2px accent at top */}
@@ -2947,13 +2947,13 @@ function PaneHeader({ title, count, left, right, accentGradient, accentColor }) 
         <span style={{
           fontSize: 14,
           fontWeight: 600,
-          color: 'var(--fg-0)',
+          color: 'var(--md-on-surface)',
           letterSpacing: '-0.005em',
         }}>
           {title}
         </span>
         {count != null && (
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
             {count}
           </span>
         )}
@@ -2978,8 +2978,8 @@ function PaneToolbar({ children }) {
       flexShrink: 0,
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '6px 24px',
-      background: 'var(--bg-1)',
-      borderBottom: '1px solid var(--border-1)',
+      background: 'var(--md-surface-container-low)',
+      borderBottom: '1px solid var(--md-outline-hair)',
     }}>{children}</div>
   );
 }
@@ -2989,12 +2989,12 @@ function PaneToolbar({ children }) {
 // timeline, just with status-keyed colors instead of neutral grey.
 function GroupHeader({ label, color, count, style, tone = 'tinted' }) {
   const bg = tone === 'neutral'
-    ? 'var(--bg-2)'
+    ? 'var(--md-surface-container)'
     : color + '14';
   const border = tone === 'neutral'
-    ? 'var(--border-1)'
+    ? 'var(--md-outline-hair)'
     : color + '44';
-  const labelColor = tone === 'neutral' ? 'var(--fg-2)' : color;
+  const labelColor = tone === 'neutral' ? 'var(--md-on-surface-muted)' : color;
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
@@ -3002,7 +3002,7 @@ function GroupHeader({ label, color, count, style, tone = 'tinted' }) {
       marginTop: 16, marginBottom: 8,
       background: bg,
       border: `1px solid ${border}`,
-      borderRadius: 'var(--r-2)',
+      borderRadius: 'var(--md-shape-sm)',
       whiteSpace: 'nowrap',
       ...style,
     }}>
@@ -3063,24 +3063,24 @@ function PhaseDividerHeader({ item, run, open }) {
       padding: '8px 12px',
       marginTop: 16, marginBottom: 8,
       marginLeft: -6, marginRight: -6,
-      background: 'var(--bg-2)',
-      border: '1px solid var(--border-2)',
-      borderRadius: 'var(--r-2)',
+      background: 'var(--md-surface-container)',
+      border: '1px solid var(--md-outline-variant)',
+      borderRadius: 'var(--md-shape-sm)',
       whiteSpace: 'nowrap',
     }}>
       <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
       <span className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-2)',
+        fontSize: 10.5, color: 'var(--md-on-surface-muted)',
         letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700,
       }}>
         Phase&nbsp;{item.phaseId}
       </span>
-      <span style={{ color: 'var(--fg-4)' }}>·</span>
-      <span style={{ fontSize: 12.5, color: 'var(--fg-1)', fontWeight: current ? 700 : 600 }}>
+      <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
+      <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', fontWeight: current ? 700 : 600 }}>
         {p.label}
       </span>
       <span style={{ flex: 1 }} />
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+      <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
         {item.duration ? fmt.duration(item.duration) : '—'}
         {item.extra ? ` · ${item.extra}` : ''}
       </span>
@@ -3100,7 +3100,7 @@ function renderInlineBold(text) {
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} style={{ color: 'var(--fg-0)', fontWeight: 600 }}>
+        <strong key={i} style={{ color: 'var(--md-on-surface)', fontWeight: 600 }}>
           {part.slice(2, -2)}
         </strong>
       );
@@ -3112,14 +3112,14 @@ function renderInlineBold(text) {
 function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
   return (
     <div style={{
-      borderTop: '1px solid var(--border-2)',
+      borderTop: '1px solid var(--md-outline-variant)',
       padding: '10px 12px 12px',
-      background: 'var(--bg-1)',
+      background: 'var(--md-surface-container-low)',
       display: 'flex', flexDirection: 'column', gap: 8,
     }}>
       {gist && (
         <div style={{
-          fontSize: 11.5, color: 'var(--fg-1)', lineHeight: 1.55,
+          fontSize: 11.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.55,
           fontStyle: 'normal',
         }}>
           {renderInlineBold(gist)}
@@ -3128,7 +3128,7 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
       {summary && (
         <p style={{
           margin: 0,
-          fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.6,
+          fontSize: 12.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.6,
           whiteSpace: 'pre-wrap',
         }}>{summary}</p>
       )}
@@ -3144,9 +3144,9 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '4px 12px',
             fontSize: 11.5,
-            color: 'var(--fg-0)',
-            background: 'var(--bg-2)',
-            border: '1px solid var(--border-1)',
+            color: 'var(--md-on-surface)',
+            background: 'var(--md-surface-container)',
+            border: '1px solid var(--md-outline-hair)',
             borderRadius: 999,
             fontFamily: 'inherit',
             fontWeight: 500,
@@ -3186,7 +3186,7 @@ function SearchGistLine({ turnKey, onOpen }) {
         textAlign: 'left',
         fontFamily: 'inherit',
         fontSize: 11.5,
-        color: hasWarning ? COLORS.warn : 'var(--fg-2)',
+        color: hasWarning ? COLORS.warn : 'var(--md-on-surface-muted)',
       }}>
       <Mdi name="magnify" size={11} />
       {hasWarning && <Mdi name="alert" size={10} color={COLORS.warn} />}
@@ -3669,7 +3669,7 @@ function ArtifactLiveBody({ item }) {
   return (
     <div style={{
       padding: '0 14px 14px',
-      borderTop: '1px dashed var(--border-1)',
+      borderTop: '1px dashed var(--md-outline-hair)',
       maxHeight: 280,
       overflow: 'auto',
     }}>
@@ -4093,10 +4093,10 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           {scrubReviewItems.length === 0 && (
             <div style={{
               padding: '20px 14px', textAlign: 'center',
-              color: 'var(--fg-3)', fontSize: 12.5,
-              border: '1px dashed var(--border-2)',
-              borderRadius: 'var(--r-2)',
-              background: 'var(--bg-2)',
+              color: 'var(--md-on-surface-faint)', fontSize: 12.5,
+              border: '1px dashed var(--md-outline-variant)',
+              borderRadius: 'var(--md-shape-sm)',
+              background: 'var(--md-surface-container)',
             }}>
               {/* Spec 0044 D5 — action-specific empty-state copy. */}
               {emptyStateCopy(scrubItem, run)}
@@ -4149,15 +4149,15 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, 
   return (
     <div style={{
       minHeight: 0, minWidth: 0,
-      background: 'var(--bg-0)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-2)',
+      background: 'var(--md-surface)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-sm)',
       display: 'flex', flexDirection: 'column',
     }}>
       <div style={{
         padding: '6px 12px',
-        borderBottom: '1px solid var(--border-1)',
-        background: 'var(--bg-2)',
+        borderBottom: '1px solid var(--md-outline-hair)',
+        background: 'var(--md-surface-container)',
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0,
       }}>
@@ -4169,17 +4169,17 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, 
         />
         <span style={{ flex: 1 }} />
         {sub === 'original' && (
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
             {activeDoc.path || '— no document available —'}
           </span>
         )}
         {sub === 'input' && (
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
             inputs/{item.turnKey || '—'}.json
           </span>
         )}
         {sub === 'webSearch' && (
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
             searches/{item.turnKey || '—'}.json
           </span>
         )}
@@ -4190,8 +4190,8 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, 
       {sub === 'original' && fallbackDocs.length > 1 && (
         <div style={{
           padding: '6px 12px',
-          borderBottom: '1px solid var(--border-1)',
-          background: 'var(--bg-1)',
+          borderBottom: '1px solid var(--md-outline-hair)',
+          background: 'var(--md-surface-container-low)',
           display: 'flex', alignItems: 'center', gap: 6,
           flexShrink: 0, overflow: 'auto',
         }}>
@@ -4331,20 +4331,20 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
       <div className="dr-modal-split">
         {/* Left: brief (with Original | Input sub-tabs, spec 0033). */}
         <div className="dr-modal-pane" style={{
-          background: 'var(--bg-0)',
-          border: '1px solid var(--border-1)',
-          borderRadius: 'var(--r-2)',
+          background: 'var(--md-surface)',
+          border: '1px solid var(--md-outline-hair)',
+          borderRadius: 'var(--md-shape-sm)',
         }}>
           <div style={{
             padding: '6px 12px',
-            borderBottom: '1px solid var(--border-1)',
-            background: 'var(--bg-2)',
+            borderBottom: '1px solid var(--md-outline-hair)',
+            background: 'var(--md-surface-container)',
             display: 'flex', alignItems: 'center', gap: 10,
             flexShrink: 0,
           }}>
             <NegotiateLeftSubTabs active={sub} onChange={setSub} />
             <span style={{ flex: 1 }} />
-            <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
               {sub === 'original' ? briefPath : `inputs/${item.turnKey || '—'}.json`}
             </span>
           </div>
@@ -4420,15 +4420,15 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
   return (
     <div style={{
       minHeight: 0, minWidth: 0,
-      background: 'var(--bg-0)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-2)',
+      background: 'var(--md-surface)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-sm)',
       display: 'flex', flexDirection: 'column',
     }}>
       <div style={{
         padding: '6px 12px',
-        borderBottom: '1px solid var(--border-1)',
-        background: 'var(--bg-2)',
+        borderBottom: '1px solid var(--md-outline-hair)',
+        background: 'var(--md-surface-container)',
         display: 'flex', alignItems: 'center', gap: 10,
         flexShrink: 0,
       }}>
@@ -4439,7 +4439,7 @@ function DraftRightPane({ filePath, turnKey, onSectionClick, items, onItemClick 
           showWebSearch={hasSearch}
         />
         <span style={{ flex: 1 }} />
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
           {sub === 'draft'
             ? (filePath || '—')
             : `searches/${turnKey || '—'}.json`}
@@ -4503,13 +4503,13 @@ function Phase1ItemStrip({ items, onItemClick }) {
   return (
     <div style={{
       padding: '6px 12px',
-      borderBottom: '1px solid var(--border-1)',
-      background: 'var(--bg-1)',
+      borderBottom: '1px solid var(--md-outline-hair)',
+      background: 'var(--md-surface-container-low)',
       display: 'flex', alignItems: 'center', gap: 6,
       flexShrink: 0, overflow: 'auto',
     }}>
       <span className="mono" style={{
-        fontSize: 10, color: 'var(--fg-3)',
+        fontSize: 10, color: 'var(--md-on-surface-faint)',
         letterSpacing: '0.06em', textTransform: 'uppercase',
         flexShrink: 0,
       }}>
@@ -4528,7 +4528,7 @@ function Phase1ItemStrip({ items, onItemClick }) {
             style={{
               appearance: 'none',
               border: `1px solid ${tint}55`,
-              background: 'var(--bg-0)',
+              background: 'var(--md-surface)',
               color: tint,
               fontSize: 11,
               padding: '2px 8px',
@@ -4544,12 +4544,12 @@ function Phase1ItemStrip({ items, onItemClick }) {
           >
             <span className="mono num" style={{ fontWeight: 600 }}>{glyph}-{i + 1}</span>
             <span style={{
-              color: 'var(--fg-2)',
+              color: 'var(--md-on-surface-muted)',
               overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180,
             }}>
               {(it.body || '').replace(/[*`]/g, '').slice(0, 60)}
             </span>
-            <span style={{ color: 'var(--fg-3)', fontSize: 10 }}>↗</span>
+            <span style={{ color: 'var(--md-on-surface-faint)', fontSize: 10 }}>↗</span>
           </button>
         );
       })}
@@ -4563,16 +4563,16 @@ function ReviewKeyboardHint({ hasItems }) {
     <div className="mono" style={{
       display: 'flex', alignItems: 'center', gap: 8,
       padding: '6px 10px',
-      background: 'var(--bg-0)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-2)',
-      color: 'var(--fg-3)',
+      background: 'var(--md-surface)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-sm)',
+      color: 'var(--md-on-surface-faint)',
       fontSize: 10.5,
     }}>
-      <kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 3 }}>j</kbd>
-      <kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 3 }}>k</kbd>
+      <kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container)', border: '1px solid var(--md-outline-variant)', borderRadius: 3 }}>j</kbd>
+      <kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container)', border: '1px solid var(--md-outline-variant)', borderRadius: 3 }}>k</kbd>
       <span>walk · </span>
-      <kbd style={{ padding: '1px 4px', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 3 }}>Esc</kbd>
+      <kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container)', border: '1px solid var(--md-outline-variant)', borderRadius: 3 }}>Esc</kbd>
       <span>close</span>
     </div>
   );
@@ -4693,7 +4693,7 @@ function ReviewCard({ item, panelKind, color, raiser, raisedRound, active, onCli
         )}
         <span style={{ flex: 1 }} />
         {hasAnchor && (
-          <span style={{ color: 'var(--fg-3)', display: 'inline-flex' }}>
+          <span style={{ color: 'var(--md-on-surface-faint)', display: 'inline-flex' }}>
             <Icon.Arrow style={{ width: 12, height: 12 }} />
           </span>
         )}
@@ -4995,7 +4995,7 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
           <>
             <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
             <span className="cs-title" style={{ fontWeight: 500, fontSize: 12 }}>{label}</span>
-            <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>({piece})</span>
+            <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>({piece})</span>
             {isAgentDefault && (
               <span
                 className="chip tone-muted chip-pill"
@@ -5006,7 +5006,7 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
               </span>
             )}
             <span style={{ flex: 1 }} />
-            <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{stats}</span>
+            <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{stats}</span>
           </>
         )}
       >
@@ -5017,10 +5017,10 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
               padding: '8px 10px',
               fontStyle: 'italic',
               fontSize: 11.5,
-              color: 'var(--fg-2)',
-              background: 'var(--bg-2)',
-              borderLeft: '2px solid var(--border-2)',
-              borderRadius: 'var(--r-1)',
+              color: 'var(--md-on-surface-muted)',
+              background: 'var(--md-surface-container)',
+              borderLeft: '2px solid var(--md-outline-variant)',
+              borderRadius: 'var(--md-shape-xs)',
             }}>
               This is the agent&apos;s current default system prompt — the per-run system
               prompt for this older turn was not recorded. The exact prompt the model
@@ -5039,11 +5039,11 @@ function InputEmptyState({ label }) {
     <div style={{
       padding: '32px 16px',
       textAlign: 'center',
-      color: 'var(--fg-3)',
+      color: 'var(--md-on-surface-faint)',
       fontSize: 12.5,
-      border: '1px dashed var(--border-2)',
-      borderRadius: 'var(--r-2)',
-      background: 'var(--bg-2)',
+      border: '1px dashed var(--md-outline-variant)',
+      borderRadius: 'var(--md-shape-sm)',
+      background: 'var(--md-surface-container)',
     }}>
       {label}
     </div>
@@ -5120,11 +5120,11 @@ function WebSearchTabContent({ turnKey }) {
       ))}
       {events.length > 0 && citations.length === 0 && (
         <div className="mono" style={{
-          fontSize: 11.5, color: 'var(--fg-3)',
+          fontSize: 11.5, color: 'var(--md-on-surface-faint)',
           padding: '8px 10px',
-          background: 'var(--bg-2)',
-          border: '1px dashed var(--border-2)',
-          borderRadius: 'var(--r-2)',
+          background: 'var(--md-surface-container)',
+          border: '1px dashed var(--md-outline-variant)',
+          borderRadius: 'var(--md-shape-sm)',
         }}>
           The model performed {events.length} search{events.length === 1 ? '' : 'es'} but cited none of the results in its final output.
         </div>
@@ -5137,7 +5137,7 @@ function HallucinationBanner({ unmatched }) {
   return (
     <div style={{
       padding: '10px 12px',
-      borderRadius: 'var(--r-2)',
+      borderRadius: 'var(--md-shape-sm)',
       border: `1px solid ${COLORS.warn}55`,
       background: 'rgba(212,160,86,0.10)',
       display: 'flex', flexDirection: 'column', gap: 6,
@@ -5153,13 +5153,13 @@ function HallucinationBanner({ unmatched }) {
       </div>
       <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {unmatched.map((c, i) => (
-          <li key={i} style={{ fontSize: 11.5, color: 'var(--fg-1)' }}>
+          <li key={i} style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)' }}>
             <a href={c.url} target="_blank" rel="noopener noreferrer"
-               style={{ color: 'var(--fg-0)', textDecoration: 'underline', wordBreak: 'break-all' }}>
+               style={{ color: 'var(--md-on-surface)', textDecoration: 'underline', wordBreak: 'break-all' }}>
               {c.url}
             </a>
             {c.title && (
-              <span className="mono" style={{ display: 'block', color: 'var(--fg-3)', fontSize: 10.5 }}>
+              <span className="mono" style={{ display: 'block', color: 'var(--md-on-surface-faint)', fontSize: 10.5 }}>
                 “{c.title}”
               </span>
             )}
@@ -5207,9 +5207,9 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
 
   return (
     <div style={{
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-2)',
-      background: 'var(--bg-1)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-sm)',
+      background: 'var(--md-surface-container-low)',
     }}>
       <button
         type="button"
@@ -5222,14 +5222,14 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
           border: 'none',
           cursor: 'pointer',
           fontFamily: 'inherit',
-          color: 'var(--fg-0)',
+          color: 'var(--md-on-surface)',
           fontSize: 12,
           textAlign: 'left',
         }}
       >
         <span style={{
           display: 'inline-block', width: 10, textAlign: 'center',
-          color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
         }}>{open ? '▾' : '▸'}</span>
         <span style={{ fontWeight: 500, flex: 1, minWidth: 0,
                        overflow: 'hidden', textOverflow: 'ellipsis',
@@ -5237,15 +5237,15 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
           {queryLabel}
         </span>
         <span className="mono" style={{
-          fontSize: 10, color: 'var(--fg-3)',
+          fontSize: 10, color: 'var(--md-on-surface-faint)',
           padding: '1px 6px',
-          background: 'var(--bg-2)',
-          border: '1px solid var(--border-1)',
+          background: 'var(--md-surface-container)',
+          border: '1px solid var(--md-outline-hair)',
           borderRadius: 999,
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
         }}>{actionType}</span>
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
           {sources.length} result{sources.length === 1 ? '' : 's'}
           {citations.length > 0 && ` · ${citations.length} cited`}
         </span>
@@ -5258,14 +5258,14 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
       </button>
       {open && (
         <div style={{
-          borderTop: '1px solid var(--border-1)',
+          borderTop: '1px solid var(--md-outline-hair)',
           padding: '10px 12px',
-          background: 'var(--bg-0)',
+          background: 'var(--md-surface)',
           display: 'flex', flexDirection: 'column', gap: 8,
         }}>
           {sources.length === 0 ? (
             <div className="mono" style={{
-              fontSize: 11, color: 'var(--fg-3)',
+              fontSize: 11, color: 'var(--md-on-surface-faint)',
               padding: '4px 0',
             }}>
               {provider === 'openai'
@@ -5314,16 +5314,16 @@ function ConsultedSourceCard({ source, isCited, citationsForSource }) {
   return (
     <div style={{
       padding: '8px 10px',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-2)',
-      background: 'var(--bg-1)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-sm)',
+      background: 'var(--md-surface-container-low)',
       display: 'flex', flexDirection: 'column', gap: 6,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <a href={url} target="_blank" rel="noopener noreferrer"
            title={url}
            style={{
-             color: title ? 'var(--fg-0)' : 'var(--fg-3)',
+             color: title ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
              fontSize: 12.5, fontWeight: 500,
              textDecoration: 'none', wordBreak: 'break-word', minWidth: 0,
              fontStyle: title ? 'normal' : 'italic',
@@ -5338,7 +5338,7 @@ function ConsultedSourceCard({ source, isCited, citationsForSource }) {
         {pageAge ? (
           <Chip tone="muted" style={{ height: 18, fontSize: '10px' }}>{pageAge}</Chip>
         ) : (
-          <span className="mono" style={{ fontSize: 10, color: 'var(--fg-4)', fontStyle: 'italic' }}>(no age)</span>
+          <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-decor)', fontStyle: 'italic' }}>(no age)</span>
         )}
         <span style={{ flex: 1 }} />
         {isCited && (
@@ -5366,7 +5366,7 @@ function CitedTextBlock({ citation }) {
       display: 'flex', flexDirection: 'column', gap: 4,
     }}>
       <div className="mono" style={{
-        fontSize: 9.5, color: 'var(--fg-3)',
+        fontSize: 9.5, color: 'var(--md-on-surface-faint)',
         letterSpacing: '0.06em', textTransform: 'uppercase',
       }}>
         cited from this URL
@@ -5376,13 +5376,13 @@ function CitedTextBlock({ citation }) {
           margin: 0,
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
-          fontFamily: 'var(--mono)',
+          fontFamily: 'var(--md-font-data)',
           fontSize: 11.5,
           lineHeight: 1.5,
-          color: 'var(--fg-1)',
+          color: 'var(--md-on-surface-variant)',
         }}>{text}</pre>
       ) : (
-        <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', fontStyle: 'italic' }}>
+        <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', fontStyle: 'italic' }}>
           (provider returned no source-side snippet)
         </div>
       )}
@@ -5399,16 +5399,16 @@ function CitationOnlyCard({ citation }) {
   return (
     <div style={{
       padding: '8px 10px',
-      border: '1px dashed var(--border-1)',
-      borderRadius: 'var(--r-2)',
-      background: 'var(--bg-1)',
+      border: '1px dashed var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-sm)',
+      background: 'var(--md-surface-container-low)',
       display: 'flex', flexDirection: 'column', gap: 4,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <a href={url} target="_blank" rel="noopener noreferrer"
            title={url}
            style={{
-             color: title ? 'var(--fg-0)' : 'var(--fg-3)',
+             color: title ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
              fontSize: 12.5, fontWeight: 500,
              textDecoration: 'none', wordBreak: 'break-word',
              fontStyle: title ? 'normal' : 'italic',
@@ -5445,11 +5445,11 @@ function SearchEmptyState({ kind, provider, detail }) {
     <div style={{
       padding: '32px 16px',
       textAlign: 'center',
-      color: 'var(--fg-3)',
+      color: 'var(--md-on-surface-faint)',
       fontSize: 12.5,
-      border: '1px dashed var(--border-2)',
-      borderRadius: 'var(--r-2)',
-      background: 'var(--bg-2)',
+      border: '1px dashed var(--md-outline-variant)',
+      borderRadius: 'var(--md-shape-sm)',
+      background: 'var(--md-surface-container)',
     }}>
       {label}
     </div>
@@ -5552,7 +5552,7 @@ function PreflightContentTab({ item }) {
 
 function PreflightSourcesTab({ sources, loading }) {
   if (loading) {
-    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>;
+    return <div className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>loading…</div>;
   }
   if (sources.length === 0) {
     return <AttachmentsEmpty label="No external links were extracted from this brief." />;
@@ -5568,7 +5568,7 @@ function PreflightSourcesTab({ sources, loading }) {
 
 function PreflightFilesTab({ files, loading, runId }) {
   if (loading) {
-    return <div className="mono" style={{ color: 'var(--fg-3)', fontSize: 12 }}>loading…</div>;
+    return <div className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>loading…</div>;
   }
   if (files.length === 0) {
     return <AttachmentsEmpty label="No images, PDFs, or files were attached to this brief." />;
@@ -5591,12 +5591,12 @@ function AttachmentsEmpty({ label }) {
     <div style={{
       padding: '32px 16px',
       textAlign: 'center',
-      color: 'var(--fg-3)',
+      color: 'var(--md-on-surface-faint)',
       fontSize: 12.5,
       lineHeight: 1.6,
-      border: '1px dashed var(--border-2)',
-      borderRadius: 'var(--r-2)',
-      background: 'var(--bg-2)',
+      border: '1px dashed var(--md-outline-variant)',
+      borderRadius: 'var(--md-shape-sm)',
+      background: 'var(--md-surface-container)',
     }}>
       {label}
     </div>
@@ -5622,24 +5622,24 @@ function SourceRowAttachment({ attachment }) {
       style={{
         display: 'block',
         padding: '10px 12px',
-        background: 'var(--bg-1)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 'var(--r-2)',
+        background: 'var(--md-surface-container-low)',
+        border: '1px solid var(--md-outline-hair)',
+        borderRadius: 'var(--md-shape-sm)',
         textDecoration: 'none',
-        color: 'var(--fg-0)',
+        color: 'var(--md-on-surface)',
       }}>
       <div style={{
-        fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+        fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{displayTitle}</div>
       <div className="mono" style={{
-        fontSize: 11, color: 'var(--fg-3)', marginTop: 3,
+        fontSize: 11, color: 'var(--md-on-surface-faint)', marginTop: 3,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {host || url || '—'}
       </div>
       {caption && (
-        <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6, lineHeight: 1.55 }}>
+        <div style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', marginTop: 6, lineHeight: 1.55 }}>
           {caption}
         </div>
       )}
@@ -5657,16 +5657,16 @@ function FileCard({ attachment, runId }) {
 
   return (
     <div style={{
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-3)',
+      background: 'var(--md-surface-container-low)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
       overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
     }}>
       <div style={{
         flex: 1, minHeight: 140,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg-0)',
+        background: 'var(--md-surface)',
         overflow: 'hidden',
       }}>
         {kind === 'image' && renderUrl ? (
@@ -5680,7 +5680,7 @@ function FileCard({ attachment, runId }) {
         ) : (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-            color: 'var(--fg-3)', padding: 12, textAlign: 'center',
+            color: 'var(--md-on-surface-faint)', padding: 12, textAlign: 'center',
           }}>
             <Mdi name="file-document" size={28} />
             <span className="mono" style={{
@@ -5691,16 +5691,16 @@ function FileCard({ attachment, runId }) {
       </div>
       <div style={{ padding: '10px 12px' }}>
         <div title={title || ''} style={{
-          fontSize: 13, color: 'var(--fg-0)', fontWeight: 500,
+          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{title || '(unnamed)'}</div>
         <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--fg-3)', marginTop: 4,
+          fontSize: 10.5, color: 'var(--md-on-surface-faint)', marginTop: 4,
         }}>
           {[mime, size_bytes ? formatBytes(size_bytes) : null].filter(Boolean).join(' · ') || '—'}
         </div>
         {caption && (
-          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', marginTop: 6, lineHeight: 1.5 }}>
             {caption}
           </div>
         )}
@@ -5732,13 +5732,13 @@ function formatBytes(n) {
 function FinalDocPreview() {
   return (
     <div>
-      <h2 style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--fg-0)', fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35 }}>
+      <h2 style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--md-on-surface)', fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35 }}>
         Effects of urban density on residential heat-pump retrofit economics in temperate climates
       </h2>
-      <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.6 }}>
+      <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--md-on-surface-muted)', lineHeight: 1.6 }}>
         We assess the relationship between residential density and heat-pump retrofit economics across a cohort of 4,218 single-family households in IPCC Köppen-Geiger Cfa and (separately) Cfb climates between 2015 and 2024…
       </p>
-      <div className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', lineHeight: 1.6 }}>
+      <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', lineHeight: 1.6 }}>
         §1 framing · §2 vintage taxonomy (5 buckets) · §3 heat-pump baseline · §4 financing (unified, with regressivity callout) · §5 cohort outcomes · §6 limitations · 12pp
       </div>
     </div>
@@ -5752,15 +5752,15 @@ function ErrorCard({ item }) {
       padding: '12px 14px',
       background: 'rgba(217,106,106,0.04)',
       border: '1px solid rgba(217,106,106,0.30)',
-      borderRadius: 'var(--r-3)',
+      borderRadius: 'var(--md-shape-md)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Icon.Warn style={{ color: COLORS.err }} />
         <span className="mono" style={{ fontSize: 11.5, color: COLORS.err, letterSpacing: '0.04em' }}>{item.error.code}</span>
         <span style={{ flex: 1 }} />
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>at {item.error.where}</span>
+        <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>at {item.error.where}</span>
       </div>
-      <pre className="mono" style={{ margin: 0, fontSize: 11.5, color: 'var(--fg-1)', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{item.error.detail}</pre>
+      <pre className="mono" style={{ margin: 0, fontSize: 11.5, color: 'var(--md-on-surface-variant)', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{item.error.detail}</pre>
     </div>
   );
 }
@@ -5772,13 +5772,13 @@ function DeadlockCard({ item }) {
       padding: '12px 14px',
       background: 'rgba(212,160,86,0.04)',
       border: '1px solid rgba(212,160,86,0.30)',
-      borderRadius: 'var(--r-3)',
+      borderRadius: 'var(--md-shape-md)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Icon.Warn style={{ color: COLORS.warn }} />
         <span className="mono" style={{ fontSize: 11.5, color: COLORS.warn, letterSpacing: '0.04em' }}>HARD_CAP_REACHED</span>
       </div>
-      <div style={{ fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.55 }}>
+      <div style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>
         {item.round.current} of {item.round.hard} negotiation rounds consumed.{' '}
         {item.open} disagreement{item.open === 1 ? '' : 's'} unresolved. Phase 3 not entered.
       </div>
@@ -6547,16 +6547,16 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
       return (
         <section style={{ marginBottom: 22 }}>
           <h3 style={{
-            fontSize: 12, fontWeight: 600, color: 'var(--fg-2)',
+            fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface-muted)',
             letterSpacing: '0.04em', textTransform: 'uppercase',
             margin: '0 0 8px',
           }}>{label}</h3>
           <div className="mono" style={{
-            fontSize: 11.5, color: 'var(--fg-3)',
+            fontSize: 11.5, color: 'var(--md-on-surface-faint)',
             padding: '12px 14px',
-            background: 'var(--bg-1)',
-            border: '1px dashed var(--border-1)',
-            borderRadius: 'var(--r-2)',
+            background: 'var(--md-surface-container-low)',
+            border: '1px dashed var(--md-outline-hair)',
+            borderRadius: 'var(--md-shape-sm)',
           }}>
             no critique items were raised in this phase
           </div>
@@ -6566,7 +6566,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     return (
       <section style={{ marginBottom: 22 }}>
         <h3 style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--fg-2)',
+          fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface-muted)',
           letterSpacing: '0.04em', textTransform: 'uppercase',
           margin: '0 0 10px',
         }}>{label}</h3>
@@ -6685,11 +6685,11 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
   }, [questions, disagreements, issues, comments, run]);
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
+    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--md-surface)' }}>
       <div style={{ padding: '16px 24px 28px' }}>
         {/* SPEC-0072 D7-D10 — three-sentence summary */}
         {summaryCopy && (
-          <div style={{ marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: 'var(--fg-1)' }}>
+          <div style={{ marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: 'var(--md-on-surface-variant)' }}>
             <Markdown text={summaryCopy} />
           </div>
         )}
@@ -6697,7 +6697,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
         {highestLeverageThread && (
           <div style={{ marginBottom: 20 }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: 'var(--fg-2)',
+              fontSize: 11, fontWeight: 600, color: 'var(--md-on-surface-muted)',
               letterSpacing: '0.06em', textTransform: 'uppercase',
               marginBottom: 8,
             }}>
@@ -6716,7 +6716,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
           </div>
         )}
         <div style={{
-          fontSize: 11.5, color: 'var(--fg-3)', lineHeight: 1.55, marginBottom: 16,
+          fontSize: 11.5, color: 'var(--md-on-surface-faint)', lineHeight: 1.55, marginBottom: 16,
         }}>
           Post-mortem aggregate of the critique journey, split per round and per model.
           Click a phase tab above to drill into the individual cards.
@@ -6742,22 +6742,22 @@ function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div className="mono" style={{
-        fontSize: 10.5, color: 'var(--fg-3)', letterSpacing: '0.04em',
+        fontSize: 10.5, color: 'var(--md-on-surface-faint)', letterSpacing: '0.04em',
         textTransform: 'uppercase',
         display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
         marginBottom: 6,
       }}>
-        <span style={{ color: 'var(--fg-1)', fontWeight: 600 }}>{KIND_PLURAL[kind] || kind}</span>
+        <span style={{ color: 'var(--md-on-surface-variant)', fontWeight: 600 }}>{KIND_PLURAL[kind] || kind}</span>
         <span>·</span>
         <span>{items.length} total</span>
         {!isStateless && (
           <>
             <span>·</span>
-            <span style={{ color: totalResolved > 0 ? COLORS.ok : 'var(--fg-3)' }}>
+            <span style={{ color: totalResolved > 0 ? COLORS.ok : 'var(--md-on-surface-faint)' }}>
               {totalResolved} {closedLabel}
             </span>
             <span>·</span>
-            <span style={{ color: totalOpen > 0 ? COLORS.warn : 'var(--fg-3)' }}>
+            <span style={{ color: totalOpen > 0 ? COLORS.warn : 'var(--md-on-surface-faint)' }}>
               {totalOpen} open
             </span>
           </>
@@ -6765,15 +6765,15 @@ function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
       </div>
       <table style={{
         width: '100%', borderCollapse: 'collapse',
-        fontSize: 12, color: 'var(--fg-1)',
-        background: 'var(--bg-1)',
-        border: '1px solid var(--border-1)',
-        borderRadius: 'var(--r-2)',
+        fontSize: 12, color: 'var(--md-on-surface-variant)',
+        background: 'var(--md-surface-container-low)',
+        border: '1px solid var(--md-outline-hair)',
+        borderRadius: 'var(--md-shape-sm)',
         overflow: 'hidden',
-        fontFamily: 'var(--mono)',
+        fontFamily: 'var(--md-font-data)',
       }}>
         <thead>
-          <tr style={{ background: 'var(--bg-2)', textAlign: 'left' }}>
+          <tr style={{ background: 'var(--md-surface-container)', textAlign: 'left' }}>
             <th style={_summaryTh}>Round</th>
             <th style={_summaryTh}>
               <span style={{ color: 'var(--agent-a)' }}>Claude</span> raised
@@ -6796,26 +6796,26 @@ function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.round} style={{ borderTop: '1px solid var(--border-1)' }}>
+            <tr key={r.round} style={{ borderTop: '1px solid var(--md-outline-hair)' }}>
               <td style={_summaryTd}>R{r.round}</td>
               <td style={_summaryTd}>{r.claudeRaised || '—'}</td>
               {!isStateless && (
                 <td style={{
                   ..._summaryTd,
-                  color: r.claudeResolved > 0 ? COLORS.ok : 'var(--fg-3)',
+                  color: r.claudeResolved > 0 ? COLORS.ok : 'var(--md-on-surface-faint)',
                 }}>{r.claudeResolved || '—'}</td>
               )}
               <td style={_summaryTd}>{r.gptRaised || '—'}</td>
               {!isStateless && (
                 <td style={{
                   ..._summaryTd,
-                  color: r.gptResolved > 0 ? COLORS.ok : 'var(--fg-3)',
+                  color: r.gptResolved > 0 ? COLORS.ok : 'var(--md-on-surface-faint)',
                 }}>{r.gptResolved || '—'}</td>
               )}
               {!isStateless && (
                 <td style={{
                   ..._summaryTd,
-                  color: r.stillOpen > 0 ? COLORS.warn : 'var(--fg-3)',
+                  color: r.stillOpen > 0 ? COLORS.warn : 'var(--md-on-surface-faint)',
                 }}>{r.stillOpen || '—'}</td>
               )}
             </tr>
@@ -6828,13 +6828,13 @@ function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
 
 const _summaryTh = {
   padding: '8px 10px',
-  fontSize: 10, color: 'var(--fg-3)',
+  fontSize: 10, color: 'var(--md-on-surface-faint)',
   letterSpacing: '0.06em', textTransform: 'uppercase',
   fontWeight: 600,
 };
 const _summaryTd = {
   padding: '7px 10px',
-  fontSize: 12, color: 'var(--fg-1)',
+  fontSize: 12, color: 'var(--md-on-surface-variant)',
 };
 
 // Spec 0046 D3 — shared chevron used by every critique card. Pre-spec
@@ -6847,7 +6847,7 @@ function CardChevron({ open, hover }) {
       width: 16, height: 16,
       opacity: open ? 0.6 : hover ? 0.5 : 0.25,
       transition: 'opacity 120ms, transform 120ms',
-      color: 'var(--fg-2)',
+      color: 'var(--md-on-surface-muted)',
       transform: open ? 'rotate(90deg)' : 'none',
       flexShrink: 0,
     }}>
@@ -6872,7 +6872,7 @@ function SmallStat({ label, value, color }) {
       display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap',
     }}>
       <span className="mono num" style={{ fontSize: 13, color, fontWeight: 600 }}>{value}</span>
-      <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{label}</span>
+      <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{label}</span>
     </span>
   );
 }
@@ -6881,13 +6881,13 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
   const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
   if (pending) {
     return (
-      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--md-on-surface-faint)', background: 'var(--md-surface)' }}>
         <div style={{ textAlign: 'center', maxWidth: 280, lineHeight: 1.6, fontSize: 12.5 }}>
           {phaseId === 2 ? (
             <>
               <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <AgentIcon agent="claude" size={16} />
-                <span className="mono" style={{ color: 'var(--fg-4)' }}>↔</span>
+                <span className="mono" style={{ color: 'var(--md-on-surface-decor)' }}>↔</span>
                 <AgentIcon agent="gpt" size={16} />
               </div>
               Negotiation hasn't started yet. Both agents are still drafting independent plans.
@@ -6903,7 +6903,7 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
   if (introduced === 0) {
     const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
     return (
-      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', background: 'var(--bg-0)' }}>
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--md-on-surface-faint)', background: 'var(--md-surface)' }}>
         <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
           <div className="mono" style={{ fontSize: 12 }}>no disagreements in this phase</div>
           {suspectedMiss && (
@@ -6918,7 +6918,7 @@ function PhaseContent({ run, phaseId, open, resolved, introduced }) {
   }
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
+    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--md-surface)' }}>
       {/* Spec 0116 — flex column + gap: 8 so card spacing comes from the
           parent (parallel to the inline-margin removal on .qthread in
           shared.jsx:1117). "Resolved" GroupHeader's compensating
@@ -6964,7 +6964,7 @@ function StatusPill({ color, label }) {
 function SmallLabel({ children, color, style }) {
   return (
     <div style={{
-      fontSize: 10, color: color || 'var(--fg-3)',
+      fontSize: 10, color: color || 'var(--md-on-surface-faint)',
       letterSpacing: '0.08em', textTransform: 'uppercase',
       fontWeight: 500,
       marginBottom: 8,
@@ -6979,12 +6979,12 @@ function ProgressionStep({ step, last, pending }) {
     raised:       COLORS.info,
     rejected:     COLORS.warn,
     'pushed back': COLORS.warn,
-    restated:     'var(--fg-2)',
+    restated:     'var(--md-on-surface-muted)',
     conceded:     COLORS.ok,
     aligned:      COLORS.ok,
     open:         COLORS.warn,
   };
-  const actionColor = actionTones[step.action] || 'var(--fg-2)';
+  const actionColor = actionTones[step.action] || 'var(--md-on-surface-muted)';
 
   return (
     <div style={{ display: 'flex', gap: 10, position: 'relative', paddingBottom: last ? 0 : 14 }}>
@@ -6993,7 +6993,7 @@ function ProgressionStep({ step, last, pending }) {
         position: 'absolute',
         left: 7, top: 16,
         bottom: last ? 'auto' : 0, height: last ? 0 : undefined,
-        width: 1, background: 'var(--border-2)',
+        width: 1, background: 'var(--md-outline-variant)',
       }} />
       {/* Icon — agent monogram, "both" pip, or pending grey */}
       <div style={{
@@ -7008,7 +7008,7 @@ function ProgressionStep({ step, last, pending }) {
           <span style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: 15, height: 15, borderRadius: 4,
-            background: COLORS.ok, color: 'var(--bg-0)',
+            background: COLORS.ok, color: 'var(--md-surface)',
             lineHeight: 1,
           }}>
             <Mdi name="check" size={11} />
@@ -7016,7 +7016,7 @@ function ProgressionStep({ step, last, pending }) {
         ) : (
           <span style={{
             display: 'inline-block', width: 9, height: 9, borderRadius: '50%',
-            background: pending ? 'var(--fg-4)' : COLORS.warn,
+            background: pending ? 'var(--md-on-surface-decor)' : COLORS.warn,
             margin: 3,
             opacity: pending ? 0.6 : 1,
           }} />
@@ -7026,20 +7026,20 @@ function ProgressionStep({ step, last, pending }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
           {step.round != null && (
-            <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>R{step.round}</span>
+            <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>R{step.round}</span>
           )}
           {meta && (
-            <span style={{ fontSize: 11.5, color: 'var(--fg-1)', fontWeight: 500 }}>{meta.name}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>{meta.name}</span>
           )}
           {step.agent === 'both' && (
-            <span style={{ fontSize: 11.5, color: 'var(--fg-1)', fontWeight: 500 }}>Both agents</span>
+            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>Both agents</span>
           )}
           <span className="mono" style={{
             fontSize: 10.5, color: actionColor, letterSpacing: '0.02em',
             textTransform: 'lowercase',
           }}>{step.action}</span>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--fg-1)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: 'var(--md-on-surface-variant)', lineHeight: 1.5 }}>
           {step.note}
         </div>
       </div>
@@ -7052,7 +7052,7 @@ function Position({ agent, text }) {
   return (
     <div style={{ paddingLeft: 10, borderLeft: `2px solid ${meta.color}` }}>
       <div className="mono" style={{ fontSize: 10, color: meta.color, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{meta.name}</div>
-      <div style={{ fontSize: 12.5, color: 'var(--fg-1)', lineHeight: 1.55 }}>{text}</div>
+      <div style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', lineHeight: 1.55 }}>{text}</div>
     </div>
   );
 }
@@ -7073,28 +7073,28 @@ function Footer({ run }) {
     <footer style={{
       display: 'flex', alignItems: 'center', gap: 18,
       padding: '10px 24px',
-      borderTop: '1px solid var(--border-1)',
-      background: 'var(--bg-0)',
+      borderTop: '1px solid var(--md-outline-hair)',
+      background: 'var(--md-surface)',
       flexShrink: 0,
       fontSize: 11.5,
     }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <AgentIcon agent="claude" size={12} variant="ghost" />
-        <span className="mono num" style={{ color: 'var(--fg-1)' }}>{fmt.cost(a)}</span>
-        <span style={{ color: 'var(--fg-4)' }}>+</span>
+        <span className="mono num" style={{ color: 'var(--md-on-surface-variant)' }}>{fmt.cost(a)}</span>
+        <span style={{ color: 'var(--md-on-surface-decor)' }}>+</span>
         <AgentIcon agent="gpt" size={12} variant="ghost" />
-        <span className="mono num" style={{ color: 'var(--fg-1)' }}>{fmt.cost(b)}</span>
-        <span style={{ color: 'var(--fg-4)' }}>=</span>
-        <span className="mono num" style={{ color: 'var(--fg-0)' }}>{fmt.cost(total)}</span>
+        <span className="mono num" style={{ color: 'var(--md-on-surface-variant)' }}>{fmt.cost(b)}</span>
+        <span style={{ color: 'var(--md-on-surface-decor)' }}>=</span>
+        <span className="mono num" style={{ color: 'var(--md-on-surface)' }}>{fmt.cost(total)}</span>
       </span>
       {hasBudget && (
         <>
-          <div style={{ flex: 1, position: 'relative', height: 4, background: 'var(--bg-3)', borderRadius: 999, maxWidth: 380 }}>
+          <div style={{ flex: 1, position: 'relative', height: 4, background: 'var(--md-surface-container-high)', borderRadius: 999, maxWidth: 380 }}>
             <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, aPct)}%`, background: COLORS.agentA, borderRadius: '999px 0 0 999px' }} />
             <div style={{ position: 'absolute', left: `${Math.min(100, aPct)}%`, top: 0, bottom: 0, width: `${Math.min(100 - aPct, bPct)}%`, background: COLORS.agentB }} />
-            <span style={{ position: 'absolute', top: -2, bottom: -2, left: `${warnPct}%`, width: 1, background: over ? COLORS.warn : 'var(--border-3)' }} />
+            <span style={{ position: 'absolute', top: -2, bottom: -2, left: `${warnPct}%`, width: 1, background: over ? COLORS.warn : 'var(--md-outline)' }} />
           </div>
-          <span className="mono num" style={{ color: over ? COLORS.warn : 'var(--fg-2)' }}>
+          <span className="mono num" style={{ color: over ? COLORS.warn : 'var(--md-on-surface-muted)' }}>
             {pct.toFixed(0)}% of ${budget.toFixed(2)}
           </span>
           {over && (
@@ -7103,7 +7103,7 @@ function Footer({ run }) {
         </>
       )}
       <span style={{ flex: 1 }} />
-      <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 11 }}>SSE · /runs/{run.id}/stream</span>
+      <span className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 11 }}>SSE · /runs/{run.id}/stream</span>
     </footer>
   );
 }
@@ -7119,7 +7119,7 @@ function RunErrorsView({ run }) {
       display: 'flex', flexDirection: 'column',
       minWidth: 0, minHeight: 0,
       gridColumn: '1 / -1',
-      background: 'var(--bg-0)',
+      background: 'var(--md-surface)',
       overflow: 'hidden',
     }}>
       <PaneHeader
@@ -7128,16 +7128,16 @@ function RunErrorsView({ run }) {
         accentColor={COLORS.err}
         right={
           <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <SmallStat label="critical" value={counts.critical || 0} color={(counts.critical || 0) > 0 ? COLORS.err : 'var(--fg-3)'} />
-            <SmallStat label="error"    value={counts.error || 0}    color={(counts.error || 0) > 0 ? COLORS.err : 'var(--fg-3)'} />
-            <SmallStat label="warning"  value={counts.warning || 0}  color={(counts.warning || 0) > 0 ? COLORS.warn : 'var(--fg-3)'} />
+            <SmallStat label="critical" value={counts.critical || 0} color={(counts.critical || 0) > 0 ? COLORS.err : 'var(--md-on-surface-faint)'} />
+            <SmallStat label="error"    value={counts.error || 0}    color={(counts.error || 0) > 0 ? COLORS.err : 'var(--md-on-surface-faint)'} />
+            <SmallStat label="warning"  value={counts.warning || 0}  color={(counts.warning || 0) > 0 ? COLORS.warn : 'var(--md-on-surface-faint)'} />
           </span>
         }
       />
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '14px 24px 28px' }}>
         <GroupHeader label="Errors" color={COLORS.err} count={errors.length} />
         {errors.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--fg-3)', fontSize: 12.5 }}>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--md-on-surface-faint)', fontSize: 12.5 }}>
             no errors logged for this run
           </div>
         ) : (
@@ -7221,7 +7221,7 @@ function RunDetail({ run }) {
       <div style={{
         display: 'flex', flexDirection: 'column',
         height: '100%',
-        background: 'var(--bg-0)',
+        background: 'var(--md-surface)',
         overflow: 'hidden',
       }}>
         <RunDetailHeader
