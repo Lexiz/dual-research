@@ -39,7 +39,8 @@ function ShortcutsOverlay({ open, onClose }) {
         {SHORTCUT_GROUPS.map((group) => (
           <div key={group.title}>
             <div style={{
-              fontSize: 'var(--t-meta)',
+              fontSize: 'var(--md-label-m-size)',
+              lineHeight: 'var(--md-label-m-lh)',
               fontWeight: 'var(--w-semibold)',
               color: 'var(--md-on-surface-variant)',
               marginBottom: 8,
@@ -61,7 +62,7 @@ function ShortcutsOverlay({ open, onClose }) {
                   padding: '8px 12px',
                   borderBottom: i < group.shortcuts.length - 1 ? '1px solid var(--md-outline-hair)' : 'none',
                 }}>
-                  <span style={{ fontSize: 'var(--t-body)', color: 'var(--md-on-surface-variant)' }}>
+                  <span style={{ fontSize: 'var(--md-body-m-size)', lineHeight: 'var(--md-body-m-lh)', color: 'var(--md-on-surface-variant)' }}>
                     {s.desc}
                   </span>
                   <span style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 16 }}>
@@ -75,7 +76,7 @@ function ShortcutsOverlay({ open, onClose }) {
                           background: 'var(--md-surface-container-high)',
                           border: '1px solid var(--md-outline-variant)',
                           borderRadius: 'var(--md-shape-sm)',
-                          fontFamily: 'var(--mono)',
+                          fontFamily: 'var(--md-font-data)',
                           fontSize: 11,
                           color: 'var(--md-on-surface)',
                           lineHeight: 1,

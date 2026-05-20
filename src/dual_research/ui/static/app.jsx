@@ -145,7 +145,7 @@ function App() {
   // The overlay is mounted as a sibling below, not as a gate.
 
   return (
-    <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--bg-0)' }}>
+    <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--md-surface)' }}>
       <a className="skip-link" href="#main">Skip to main content</a>
       <ChromeBar route={route} navigate={navigate}
                  theme={theme}
@@ -280,20 +280,20 @@ function ChromeTab({ label, icon, active, onClick }) {
     <button onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 8,
       padding: '0 16px',
-      background: active ? 'var(--bg-1)' : 'transparent',
-      color: active ? 'var(--fg-0)' : 'var(--fg-2)',
+      background: active ? 'var(--md-surface-container-low)' : 'transparent',
+      color: active ? 'var(--md-on-surface)' : 'var(--md-on-surface-muted)',
       fontSize: 12.5,
-      borderRight: '1px solid var(--border-1)',
-      borderTop: active ? '1px solid var(--border-1)' : '1px solid transparent',
-      borderLeft: active ? '1px solid var(--border-1)' : '1px solid transparent',
+      borderRight: '1px solid var(--md-outline-hair)',
+      borderTop: active ? '1px solid var(--md-outline-hair)' : '1px solid transparent',
+      borderLeft: active ? '1px solid var(--md-outline-hair)' : '1px solid transparent',
       position: 'relative',
     }}>
-      <Ico style={{ color: active ? 'var(--fg-1)' : 'var(--fg-3)' }} />
+      <Ico style={{ color: active ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-faint)' }} />
       <span>{label}</span>
       {active && (
         <span style={{
           position: 'absolute', bottom: -1, left: 0, right: 0,
-          height: 1, background: 'var(--bg-1)',
+          height: 1, background: 'var(--md-surface-container-low)',
         }} />
       )}
     </button>
@@ -343,13 +343,13 @@ function ActiveRunChip({ runId, onClick }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '0 12px',
-        borderLeft: '1px solid var(--border-1)',
+        borderLeft: '1px solid var(--md-outline-hair)',
         background: 'transparent',
         cursor: 'pointer',
         border: 'none', borderLeftWidth: 1, borderLeftStyle: 'solid',
-        borderLeftColor: 'var(--border-1)',
-        fontFamily: 'var(--mono)', fontSize: 11,
-        color: 'var(--fg-1)',
+        borderLeftColor: 'var(--md-outline-hair)',
+        fontFamily: 'var(--md-font-data)', fontSize: 11,
+        color: 'var(--md-on-surface-variant)',
       }}
     >
       <Mdi name="arrow-left" size={12} />
@@ -367,7 +367,7 @@ function AppVersionChip() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 8px' }}>
       <Chip title={`dual-research v${meta.version}`}
-            style={{ fontFamily: 'var(--mono)', fontSize: 10 }}>
+            style={{ fontFamily: 'var(--md-font-data)', fontSize: 10 }}>
         v{meta.version}
       </Chip>
     </div>
@@ -407,7 +407,7 @@ function AvatarMenu({ navigate, route, client, session, me }) {
 
   return (
     <div ref={rootRef} style={{ position: 'relative', display: 'flex', alignItems: 'center',
-                                 borderLeft: '1px solid var(--border-1)', padding: '0 10px' }}>
+                                 borderLeft: '1px solid var(--md-outline-hair)', padding: '0 10px' }}>
       <button onClick={() => setOpen(v => !v)}
               title={email}
               style={{
@@ -419,15 +419,15 @@ function AvatarMenu({ navigate, route, client, session, me }) {
       {open && (
         <div style={{
           position: 'absolute', top: 42, right: 8, minWidth: 220,
-          background: 'var(--bg-1)', border: '1px solid var(--border-2)',
+          background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-variant)',
           borderRadius: 8, padding: 6, zIndex: 50,
           boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
         }}>
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-1)', marginBottom: 4 }}>
-            <div style={{ fontSize: 13, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.2 }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--md-outline-hair)', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500, lineHeight: 1.2 }}>
               {fullName}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2 }}>
               {email}
               {me?.isAdmin && (
                 <span style={{
@@ -449,7 +449,7 @@ function AvatarMenu({ navigate, route, client, session, me }) {
             <MenuItem onClick={() => { setOpen(false); navigate('settings'); }}
                       icon={Icon.Gear} label="Settings" active={route.view === 'settings'} />
           )}
-          <div style={{ height: 1, background: 'var(--border-1)', margin: '4px 0' }} />
+          <div style={{ height: 1, background: 'var(--md-outline-hair)', margin: '4px 0' }} />
           <MenuItem onClick={onSignOut} icon={Icon.SignOut} label="Sign out" />
         </div>
       )}
@@ -463,13 +463,13 @@ function MenuItem({ onClick, icon, label, active }) {
     <button onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: 10, width: '100%',
       padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
-      border: 'none', background: active ? 'var(--bg-2)' : 'transparent',
-      color: 'var(--fg-0)', fontFamily: 'inherit', fontSize: 13,
+      border: 'none', background: active ? 'var(--md-surface-container)' : 'transparent',
+      color: 'var(--md-on-surface)', fontFamily: 'inherit', fontSize: 13,
       textAlign: 'left',
     }}
-    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-2)'; }}
+    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--md-surface-container)'; }}
     onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
-      {Ico && <Ico style={{ color: 'var(--fg-2)' }} />}
+      {Ico && <Ico style={{ color: 'var(--md-on-surface-muted)' }} />}
       <span>{label}</span>
     </button>
   );
@@ -487,7 +487,7 @@ function AvatarDisc({ email, url, size = 28 }) {
            referrerPolicy="no-referrer"
            style={{
              width: size, height: size, borderRadius: '50%',
-             border: '1px solid var(--border-2)', objectFit: 'cover',
+             border: '1px solid var(--md-outline-variant)', objectFit: 'cover',
              display: 'block',
            }} />
     );
@@ -499,7 +499,7 @@ function AvatarDisc({ email, url, size = 28 }) {
       color: 'white', display: 'inline-flex',
       alignItems: 'center', justifyContent: 'center',
       fontSize: Math.round(size * 0.42), fontWeight: 600,
-      border: '1px solid var(--border-2)',
+      border: '1px solid var(--md-outline-variant)',
     }}>{initials}</div>
   );
 }
@@ -515,11 +515,11 @@ function ConnectionPill() {
          style={{
       display: 'flex', alignItems: 'center', gap: 6,
       padding: '0 12px',
-      borderLeft: '1px solid var(--border-1)',
+      borderLeft: '1px solid var(--md-outline-hair)',
     }}>
       <Dot color={connected ? COLORS.info : COLORS.idle}
            pulse={connected ? 'pulse-a' : null} size={6} />
-      <span style={{ fontSize: 11, color: connected ? 'var(--fg-1)' : 'var(--fg-3)', fontFamily: 'var(--mono)' }}>
+      <span style={{ fontSize: 11, color: connected ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)' }}>
         {connected ? 'connected' : 'idle'}
       </span>
     </div>
@@ -537,14 +537,14 @@ function ThemeToggle({ theme, onToggle }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center',
-      borderLeft: '1px solid var(--border-1)',
+      borderLeft: '1px solid var(--md-outline-hair)',
       padding: '0 10px',
     }}>
       <div role="group" aria-label="Theme"
            style={{
              display: 'inline-flex', alignItems: 'center',
-             background: 'var(--bg-2)',
-             border: '1px solid var(--border-1)',
+             background: 'var(--md-surface-container)',
+             border: '1px solid var(--md-outline-hair)',
              borderRadius: 999,
              padding: 2,
              height: 26,
@@ -569,9 +569,9 @@ function ThemeIconBtn({ active, onClick, label, children }) {
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         width: 24, height: 22,
-        background: active ? 'var(--bg-0)' : 'transparent',
-        color: active ? 'var(--fg-0)' : 'var(--fg-3)',
-        border: active ? '1px solid var(--border-1)' : '1px solid transparent',
+        background: active ? 'var(--md-surface)' : 'transparent',
+        color: active ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
+        border: active ? '1px solid var(--md-outline-hair)' : '1px solid transparent',
         borderRadius: 999,
         cursor: active ? 'default' : 'pointer',
         padding: 0, fontFamily: 'inherit',
@@ -602,7 +602,7 @@ function MoonIcon() {
 
 function DesignLanguageButton({ onClick, active }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-1)', padding: '0 4px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--md-outline-hair)', padding: '0 4px' }}>
       <Tab active={active} onClick={onClick} icon="palette" size="sm">Design</Tab>
     </div>
   );
@@ -616,21 +616,21 @@ function FullPageMessage({ title, body, onBack }) {
       height: '100%',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: 16,
-      color: 'var(--fg-2)', background: 'var(--bg-0)',
+      color: 'var(--md-on-surface-muted)', background: 'var(--md-surface)',
     }}>
-      <div style={{ fontSize: 16, color: 'var(--fg-0)' }}>{title}</div>
+      <div style={{ fontSize: 16, color: 'var(--md-on-surface)' }}>{title}</div>
       <pre className="mono" style={{
-        fontSize: 11, color: 'var(--fg-3)',
-        background: 'var(--bg-1)', padding: '8px 12px',
-        border: '1px solid var(--border-1)', borderRadius: 'var(--r-3)',
+        fontSize: 11, color: 'var(--md-on-surface-faint)',
+        background: 'var(--md-surface-container-low)', padding: '8px 12px',
+        border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)',
         whiteSpace: 'pre-wrap', maxWidth: 600,
       }}>{body}</pre>
       {onBack && (
         <button onClick={onBack} style={{
           padding: '6px 14px', fontSize: 12,
-          background: 'var(--bg-2)', color: 'var(--fg-1)',
-          border: '1px solid var(--border-2)',
-          borderRadius: 'var(--r-2)',
+          background: 'var(--md-surface-container)', color: 'var(--md-on-surface-variant)',
+          border: '1px solid var(--md-outline-variant)',
+          borderRadius: 'var(--md-shape-sm)',
         }}>← Back to runs</button>
       )}
     </div>

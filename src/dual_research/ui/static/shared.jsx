@@ -146,11 +146,11 @@ function Pill({ children, color, tone = 'subtle' }) {
       display: 'inline-flex', alignItems: 'center', gap: 6,
       padding: '2px 7px',
       background: bg,
-      border: `1px solid ${color || 'var(--border-2)'}55`,
+      border: `1px solid ${color || 'var(--md-outline-variant)'}55`,
       borderRadius: 4,
       fontSize: 10.5,
-      color: color || 'var(--fg-1)',
-      fontFamily: 'var(--mono)',
+      color: color || 'var(--md-on-surface-variant)',
+      fontFamily: 'var(--md-font-data)',
       letterSpacing: '0.02em',
       textTransform: 'lowercase',
       whiteSpace: 'nowrap',
@@ -163,11 +163,11 @@ function MetricRow({ label, value, mono = true, color, accent }) {
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
       padding: '4px 0',
-      borderBottom: '1px dashed var(--border-1)',
+      borderBottom: '1px dashed var(--md-outline-hair)',
       fontSize: 12,
     }}>
-      <span style={{ color: 'var(--fg-3)', fontSize: 11, letterSpacing: '0.01em' }}>{label}</span>
-      <span className={mono ? 'mono num' : 'num'} style={{ color: color || 'var(--fg-0)', fontSize: 12 }}>
+      <span style={{ color: 'var(--md-on-surface-faint)', fontSize: 11, letterSpacing: '0.01em' }}>{label}</span>
+      <span className={mono ? 'mono num' : 'num'} style={{ color: color || 'var(--md-on-surface)', fontSize: 12 }}>
         {value}
       </span>
     </div>
@@ -180,8 +180,8 @@ function PanelHeader({ icon, agent, title, status, right }) {
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '10px 14px',
-      borderBottom: '1px solid var(--border-1)',
-      background: meta ? meta.bg : 'var(--bg-2)',
+      borderBottom: '1px solid var(--md-outline-hair)',
+      background: meta ? meta.bg : 'var(--md-surface-container)',
     }}>
       {meta && (
         <div style={{
@@ -189,7 +189,7 @@ function PanelHeader({ icon, agent, title, status, right }) {
           background: meta.bgStrong,
           border: `1px solid ${meta.border}`,
           display: 'grid', placeItems: 'center',
-          fontFamily: 'var(--mono)',
+          fontFamily: 'var(--md-font-data)',
           color: meta.color,
           fontSize: 11,
           fontWeight: 600,
@@ -197,11 +197,11 @@ function PanelHeader({ icon, agent, title, status, right }) {
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ color: meta ? meta.color : 'var(--fg-0)', fontWeight: 600, fontSize: 13, letterSpacing: '-0.005em' }}>
+          <span style={{ color: meta ? meta.color : 'var(--md-on-surface)', fontWeight: 600, fontSize: 13, letterSpacing: '-0.005em' }}>
             {meta ? meta.name : title}
           </span>
           {meta && (
-            <span className="mono" style={{ color: 'var(--fg-3)', fontSize: 10.5 }}>{meta.model}</span>
+            <span className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 10.5 }}>{meta.model}</span>
           )}
         </div>
       </div>
@@ -351,7 +351,7 @@ function Markdown({ text, className, style }) {
   if (html == null) {
     return (
       <pre style={{ margin: 0, fontFamily: 'var(--sans)', fontSize: 13,
-                    color: 'var(--fg-0)', whiteSpace: 'pre-wrap', lineHeight: 1.6, ...style }}>
+                    color: 'var(--md-on-surface)', whiteSpace: 'pre-wrap', lineHeight: 1.6, ...style }}>
         {text}
       </pre>
     );
@@ -544,11 +544,11 @@ function StreamingText({ content, speed = 60, playing = true, caret = true, colo
   return (
     <span style={{
       fontFamily: 'var(--sans)',
-      color: color || 'var(--fg-1)', fontSize: 13, lineHeight: 1.6,
+      color: color || 'var(--md-on-surface-variant)', fontSize: 13, lineHeight: 1.6,
       whiteSpace: 'pre-wrap',
     }}>
       {text}
-      {caret && !done && playing && <span className="caret" style={{ color: color || 'var(--fg-2)' }} />}
+      {caret && !done && playing && <span className="caret" style={{ color: color || 'var(--md-on-surface-muted)' }} />}
     </span>
   );
 }
@@ -927,7 +927,9 @@ function ModelBadge({ agent, model }) {
       <span className="dot" />
       <span style={{ fontWeight: 'var(--md-w-medium)', whiteSpace: 'nowrap' }}>{displayName}</span>
       <span style={{
-        fontFamily: 'var(--mono)', fontSize: 'var(--t-mono)',
+        fontFamily: 'var(--md-font-data)',
+        fontSize: 'var(--md-label-s-size)',
+        lineHeight: 'var(--md-label-s-lh)',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         opacity: 0.8,
       }}>{model}</span>
@@ -1568,7 +1570,7 @@ function LoadingState({ size = 'panel', label, hint, className, style }) {
         justifyContent: 'center',
         gap: dims.gap,
         padding: dims.padding,
-        color: 'var(--fg-3)',
+        color: 'var(--md-on-surface-faint)',
         ...style,
       }}
     >
@@ -1579,7 +1581,7 @@ function LoadingState({ size = 'panel', label, hint, className, style }) {
       {label && (
         <div style={{
           fontSize: dims.fontSize,
-          color: 'var(--fg-1)',
+          color: 'var(--md-on-surface-variant)',
           fontWeight: size === 'inline' ? 400 : 500,
         }}>
           {label}
@@ -1588,7 +1590,7 @@ function LoadingState({ size = 'panel', label, hint, className, style }) {
       {resolvedHint && (
         <div style={{
           fontSize: size === 'page' ? 12 : 11,
-          color: 'var(--fg-3)',
+          color: 'var(--md-on-surface-faint)',
           letterSpacing: 0.1,
         }}>
           {resolvedHint}

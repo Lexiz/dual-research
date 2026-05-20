@@ -73,22 +73,23 @@ function CompareScreen({ navigate }) {
     <div style={{
       height: '100%', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
-      background: 'var(--bg-0)',
+      background: 'var(--md-surface)',
     }}>
       {/* Header + pickers */}
       <div style={{
         padding: '16px 24px',
-        borderBottom: '1px solid var(--border-1)',
+        borderBottom: '1px solid var(--md-outline-hair)',
         display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <Mdi name="compare" size={18} style={{ color: 'var(--fg-2)' }} />
+          <Mdi name="compare" size={18} style={{ color: 'var(--md-on-surface-muted)' }} />
           <span style={{
-            fontSize: 'var(--t-title)',
+            fontSize: 'var(--md-title-l-size)',
+            lineHeight: 'var(--md-title-l-lh)',
             fontWeight: 'var(--w-semibold)',
-            color: 'var(--fg-0)',
+            color: 'var(--md-on-surface)',
           }}>
             Compare runs
           </span>
@@ -102,7 +103,7 @@ function CompareScreen({ navigate }) {
             options={runOptions}
             exclude={runIdB}
           />
-          <span style={{ color: 'var(--fg-3)', fontSize: 13 }}>vs</span>
+          <span style={{ color: 'var(--md-on-surface-faint)', fontSize: 13 }}>vs</span>
           <RunPicker
             label="Run B"
             value={runIdB}
@@ -117,7 +118,7 @@ function CompareScreen({ navigate }) {
       {(!runIdA || !runIdB) ? (
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--fg-3)', flexDirection: 'column', gap: 12,
+          color: 'var(--md-on-surface-faint)', flexDirection: 'column', gap: 12,
         }}>
           <Mdi name="compare" size={32} style={{ opacity: 0.3 }} />
           <span style={{ fontSize: 13 }}>Select two runs above to compare them side-by-side</span>
@@ -171,11 +172,11 @@ function RunPicker({ label, value, onChange, options, exclude }) {
       style={{
         padding: '4px 8px',
         fontSize: 12,
-        fontFamily: 'var(--mono)',
-        background: 'var(--bg-1)',
-        color: 'var(--fg-0)',
-        border: '1px solid var(--border-2)',
-        borderRadius: 'var(--r-2)',
+        fontFamily: 'var(--md-font-data)',
+        background: 'var(--md-surface-container-low)',
+        color: 'var(--md-on-surface)',
+        border: '1px solid var(--md-outline-variant)',
+        borderRadius: 'var(--md-shape-sm)',
         maxWidth: 280,
       }}
     >
@@ -209,7 +210,7 @@ function RunSummaryPanel({ run, label, navigate }) {
       {/* Run header */}
       <div style={{
         marginBottom: 16, paddingBottom: 12,
-        borderBottom: '1px solid var(--border-1)',
+        borderBottom: '1px solid var(--md-outline-hair)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
           <span className="rid" style={{ fontSize: 12 }}>{displayId}</span>
@@ -225,7 +226,7 @@ function RunSummaryPanel({ run, label, navigate }) {
           )}
         </div>
         <div style={{
-          fontSize: 14, color: 'var(--fg-0)', fontWeight: 500,
+          fontSize: 14, color: 'var(--md-on-surface)', fontWeight: 500,
           cursor: 'pointer',
         }}
         onClick={() => navigate('detail', run.id)}
@@ -233,7 +234,7 @@ function RunSummaryPanel({ run, label, navigate }) {
           {topic}
         </div>
         <div style={{
-          fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
           marginTop: 4, display: 'flex', gap: 12,
         }}>
           {cost != null && <span>${cost.toFixed(2)}</span>}
@@ -250,7 +251,7 @@ function RunSummaryPanel({ run, label, navigate }) {
       {phases.length === 0 && (
         <div style={{
           padding: '16px 0', textAlign: 'center',
-          color: 'var(--fg-3)', fontSize: 12,
+          color: 'var(--md-on-surface-faint)', fontSize: 12,
         }}>
           No phase data
         </div>
@@ -267,23 +268,23 @@ function PhaseCard({ phase, index }) {
   return (
     <div style={{
       marginBottom: 12,
-      background: 'var(--bg-1)',
-      border: '1px solid var(--border-1)',
-      borderRadius: 'var(--r-3)',
+      background: 'var(--md-surface-container-low)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
       overflow: 'hidden',
     }}>
       <div style={{
         padding: '8px 12px',
-        borderBottom: turns.length > 0 ? '1px solid var(--border-1)' : 'none',
+        borderBottom: turns.length > 0 ? '1px solid var(--md-outline-hair)' : 'none',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <span style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--fg-0)',
+          fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface)',
         }}>
           {label}
         </span>
         <span style={{
-          fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--mono)',
+          fontSize: 10, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
         }}>
           {turns.length} turn{turns.length !== 1 ? 's' : ''}
         </span>
@@ -301,19 +302,19 @@ function PhaseCard({ phase, index }) {
       {turns.slice(0, 6).map((turn, ti) => (
         <div key={ti} style={{
           padding: '4px 12px',
-          fontSize: 11, color: 'var(--fg-2)',
-          borderBottom: ti < Math.min(turns.length, 6) - 1 ? '1px solid var(--border-1)' : 'none',
+          fontSize: 11, color: 'var(--md-on-surface-muted)',
+          borderBottom: ti < Math.min(turns.length, 6) - 1 ? '1px solid var(--md-outline-hair)' : 'none',
           display: 'flex', gap: 8, alignItems: 'center',
         }}>
           <span style={{
             width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
             background: (turn.agent === 'claude') ? 'var(--agent-a)' : 'var(--agent-b)',
           }} />
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--fg-3)', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--md-font-data)', fontSize: 10, color: 'var(--md-on-surface-faint)', flexShrink: 0 }}>
             {turn.label || `Turn ${ti + 1}`}
           </span>
           {turn.cost != null && (
-            <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--mono)' }}>
+            <span style={{ fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--md-font-data)' }}>
               ${turn.cost.toFixed(3)}
             </span>
           )}
@@ -321,8 +322,8 @@ function PhaseCard({ phase, index }) {
       ))}
       {turns.length > 6 && (
         <div style={{
-          padding: '4px 12px', fontSize: 10, color: 'var(--fg-4)',
-          fontFamily: 'var(--mono)',
+          padding: '4px 12px', fontSize: 10, color: 'var(--md-on-surface-decor)',
+          fontFamily: 'var(--md-font-data)',
         }}>
           +{turns.length - 6} more turns
         </div>
@@ -377,14 +378,14 @@ function DeltaColumn({ runA, runB }) {
   return (
     <div style={{
       width: 140, flexShrink: 0,
-      borderLeft: '1px solid var(--border-1)',
-      borderRight: '1px solid var(--border-1)',
+      borderLeft: '1px solid var(--md-outline-hair)',
+      borderRight: '1px solid var(--md-outline-hair)',
       padding: '16px 8px',
       overflow: 'auto',
-      background: 'var(--bg-0)',
+      background: 'var(--md-surface)',
     }}>
       <div style={{
-        fontSize: 10, fontWeight: 600, color: 'var(--fg-2)',
+        fontSize: 10, fontWeight: 600, color: 'var(--md-on-surface-muted)',
         textTransform: 'uppercase', letterSpacing: '0.06em',
         marginBottom: 12, textAlign: 'center',
       }}>
@@ -392,7 +393,7 @@ function DeltaColumn({ runA, runB }) {
       </div>
       {deltas.length === 0 && (
         <div style={{
-          fontSize: 11, color: 'var(--fg-4)', textAlign: 'center',
+          fontSize: 11, color: 'var(--md-on-surface-decor)', textAlign: 'center',
           padding: '8px 0',
         }}>
           No differences
@@ -402,9 +403,9 @@ function DeltaColumn({ runA, runB }) {
         <div key={i} style={{
           marginBottom: 8,
           padding: '6px 8px',
-          background: 'var(--bg-1)',
-          border: '1px solid var(--border-1)',
-          borderRadius: 'var(--r-2)',
+          background: 'var(--md-surface-container-low)',
+          border: '1px solid var(--md-outline-hair)',
+          borderRadius: 'var(--md-shape-sm)',
         }}>
           <div style={{
             fontSize: 10, fontWeight: 600, color: 'var(--warn)',
@@ -414,8 +415,8 @@ function DeltaColumn({ runA, runB }) {
             {d.label}
           </div>
           <div style={{
-            fontSize: 10, color: 'var(--fg-2)',
-            fontFamily: 'var(--mono)',
+            fontSize: 10, color: 'var(--md-on-surface-muted)',
+            fontFamily: 'var(--md-font-data)',
           }}>
             {d.detail}
           </div>
