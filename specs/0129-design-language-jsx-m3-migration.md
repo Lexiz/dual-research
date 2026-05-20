@@ -3,7 +3,7 @@ spec: 0129
 title: design-language.jsx v1 → v2 token migration
 label: refactoring
 version-bump: PATCH
-status: proposed
+status: accepted
 target-version: 1.6.7
 created: 2026-05-20
 pr: ""
@@ -13,14 +13,14 @@ pr: ""
 
 > Depends on: 0127 (design-system v2 canonicalization), 0128 (run-detail.jsx token migration), 0092 (additive M3 token layer).
 > Part of: 5-spec migration arc 0127 → 0131. **Third spec; second live-code spec.**
-> Complexity: **M** (~3,400-line file, ~160 token replacements, no logic changes). Lower than 0128 because the file is smaller and has more consistent inline-style patterns.
+> Complexity: **M** (~965-line file, 179 token replacements + 8 DnaSwatch relabels, no logic changes). Lower than 0128 because the file is much smaller and has more consistent inline-style patterns.
 > Drive mode: **by hand** (token sweep — mechanical but visible since this file IS the design-system showcase).
 
 > Pre-flight: this branch was created off `main` at the time of spec 0127 / 0128 planning. Before executing, run `git fetch && git rebase origin/main` to pick up any commits that landed in between. Re-run the audit greps in § 4 to confirm the token counts still match — drift > ~10 references means the spec needs a refresh.
 
 ## 1. Context
 
-Spec 0128 (shipped, v1.6.6) completed the v1 → v2 token migration for `run-detail.jsx`, leaving `design-language.jsx` as the next-largest concentration of v1 tokens in the live frontend: **154** `var(--(bg|fg|border|t|r)-*)` references plus **6** `var(--mono)` references — **~160 total replacements**.
+Spec 0128 (shipped, v1.6.6) completed the v1 → v2 token migration for `run-detail.jsx`, leaving `design-language.jsx` as the next-largest concentration of v1 tokens in the live frontend: **173** `var(--(bg|fg|border|t|r)-*)` references plus **6** `var(--mono)` references — **179 total replacements** in style blocks and JSX props. On top of the mechanical sweep, the **DNA palette swatches** (8 entries) also need their `label=` / `token=` display props relabeled to M3 short-names, because the swatch labels are display content — not just style — and a pure sweep would leave the page actively misleading (a swatch labeled "bg-0" rendering the v2 surface color).
 
 `design-language.jsx` is the in-app design-system reference page, served at `/#/language`. It holds the DNA one-pager (default view) plus the Full reference (`?full=1`) — every component spotlight, every token swatch, every typography ladder is rendered here as a live, browsable specimen of the design system. Today, this file is **100% on the v1 token vocabulary**, which means the in-app reference page actively misrepresents the design system — it shows the v1 surfaces, v1 inks, v1 outlines, even while the v2 (M3) tokens are documented in `design-system/SPEC.md` and used by every M3-migrated component on every other route.
 
@@ -28,57 +28,61 @@ After this spec lands, the design-language page reads from the v2 (`--md-*`) tok
 
 ## 2. Goals
 
-1. Replace every `var(--bg-*)` / `var(--fg-*)` / `var(--border-*)` / `var(--r-*)` / `var(--t-*)` / `var(--mono)` reference inside `src/dual_research/ui/static/design-language.jsx` with its v2 equivalent per the table in § 5.
-2. Leave all other code paths untouched: agent identity tokens (`--agent-a`, `--agent-b`, `--claude`, `--gpt`), status hues (`--ok`, `--info`, `--warn`, `--err`, `--idle` + their `-bg` / `-border` variants), local `COLORS` JS constants, and existing `--md-*` references stay as-is.
-3. Acceptance grep `grep -cE 'var\(--(bg|fg|border|r|t)-' design-language.jsx` → **0**.
-4. Acceptance grep `grep -cE 'var\(--mono' design-language.jsx` → **0**.
-5. The DNA one-pager (`/#/language`) and Full reference (`/#/language?full=1`) both render with no visual regression beyond the documented shape bump (§ 8, risk 1) in dark + light mode at 2200 × 1300 and 1400 × 900.
-6. Full pytest suite (1194+) passes.
+1. Replace every `var(--bg-*)` / `var(--fg-*)` / `var(--border-*)` / `var(--r-*)` / `var(--mono)` reference inside `src/dual_research/ui/static/design-language.jsx` with its v2 equivalent per the table in § 5.
+2. Relabel the 8 `DnaSwatch` entries in the DNA palette (`design-language.jsx:48-61`) from v1 token short-names to M3 short-names — `label="bg-0"` / `token="--bg-0"` → `label="surface"` / `token="--md-surface"`, etc. This is a content change scoped to display props, not a markup/logic change. Required for the DNA page to not misrepresent the new palette after the sweep.
+3. Leave all other code paths untouched: agent identity tokens (`--agent-a`, `--agent-b`, `--claude`, `--gpt`), status hues (`--ok`, `--info`, `--warn`, `--err`, `--idle` + their `-bg` / `-border` variants), local `COLORS` JS constants, and existing `--md-*` references stay as-is.
+4. Acceptance grep `grep -cE 'var\(--(bg|fg|border|r|t)-' design-language.jsx` → **0**.
+5. Acceptance grep `grep -cE 'var\(--mono' design-language.jsx` → **0**.
+6. The DNA one-pager (`/#/language`) and Full reference (`/#/language?full=1`) both render with no visual regression beyond the documented shape bump (§ 8, risk 1) in dark + light mode at 2200 × 1300 and 1400 × 900.
+7. Full pytest suite (1194+) passes.
 
 ## 3. Non-goals
 
 - **No `.css` file edits.** `tokens.css` (v1 block), `base.css`, `components.css`, `theme.css` stay untouched until spec 0131.
 - **No font-family changes** beyond the in-JSX swap (`var(--mono)` → `var(--md-font-data)`). IBM Plex still loads from `index.html` until 0131.
 - **No other JSX files.** `app/errors/compare/auth/search/shared.jsx` are out of scope (0130).
-- **No content changes to the design-language page.** Same DNA one-pager, same Full reference, same spotlights — only the token strings inside inline `style={{ … }}` objects change. If a Component Spotlight visibly disagrees with the production component after the swap, that's a separate fix; file it as a follow-up, don't quietly edit the markup here.
-- **No markup, no logic, no prop changes.** Same React tree, same handlers, same conditional rendering. Pure token sweep.
+- **No content changes to the design-language page, beyond the 8-swatch DNA palette relabel covered in § 2 goal 2.** Same DNA one-pager, same Full reference, same spotlights. If a Component Spotlight visibly disagrees with the production component after the swap, that's a separate fix; file it as a follow-up, don't quietly edit the markup here.
+- **No FullReference `SwatchGrid` rewrite, no narration rewrite.** The literal `name: 'bg-0', hex: '#08090b'` items at `design-language.jsx:451-465` and the narration string at `:587` (`"border-1 (#1c1f24) hairline · border-2 medium · border-3 strong"`) stay v1 in this spec — they need v2 hex re-baselining and editorial rewriting that doesn't belong in a mechanical sweep. Tracked as a follow-up in § 10.
+- **No markup, no logic, no other prop changes.** Same React tree, same handlers, same conditional rendering.
 - **No new tokens.** Every replacement is to an existing `--md-*` token already defined in `tokens.css`.
 - **No new tests.** Existing 1194+ pytest cases must continue to pass. Visual verification is hand-shot.
 
 ## 4. Current-state audit
 
-Token reference inventory in `design-language.jsx` (audited 2026-05-20 against main `93d0538`):
+Token reference inventory in `design-language.jsx` (965 lines, audited 2026-05-20 against main `6b24d6b`):
 
 | v1 token | Count | Maps to (v2) | Notes |
 |---|---:|---|---|
-| `--fg-3` | (audit) | `--md-on-surface-faint` | Muted, column headers — typically the dominant ink in spotlight bodies. |
-| `--fg-2` | (audit) | `--md-on-surface-muted` | Secondary text, labels. |
-| `--border-1` | (audit) | `--md-outline-hair` | Hairline (most spotlight cards). |
-| `--fg-1` | (audit) | `--md-on-surface-variant` | Body prose. |
-| `--bg-2` | (audit) | `--md-surface-container` | Elevated row / chip bg. |
-| `--r-2` | (audit) | `--md-shape-sm` | 6 px → 8 px (see § 8 risks). |
-| `--bg-0` | (audit) | `--md-surface` | Page surface. |
-| `--border-2` | (audit) | `--md-outline-variant` | Medium. |
-| `--bg-1` | (audit) | `--md-surface-container-low` | Default panel. |
-| `--fg-0` | (audit) | `--md-on-surface` | Primary text / numbers / headings. |
-| `--fg-4` | (audit) | `--md-on-surface-decor` | Decorative / inline dividers. |
-| `--bg-3` | (audit) | `--md-surface-container-high` | Hover / active chip. |
+| `--fg-3` | 43 | `--md-on-surface-faint` | Muted, column headers — typically the dominant ink in spotlight bodies. |
+| `--border-1` | 28 | `--md-outline-hair` | Hairline (most spotlight cards). |
+| `--fg-2` | 21 | `--md-on-surface-muted` | Secondary text, labels. |
+| `--fg-0` | 21 | `--md-on-surface` | Primary text / numbers / headings. |
+| `--r-3` | 17 | `--md-shape-md` | 8 px → 12 px (see § 8 risks). |
+| `--bg-1` | 15 | `--md-surface-container-low` | Default panel. |
+| `--fg-1` | 9 | `--md-on-surface-variant` | Body prose. |
+| `--border-2` | 8 | `--md-outline-variant` | Medium. |
 | `--mono` | 6 | `--md-font-data` | `font-family` only. Pre-empts the 0131 deletion. |
-| `--r-3` | (audit) | `--md-shape-md` | 8 px → 12 px (see § 8 risks). |
-| `--border-3` | (audit) | `--md-outline` | Strong outline. |
-| `--r-1` | (audit) | `--md-shape-xs` | 4 px → 4 px. No visual change. |
-| `--t-display` / `--t-title` / `--t-h3` / `--t-body` / `--t-meta` / `--t-mono` / `--t-label` | (audit) | M3 type-role utility classes (see § 5b) | The v1 `--t-*` tokens are font-size + line-height pairs; in M3 we either use `.t-<category>-<size>` utility classes or compose with `--md-<role>-size` / `--md-<role>-lh`. |
-| **Total** | **~160** | — | |
+| `--bg-0` | 6 | `--md-surface` | Page surface. |
+| `--bg-3` | 2 | `--md-surface-container-high` | Hover / active chip. |
+| `--r-2` | 1 | `--md-shape-sm` | 6 px → 8 px (see § 8 risks). |
+| `--border-3` | 1 | `--md-outline` | Strong outline. |
+| `--bg-2` | 1 | `--md-surface-container` | Elevated row / chip bg. |
+| **Total** | **179** | — | |
 
-> **Execution note:** populate the (audit) counts by running, at the top of the executing session, `grep -oE 'var\(--(bg|fg|border|r|t|mono)[a-z0-9-]*\)' src/dual_research/ui/static/design-language.jsx | sort | uniq -c | sort -rn` and pasting the result into this table. The counts below 0128's baseline have shifted as upstream files evolved; freshness matters.
+Not present in `design-language.jsx` (rows the spec originally listed but the audit grep returned zero for — dropped to keep the mapping table honest): `--fg-4`, `--r-1`, `--bg-4`, and all `--t-*` type tokens. § 5b previously documented the `--t-*` mapping; with no `--t-*` references in the file, that subsection is removed.
+
+In addition to the 179 `var(--…)` swaps, the **8 DnaSwatch entries at `design-language.jsx:48-61`** carry the v1 token short-name as display content via the `label=` / `token=` props. Those need a content swap to M3 short-names, scoped to those props only — see § 5c.
 
 Adjacencies kept as-is (not v1):
 - `var(--agent-a)` / `var(--agent-b)` — agent identity, M3-orthogonal.
 - `var(--info)` / `var(--ok)` / `var(--warn)` / `var(--err)` / `var(--idle)` — status hues, M3-orthogonal.
 - All existing `var(--md-*)` references.
 
-Edge-case scan (re-verify at execution time):
-- The Full reference (`?full=1`) contains "before/after" or historical-style spotlights that may intentionally show v1 tokens as illustration. If any spotlight is captioned with literal token names, the spotlight content is shown as text — DO NOT migrate the literal text references, only the inline `style={{ … }}` references. Examples to look for: any chip or code-block that literally renders the string `var(--bg-1)` in its body.
+Edge-case scan (executed 2026-05-20):
+- **DNA palette swatches (lines 48-61).** 8 `DnaSwatch` entries pass v1 token names as display props (`label="bg-0"`, `token="--bg-0"`). The mechanical sweep covers the `color="var(--bg-0)"` prop on each swatch, but the `label=` / `token=` strings need a content swap — handled in this spec per § 5c.
+- **FullReference `SwatchGrid` items (lines 451-465).** 13 items with `name: 'bg-0', hex: '#08090b', role: '…'` baked in as v1 literals. These don't use `var()`, so the sweep grep doesn't touch them. Rewriting them requires re-baselining hex codes against the resolved v2 dark-mode values in `tokens.css` and editorial decisions on role text — **deferred to the follow-up in § 10**.
+- **Inline narration at line 587:** `"border-1 (#1c1f24) hairline · border-2 medium · border-3 strong"` is teaching content naming v1 tokens. Same deferral — § 10 follow-up.
+- The Full reference contains no other "before/after" or literal-token spotlights that would conflict with the sweep.
 
 ## 5. Token mapping (mechanical, file-wide)
 
@@ -102,32 +106,33 @@ Edge-case scan (re-verify at execution time):
 | `var(--r-3)` | `var(--md-shape-md)` |
 | `var(--mono)` | `var(--md-font-data)` |
 
-### 5b — Type token replacements (special handling)
+### 5b — DnaSwatch palette relabel (`design-language.jsx:48-61`)
 
-The v1 `--t-*` tokens are font-size values, not full type roles. Map each to its closest M3 equivalent. Prefer the M3 utility class where the JSX uses `className`; if the file inlines `style={{ fontSize: 'var(--t-body)', lineHeight: 'var(--lh-body)' }}`, swap both the size and line-height variables.
+The 8 DNA palette swatches carry v1 token names as display content. After this spec lands the DNA page reads from v2 surfaces and inks, so the labels must match. Scoped to the `label=` and `token=` props on those exact lines — no markup, no logic.
 
-| Find | Replace with (size only) | Or replace with (class) |
-|---|---|---|
-| `var(--t-display)` (28 px) | `var(--md-display-s-size)` + `var(--md-display-s-lh)` | `.t-display-s` |
-| `var(--t-title)` (20 px) | `var(--md-title-l-size)` + `var(--md-title-l-lh)` (22 px) | `.t-title-l` |
-| `var(--t-h3)` (16 px) | `var(--md-title-m-size)` + `var(--md-title-m-lh)` | `.t-title-m` |
-| `var(--t-body)` (13 px) | `var(--md-body-m-size)` + `var(--md-body-m-lh)` (14 px) | `.t-body-m` |
-| `var(--t-meta)` (12 px) | `var(--md-body-s-size)` + `var(--md-body-s-lh)` | `.t-body-s` |
-| `var(--t-mono)` (11 px) | `var(--md-label-s-size)` + `var(--md-label-s-lh)` | `.t-label-s` (uppercase) |
-| `var(--t-label)` (10 px) | `var(--md-label-s-size)` + `var(--md-label-s-lh)` | `.t-label-s` (uppercase, smaller — fall back to inline 10 px if 11 px breaks layout) |
+| Before (props on each swatch) | After |
+|---|---|
+| `label="bg-0" color="var(--bg-0)" token="--bg-0"` | `label="surface" color="var(--md-surface)" token="--md-surface"` |
+| `label="bg-1" color="var(--bg-1)" token="--bg-1"` | `label="surf-low" color="var(--md-surface-container-low)" token="--md-surface-container-low"` |
+| `label="bg-2" color="var(--bg-2)" token="--bg-2"` | `label="surf-mid" color="var(--md-surface-container)" token="--md-surface-container"` |
+| `label="bg-3" color="var(--bg-3)" token="--bg-3"` | `label="surf-high" color="var(--md-surface-container-high)" token="--md-surface-container-high"` |
+| `label="fg-0" color="var(--fg-0)" token="--fg-0"` | `label="on-surface" color="var(--md-on-surface)" token="--md-on-surface"` |
+| `label="fg-1" color="var(--fg-1)" token="--fg-1"` | `label="on-variant" color="var(--md-on-surface-variant)" token="--md-on-surface-variant"` |
+| `label="fg-2" color="var(--fg-2)" token="--fg-2"` | `label="on-muted" color="var(--md-on-surface-muted)" token="--md-on-surface-muted"` |
+| `label="fg-3" color="var(--fg-3)" token="--fg-3"` | `label="on-faint" color="var(--md-on-surface-faint)" token="--md-on-surface-faint"` |
 
-> **Caveat:** the v1 type scale and the M3 scale diverge by 1–2 px at most sizes. The design-system principle is to converge on M3 (per `SPEC.md § 2.5`); minor pixel shifts on the design-language page are acceptable and documented. If a layout in the Full reference breaks because of a 2 px size change, fix the layout (one-shot tweak); don't keep the v1 size.
+Short-name choices favour brevity (`surface`, `surf-low`, `surf-mid`, `surf-high`, `on-variant`, `on-muted`, `on-faint`, `on-surface`) so the swatch labels stay readable in the 28×28 swatch grid. The `token=` prop carries the full canonical token name for users who copy it out.
 
 ## 6. Files touched
 
-- `src/dual_research/ui/static/design-language.jsx` — token sweep per § 5 + § 5b. ~160 replacements.
-- `src/dual_research/ui/static/index.html` — cache-bust `?v=0128a` → `?v=0129a` on every static asset link/script (or current cache-bust string at execution time → next increment).
+- `src/dual_research/ui/static/design-language.jsx` — 179 `var()` swaps per § 5 + 8 DnaSwatch relabels per § 5b. ~185 line edits total.
+- `src/dual_research/ui/static/index.html` — cache-bust `?v=0128a` → `?v=0129a` on every static asset link/script (25 occurrences).
 - `pyproject.toml` — `1.6.6` → `1.6.7`.
 - `src/dual_research/__init__.py` — `__version__` `"1.6.6"` → `"1.6.7"`.
 - `uv.lock` — refresh.
-- `CHANGELOG.md` — new `[1.6.7]` / `### Changed` entry referencing this spec.
+- `CHANGELOG.md` — new `[1.6.7]` entry under the `## [Unreleased]` heading.
 
-Notably **not** touched: `tokens.css`, `base.css`, `components.css`, `theme.css`, every other `.jsx`, `design-system/SPEC.md § 12` (updated by 0131).
+Notably **not** touched: `tokens.css`, `base.css`, `components.css`, `theme.css`, every other `.jsx`, the FullReference `SwatchGrid` items at `design-language.jsx:451-465`, the narration at `:587`, `design-system/SPEC.md § 12` (updated by 0131).
 
 ## 7. Test plan
 
@@ -168,7 +173,7 @@ Compared against a same-route screenshot captured from `main` immediately before
 
 6. **Spotlight literally references a v1 token name in its body text.** If a spotlight teaches the reader about `var(--bg-1)` by name, the literal string must stay. Find/replace only inside `style={{ … }}` and `className` props. Acceptance grep would falsely flag these as misses — exempt by adding a `// design-spotlight:literal-token-ok` comment near the literal and updating the grep to exclude that line.
 
-7. **File grows or shrinks between spec draft and execution.** Counts in § 4 are placeholders (marked "(audit)") — populate at execution time.
+7. **DnaSwatch relabel introduces a small content delta.** The DNA palette swatches will display M3 short-names ("surface", "on-faint", …) instead of v1 short-names ("bg-0", "fg-3", …). Intentional and required for the page to be honest after the sweep. Captured in the visual matrix.
 
 ## 9. Roll-out and roll-back
 
@@ -185,3 +190,9 @@ After 0129 merges, the remaining two specs in the arc are unchanged:
 | 0131 | CSS finalization: v1 token block removal from `tokens.css`, IBM Plex `<link>` removal from `index.html`, `theme.css` legacy-class drain, `design-system/SPEC.md § 12` removal |
 
 `design-system/SPEC.md § 12 Migration status` (the temporary tracking table) is updated in spec 0131's PR, not here.
+
+### Newly opened by this spec
+
+| Item | Scope | Why deferred |
+|---|---|---|
+| **FullReference v2 swatch + narration rebuild** | Rewrite the `SwatchGrid` items at `design-language.jsx:451-465` (13 entries: v1 names + v1 dark-mode hexes + role text) to v2 token short-names + v2-resolved hex values + updated role text. Same treatment for the inline narration string at `:587` (`"border-1 (#1c1f24) hairline · …"`). | Requires re-baselining hex codes against the resolved v2 dark-mode values in `tokens.css` and editorial decisions on role text — out of scope for the mechanical sweep this spec promises. Naturally rides spec 0131 (v1 token block removal forces re-baselining anyway) or can be a standalone hotfix. |
