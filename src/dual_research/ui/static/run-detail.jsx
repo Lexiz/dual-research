@@ -884,17 +884,81 @@ function Timeline({ run, highlightedTurnKeys }) {
   );
 }
 
-// Spec 0099 + polish — timeline turn row.
+// ─── Spec 0119 — canonical category vocabulary for chip rendering ────
 //
-// Every row in the timeline (input, preflight, plan, turn 1..N, doc) renders
-// as a card whose anatomy mirrors the critique-pane QuestionThread cards:
+// CATEGORY_TONE / _BUBBLE / _LABEL_* are shared by every chip-bearing
+// surface (timeline turn cards, phase headers, critique pane filter
+// row, critique card headers). Treat them as immutable: the order
+// Q→D→I→C and the fixed color mapping are part of the governance.
+const CATEGORY_TONE = {
+  questions:     'info',
+  disagreements: 'warn',
+  issues:        'err',
+  comments:      'idle',
+};
+const CATEGORY_BUBBLE = {
+  questions:     'Q',
+  disagreements: 'D',
+  issues:        'I',
+  comments:      'C',
+};
+const CATEGORY_LABEL_PLURAL = {
+  questions:     'Questions',
+  disagreements: 'Disagreements',
+  issues:        'Issues',
+  comments:      'Comments',
+};
+const CATEGORY_LABEL_SINGULAR = {
+  questions:     'Question',
+  disagreements: 'Disagreement',
+  issues:        'Issue',
+  comments:      'Comment',
+};
+
+// Spec 0119 — cross-pane jump signal. Timeline chips dispatch this
+// when clicked; CritiqueExplorer listens and applies the resulting
+// (phase, kindFilter) update. Decoupling via a window event keeps
+// us from threading prop drilling through Timeline → TlPhase →
+// TlTurnRow just for one cross-cutting affordance.
+function dispatchCritiqueJump({ category, round, phase }) {
+  if (typeof window === 'undefined' || !window.dispatchEvent) return;
+  window.dispatchEvent(new CustomEvent('dr-critique-jump', {
+    detail: { category, round, phase },
+  }));
+}
+
+// Spec 0119 §5.4 / §8.1 — never-bare status chip for timeline turn
+// cards. The contract module's TurnStatus stays {IN_PROGRESS, AGREED};
+// the bare ✓ chip is a UX-only marker for "turn finished, didn't
+// emit AGREED."
+function TlStatusChip({ item, isLive }) {
+  if (isLive) return <Chip tone="info" leadingDot label="running" />;
+  if (item.agreed) {
+    return <Chip tone="ok" leadingIcon={<CheckGlyph size={12} />} label="agreed" />;
+  }
+  if (item.status === 'queued') {
+    return <Chip tone="idle" leadingDot label="queued" />;
+  }
+  return (
+    <Chip
+      tone="ok"
+      iconOnly
+      leadingIcon={<CheckGlyph size={12} />}
+      ariaLabel="Round completed"
+    />
+  );
+}
+
+// Spec 0099 + spec 0119 — timeline turn row.
 //
-//   [KindLetter] · [Number or kind label] · [AgentPill]  [Round]  [Status]
-//   [Phase]  [Q+N] [Q−N] [D+N] [D−N] [AGREED] ────────────────► [chevron]
+// Every row in the timeline (input, preflight, plan, turn 1..N,
+// doc) renders as a card whose header is a single chip row:
 //
-// Both panes therefore read as one design language. Status tone drives the
-// left-edge accent: ok (green) for completed, warn (amber) for repair,
-// info (blue) for running.
+//   [provider] [activity] [modifiers…] [Q D I C…]  ────►  [status] [chev]
+//
+// Provider FIRST, activity SECOND, category chips in fixed Q→D→I→C
+// order (when applicable), status chip right-aligned, never bare.
+// See spec 0119 §6 (composition rules).
 function TlTurnRow({ item, run, isOpen, onToggle }) {
   const agent = item.agent || null;
   const agentSlot = agent === 'gpt' ? 'b' : agent === 'claude' ? 'a' : null;
@@ -912,21 +976,7 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
                       : item.kind === 'doc-live' ? 'Draft'
                       : item.kind || '—';
 
-  // Phase pill — every row knows its phase via item.phase.
   const phase = item.phase ?? null;
-  const phaseLabel = phase === 0 ? 'Phase 0'
-                   : phase === 1 ? 'Phase 1'
-                   : phase === 2 ? 'Phase 2'
-                   : phase === 3 ? 'Phase 3'
-                   : phase === 4 ? 'Phase 4'
-                   : null;
-
-  // Status pill — done | repair | running | agreed.
-  let statusTone = 'ok';
-  let statusLabel = 'done';
-  if (isLive)              { statusTone = 'info'; statusLabel = 'running'; }
-  else if (isRepair)       { statusTone = 'warn'; statusLabel = 'repair'; }
-  else if (item.agreed)    { statusTone = 'ok';   statusLabel = 'agreed'; }
 
   // Spec 0115 — per-category summary chips for interaction-phase rounds.
   // ``item.stats.categories`` is populated by the Python aggregator from
@@ -939,12 +989,6 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   const chipCategories = (phase === 4)
     ? ['questions', 'disagreements', 'issues', 'comments']
     : ['questions', 'disagreements'];
-  const CATEGORY_LABEL = {
-    questions: 'Questions',
-    disagreements: 'Disagreements',
-    issues: 'Issues',
-    comments: 'Comments',
-  };
 
   // Expanded body content.
   const gist = !isLive ? composeGist(item, run) : '';
@@ -985,56 +1029,56 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
       aria-label={fullDisplayName || undefined}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
     >
-      <header className="qt-head">
-        {/* Spec 0115 — full-word labels; no single-letter badge. */}
-        <span className="qref qref-full" data-kind={activityLabel[0]}>
-          {agent && (
-            <span className={`qref-by is-${agentSlot}`}>
-              <AgentIcon agent={agent} size={14} />
-              <span className="qref-by-n">{agentName}</span>
-            </span>
-          )}
-          <span className="qref-sep" aria-hidden="true">·</span>
-          <span className="qref-n">{activityLabel}</span>
-        </span>
+      <header className="tl-card-head">
+        {agent && (
+          <Chip
+            tone={agent === 'gpt' ? 'gpt' : 'claude'}
+            leadingIcon={<AgentIcon agent={agent} size={12} />}
+            label={agentName}
+          />
+        )}
+        <Chip mono tone="neutral" label={activityLabel.toLowerCase()} />
 
-        {phaseLabel && <span className="md-chip md-chip--sm">{phaseLabel}</span>}
-
-        {/* Per-category summary chips — spec 0115 §1. One chip per
-            allowed category for the phase. Always present (even when
-            zero) so the columns align across rounds; dimmed when the
-            round had no activity in this category. */}
+        {/* Spec 0119 §8.1 — per-category summary chips in fixed
+            Q→D→I→C order. Always present (zero-activity dims to
+            0.55 opacity) so columns align across rounds. Clicking
+            a chip jumps the critique pane to (category, round). */}
         {showCategoryChips && chipCategories.map((cat) => {
           const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
           const noActivity = (c.raised + c.closed) === 0;
-          const capSuffix = (c.capped > 0) ? ` · ⊘ ${c.capped}` : '';
-          const text = `${CATEGORY_LABEL[cat]}  ${c.standing} standing · ${c.raised} raised · ${c.closed} closed${capSuffix}`;
           return (
             <Chip
               key={cat}
-              tone={noActivity ? 'muted' : (c.standing === 0 ? 'ok' : 'info')}
-              style={{ opacity: noActivity ? 0.55 : 1 }}
-            >
-              {text}
-            </Chip>
+              tone={CATEGORY_TONE[cat]}
+              categoryBubble={CATEGORY_BUBBLE[cat]}
+              value={c.standing}
+              add={c.raised}
+              sub={c.closed}
+              trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
+              dim={noActivity}
+              ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatchCritiqueJump({
+                  category: cat,
+                  round: item.round,
+                  phase,
+                });
+              }}
+            />
           );
         })}
 
-        <span style={{ flex: 1 }} />
+        <span className="spacer" />
 
-        <Chip tone={statusTone}>{statusLabel}</Chip>
+        <TlStatusChip item={item} isLive={isLive} />
 
-        <span className="right">
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: isOpen ? 0.6 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--md-on-surface-faint)',
-            transform: isOpen ? 'rotate(90deg)' : 'none',
-          }}>
-            <Icon.Chevron />
-          </span>
+        <span
+          className="tl-card-chev"
+          aria-hidden="true"
+          data-open={isOpen ? 'true' : undefined}
+        >
+          <Icon.Chevron />
         </span>
       </header>
 
@@ -6195,6 +6239,33 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   React.useEffect(() => {
     if (selectedPhase === 'summary' && !isTerminal) setSelectedPhase(initial);
   }, [isTerminal, selectedPhase, initial]);
+
+  // Spec 0119 §8.1 + Q2 — cross-pane jump: a click on a timeline turn
+  // card's category chip dispatches `dr-critique-jump` with
+  // (category, round, phase); the critique pane snaps to that phase +
+  // category filter and scrolls itself into view.
+  React.useEffect(() => {
+    const handler = (e) => {
+      const detail = e.detail || {};
+      const { category, phase: targetPhase } = detail;
+      if (targetPhase === 2 || targetPhase === 4) {
+        setSelectedPhase(targetPhase);
+      }
+      const validCategories = ['questions', 'disagreements', 'issues', 'comments'];
+      if (validCategories.includes(category)) {
+        setKindFilter(category);
+      }
+      // Bring the critique pane into the visible area.
+      window.setTimeout(() => {
+        const el = document.querySelector('.crit2');
+        if (el && el.scrollIntoView) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    };
+    window.addEventListener('dr-critique-jump', handler);
+    return () => window.removeEventListener('dr-critique-jump', handler);
+  }, []);
 
   const isSummary = selectedPhase === 'summary';
   const phaseQuestions = isSummary ? [] : questions.filter(q => q.phase === selectedPhase);

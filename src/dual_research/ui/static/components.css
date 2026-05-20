@@ -647,6 +647,28 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .qt-head .right { margin-left: auto; }
 
+/* Spec 0119 — timeline turn-card chip-row header. Replaces the
+   legacy .qt-head composition for new-protocol render. Tighter
+   6px gap fits four category chips + provider + activity + status
+   on one line at ~600 px column width; wraps gracefully below. */
+.tl-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  cursor: pointer;
+}
+.tl-card-head > .spacer { flex: 1; min-width: 8px; }
+.tl-card-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  color: var(--fg-3);
+  opacity: 0.25;
+  transition: opacity var(--m-fast) var(--ease), transform var(--m-fast) var(--ease);
+}
+.tl-card-chev[data-open="true"] {
+  opacity: 0.6;
+  transform: rotate(90deg);
+}
+
 /* QuestionRef (.qref) — decoded reference for a critique question.
    Replaces the legacy cryptic "Q-g-r1-04" text spans. Two shapes:
      .qref         — compact "Q · 04". Used inside QuestionThread
