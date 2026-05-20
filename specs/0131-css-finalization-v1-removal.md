@@ -28,8 +28,9 @@ After specs 0127 (canonicalization), 0128 (run-detail.jsx), 0129 (design-languag
 2. **The v1 token *definition* block** at the top of `src/dual_research/ui/static/tokens.css` (roughly lines 1–164). These DEFINE the v1 tokens (`--bg-0: #...`, `--fg-1: #...`, etc.); deleting them is the act that retires v1.
 3. **IBM Plex font `<link>` tags** in `index.html` plus the `--sans` / `--serif` / `--mono` v1 font aliases in `tokens.css`. With JSX migrated to `--md-font-data` / `--md-font-plain` / `--md-font-brand`, these are unused.
 4. **`design-system/SPEC.md § 12 Migration status`** — the temporary tracking table introduced by spec 0127. Deleting it is the formal "the migration is done" signal.
+5. **FullReference SwatchGrid items + narration line in `design-language.jsx`** — deferred out of spec 0129 (handover: [`handoffs/2026-05-20-spec-0129-design-language-jsx-m3-migration.md` § "Deferred from this spec"](../handoffs/2026-05-20-spec-0129-design-language-jsx-m3-migration.md)). Three call sites carry v1 vocabulary as **literal display content** — not via `var()` — so the 0129 mechanical sweep grep couldn't reach them. The hardcoded v1 dark-mode hex values in these items will become orphan references the moment 0131 deletes the v1 token block from `tokens.css`, so re-baselining them belongs in the same PR. ~14 SwatchGrid items + 1 narration line, ~30 lines of content rewrite.
 
-This spec ships all four in one PR. After it lands:
+This spec ships all five in one PR. After it lands:
 
 - Any leftover `var(--bg-*)` / `var(--fg-*)` / `var(--border-*)` / `var(--r-*)` / `var(--t-*)` / `var(--mono)` / `var(--sans)` / `var(--serif)` reference in the repo resolves to undefined and breaks visibly — **no silent fallback masks a missed migration**.
 - IBM Plex stops loading. Roboto Flex + Roboto Serif + Material Symbols are the only font stacks.
@@ -44,15 +45,17 @@ This is the **no-return** spec. Treat it accordingly: visual regression matrix i
 3. Delete the v1 token *definition* block from `tokens.css` (the `--bg-*`, `--fg-*`, `--border-*`, `--r-*`, `--t-*` definitions + the `--sans` / `--serif` / `--mono` font aliases + the light-mode `body.light` v1 overrides).
 4. Remove the IBM Plex `<link>` tags from `index.html`.
 5. Delete `design-system/SPEC.md § 12 Migration status` (the section becomes obsolete once 0131 ships).
-6. Acceptance grep `grep -rE 'var\(--(bg|fg|border|r|t|mono|sans|serif)-?[0-9]*\)' src/dual_research/ui/static/` returns **0** matches.
-7. Acceptance grep `grep -i "IBM Plex" src/dual_research/ui/static/index.html` returns **0** matches.
-8. Full pytest suite (1194+) passes.
-9. Every routed surface renders without visible regression in dark + light, comfortable + compact density.
+6. Rewrite the FullReference SwatchGrid items at `design-language.jsx:451-472` (5 Surfaces + 5 Foreground + 4 Status = **14 items**) with v2 token short-names + v2-resolved hex values + updated role text. Rewrite the inline narration string at `design-language.jsx:~587` (`"border-1 (#1c1f24) hairline · border-2 medium · border-3 strong"`) to name `--md-outline-hair` / `--md-outline-variant` / `--md-outline` instead. See § 5d for the full replacement table.
+7. Acceptance grep `grep -rE 'var\(--(bg|fg|border|r|t|mono|sans|serif)-?[0-9]*\)' src/dual_research/ui/static/` returns **0** matches.
+8. Acceptance grep `grep -i "IBM Plex" src/dual_research/ui/static/index.html` returns **0** matches.
+9. Acceptance grep `grep -nE "'(bg|fg|border)-[0-9]'" src/dual_research/ui/static/design-language.jsx` returns **0** matches (no v1 short-names left as display content).
+10. Full pytest suite (1194+) passes.
+11. Every routed surface renders without visible regression in dark + light, comfortable + compact density.
 
 ## 3. Non-goals
 
-- **No JSX edits.** Every `.jsx` was migrated by 0128/0129/0130; 0131 doesn't touch them.
-- **No new components or features.** Pure removal + token sweep.
+- **No JSX edits beyond the FullReference content rewrite carried over from 0129 (see § 5d).** Every `.jsx` was already migrated by 0128/0129/0130 at the `var()` level; this spec only touches the 14 SwatchGrid items + 1 narration line in `design-language.jsx` that carry v1 vocabulary as literal display content (handover deferred work).
+- **No new components or features.** Pure removal + token sweep + targeted content rewrite of v1-vocabulary literals.
 - **No design system spec rewrite beyond removing § 12.** SPEC.md content is already v2-canonical (set by spec 0127); this spec only deletes the temporary migration-status section.
 - **No diagram skill alignment.** The cream + indigo palette of the diagram skill stays as-is (deferred to a future optional spec per the spec 0127 decision).
 - **No CHANGELOG history rewrite.** Old entries that reference v1 tokens stay as historical record.
@@ -131,6 +134,71 @@ Same as 0128 / 0129 / 0130:
 | `var(--t-mono)` | `var(--md-label-s-size)` + `var(--md-label-s-lh)` |
 | `var(--t-label)` | `var(--md-label-s-size)` + `var(--md-label-s-lh)` (10/11 px shift acceptable) |
 
+## 5d. FullReference SwatchGrid + narration rewrite (deferred from 0129)
+
+Three call sites in `src/dual_research/ui/static/design-language.jsx` carry v1 token vocabulary as **literal display content** — no `var()` reference, so spec 0129's mechanical sweep grep couldn't reach them. They must be rewritten in this spec because the hardcoded v1 dark-mode hex values become orphan references the moment § 6 step 5 deletes the v1 token block from `tokens.css`.
+
+**Hex re-baseline source:** every v2 hex in the tables below is the resolved dark-mode value from `src/dual_research/ui/static/tokens.css` (the M3 block). Re-verify at execution time — if a hex in `tokens.css` has shifted since this spec was drafted, use the live value.
+
+### 5d.1 — Surfaces SwatchGrid (`design-language.jsx:451-457`)
+
+Replace the 5 items in the Surfaces `SwatchGrid`:
+
+| Before | After |
+|---|---|
+| `{ name: 'bg-0', hex: '#08090b', role: 'Page / streaming body' }` | `{ name: 'surface', hex: '#0d0f12', role: 'Default surface — panels, sheets' }` |
+| `{ name: 'bg-1', hex: '#0d0f12', role: 'Panels' }` | `{ name: 'surf-low', hex: '#111317', role: 'Recessed surface — default panel' }` |
+| `{ name: 'bg-2', hex: '#131519', role: 'Elevated rows' }` | `{ name: 'surf-mid', hex: '#14171c', role: 'Elevated row / chip background / modal header' }` |
+| `{ name: 'bg-3', hex: '#191c21', role: 'Hover / chip' }` | `{ name: 'surf-high', hex: '#191c21', role: 'Hover / active chip' }` |
+| `{ name: 'bg-4', hex: '#1f2329', role: 'High contrast' }` | `{ name: 'surf-highest', hex: '#21252b', role: 'Highest static tier — dropdown row' }` |
+
+(Short-names match the DnaSwatch labels that 0129 introduced at lines 48-61, so the DNA and Full reference grids agree.)
+
+### 5d.2 — Foreground SwatchGrid (`design-language.jsx:459-465`)
+
+Replace the 5 items in the Foreground `SwatchGrid`:
+
+| Before | After |
+|---|---|
+| `{ name: 'fg-0', hex: '#f2f4f7', role: 'Primary text / numbers' }` | `{ name: 'on-surface', hex: '#ffffff', role: 'Primary text / numbers / headings' }` |
+| `{ name: 'fg-1', hex: '#c8ccd3', role: 'Body text' }` | `{ name: 'on-variant', hex: '#b4bac4', role: 'Body prose' }` |
+| `{ name: 'fg-2', hex: '#8c929c', role: 'Secondary / meta' }` | `{ name: 'on-muted', hex: '#9aa0ac', role: 'Secondary text / meta / labels' }` |
+| `{ name: 'fg-3', hex: '#5e636d', role: 'Muted / labels' }` | `{ name: 'on-faint', hex: '#7d8290', role: 'Muted / column headers' }` |
+| `{ name: 'fg-4', hex: '#3f444c', role: 'Decorative' }` | `{ name: 'on-decor', hex: '#50545d', role: 'Decorative / inline dividers' }` |
+
+### 5d.3 — Status SwatchGrid (`design-language.jsx:467-472`)
+
+Names stay (status hues are M3-orthogonal). Hexes get re-baselined against the resolved values in `tokens.css`:
+
+| Before | After |
+|---|---|
+| `{ name: 'ok', hex: '#6fb380', role: 'Resolved / converged / completed' }` | `{ name: 'ok', hex: '#6fb380', role: 'Resolved / converged / completed' }` (verify hex against `--p-ok`) |
+| `{ name: 'info', hex: '#6b9cf0', role: 'Running / current phase' }` | `{ name: 'info', hex: '#6b9cf0', role: 'Running / current phase' }` (verify hex against `--p-info`) |
+| `{ name: 'warn', hex: '#d4a056', role: 'Approaching cap / deadlocked' }` | `{ name: 'warn', hex: '#d4a056', role: 'Approaching cap / deadlocked' }` (verify hex against `--p-warn`) |
+| `{ name: 'err', hex: '#d96a6a', role: 'Errored / halted' }` | `{ name: 'err', hex: '#d96a6a', role: 'Errored / halted' }` (verify hex against `--p-err`) |
+
+(If the resolved values in `tokens.css` haven't drifted from the hexes shown, the only change is a "verified against tokens.css" line in the PR description.)
+
+### 5d.4 — Border narration line (`design-language.jsx:~587`)
+
+Replace the inline narration string:
+
+| Before | After |
+|---|---|
+| `"border-1 (#1c1f24) hairline · border-2 medium · border-3 strong"` | `"outline-hair (#1c1f24) hairline · outline-variant medium · outline strong"` |
+
+(Hex re-verified against `--md-outline-hair` in `tokens.css`; the v1 → v2 mapping for `--border-1` resolves to the same color, so the hex stays.)
+
+### 5d.5 — Acceptance grep
+
+After the rewrites, this must return 0:
+
+```
+grep -nE "'(bg|fg|border)-[0-9]'" src/dual_research/ui/static/design-language.jsx
+```
+
+(Catches any leftover v1 short-name in the file's display content. Goal #9.)
+
 ## 6. Execution order (recommended)
 
 Strict order — earlier steps must be green before later steps run.
@@ -147,9 +215,10 @@ Strict order — earlier steps must be green before later steps run.
    - Leave intact: agent-identity tokens, status hues, and every `--md-*` block.
 6. **Remove IBM Plex from `index.html`.** Delete the `<link>` tag + the stale SPEC-0092 comment about IBM Plex.
 7. **Delete `design-system/SPEC.md § 12 Migration status`.** The section becomes obsolete; this is the formal completion signal.
-8. **Bump versions** (pyproject + __init__ + uv.lock) → `1.6.9`. Cache-bust to next increment.
-9. **Run pytest.** Must be 1194+ passing.
-10. **Visual matrix.** Capture every shot in § 8. Compare against `main`. Hold the PR until all shots are clean.
+8. **FullReference SwatchGrid + narration rewrite** per § 5d. Edit `design-language.jsx` to replace the 14 SwatchGrid items + 1 narration line. Run the § 5d.5 acceptance grep.
+9. **Bump versions** (pyproject + __init__ + uv.lock) → `1.6.9`. Cache-bust to next increment.
+10. **Run pytest.** Must be 1194+ passing.
+11. **Visual matrix.** Capture every shot in § 8. Compare against `main`. Hold the PR until all shots are clean.
 
 ## 7. Files touched
 
@@ -158,6 +227,7 @@ Strict order — earlier steps must be green before later steps run.
 - `src/dual_research/ui/static/components.css` — migrate 323 v1 refs to v2.
 - `src/dual_research/ui/static/theme.css` — migrate 15 v1 refs to v2; drain or rewrite 8 legacy classes. After drain, the file may be empty enough to consider deleting; if so, also drop the `<link rel="stylesheet" href="theme.css?v=…">` from `index.html` and the cache-bust string.
 - `src/dual_research/ui/static/index.html` — remove IBM Plex `<link>` tags; remove stale comment; cache-bust to next increment.
+- `src/dual_research/ui/static/design-language.jsx` — FullReference SwatchGrid + narration rewrite per § 5d (14 SwatchGrid items + 1 narration line, ~30 lines of content). Deferred from spec 0129's mechanical sweep because the literal display content isn't reachable via `var()`-based find/replace.
 - `design-system/SPEC.md` — delete § 12 Migration status; update SPEC version notes (the "spec authoritative" note at the top can drop its reference to "migration in flight").
 - `design-system/CHANGELOG.md` — new entry: "v1 → v2 migration arc complete (spec 0131)".
 - `CHANGELOG.md` (root) — new `[1.6.9]` / `### Changed` (or `### Removed`) entry referencing this spec; calls out the v1 token block deletion + IBM Plex removal as the headline change.
@@ -175,8 +245,11 @@ Strict order — earlier steps must be green before later steps run.
 - [ ] `grep -nE '^\s*--(bg|fg|border|r|t)-[0-9]+:' src/dual_research/ui/static/tokens.css` returns **0** (v1 definitions deleted).
 - [ ] `grep -c "Migration status" design-system/SPEC.md` returns **0** (§ 12 deleted).
 - [ ] `grep -c "V1" src/dual_research/ui/static/tokens.css` returns **0** (header comment updated).
+- [ ] `grep -nE "'(bg|fg|border)-[0-9]'" src/dual_research/ui/static/design-language.jsx` returns **0** (no v1 short-names left as display content per § 5d.5).
 - [ ] `uv run pytest tests/ -q` → **1194+ passed**, 0 new failures.
 - [ ] Visual matrix (§ below) shows no regression beyond the documented shape bump on residual classes (if any).
+- [ ] `/#/language?full=1` Surfaces + Foreground + Status grids display v2 short-names (`surface`, `surf-low`, …, `on-faint`, `ok`, …) — verify by eye against the swatch labels.
+- [ ] `/#/language?full=1` border-narration paragraph reads `"outline-hair (#1c1f24) hairline · outline-variant medium · outline strong"` (not `border-1/2/3`).
 
 ### Visual regression matrix
 
