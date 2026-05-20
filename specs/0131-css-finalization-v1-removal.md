@@ -63,15 +63,36 @@ This is the **no-return** spec. Treat it accordingly: visual regression matrix i
 
 ## 4. Current-state audit
 
-CSS v1 token counts (audited 2026-05-20 against main `93d0538`):
+CSS v1 token counts (re-audited 2026-05-20 post-rebase against main `c907463` — i.e. after 0128/0129/0130 merged):
 
-| File | v1 refs | Notes |
-|---|---:|---|
-| `tokens.css` | 0 in `var(…)` usage (definitions only) | The v1 *definition* block lives here (~lines 1–164). Deletion target. |
-| `base.css` | 36 | Likely concentrated in the v1 `.t-*` type utility classes + scrollbar / focus / selection helpers. |
-| `components.css` | 323 | The biggest single CSS surface. Spans the entire pre-M3 component catalog (every `.chip`, `.card`, `.tab`, `.as`, `.sb`, `.cs-*`, `.qthread`, `.consumption-*`, `.phase-rail-*`, `.dr-modal-*`, etc. — plus all SPEC-0050..0091 era selectors). |
-| `theme.css` | 15 | Eight legacy classes — `.phase-step-line`, `.uppercase-label`, `.dr-ghost-block` + `.dr-ghost-block::before` + `.dr-ghost-block-kind`, `.dr-section-brief-btn` + `:hover`, `.cap-bar` + `> i` + `> .soft-mark`, `.bg-grid`. |
-| **Total** | **~374** | Plus the v1 token block (definitions) in `tokens.css`. |
+| File | v1 refs (`bg/fg/border/r/t`) | + font aliases (`mono/sans/serif`) | Notes |
+|---|---:|---:|---|
+| `tokens.css` | 0 in `var(…)` usage | 1 (`--mono: var(--sans)` alias) | The v1 *definition* block lives here (lines 1–162; v1 light-mode overrides lines 348–362). Deletion target. |
+| `base.css` | **43** (was 36 at draft) | 10 (`--sans` ×6, `--serif` ×4) | Re-audit drift: +7. Concentrated in `.t-*` type utility classes + scrollbar / focus / selection helpers. |
+| `components.css` | **383** (was 323 at draft) | 33 (`--sans` ×15, `--mono` ×13, `--serif` ×5) | Re-audit drift: **+60, above the spec's ~20 refresh trigger**. No strategic change — same mechanical sweep covers it. Pre-M3 component catalog: every `.chip`, `.card`, `.tab`, `.as`, `.sb`, `.cs-*`, `.qthread`, `.consumption-*`, `.phase-rail-*`, `.dr-modal-*`, etc. |
+| `theme.css` | **15** (clean match) | 2 (`--mono`) | Eight legacy classes — `.phase-step-line`, `.uppercase-label`, `.dr-ghost-block` + `.dr-ghost-block::before` + `.dr-ghost-block-kind`, `.dr-section-brief-btn` + `:hover`, `.cap-bar` + `> i` + `> .soft-mark`, `.bg-grid`. |
+| **Total** | **441** | **46** | Plus the v1 token block (definitions) in `tokens.css`. |
+
+**Plus two unmapped tokens discovered at re-audit** (see § 5 addendum):
+- `var(--r-pill)` — 10 refs in `components.css`. Maps to `var(--md-shape-full)`.
+- `var(--r-4)` — 0 refs anywhere; just delete the definition.
+- `var(--t-sm)` — 1 orphan ref at `components.css:848` (`.quote-callout font-size`). The token is **undefined** — the line silently inherits parent `font-size`. Pre-existing quiet bug. Fix as part of the sweep: map to `var(--md-body-s-size)` (12 / 16) — the closest M3 role to the implied size (v1 had no `--t-sm` defined; the typo most likely intended `--t-meta` = 12 px).
+
+**Plus two residual JSX targets absorbed from 0130's handover + one extra discovered:**
+- `run-list.jsx` — 2 `var(--mono)` refs.
+- `search-palette.jsx` — 5 `var(--mono)` refs **+ 1 `var(--sans)` ref at line 153** (the `--sans` was not in 0130's handover; surfaced at this re-audit).
+- These pre-date the 0128 convention; they must sweep in this PR because 0131 deletes `--mono` / `--sans` from `tokens.css`.
+
+### Legacy-class disposition (decided at re-audit time)
+
+| Class | Functional consumers (grepped 2026-05-20) | Disposition |
+|---|---|---|
+| `.phase-step-line` | none found | **DELETE** |
+| `.uppercase-label` | `design-language.jsx` × 4 sites (`:73`, `:773`, `:808`, `:845`) | **MIGRATE** to `components.css` under v2 tokens |
+| `.dr-ghost-block` family | `run-detail.jsx` | **MIGRATE** to `components.css` under v2 tokens |
+| `.dr-section-brief-btn` (+`:hover`) | `run-detail.jsx` | **MIGRATE** to `components.css` under v2 tokens |
+| `.cap-bar` family (+`>i`, `>.soft-mark`) | `design-language.jsx:674` | **MIGRATE** to `components.css` under v2 tokens |
+| `.bg-grid` | none found | **DELETE** |
 
 > **Execution note:** re-run counts at execution start:
 > ```
@@ -133,6 +154,10 @@ Same as 0128 / 0129 / 0130:
 | `var(--t-meta)` | `var(--md-body-s-size)` + `var(--md-body-s-lh)` |
 | `var(--t-mono)` | `var(--md-label-s-size)` + `var(--md-label-s-lh)` |
 | `var(--t-label)` | `var(--md-label-s-size)` + `var(--md-label-s-lh)` (10/11 px shift acceptable) |
+| `var(--r-pill)` | `var(--md-shape-full)` (999 px → 9999 px; visually identical at common sizes — 10 refs in `components.css`; not in original draft) |
+| `var(--t-sm)` | `var(--md-body-s-size)` + `var(--md-body-s-lh)` (1 orphan ref at `components.css:848`; the v1 token was never defined — this swap also fixes a pre-existing inherit-from-parent bug) |
+| `var(--sans)` *(in JSX)* | `var(--md-font-plain)` (1 ref at `search-palette.jsx:153` — JSX residual not in 0130's handover) |
+| `var(--mono)` *(in JSX)* | `var(--md-font-data)` (2 refs in `run-list.jsx`, 5 in `search-palette.jsx` — absorbed from 0130's handover) |
 
 ## 5d. FullReference SwatchGrid + narration rewrite (deferred from 0129)
 
@@ -228,7 +253,11 @@ Strict order — earlier steps must be green before later steps run.
 - `src/dual_research/ui/static/theme.css` — migrate 15 v1 refs to v2; drain or rewrite 8 legacy classes. After drain, the file may be empty enough to consider deleting; if so, also drop the `<link rel="stylesheet" href="theme.css?v=…">` from `index.html` and the cache-bust string.
 - `src/dual_research/ui/static/index.html` — remove IBM Plex `<link>` tags; remove stale comment; cache-bust to next increment.
 - `src/dual_research/ui/static/design-language.jsx` — FullReference SwatchGrid + narration rewrite per § 5d (14 SwatchGrid items + 1 narration line, ~30 lines of content). Deferred from spec 0129's mechanical sweep because the literal display content isn't reachable via `var()`-based find/replace.
+- `src/dual_research/ui/static/run-list.jsx` — 2 `var(--mono)` → `var(--md-font-data)` (residual not in 0130's scope; absorbed here so the `--mono` deletion in `tokens.css` doesn't orphan these refs).
+- `src/dual_research/ui/static/search-palette.jsx` — 5 `var(--mono)` → `var(--md-font-data)` + 1 `var(--sans)` → `var(--md-font-plain)`. Same rationale as `run-list.jsx`. The `--sans` ref at `:153` was not in 0130's handover — surfaced at 0131 re-audit.
 - `design-system/SPEC.md` — delete § 12 Migration status; update SPEC version notes (the "spec authoritative" note at the top can drop its reference to "migration in flight").
+- `design-system/CHANGELOG.md` — update line 27 reference to `SPEC.md § 12` (the section is being removed; rephrase as historical "migration completed in spec 0131").
+- `design-system/PROMPT-FOR-CLAUDE-DESIGN.md` — update line 107 reference to `SPEC.md § 12` (the migration is now complete; rephrase from active-tense to past-tense).
 - `design-system/CHANGELOG.md` — new entry: "v1 → v2 migration arc complete (spec 0131)".
 - `CHANGELOG.md` (root) — new `[1.6.9]` / `### Changed` (or `### Removed`) entry referencing this spec; calls out the v1 token block deletion + IBM Plex removal as the headline change.
 - `pyproject.toml` — `1.6.8` → `1.6.9`.
