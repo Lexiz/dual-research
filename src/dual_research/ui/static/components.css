@@ -2836,3 +2836,91 @@ body.light .tour-overlay__mask {
   border-bottom: 1px solid var(--md-outline-hair);
   flex-shrink: 0;
 }
+
+/* ── Spec 0120 — Turn-modal right-pane (review cards) ─────────────
+   Right-pane structure: a stack of `ReviewGroup` panels, each one a
+   `.rp-panel-head` chip + a column of `.rp-item-card`s. Cards carry
+   a chip-cluster `.rp-item-card-head` (Provider · Category · raised
+   in rN · …) and a labelled `.rp-item-card-body` (Anchor / Title /
+   Rationale / Sources). The `.rp-segment-label` treatment mirrors
+   `.crit-section-title` for visual consistency with the critique
+   pane's expanded-card sections. */
+.rp-panel-head {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+}
+.rp-item-card {
+  display: block; width: 100%; text-align: left;
+  appearance: none;
+  padding: 10px 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--border-1);
+  border-left-width: 3px;
+  border-left-style: solid;
+  border-radius: var(--r-2);
+  font-family: inherit;
+  color: inherit;
+  transition: background 100ms, border-color 100ms;
+}
+.rp-item-card:hover { background: var(--bg-2); }
+.rp-item-card.is-active { background: var(--bg-2); }
+.rp-item-card.is-missing { border-left-style: dashed; }
+
+.rp-item-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.rp-item-card-body {
+  display: flex; flex-direction: column;
+  gap: 0;
+}
+.rp-segment {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.rp-segment:first-child { margin-top: 0; }
+.rp-segment-label {
+  color: var(--fg-3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--w-semi);
+}
+.rp-anchor {
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--fg-2);
+  font-style: italic;
+  border-left: 2px solid var(--border-2);
+  background: var(--bg-0);
+  border-radius: 0 var(--r-1) var(--r-1) 0;
+}
+.rp-anchor--after {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--warn, var(--fg-2));
+}
+.rp-title {
+  font-size: 13px;
+  font-weight: var(--w-semi);
+  color: var(--fg-1);
+  line-height: 1.4;
+}
+.rp-rationale {
+  font-size: 12.5px;
+  color: var(--fg-1);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.rp-sources {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.rp-item-card-id {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--fg-3);
+  user-select: text;
+}
