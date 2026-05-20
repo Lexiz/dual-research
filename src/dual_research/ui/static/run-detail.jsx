@@ -3259,7 +3259,7 @@ function composeGist(item, run) {
       .filter((d) => d && d.phase === 2)
       .flatMap((d) => (d.progression || []).filter((p) => p.agent === agent && p.round === item.round))
       .map((p) => p.action);
-    if (myProg.includes('conceded')) parts.push('conceded a held D-N');
+    if (myProg.includes('conceded')) parts.push('resolved a held D-N'); // spec-0119:vocab-ok (legacy progression-action key)
     if (myProg.includes('aligned')) parts.push('marked one non-blocking');
     return parts.length === 1 ? '' : parts[0] + ', ' + parts.slice(1).join(', ') + '.';
   }
@@ -5838,7 +5838,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const driftItems = [];
   const _isOpenStatus = (s) => s === 'open' || s === 'open-new';
   const _isResolvedStatus = (s) =>
-    s === 'resolved' || s === 'answered' ||
+    s === 'resolved' || s === 'answered' || // spec-0119:vocab-ok (legacy question.status value)
     (typeof s === 'string' && s.startsWith('resolved-'));
   const pushItem = (it, critiqueKind) => {
     const item = { ...it, _critiqueKind: critiqueKind };
@@ -6178,7 +6178,7 @@ function _normalizeToThread(item, run, phaseId) {
 
   if (k === 'q') {
     const q = item;
-    const isAnswered = q.status === 'answered';
+    const isAnswered = q.status === 'answered'; // spec-0119:vocab-ok (legacy question.status value)
     const turns = [];
     turns.push({ agent: q.raisedBy, round: q.raisedRound, verdict: 'raised', quote: q.body || null });
     if (isAnswered && q.answeredBy) {
@@ -6193,7 +6193,6 @@ function _normalizeToThread(item, run, phaseId) {
         agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
         round: q.raisedRound + ghostedRounds,
         verdict: 'capped',
-        kind: 'ghosted',
       });
     }
     const status = ghostedRounds > 0 && !isAnswered ? 'drift' : isAnswered ? 'resolved' : 'open';
@@ -6283,11 +6282,11 @@ function _mapVerdict(action) {
   // Item creation aliases.
   if (a === 'opened' || a === 'introduced' || a === 'flagged by') return 'raised';
   // Addressee response → addressed.
-  if (a === 'pushback' || a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'addressed';
+  if (a === 'pushback' || a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'addressed'; // spec-0119:vocab-ok (legacy action-string canonicalisation)
   // Raiser accepts addressee's response → resolved.
-  if (a === 'conceded' || a === 'answered' || a === 'agreed' || a === 'accepted') return 'resolved';
+  if (a === 'conceded' || a === 'answered' || a === 'agreed' || a === 'accepted') return 'resolved'; // spec-0119:vocab-ok (legacy action-string canonicalisation)
   // Orchestrator cap aliases (legacy "ghosted" = unaddressed across rounds; "drift" = ledger drift).
-  if (a === 'ghosted' || a === 'drift') return 'capped';
+  if (a === 'ghosted' || a === 'drift') return 'capped'; // spec-0119:vocab-ok (legacy action-string canonicalisation)
   return a; // fallback — flagged by the VERDICT_VOCAB dev assertion
 }
 
@@ -6534,7 +6533,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     if (bestGhost > 0) {
       const other = best.raisedBy === 'claude' ? 'gpt' : 'claude';
       // Spec 0119 §7.1 — legacy 'ghosted' → 'capped' canonical verb.
-      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'capped', kind: 'ghosted' });
+      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'capped' });
     }
     const threadStatus = bestGhost > 0 ? 'drift' : 'open';
     const footer = bestGhost > 0 ? `Not addressed for ${bestGhost} round(s) — highest-leverage open item.` : null;

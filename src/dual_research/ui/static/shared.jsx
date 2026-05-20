@@ -1416,14 +1416,12 @@ const CODE_KIND_MAP = {
   Q:  'question',
   I:  'issue',
   C:  'comment',
-  Cl: 'claim',
   d:  'disagreement',
 };
 const CODE_KIND_LABELS = {
   question:     'Question',
   issue:        'Issue',
   comment:      'Comment',
-  claim:        'Claim',
   disagreement: 'Disagreement',
 };
 
@@ -1435,8 +1433,9 @@ function parseCodeId(id) {
   const dm = /^d-(\d+)$/.exec(id);
   if (dm) return { raw, kind: 'disagreement', raiser: null, round: null, phase: null, sequence: parseInt(dm[1], 10) };
 
-  // Q/I/C/Cl: PREFIX-RAISER-r/pN-SEQ  (e.g. I-c-r1-06, Cl-g-p1-01)
-  const m = /^(Q|I|C|Cl)-([cg])-([rp])(\d+)-(\d+)$/.exec(id);
+  // Q/I/C: PREFIX-RAISER-r/pN-SEQ  (e.g. I-c-r1-06)
+  // Spec 0119 §7 — legacy ``Cl-*`` (claim) prefix retired.
+  const m = /^(Q|I|C)-([cg])-([rp])(\d+)-(\d+)$/.exec(id);
   if (m) {
     const kind = CODE_KIND_MAP[m[1]] || m[1];
     const raiser = m[2] === 'c' ? 'claude' : 'gpt';
