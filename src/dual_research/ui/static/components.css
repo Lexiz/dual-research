@@ -3777,3 +3777,100 @@ body.light .tour-spotlight__dim {
   padding: var(--s-3) var(--s-4);
   margin: var(--s-4);
 }
+
+/* =============================================================
+   Spec 0131 — legacy classes drained from theme.css.
+   These five class families were moved here under M3 tokens
+   when theme.css was emptied of v1 component rules in the
+   v1 → v2 finalization arc (0127 → 0131).
+     - .uppercase-label   (4 consumers in design-language.jsx)
+     - .dr-ghost-block + ::before + .dr-ghost-block-kind  (run-detail.jsx)
+     - .dr-section-brief-btn + :hover  (run-detail.jsx)
+     - .cap-bar + > i + > .soft-mark  (design-language.jsx)
+   .phase-step-line and .bg-grid had no remaining consumers
+   at audit time and were deleted, not moved.
+   ============================================================= */
+
+/* Generic uppercase label helper — superseded by .t-label-s
+   (defined in base.css) at the class level, but call sites in
+   design-language.jsx still use this name. */
+.uppercase-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  font-weight: 500;
+}
+
+/* Ghost-block placeholder for "missing X" / "> after:" review items.
+   Rendered underneath the anchored heading on jump; auto-dismissed
+   on next click. */
+.dr-ghost-block {
+  border: 1px dashed var(--warn);
+  border-radius: var(--md-shape-sm);
+  padding: 10px 12px;
+  margin: 10px 0;
+  background: rgba(212, 160, 86, 0.06);
+  color: var(--md-on-surface-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  position: relative;
+}
+.dr-ghost-block::before {
+  content: '\2038';                /* proofreader's caret — "insert here" */
+  position: absolute; left: -14px; top: 6px;
+  color: var(--warn); font-weight: 700; font-size: 13px;
+}
+.dr-ghost-block-kind {
+  font-family: var(--md-font-data);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin-bottom: 4px;
+}
+
+/* Spec 0034 — brief affordance injected next to Phase 1 draft section
+   headings in DraftReviewModal. Quiet by default; hover-darkens. */
+.dr-section-brief-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-family: var(--md-font-data);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--md-on-surface-faint);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: color 120ms, background 120ms, border-color 120ms;
+}
+.dr-section-brief-btn:hover {
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container-high);
+  border-color: var(--md-outline-variant);
+}
+
+/* Cap meter — used by run-detail / consumption cards. */
+.cap-bar {
+  position: relative;
+  height: 4px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  overflow: hidden;
+}
+.cap-bar > i {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: var(--md-on-surface-muted);
+  transition: width 280ms ease;
+}
+.cap-bar > .soft-mark {
+  position: absolute; top: -3px; bottom: -3px;
+  width: 1px;
+  background: var(--md-outline);
+}
