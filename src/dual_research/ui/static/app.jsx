@@ -130,6 +130,21 @@ function App() {
     return () => window.removeEventListener('dr-not-approved', onForbid);
   }, []);
 
+  // Replay the SPEC-0103 onboarding tour on demand (avatar menu → "Replay tour").
+  // Mirrors the ?reset_onboarding=1 path but without a page reload.
+  React.useEffect(() => {
+    function onReplay() {
+      try {
+        localStorage.removeItem('dr_onboarded');
+        localStorage.removeItem('dr_tour_step');
+      } catch (e) {}
+      setTourStep(1);
+      setTourOpen(true);
+    }
+    window.addEventListener('dr-replay-tour', onReplay);
+    return () => window.removeEventListener('dr-replay-tour', onReplay);
+  }, []);
+
   if (hostedMode && (!clientReady || !sessionReady)) {
     // Spec 0084 — unified loading visual at app boot.
     return <LoadingState size="page" label="Connecting to the server" />;
@@ -443,6 +458,15 @@ function AvatarMenu({ navigate, route, client, session, me }) {
           </div>
           <MenuItem onClick={() => { setOpen(false); navigate('language'); }}
                     icon={Icon.Palette} label="Design language" active={route.view === 'language'} />
+          <MenuItem onClick={() => {
+                      setOpen(false);
+                      try { window.dispatchEvent(new Event('dr-replay-tour')); } catch (e) {}
+                    }}
+                    icon={Icon.Help} label="Replay tour" />
+          {me?.isAdmin && (
+            <MenuItem onClick={() => { setOpen(false); navigate('admin-users'); }}
+                      icon={Icon.List} label="Admin: users" active={route.view === 'admin-users'} />
+          )}
           {me?.isAdmin && (
             <MenuItem onClick={() => { setOpen(false); navigate('settings'); }}
                       icon={Icon.Gear} label="Settings" active={route.view === 'settings'} />
