@@ -752,15 +752,30 @@ body.light .tab-group.tabs-solid .tab.is-active,
   width: 12px; height: 1px; flex: 0 0 12px;
 }
 
-/* Spec 0125 — narrow-desktop compaction. Below 1500 px the kind-filter
-   chips (Questions/Disagreements/Issues/Comments/All) collapse to
-   bubble+count only; status and agent chips keep their labels but the
-   row tightens via reduced gap and thinner spacers. Reuses the same
-   1499 px narrow-desktop breakpoint used at line 902 (.agent-input).
+/* Spec 0125 — narrow-desktop compaction. Below the breakpoint the
+   kind-filter chips (Questions/Disagreements/Issues/Comments/All)
+   collapse to bubble+count only; status and agent chips keep their
+   labels but the row tightens via reduced gap and thinner spacers.
    Targets are tagged with data-kind-filter at the call site in
    run-detail.jsx so the rule is local and the Chip primitive stays
-   single-purpose. */
-@media (max-width: 1499px) {
+   single-purpose.
+
+   Spec 0133 follow-up — breakpoint bumped from 1499 → 1799 px. The
+   original 1499 was sized for SPEC-0125's filter row alone, but
+   SPEC-0133 added the relocated agent pills + Bar 1 compaction +
+   extended Bar 2 collapse into the same block. The combined wide-mode
+   content (Timeline pill + Conversation/Consumption tabs in one row;
+   Critique title + 3 phase tabs + 3 counter triples in another;
+   10 filter chips with full labels in a third) only fits comfortably
+   when each two-pane column is ≥ ~900 px wide. That requires viewport
+   ≥ ~1800 px (column ≈ half the viewport). MacBook Pro 16" (1728 px),
+   MacBook Pro 14" (1512 px), and the typical half-screen browser
+   window on a 27" display all sit in the 1500–1799 range and need
+   narrow rules. 1799 covers them; 1800+ ultrawides and full-screen
+   external monitors still get wide mode. The .agent-input and
+   .resp-grid breakpoints elsewhere stay at 1499 — they govern
+   different layouts. */
+@media (max-width: 1799px) {
   .crit2 .bar2.crit-filter-row {
     gap: 4px;
     padding: 10px 10px;
