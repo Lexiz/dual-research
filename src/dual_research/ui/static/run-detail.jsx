@@ -143,7 +143,13 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
 // Spec 0056 D7: migrated to the class-backed AgentStrip from shared.jsx
 // (SPEC-0052). The `right` prop carries the live-activity phrase (dot +
 // sentence) that the bespoke version rendered inline.
-function TimelineAgentPill({ agent, run }) {
+// Spec 0133: relocated from the dedicated `.agent-bar` row into the
+// Timeline pane headers (Claude in `.tl__head`, GPT in `.tl__tabs`).
+// `className="in-header"` lets `components.css` swap the `.as-timeline`
+// 460–720 px width contract for content-natural sizing + tight padding.
+// Cost renders at 2 decimals (fmt.costShort) — 4-digit precision is noise
+// at this surface; the top-bar CostBadge keeps the precise figure.
+function TimelineAgentPill({ agent, run, className = 'in-header' }) {
   const meta = AGENT_META[agent];
   const ag = run.agents?.[agent] || {};
   const tokensIn = ag.tokens?.in || 0;
@@ -174,19 +180,10 @@ function TimelineAgentPill({ agent, run }) {
       model={modelId}
       tokens={totalTokens}
       cost={cost}
+      costFormatter={fmt.costShort}
       right={activityRight}
-      className="as-timeline"
+      className={className}
     />
-  );
-}
-
-// ─────────────────── Spec 0105 — restored agent bar above timeline ───────────
-function TimelineAgentBar({ run }) {
-  return (
-    <div className="agent-bar">
-      <TimelineAgentPill agent="claude" run={run} />
-      <TimelineAgentPill agent="gpt" run={run} />
-    </div>
   );
 }
 
@@ -662,39 +659,37 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
   );
 }
 
+// Spec 0133 — M3 segmented linear phase-progress indicator. Replaces the
+// pre-M3 circles-and-lines treatment with one rounded bar segment per
+// PHASES entry. Cell state (done / current / errored / deadlocked /
+// pending) maps to a class that drives the background color via the
+// existing palette tokens in components.css (.phase-progress__seg.is-*).
 function PhaseDots({ run }) {
   const { phase, status } = run;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-      {PHASES.map((p, i) => {
-        const completed = p.id < phase || (status === 'completed' && p.id <= 5);
-        const current = p.id === phase && status !== 'completed';
-        const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
-        const color = failed
-          ? (status === 'errored' ? COLORS.err : COLORS.warn)
-          : current ? COLORS.info
-          : completed ? COLORS.ok
-          : 'var(--md-outline)';
-        const isLast = i === PHASES.length - 1;
+    <div className="phase-progress" aria-label="Run progress">
+      {PHASES.map((p) => {
+        const completed = p.id < phase || (status === 'completed' && p.id <= PHASES.length - 1);
+        const current   = p.id === phase && status !== 'completed';
+        const failed    = (status === 'errored' || status === 'deadlocked') && p.id === phase;
+        const cls = ['phase-progress__seg'];
+        if (failed && status === 'errored')         cls.push('is-error');
+        else if (failed && status === 'deadlocked') cls.push('is-warn');
+        else if (current)                            cls.push('is-current');
+        else if (completed)                          cls.push('is-done');
+        const stateLabel = completed
+          ? 'done'
+          : current
+            ? 'in progress'
+            : failed
+              ? status
+              : 'pending';
         return (
-          <React.Fragment key={p.id}>
-            <span style={{
-              position: 'relative',
-              width: 6, height: 6, borderRadius: '50%',
-              background: completed || current || failed ? color : 'transparent',
-              border: completed || current || failed ? 'none' : `1px solid ${color}`,
-              flexShrink: 0,
-            }}>
-              {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
-            </span>
-            {!isLast && (
-              <span style={{
-                width: 12, height: 1,
-                background: completed ? COLORS.ok : 'var(--md-outline-variant)',
-                opacity: completed ? 0.5 : 1,
-              }} />
-            )}
-          </React.Fragment>
+          <span
+            key={p.id}
+            className={cls.join(' ')}
+            title={`${p.short} ${p.label} · ${stateLabel}`}
+          />
         );
       })}
     </div>
@@ -793,14 +788,17 @@ function Timeline({ run, highlightedTurnKeys }) {
       borderRight: '1px solid var(--md-outline-hair)',
       minWidth: 0, minHeight: 0,
     }}>
-      {/* HEAD — title + count */}
+      {/* HEAD — title + count + (spec 0133) right-aligned Claude agent pill. */}
       <header className="tl__head">
         <span className="ttl">Timeline</span>
         <span className="ct">{artifactCount} artifacts</span>
+        <TimelineAgentPill agent="claude" run={run} />
       </header>
 
       {/* TABS — Conversation / Consumption. Outer .tl__tabs is the full-width
-          band (matches .bar2); inner .tl__tabs-inner is the segmented pill. */}
+          band (matches .bar2); inner .tl__tabs-inner is the segmented pill.
+          Spec 0133 — GPT agent pill rides on the right of this row, vertically
+          aligned with the Claude pill above. */}
       <div className="tl__tabs">
         <div className="tl__tabs-inner">
           <button
@@ -816,6 +814,7 @@ function Timeline({ run, highlightedTurnKeys }) {
             <span className="ms ms-18">stacked_bar_chart</span>Consumption
           </button>
         </div>
+        <TimelineAgentPill agent="gpt" run={run} />
       </div>
 
       {tab === 'conversation' ? (
@@ -1125,7 +1124,12 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
           {/* Spec 0119 §8.1 — per-category summary chips in fixed
               Q→D→I→C order. Always present (zero-activity dims to
               0.55 opacity) so columns align across rounds. Clicking
-              a chip jumps the critique pane to (category, round). */}
+              a chip jumps the critique pane to (category, round).
+              Spec 0133 §5.9 — slim Δ-pair presentation: bubble and
+              standing-total slots dropped; tone color + Q→D→I→C order
+              carry category identity, add + sub carry the per-round
+              delta. Phase-aggregate standing reads at TlPhaseHeadChips
+              instead. */}
           {showCategoryChips && chipCategories.map((cat) => {
             const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
             const noActivity = (c.raised + c.closed) === 0;
@@ -1133,13 +1137,11 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
               <Chip
                 key={cat}
                 tone={CATEGORY_TONE[cat]}
-                categoryBubble={CATEGORY_BUBBLE[cat]}
-                value={c.standing}
                 add={c.raised}
                 sub={c.closed}
                 trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
                 dim={noActivity}
-                ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+                ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]} this round: ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   dispatchCritiqueJump({
@@ -7231,9 +7233,10 @@ function RunDetail({ run }) {
           onToggleErrors={() => setShowErrors(s => !s)}
           onJumpToFirstSearch={onJumpToFirstSearch}
         />
-        <TimelineAgentBar run={run} />
         {/* Spec 0070 D4: blocking-item callout banner removed (user: "completely useless").
-           Same info available in critique pane DRIFT/OPEN section headers. */}
+           Same info available in critique pane DRIFT/OPEN section headers.
+           Spec 0133: <TimelineAgentBar /> removed; per-agent pills now ride inside
+           the Timeline pane headers (Claude in .tl__head, GPT in .tl__tabs). */}
         <main style={{
           flex: 1, minHeight: 0,
           display: 'grid',

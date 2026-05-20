@@ -882,7 +882,10 @@ function CardBody({ children, className }) {
 
 // AgentStrip — uses brief's 'a'/'b' agent convention.
 // `name` defaults to 'Claude'/'GPT' based on agent.
-function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', live, right, className }) {
+// Spec 0133 — optional `costFormatter` lets call sites swap the default
+// 4-decimal `fmt.cost` for `fmt.costShort` (2-decimal) when 4-digit
+// precision is noise at this surface (run-detail relocated agent chips).
+function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', live, right, className, costFormatter = fmt.cost }) {
   const displayName = name || (agent === 'a' ? 'Claude' : 'GPT');
   return (
     <div className={_cn('as', `is-${agent}`, className)}>
@@ -902,7 +905,7 @@ function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', l
         )}
         {cost != null && (
           <>
-            <span className="num v">{fmt.cost(cost)}</span>
+            <span className="num v">{costFormatter(cost)}</span>
             <span className="sep">·</span>
           </>
         )}
