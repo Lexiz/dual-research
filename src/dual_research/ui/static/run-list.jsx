@@ -218,7 +218,7 @@ function RunListView({ runs, loading, onSelect }) {
                 height: 26,
                 padding: '0 8px 0 26px',
                 fontSize: 11,
-                fontFamily: 'var(--mono)',
+                fontFamily: 'var(--md-font-data)',
                 color: 'var(--md-on-surface-variant)',
                 background: 'var(--md-surface)',
                 border: '1px solid var(--md-outline-hair)',
@@ -394,7 +394,7 @@ function RunListView({ runs, loading, onSelect }) {
         background: 'var(--md-surface-container-low)',
         padding: '8px 18px',
         display: 'flex', gap: 18, alignItems: 'center',
-        fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--mono)',
+        fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
       }}>
         <span>showing {filtered.length} of {runs.length}</span>
         <span style={{ flex: 1 }} />

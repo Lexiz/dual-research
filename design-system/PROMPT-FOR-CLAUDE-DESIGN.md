@@ -104,7 +104,7 @@ Before proposing material change, read in order:
 - If you'd violate one of the principles in `SPEC.md § 1`, **document the violation in your PR description** with rationale. Don't silently bend the rules.
 - If a change ripples beyond the design system whitelist (e.g., to a per-surface JSX), call it out in the **Out of scope** section — Claude Code (in the terminal) will pick it up.
 - If `SPEC.md` and the live implementation disagree on something you're touching, **align them in your PR** as the first commit and proceed.
-- **Active live-code migration:** per `SPEC.md § 12`, the live frontend is mid-migration from v1 tokens (`--bg-*`, `--fg-*`, `--border-*`) to v2 tokens (`--md-*`). Specs 0128–0131 carry that work. If you encounter a v1 token in a file you're touching, migrate it to its v2 equivalent in the same PR. Do not author new v1 references.
+- **Single token vocabulary in live code.** Every consumer reads from `--md-*` (v2 / Material 3). The v1 token block (`--bg-*`, `--fg-*`, `--border-*`, `--r-*`, `--t-*`, `--sans`/`--serif`/`--mono`) was deleted in spec 0131 on 2026-05-20; any leftover v1 reference now fails visibly. Do not author new v1 references.
 
 ## ✂ Paste above this line ✂
 

@@ -604,28 +604,7 @@ The deprecated v1 spec is preserved at [`_archive/v1/SPEC.md`](_archive/v1/SPEC.
 
 ---
 
-## 12 — Migration status (temporary)
-
-> **This section will be removed when spec 0131 ships.** It exists only while the live frontend completes its v1 → v2 token migration. Once every `--bg-*` / `--fg-*` / `--border-*` / `--t-*` v1 token reference has been replaced with its `--md-*` v2 equivalent in the live code, this section becomes stale and is deleted in the spec 0131 PR.
-
-The design system text spec (this file) is v2-canonical as of 2026-05-20 (spec 0127). The live frontend code uses an additive layering pattern (v1 tokens + v2 tokens coexist) that was introduced by spec 0092 to enable an incremental migration. The remaining four specs complete the live code migration:
-
-| Spec | Scope | V1 token refs removed | Status |
-|---|---|---:|---|
-| [0128](../specs/) | `run-detail.jsx` v2 token migration | 242 | _planned_ |
-| [0129](../specs/) | `design-language.jsx` v2 rebuild | 142 | _planned_ |
-| [0130](../specs/) | Remaining JSX (`app/errors/compare/auth/search/shared.jsx`) v2 migration | 172 | _planned_ |
-| [0131](../specs/) | CSS finalization: v1 token block removal + IBM Plex font removal + `theme.css` legacy-class drain | 345 + theme.css | _planned_ |
-
-**While this section is live**, contributors writing new code should:
-- Use `--md-*` tokens only. Do not add new `--bg-*` / `--fg-*` / `--border-*` references.
-- Migrate any v1-token consumer they touch incidentally, even if the file isn't in the active migration spec.
-
-After spec 0131 lands, the v1 token block is deleted from `tokens.css`, IBM Plex is unloaded from `index.html`, and any remaining `var(--bg-*)` / `var(--fg-*)` references will fail visibly (so no silent fallback masks the bug). This section, plus the additive-layering comments in `tokens.css`, are removed in that same PR.
-
----
-
-## 13 — Open items
+## 12 — Open items
 
 - **Diagram skill palette alignment.** The vendored diagram skill at [`skills/diagram/`](skills/diagram/) uses a cream-and-indigo visual language independent of the dual-research palette (sable + sage). This is intentional today — the skill produces general-purpose architecture diagrams, not in-app UI. If we want the skill output to share visual DNA with the app, a follow-up spec aligns it to the M3 palette. **Status:** deferred per spec 0127 decision.
 - **Responsive density gap** (laptop 1512 px vs. wide ≥ 2200 px) — original audit at [`audits/2026-05-18-responsive-audit/`](audits/2026-05-18-responsive-audit/). Partially addressed by `body.compact` + the 1500 px breakpoint introduced in spec 0092 + further by spec 0124. Watch for outstanding regressions at specific viewport widths.

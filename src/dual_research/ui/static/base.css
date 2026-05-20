@@ -6,10 +6,10 @@
 
 html, body {
   margin: 0;
-  background: var(--bg-0);
-  color: var(--fg-1);
-  font-family: var(--sans);
-  font-size: var(--t-body);
+  background: var(--md-surface);
+  color: var(--md-on-surface-variant);
+  font-family: var(--md-font-plain);
+  font-size: var(--md-body-m-size);
   line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -23,13 +23,13 @@ html, body {
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb {
-  background: var(--border-2);
+  background: var(--md-outline-variant);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--border-3);
+  background: var(--md-outline);
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -46,25 +46,25 @@ a:hover { text-decoration-color: var(--info); }
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-offset);
-  border-radius: var(--r-1);
+  border-radius: var(--md-shape-xs);
 }
 
 /* ── Type utilities ─────────────────────────────────── */
-.mono  { font-family: var(--sans); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.mono  { font-family: var(--md-font-plain); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
 .num   { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-.serif { font-family: var(--serif); font-feature-settings: "ss01"; }
-.t-display { font-family: var(--serif); font-size: var(--t-display); font-weight: var(--w-semi); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--fg-0); }
-.t-title   { font-size: var(--t-title);   font-weight: var(--w-bold); line-height: var(--lh-snug);  color: var(--fg-0); letter-spacing: -0.01em; }
-.t-h3      { font-size: var(--t-h3);      font-weight: var(--w-semi); line-height: var(--lh-snug);  color: var(--fg-0); }
-.t-body    { font-size: var(--t-body);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--fg-1); }
-.t-meta    { font-size: var(--t-meta);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--fg-2); }
-.t-mono    { font-size: var(--t-mono); font-family: var(--sans); font-weight: var(--w-medium); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.serif { font-family: var(--md-font-brand); font-feature-settings: "ss01"; }
+.t-display { font-family: var(--md-font-brand); font-size: var(--md-display-s-size); font-weight: var(--w-semi); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--md-on-surface); }
+.t-title   { font-size: var(--md-title-l-size);   font-weight: var(--w-bold); line-height: var(--lh-snug);  color: var(--md-on-surface); letter-spacing: -0.01em; }
+.t-h3      { font-size: var(--md-title-m-size);      font-weight: var(--w-semi); line-height: var(--lh-snug);  color: var(--md-on-surface); }
+.t-body    { font-size: var(--md-body-m-size);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--md-on-surface-variant); }
+.t-meta    { font-size: var(--md-body-s-size);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--md-on-surface-muted); }
+.t-mono    { font-size: var(--md-label-s-size); font-family: var(--md-font-plain); font-weight: var(--w-medium); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
 .t-label   {
-  font-size: var(--t-label);
+  font-size: var(--md-label-s-size);
   font-weight: var(--w-medium);
   letter-spacing: 0.10em;
   text-transform: uppercase;
-  color: var(--fg-3);
+  color: var(--md-on-surface-faint);
   line-height: 1;
 }
 
@@ -99,7 +99,7 @@ a:hover { text-decoration-color: var(--info); }
   0%   { background-color: rgba(212,160,86,0.42); }
   100% { background-color: rgba(212,160,86,0.00); }
 }
-.dr-flash { animation: dr-flash 1.5s ease-out 1 both; border-radius: var(--r-2); }
+.dr-flash { animation: dr-flash 1.5s ease-out 1 both; border-radius: var(--md-shape-sm); }
 
 /* ── Modal overlay fade ─────────────────────────────── */
 @keyframes dr-modal-in { from{opacity:0;} to{opacity:1;} }
@@ -112,7 +112,7 @@ a:hover { text-decoration-color: var(--info); }
      in shared.jsx so the same element scales across inline → panel →
      page contexts. */
   border-style: solid;
-  border-color: var(--border-1);
+  border-color: var(--md-outline-hair);
   border-top-color: var(--accent-a);
   border-radius: 50%;
   animation: dr-spin 0.9s linear infinite;
@@ -135,30 +135,30 @@ a:hover { text-decoration-color: var(--info); }
 
 /* ── Helpers ────────────────────────────────────────── */
 .dashed-divider {
-  background-image: linear-gradient(to right, var(--border-2) 50%, transparent 50%);
+  background-image: linear-gradient(to right, var(--md-outline-variant) 50%, transparent 50%);
   background-size: 6px 1px;
   background-repeat: repeat-x;
   background-position: left center;
   height: 1px;
 }
-.hr { height: 1px; background: var(--border-1); }
+.hr { height: 1px; background: var(--md-outline-hair); }
 
 /* ── Markdown rendering — tightened to V1 scale ─────── */
 /* Agent-produced markdown content uses the serif family
    (Newsreader). Code blocks and inline code stay sans + tabular
    for alignment. Hard rule: prose breathes, IDs/numbers align. */
 .md {
-  font-family: var(--serif);
+  font-family: var(--md-font-brand);
   font-size: 14px;
   line-height: 1.65;
-  color: var(--fg-1);
+  color: var(--md-on-surface-variant);
   letter-spacing: 0;
 }
 .md > :first-child { margin-top: 0; }
 .md > :last-child  { margin-bottom: 0; }
 .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
-  color: var(--fg-0);
-  font-family: var(--serif);
+  color: var(--md-on-surface);
+  font-family: var(--md-font-brand);
   font-weight: var(--w-semi);
   letter-spacing: -0.005em;
   line-height: var(--lh-snug);
@@ -167,62 +167,62 @@ a:hover { text-decoration-color: var(--info); }
 .md h1 { font-size: 22px; }
 .md h2 { font-size: 18px; }
 .md h3 {
-  font-family: var(--sans);
+  font-family: var(--md-font-plain);
   font-weight: var(--w-semi);
-  font-size: var(--t-mono);
+  font-size: var(--md-label-s-size);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--fg-2);
+  color: var(--md-on-surface-muted);
   margin-top: var(--s-4);
 }
-.md h4, .md h5, .md h6 { font-size: var(--t-body); font-weight: var(--w-medium); }
+.md h4, .md h5, .md h6 { font-size: var(--md-body-m-size); font-weight: var(--w-medium); }
 .md p { margin: var(--s-2) 0; }
 .md ul, .md ol { margin: var(--s-2) 0; padding-left: var(--s-5); }
 .md li { margin: 3px 0; }
-.md ul li::marker { color: var(--fg-3); }
-.md ol li::marker { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.md ul li::marker { color: var(--md-on-surface-faint); }
+.md ol li::marker { color: var(--md-on-surface-faint); font-variant-numeric: tabular-nums; }
 .md code {
-  font-family: var(--sans);
+  font-family: var(--md-font-plain);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: 0.88em;
   padding: 1px 5px;
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: var(--r-1);
-  color: var(--fg-0);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-xs);
+  color: var(--md-on-surface);
   letter-spacing: -0.005em;
 }
 .md pre {
-  font-family: var(--sans);
+  font-family: var(--md-font-plain);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
+  font-size: var(--md-label-s-size);
   margin: var(--s-2) 0;
   padding: var(--s-3) var(--s-3);
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: var(--r-2);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
   overflow-x: auto;
   line-height: 1.55;
-  color: var(--fg-0);
+  color: var(--md-on-surface);
   letter-spacing: -0.005em;
 }
 .md pre code { padding: 0; background: none; border: 0; font-size: inherit; }
-.md strong { color: var(--fg-0); font-weight: var(--w-semi); }
-.md em     { color: var(--fg-0); font-weight: var(--w-medium); font-style: normal; }
+.md strong { color: var(--md-on-surface); font-weight: var(--w-semi); }
+.md em     { color: var(--md-on-surface); font-weight: var(--w-medium); font-style: normal; }
 .md blockquote {
   margin: var(--s-2) 0;
   padding: var(--s-1) 0 var(--s-1) var(--s-3);
-  border-left: 2px solid var(--border-3);
-  color: var(--fg-2);
+  border-left: 2px solid var(--md-outline);
+  color: var(--md-on-surface-muted);
   font-style: normal;
 }
-.md hr { border: 0; border-top: 1px solid var(--border-1); margin: var(--s-4) 0; }
-.md table { border-collapse: collapse; margin: var(--s-2) 0; font-size: var(--t-meta); }
-.md th, .md td { padding: 6px 10px; border: 1px solid var(--border-1); text-align: left; }
-.md th { background: var(--bg-2); color: var(--fg-1); font-weight: var(--w-semi); }
-.md del { color: var(--fg-3); text-decoration: line-through; }
+.md hr { border: 0; border-top: 1px solid var(--md-outline-hair); margin: var(--s-4) 0; }
+.md table { border-collapse: collapse; margin: var(--s-2) 0; font-size: var(--md-body-s-size); }
+.md th, .md td { padding: 6px 10px; border: 1px solid var(--md-outline-hair); text-align: left; }
+.md th { background: var(--md-surface-container); color: var(--md-on-surface-variant); font-weight: var(--w-semi); }
+.md del { color: var(--md-on-surface-faint); text-decoration: line-through; }
 
 /* =============================================================
    SPEC-0092 — Material 3 typography role utilities (additive).

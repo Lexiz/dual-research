@@ -350,7 +350,7 @@ function Markdown({ text, className, style }) {
   }, [text]);
   if (html == null) {
     return (
-      <pre style={{ margin: 0, fontFamily: 'var(--sans)', fontSize: 13,
+      <pre style={{ margin: 0, fontFamily: 'var(--md-font-plain)', fontSize: 13,
                     color: 'var(--md-on-surface)', whiteSpace: 'pre-wrap', lineHeight: 1.6, ...style }}>
         {text}
       </pre>
@@ -543,7 +543,7 @@ function StreamingText({ content, speed = 60, playing = true, caret = true, colo
   const done = shown >= content.length;
   return (
     <span style={{
-      fontFamily: 'var(--sans)',
+      fontFamily: 'var(--md-font-plain)',
       color: color || 'var(--md-on-surface-variant)', fontSize: 13, lineHeight: 1.6,
       whiteSpace: 'pre-wrap',
     }}>

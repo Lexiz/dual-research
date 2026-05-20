@@ -103,7 +103,7 @@ function CrossRunSearchScreen({ navigate }) {
               border: 'none',
               outline: 'none',
               fontSize: 14,
-              fontFamily: 'var(--sans)',
+              fontFamily: 'var(--md-font-plain)',
               color: 'var(--md-on-surface)',
             }}
           />
