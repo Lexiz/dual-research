@@ -335,15 +335,24 @@ async def _drive_interaction_phase(
             is_closeout_round = False
 
     if not converged and round_no >= caps.hard:
+        # Spec 0136 — emit HardCapHit + flip via_hard_cap whenever the
+        # loop exits at caps.hard without convergence, regardless of
+        # whether any items remain non-terminal. Pre-spec the gating
+        # ``if hard:`` predicate let the "every item terminal but no
+        # AGREED status" pattern leak through with exit_code 0, which
+        # the UI then rendered as a silent "completed" on the detail
+        # page (and stuck on "running" forever on the All-Runs list).
+        # The two phases that hit this loop (Phase 2 and Phase 4) emit
+        # the deadlock signal here so downstream code can mark the run
+        # ``deadlocked`` consistently.
         await event_bus.publish(
             HardCapHit(phase=phase_label, round=round_no, cap=caps.hard)
         )
         hard = phase.hard_cap_remaining_items(round=round_no)
-        if hard:
-            for ev in hard:
-                await event_bus.publish(ev)
-            via_hard_cap = True
-            converged = True
+        for ev in hard:
+            await event_bus.publish(ev)
+        via_hard_cap = True
+        converged = True
 
     converged_event = None
     if converged:

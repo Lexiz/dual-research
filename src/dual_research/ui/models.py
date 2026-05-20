@@ -672,6 +672,34 @@ class Run:
     # from a pre-0029 transcript that didn't record per-turn telemetry.
     # Drives the Consumption tab in the timeline pane.
     phase_token_usage: dict[str, TurnTokenUsage] = field(default_factory=dict)
+    # Spec 0136 — private terminal-signal stash. Replayed-event handlers
+    # (``_on_run_completed`` / ``_on_run_failed`` / ``hard_cap_hit``
+    # dispatch) record their inputs here instead of imperatively
+    # assigning to ``status``; ``_finalise_status`` runs the unified
+    # ``derive_run_status`` truth table after each apply_event tick (and
+    # at the end of load_run_snapshot replay). Underscore-prefixed so
+    # ``to_jsonable`` skips it — internal book-keeping, never on the wire.
+    _terminal_signals: "TerminalSignals" = field(default_factory=lambda: TerminalSignals())
+
+
+@dataclass
+class TerminalSignals:
+    """Spec 0136 — per-run terminal-event stash consumed by
+    ``derive_run_status``.
+
+    Populated by ``aggregator.apply_event`` as terminal events arrive
+    during transcript replay or live SSE delivery; read by
+    ``_finalise_status`` to compute ``Run.status`` against the unified
+    truth table in ``labels.derive_run_status``. Not serialized — the
+    ``Run._terminal_signals`` field is stripped at the
+    ``to_jsonable`` boundary.
+    """
+
+    run_completed_exit_code: int | None = None
+    run_failed: bool = False
+    hard_cap_hit: bool = False
+    final_emitted: bool = False
+    run_failed_error: "TopLevelError | None" = None
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────
@@ -697,15 +725,21 @@ class RunListRow:
 def to_jsonable(obj: Any) -> Any:
     """Recursively convert dataclass values to JSON-safe primitives.
 
-    Renames ``in_`` → ``in`` (TokenUsage). The server layer (spec 0010) layers
-    snake_case → camelCase on top of this.
+    Renames ``in_`` → ``in`` (TokenUsage). Drops keys that start with
+    ``_`` (spec 0136 — private book-keeping fields like
+    ``_terminal_signals`` stay out of the wire payload). The server
+    layer (spec 0010) layers snake_case → camelCase on top of this.
     """
     from dataclasses import asdict, is_dataclass
 
     if is_dataclass(obj):
         return to_jsonable(asdict(obj))
     if isinstance(obj, dict):
-        return {("in" if k == "in_" else k): to_jsonable(v) for k, v in obj.items()}
+        return {
+            ("in" if k == "in_" else k): to_jsonable(v)
+            for k, v in obj.items()
+            if not (isinstance(k, str) and k.startswith("_"))
+        }
     if isinstance(obj, list):
         return [to_jsonable(v) for v in obj]
     return obj

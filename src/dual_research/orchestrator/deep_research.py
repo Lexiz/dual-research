@@ -825,13 +825,19 @@ class DeepResearchPhase:
             is_closeout_round = False
 
         if not converged and round_no >= self.caps.hard:
-            # Hit hard cap without convergence — auto-cap remaining
-            # non-terminal items.
+            # Hit hard cap without convergence — auto-cap any remaining
+            # non-terminal items and flag the run as via-hard-cap so the
+            # UI status pipeline can mark it deadlocked. Spec 0136
+            # dropped the ``if hard_caps:`` gate: pre-spec the
+            # "every-item-terminal-but-no-AGREED" pattern returned
+            # ``converged=False, via_hard_cap=False`` and the orchestrator
+            # exit code stayed at 0, which the UI then rendered as a
+            # silent "completed". The async ``_drive_interaction_phase``
+            # in ``dr_run.py`` carries the same fix.
             hard_caps = self._hard_cap_all_blocking(round=round_no)
-            if hard_caps:
-                all_events.extend(hard_caps)
-                via_hard_cap = True
-                converged = True
+            all_events.extend(hard_caps)  # may be empty; that's fine
+            via_hard_cap = True
+            converged = True
 
         converged_event: PhaseConverged | None = None
         if converged:

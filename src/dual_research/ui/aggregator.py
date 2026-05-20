@@ -97,6 +97,12 @@ def load_run_snapshot(session_dir: Path) -> Run:
         apply_event(run, event, session_dir)
 
     _augment_from_state_json(run, session_dir / "state.json")
+    # Spec 0136 — re-run the unified truth table once more after state.json
+    # augmentation (which can advance ``run.phase`` to 5 for runs whose
+    # transcript is missing the ``final_emitted`` event but where
+    # ``state.final_emitted_to`` was written). The truth table is idempotent;
+    # running it again is a no-op for runs already correctly classified.
+    _finalise_status(run)
     _populate_current_bodies(run, session_dir)
 
     # Disagreements: reconstruct after replay so all rounds are visible.
@@ -259,11 +265,21 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
     elif kind == "run_failed":
         _on_run_failed(run, event)
     elif kind == "hard_cap_hit":
-        run.status = "deadlocked"
+        # Spec 0136 — stash the signal on _terminal_signals; the
+        # unified _finalise_status pass below applies the truth table.
+        # Pre-spec this assigned ``run.status = "deadlocked"`` directly,
+        # which raced with the later ``_on_run_completed`` handler that
+        # could overwrite it back to ``"completed"`` when the orchestrator
+        # emitted ``exit_code 0``.
+        run._terminal_signals.hard_cap_hit = True
     # Other events (cost_update, soft_cap_hit, repair_invoked,
     # drafter_tiebreak_resolved, phase{0,1,3}_complete) carry information
     # already covered by other code paths.
 
+    # Spec 0136 — re-derive status after every event so live SSE pushes
+    # and replayed transcripts both apply the same truth table. The
+    # function is pure dict reads + a 6-row short-circuit; sub-microsecond.
+    _finalise_status(run)
     return run
 
 
@@ -281,13 +297,19 @@ def summarize_run(session_dir: Path) -> RunListRow:
     duration = _duration_seconds(session_dir / "transcript.jsonl")
 
     final_emitted = bool(state and state.final_emitted_to)
-    # Detect hard-cap / failure cheaply by scanning the transcript tail.
-    hard_cap_hit, run_failed = _scan_terminal_signals(session_dir / "transcript.jsonl")
+    # Spec 0136 — also pull run_completed.exit_code so the unified
+    # derive_run_status truth table can distinguish "exited cleanly,
+    # reached done" from "exited cleanly, never reached done"
+    # (silent-exit deadlock).
+    hard_cap_hit, run_failed, run_completed_exit_code = _scan_terminal_signals(
+        session_dir / "transcript.jsonl"
+    )
     status = derive_run_status(
         state_phase=state.phase if state else "phase0",
         final_emitted=final_emitted,
         hard_cap_hit=hard_cap_hit,
         run_failed=run_failed,
+        run_completed_exit_code=run_completed_exit_code,
     )
 
     # Spec 0039 D3 — transcript is the canonical truth; metrics.json is
@@ -838,27 +860,41 @@ def _on_phase2_complete(run: Run, event: dict) -> None:
 
 
 def _on_final_emitted(run: Run, event: dict) -> None:
-    # confidence: 'HIGH' | 'MODERATE' | 'LOW' — not currently displayed but
-    # could feed a future "confidence" pill. Ignored for now.
-    pass
+    # Spec 0136 — record the final-emitted signal so ``_finalise_status``
+    # can promote ``run.status`` to "completed" via the truth-table's
+    # final-emitted branch. Pre-spec this handler was a no-op; the
+    # detail page relied on the subsequent ``run_completed{exit_code: 0}``
+    # event to flip status, and the All-Runs page read
+    # ``state.final_emitted_to`` directly. Stashing here keeps the two
+    # paths in sync without depending on the orchestrator's exit-code
+    # mapping.
+    # confidence: 'HIGH' | 'MODERATE' | 'LOW' — not currently displayed
+    # but could feed a future "confidence" pill.
+    run._terminal_signals.final_emitted = True
 
 
 def _on_run_completed(run: Run, event: dict) -> None:
-    exit_code = int(event.get("exit_code", 0))
-    if exit_code == 0:
-        run.status = "completed"
-    elif exit_code == 51:
-        run.status = "deadlocked"
-    elif exit_code in (1, 2, 52):
-        run.status = "errored"
+    # Spec 0136 — stash the exit code on _terminal_signals; _finalise_status
+    # runs the unified truth table after the dispatch returns. Pre-spec
+    # the handler imperatively mapped exit_code 0 → "completed" without
+    # cross-checking ``state.phase`` or ``final_emitted_to``, which
+    # produced false "completed" pills for runs that exited at the hard
+    # cap with every item already terminal (Phase 2 silent-exit).
+    try:
+        exit_code = int(event.get("exit_code", 0))
+    except (TypeError, ValueError):
+        exit_code = 0
+    run._terminal_signals.run_completed_exit_code = exit_code
     # All agents go idle on terminal.
     for ag in run.agents.values():
         ag.status = "idle"
 
 
 def _on_run_failed(run: Run, event: dict) -> None:
-    run.status = "errored"
-    run.error = TopLevelError(
+    # Spec 0136 — stash the signal + error payload on _terminal_signals;
+    # _finalise_status applies the truth table.
+    run._terminal_signals.run_failed = True
+    run._terminal_signals.run_failed_error = TopLevelError(
         when=event.get("ts", ""),
         where=event.get("phase_reached", "orchestrator"),
         code=event.get("error_type", "ORCHESTRATOR_PANIC"),
@@ -866,6 +902,38 @@ def _on_run_failed(run: Run, event: dict) -> None:
     )
     for ag in run.agents.values():
         ag.status = "idle"
+
+
+def _finalise_status(run: Run) -> None:
+    """Spec 0136 — apply the unified ``derive_run_status`` truth table.
+
+    Reads the terminal signals stashed on ``run._terminal_signals`` by
+    the event handlers + the snapshot fields (``run.phase``,
+    ``run.current_draft_path`` if any) and writes a single canonical
+    ``run.status``. Called after every ``apply_event`` tick so live SSE
+    deliveries re-derive status the same way the snapshot path does.
+
+    Idempotent — safe to call repeatedly. Side-effects: writes
+    ``run.status`` and (when ``run_failed``) ``run.error``.
+    """
+    sigs = run._terminal_signals
+    # ``state.phase == "done"`` is the orchestrator's terminal-state
+    # marker; on the Run dataclass that's ``run.phase == 5`` because the
+    # UI uses int phase numbers (Phase 5 == post-Phase-4 / final-emitted).
+    state_phase = "done" if run.phase == 5 else f"phase{run.phase}"
+    # Either the ``final_emitted`` transcript event arrived (sigs.final_emitted)
+    # or ``_augment_from_state_json`` set ``run.phase = 5`` from
+    # ``state.final_emitted_to`` — both signal the run reached done.
+    final_emitted = sigs.final_emitted or run.phase == 5
+    run.status = derive_run_status(
+        state_phase=state_phase,
+        final_emitted=final_emitted,
+        hard_cap_hit=sigs.hard_cap_hit,
+        run_failed=sigs.run_failed,
+        run_completed_exit_code=sigs.run_completed_exit_code,
+    )
+    if sigs.run_failed and sigs.run_failed_error is not None:
+        run.error = sigs.run_failed_error
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1085,12 +1153,21 @@ def _sum_transcript_cost(transcript_path: Path) -> float:
     return sum(by_label.values())
 
 
-def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool]:
-    """Tail-scan the transcript for ``hard_cap_hit`` / ``run_failed`` markers."""
+def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool, int | None]:
+    """Tail-scan the transcript for terminal-event markers.
+
+    Returns ``(hard_cap_hit, run_failed, run_completed_exit_code)``.
+    ``run_completed_exit_code`` is ``None`` when the event hasn't fired
+    yet (live in-flight runs); ``int`` when the orchestrator has emitted
+    ``RunCompleted``. Spec 0136 added the third return value so
+    ``summarize_run`` can pass it to ``derive_run_status`` and unify the
+    list-page status derivation with the detail-page replay path.
+    """
     hard_cap = False
     run_failed = False
+    run_completed_exit_code: int | None = None
     if not transcript_path.exists():
-        return False, False
+        return False, False, None
     try:
         for line in transcript_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -1100,13 +1177,19 @@ def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool]:
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if event.get("event") == "hard_cap_hit":
+            kind = event.get("event")
+            if kind == "hard_cap_hit":
                 hard_cap = True
-            elif event.get("event") == "run_failed":
+            elif kind == "run_failed":
                 run_failed = True
+            elif kind == "run_completed":
+                try:
+                    run_completed_exit_code = int(event.get("exit_code", 0))
+                except (TypeError, ValueError):
+                    run_completed_exit_code = 0
     except OSError:
-        return False, False
-    return hard_cap, run_failed
+        return False, False, None
+    return hard_cap, run_failed, run_completed_exit_code
 
 
 _ROUND_RE = re.compile(r"round-(\d+)-(?:claude|openai)\.md$")
