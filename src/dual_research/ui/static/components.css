@@ -95,46 +95,160 @@
 .sb-b > .dot { background: var(--agent-b); }
 
 /* ─────────────────────────────────────────────────────────────
-   Chip (.chip)
-   For counts, +N/-N deltas, single-data badges.
-   Variants: default | .tone-info | .tone-ok | .tone-warn | .tone-err |
-             .tone-a (agent-a) | .tone-b (agent-b) | .tone-muted
-   Shapes:   default (r-1) | .chip-pill (r-pill)
+   Chip (.chip) — Spec 0119 unified primitive
+   The single chip primitive across every surface. Replaces the
+   v1 .chip + the M3 .chip.tone-* cascade that previously lived
+   further down this file.
+
+   Slots (rendered in order, each emitted only when set):
+     leadingDot | leadingIcon | cat-bubble  →  label  →
+     value  →  add  →  sub  →  trailingSuffix  →  children
+
+   Tones:  info · ok · warn · err · idle · claude · gpt · neutral
+           (plus legacy aliases: a (=claude), b (=gpt),
+            muted, info-strong)
+   Shapes: pill (default, --r-pill) | square (.chip-square, --r-1)
+   Sizes:  default 22px | lg 26px (.chip-lg)
    ───────────────────────────────────────────────────────────── */
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 20px;
-  padding: 0 8px;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
   font-family: var(--sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
+  font-size: 11px;
   font-weight: var(--w-medium);
   letter-spacing: -0.005em;
   background: var(--bg-2);
   border: 1px solid var(--border-1);
-  border-radius: var(--r-1);
+  border-radius: var(--r-pill);
   color: var(--fg-1);
   white-space: nowrap;
   line-height: 1;
 }
-.chip-pill { border-radius: var(--r-pill); padding: 0 10px; }
-.chip-lg   { height: 22px; padding: 0 10px; }
+/* Legacy: .chip-pill was the opt-in to pill shape. Pill is now the
+   default; keep the class as a no-op so existing callsites don't
+   break. Same for .chip-lg (still flips to the larger 26px size). */
+.chip-pill { border-radius: var(--r-pill); }
+.chip-lg   { height: 26px; padding: 0 11px; }
+.chip.chip-square { border-radius: var(--r-1); }
+
+/* Modifiers */
+.chip.mono { font-family: var(--mono); font-size: 10.5px; }
+.chip.dim  { opacity: 0.55; }
+.chip-icon-only { padding: 0 6px; gap: 0; }
+
+/* Tones — filled-tonal, no border. Backgrounds are
+   color-mix-style tints over the surface; foreground is the
+   tone hue. Status tones (info/ok/warn/err/idle) carry an auto
+   leading dot via ::before (see below); identity tones
+   (claude/gpt/neutral) do NOT. */
+.chip.tone-info        { color: var(--info);    background: color-mix(in srgb, var(--info) 18%, transparent); border-color: transparent; }
+.chip.tone-info-strong { color: var(--info);    background: color-mix(in srgb, var(--info) 28%, transparent); border-color: transparent; }
+.chip.tone-ok          { color: var(--ok);      background: color-mix(in srgb, var(--ok) 18%, transparent);   border-color: transparent; }
+.chip.tone-warn        { color: var(--warn);    background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: transparent; }
+.chip.tone-err         { color: var(--err);     background: color-mix(in srgb, var(--err) 18%, transparent);  border-color: transparent; }
+.chip.tone-idle        { color: var(--idle);    background: color-mix(in srgb, var(--idle) 28%, transparent); border-color: transparent; }
+.chip.tone-muted       { color: var(--fg-3);    background: var(--bg-2); border-color: transparent; }
+.chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
+.chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+.chip.tone-neutral     { color: var(--fg-1);    background: var(--bg-3); border-color: transparent; }
+/* Legacy tone names — alias to the canonical pair. Code is being
+   migrated to tone-claude / tone-gpt; until then both work. */
+.chip.tone-a           { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
+.chip.tone-b           { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+
+/* Auto leading-dot for status tones only. Identity tones
+   (claude/gpt/neutral) intentionally do not get one. Suppressed
+   when .no-dot is applied (the upgraded <Chip> auto-adds .no-dot
+   whenever any slot prop is set, so explicit slots never collide
+   with the auto-dot). */
+.chip.tone-info::before,
+.chip.tone-info-strong::before,
+.chip.tone-ok::before,
+.chip.tone-warn::before,
+.chip.tone-err::before,
+.chip.tone-idle::before,
+.chip.tone-muted::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.chip.no-dot::before { display: none; }
+
+/* Slot children */
+.chip .chip-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: 0 0 6px;
+}
+.chip .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+.chip .cat-bubble {
+  width: 14px; height: 14px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800;
+  font-family: var(--sans);
+  letter-spacing: 0;
+  flex: 0 0 14px;
+  color: #ffffff;                       /* knockout-white letter */
+  background: currentColor;             /* fall-back; overridden by tone-* below */
+}
+.chip.tone-info  .cat-bubble { background: var(--info); }
+.chip.tone-warn  .cat-bubble { background: var(--warn); }
+.chip.tone-err   .cat-bubble { background: var(--err);  }
+.chip.tone-idle  .cat-bubble { background: var(--idle); }
+.chip.dim .cat-bubble { opacity: 0.7; }
+
+.chip .chip-label { color: currentColor; }
+.chip .chip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 12px;
+  color: var(--fg-0);
+}
+.chip.dim .chip-value { color: var(--fg-2); }
+.chip .chip-add {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; font-size: 11px;
+  color: var(--ok);
+}
+.chip .chip-sub {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; font-size: 11px;
+  color: var(--err);
+}
+.chip.dim .chip-add,
+.chip.dim .chip-sub { color: var(--fg-3); }
+.chip .chip-suffix {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+
+/* Active state for clickable filter chips (e.g., critique pane legend).
+   Outline ring in the chip's own tone. */
+.chip[data-active="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* Legacy slot — kept for back-compat with <Chip icon=…>. */
 .chip .unit { color: var(--fg-3); }
 .chip .ico  { width: 12px; height: 12px; flex: 0 0 auto; }
 
-.chip.tone-info { color: var(--info); border-color: var(--info-border); background: var(--info-bg); }
-.chip.tone-ok   { color: var(--ok);   border-color: var(--ok-border);   background: var(--ok-bg); }
-.chip.tone-warn { color: var(--warn); border-color: var(--warn-border); background: var(--warn-bg); }
-.chip.tone-err  { color: var(--err);  border-color: var(--err-border);  background: var(--err-bg); }
-.chip.tone-a    { color: var(--agent-a); border-color: var(--agent-a-border); background: var(--agent-a-bg); }
-.chip.tone-b    { color: var(--agent-b); border-color: var(--agent-b-border); background: var(--agent-b-bg); }
-.chip.tone-muted { color: var(--fg-3); }
-
-button.chip { cursor: pointer; transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease); }
-button.chip:hover { background: var(--bg-3); border-color: var(--border-2); }
+button.chip {
+  cursor: pointer;
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+button.chip:hover { filter: brightness(1.12); }
+button.chip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
 
 /* ─────────────────────────────────────────────────────────────
    RunIDChip (.rid)
@@ -533,143 +647,109 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .qt-head .right { margin-left: auto; }
 
-/* QuestionRef (.qref) — decoded reference for a critique question.
-   Replaces the legacy cryptic "Q-g-r1-04" text spans. Two shapes:
-     .qref         — compact "Q · 04". Used inside QuestionThread
-                     where the timeline already shows raised-by + round.
-     .qref-full    — adds the raised-by agent chip + round.
-                     Used in question lists / cards / standalone refs. */
-.qref {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 22px;
-  padding: 0 10px;
-  background: var(--bg-2);
-  border: 1px solid var(--border-1);
-  border-radius: var(--r-2);
-  font-family: var(--sans);
-  line-height: 1;
-  white-space: nowrap;
-  color: var(--fg-1);
+/* Spec 0119 — timeline turn-card chip-row header. Replaces the
+   legacy .qt-head composition for new-protocol render. Tighter
+   6px gap fits four category chips + provider + activity + status
+   on one line at ~600 px column width; wraps gracefully below. */
+.tl-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  cursor: pointer;
 }
-.qref-full { height: 26px; padding: 0 4px 0 10px; }
-.qref .qref-k {
-  font-size: var(--t-label);
-  font-weight: var(--w-semi);
+.tl-card-head > .spacer { flex: 1; min-width: 8px; }
+.tl-card-chev,
+.crit-card-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  flex-shrink: 0;
   color: var(--fg-3);
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
+  opacity: 0.25;
+  transition: opacity var(--m-fast) var(--ease), transform var(--m-fast) var(--ease);
 }
-.qref .qref-n {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-semi);
-  color: var(--fg-0);
-  letter-spacing: -0.005em;
-}
-.qref .qref-sep { color: var(--fg-4); font-size: 10px; line-height: 1; }
-.qref .qref-by {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 20px;
-  padding: 0 8px 0 4px;
-  border-radius: var(--r-pill);
-  background: var(--bg-1);
-  border: 1px solid var(--border-2);
-}
-.qref .qref-by.is-a { background: var(--agent-a-bg); border-color: var(--agent-a-border); }
-.qref .qref-by.is-b { background: var(--agent-b-bg); border-color: var(--agent-b-border); }
-.qref .qref-by .ai { flex: 0 0 auto; }
-.qref .qref-by-n {
-  font-size: var(--t-mono);
-  font-weight: var(--w-semi);
-  color: var(--fg-1);
-}
-.qref .qref-by.is-a .qref-by-n { color: var(--agent-a); }
-.qref .qref-by.is-b .qref-by-n { color: var(--agent-b); }
-.qref .qref-round {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-medium);
-  color: var(--fg-3);
-  padding-right: 2px;
+.tl-card-chev[data-open="true"],
+.crit-card-chev[data-open="true"] {
+  opacity: 0.6;
+  transform: rotate(90deg);
 }
 
-.qt-timeline {
-  display: flex; flex-direction: column;
-  gap: 8px;
+/* Spec 0119 §8.3 — critique-pane filter row (the legend). Same
+   chip primitives across the entire row; the leading dividers are
+   visual separators between the kind cluster, the open/resolved
+   cluster, and the agent cluster. */
+.crit-filter-row {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit-filter-spacer {
+  width: 12px; height: 1px; flex: 0 0 12px;
+}
+
+/* Spec 0119 §8.4 — critique card header. Same anatomy as the
+   timeline turn card head but with a singular-label category chip
+   instead of the dense-form bubble + value/add/sub. */
+.crit-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  cursor: pointer;
   padding: 0;
 }
-/* SPEC-0110 — turn rows stack vertically: pill on top, quote text below
-   using the full card width. The legacy 2-column grid (pill | quote)
-   indented the text and limited line length; the user wanted the body
-   to breathe across the full card. */
-.qt-row {
-  display: flex; flex-direction: column;
-  gap: 8px; align-items: stretch;
-  padding: 12px 14px;
-  border-radius: var(--md-shape-sm);
-  background: var(--md-surface-container-high);
+.crit-card-head__spacer { flex: 1; min-width: 8px; }
+.crit-card-id {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-3);
+  padding: 2px 0 0;
+  user-select: text;
 }
-.qt-row .qt-pill { align-self: flex-start; }
-.qt-row .qt-quote { width: 100%; }
-.qt-row.is-a { background: var(--agent-a-bg); }
-.qt-row.is-b { background: var(--agent-b-bg); }
-.qt-row.is-ghosted { background: color-mix(in srgb, var(--warn) 12%, var(--bg-2)); }
 
-/* ── The pill — one shape carries identity (icon + agent), round, and verdict. */
-.qt-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  width: fit-content;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: var(--r-pill);
-  background: rgba(0,0,0,0.12);
-  font-size: var(--t-meta);
-  line-height: 1;
-  white-space: nowrap;
-}
-[data-theme="light"] .qt-pill, body.light .qt-pill { background: rgba(255,255,255,0.45); }
-
-.qt-pill .ai { flex: 0 0 auto; }
-.qt-pill .qt-agent {
-  font-family: var(--sans);
-  font-weight: var(--w-semi);
-  font-size: var(--t-meta);
-}
-.qt-pill .qt-sep { opacity: 0.5; font-size: 11px; line-height: 1; }
-.qt-pill .qt-round {
-  font-family: var(--sans);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum", "ss01";
-  font-size: var(--t-mono);
-  font-weight: var(--w-medium);
-  opacity: 0.85;
-}
-.qt-pill .qt-verdict {
-  font-family: var(--sans);
-  font-size: var(--t-mono);
-  font-weight: var(--w-semi);
+/* Spec 0119 §8.5 — lifecycle row inside an expanded critique card.
+   Each row is a chip cluster (provider + round + verb chip) above
+   an indented quote body. Dashed top-border separator between rows;
+   first row has no border. */
+.crit-section-title {
+  color: var(--fg-3);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  font-weight: var(--w-semi);
+  margin: 14px 0 8px;
 }
-
-.qt-quote {
-  font-family: var(--serif);
-  font-size: 15px;
+.lc-rows { display: flex; flex-direction: column; gap: 0; }
+.lc-row {
+  padding: 8px 0;
+  border-top: 1px dashed var(--border-1);
+}
+.lc-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.lc-row-chips {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.lc-row-body {
+  color: var(--fg-2);
+  font-size: 12.5px;
   line-height: 1.55;
-  font-style: italic;
-  margin: 0;
-  letter-spacing: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-2);
+  margin-left: 4px;
 }
-.qt-row.is-ghosted .qt-quote { color: var(--fg-3); }
+.lc-row-body p { margin: 0; }
+.lc-row-body p + p { margin-top: 6px; }
+
+/* Spec 0119 §7.2 — legacy ``.qref*`` and ``.qt-pill / .qt-row / .qt-
+   agent / .qt-sep / .qt-round / .qt-verdict`` rules retired. The
+   timeline turn-card header now uses ``.tl-card-head`` + Chip slots;
+   the expanded critique-card lifecycle rows use ``.lc-row``. The
+   ``.qt-drift`` / ``.qt-resolved-foot`` footer hints are kept below
+   because the QuestionThread footer still surfaces "resolved at
+   round N" / drift summaries on legacy data. */
+.qt-timeline {
+  display: flex; flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
 
 .qt-drift, .qt-resolved-foot {
   font-size: var(--t-meta);
@@ -682,11 +762,6 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .qthread.is-resolved .qt-resolved-foot { color: var(--ok); }
 .qthread.is-drift .qt-drift { color: var(--err); }
-
-/* ── qref data-kind color routing ── */
-.qref[data-kind="D"] .qref-k,
-.qref[data-kind="I"] .qref-k { color: var(--err); }
-.qref[data-kind="C"] .qref-k { color: var(--info); }
 
 /* SPEC-0110 — single-column .qt-row is now the default at every breakpoint;
    the <900px media-query override that used to flip the grid to flex is no
@@ -1418,22 +1493,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   left: 28px; width: 24px; height: 24px; background: var(--md-on-primary);
 }
 
-/* ── Tonal chips (v2-m3-page.css anatomy — M3 tokens) ──── */
-/* These cascade over the v1 .chip.tone-* rules above, adding
-   the M3 pastel-pill anatomy with leading dot and no border. */
-.chip.tone-ok    { background: color-mix(in srgb, var(--p-ok)    18%, transparent); color: var(--p-ok);   border: 0; }
-.chip.tone-info  { background: color-mix(in srgb, var(--p-info)  18%, transparent); color: var(--p-info); border: 0; }
-.chip.tone-info-strong { background: color-mix(in srgb, var(--p-info) 28%, transparent); color: var(--p-info); border: 0; }
-.chip.tone-warn  { background: color-mix(in srgb, var(--p-warn)  18%, transparent); color: var(--p-warn); border: 0; }
-.chip.tone-err   { background: color-mix(in srgb, var(--p-err)   18%, transparent); color: var(--p-err);  border: 0; }
-.chip.tone-idle  { background: color-mix(in srgb, var(--p-idle)  28%, transparent); color: var(--md-on-surface-variant); border: 0; }
-.chip.tone-a     { background: var(--md-primary-container);   color: var(--md-on-primary-container); border: 0; }
-.chip.tone-b     { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border: 0; }
-.chip.tone-neutral { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); border: 0; }
-/* Dot pseudo-element for tonal chips — scoped to tone-* to avoid
-   regressing non-tonal chips that don't expect a leading dot. */
-.chip[class*="tone-"]::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-.chip.no-dot::before { display: none; }
+/* Tonal chip tones + auto-dot moved into the canonical .chip section
+   near the top of this file (spec 0119). The duplicated cascade
+   that lived here was the source of the v1/M3 split. */
 
 /* ── Focus ring for all M3 focusable atoms ──────────────── */
 .md-btn:focus-visible,
@@ -1563,17 +1625,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .delta-chip .up   { color: var(--p-info); }
 .delta-chip .down { color: var(--p-ok);   }
 
-/* ── Drift chip ────────────────────────────────────────────── */
-.drift-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 28px; padding: 0 10px;
-  border-radius: var(--md-shape-full);
-  background: color-mix(in srgb, var(--p-err) 18%, transparent);
-  color: var(--p-err);
-  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
-  letter-spacing: 0.4px;
-}
-.drift-chip svg { width: 12px; height: 12px; }
+/* Spec 0119 §8.6 — ``.drift-chip`` retired. Per-phase ledger-drift
+   surfaces on the timeline phase-header as a Modifier chip
+   (``⚠ ledger drift <count>``) per commit 4. */
 
 /* ── Badge-rich card container (.bcard) ────────────────────── */
 .bcard {
@@ -2044,6 +2098,14 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .tl-phase__meta {
   font: 11px/1 var(--md-font-data);
   color: var(--md-on-surface-faint);
+}
+/* Spec 0119 §8.2 — phase-header category summary chip cluster. Lives
+   in the rightmost grid column of .tl-phase__hd; flex-wraps when
+   the timeline column gets narrow. */
+.tl-phase__chips {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+  justify-self: end;
 }
 .tl-phase__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 14px; }
 

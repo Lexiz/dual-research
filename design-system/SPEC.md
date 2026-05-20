@@ -288,6 +288,78 @@ A `.consumption-phase-group` contains a `.consumption-phase-header` (phase name 
 
 ---
 
+## 4.5 — Badge governance (spec 0119)
+
+The single chip primitive owns every badge / pill / verdict-label on every surface. The rules below are normative — surfaces consume them, they don't override them. Full implementation reference: [spec 0119](../specs/0119-badge-governance.md).
+
+### 4.5.1 One primitive
+
+`<Chip>` (`shared.jsx`) is the only chip. Slot API:
+
+```jsx
+<Chip
+  tone="info | ok | warn | err | idle | claude | gpt | neutral"
+  shape="pill | square"          // pill is default; square only for identifiers
+  size="default | lg"            // 22 px / 26 px
+  mono dim iconOnly              // modifiers
+  leadingDot leadingIcon={…} categoryBubble="Q"   // mutually exclusive
+  label="…" value={N} add={N} sub={N} trailingSuffix="…"
+  ariaLabel="…"                  // required when no label
+  onClick={…}                    // implies button rendering
+/>
+```
+
+Render order inside the chip: leading slot → label → value → add → sub → trailingSuffix → children. Absent slots emit no DOM.
+
+### 4.5.2 The nine canonical kinds
+
+| Kind | Leading | Label | Value | Deltas | Where |
+|---|---|---|---|---|---|
+| **Provider** | AgentIcon | "Claude" / "GPT" | — | — | every card header, every lifecycle row, every filter |
+| **Activity / round** | — | "brief" / "preflight" / "turn N" / "draft" / "review rN" | — | — | every timeline card |
+| **Category counter (dense)** | category-bubble (Q/D/I/C) | — | standing | +raised, −closed | timeline turn cards; phase headers |
+| **Category filter (legend)** | category-bubble | "Questions" / "Disagreements" / "Issues" / "Comments" | total | — | critique pane filter row only |
+| **Status** | dot OR check | "running" / "agreed" / "queued" or none | — | — | every timeline card (right-aligned); critique card header |
+| **Lifecycle verb** | — | "raised" / "addressed" / "resolved" / "acknowledged" / "withdrawn" / "capped" | — | — | lifecycle rows inside expanded critique cards |
+| **Modifier** | optional glyph | "via hard cap" / "↻ closeout" / "⚠ ledger drift" / etc. | optional | — | timeline cards, critique card header |
+| **Sources** | — | "Sources" | count | — | critique card header when item has evidence |
+| **Identifier** | — | "Q-plan-c-04" | — | — | inline body text ONLY — never in card headers |
+
+### 4.5.3 Fixed mappings (never swap)
+
+- **Category tones:** Q = info · D = warn · I = err · C = idle
+- **Category bubble letters:** Q · D · I · C
+- **Category order:** Q → D → I → C, left to right, always — enables down-column scanning
+
+### 4.5.4 Composition rules
+
+1. Provider FIRST on every card header and every lifecycle row.
+2. Activity / round SECOND.
+3. Category chips THIRD, in fixed Q→D→I→C order.
+4. Modifier chips FOURTH.
+5. Status chip RIGHT-ALIGNED, always.
+6. No public-ID chips in card headers. The orchestrator-assigned ID renders as small mono inline text inside the card body (`.crit-card-id`).
+7. Status is never bare on a completed timeline card — every card carries one of `running` / `✓ agreed` / `✓` (icon-only, "completed without AGREED") / `queued`.
+8. Zero-activity chips render dim (opacity 0.55) but stay present so category columns align across rounds.
+9. The filter row at the top of the critique pane is the legend and the canonical disambiguator for every bubble + color combination on every other surface.
+
+### 4.5.5 Canonical vocabulary
+
+| Context | Allowed | Forbidden |
+|---|---|---|
+| Categories | Questions · Disagreements · Issues · Comments | Claim · Claims · OQ · BD · OI · QCR1 |
+| Lifecycle | raised · addressed · resolved · acknowledged · withdrawn · capped · "raised again" | conceded · answered · noted · accepted · non_blocking_limitation |
+| Turn status | running · agreed (preceded by ✓) · queued · bare ✓ for completed | repair · NEGOTIATING · REVIEWING · APPROVED · BRIEF_OK · drafting · thinking |
+| Modifier | "via hard cap" · "via ghost cap" · "⊘ N capped" · "↻ closeout" · "⚠ unverified" · "⚠ ledger drift" | "ghosted N rounds" · run-wide drift |
+
+Enforcement: `tests/contract/test_ui_vocabulary.py` scans `src/dual_research/ui/static/` for the forbidden literals and fails CI if any chip-rendering surface drifts. Legitimate data-layer compat references carry a `// spec-0119:vocab-ok` marker.
+
+### 4.5.6 Letter-bubble rule (evolution of 0115's "never abbreviate")
+
+The 14 px filled circle with a knockout-white first letter (Q / D / I / C) is a **designed icon glyph**, not a raw abbreviation. The full word always appears in the critique-pane filter-row legend, one scroll away from any surface that uses the dense form. Color + bubble glyph + fixed Q→D→I→C order make the combination unambiguous given the legend is always visible.
+
+---
+
 ## 5 — Implementation map
 
 | File                                                          | Owns                                                                                   |

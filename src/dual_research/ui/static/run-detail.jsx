@@ -850,6 +850,7 @@ function Timeline({ run, highlightedTurnKeys }) {
                       <span className="tl-phase__pcode">PHASE {vp.pid}</span>
                       <span className="tl-phase__name">{vp.pDef?.label || `Phase ${vp.pid}`}</span>
                       <span className="tl-phase__meta">{metaParts.join(' \u00b7 ') || '\u2014'}</span>
+                      <TlPhaseHeadChips phaseId={vp.pid} run={run} />
                     </header>
                     {!isCollapsed && (
                       <div className="tl-phase__body">
@@ -884,17 +885,144 @@ function Timeline({ run, highlightedTurnKeys }) {
   );
 }
 
-// Spec 0099 + polish — timeline turn row.
+// ─── Spec 0119 — canonical category vocabulary for chip rendering ────
 //
-// Every row in the timeline (input, preflight, plan, turn 1..N, doc) renders
-// as a card whose anatomy mirrors the critique-pane QuestionThread cards:
+// CATEGORY_TONE / _BUBBLE / _LABEL_* are shared by every chip-bearing
+// surface (timeline turn cards, phase headers, critique pane filter
+// row, critique card headers). Treat them as immutable: the order
+// Q→D→I→C and the fixed color mapping are part of the governance.
+const CATEGORY_TONE = {
+  questions:     'info',
+  disagreements: 'warn',
+  issues:        'err',
+  comments:      'idle',
+};
+const CATEGORY_BUBBLE = {
+  questions:     'Q',
+  disagreements: 'D',
+  issues:        'I',
+  comments:      'C',
+};
+const CATEGORY_LABEL_PLURAL = {
+  questions:     'Questions',
+  disagreements: 'Disagreements',
+  issues:        'Issues',
+  comments:      'Comments',
+};
+const CATEGORY_LABEL_SINGULAR = {
+  questions:     'Question',
+  disagreements: 'Disagreement',
+  issues:        'Issue',
+  comments:      'Comment',
+};
+
+// Spec 0119 — cross-pane jump signal. Timeline chips dispatch this
+// when clicked; CritiqueExplorer listens and applies the resulting
+// (phase, kindFilter) update. Decoupling via a window event keeps
+// us from threading prop drilling through Timeline → TlPhase →
+// TlTurnRow just for one cross-cutting affordance.
+function dispatchCritiqueJump({ category, round, phase }) {
+  if (typeof window === 'undefined' || !window.dispatchEvent) return;
+  window.dispatchEvent(new CustomEvent('dr-critique-jump', {
+    detail: { category, round, phase },
+  }));
+}
+
+// Spec 0119 §8.2 — phase-header category-summary chip cluster.
 //
-//   [KindLetter] · [Number or kind label] · [AgentPill]  [Round]  [Status]
-//   [Phase]  [Q+N] [Q−N] [D+N] [D−N] [AGREED] ────────────────► [chevron]
+// Aggregates ``PhaseCategoryStats`` across both agents for the phase.
+// Phase 0 + 2 show Questions + Disagreements; Phase 4 also shows
+// Issues + Comments. Phase 1 + 3 (parallel research / draft) raise
+// no items and render no category chips.
 //
-// Both panes therefore read as one design language. Status tone drives the
-// left-edge accent: ok (green) for completed, warn (amber) for repair,
-// info (blue) for running.
+// Ledger-drift modifier (spec 0119 §6 / Q5): when ``run.drifts``
+// contains entries whose turnKey starts with ``phase{N}_``, prepend
+// a ``⚠ ledger drift`` chip with the count. Drift is computed
+// end-of-phase by the aggregator (per-turn granularity isn't there
+// yet), so the phase header is the right surface.
+function TlPhaseHeadChips({ phaseId, run }) {
+  const phaseSummary = run?.phaseStats?.[`phaseSummary_${phaseId}`];
+  const cats = (phaseId === 4)
+    ? ['questions', 'disagreements', 'issues', 'comments']
+    : (phaseId === 0 || phaseId === 2)
+      ? ['questions', 'disagreements']
+      : [];
+
+  const phaseDrifts = (run?.drifts || []).filter(
+    (d) => (d.turnKey || '').startsWith(`phase${phaseId}_`)
+  );
+
+  if (!phaseSummary && phaseDrifts.length === 0) return null;
+  if (cats.length === 0 && phaseDrifts.length === 0) return null;
+
+  return (
+    <div className="tl-phase__chips">
+      {phaseDrifts.length > 0 && (
+        <Chip
+          mono
+          tone="warn"
+          label="⚠ ledger drift"
+          value={phaseDrifts.length}
+          title={phaseDrifts.map(d => `${d.kind}: agent=${d.agentCount} · ledger=${d.ledgerCount}`).join('\n')}
+        />
+      )}
+      {cats.map((cat) => {
+        const c = phaseSummary?.[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
+        const noActivity = (c.raised + c.closed) === 0;
+        return (
+          <Chip
+            key={cat}
+            tone={CATEGORY_TONE[cat]}
+            categoryBubble={CATEGORY_BUBBLE[cat]}
+            value={c.standing}
+            add={c.raised}
+            sub={c.closed}
+            trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
+            dim={noActivity}
+            ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatchCritiqueJump({ category: cat, phase: phaseId });
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// Spec 0119 §5.4 / §8.1 — never-bare status chip for timeline turn
+// cards. The contract module's TurnStatus stays {IN_PROGRESS, AGREED};
+// the bare ✓ chip is a UX-only marker for "turn finished, didn't
+// emit AGREED."
+function TlStatusChip({ item, isLive }) {
+  if (isLive) return <Chip tone="info" leadingDot label="running" />;
+  if (item.agreed) {
+    return <Chip tone="ok" leadingIcon={<CheckGlyph size={12} />} label="agreed" />;
+  }
+  if (item.status === 'queued') {
+    return <Chip tone="idle" leadingDot label="queued" />;
+  }
+  return (
+    <Chip
+      tone="ok"
+      iconOnly
+      leadingIcon={<CheckGlyph size={12} />}
+      ariaLabel="Round completed"
+    />
+  );
+}
+
+// Spec 0099 + spec 0119 — timeline turn row.
+//
+// Every row in the timeline (input, preflight, plan, turn 1..N,
+// doc) renders as a card whose header is a single chip row:
+//
+//   [provider] [activity] [modifiers…] [Q D I C…]  ────►  [status] [chev]
+//
+// Provider FIRST, activity SECOND, category chips in fixed Q→D→I→C
+// order (when applicable), status chip right-aligned, never bare.
+// See spec 0119 §6 (composition rules).
 function TlTurnRow({ item, run, isOpen, onToggle }) {
   const agent = item.agent || null;
   const agentSlot = agent === 'gpt' ? 'b' : agent === 'claude' ? 'a' : null;
@@ -912,21 +1040,7 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
                       : item.kind === 'doc-live' ? 'Draft'
                       : item.kind || '—';
 
-  // Phase pill — every row knows its phase via item.phase.
   const phase = item.phase ?? null;
-  const phaseLabel = phase === 0 ? 'Phase 0'
-                   : phase === 1 ? 'Phase 1'
-                   : phase === 2 ? 'Phase 2'
-                   : phase === 3 ? 'Phase 3'
-                   : phase === 4 ? 'Phase 4'
-                   : null;
-
-  // Status pill — done | repair | running | agreed.
-  let statusTone = 'ok';
-  let statusLabel = 'done';
-  if (isLive)              { statusTone = 'info'; statusLabel = 'running'; }
-  else if (isRepair)       { statusTone = 'warn'; statusLabel = 'repair'; }
-  else if (item.agreed)    { statusTone = 'ok';   statusLabel = 'agreed'; }
 
   // Spec 0115 — per-category summary chips for interaction-phase rounds.
   // ``item.stats.categories`` is populated by the Python aggregator from
@@ -939,12 +1053,6 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   const chipCategories = (phase === 4)
     ? ['questions', 'disagreements', 'issues', 'comments']
     : ['questions', 'disagreements'];
-  const CATEGORY_LABEL = {
-    questions: 'Questions',
-    disagreements: 'Disagreements',
-    issues: 'Issues',
-    comments: 'Comments',
-  };
 
   // Expanded body content.
   const gist = !isLive ? composeGist(item, run) : '';
@@ -985,56 +1093,68 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
       aria-label={fullDisplayName || undefined}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
     >
-      <header className="qt-head">
-        {/* Spec 0115 — full-word labels; no single-letter badge. */}
-        <span className="qref qref-full" data-kind={activityLabel[0]}>
-          {agent && (
-            <span className={`qref-by is-${agentSlot}`}>
-              <AgentIcon agent={agent} size={14} />
-              <span className="qref-by-n">{agentName}</span>
-            </span>
-          )}
-          <span className="qref-sep" aria-hidden="true">·</span>
-          <span className="qref-n">{activityLabel}</span>
-        </span>
+      <header className="tl-card-head">
+        {agent && (
+          <Chip
+            tone={agent === 'gpt' ? 'gpt' : 'claude'}
+            leadingIcon={<AgentIcon agent={agent} size={12} />}
+            label={agentName}
+          />
+        )}
+        {/* Spec 0119 §8.8 — Phase 0 brief card is the only no-agent
+            card; it gets a file-document glyph as its leading icon so
+            it reads as "the document we're working from" rather than
+            as an activity step. */}
+        {!agent && item.kind === 'input' ? (
+          <Chip
+            tone="neutral"
+            leadingIcon={<Icon.FileDocument size={12} />}
+            label="brief"
+          />
+        ) : (
+          <Chip mono tone="neutral" label={activityLabel.toLowerCase()} />
+        )}
 
-        {phaseLabel && <span className="md-chip md-chip--sm">{phaseLabel}</span>}
-
-        {/* Per-category summary chips — spec 0115 §1. One chip per
-            allowed category for the phase. Always present (even when
-            zero) so the columns align across rounds; dimmed when the
-            round had no activity in this category. */}
+        {/* Spec 0119 §8.1 — per-category summary chips in fixed
+            Q→D→I→C order. Always present (zero-activity dims to
+            0.55 opacity) so columns align across rounds. Clicking
+            a chip jumps the critique pane to (category, round). */}
         {showCategoryChips && chipCategories.map((cat) => {
           const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
           const noActivity = (c.raised + c.closed) === 0;
-          const capSuffix = (c.capped > 0) ? ` · ⊘ ${c.capped}` : '';
-          const text = `${CATEGORY_LABEL[cat]}  ${c.standing} standing · ${c.raised} raised · ${c.closed} closed${capSuffix}`;
           return (
             <Chip
               key={cat}
-              tone={noActivity ? 'muted' : (c.standing === 0 ? 'ok' : 'info')}
-              style={{ opacity: noActivity ? 0.55 : 1 }}
-            >
-              {text}
-            </Chip>
+              tone={CATEGORY_TONE[cat]}
+              categoryBubble={CATEGORY_BUBBLE[cat]}
+              value={c.standing}
+              add={c.raised}
+              sub={c.closed}
+              trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
+              dim={noActivity}
+              ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatchCritiqueJump({
+                  category: cat,
+                  round: item.round,
+                  phase,
+                });
+              }}
+            />
           );
         })}
 
-        <span style={{ flex: 1 }} />
+        <span className="spacer" />
 
-        <Chip tone={statusTone}>{statusLabel}</Chip>
+        <TlStatusChip item={item} isLive={isLive} />
 
-        <span className="right">
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: isOpen ? 0.6 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--md-on-surface-faint)',
-            transform: isOpen ? 'rotate(90deg)' : 'none',
-          }}>
-            <Icon.Chevron />
-          </span>
+        <span
+          className="tl-card-chev"
+          aria-hidden="true"
+          data-open={isOpen ? 'true' : undefined}
+        >
+          <Icon.Chevron />
         </span>
       </header>
 
@@ -1540,27 +1660,6 @@ function hasRepairSibling(run, snakeTurnKey) {
   if (!usage) return false;
   const camel = snakeTurnKey.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
   return Object.prototype.hasOwnProperty.call(usage, `${camel}Repair`);
-}
-
-// Walk the per-turn usage dict and produce ordered rows for rendering.
-// Each row: { id, phase, round, label, claude, gpt }. `claude`/`gpt`
-// is the `TurnTokenUsage`-shaped value or `null` (silent lane).
-// Spec 0047 — small chip surfaced on Consumption-tab repair-sibling rows
-// (and on timeline turns whose parent has a repair sibling) to mark the
-// row as a protocol-repair re-prompt rather than the original turn.
-function RepairChip({ compact = false }) {
-  // SPEC-0052 D8 — Chip primitive with tone-warn. `compact` modifier preserved
-  // via inline style (Chip doesn't have a built-in compact size — the chip-lg
-  // modifier goes the other direction). Uppercase + letter-spacing kept inline.
-  const compactStyle = compact ? { fontSize: 9.5, padding: '0 5px' } : null;
-  return (
-    <Chip tone="warn"
-          title="Re-prompted turn after the original failed protocol parse — see the matching parent row for the original."
-          className="rep"
-          style={{ textTransform: 'uppercase', letterSpacing: '0.04em', ...compactStyle }}>
-      repair
-    </Chip>
-  );
 }
 
 function buildConsumptionRows(run) {
@@ -2922,18 +3021,6 @@ function buildTimeline(run) {
   return window.buildLiveTimeline(run);
 }
 
-// ─────────────────── Timeline items ───────────────────
-function TimelineItem({ item, run, onOpen, highlightedTurnKeys }) {
-  if (item.kind === 'error')         return <ErrorCard item={item} />;
-  if (item.kind === 'deadlock')      return <DeadlockCard item={item} />;
-  return <ArtifactCard
-    item={item}
-    run={run}
-    onOpen={onOpen}
-    highlightedTurnKeys={highlightedTurnKeys}
-  />;
-}
-
 // SPEC-0071 D4: group flat timeline items into phase sections for collapsibility.
 function groupTimelineByPhase(items) {
   const groups = [];
@@ -2991,96 +3078,6 @@ function PhaseDividerHeader({ item, run, open }) {
         {item.duration ? fmt.duration(item.duration) : '—'}
         {item.extra ? ` · ${item.extra}` : ''}
       </span>
-    </div>
-  );
-}
-
-// The unified card (spec 0025: summary + view-full button).
-//
-// Layout is now two rows when a summary is present:
-//   ┌───────────────────────────────────────────────────────────┐
-//   │ [icon] AGENT  turn 3      5 questions · 2 disagreements   │
-//   │  Summary line clamped to 2 lines …       [View full →]    │
-//   └───────────────────────────────────────────────────────────┘
-//
-// Clicking anywhere on the card opens the modal. Live items continue
-// to stream inline (no modal — the summary isn't available yet).
-// Spec 0030: clicking a card toggles inline expansion (it no longer
-// opens the modal directly). The unfolded body renders the gist line,
-// the TL;DR summary, and a "View in full mode" button — that button is
-// the ONLY entry point to the existing `ArtifactModal`.
-function ArtifactCard({ item, run, onOpen, highlightedTurnKeys }) {
-  const meta = item.agent ? AGENT_META[item.agent] : null;
-  const [hover, setHover] = React.useState(false);
-  const [expanded, setExpanded] = React.useState(false);
-
-  const accentColor = meta?.color || 'var(--fg-2)';
-  const isLive = item.live;
-  const hasSummary = !isLive && !!(item.summary && String(item.summary).trim());
-  const gist = !isLive ? composeGist(item, run) : '';
-  // Spec 0034: sentiment paragraph (Phase 2/4 only) takes priority over
-  // the single-line gist when there's enough material.
-  const sentiment = !isLive ? composeSentiment(item, run) : '';
-  const canExpand = !isLive && (hasSummary || gist || sentiment);
-
-  const header = <ArtifactHeader item={item} meta={meta} hover={hover} run={run} />;
-
-  // Spec 0034: cross-axis click-to-highlight. If this card's turnKey is
-  // in the highlight set (from the CritiqueExplorer), apply a ring +
-  // briefly draw attention. Two variants (q / d) for visual provenance.
-  const flashKind = item.turnKey && highlightedTurnKeys
-    ? (highlightedTurnKeys.get ? highlightedTurnKeys.get(item.turnKey) : null)
-    : null;
-  const flashColor = flashKind === 'q' ? COLORS.info
-                   : flashKind === 'd' ? COLORS.warn
-                   : null;
-
-  const toggleExpand = () => {
-    if (canExpand) setExpanded((v) => !v);
-  };
-
-  // SPEC-0057 D2: migrate to Card primitive. Live cards use Card.live variant.
-  const agentSlot = item.agent === 'gpt' ? 'b' : 'a';
-  return (
-    <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      data-turn-key={item.turnKey || undefined}
-      style={{
-        // SPEC-0087 § G.3 — row gap trimmed from 6 → 4 px to match the
-        // tightened card padding. Cumulative density improvement is
-        // ~6 px per row.
-        marginBottom: 4,
-        ...(flashColor ? {
-          boxShadow: `0 0 0 2px ${flashColor}, 0 0 24px ${flashColor}55`,
-          borderColor: flashColor,
-          borderRadius: 'var(--r-3)',
-        } : {}),
-      }}
-    >
-      <Card
-        live={isLive}
-        agent={isLive ? agentSlot : undefined}
-        expanded={expanded}
-        interactive={canExpand}
-        onClick={canExpand ? toggleExpand : undefined}
-      >
-        <div style={{ padding: '10px 12px' }}>
-          {header}
-        </div>
-        {expanded && (
-          <CardBody>
-            <ArtifactExpandedBody
-              item={item}
-              gist={sentiment || gist}
-              summary={item.summary}
-              onOpen={onOpen}
-              turnKey={item.turnKey}
-            />
-          </CardBody>
-        )}
-        {isLive && <ArtifactLiveBody item={item} />}
-      </Card>
     </div>
   );
 }
@@ -3155,40 +3152,6 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
         </button>
       </div>
     </div>
-  );
-}
-
-// ─────────────────── Spec 0038 — SearchChip / SearchGistLine ────────────────
-//
-// Both reads from SearchIndexContext (one fetch per run) — no per-card
-// network calls. Hidden when no audit data exists for this turn-key, or
-// when the run has no audit data at all (pre-0036 transcripts).
-function SearchChip({ turnKey }) {
-  const ctx = React.useContext(SearchIndexContext);
-  if (!turnKey) return null;
-  const summary = ctx?.summary;
-  if (!summary) return null;
-  const s = summary.get(turnKey);
-  if (!s || s.queries === 0) return null;
-  const tip = `${s.queries} web search${s.queries === 1 ? '' : 'es'} · ${s.consulted} URL${s.consulted === 1 ? '' : 's'} retrieved`
-    + (s.hasWarning ? ' · unmatched citation' : '');
-  return (
-    <span title={tip} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 3,
-      padding: '1px 7px',
-      borderRadius: 999,
-      border: `1px solid ${s.hasWarning ? COLORS.warn + '55' : 'var(--border-1)'}`,
-      background: 'var(--bg-2)',
-      fontSize: 10.5, color: 'var(--fg-1)',
-      fontFamily: 'var(--mono)',
-      whiteSpace: 'nowrap',
-    }}>
-      <Mdi name="magnify" size={10} />
-      {s.queries}
-      {s.hasWarning && (
-        <Mdi name="alert" size={10} color={COLORS.warn} />
-      )}
-    </span>
   );
 }
 
@@ -3296,7 +3259,7 @@ function composeGist(item, run) {
       .filter((d) => d && d.phase === 2)
       .flatMap((d) => (d.progression || []).filter((p) => p.agent === agent && p.round === item.round))
       .map((p) => p.action);
-    if (myProg.includes('conceded')) parts.push('conceded a held D-N');
+    if (myProg.includes('conceded')) parts.push('resolved a held D-N'); // spec-0119:vocab-ok (legacy progression-action key)
     if (myProg.includes('aligned')) parts.push('marked one non-blocking');
     return parts.length === 1 ? '' : parts[0] + ', ' + parts.slice(1).join(', ') + '.';
   }
@@ -3493,10 +3456,8 @@ function composeSentiment(item, run) {
       ).length;
       const openQ = openCount('question');
       const openD = openCount('disagreement');
-      const openC = openCount('claim');
       if (openQ > 0) standingParts.push(plur(openQ, 'open question'));
       if (openD > 0) standingParts.push(plur(openD, 'open disagreement'));
-      if (openC > 0) standingParts.push(plur(openC, 'open claim'));
     } else {
       if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
         standingParts.push(plur(stats.openQuestions, 'open question'));
@@ -3600,13 +3561,15 @@ function capitalise(s) {
 // Spec 0042 D5 — per-phase chip allowlist. Each phase only renders the
 // chip kinds its protocol actually emits. Phase 0 (preflight) + Phase 3
 // (silent drafter) + Phase 5 (final) have no structured turn items and
-// render no chips. Phase 1 (plan draft) renders claims + questions.
-// Phase 2 (negotiate) renders questions + disagreements + claims (R1
-// only). Phase 4 (review) renders issues + comments + disagreements.
+// render no chips. Phase 1 (plan draft) raises questions only.
+// Phase 2 (negotiate) renders questions + disagreements. Phase 4
+// (review) renders issues + comments + disagreements.
+//
+// Spec 0119 §7 — the legacy ``claim`` category is gone post-0114.
 const PHASE_CHIP_ALLOWLIST = {
   0: [],
-  1: ['claims', 'questions'],
-  2: ['questions', 'disagreements', 'claims'],
+  1: ['questions'],
+  2: ['questions', 'disagreements'],
   3: [],
   4: ['issues', 'comments', 'disagreements'],
   5: [],
@@ -3629,7 +3592,6 @@ function computeChipDeltas(run, item) {
     return {
       question: { raised: 0, resolved: 0 },
       disagreement: { raised: 0, resolved: 0 },
-      claim: { raised: 0, resolved: 0 },
       issue: { raised: 0, resolved: 0 },
       comment: { raised: 0, resolved: 0 },
     };
@@ -3648,7 +3610,6 @@ function computeChipDeltas(run, item) {
     return {
       question:     { raised: raised('question'),     resolved: resolved('question') },
       disagreement: { raised: raised('disagreement'), resolved: resolved('disagreement') },
-      claim:        { raised: raised('claim'),        resolved: resolved('claim') },
       issue:        { raised: raised('issue'),        resolved: resolved('issue') },
       comment:      { raised: raised('comment'),      resolved: 0 },
     };
@@ -3659,38 +3620,9 @@ function computeChipDeltas(run, item) {
   return {
     question:     { raised: filt(run?.questions),     resolved: 0 },
     disagreement: { raised: filt(run?.disagreements), resolved: 0 },
-    claim:        { raised: filt(run?.claims),        resolved: 0 },
     issue:        { raised: filt(run?.issues),        resolved: 0 },
     comment:      { raised: filt(run?.comments),      resolved: 0 },
   };
-}
-
-// Spec 0044 D2 + D9 — return ``true`` iff this card represents the
-// LAST turn of a phase whose ledger has zero open entries (i.e. the
-// phase converged cleanly). The chip layer + sentiment composer
-// share this decision so they always agree on when to display the
-// ``✓ agreed`` / ``✓ approved`` marker.
-function isFinalConvergedTurn(item, run) {
-  if (!item) return false;
-  if (item.kind !== 'turn' && item.kind !== 'turn-live') return false;
-  const phase = item.statsPhase;
-  if (phase !== 2 && phase !== 4) return false;
-  if (!run || !run.phaseTimings) return false;
-  if (run.phaseTimings[phase] == null) return false;  // phase not yet exited
-  const entries = (run.phaseLedgers && run.phaseLedgers[phase]) || [];
-  // Phase 2 convergence considers questions + disagreements + claims;
-  // Phase 4 gates on issues. Mirrors orchestrator/convergence semantics.
-  const blockingOpen = entries.filter((e) => {
-    if (e.currentStatus !== 'open') return false;
-    if (phase === 4) return e.kind === 'issue';
-    return e.kind === 'question' || e.kind === 'disagreement' || e.kind === 'claim';
-  }).length;
-  if (blockingOpen > 0) return false;
-  // Must be the last round observed in this phase.
-  const maxRound = entries.reduce(
-    (acc, e) => Math.max(acc, e.raisedRound || 0), 0
-  );
-  return (item.round || 0) >= maxRound;
 }
 
 // Spec 0044 D5 — action-specific right-pane empty-state copy.
@@ -3724,352 +3656,6 @@ function emptyStateCopy(item, run) {
     `This turn raised ${raisedTotal} item(s), but none had quote/after anchors for ` +
     'cross-reference. Open the document modal for the inline detail.'
   );
-}
-
-// Spec 0044 — kind metadata: chip label glyph + colour tint. The
-// chip strip omits any kind with both raised=0 and resolved=0 so
-// quiet turns stay sparse.
-// SPEC-0067 D3/D4 — full-word labels replace single-letter codes.
-const CHIP_KIND_META = {
-  question:     { label: 'questions',     tint: 'info' },
-  disagreement: { label: 'disagreements', tint: 'warn' },
-  claim:        { label: 'claims',        tint: 'info' },
-  issue:        { label: 'issues',        tint: 'warn' },
-  comment:      { label: 'comments',      tint: 'info' },
-};
-
-// Spec 0042 D5 + Spec 0044 D1 — per-phase chip allowlist. The
-// ``negotiating`` / ``reviewing`` status pill is no longer rendered
-// per-turn (Spec 0044 D1) — the phase-section header already labels
-// the phase.
-function StatsChips({ phase, run, item }) {
-  const allowed = PHASE_CHIP_ALLOWLIST[phase] || [];
-  // Spec 0047 — discoverability hint when this turn has a `_repair`
-  // sibling on the wire; user knows to look at the Consumption tab for
-  // the per-call breakdown.
-  const showRepairHint = hasRepairSibling(run, item?.turnKey);
-  if (allowed.length === 0 && !isFinalConvergedTurn(item, run) && !showRepairHint) return null;
-
-  const deltas = computeChipDeltas(run, item);
-  const chips = [];
-
-  for (const allowedKey of allowed) {
-    // ``allowed`` uses plurals (``questions``); deltas keyed by singular.
-    const kind = allowedKey === 'questions' ? 'question'
-              : allowedKey === 'disagreements' ? 'disagreement'
-              : allowedKey === 'claims' ? 'claim'
-              : allowedKey === 'issues' ? 'issue'
-              : allowedKey === 'comments' ? 'comment'
-              : null;
-    if (!kind) continue;
-    const d = deltas[kind];
-    if (!d || (d.raised === 0 && d.resolved === 0)) continue;
-    chips.push({ kind, ...CHIP_KIND_META[kind], raised: d.raised, resolved: d.resolved });
-  }
-
-  // Spec 0044 D2 — ``✓ agreed`` / ``✓ approved`` only on the LAST
-  // turn of a phase that converged with zero open ledger items.
-  const showAgreed = isFinalConvergedTurn(item, run);
-
-  if (chips.length === 0 && !showAgreed && !showRepairHint) return null;
-
-  // SPEC-0057 D3 — ChipCluster discipline: collapse >5 chips.
-  return (
-    <ChipCluster max={5}>
-      {chips.map((c, i) => <StatChip key={i} {...c} />)}
-      {showAgreed && <ConvergedChip phase={phase} />}
-      {showRepairHint && <RepairChip compact />}
-    </ChipCluster>
-  );
-}
-
-// Spec 0044 D3 — chip displaying ``+raised  −resolved`` per kind.
-// SPEC-0087 § I — three readability fixes layered on the prior shape:
-//   1. Mixed raised+resolved no longer renders as ONE chip `+N issues −M`
-//      (bare `−M` with no noun). Renders as TWO chips:
-//        [+N issue] (info/warn tint)
-//        [−M prior issue] (ok tint)
-//      per delta 17.39's "two-chip split for mixed cases" mandate.
-//   2. Both chips use SINGULAR when count is 1 (`+1 issue`, not `+1 issues`)
-//      and plural otherwise. Pre-spec the visible chip text always used
-//      the plural label even when count=1.
-//   3. The "closed-only" case keeps the "prior" prefix the audit liked.
-// `label` is plural ("claims"); singular derived by dropping trailing 's'.
-function StatChip({ label, raised, resolved, tint }) {
-  const colorMap = { ok: COLORS.ok, info: COLORS.info, warn: COLORS.warn, err: COLORS.err };
-  const c = colorMap[tint] || 'var(--fg-3)';
-  const inflect = (n) => (n === 1 ? label.replace(/s$/, '') : label);
-  const isClosedOnly = raised === 0 && resolved > 0;
-  const isRaisedOnly = raised > 0 && resolved === 0;
-
-  // Single "closed-only" chip: `[−N prior <noun>]` in ok tint.
-  if (isClosedOnly) {
-    return (
-      <span
-        className="mono"
-        title={`Closed ${resolved} prior ${inflect(resolved)} this turn.`}
-        style={_statChipBaseStyle(COLORS.ok)}
-      >
-        <span className="num" style={{ color: COLORS.ok, fontWeight: 500 }}>−{resolved} prior</span>
-        <span style={{ color: 'var(--fg-3)' }}>{inflect(resolved)}</span>
-      </span>
-    );
-  }
-  // Single "raised-only" chip: `[+N <noun>]` in info/warn tint.
-  if (isRaisedOnly) {
-    return (
-      <span
-        className="mono"
-        title={`Raised ${raised} ${inflect(raised)} this turn.`}
-        style={_statChipBaseStyle(c)}
-      >
-        <span className="num" style={{ color: c, fontWeight: 500 }}>+{raised}</span>
-        <span style={{ color: 'var(--fg-3)' }}>{inflect(raised)}</span>
-      </span>
-    );
-  }
-  // Mixed: render TWO sibling chips so each has its own noun.
-  if (raised > 0 && resolved > 0) {
-    return (
-      <>
-        <span
-          className="mono"
-          title={`Raised ${raised} ${inflect(raised)} this turn.`}
-          style={_statChipBaseStyle(c)}
-        >
-          <span className="num" style={{ color: c, fontWeight: 500 }}>+{raised}</span>
-          <span style={{ color: 'var(--fg-3)' }}>{inflect(raised)}</span>
-        </span>
-        <span
-          className="mono"
-          title={`Closed ${resolved} prior ${inflect(resolved)} this turn.`}
-          style={_statChipBaseStyle(COLORS.ok)}
-        >
-          <span className="num" style={{ color: COLORS.ok, fontWeight: 500 }}>−{resolved} prior</span>
-          <span style={{ color: 'var(--fg-3)' }}>{inflect(resolved)}</span>
-        </span>
-      </>
-    );
-  }
-  return null;
-}
-
-function _statChipBaseStyle(c) {
-  return {
-    display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: '1px 7px',
-    background: 'transparent',
-    border: `1px solid ${c}33`,
-    borderRadius: 4,
-    fontSize: 10.5, color: c,
-    letterSpacing: '0.02em',
-  };
-}
-
-// Spec 0044 D2 — Phase-converged marker. Renders as `✓ agreed` for
-// Phase 2 / `✓ approved` for Phase 4. Only shown by ``StatsChips``
-// when ``isFinalConvergedTurn`` returns true.
-function ConvergedChip({ phase }) {
-  const label = phase === 4 ? 'approved' : 'agreed';
-  return (
-    <span className="mono"
-          title="Phase converged with zero open ledger items."
-          style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '2px 8px',
-      background: 'transparent',
-      border: `1px solid ${COLORS.ok}55`,
-      borderRadius: 4,
-      fontSize: 11, color: COLORS.ok,
-      letterSpacing: '0.02em',
-      fontWeight: 500,
-    }}>
-      <Mdi name="check" size={11} />
-      <span>{label}</span>
-    </span>
-  );
-}
-
-function StatusInline({ label }) {
-  const map = {
-    AGREED:       { color: COLORS.ok,   text: 'agreed' },
-    APPROVED:     { color: COLORS.ok,   text: 'approved' },
-    NOT_APPROVED: { color: COLORS.warn, text: 'not approved' },
-    DISAGREED:    { color: COLORS.warn, text: 'disagreed' },
-    NEGOTIATING:  { color: COLORS.idle, text: 'negotiating' },
-    REVIEWING:    { color: COLORS.idle, text: 'reviewing' },
-  };
-  const m = map[label] || { color: COLORS.idle, text: String(label).toLowerCase().replace(/_/g, ' ') };
-  return (
-    <span className="mono" style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '2px 7px',
-      background: m.color + '14',
-      border: `1px solid ${m.color}55`,
-      borderRadius: 4,
-      fontSize: 11, color: m.color,
-      letterSpacing: '0.04em',
-    }}>{m.text}</span>
-  );
-}
-
-// Phase 0 preflight chip — distinct from the Phase 2/4 stats because the
-// preflight protocol uses BRIEF_OK + BRIEF_ISSUES, not the negotiation fields.
-//
-// SPEC-0087 § H — `state === 'ok'` now renders via the same `<SB tone="ok">`
-// primitive used by the Claude / GPT brief-critique cards (rounded green
-// pill), retiring the legacy `<StatusInline>` bordered-gray variant per
-// delta 14.57. Visual consistency: the Agent Input card and the per-
-// agent cards in Phase 0 now show identical "ok" chips.
-function PreflightChip({ stats }) {
-  if (!stats) return null;
-  if (stats.state === 'ok') return <StatusBadge status="converged" label="ok" />;
-  if (stats.state === 'issues') {
-    return (
-      <span className="mono" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
-        padding: '2px 7px',
-        background: COLORS.warn + '14',
-        border: `1px solid ${COLORS.warn}55`,
-        borderRadius: 4,
-        fontSize: 11, color: COLORS.warn,
-        letterSpacing: '0.04em',
-      }}>
-        <span>needs input</span>
-        <span className="num" style={{ fontWeight: 500 }}>· {stats.count}</span>
-      </span>
-    );
-  }
-  return null;
-}
-
-function ArtifactHeader({ item, meta, hover, run }) {
-  if (item.kind === 'input') {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-        <span style={{ color: 'var(--fg-3)', fontSize: 12 }}>◆</span>
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>Agent Input</span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>brief · shared</span>
-        <span style={{
-          flex: 1, minWidth: 0, fontSize: 12, color: 'var(--fg-2)',
-          overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{item.topic || ''}</span>
-        <PreflightChip stats={item.stats} />
-      </div>
-    );
-  }
-  if (item.kind === 'preflight') {
-    // Spec 0033: per-agent Phase 0 critique card.
-    const stats = item.stats || null;
-    const statusVal = stats?.status;
-    const briefIssues = stats?.briefIssues ?? 0;
-    const ok = statusVal === 'BRIEF_OK';
-    const sub = ok
-      ? 'approved the brief'
-      : briefIssues > 0
-        ? `flagged ${briefIssues} issue${briefIssues === 1 ? '' : 's'}`
-        : 'brief critique';
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-        <AgentIcon agent={item.agent} size={14} />
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 52 }}>
-          {meta?.name || item.agent}
-        </span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 110 }}>
-          brief critique
-        </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: 'var(--fg-2)',
-                       overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {sub}
-        </span>
-        <SearchChip turnKey={item.turnKey} />
-        {stats && (
-          <span className="mono" style={{
-            fontSize: 11, color: ok ? COLORS.ok : COLORS.warn,
-            padding: '2px 7px', borderRadius: 999,
-            background: ok ? 'rgba(111,179,128,0.12)' : 'rgba(212,160,86,0.12)',
-            border: `1px solid ${ok ? 'rgba(111,179,128,0.30)' : 'rgba(212,160,86,0.30)'}`,
-          }}>
-            {ok ? 'ok' : `${briefIssues} issue${briefIssues === 1 ? '' : 's'}`}
-          </span>
-        )}
-      </div>
-    );
-  }
-  if (item.kind === 'doc') {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-        <Icon.Check style={{ color: COLORS.ok }} />
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>
-          {item.completed ? 'Final document' : 'Converged document'}
-        </span>
-        {meta && (
-          <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>by {meta.name}</span>
-        )}
-        <span style={{ flex: 1 }} />
-      </div>
-    );
-  }
-  if (item.kind === 'doc-live') {
-    if (!meta) return null;
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-        <AgentIcon agent={item.agent} size={14} />
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500 }}>{meta.name}</span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)' }}>drafting converged document</span>
-        <span style={{ flex: 1 }} />
-        <span className="mono" style={{ fontSize: 10, color: meta.color, letterSpacing: '0.06em' }}>DRAFTER</span>
-      </div>
-    );
-  }
-  if (item.kind === 'plan' || item.kind === 'plan-live' || item.kind === 'turn' || item.kind === 'turn-live') {
-    const isLive = item.live;
-    const kindLabel =
-      item.kind === 'plan' || item.kind === 'plan-live' ? 'plan draft' :
-      typeof item.index === 'string' ? `turn ${item.index}` :
-      `turn ${item.index ?? item.id.slice(1)}`;
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-        <AgentIcon agent={item.agent} size={14} />
-        <span style={{ fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, minWidth: 52 }}>{meta.name}</span>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-3)', minWidth: 76 }}>{kindLabel}</span>
-        <span style={{ flex: 1 }} />
-        <StatsChips
-          phase={item.statsPhase}
-          run={run}
-          item={item}
-        />
-        <SearchChip turnKey={item.turnKey} />
-        {isLive ? (
-          <AgentStatusInline status={item.status} />
-        ) : item.tokens != null || item.cost != null ? (
-          <span className="mono num" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>
-            {fmt.tokens(item.tokens || 0)}t&nbsp;·&nbsp;{fmt.cost(item.cost || 0)}
-          </span>
-        ) : item.round != null ? (
-          // SPEC-0087 § I — render the round identifier as a bordered
-          // chip with uppercase `R{n}` instead of bare lowercase `r{n}`
-          // text (delta 17.39). Mono + neutral tone keeps it visually
-          // quieter than the stats chips next to it.
-          <span
-            className="mono"
-            title={`Round ${item.round}`}
-            style={{
-              display: 'inline-flex', alignItems: 'center',
-              padding: '1px 7px',
-              border: '1px solid var(--border-2)',
-              borderRadius: 4,
-              fontSize: 10.5, color: 'var(--fg-3)',
-              letterSpacing: '0.04em', textTransform: 'uppercase',
-            }}
-          >
-            R{item.round}
-          </span>
-        ) : null}
-      </div>
-    );
-  }
-  return null;
 }
 
 // Live (streaming) body — same UX as before but with a stable container.
@@ -4451,18 +4037,8 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
             activeIdx={activeIdx}
             onSelect={handleSelect}
           />
-          {/* Spec 0042 D6 — round-1 difference inventory now parses as
-              "claim" not "disagreement"; render claims as their own
-              group so the badge counts on the timeline card reconcile
-              with what the modal shows. */}
-          <ReviewGroup
-            label="Claims"
-            color={COLORS.info}
-            items={scrubReviewItems}
-            kinds={['claim']}
-            activeIdx={activeIdx}
-            onSelect={handleSelect}
-          />
+          {/* Spec 0119 §7 — legacy ``Claims`` ReviewGroup retired
+              with the rest of the claim data path post-0114. */}
           <ReviewGroup
             label="Disagreements"
             color={COLORS.warn}
@@ -4881,11 +4457,11 @@ function DraftRightSubTabs({ active, onChange, hasSearchWarning, showWebSearch }
   );
 }
 
-// Spec 0044 D6 — compact strip of structured Phase 1 items (claims +
-// open questions) above the draft body. Each chip click jumps the
-// left-pane brief to the item's anchored block. Hidden when no
-// anchored items exist (turns rendering this strip only on drafts
-// the agent actually anchored).
+// Spec 0044 D6 + Spec 0119 §7 — compact strip of structured Phase 1
+// items (open questions) above the draft body. Each chip click jumps
+// the left-pane brief to the item's anchored block. The legacy
+// ``claim`` kind is gone post-0114; only questions and disagreements
+// flow through here on new-protocol runs.
 function Phase1ItemStrip({ items, onItemClick }) {
   return (
     <div style={{
@@ -4903,11 +4479,8 @@ function Phase1ItemStrip({ items, onItemClick }) {
         Items ({items.length}) →
       </span>
       {items.map((it, i) => {
-        const tint = it.kind === 'claim' ? COLORS.info
-                   : it.kind === 'question' ? COLORS.info
-                   : COLORS.warn;
-        const glyph = it.kind === 'claim' ? 'Cl'
-                    : it.kind === 'question' ? 'Q'
+        const tint = it.kind === 'question' ? COLORS.info : COLORS.warn;
+        const glyph = it.kind === 'question' ? 'Q'
                     : it.kind.slice(0, 1).toUpperCase();
         return (
           <button
@@ -6094,24 +5667,6 @@ function FinalDocPreview() {
   );
 }
 
-function AgentStatusInline({ status }) {
-  const map = {
-    idle:       { color: COLORS.idle, pulse: null,       label: 'idle' },
-    thinking:   { color: COLORS.info, pulse: 'pulse-a',  label: 'thinking' },
-    drafting:   { color: COLORS.info, pulse: 'pulse-a',  label: 'drafting' },
-    responding: { color: COLORS.info, pulse: 'pulse-a',  label: 'responding' },
-    reviewing:  { color: COLORS.info, pulse: 'pulse-a',  label: 'reviewing' },
-    waiting:    { color: COLORS.idle, pulse: null,       label: 'waiting' },
-  };
-  const m = map[status] || map.idle;
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-      <span className={m.pulse || ''} style={{ width: 6, height: 6, borderRadius: '50%', background: m.color }} />
-      <span className="mono" style={{ fontSize: 11, color: 'var(--fg-2)' }}>{m.label}</span>
-    </span>
-  );
-}
-
 function ErrorCard({ item }) {
   return (
     <div style={{
@@ -6196,6 +5751,33 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     if (selectedPhase === 'summary' && !isTerminal) setSelectedPhase(initial);
   }, [isTerminal, selectedPhase, initial]);
 
+  // Spec 0119 §8.1 + Q2 — cross-pane jump: a click on a timeline turn
+  // card's category chip dispatches `dr-critique-jump` with
+  // (category, round, phase); the critique pane snaps to that phase +
+  // category filter and scrolls itself into view.
+  React.useEffect(() => {
+    const handler = (e) => {
+      const detail = e.detail || {};
+      const { category, phase: targetPhase } = detail;
+      if (targetPhase === 2 || targetPhase === 4) {
+        setSelectedPhase(targetPhase);
+      }
+      const validCategories = ['questions', 'disagreements', 'issues', 'comments'];
+      if (validCategories.includes(category)) {
+        setKindFilter(category);
+      }
+      // Bring the critique pane into the visible area.
+      window.setTimeout(() => {
+        const el = document.querySelector('.crit2');
+        if (el && el.scrollIntoView) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    };
+    window.addEventListener('dr-critique-jump', handler);
+    return () => window.removeEventListener('dr-critique-jump', handler);
+  }, []);
+
   const isSummary = selectedPhase === 'summary';
   const phaseQuestions = isSummary ? [] : questions.filter(q => q.phase === selectedPhase);
   const phaseDisagreements = isSummary ? [] : disagreements.filter(d => d.phase === selectedPhase);
@@ -6256,7 +5838,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const driftItems = [];
   const _isOpenStatus = (s) => s === 'open' || s === 'open-new';
   const _isResolvedStatus = (s) =>
-    s === 'resolved' || s === 'answered' ||
+    s === 'resolved' || s === 'answered' || // spec-0119:vocab-ok (legacy question.status value)
     (typeof s === 'string' && s.startsWith('resolved-'));
   const pushItem = (it, critiqueKind) => {
     const item = { ...it, _critiqueKind: critiqueKind };
@@ -6317,12 +5899,6 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const runWideIntroduced = allPhaseItems.length;
   const runWideOpen = allPhaseItems.filter(it => it.status === 'open').length;
   const runWideResolved = allPhaseItems.filter(it => it.status !== 'open').length;
-
-  // Run-wide drift count for Bar 1
-  const runWideDrift = allPhaseItems.filter(it => {
-    const ghost = findLedgerGhostRounds(selectedPhase, it.id);
-    return ghost > 0 && it.status === 'open';
-  }).length;
 
   // Kind-tab counts (filtered by agent + status)
   const filteredAll = [...openNewItems, ...openCarriedItems, ...resolvedItems, ...driftItems];
@@ -6457,53 +6033,87 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
             <span><span className="n is-info">{runWideOpen}</span><span className="lbl">open</span></span>
             <span><span className="n is-ok">{runWideResolved}</span><span className="lbl">resolved</span></span>
           </span>
-          {runWideDrift > 0 && (
-            <span className="drift-chip">
-              <svg viewBox="0 0 12 12"><polygon points="6,1 11,11 1,11" fill="currentColor"/></svg>
-              {runWideDrift} drift
-            </span>
-          )}
+          {/* Spec 0119 §8.6 — run-wide drift chip retired from the
+              critique-pane header. Per-phase ledger-drift now surfaces
+              on the timeline phase header (commit 4); validate-run is
+              the canonical surface for per-run drift totals. */}
         </div>
       </header>
 
-      {/* BAR 2 — Kind tabs + Agent/Status filters. Hidden in Summary. */}
+      {/* BAR 2 — Spec 0119 §8.3 — chip-row legend.
+          The filter row at the top of the Critique pane IS the
+          canonical legend: every bubble + full-word + count appears
+          here so anywhere a dense-form chip appears on the timeline,
+          the reader can scroll to this row to confirm what each
+          bubble means. */}
       {!isSummary && (
-        <header className="bar2">
-          <div className="kind-tabs">
-            {KIND_TABS.map((kt) => {
-              const count = kindCounts[kt.id] || 0;
-              const isActive = kindFilter === kt.id;
-              const isZero = count === 0 && kt.id !== 'all';
-              return (
-                <button
-                  key={kt.id}
-                  className={`kind-tab${isActive ? ' is-active' : ''}${isZero ? ' is-zero' : ''}`}
-                  onClick={() => setKindFilter(kt.id)}>
-                  <span>{kt.label}</span>
-                  <span className={`ct${kt.tone && count > 0 ? ` ${kt.tone}` : ''}`}>{count}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="right">
-            <div className="tab-group-solid">
-              <button className={`tab-solid${agentFilter === 'all' ? ' is-active' : ''}`} onClick={() => setAgentFilter('all')}>All</button>
-              <button className={`tab-solid${agentFilter === 'claude' ? ' is-active' : ''}`} onClick={() => setAgentFilter('claude')}>
-                <span className="dot" style={{ background: 'var(--p-sable)' }}></span>Claude
-              </button>
-              <button className={`tab-solid${agentFilter === 'gpt' ? ' is-active' : ''}`} onClick={() => setAgentFilter('gpt')}>
-                <span className="dot" style={{ background: 'var(--p-sage)' }}></span>GPT
-              </button>
-            </div>
-            <div className="tab-group-solid">
-              <button className={`tab-solid${statusFilter === 'all' ? ' is-active' : ''}`} onClick={() => setStatusFilter('all')}>All</button>
-              <button className={`tab-solid${statusFilter === 'open' ? ' is-active' : ''}`} onClick={() => setStatusFilter('open')}>Open</button>
-              <button className={`tab-solid${statusFilter === 'resolved' ? ' is-active' : ''}`} onClick={() => setStatusFilter('resolved')}>Resolved</button>
-              <button className={`tab-solid${statusFilter === 'drift' ? ' is-active' : ''}`}
-                onClick={kindFilter === 'questions' ? undefined : () => setStatusFilter('drift')}
-                style={kindFilter === 'questions' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}>Drift</button>
-            </div>
-          </div>
+        <header className="bar2 crit-filter-row">
+          {['questions', 'disagreements', 'issues', 'comments'].map((cat) => (
+            <Chip
+              key={cat}
+              tone={CATEGORY_TONE[cat]}
+              categoryBubble={CATEGORY_BUBBLE[cat]}
+              label={CATEGORY_LABEL_PLURAL[cat]}
+              value={kindCounts[cat] || 0}
+              onClick={() => setKindFilter(cat)}
+              data-active={kindFilter === cat ? 'true' : undefined}
+              title={`Show only ${CATEGORY_LABEL_PLURAL[cat]}`}
+            />
+          ))}
+          <Chip
+            tone="neutral"
+            label="All"
+            value={kindCounts.all || 0}
+            onClick={() => setKindFilter('all')}
+            data-active={kindFilter === 'all' ? 'true' : undefined}
+            title="Show all critique item types"
+          />
+          <span className="crit-filter-spacer" aria-hidden="true" />
+          <Chip
+            tone="info"
+            leadingDot
+            label="Open"
+            value={runWideOpen}
+            onClick={() => setStatusFilter(statusFilter === 'open' ? 'all' : 'open')}
+            data-active={statusFilter === 'open' ? 'true' : undefined}
+            title="Show only open items"
+          />
+          <Chip
+            tone="ok"
+            leadingDot
+            label="Resolved"
+            value={runWideResolved}
+            onClick={() => setStatusFilter(statusFilter === 'resolved' ? 'all' : 'resolved')}
+            data-active={statusFilter === 'resolved' ? 'true' : undefined}
+            title="Show only resolved items"
+          />
+          {kindFilter !== 'questions' && (
+            <Chip
+              tone="warn"
+              leadingDot
+              label="Drift"
+              onClick={() => setStatusFilter(statusFilter === 'drift' ? 'all' : 'drift')}
+              data-active={statusFilter === 'drift' ? 'true' : undefined}
+              title="Show only items with ledger drift"
+            />
+          )}
+          <span className="crit-filter-spacer" aria-hidden="true" />
+          <Chip
+            tone={agentFilter === 'claude' ? 'claude' : 'neutral'}
+            leadingIcon={<AgentIcon agent="claude" size={12} />}
+            label="Claude"
+            onClick={() => setAgentFilter(agentFilter === 'claude' ? 'all' : 'claude')}
+            data-active={agentFilter === 'claude' ? 'true' : undefined}
+            title="Show only items raised by Claude"
+          />
+          <Chip
+            tone={agentFilter === 'gpt' ? 'gpt' : 'neutral'}
+            leadingIcon={<AgentIcon agent="gpt" size={12} />}
+            label="GPT"
+            onClick={() => setAgentFilter(agentFilter === 'gpt' ? 'all' : 'gpt')}
+            data-active={agentFilter === 'gpt' ? 'true' : undefined}
+            title="Show only items raised by GPT"
+          />
         </header>
       )}
 
@@ -6545,57 +6155,6 @@ function phaseCountLabel(p) {
 // other module references it (no external links to break, but defensive).
 const DisagreementExplorer = CritiqueExplorer;
 
-// Spec 0046 D2 — per-phase context-aware filter chips. The Phase 2
-// negotiation surface never has Issues; Phase 4 review never has Claims.
-// Pre-spec the filter strip rendered all five kinds regardless of which
-// phase tab was active; spec 0046 drops the kinds the phase doesn't
-// emit so the user only sees filters that can actually match.
-const FILTER_KIND_LABEL = {
-  claims: 'Claims',
-  questions: 'Questions',
-  disagreements: 'Disagreements',
-  issues: 'Issues',
-  comments: 'Comments',
-};
-function filterChipsFor(phaseId) {
-  if (phaseId === 'summary') return [];
-  const allowed = PHASE_CHIP_ALLOWLIST[phaseId] || [];
-  if (allowed.length === 0) return [];
-  return [
-    { id: 'all', label: 'All' },
-    ...allowed.map((k) => ({ id: k, label: FILTER_KIND_LABEL[k] || k })),
-  ];
-}
-// SPEC-0072 D4 — tooltip for each kind filter chip.
-const KIND_FILTER_TOOLTIP = {
-  all: 'Show all critique item types',
-  questions: 'Show only Questions',
-  disagreements: 'Show only Disagreements',
-  claims: 'Show only Claims',
-  issues: 'Show only Issues',
-  comments: 'Show only Comments',
-};
-function CritiqueTypeFilter({ active, onChange, phaseId }) {
-  // Spec 0053 D4 — migrated from PaneButton to Tab (tabs-solid sm).
-  const items = filterChipsFor(phaseId);
-  if (items.length === 0) return null;
-  return (
-    <TabGroup variant="solid">
-      {items.map((t) => (
-        <Tab
-          key={t.id}
-          size="sm"
-          active={t.id === active}
-          onClick={() => onChange(t.id)}
-          title={KIND_FILTER_TOOLTIP[t.id] || `Show only ${t.label}`}
-        >
-          {t.label}
-        </Tab>
-      ))}
-    </TabGroup>
-  );
-}
-
 // Spec 0097 — normalize any critique item into QuestionThread props.
 // Restored after spec 0097 dropped the function definition while keeping one
 // call site (line ~6182 inside the `k === 'c'` comment branch of
@@ -6619,18 +6178,21 @@ function _normalizeToThread(item, run, phaseId) {
 
   if (k === 'q') {
     const q = item;
-    const isAnswered = q.status === 'answered';
+    const isAnswered = q.status === 'answered'; // spec-0119:vocab-ok (legacy question.status value)
     const turns = [];
     turns.push({ agent: q.raisedBy, round: q.raisedRound, verdict: 'raised', quote: q.body || null });
     if (isAnswered && q.answeredBy) {
-      turns.push({ agent: q.answeredBy, round: q.answeredRound, verdict: 'conceded', quote: q.answerBody || null });
+      // Spec 0119 §7.1 — legacy 'conceded'/'answered' resolution
+      // collapses onto the canonical 'resolved' lifecycle verb.
+      turns.push({ agent: q.answeredBy, round: q.answeredRound, verdict: 'resolved', quote: q.answerBody || null });
     }
     if (ghostedRounds > 0 && !isAnswered) {
+      // Spec 0119 §7.1 — legacy 'ghosted' (unaddressed across rounds)
+      // canonicalises to 'capped' (orchestrator-cap terminal state).
       turns.push({
         agent: q.raisedBy === 'claude' ? 'gpt' : 'claude',
         round: q.raisedRound + ghostedRounds,
-        verdict: 'ghosted',
-        kind: 'ghosted',
+        verdict: 'capped',
       });
     }
     const status = ghostedRounds > 0 && !isAnswered ? 'drift' : isAnswered ? 'resolved' : 'open';
@@ -6705,15 +6267,27 @@ function _normalizeToThread(item, run, phaseId) {
   return null;
 }
 
-// Map non-vocab verdicts to the canonical six-word set.
+// Spec 0119 §7.1 — canonicalize legacy verbs into the lifecycle
+// vocabulary: raised · addressed · resolved · acknowledged ·
+// withdrawn · capped · "raised again". The lifecycle vocab is the
+// source of truth across critique-card surfaces; this map lets the
+// legacy negotiation-parser action strings ("conceded", "pushback",
+// "ghosted") flow through into the new chip cluster without
+// surfacing pre-0114 verbs to the user.
 function _mapVerdict(action) {
   if (!action) return undefined;
   const a = action.toLowerCase().trim();
-  if (['raised', 'pushback', 'conceded', 'resolved', 'ghosted', 'drift'].includes(a)) return a;
-  if (a === 'answered' || a === 'agreed' || a === 'accepted') return 'conceded';
-  if (a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'pushback';
+  // Already canonical.
+  if (['raised', 'addressed', 'resolved', 'acknowledged', 'withdrawn', 'capped', 'raised again'].includes(a)) return a;
+  // Item creation aliases.
   if (a === 'opened' || a === 'introduced' || a === 'flagged by') return 'raised';
-  return a; // fallback — will trigger dev console.error from VERDICT_VOCAB check
+  // Addressee response → addressed.
+  if (a === 'pushback' || a === 'response' || a === 'responded' || a === 'restated' || a === 'noted' || a === 'flagged') return 'addressed'; // spec-0119:vocab-ok (legacy action-string canonicalisation)
+  // Raiser accepts addressee's response → resolved.
+  if (a === 'conceded' || a === 'answered' || a === 'agreed' || a === 'accepted') return 'resolved'; // spec-0119:vocab-ok (legacy action-string canonicalisation)
+  // Orchestrator cap aliases (legacy "ghosted" = unaddressed across rounds; "drift" = ledger drift).
+  if (a === 'ghosted' || a === 'drift') return 'capped'; // spec-0119:vocab-ok (legacy action-string canonicalisation)
+  return a; // fallback — flagged by the VERDICT_VOCAB dev assertion
 }
 
 function CritiquePhaseContent({ run, phaseId, openNewItems, openCarriedItems, resolvedItems, driftItems, latestRound, onHighlight, renderItem, renderGroup }) {
@@ -6802,14 +6376,6 @@ function _envelopesForKind(kind, items) {
             : null,
           isOpen: it.status === 'open',
         };
-      case 'claim':
-        return {
-          raisedRound: it.raisedRound || 1,
-          raisedBy: it.raisedBy,
-          closedRound: null,
-          closedBy: null,
-          isOpen: it.status === 'open',
-        };
       case 'issue':
         return {
           raisedRound: it.roundFirstSeen,
@@ -6852,11 +6418,11 @@ function _buildKindRows(envelopes) {
   });
 }
 
-// Spec 0046 D5 — pluralised kind labels for the per-section header.
+// Spec 0046 D5 + Spec 0119 §7 — pluralised kind labels. The legacy
+// ``claim`` kind is gone post-0114.
 const KIND_PLURAL = {
   question: 'Questions',
   disagreement: 'Disagreements',
-  claim: 'Claims',
   issue: 'Issues',
   comment: 'Comments',
 };
@@ -6864,20 +6430,18 @@ const KIND_PLURAL = {
 function CritiqueSummaryView({ run, questions, disagreements }) {
   const issues = Array.isArray(run?.issues) ? run.issues : [];
   const comments = Array.isArray(run?.comments) ? run.comments : [];
-  const claims = Array.isArray(run?.claims) ? run.claims : [];
 
   // Per spec 0046 D5 + PHASE_CHIP_ALLOWLIST — only render kinds the
   // phase actually emits, so Phase 2 doesn't get an empty Issues
   // table and Phase 4 doesn't get an empty Questions table.
   const PHASE_KIND_ORDER = {
-    2: ['question', 'disagreement', 'claim'],
+    2: ['question', 'disagreement'],
     4: ['issue', 'comment', 'disagreement'],
   };
 
   const _itemsFor = (kind, pid) => {
     const src = kind === 'question'     ? questions
               : kind === 'disagreement' ? disagreements
-              : kind === 'claim'        ? claims
               : kind === 'issue'        ? issues
               : kind === 'comment'      ? comments
               : [];
@@ -6968,7 +6532,8 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     }
     if (bestGhost > 0) {
       const other = best.raisedBy === 'claude' ? 'gpt' : 'claude';
-      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'ghosted', kind: 'ghosted' });
+      // Spec 0119 §7.1 — legacy 'ghosted' → 'capped' canonical verb.
+      turns.push({ agent: other, round: (best.raisedRound || 1) + bestGhost, verdict: 'capped' });
     }
     const threadStatus = bestGhost > 0 ? 'drift' : 'open';
     const footer = bestGhost > 0 ? `Not addressed for ${bestGhost} round(s) — highest-leverage open item.` : null;
@@ -6984,7 +6549,6 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     const totalI = issues.length;
     const resolvedI = issues.filter(i => i.status !== 'open').length;
     const totalC = comments.length;
-    const totalClaims = claims.length;
 
     const totalItems = totalQ + totalD + totalI;
     const totalResolved = resolvedQ + resolvedD + resolvedI;
@@ -7022,13 +6586,14 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     }
     const sentence1 = s1Parts.join('');
 
-    // Sentence 2: qualitative line.
+    // Sentence 2: qualitative line. Spec 0119 §7/§8 — canonical
+    // resolution verb is 'resolved' across all kinds; legacy
+    // 'answered'/'noted' phrasing retired.
     const qualParts = [];
-    if (totalQ > 0) qualParts.push(`${totalQ} question${totalQ !== 1 ? 's' : ''} raised (${resolvedQ} answered)`);
+    if (totalQ > 0) qualParts.push(`${totalQ} question${totalQ !== 1 ? 's' : ''} raised (${resolvedQ} resolved)`);
     if (totalD > 0) qualParts.push(`${totalD} disagreement${totalD !== 1 ? 's' : ''} raised (${resolvedD} resolved)`);
     if (totalI > 0) qualParts.push(`${totalI} issue${totalI !== 1 ? 's' : ''} flagged (${resolvedI} resolved)`);
-    if (totalC > 0) qualParts.push(`${totalC} comment${totalC !== 1 ? 's' : ''} noted`);
-    if (totalClaims > 0) qualParts.push(`${totalClaims} claim${totalClaims !== 1 ? 's' : ''} tracked`);
+    if (totalC > 0) qualParts.push(`${totalC} comment${totalC !== 1 ? 's' : ''} raised`);
     const sentence2 = qualParts.length > 0 ? qualParts.join(', ') + '.' : '';
 
     // Sentence 3: drift note if any.
@@ -7037,7 +6602,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
       : '';
 
     return [sentence1, sentence2, sentence3].filter(Boolean).join(' ');
-  }, [questions, disagreements, issues, comments, claims, run]);
+  }, [questions, disagreements, issues, comments, run]);
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--bg-0)' }}>
@@ -7083,13 +6648,13 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
   );
 }
 
-// Spec 0046 D5 — one table per kind. Per-row counts split by agent;
-// the Open column carries the cumulative still-open count after the
-// round in question.
+// Spec 0046 D5 + Spec 0119 §7 — one table per kind. Per-row counts
+// split by agent; the Open column carries the cumulative still-open
+// count after the round in question. The closed-column label is now
+// uniformly 'resolved' across kinds (legacy 'answered'/'noted'
+// retired).
 function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
-  const closedLabel = kind === 'question' ? 'answered'
-                   : kind === 'comment'   ? 'noted'
-                   : 'resolved';
+  const closedLabel = 'resolved';
   // Comments don't have a closure protocol — drop the resolved
   // columns + Open column to keep the table honest.
   const isStateless = kind === 'comment';
@@ -7192,133 +6757,6 @@ const _summaryTd = {
   fontSize: 12, color: 'var(--fg-1)',
 };
 
-// Spec 0097 — QuestionCard, DisagreementCard, IssueCard, CommentCard deleted.
-// All four kinds now render via <QuestionThread /> through _normalizeToThread().
-
-// Spec 0046 D3 — shared headline for every critique card type
-// (Question / Disagreement / Issue / Comment / Claim).
-//
-// Pre-spec each card type shot its own one-line header with a
-// single-letter glyph (`Q`, `D`, `I`, `C`), a round range token
-// (`R1`/`R1→R2`), the truncated body, the internal ID, and a status
-// pill. The user's feedback flagged this as "cryptic" + duplicated;
-// spec 0046 D3 collapses the visible signal to `{Kind label} {Public
-// ID} · {status} · {body snippet}`. The round range + the cryptic
-// internal IDs (`I-c-r1-01` etc.) move into the expanded body.
-const KIND_LABELS = {
-  question:     'Question',
-  disagreement: 'Disagreement',
-  issue:        'Issue',
-  comment:      'Comment',
-  claim:        'Claim',
-};
-
-// Spec 0046 D3 — strip the markdown formatting we render plain-text in
-// a headline. The agents commonly emit `**C-1** — \`open\` — body` or
-// `**Q1:** body`; we already render the public ID + status in their
-// own spans, so the leading prefix doubles up. Strip:
-//   - `**bold**` markers
-//   - backtick spans (`open`/`resolved`)
-//   - a leading `Cx-N`/`Q-x-rY-NN`/etc. plus the dash/em-dash separator
-//   - a leading status word followed by a dash
-function stripMarkdown(text) {
-  if (!text) return '';
-  let s = String(text);
-  // Drop bold/italic/backtick markers.
-  s = s.replace(/`+/g, '').replace(/\*\*/g, '').replace(/(?<!\\)_/g, '');
-  // Drop a leading public/internal ID prefix (e.g. ``C-1 — `` or
-  // ``Q1: ``) so the body snippet starts at the substantive content.
-  s = s.replace(/^\s*[A-Z]+-?[a-z]?-?\d+[a-z]?(?:\s*[—:–-]\s*)/i, '');
-  // Drop a leading status word + dash (``open — body``).
-  s = s.replace(/^\s*(open|resolved|noted|answered|deferred|non-blocking)\s*[—:–-]\s*/i, '');
-  return s.trim();
-}
-
-// SPEC-0057 D7 — map accent colors to Chip tones. Falls back to inline style
-// for colors not in the tone system.
-function _toneFromColor(color) {
-  if (color === COLORS.info) return 'info';
-  if (color === COLORS.ok) return 'ok';
-  if (color === COLORS.warn) return 'warn';
-  if (color === COLORS.err) return 'err';
-  if (color === COLORS.agentA) return 'a';
-  if (color === COLORS.agentB) return 'b';
-  return null;
-}
-
-function CardHeadline({
-  kind, publicId, statusLabel, statusColor, body,
-  ghostedRounds, accentColor, trailing, extraChips,
-}) {
-  const kindTone = _toneFromColor(accentColor);
-  const statusTone = _toneFromColor(statusColor);
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-      {/* SPEC-0067 D10 — CodeCluster for structured public IDs; falls back
-          to plain Chip when publicId is absent or unparseable. */}
-      {publicId && parseCodeId(publicId).kind ? (
-        <CodeCluster id={publicId} kind={kind} hideRound size="sm" />
-      ) : (
-        <Chip tone={kindTone} style={!kindTone ? { color: accentColor, borderColor: `${accentColor}44`, background: `${accentColor}14` } : undefined}>
-          {KIND_LABELS[kind] || kind}{publicId ? ` ${publicId}` : ''}
-        </Chip>
-      )}
-      {statusLabel && (
-        <>
-          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
-          <Chip tone={statusTone} pill style={!statusTone ? { color: statusColor, borderColor: `${statusColor}55`, background: `${statusColor}14` } : undefined}>
-            {statusLabel}
-          </Chip>
-        </>
-      )}
-      {/* SPEC-0087 § K.1 — extra attribution chips (e.g., `raised by X`)
-          render after the primary statusLabel chip. Each entry is
-          `{ label, color, tone }` — `label` may be a React node so
-          callers can embed a `<BrandMark>` icon (per § K.2). */}
-      {Array.isArray(extraChips) && extraChips.map((c, i) => (
-        <React.Fragment key={i}>
-          <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
-          <Chip
-            tone={c.tone || _toneFromColor(c.color)}
-            pill
-            style={!c.tone && c.color ? { color: c.color, borderColor: `${c.color}55`, background: `${c.color}14` } : undefined}
-          >
-            {c.label}
-          </Chip>
-        </React.Fragment>
-      ))}
-      <span style={{ color: 'var(--fg-4)', flexShrink: 0 }}>·</span>
-      <span style={{
-        flex: 1, minWidth: 0,
-        fontSize: 12.5, color: 'var(--fg-0)', fontWeight: 500, lineHeight: 1.4,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>
-        {truncateBody(stripMarkdown(body), 70) || '(no body)'}
-      </span>
-      {ghostedRounds > 0 && <GhostedRoundsBadge ghostedRounds={ghostedRounds} />}
-      {trailing}
-    </div>
-  );
-}
-
-// Spec 0046 D4 — inline ghosted-rounds badge, rendered inside the
-// per-card headline. Same visual idiom as the `LedgerDriftChip`
-// header chip — small warn-tinted ⚠ glyph + integer + tooltip.
-// Renders nothing when ``ghostedRounds === 0``.
-function GhostedRoundsBadge({ ghostedRounds }) {
-  if (!ghostedRounds) return null;
-  // SPEC-0052 D9 — Chip primitive with tone-warn + alert icon. Used inside
-  // CardHeadline; near-duplicate of `GhostedAnnotation`. Both use the same
-  // primitive, both render identically now.
-  return (
-    <Chip tone="warn" icon="alert"
-          title={`Open for ${ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
-          style={{ flexShrink: 0, cursor: 'help' }}>
-      ghosted {ghostedRounds} round{ghostedRounds === 1 ? '' : 's'}
-    </Chip>
-  );
-}
-
 // Spec 0046 D3 — shared chevron used by every critique card. Pre-spec
 // each card type rendered its own copy; consolidating keeps the
 // expand/collapse animation consistent.
@@ -7356,64 +6794,6 @@ function SmallStat({ label, value, color }) {
       <span className="mono num" style={{ fontSize: 13, color, fontWeight: 600 }}>{value}</span>
       <span className="mono" style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>{label}</span>
     </span>
-  );
-}
-
-// Spec 0043 D8 — small ⚠ chip surfacing per-phase drift events. A drift
-// is a mismatch between the agents' final self-counter (`OPEN_QUESTIONS:
-// N` etc.) and what the system-derived ledger counted for the same
-// (phase, kind). Renders nothing when there are no drifts for the
-// selected phase. Tooltip lists the per-kind breakdown.
-function LedgerDriftChip({ drifts, phaseId }) {
-  if (!drifts || drifts.length === 0) return null;
-  // Drift turn-keys are shaped `phase{N}_round{R}_summary` (end-of-phase
-  // events emitted by the aggregator). Filter to the selected phase.
-  const phasePrefix = `phase${phaseId}_`;
-  const phaseDrifts = drifts.filter((d) => (d.turnKey || '').startsWith(phasePrefix));
-  if (phaseDrifts.length === 0) return null;
-  const tooltip = phaseDrifts
-    .map((d) => `${d.kind}: agent=${d.agentCount} · ledger=${d.ledgerCount}`)
-    .join('\n');
-  return (
-    <span
-      className="mono"
-      title={tooltip}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
-        padding: '1px 8px',
-        background: 'transparent',
-        border: `1px solid ${COLORS.warn}55`,
-        borderRadius: 4,
-        fontSize: 10.5,
-        color: COLORS.warn,
-        letterSpacing: '0.02em',
-        cursor: 'help',
-      }}
-    >
-      <Mdi name="alert" size={10} />
-      <span className="num" style={{ fontWeight: 500 }}>{phaseDrifts.length}</span>
-      <span style={{ color: 'var(--fg-3)' }}>drift</span>
-    </span>
-  );
-}
-
-// Spec 0043 D5 — small "ghosted" annotation rendered below a critique
-// card's headline when the corresponding ledger entry shows
-// `ghostedRounds > 0`. Pulls from `run.phaseLedgers[phaseId]` keyed by
-// item id. Renders nothing when the ledger doesn't track the item or
-// the entry has no ghost annotations.
-function GhostedAnnotation({ run, phaseId, itemId }) {
-  const entries = (run && run.phaseLedgers && run.phaseLedgers[phaseId]) || [];
-  const entry = entries.find((e) => e.id === itemId);
-  if (!entry || !entry.ghostedRounds) return null;
-  // SPEC-0052 D9 — Chip primitive with tone-warn + alert icon. Outer marginLeft
-  // + cursor:help preserved via style pass-through (caller context expects them).
-  return (
-    <Chip tone="warn" icon="alert"
-          title={`Open for ${entry.ghostedRounds} round(s) without an explicit addressing signal (no ## Answers to: / Resolved / Substantive disagreements reference). Surface flag, does not block convergence.`}
-          style={{ marginLeft: 8, cursor: 'help' }}>
-      ghosted {entry.ghostedRounds} round{entry.ghostedRounds === 1 ? '' : 's'}
-    </Chip>
   );
 }
 

@@ -103,12 +103,41 @@ function DnaOnePager() {
       {/* Component spotlights */}
       <DnaSection title="Component spotlights">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-          <Spotlight label="<Chip>" caption="Compact labeled token with optional icon and count.">
+          <Spotlight label="<Chip>" caption="Spec 0119 — one primitive, nine canonical kinds. Slots: leadingDot · leadingIcon · categoryBubble · label · value · add · sub · trailingSuffix.">
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              <Chip tone="claude" leadingIcon={<AgentIcon agent="claude" size={12} />} label="Claude" />
+              <Chip tone="gpt" leadingIcon={<AgentIcon agent="gpt" size={12} />} label="GPT" />
+              <Chip mono tone="neutral" label="turn 1" />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              <Chip tone="info" categoryBubble="Q" value={4} add={2} sub={1} ariaLabel="Questions: 4 standing, 2 raised, 1 closed" />
+              <Chip tone="warn" categoryBubble="D" value={2} add={1} sub={0} ariaLabel="Disagreements: 2 standing, 1 raised, 0 closed" />
+              <Chip tone="err" categoryBubble="I" value={3} add={0} sub={2} ariaLabel="Issues: 3 standing, 0 raised, 2 closed" />
+              <Chip tone="idle" dim categoryBubble="C" value={0} add={0} sub={0} ariaLabel="Comments: zero activity" />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              <Chip tone="info" categoryBubble="Q" label="Questions" value={30} />
+              <Chip tone="warn" categoryBubble="D" label="Disagreements" value={1} />
+              <Chip tone="neutral" label="All" value={31} />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              <Chip tone="info" leadingDot label="running" />
+              <Chip tone="ok" leadingIcon={<CheckGlyph size={12} />} label="agreed" />
+              <Chip tone="ok" iconOnly leadingIcon={<CheckGlyph size={12} />} ariaLabel="Round completed" />
+              <Chip tone="idle" leadingDot label="queued" />
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              <Chip tone="info" label="raised" />
+              <Chip tone="ok" label="resolved" />
+              <Chip tone="warn" label="acknowledged" />
+              <Chip tone="idle" label="withdrawn" />
+              <Chip tone="err" label="capped" />
+            </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <Chip tone="info" icon="alert-circle" count={6}>open claims</Chip>
-              <Chip tone="ok">resolved</Chip>
-              <Chip tone="warn">deadlocked</Chip>
-              <Chip tone="neutral">draft</Chip>
+              <Chip mono tone="neutral" label="↻ closeout" />
+              <Chip mono tone="warn" label="⚠ ledger drift" value={3} />
+              <Chip tone="neutral" label="Sources" value={2} />
+              <Chip mono shape="square" tone="neutral" label="Q-plan-c-04" />
             </div>
           </Spotlight>
 

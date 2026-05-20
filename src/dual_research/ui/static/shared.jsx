@@ -563,20 +563,21 @@ const _mkIcon = (mdiName, defaultSize) => (p = {}) => {
   return <Mdi name={mdiName} size={size || defaultSize} {...rest} />;
 };
 const Icon = {
-  Activity:  _mkIcon('pulse',          14),
-  List:      _mkIcon('menu',           14),
-  Palette:   _mkIcon('palette',        14),
-  Chevron:   _mkIcon('chevron-right',  12),
-  Dot:       _mkIcon('circle-filled',   8),
-  Check:     _mkIcon('check',          12),
-  X:         _mkIcon('close',          12),
-  Arrow:     _mkIcon('arrow-right',    12),
-  ArrowLeft: _mkIcon('arrow-left',     14),
-  Spark:     _mkIcon('shimmer',        12),
-  Warn:      _mkIcon('alert',          14),
-  Gear:      _mkIcon('cog',            14),
-  SignOut:   _mkIcon('logout',         14),
-  Help:      _mkIcon('help-circle',    14),
+  Activity:     _mkIcon('pulse',          14),
+  List:         _mkIcon('menu',           14),
+  Palette:      _mkIcon('palette',        14),
+  Chevron:      _mkIcon('chevron-right',  12),
+  Dot:          _mkIcon('circle-filled',   8),
+  Check:        _mkIcon('check',          12),
+  X:            _mkIcon('close',          12),
+  Arrow:        _mkIcon('arrow-right',    12),
+  ArrowLeft:    _mkIcon('arrow-left',     14),
+  Spark:        _mkIcon('shimmer',        12),
+  Warn:         _mkIcon('alert',          14),
+  Gear:         _mkIcon('cog',            14),
+  SignOut:      _mkIcon('logout',         14),
+  Help:         _mkIcon('help-circle',    14),
+  FileDocument: _mkIcon('file-document',  12),
 };
 
 // ───────────────────────── formatting helpers ─────────────────────────
@@ -713,25 +714,132 @@ function SB({ tone = 'idle', size = 'md', children, live = false, className }) {
   );
 }
 
-// Chip — SPEC-0093: emits tonal `.chip .tone-{tone}` (when tone is set)
-// or M3 `.md-chip` (when m3 prop is true or no tone). Prop API unchanged.
-// tone: 'info' | 'ok' | 'warn' | 'err' | 'a' | 'b' | 'muted' | 'info-strong' | 'idle' | 'neutral' (optional)
-function Chip({ tone, pill, lg, icon, children, asButton, onClick, className, title, style, m3, noDot }) {
-  // When tone is provided, use tonal chip classes; otherwise M3 chip.
+// Chip — Spec 0119 unified primitive. The single chip across every
+// surface. Two prop tiers coexist:
+//
+//   • Slot API (preferred, spec 0119): leadingDot / leadingIcon /
+//     categoryBubble (mutually exclusive leading element), then
+//     label, value, add, sub, trailingSuffix, plus modifiers
+//     iconOnly / dim / mono / shape / size.
+//   • Legacy props: tone / pill / lg / icon / noDot / asButton /
+//     children. Still honored so existing callsites render
+//     unchanged until they're migrated.
+//
+// Tones: info · ok · warn · err · idle · claude · gpt · neutral
+//        (legacy aliases: a (=claude), b (=gpt), muted, info-strong)
+//
+// Auto leading-dot: when a tone is set and the caller is using the
+// LEGACY API, the chip auto-renders a ::before dot for status tones
+// (info/ok/warn/err/idle/muted/info-strong). New slot-API callers
+// auto-suppress the auto-dot, so explicit leadingDot / leadingIcon
+// / categoryBubble never collide with it.
+function Chip({
+  // ─── new slot API ───────────────────────────
+  leadingDot,
+  leadingIcon,
+  categoryBubble,
+  label,
+  value,
+  add,
+  sub,
+  trailingSuffix,
+  iconOnly,
+  dim,
+  shape,
+  size,
+  mono,
+  ariaLabel,
+  // ─── legacy ────────────────────────────────
+  tone,
+  pill,
+  lg,
+  icon,
+  children,
+  asButton,
+  onClick,
+  className,
+  title,
+  style,
+  m3,
+  noDot,
+  ...rest
+}) {
+  // Detect new-slot usage so the auto-dot ::before stays out of the way.
+  const usesNewSlots = (
+    leadingDot != null || leadingIcon != null || categoryBubble != null ||
+    iconOnly || value != null || add != null || sub != null ||
+    trailingSuffix != null || dim || mono || label != null
+  );
+  const suppressAutoDot = noDot || usesNewSlots;
+
   const isTonal = tone && !m3;
   const cls = isTonal
-    ? _cn('chip', `tone-${tone}`, pill && 'chip-pill', lg && 'chip-lg', noDot && 'no-dot', className)
+    ? _cn(
+        'chip',
+        `tone-${tone}`,
+        pill && 'chip-pill',                                 // legacy no-op (pill is default)
+        (lg || size === 'lg') && 'chip-lg',
+        shape === 'square' && 'chip-square',
+        mono && 'mono',
+        dim && 'dim',
+        iconOnly && 'chip-icon-only',
+        suppressAutoDot && 'no-dot',
+        className,
+      )
     : _cn('md-chip', lg && 'md-chip--sm', className);
+
   const content = (
     <>
+      {leadingDot && <span className="chip-dot" aria-hidden="true" />}
+      {leadingIcon && <span className="chip-leading-icon" aria-hidden="true">{leadingIcon}</span>}
+      {categoryBubble && (
+        <span className="cat-bubble" aria-hidden="true">{categoryBubble}</span>
+      )}
       {icon && <Mdi name={icon} size={12} className="ico" />}
+      {label != null && <span className="chip-label">{label}</span>}
+      {value != null && <span className="chip-value">{value}</span>}
+      {add != null && <span className="chip-add">+{add}</span>}
+      {sub != null && <span className="chip-sub">−{sub}</span>}
+      {trailingSuffix != null && <span className="chip-suffix">{trailingSuffix}</span>}
       {children}
     </>
   );
-  if (asButton) {
-    return <button type="button" className={cls} onClick={onClick} title={title} style={style}>{content}</button>;
+
+  // If onClick is set, render as a button so the click actually fires.
+  const renderButton = !!(asButton || onClick);
+  if (renderButton) {
+    return (
+      <button
+        type="button"
+        className={cls}
+        onClick={onClick}
+        title={title}
+        style={style}
+        aria-label={ariaLabel}
+        {...rest}
+      >
+        {content}
+      </button>
+    );
   }
-  return <span className={cls} title={title} style={style}>{content}</span>;
+  return (
+    <span
+      className={cls}
+      title={title}
+      style={style}
+      aria-label={ariaLabel}
+      {...rest}
+    >
+      {content}
+    </span>
+  );
+}
+
+// Spec 0119 — bare ✓ status chip glyph. Thin alias over Icon.Check at
+// the canonical 12 px size; lives here so chip callsites can read it
+// alongside the Chip primitive without a separate import dance.
+function CheckGlyph(props) {
+  return <Icon.Check {...props} />;
 }
 
 // RunIDChip — pure identity, pill-shaped 4-char hex. Size sm or md.
@@ -982,51 +1090,31 @@ function parseQId(legacy) {
 // agentSlot — map "claude"/"gpt" to "a"/"b" for CSS class names.
 function _agentSlot(agent) { return agent === 'claude' ? 'a' : agent === 'gpt' ? 'b' : agent; }
 
-// QuestionRef — decoded reference for a critique question.
-// format='compact' (default): "Q · 04"
-// format='full': "Q · 04 · [Claude] · r1"
-// format='split' (Spec 0111): "Q · 04" only. Agent + round are rendered as
-// sibling chips by QuestionThread per Notion issue 4 ("no badge encodes
-// two facts; agent and round get their own pills").
-// kindLetter: 'Q' (default) | 'D' | 'I' | 'C' — Spec 0097
-function QuestionRef({ id, number, raisedBy, round, format = 'compact', kindLetter = 'Q', className }) {
-  if (id != null && (number == null || raisedBy == null || round == null)) {
-    const p = parseQId(id);
-    if (number == null)   number   = p.number;
-    if (raisedBy == null) raisedBy = p.raisedBy;
-    if (round == null)    round    = p.round;
-  }
-  const num = typeof number === 'number' ? String(number).padStart(2, '0') : (number || '');
-  const agentLabel = raisedBy === 'claude' ? 'Claude' : raisedBy === 'gpt' ? 'GPT' : null;
-  const slot = _agentSlot(raisedBy);
-  const kindName = { Q: 'Question', D: 'Disagreement', I: 'Issue', C: 'Comment' }[kindLetter] || kindLetter;
-  const title = [kindName + ' ' + num, agentLabel && 'raised by ' + agentLabel, round != null && 'in round ' + round].filter(Boolean).join(' — ');
-  const wantsAuthor = format === 'full' && agentLabel;
-  const wantsRound  = format === 'full' && round != null;
-  return (
-    <span
-      className={_cn('qref', format === 'full' && 'qref-full', format === 'split' && 'qref-split', className)}
-      data-kind={kindLetter}
-      title={title}
-    >
-      <span className="qref-k">{kindLetter}</span>
-      <span className="qref-sep" aria-hidden="true">&middot;</span>
-      <span className="qref-n num">{num}</span>
-      {wantsAuthor && (
-        <span className={_cn('qref-by', `is-${slot}`)}>
-          <AgentIcon agent={raisedBy} size={14} />
-          <span className="qref-by-n">{agentLabel}</span>
-        </span>
-      )}
-      {wantsRound && (
-        <span className="qref-round num">r{round}</span>
-      )}
-    </span>
-  );
-}
+// Spec 0119 §7.2 — ``QuestionRef`` retired. The critique card
+// header now leads with a provider Chip + category-bubble Chip;
+// the public ID renders as small mono inline text inside the card
+// body (``.crit-card-id``), not as a separate primitive.
 
 // Spec 0097 — canonical six-word verdict vocabulary.
-const VERDICT_VOCAB = ['raised', 'pushback', 'conceded', 'resolved', 'ghosted', 'drift'];
+// Spec 0119 §7.1 — canonical lifecycle verbs for chip labels on the
+// expanded critique-card lifecycle rows. Mirrors contract/lifecycle.py
+// states (open / addressed / resolved / acknowledged / withdrawn /
+// capped) plus 'raised' for item creation and 'raised again' for the
+// addressed→open counter-argument transition.
+const VERDICT_VOCAB = ['raised', 'addressed', 'resolved', 'acknowledged', 'withdrawn', 'capped', 'raised again'];
+
+// Spec 0119 §8.5 — verb → tone for the lifecycle-row chip. Mirrors
+// the contract module's state semantics (open/addressed = info; the
+// four terminal states get their own tones).
+const VERDICT_TONE = {
+  raised:          'info',
+  addressed:       'info',
+  'raised again':  'info',
+  resolved:        'ok',
+  acknowledged:    'warn',
+  withdrawn:       'idle',
+  capped:          'err',
+};
 
 // QuestionThread — unified item-card for Q · D · I · C critique items.
 // Spec 0097: single anatomy with expand/collapse, tonal bubbles, dashed footer.
@@ -1120,65 +1208,100 @@ function QuestionThread({
          (8 px parent + 8 px child); Timeline was 8 px (child overridden
          to 0 via `.qthread.tl-thread { margin: 0 }`). Both panes at 8 px now. */
     >
-      {/* HEADER — Spec 0111: five discrete chips, each carrying one fact.
-          No abbreviations (rounds spelled out, phases spelled out). */}
-      <header className="qt-head" onClick={onCardClick}>
-        <QuestionRef
-          id={threadKind === 'question' ? id : null}
-          number={displayNum}
-          kindLetter={kindLetter}
-          format="split"
-        />
+      {/* HEADER — Spec 0119 §8.4. Provider FIRST. Category chip
+          (bubble + singular label). Raised-in chip. Status chip
+          right-aligned with leading dot. Public-ID moves out of
+          the header into a small mono text element inside the
+          card body. */}
+      <header className="crit-card-head" onClick={onCardClick}>
         {agentLabel && (
-          <Chip tone="neutral" noDot>
-            <AgentIcon agent={raisedBy} size={14} />
-            <span style={{ marginLeft: 4 }}>Raised by {agentLabel}</span>
-          </Chip>
+          <Chip
+            tone={raisedBy === 'gpt' ? 'gpt' : 'claude'}
+            leadingIcon={<AgentIcon agent={raisedBy} size={12} />}
+            label={agentLabel}
+          />
         )}
+        {(() => {
+          // QuestionThread receives `kind` in singular form; the
+          // canonical CATEGORY_* maps live in run-detail.jsx and key
+          // on the plural form (`questions` / `disagreements` / …).
+          // A thin singular-to-plural shim keeps shared.jsx
+          // dependency-free.
+          const pluralKind = threadKind === 'question' ? 'questions'
+                           : threadKind === 'disagreement' ? 'disagreements'
+                           : threadKind === 'issue' ? 'issues'
+                           : threadKind === 'comment' ? 'comments'
+                           : 'questions';
+          const tones = { questions: 'info', disagreements: 'warn', issues: 'err', comments: 'idle' };
+          const bubbles = { questions: 'Q', disagreements: 'D', issues: 'I', comments: 'C' };
+          const labels = { questions: 'Question', disagreements: 'Disagreement', issues: 'Issue', comments: 'Comment' };
+          return (
+            <Chip
+              tone={tones[pluralKind]}
+              categoryBubble={bubbles[pluralKind]}
+              label={labels[pluralKind]}
+              ariaLabel={labels[pluralKind]}
+            />
+          );
+        })()}
         {raisedRound != null && (
-          <Chip tone="neutral" noDot>Raised on round {raisedRound}</Chip>
+          <Chip mono tone="neutral" label={`raised in r${raisedRound}`} />
         )}
-        <Chip tone={statusTone}>{verboseStatusLabel}</Chip>
-        {showPhaseChip && phase && <span className="md-chip md-chip--sm">Phase {phase}</span>}
-        <span className="right">
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 16, height: 16,
-            opacity: open ? 0.6 : hover ? 0.5 : 0.25,
-            transition: 'opacity 120ms, transform 120ms',
-            color: 'var(--fg-2)',
-            transform: open ? 'rotate(90deg)' : 'none',
-          }}>
-            <Icon.Chevron />
-          </span>
+        {showPhaseChip && phase && (
+          <Chip mono tone="neutral" label={`phase ${phase}`} />
+        )}
+        <span className="crit-card-head__spacer" />
+        <Chip tone={statusTone} leadingDot label={verboseStatusLabel.toLowerCase()} />
+        <span
+          className="crit-card-chev"
+          aria-hidden="true"
+          data-open={open ? 'true' : undefined}
+        >
+          <Icon.Chevron />
         </span>
       </header>
+      {/* Spec 0119 §8.4 — public ID renders as small mono inline text,
+          not as a chip in the header. Always visible (collapsed or
+          expanded) so it's copyable. */}
+      {id && <div className="crit-card-id">id: {id}</div>}
 
-      {/* TIMELINE + FOOTER — visible when expanded */}
+      {/* TIMELINE + FOOTER — visible when expanded. Spec 0119 §8.5:
+          each row is a chip cluster (provider + round + verb) above
+          an indented quote body. */}
       {open && <>
-        <ol className="qt-timeline" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {turns.length > 0 && (
+          <div className="crit-section-title">Lifecycle</div>
+        )}
+        <ol className="qt-timeline lc-rows" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {turns.map((t, i) => {
-            const agent = t.agent === 'both' ? 'claude' : (t.agent || 'claude');
-            const slot = _agentSlot(agent);
-            const agentLabel = t.agent === 'both' ? 'Both' : (agent === 'claude' ? 'Claude' : 'GPT');
-            const isGhosted = t.verdict === 'ghosted' || t.kind === 'ghosted';
+            const isMutual = t.agent === 'both';
+            const agent = isMutual ? 'claude' : (t.agent || 'claude');
+            const agentLabel = isMutual ? 'Both' : (agent === 'claude' ? 'Claude' : 'GPT');
+            const verdictTone = (t.verdict && VERDICT_TONE[t.verdict]) || 'info';
             return (
-              <li key={i} className={_cn('qt-row', 'is-' + slot, isGhosted && 'is-ghosted')}>
-                <span className="qt-pill" aria-label={agentLabel + ' round ' + t.round + (t.verdict ? ' \u2014 ' + t.verdict : '')}>
-                  <AgentIcon agent={agent} size={14} />
-                  <span className="qt-agent">{agentLabel}</span>
-                  {t.round != null && <>
-                    <span className="qt-sep" aria-hidden="true">&middot;</span>
-                    <span className="qt-round num">r{t.round}</span>
-                  </>}
-                  {t.verdict && <>
-                    <span className="qt-sep" aria-hidden="true">&middot;</span>
-                    <span className="qt-verdict">{t.verdict}</span>
-                  </>}
-                </span>
-                {t.quote && <p className="qt-quote">
-                  {typeof t.quote === 'string' ? <Markdown text={t.quote} /> : t.quote}
-                </p>}
+              <li key={i} className="lc-row">
+                <div className="lc-row-chips">
+                  {isMutual ? (
+                    <Chip tone="warn" leadingDot label="Both agents" />
+                  ) : (
+                    <Chip
+                      tone={agent === 'gpt' ? 'gpt' : 'claude'}
+                      leadingIcon={<AgentIcon agent={agent} size={12} />}
+                      label={agentLabel}
+                    />
+                  )}
+                  {t.round != null && (
+                    <Chip mono tone="neutral" label={`round ${t.round}`} />
+                  )}
+                  {t.verdict && (
+                    <Chip tone={verdictTone} label={t.verdict} />
+                  )}
+                </div>
+                {t.quote && (
+                  <div className="lc-row-body">
+                    {typeof t.quote === 'string' ? <Markdown text={t.quote} /> : t.quote}
+                  </div>
+                )}
               </li>
             );
           })}
@@ -1293,14 +1416,12 @@ const CODE_KIND_MAP = {
   Q:  'question',
   I:  'issue',
   C:  'comment',
-  Cl: 'claim',
   d:  'disagreement',
 };
 const CODE_KIND_LABELS = {
   question:     'Question',
   issue:        'Issue',
   comment:      'Comment',
-  claim:        'Claim',
   disagreement: 'Disagreement',
 };
 
@@ -1312,8 +1433,9 @@ function parseCodeId(id) {
   const dm = /^d-(\d+)$/.exec(id);
   if (dm) return { raw, kind: 'disagreement', raiser: null, round: null, phase: null, sequence: parseInt(dm[1], 10) };
 
-  // Q/I/C/Cl: PREFIX-RAISER-r/pN-SEQ  (e.g. I-c-r1-06, Cl-g-p1-01)
-  const m = /^(Q|I|C|Cl)-([cg])-([rp])(\d+)-(\d+)$/.exec(id);
+  // Q/I/C: PREFIX-RAISER-r/pN-SEQ  (e.g. I-c-r1-06)
+  // Spec 0119 §7 — legacy ``Cl-*`` (claim) prefix retired.
+  const m = /^(Q|I|C)-([cg])-([rp])(\d+)-(\d+)$/.exec(id);
   if (m) {
     const kind = CODE_KIND_MAP[m[1]] || m[1];
     const raiser = m[2] === 'c' ? 'claude' : 'gpt';
@@ -1485,7 +1607,7 @@ Object.assign(window, {
   // SPEC-0053 primitives
   Tab, TabGroup,
   // SPEC-0054 + SPEC-0097 primitives
-  parseQId, QuestionRef, QuestionThread, VERDICT_VOCAB,
+  parseQId, QuestionThread, VERDICT_VOCAB,
   // SPEC-0057 primitives
   ChipCluster,
   // SPEC-0058 primitives
