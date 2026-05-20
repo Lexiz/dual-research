@@ -495,7 +495,7 @@ function FullReference() {
             face="IBM Plex Sans"
             fallback="ui-sans-serif, system-ui, -apple-system, sans-serif"
             role="UI chrome, body, labels, buttons, navigation, status pills, IDs, costs, tokens (with tabular-nums via .num utility)."
-            sampleFamily="var(--sans)"
+            sampleFamily="var(--md-font-plain)"
             weights={[400, 500, 600]}
           />
           <FontCard
@@ -503,7 +503,7 @@ function FullReference() {
             face="IBM Plex Serif"
             fallback='ui-serif, "Iowan Old Style", Charter, Georgia, serif'
             role="Agent-produced prose, hero text, page-level headings, blockquotes, QuestionThread quotes. The agent's voice — humanist proportions blend with the sans."
-            sampleFamily="var(--serif)"
+            sampleFamily="var(--md-font-brand)"
             weights={[400, 500, 600]}
           />
         </div>
@@ -521,13 +521,13 @@ function FullReference() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 90px 1fr', borderTop: '1px solid var(--md-outline-hair)' }}>
             {[
-              ['Display',  '28 / 600',  'A calm, dense observability surface', 'var(--sans)'],
-              ['Title',    '20 / 600',  'Section heading',                     'var(--sans)'],
-              ['Body lg',  '14 / 400',  'Default reading size for body prose', 'var(--sans)'],
-              ['Body',     '13 / 400',  'Run topic, last-turn summary',         'var(--sans)'],
+              ['Display',  '28 / 600',  'A calm, dense observability surface', 'var(--md-font-plain)'],
+              ['Title',    '20 / 600',  'Section heading',                     'var(--md-font-plain)'],
+              ['Body lg',  '14 / 400',  'Default reading size for body prose', 'var(--md-font-plain)'],
+              ['Body',     '13 / 400',  'Run topic, last-turn summary',         'var(--md-font-plain)'],
               ['Meta',     '12 / 400',  'Disagreement positions, agent output', 'var(--md-font-data)'],
               ['Caption',  '11 / 500',  'Metric values, run IDs',               'var(--md-font-data)'],
-              ['Label',    '10 / 500',  'Uppercase labels, column headers',     'var(--sans)'],
+              ['Label',    '10 / 500',  'Uppercase labels, column headers',     'var(--md-font-plain)'],
             ].map(([name, spec, sample, family], i) => (
               <React.Fragment key={i}>
                 <div style={{ padding: '10px 14px', borderTop: i === 0 ? 'none' : '1px solid var(--md-outline-hair)', color: 'var(--md-on-surface-variant)', fontSize: 12 }}>{name}</div>

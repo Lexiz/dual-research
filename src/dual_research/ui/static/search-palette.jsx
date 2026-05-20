@@ -150,14 +150,14 @@ function SearchPalette({ open, onClose }) {
               border: 'none',
               outline: 'none',
               fontSize: 14,
-              fontFamily: 'var(--sans)',
+              fontFamily: 'var(--md-font-plain)',
               color: 'var(--md-on-surface)',
             }}
           />
           <kbd style={{
             padding: '2px 6px',
             fontSize: 10,
-            fontFamily: 'var(--mono)',
+            fontFamily: 'var(--md-font-data)',
             color: 'var(--md-on-surface-decor)',
             background: 'var(--md-surface-container-high)',
             border: '1px solid var(--md-outline-hair)',
@@ -201,13 +201,13 @@ function SearchPalette({ open, onClose }) {
                   <>
                     <Mdi name={item.icon} size={14} style={{ color: 'var(--md-on-surface-faint)', flexShrink: 0 }} />
                     <span style={{ fontSize: 13, color: 'var(--md-on-surface)' }}>{item.label}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--mono)' }}>navigate</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--md-font-data)' }}>navigate</span>
                   </>
                 )}
                 {item.type === 'run' && (
                   <>
                     <span className="rid rid-sm" style={{
-                      fontSize: 11, fontFamily: 'var(--mono)',
+                      fontSize: 11, fontFamily: 'var(--md-font-data)',
                       flexShrink: 0,
                     }}>
                       {item.displayId}
@@ -222,7 +222,7 @@ function SearchPalette({ open, onClose }) {
                     <span style={{
                       marginLeft: 'auto', flexShrink: 0,
                       fontSize: 10, color: 'var(--md-on-surface-faint)',
-                      fontFamily: 'var(--mono)',
+                      fontFamily: 'var(--md-font-data)',
                     }}>
                       {item.status}
                     </span>
@@ -238,7 +238,7 @@ function SearchPalette({ open, onClose }) {
           padding: '6px 14px',
           borderTop: '1px solid var(--md-outline-hair)',
           display: 'flex', gap: 12, alignItems: 'center',
-          fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--mono)',
+          fontSize: 10, color: 'var(--md-on-surface-decor)', fontFamily: 'var(--md-font-data)',
         }}>
           <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>&uarr;&darr;</kbd> navigate</span>
           <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>enter</kbd> select</span>
