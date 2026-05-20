@@ -188,7 +188,7 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>System prompt</span>
+                  <span style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>System prompt</span>
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>(system)</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>4,915 chars</span>
@@ -197,7 +197,7 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)', transform: 'rotate(90deg)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>User prompt</span>
+                  <span style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>User prompt</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>245,378 chars</span>
                 </div>
@@ -213,7 +213,7 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>Child page: Notion ADR-014</span>
+                  <span style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>Child page: Notion ADR-014</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>12,847 chars</span>
                 </div>
@@ -231,7 +231,7 @@ function DnaOnePager() {
                 <div className="consumption-card" style={{ border: '1px solid var(--agent-a-border)' }}>
                   <div className="consumption-data-zone">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--md-on-surface)' }}>Claude</span>
+                      <span style={{ fontWeight: 'var(--md-w-medium)', color: 'var(--md-on-surface)' }}>Claude</span>
                       <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)' }}>86.5kt seen</span>
                     </div>
                     <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>Input: $0.56 · Total: $0.72</div>
@@ -245,7 +245,7 @@ function DnaOnePager() {
                 <div className="consumption-card" style={{ border: '1px solid var(--agent-b-border)' }}>
                   <div className="consumption-data-zone">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--md-on-surface)' }}>GPT</span>
+                      <span style={{ fontWeight: 'var(--md-w-medium)', color: 'var(--md-on-surface)' }}>GPT</span>
                       <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)' }}>42.1kt seen</span>
                     </div>
                     <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>Input: $0.21 · Total: $0.35</div>
@@ -338,7 +338,7 @@ function DnaOnePager() {
           ].map(([title, bp, rules], i) => (
             <div key={i} className="resp-card">
               <div className="lbl">{bp}</div>
-              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 500, color: 'var(--md-on-surface)' }}>{title}</h4>
+              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 'var(--md-w-medium)', color: 'var(--md-on-surface)' }}>{title}</h4>
               <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--md-on-surface-muted)', fontSize: 13, lineHeight: 1.6 }}>
                 {rules.map((r, j) => <li key={j}>{r}</li>)}
               </ul>

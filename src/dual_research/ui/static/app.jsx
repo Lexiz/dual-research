@@ -498,7 +498,7 @@ function AvatarDisc({ email, url, size = 28 }) {
       background: `hsl(${hue}, 55%, 38%)`,
       color: 'white', display: 'inline-flex',
       alignItems: 'center', justifyContent: 'center',
-      fontSize: Math.round(size * 0.42), fontWeight: 600,
+      fontSize: Math.round(size * 0.42), fontWeight: 'var(--md-w-semi)',
       border: '1px solid var(--md-outline-variant)',
     }}>{initials}</div>
   );
