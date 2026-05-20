@@ -72,11 +72,16 @@ class RemoteSession:
         started = datetime.now(timezone.utc)
 
         state_path = session_dir / "state.json"
-        if not state_path.exists():
-            raise FileNotFoundError(
-                f"Missing state.json in {session_dir} — not a completed session dir."
-            )
-        state = json.loads(state_path.read_text(encoding="utf-8"))
+        if state_path.exists():
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+        else:
+            # Spec 0032 — tolerate a missing state.json so --push-while-running
+            # can publish in-flight runs that haven't reached their first
+            # phase-boundary save yet. The orchestrator now writes an initial
+            # state.json at session setup (run.py); this fallback covers
+            # the edge case where a run crashes before that write lands.
+            # Initial state mirrors SessionState() defaults: phase="phase0".
+            state = {"phase": "phase0"}
 
         metrics_path = session_dir / "metrics.json"
         metrics: dict[str, Any] | None = (

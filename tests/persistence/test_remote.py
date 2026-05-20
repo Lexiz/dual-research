@@ -203,14 +203,25 @@ def test_repush_replaces_not_duplicates(tmp_path: Path) -> None:
     assert len(fake.rows("session_files")) == files_before
 
 
-def test_missing_state_json_raises_before_any_writes(tmp_path: Path) -> None:
-    sd = tmp_path / "20260515-163105-broken"
+def test_missing_state_json_is_tolerated_and_pushes_in_flight_row(tmp_path: Path) -> None:
+    """Spec 0032 regression — a session dir without state.json must still
+    push (with default state.phase="phase0"), so --push-while-running can
+    publish in-flight runs whose orchestrator hasn't yet reached its
+    first phase-boundary save. Previously this raised FileNotFoundError
+    and every tick failed for the entire phase-0 window."""
+    sd = tmp_path / "20260515-163105-in-flight"
     sd.mkdir()
     (sd / "brief.md").write_text("just a brief")
     fake = FakeSupabaseClient()
-    with pytest.raises(FileNotFoundError, match="state.json"):
-        RemoteSession(fake).push_session_dir(sd)
-    assert fake.tables == {}
+    summary = RemoteSession(fake).push_session_dir(sd)
+    assert summary.runs_upserted == 1
+    runs = fake.rows("runs")
+    assert len(runs) == 1
+    assert runs[0]["id"] == "20260515-163105-in-flight"
+    # No state.json on disk → default state.phase="phase0" supplies
+    # phase_reached, so the hosted UI sees a "running, phase0" row.
+    assert runs[0]["phase_reached"] == "phase0"
+    assert runs[0]["state"] == {"phase": "phase0"}
 
 
 def test_missing_transcript_pushes_zero_events(tmp_path: Path) -> None:

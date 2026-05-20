@@ -167,6 +167,16 @@ async def run_session(
     metrics = Metrics.load_or_new(session.metrics_path)
     ctx = SessionContext(session=session, state=state, transcript=transcript, metrics=metrics)
 
+    # Spec 0032 — write state.json immediately so --push-while-running can
+    # succeed from tick 1. Without this, RemoteSession.push_session_dir
+    # raises FileNotFoundError ("Missing state.json — not a completed
+    # session dir") for the entire phase-0 window, because state.json is
+    # otherwise first written only when phase 0 converges (dr_run.py).
+    # The hosted UI then shows a 404 for the brief-interpretation
+    # negotiation — precisely the window the user most wants to follow.
+    # For a resumed run this is a no-op (state already loaded from disk).
+    session.save_state(state)
+
     bus = event_bus or EventBus()
     _install_cost_ticker(bus, metrics)
     _install_transcript_publisher(bus, ctx)
