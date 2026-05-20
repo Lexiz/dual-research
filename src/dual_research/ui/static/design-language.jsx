@@ -449,19 +449,19 @@ function FullReference() {
         </div>
 
         <SwatchGrid title="Surfaces" cols={5} items={[
-          { name: 'bg-0',  hex: '#08090b', role: 'Page / streaming body' },
-          { name: 'bg-1',  hex: '#0d0f12', role: 'Panels' },
-          { name: 'bg-2',  hex: '#131519', role: 'Elevated rows' },
-          { name: 'bg-3',  hex: '#191c21', role: 'Hover / chip' },
-          { name: 'bg-4',  hex: '#1f2329', role: 'High contrast' },
+          { name: 'surface',      hex: '#0d0f12', role: 'Default surface — panels, sheets' },
+          { name: 'surf-low',     hex: '#111317', role: 'Recessed surface — default panel' },
+          { name: 'surf-mid',     hex: '#14171c', role: 'Elevated row / chip background / modal header' },
+          { name: 'surf-high',    hex: '#191c21', role: 'Hover / active chip' },
+          { name: 'surf-highest', hex: '#21252b', role: 'Highest static tier — dropdown row' },
         ]} />
 
         <SwatchGrid title="Foreground" cols={5} items={[
-          { name: 'fg-0', hex: '#f2f4f7', role: 'Primary text / numbers' },
-          { name: 'fg-1', hex: '#c8ccd3', role: 'Body text' },
-          { name: 'fg-2', hex: '#8c929c', role: 'Secondary / meta' },
-          { name: 'fg-3', hex: '#5e636d', role: 'Muted / labels' },
-          { name: 'fg-4', hex: '#3f444c', role: 'Decorative' },
+          { name: 'on-surface', hex: '#ffffff', role: 'Primary text / numbers / headings' },
+          { name: 'on-variant', hex: '#b4bac4', role: 'Body prose' },
+          { name: 'on-muted',   hex: '#9aa0ac', role: 'Secondary text / meta / labels' },
+          { name: 'on-faint',   hex: '#7d8290', role: 'Muted / column headers' },
+          { name: 'on-decor',   hex: '#50545d', role: 'Decorative / inline dividers' },
         ]} />
 
         <SwatchGrid title="Status — minimal, used only on state changes" cols={4} items={[
@@ -584,7 +584,7 @@ function FullReference() {
                 <div style={{ height: 1, background: 'var(--md-outline)' }} />
               </div>
               <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 6 }}>
-                border-1 (#1c1f24) hairline · border-2 medium · border-3 strong
+                outline-hair (#1c1f24) hairline · outline-variant medium · outline strong
               </div>
             </div>
           </div>
