@@ -524,7 +524,7 @@
 
   function HiwDiagram({ name, alt }) {
     const variant = useThemeMode();
-    const src = `/diagrams/how-it-works/${name}.${variant}.svg?v=0123a`;
+    const src = `/diagrams/how-it-works/${name}.${variant}.svg?v=0124a`;
     const [open, setOpen] = React.useState(false);
     return (
       <React.Fragment>
