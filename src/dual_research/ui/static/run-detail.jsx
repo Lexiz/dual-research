@@ -4029,29 +4029,58 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
           paddingRight: 4,
         }}>
           <ReviewKeyboardHint hasItems={scrubReviewItems.length > 0} />
+          {/* Spec 0120 — every panel uses the 0119 category-chip header.
+              The raiser (= the turn's agent) and raised-round flow into
+              each card's Provider / "raised in rN" chips. Phase 4 adds
+              Issues + Comments groups; legacy ``Claims`` ReviewGroup
+              was retired in 0119 §7 along with the claim data path. */}
           <ReviewGroup
-            label="Open questions"
+            panelKind="question"
             color={COLORS.info}
             items={scrubReviewItems}
             kinds={['question']}
+            raiser={scrubItem.agent}
+            raisedRound={Number(scrubItem.round) || null}
             activeIdx={activeIdx}
             onSelect={handleSelect}
           />
-          {/* Spec 0119 §7 — legacy ``Claims`` ReviewGroup retired
-              with the rest of the claim data path post-0114. */}
           <ReviewGroup
-            label="Disagreements"
+            panelKind="disagreement"
             color={COLORS.warn}
             items={scrubReviewItems}
             kinds={['disagreement']}
+            raiser={scrubItem.agent}
+            raisedRound={Number(scrubItem.round) || null}
             activeIdx={activeIdx}
             onSelect={handleSelect}
           />
           <ReviewGroup
-            label="Resolved / non-blocking"
+            panelKind="issue"
+            color={COLORS.err}
+            items={scrubReviewItems}
+            kinds={['issue']}
+            raiser={scrubItem.agent}
+            raisedRound={Number(scrubItem.round) || null}
+            activeIdx={activeIdx}
+            onSelect={handleSelect}
+          />
+          <ReviewGroup
+            panelKind="comment"
+            color={COLORS.idle}
+            items={scrubReviewItems}
+            kinds={['comment']}
+            raiser={scrubItem.agent}
+            raisedRound={Number(scrubItem.round) || null}
+            activeIdx={activeIdx}
+            onSelect={handleSelect}
+          />
+          <ReviewGroup
+            panelKind="resolved"
             color={COLORS.ok}
             items={scrubReviewItems}
             kinds={['resolved']}
+            raiser={scrubItem.agent}
+            raisedRound={Number(scrubItem.round) || null}
             activeIdx={activeIdx}
             onSelect={handleSelect}
           />
@@ -4252,10 +4281,12 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
     }
   }, [sub]);
 
-  // Spec 0044 D6 — structured items (Phase 1 claims + open questions
-  // extracted by spec 0042 D1) get clickable cards that jump-to-brief
-  // on the left pane. Anchors flow from each item's ``quote`` / ``after``
-  // / ``blockId`` to ``scrollAndFlash`` on the left pane's brief view.
+  // Spec 0044 D6 — structured items (Phase 1 open questions extracted
+  // by spec 0042 D1; the legacy ``claim`` kind was retired by spec 0114
+  // and the data path by spec 0119) get clickable cards that jump-to-
+  // brief on the left pane. Anchors flow from each item's ``quote`` /
+  // ``after`` / ``blockId`` to ``scrollAndFlash`` on the left pane's
+  // brief view.
   const items = reviewItemsFor(run, item);
   const onItemClick = React.useCallback((it) => {
     if (!leftRef.current || sub !== 'original') return;
@@ -4325,7 +4356,7 @@ function DraftReviewModal({ item, run, meta, onClose, accent }) {
             Spec 0038: a Draft|Web Search sub-tab strip surfaces the
             draft turn's audit bundle without changing the modal frame.
             Spec 0044 D6: structured items strip lets the user click
-            into each Phase 1 claim/question and jump-to-brief. */}
+            into each Phase 1 open question and jump-to-brief. */}
         <DraftRightPane
           filePath={item.filePath}
           turnKey={item.turnKey}
@@ -4541,34 +4572,49 @@ function ReviewKeyboardHint({ hasItems }) {
   );
 }
 
-function ReviewGroup({ label, color, items, kinds, activeIdx, onSelect }) {
+// Spec 0120 §5.4 — panel headers use the 0119 category-filter Chip so
+// the modal's right-pane legend matches the critique pane's filter row.
+// ``panelKind`` is one of the canonical four (question / disagreement /
+// issue / comment) or the legacy curated ``resolved`` bucket; the
+// latter gets a neutral chip since "resolved" isn't a category bubble.
+const REVIEW_PANEL_CATEGORY = {
+  question:     'questions',
+  disagreement: 'disagreements',
+  issue:        'issues',
+  comment:      'comments',
+};
+
+function ReviewGroup({ panelKind, items, kinds, color, raiser, raisedRound, activeIdx, onSelect }) {
   // Render items in their original flat-list order, with indices for selection.
   const entries = items
     .map((it, i) => ({ it, i }))
     .filter(({ it }) => kinds.includes(it.kind));
   if (entries.length === 0) return null;
+  const cat = REVIEW_PANEL_CATEGORY[panelKind];
   return (
     <div>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        fontSize: 10.5, color, fontWeight: 700,
-        letterSpacing: '0.08em', textTransform: 'uppercase',
-        marginBottom: 6,
-      }}>
-        <span>{label}</span>
-        <span style={{
-          padding: '0 6px',
-          background: color + '22', color,
-          borderRadius: 999, fontSize: 10,
-          fontFamily: 'var(--mono)', fontWeight: 600,
-        }}>{entries.length}</span>
+      <div className="rp-panel-head">
+        {cat ? (
+          <Chip
+            tone={CATEGORY_TONE[cat]}
+            categoryBubble={CATEGORY_BUBBLE[cat]}
+            label={CATEGORY_LABEL_PLURAL[cat]}
+            value={entries.length}
+            ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${entries.length}`}
+          />
+        ) : (
+          <Chip tone="ok" label="Resolved / non-blocking" value={entries.length} />
+        )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {entries.map(({ it, i }) => (
           <ReviewCard
             key={i}
             item={it}
+            panelKind={panelKind}
             color={color}
+            raiser={raiser}
+            raisedRound={raisedRound}
             active={activeIdx === i}
             onClick={() => onSelect(i)}
           />
@@ -4578,84 +4624,110 @@ function ReviewGroup({ label, color, items, kinds, activeIdx, onSelect }) {
   );
 }
 
-function ReviewCard({ item, color, active, onClick }) {
+// Spec 0120 §5.2 + §5.3 — each card carries an explicit chip header
+// (Provider · Category · raised-in-rN · Sources · modifier chips, in
+// fixed 0119 §6 composition order) and a per-segment-labelled body
+// (Anchor / Title / Rationale / Sources). The bare ``itemId`` chip
+// from spec 0044 D6 is gone — per 0119 §6.6 the public ID is small
+// mono text inside the body, never a primary header chip.
+function ReviewCard({ item, panelKind, color, raiser, raisedRound, active, onClick }) {
   const hasAnchor = !!(item.quote || item.after);
   const isMissing = !!item.after;
+  const cat = REVIEW_PANEL_CATEGORY[panelKind];
+  const providerTone = raiser === 'claude' ? 'claude' : raiser === 'gpt' ? 'gpt' : 'neutral';
+  const raiserName = raiser ? (AGENT_META[raiser]?.name || raiser) : null;
+  const otherAgent = raiser === 'claude' ? 'gpt' : raiser === 'gpt' ? 'claude' : null;
+  const otherName = otherAgent ? (AGENT_META[otherAgent]?.name || otherAgent) : 'the other agent';
+  const evidence = Array.isArray(item.evidence) ? item.evidence : [];
+  // Strip the anchor sub-lines from the body — the Anchor segment
+  // below surfaces them separately; leaving them in the rationale
+  // would render the same content twice.
+  const rationaleBody = (window.DrItemBody
+    ? window.DrItemBody.stripAnchorLines(item.body || '')
+    : item.body || '');
+  const { title, rationale } = (window.DrItemBody
+    ? window.DrItemBody.splitTitleAndRationale(rationaleBody)
+    : { title: '', rationale: rationaleBody });
   return (
     <button
       onClick={onClick}
+      className={`rp-item-card${active ? ' is-active' : ''}${isMissing ? ' is-missing' : ''}`}
       style={{
-        display: 'block', width: '100%', textAlign: 'left',
-        padding: '10px 12px',
-        background: active ? 'var(--bg-2)' : 'var(--bg-1)',
-        border: `1px solid ${active ? color : 'var(--border-1)'}`,
-        borderLeft: `3px solid ${isMissing ? COLORS.warn : color}${isMissing ? '' : ''}`,
-        borderLeftStyle: isMissing ? 'dashed' : 'solid',
-        borderRadius: 'var(--r-2)',
+        // The border-left color is data-driven (per-kind), so it stays
+        // inline; the rest of the visual treatment is in components.css.
+        borderLeftColor: isMissing ? COLORS.warn : color,
         cursor: hasAnchor ? 'pointer' : 'default',
-        transition: 'background 100ms, border-color 100ms',
       }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        marginBottom: 4,
-      }}>
-        {item.itemId && (
-          <span className="mono" style={{
-            fontSize: 10, color, fontWeight: 600,
-            padding: '1px 6px',
-            background: color + '14',
-            border: `1px solid ${color}44`,
-            borderRadius: 4,
-            letterSpacing: '0.04em',
-          }}>{item.itemId}</span>
+      <div className="rp-item-card-head">
+        {raiser && (
+          <Chip
+            tone={providerTone}
+            leadingIcon={<AgentIcon agent={raiser} size={12} />}
+            label={raiserName}
+          />
+        )}
+        {cat && (
+          <Chip
+            tone={CATEGORY_TONE[cat]}
+            categoryBubble={CATEGORY_BUBBLE[cat]}
+            label={CATEGORY_LABEL_SINGULAR[cat]}
+          />
+        )}
+        {raisedRound != null && (
+          <Chip mono tone="neutral" label={`raised in r${raisedRound}`} />
+        )}
+        {evidence.length > 0 && (
+          <Chip tone="neutral" label="Sources" value={evidence.length} />
         )}
         {!hasAnchor && (
-          <span className="mono" style={{
-            fontSize: 9.5, color: 'var(--fg-3)',
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>no anchor</span>
+          <Chip mono tone="idle" label="no anchor" />
         )}
         {isMissing && (
-          <span className="mono" style={{
-            fontSize: 9.5, color: COLORS.warn,
-            letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>missing</span>
+          <Chip mono tone="warn" label="missing" />
         )}
         <span style={{ flex: 1 }} />
         {hasAnchor && (
-          <span style={{ color: 'var(--fg-3)' }}>
+          <span style={{ color: 'var(--fg-3)', display: 'inline-flex' }}>
             <Icon.Arrow style={{ width: 12, height: 12 }} />
           </span>
         )}
       </div>
-      {item.quote && (
-        <div style={{
-          fontSize: 11, color: 'var(--fg-2)',
-          fontStyle: 'italic',
-          marginBottom: 4,
-          paddingLeft: 8,
-          borderLeft: `2px solid ${color}55`,
-          overflow: 'hidden',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-        }}>“{item.quote}”</div>
-      )}
-      {item.after && (
-        <div className="mono" style={{
-          fontSize: 10.5, color: COLORS.warn,
-          marginBottom: 4,
-        }}>after: {item.after}</div>
-      )}
-      <div style={{
-        fontSize: 12.5, color: 'var(--fg-1)',
-        lineHeight: 1.5,
-        display: '-webkit-box',
-        WebkitLineClamp: 3,
-        WebkitBoxOrient: 'vertical',
-        overflow: 'hidden',
-      }}>
-        {item.body}
+      <div className="rp-item-card-body">
+        {item.quote && (
+          <section className="rp-segment">
+            <div className="rp-segment-label">{`Anchored to ${otherName}'s draft`}</div>
+            <blockquote className="rp-anchor" style={{ borderLeftColor: color + '88' }}>
+              {`“${item.quote}”`}
+            </blockquote>
+          </section>
+        )}
+        {item.after && (
+          <section className="rp-segment">
+            <div className="rp-segment-label">{`Anchored to ${otherName}'s draft`}</div>
+            <div className="rp-anchor rp-anchor--after mono">{`after: ${item.after}`}</div>
+          </section>
+        )}
+        {title && (
+          <section className="rp-segment">
+            <div className="rp-segment-label">Title</div>
+            <div className="rp-title">{title}</div>
+          </section>
+        )}
+        <section className="rp-segment">
+          <div className="rp-segment-label">Rationale</div>
+          <div className="rp-rationale">{rationale || '(no detail)'}</div>
+        </section>
+        {evidence.length > 0 && (
+          <section className="rp-segment">
+            <div className="rp-segment-label">{`Sources (${evidence.length})`}</div>
+            <div className="rp-sources">
+              {evidence.map((rec, i) => <SourceRow key={i} record={rec} />)}
+            </div>
+          </section>
+        )}
+        {item.itemId && (
+          <div className="rp-item-card-id mono">id: {item.itemId}</div>
+        )}
       </div>
     </button>
   );

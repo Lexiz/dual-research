@@ -10,6 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Spec 0120 — Turn-modal items panel rework: provider badge, segment labelling** ([spec 0120](specs/0120-turn-modal-items-panel-rework.md)). First application of spec 0119's Chip primitive + canonical vocabulary to a previously-untouched surface — the side-by-side turn modal's right-pane review cards (`NegotiateReviewModal`, used for both Phase 2 and Phase 4 turn cards). Frontend-only; no backend / contract / protocol changes.
+  - **Provider chip on every card header.** Every `.rp-item-card-head` begins with a `[Claude]` / `[GPT]` chip per spec 0119 §6.1 ("Provider FIRST"), sourced from the parent turn's `item.agent`. Closes the user complaint that the panel showed `OPEN QUESTIONS 5` with no signal of which agent raised each item.
+  - **Per-segment labelling of card body.** Cards now render explicit `.rp-segment-label` small-caps headers — "Anchored to GPT's draft" / "Title" / "Rationale" / "Sources (N)" — replacing the previous raw `> quote / **bold** / paragraph` markdown soup. The Title segment is parsed from the canonical `**Title here**` first-line convention via the new `splitTitleAndRationale()` helper; missing or unparseable titles fall back to "no title, full body as rationale" without throwing.
+  - **`stripAnchorLines()` helper.** Strips `> quote:` / `> after:` blockquote sub-lines from the body before passing to the Rationale segment — the anchor is already surfaced in its own labelled segment above, so leaving them in the body would render the same content twice.
+  - **Panel header is a Chip.** `ReviewGroup`'s former hand-styled text + counter pill is replaced by the 0119 category-filter chip primitive: `[Q] Questions  N` / `[D] Disagreements  N` / `[I] Issues  N` / `[C] Comments  N`. The "Resolved / non-blocking" curated bucket uses a neutral-ok Chip (not a category kind). The modal's panel headers now match the critique pane's filter legend pixel-for-pixel.
+  - **Phase 4 panels surface.** Adds Issues + Comments `ReviewGroup`s to `NegotiateReviewModal` — pre-0120 the modal only rendered Questions / Disagreements / Resolved and dropped issue / comment kinds silently on Phase 4 turns. Now every kind in the data appears in the right pane.
+  - **Public-ID demoted out of the header.** Per 0119 §6.6 ("No public-ID chips in card headers"), the `D-N` / `OAI-N` chip leaves the card head; the ID renders as small mono inline `.rp-item-card-id` text at the bottom of the body, copyable but not a primary badge.
+  - **`no anchor` / `missing` chips canonicalised.** The pre-0120 hand-rolled "NO ANCHOR" / "MISSING" labels are replaced by mono `<Chip>` modifier chips (`tone="idle"` / `tone="warn"`).
+  - **`item-body.js` helper module** with `splitTitleAndRationale()` and `stripAnchorLines()`. `tests/ui/test_item_body_sync.py` grep-asserts both functions are present in the JS file and ports the same regex + slicing logic into Python to validate the 5 cases enumerated in spec §8 (well-formed title; missing title; empty body; inner markdown preserved; multiple bold lines — only first treated as title) plus three anchor-line stripping cases.
+  - **`Phase1ItemStrip` comment alignment.** The two stale "Phase 1 claim/question" inline comments in `DraftReviewModal` updated to drop the retired `claim` mention (the legacy claim kind / data path were removed by 0114 + 0119; the strip itself was never touched by 0120 — only Phase 1 open questions flow through there now).
+  - **Backend untouched.** No edits to `src/dual_research/ui/models.py`, `src/dual_research/ui/aggregator.py`, `src/dual_research/protocol/`, or `src/dual_research/contract/`. The `ReviewItem` shape (legacy `kind/body/quote/after/item_id/block_id`) is consumed as-is; the `raiser` and `raised_round` chips source from the parent turn item passed into `NegotiateReviewModal`.
+
+  Version bump (1.4.0 → 1.4.1) and static cache-bust (0119a → 0120a) land in the release commit (per the 0116 / 0119 pattern).
+
 ## [1.4.0] — 2026-05-20
 
 ### Added
