@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 1180" font-family="Inter, system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 1180" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
   <defs>
     <!-- ================= SHADOWS ================= -->
     <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#04060a" flood-opacity="0.10"/>
     </filter>
     <filter id="modalShadow" x="-2%" y="-2%" width="104%" height="106%">
-      <feDropShadow dx="0" dy="6" stdDeviation="18" flood-color="#1a1a18" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="6" stdDeviation="18" flood-color="#04060a" flood-opacity="0.18"/>
     </filter>
 
     <!-- ================= GRADIENTS ================= -->
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f5f1ea"/>
-      <stop offset="100%" stop-color="#ece8e0"/>
+      <stop offset="0%" stop-color="#faf9f6"/>
+      <stop offset="100%" stop-color="#ece8de"/>
     </linearGradient>
     <linearGradient id="modalSurface" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#ffffff"/>
       <stop offset="100%" stop-color="#fbf9f4"/>
     </linearGradient>
     <linearGradient id="modalHeaderSurface" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f5f1ea"/>
+      <stop offset="0%" stop-color="#faf9f6"/>
       <stop offset="100%" stop-color="#ede8de"/>
     </linearGradient>
 
     <!-- ================= MARKERS ================= -->
     <marker id="arrowCallout" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"/>
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
     </marker>
   </defs>
 
@@ -33,8 +33,8 @@
   <rect width="1660" height="1180" fill="url(#bgGrad)"/>
 
   <!-- ════════════════════════════════ TITLE ════════════════════════════════════ -->
-  <text x="830" y="54" text-anchor="middle" font-size="22" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Turn-Review Modal · Anatomy</text>
-  <text x="830" y="78" text-anchor="middle" font-size="12" fill="#706e67">Left pane = artifact viewer · Right pane = items panel (Questions + Disagreements)</text>
+  <text x="830" y="54" text-anchor="middle" font-size="22" font-weight="600" fill="#04060a" letter-spacing="-0.3">Turn-Review Modal · Anatomy</text>
+  <text x="830" y="78" text-anchor="middle" font-size="12" fill="#4d5159">Left pane = artifact viewer · Right pane = items panel (Questions + Disagreements)</text>
 
   <!-- ================= MODAL SHELL ================= -->
   <rect x="140" y="124" width="1380" height="916" rx="18" fill="url(#modalSurface)" stroke="#d8d2c4" stroke-width="1" filter="url(#modalShadow)"/>
@@ -56,7 +56,7 @@
   <!-- Mono "round 3" chip -->
   <g>
     <rect x="356" y="146" width="86" height="30" rx="8" fill="#f0ebe0" stroke="#d8d2c4"/>
-    <text x="399" y="166" text-anchor="middle" font-size="11" font-family="monospace" fill="#4a4845">round 3</text>
+    <text x="399" y="166" text-anchor="middle" font-size="11" font-family="monospace" fill="#3a3f47">round 3</text>
   </g>
 
   <!-- Status chip: agreed (ok tone) -->
@@ -67,7 +67,7 @@
   </g>
 
   <!-- Breadcrumb -->
-  <text x="166" y="208" font-size="11" font-family="monospace" fill="#706e67">Run #4128 / Timeline / Phase 2 / Turn 5</text>
+  <text x="166" y="208" font-size="11" font-family="monospace" fill="#4d5159">Run #4128 / Timeline / Phase 2 / Turn 5</text>
 
   <!-- ================= VERTICAL DIVIDER ================= -->
   <line x1="900" y1="222" x2="900" y2="1040" stroke="#e3ddd0" stroke-width="1"/>
@@ -75,9 +75,9 @@
   <!-- ════════════════════════════════ LEFT PANE ════════════════════════════════ -->
   <!-- Sub-tab strip (underline-style segmented control) -->
   <g>
-    <text x="166" y="262" font-size="14" font-weight="600" fill="#1a1a18">Original</text>
-    <line x1="160" y1="276" x2="242" y2="276" stroke="#4f5fb8" stroke-width="2.5"/>
-    <text x="266" y="262" font-size="14" font-weight="500" fill="#9e9b95">Input</text>
+    <text x="166" y="262" font-size="14" font-weight="600" fill="#04060a">Original</text>
+    <line x1="160" y1="276" x2="242" y2="276" stroke="#6b9cf0" stroke-width="2.5"/>
+    <text x="266" y="262" font-size="14" font-weight="500" fill="#6f7480">Input</text>
     <line x1="160" y1="276" x2="880" y2="276" stroke="#e3ddd0" stroke-width="1"/>
   </g>
 
@@ -85,20 +85,20 @@
   <g>
     <!-- chip: Other's draft -->
     <rect x="166" y="296" width="124" height="26" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-    <text x="228" y="313" text-anchor="middle" font-size="11" fill="#4a4845">Other's draft</text>
+    <text x="228" y="313" text-anchor="middle" font-size="11" fill="#3a3f47">Other's draft</text>
     <!-- chip: Other's prior turn (active = indigo tint) -->
-    <rect x="298" y="296" width="148" height="26" rx="6" fill="#e0e4f5" stroke="#4f5fb8"/>
+    <rect x="298" y="296" width="148" height="26" rx="6" fill="#e0e4f5" stroke="#6b9cf0"/>
     <text x="372" y="313" text-anchor="middle" font-size="11" font-weight="600" fill="#3a468a">Other's prior turn</text>
     <!-- chip: Current draft -->
     <rect x="454" y="296" width="118" height="26" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-    <text x="513" y="313" text-anchor="middle" font-size="11" fill="#4a4845">Current draft</text>
+    <text x="513" y="313" text-anchor="middle" font-size="11" fill="#3a3f47">Current draft</text>
     <!-- Caption -->
     <text x="586" y="313" font-size="10" font-style="italic" fill="#8a8780">(P4 default = Current draft; P2 r=2+ default = Other's prior turn; P2 r1 = Other's draft)</text>
   </g>
 
   <!-- Artifact body region (faded prose box) -->
   <g>
-    <rect x="166" y="346" width="714" height="676" rx="10" fill="#fbf9f4" stroke="#e8e2d8"/>
+    <rect x="166" y="346" width="714" height="676" rx="10" fill="#fbf9f4" stroke="#e7e3d9"/>
     <!-- Lorem horizontal lines -->
     <g fill="#d8d2c4">
       <rect x="186" y="370" width="540" height="8" rx="3"/>
@@ -168,10 +168,10 @@
       <text x="1037" y="325" font-size="10" font-weight="600" fill="#2a468a">Question</text>
       <!-- Modifier chip raised in r2 -->
       <rect x="1114" y="310" width="92" height="22" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-      <text x="1160" y="325" text-anchor="middle" font-size="10" font-family="monospace" fill="#4a4845">raised in r2</text>
+      <text x="1160" y="325" text-anchor="middle" font-size="10" font-family="monospace" fill="#3a3f47">raised in r2</text>
       <!-- Modifier chip Sources 3 -->
       <rect x="1212" y="310" width="82" height="22" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-      <text x="1253" y="325" text-anchor="middle" font-size="10" font-weight="500" fill="#4a4845">Sources 3</text>
+      <text x="1253" y="325" text-anchor="middle" font-size="10" font-weight="500" fill="#3a3f47">Sources 3</text>
     </g>
     <!-- Body labels -->
     <text x="934" y="354" font-size="9" font-weight="700" fill="#8a8780" letter-spacing="1.4">ANCHORED TO GPT'S DRAFT</text>
@@ -211,9 +211,9 @@
       <text x="1027" y="522" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff">Q</text>
       <text x="1037" y="523" font-size="10" font-weight="600" fill="#2a468a">Question</text>
       <rect x="1114" y="508" width="92" height="22" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-      <text x="1160" y="523" text-anchor="middle" font-size="10" font-family="monospace" fill="#4a4845">raised in r2</text>
+      <text x="1160" y="523" text-anchor="middle" font-size="10" font-family="monospace" fill="#3a3f47">raised in r2</text>
       <rect x="1212" y="508" width="82" height="22" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-      <text x="1253" y="523" text-anchor="middle" font-size="10" font-weight="500" fill="#4a4845">Sources 3</text>
+      <text x="1253" y="523" text-anchor="middle" font-size="10" font-weight="500" fill="#3a3f47">Sources 3</text>
     </g>
     <!-- Body labels -->
     <text x="934" y="552" font-size="9" font-weight="700" fill="#8a8780" letter-spacing="1.4">ANCHORED TO GPT'S DRAFT</text>
@@ -235,12 +235,12 @@
 
   <!-- SourceRow stubs (collapsed) under card 2 -->
   <g font-family="monospace">
-    <rect x="920" y="694" width="580" height="22" rx="4" fill="#f5f1ea" stroke="#e3ddd0"/>
-    <text x="934" y="709" font-size="10" fill="#706e67">▶  Sample source title — example.com</text>
-    <rect x="920" y="720" width="580" height="22" rx="4" fill="#f5f1ea" stroke="#e3ddd0"/>
-    <text x="934" y="735" font-size="10" fill="#706e67">▶  Another source — docs.example.org</text>
-    <rect x="920" y="746" width="580" height="22" rx="4" fill="#f5f1ea" stroke="#e3ddd0"/>
-    <text x="934" y="761" font-size="10" fill="#706e67">▶  Third reference — wiki.example.net</text>
+    <rect x="920" y="694" width="580" height="22" rx="4" fill="#faf9f6" stroke="#e3ddd0"/>
+    <text x="934" y="709" font-size="10" fill="#4d5159">▶  Sample source title — example.com</text>
+    <rect x="920" y="720" width="580" height="22" rx="4" fill="#faf9f6" stroke="#e3ddd0"/>
+    <text x="934" y="735" font-size="10" fill="#4d5159">▶  Another source — docs.example.org</text>
+    <rect x="920" y="746" width="580" height="22" rx="4" fill="#faf9f6" stroke="#e3ddd0"/>
+    <text x="934" y="761" font-size="10" fill="#4d5159">▶  Third reference — wiki.example.net</text>
   </g>
 
   <!-- Panel header: Disagreements (warn tone, amber) -->
@@ -267,7 +267,7 @@
       <text x="1027" y="862" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff">D</text>
       <text x="1037" y="863" font-size="10" font-weight="600" fill="#7a5a20">Disagreement</text>
       <rect x="1142" y="848" width="92" height="22" rx="6" fill="#f0ebe0" stroke="#d8d2c4"/>
-      <text x="1188" y="863" text-anchor="middle" font-size="10" font-family="monospace" fill="#4a4845">raised in r2</text>
+      <text x="1188" y="863" text-anchor="middle" font-size="10" font-family="monospace" fill="#3a3f47">raised in r2</text>
     </g>
     <!-- Body labels -->
     <text x="934" y="892" font-size="9" font-weight="700" fill="#8a8780" letter-spacing="1.4">ANCHORED TO GPT'S DRAFT</text>
@@ -288,59 +288,59 @@
   <!-- ════════════════════════════════ CALLOUTS ════════════════════════════════ -->
   <!-- Callout 1: Sub-tabs (top-left, points down to sub-tab strip ~y=276) -->
   <g>
-    <rect x="30" y="248" width="218" height="62" rx="8" fill="#ffffff" stroke="#4f5fb8" stroke-width="1.2" filter="url(#cardShadow)"/>
-    <text x="42" y="266" font-size="9" font-weight="700" fill="#4f5fb8" letter-spacing="1.4">SUB-TABS</text>
-    <text x="42" y="282" font-size="10" fill="#1a1a18">Compare adjacent artifacts.</text>
-    <text x="42" y="298" font-size="10" font-style="italic" fill="#4a4845">Default per phase: see § 5.3.</text>
-    <path d="M 248,278 L 296,278 L 296,272 L 156,272" stroke="#4f5fb8" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
+    <rect x="30" y="248" width="218" height="62" rx="8" fill="#ffffff" stroke="#6b9cf0" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <text x="42" y="266" font-size="9" font-weight="700" fill="#6b9cf0" letter-spacing="1.4">SUB-TABS</text>
+    <text x="42" y="282" font-size="10" fill="#04060a">Compare adjacent artifacts.</text>
+    <text x="42" y="298" font-size="10" font-style="italic" fill="#3a3f47">Default per phase: see § 5.3.</text>
+    <path d="M 248,278 L 296,278 L 296,272 L 156,272" stroke="#6b9cf0" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
   </g>
 
   <!-- Callout 2: Panel header (top-right, points to Questions panel header at ~y=266) -->
   <g>
-    <rect x="1530" y="232" width="120" height="78" rx="8" fill="#ffffff" stroke="#4f5fb8" stroke-width="1.2" filter="url(#cardShadow)"/>
-    <text x="1542" y="250" font-size="9" font-weight="700" fill="#4f5fb8" letter-spacing="1.4">PANEL HEADER</text>
-    <text x="1542" y="266" font-size="10" fill="#1a1a18">Category chip from</text>
-    <text x="1542" y="280" font-size="10" fill="#1a1a18">spec 0119 — same as</text>
-    <text x="1542" y="294" font-size="10" font-style="italic" fill="#4a4845">critique-pane legend.</text>
-    <path d="M 1530,266 L 1510,266" stroke="#4f5fb8" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
+    <rect x="1530" y="232" width="120" height="78" rx="8" fill="#ffffff" stroke="#6b9cf0" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <text x="1542" y="250" font-size="9" font-weight="700" fill="#6b9cf0" letter-spacing="1.4">PANEL HEADER</text>
+    <text x="1542" y="266" font-size="10" fill="#04060a">Category chip from</text>
+    <text x="1542" y="280" font-size="10" fill="#04060a">spec 0119 — same as</text>
+    <text x="1542" y="294" font-size="10" font-style="italic" fill="#3a3f47">critique-pane legend.</text>
+    <path d="M 1530,266 L 1510,266" stroke="#6b9cf0" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
   </g>
 
   <!-- Callout 3: Chip cluster composition (right side, points to card 1 chip row at ~y=321) -->
   <g>
-    <rect x="1530" y="338" width="120" height="92" rx="8" fill="#ffffff" stroke="#4f5fb8" stroke-width="1.2" filter="url(#cardShadow)"/>
-    <text x="1542" y="356" font-size="9" font-weight="700" fill="#4f5fb8" letter-spacing="1.4">CHIP CLUSTER</text>
-    <text x="1542" y="372" font-size="9" fill="#1a1a18">Provider →</text>
-    <text x="1542" y="384" font-size="9" fill="#1a1a18">Activity →</text>
-    <text x="1542" y="396" font-size="9" fill="#1a1a18">Category →</text>
-    <text x="1542" y="408" font-size="9" fill="#1a1a18">Modifier → Modifier</text>
-    <text x="1542" y="420" font-size="9" font-style="italic" fill="#4a4845">→ Status.</text>
-    <path d="M 1530,360 L 1510,360 L 1510,322 L 1300,322" stroke="#4f5fb8" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
+    <rect x="1530" y="338" width="120" height="92" rx="8" fill="#ffffff" stroke="#6b9cf0" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <text x="1542" y="356" font-size="9" font-weight="700" fill="#6b9cf0" letter-spacing="1.4">CHIP CLUSTER</text>
+    <text x="1542" y="372" font-size="9" fill="#04060a">Provider →</text>
+    <text x="1542" y="384" font-size="9" fill="#04060a">Activity →</text>
+    <text x="1542" y="396" font-size="9" fill="#04060a">Category →</text>
+    <text x="1542" y="408" font-size="9" fill="#04060a">Modifier → Modifier</text>
+    <text x="1542" y="420" font-size="9" font-style="italic" fill="#3a3f47">→ Status.</text>
+    <path d="M 1530,360 L 1510,360 L 1510,322 L 1300,322" stroke="#6b9cf0" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
   </g>
 
   <!-- Callout 4: Body labels (right side, points to body labels of card 1 at ~y=410) -->
   <g>
-    <rect x="1530" y="468" width="120" height="74" rx="8" fill="#ffffff" stroke="#4f5fb8" stroke-width="1.2" filter="url(#cardShadow)"/>
-    <text x="1542" y="486" font-size="9" font-weight="700" fill="#4f5fb8" letter-spacing="1.4">BODY LABELS</text>
-    <text x="1542" y="502" font-size="10" fill="#1a1a18">Anchor / Title /</text>
-    <text x="1542" y="516" font-size="10" fill="#1a1a18">Rationale split</text>
-    <text x="1542" y="530" font-size="10" font-style="italic" fill="#4a4845">per spec 0120.</text>
-    <path d="M 1530,498 L 1505,498 L 1505,432 L 1480,432" stroke="#4f5fb8" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
+    <rect x="1530" y="468" width="120" height="74" rx="8" fill="#ffffff" stroke="#6b9cf0" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <text x="1542" y="486" font-size="9" font-weight="700" fill="#6b9cf0" letter-spacing="1.4">BODY LABELS</text>
+    <text x="1542" y="502" font-size="10" fill="#04060a">Anchor / Title /</text>
+    <text x="1542" y="516" font-size="10" fill="#04060a">Rationale split</text>
+    <text x="1542" y="530" font-size="10" font-style="italic" fill="#3a3f47">per spec 0120.</text>
+    <path d="M 1530,498 L 1505,498 L 1505,432 L 1480,432" stroke="#6b9cf0" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
   </g>
 
   <!-- Callout 5: SourceRow (right side, points to source rows at ~y=720) -->
   <g>
-    <rect x="1530" y="600" width="120" height="120" rx="8" fill="#ffffff" stroke="#4f5fb8" stroke-width="1.2" filter="url(#cardShadow)"/>
-    <text x="1542" y="618" font-size="9" font-weight="700" fill="#4f5fb8" letter-spacing="1.4">SOURCE ROW</text>
-    <text x="1542" y="634" font-size="10" fill="#1a1a18">Click to expand:</text>
-    <text x="1542" y="648" font-size="9" fill="#4a4845">URL, fetched-at,</text>
-    <text x="1542" y="660" font-size="9" fill="#4a4845">search query,</text>
-    <text x="1542" y="672" font-size="9" fill="#4a4845">content excerpt.</text>
+    <rect x="1530" y="600" width="120" height="120" rx="8" fill="#ffffff" stroke="#6b9cf0" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <text x="1542" y="618" font-size="9" font-weight="700" fill="#6b9cf0" letter-spacing="1.4">SOURCE ROW</text>
+    <text x="1542" y="634" font-size="10" fill="#04060a">Click to expand:</text>
+    <text x="1542" y="648" font-size="9" fill="#3a3f47">URL, fetched-at,</text>
+    <text x="1542" y="660" font-size="9" fill="#3a3f47">search query,</text>
+    <text x="1542" y="672" font-size="9" fill="#3a3f47">content excerpt.</text>
     <text x="1542" y="690" font-size="9" font-style="italic" fill="#a06030">Unverified records</text>
     <text x="1542" y="702" font-size="9" font-style="italic" fill="#a06030">flag ⚠ unverified.</text>
-    <path d="M 1530,690 L 1510,690 L 1510,732 L 1502,732" stroke="#4f5fb8" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
+    <path d="M 1530,690 L 1510,690 L 1510,732 L 1502,732" stroke="#6b9cf0" stroke-width="1.2" fill="none" marker-end="url(#arrowCallout)"/>
   </g>
 
   <!-- ════════════════════════════════ CAPTION ════════════════════════════════ -->
-  <text x="830" y="1078" text-anchor="middle" font-size="11" font-style="italic" fill="#706e67">Layout post-spec-0116 (modal cleanup) + spec-0120 (items panel rework).</text>
+  <text x="830" y="1078" text-anchor="middle" font-size="11" font-style="italic" fill="#4d5159">Layout post-spec-0116 (modal cleanup) + spec-0120 (items panel rework).</text>
   <text x="830" y="1096" text-anchor="middle" font-size="10" font-style="italic" fill="#8a8780">Pre-0114 legacy runs render via a separate code path with the Claims panel intact.</text>
 </svg>

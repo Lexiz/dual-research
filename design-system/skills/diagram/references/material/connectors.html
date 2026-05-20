@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Connectors · diagram skill · material mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>diagram · material</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html" class="active"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
+    <div class="group">Other modes</div>
+    <a href="../pixel/connectors.html"><span class="n">··</span>Pixel mode</a>
+  </nav>
+  <div class="foot">material mode · v2.0.0 · M3 (sable + sage) · light + dark · viewBox 1660</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Deliverable 04 · Connector system · Material mode</p>
+<h1 class="page">The arrows, the curves, the labels, the gutters — every rule for what connects what.</h1>
+<p class="lede">Connector geometry is identical between Pixel and Material modes — the rules for curve modes (L/Q/C/O), lane gutters, label zones (A/B/C), crossing priority, clearance, and density caps are mode-agnostic. Only the stroke colors and marker fills differ. Material connectors use the theme-portable info-blue accent (<code>#6b9cf0</code>) for primary flow and the M3 muted ink for secondary data exchanges.</p>
+
+<div class="callout"><strong>Highest-value page.</strong> Most diagrams that drift visually do so because the connector contract was applied loosely — wrong curve mode, label rotated, parallel arrows bunched, arrow grazing an unrelated card. Every rule below has a recorded failure mode it prevents.</div>
+
+<!-- =========================================================== -->
+<h2 id="theme"><span class="num">04.0</span>Theme behavior across connectors</h2>
+<p class="section-lede">Arrow <em>geometry</em> is theme-agnostic — curve rules, marker dimensions, label zones, clearance values are identical between light and dark. Arrow <em>color</em> swaps per theme via the foundations §01.2 status palette. <strong>Both marker sets ship in <code>&lt;defs&gt;</code> per file</strong>; the theme-pass picks which to reference.</p>
+
+<table class="tokens">
+  <thead><tr><th>Property</th><th>Light theme</th><th>Dark theme</th></tr></thead>
+  <tbody>
+    <tr><td class="token">Primary arrow stroke</td><td class="value">#6b9cf0 (accent)</td><td class="value">#6b9cf0 (same — theme-portable)</td></tr>
+    <tr><td class="token">Secondary arrow stroke</td><td class="value">#6f7480 (ink-4)</td><td class="value">#9aa0ac (ink-3-dark)</td></tr>
+    <tr><td class="token">Mirror / return stroke</td><td class="value">#d4a056 (warn / amber)</td><td class="value">#d4a056 (theme-portable)</td></tr>
+    <tr><td class="token">Error path stroke</td><td class="value">#d96a6a (err)</td><td class="value">#d96a6a (theme-portable)</td></tr>
+    <tr><td class="token">Connector label color</td><td class="value">matches stroke</td><td class="value">matches stroke</td></tr>
+    <tr><td class="token">Connector subtitle color</td><td class="value">#6f7480 (ink-4)</td><td class="value">#7d8290 (ink-4-dark)</td></tr>
+  </tbody>
+</table>
+
+<h3>Both marker sets ship in <code>&lt;defs&gt;</code> per file</h3>
+<p>Every emitted SVG defines all marker ids it uses, with theme-appropriate fills baked in. The id (<code>arrowAccent</code>, <code>arrowGrey</code>, etc.) is stable across themes; the marker <em>body</em> rewrites per theme. This keeps connector authoring theme-unaware — <code>marker-end="url(#arrowAccent)"</code> works in both files.</p>
+
+<pre><code><span class="c">&lt;!-- light theme markers --&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowAccent"</span> <span class="a">markerWidth=</span><span class="s">"8"</span> ...<span class="k">&gt;</span><span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#6b9cf0"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowGrey"</span> ...<span class="k">&gt;</span><span class="k">&lt;path</span> ... <span class="a">fill=</span><span class="s">"#6f7480"</span><span class="k">/&gt;&lt;/marker&gt;</span>
+
+<span class="c">&lt;!-- dark theme — same ids, swapped fills --&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowAccent"</span> ...<span class="k">&gt;</span><span class="k">&lt;path</span> ... <span class="a">fill=</span><span class="s">"#6b9cf0"</span><span class="k">/&gt;&lt;/marker&gt;</span>  <span class="c"># unchanged</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowGrey"</span> ...<span class="k">&gt;</span><span class="k">&lt;path</span> ... <span class="a">fill=</span><span class="s">"#9aa0ac"</span><span class="k">/&gt;&lt;/marker&gt;</span></code></pre>
+
+<!-- =========================================================== -->
+<h2 id="taxonomy"><span class="num">04.1</span>Arrow taxonomy · eight types, one per semantic</h2>
+<p class="section-lede">Eight arrow types. The generator picks by <em>what the arrow means</em>, not by aesthetics. A new flavor of arrow doesn't get invented — it remaps to the closest semantic match.</p>
+
+<table class="tokens">
+  <thead><tr><th>Type</th><th>Stroke · width · dash</th><th>Marker</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">solid-primary</td><td class="value">accent · 1.8 · none</td><td class="value">arrowAccent</td><td class="note">Default flow. User-initiated path, request/response, primary data path.</td></tr>
+    <tr><td class="token">dashed-handoff</td><td class="value">ink-4 · 1.3 · 4,3</td><td class="value">arrowGrey</td><td class="note">Async hand-off, scheduled job, background sync. Anything the system does on its own schedule.</td></tr>
+    <tr><td class="token">mirror-secondary</td><td class="value">amber · 1.6 · none</td><td class="value">arrowAmber</td><td class="note">Mirror / replication / write-through path. Secondary copy.</td></tr>
+    <tr><td class="token">sync-call</td><td class="value">accent · 1.8 · none</td><td class="value">arrowAccent both ends</td><td class="note">Synchronous request that returns — caller waits. Solid line with arrow at both ends.</td></tr>
+    <tr><td class="token">return</td><td class="value">accent · 1.3 · 5,4</td><td class="value">arrowAccentSm</td><td class="note">Return value of a sync-call (when shown explicitly). Dashed-thinner to read as "back-trip."</td></tr>
+    <tr><td class="token">async-event</td><td class="value">ok-green · 1.8 · none</td><td class="value">arrowGreen</td><td class="note">Event publication. Producer → topic. Implied fire-and-forget.</td></tr>
+    <tr><td class="token">bidirectional</td><td class="value">accent · 1.8 · none</td><td class="value">arrowAccentSm + arrowAccent</td><td class="note">Two-way data flow. Both ends carry arrowheads.</td></tr>
+    <tr><td class="token">error-path</td><td class="value">err · 1.8 · 6,3</td><td class="value">arrowRed</td><td class="note">Error / fallback / DLQ path. Dashed-thick in error red.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>8 arrow types in context · light</span><span class="meta">stroke + marker matrix</span></div>
+  <svg viewBox="0 0 1660 320" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="taxBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <marker id="aAcc" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/></marker>
+      <marker id="aAccS" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"/></marker>
+      <marker id="aGry" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6f7480"/></marker>
+      <marker id="aAmb" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#d4a056"/></marker>
+      <marker id="aGrn" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6fb380"/></marker>
+      <marker id="aRed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#d96a6a"/></marker>
+    </defs>
+    <rect width="1660" height="320" fill="url(#taxBgL)"/>
+
+    <!-- row labels (left column) -->
+    <g font-family="Roboto Flex, monospace" font-size="11" fill="#3a6ec9">
+      <text x="40" y="60">solid-primary</text>
+      <text x="40" y="92">dashed-handoff</text>
+      <text x="40" y="124">mirror-secondary</text>
+      <text x="40" y="156">sync-call</text>
+      <text x="40" y="188">return</text>
+      <text x="40" y="220">async-event</text>
+      <text x="40" y="252">bidirectional</text>
+      <text x="40" y="284">error-path</text>
+    </g>
+
+    <!-- 8 example strokes -->
+    <line x1="240" y1="56" x2="600" y2="56" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#aAcc)"/>
+    <line x1="240" y1="88" x2="600" y2="88" stroke="#6f7480" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#aGry)"/>
+    <line x1="240" y1="120" x2="600" y2="120" stroke="#d4a056" stroke-width="1.6" marker-end="url(#aAmb)"/>
+    <line x1="240" y1="152" x2="600" y2="152" stroke="#6b9cf0" stroke-width="1.8" marker-start="url(#aAccS)" marker-end="url(#aAcc)"/>
+    <line x1="240" y1="184" x2="600" y2="184" stroke="#6b9cf0" stroke-width="1.3" stroke-dasharray="5,4" marker-end="url(#aAccS)"/>
+    <line x1="240" y1="216" x2="600" y2="216" stroke="#6fb380" stroke-width="1.8" marker-end="url(#aGrn)"/>
+    <line x1="240" y1="248" x2="600" y2="248" stroke="#6b9cf0" stroke-width="1.8" marker-start="url(#aAccS)" marker-end="url(#aAcc)"/>
+    <line x1="240" y1="280" x2="600" y2="280" stroke="#d96a6a" stroke-width="1.8" stroke-dasharray="6,3" marker-end="url(#aRed)"/>
+
+    <!-- right column annotations -->
+    <g font-size="11" fill="#3a3f47">
+      <text x="640" y="60">request / response · primary user flow</text>
+      <text x="640" y="92">scheduled sync · async hand-off</text>
+      <text x="640" y="124">replication / write-through</text>
+      <text x="640" y="156">caller waits · two arrowheads</text>
+      <text x="640" y="188">explicit return value</text>
+      <text x="640" y="220">event publication · fire-and-forget</text>
+      <text x="640" y="252">bidirectional data flow</text>
+      <text x="640" y="284">error / fallback / DLQ path</text>
+    </g>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<h2><span class="num">04.2</span>Marker registry · exact dimensions</h2>
+<p class="section-lede">Seven named markers — one per colored stroke. All markers share the same viewBox geometry (the arrowhead is identical in shape); only the fill differs. Naming convention: <code>arrow&lt;Tint&gt;</code> for the standard 8×8 size, <code>arrow&lt;Tint&gt;Sm</code> for the 7×7 small variant.</p>
+
+<table class="tokens">
+  <thead><tr><th>Marker id</th><th>Size</th><th>Fill</th><th>Used by</th></tr></thead>
+  <tbody>
+    <tr><td class="token">arrowAccent</td><td class="value">8 × 8, refX=6</td><td class="value">#6b9cf0 (light + dark)</td><td class="note">solid-primary, sync-call (end), bidirectional (end)</td></tr>
+    <tr><td class="token">arrowAccentSm</td><td class="value">7 × 7, refX=5</td><td class="value">#6b9cf0</td><td class="note">return, sync-call (start), bidirectional (start)</td></tr>
+    <tr><td class="token">arrowGrey</td><td class="value">8 × 8, refX=6</td><td class="value">#6f7480 light / #9aa0ac dark</td><td class="note">dashed-handoff</td></tr>
+    <tr><td class="token">arrowAmber</td><td class="value">8 × 8, refX=6</td><td class="value">#d4a056 (theme-portable)</td><td class="note">mirror-secondary</td></tr>
+    <tr><td class="token">arrowGreen</td><td class="value">8 × 8, refX=6</td><td class="value">#6fb380 (theme-portable)</td><td class="note">async-event</td></tr>
+    <tr><td class="token">arrowRed</td><td class="value">8 × 8, refX=6</td><td class="value">#d96a6a (theme-portable)</td><td class="note">error-path</td></tr>
+    <tr><td class="token">arrowSable</td><td class="value">8 × 8, refX=6</td><td class="value">#d4a574 (theme-portable)</td><td class="note">reserved for Claude-tagged flows</td></tr>
+  </tbody>
+</table>
+
+<pre><code><span class="c">&lt;!-- canonical marker block — include all you reference --&gt;</span>
+<span class="k">&lt;marker</span> <span class="a">id=</span><span class="s">"arrowAccent"</span> <span class="a">markerWidth=</span><span class="s">"8"</span> <span class="a">markerHeight=</span><span class="s">"8"</span> <span class="a">refX=</span><span class="s">"6"</span> <span class="a">refY=</span><span class="s">"3"</span> <span class="a">orient=</span><span class="s">"auto"</span><span class="k">&gt;</span>
+  <span class="k">&lt;path</span> <span class="a">d=</span><span class="s">"M0,0 L0,6 L8,3 z"</span> <span class="a">fill=</span><span class="s">"#6b9cf0"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/marker&gt;</span></code></pre>
+
+<!-- =========================================================== -->
+<h2 id="curves"><span class="num">04.3</span>Curve rules · straight, quadratic, cubic, orthogonal</h2>
+<p class="section-lede">Four curve modes. Pick by the geometry of the source-to-target relationship, not by aesthetic preference. Most diagrams are dominated by L and Q; orthogonal (O) is reserved for dense regions where C would collide with itself.</p>
+
+<table class="tokens">
+  <thead><tr><th>Mode</th><th>Path d</th><th>When to use</th></tr></thead>
+  <tbody>
+    <tr><td class="token">L · straight</td><td class="value">M x1 y1 L x2 y2</td><td class="note">Default. Source and target are roughly axially aligned (same row or same column).</td></tr>
+    <tr><td class="token">Q · single bend</td><td class="value">M x1 y1 Q cx cy x2 y2</td><td class="note">Source and target offset diagonally. Single control point at the inflection.</td></tr>
+    <tr><td class="token">C · S-curve (rare)</td><td class="value">M x1 y1 C c1x c1y c2x c2y x2 y2</td><td class="note">Source and target offset and require the line to "bow out" past an obstruction. Two control points.</td></tr>
+    <tr><td class="token">O · orthogonal</td><td class="value">M x1 y1 H mx V my H x2 (rounded corners with --bend-radius arcs)</td><td class="note">Dense region with 3+ arrows sharing a gutter band. Right-angle segments with small (6px) arc corners. State-machine return-loops use this.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn"><strong>Hard constraint: <code>--bend-radius</code> 24px.</strong> Below this radius the curve reads as a kink, not a curve. If geometry won't allow 24px, switch curve modes (L → Q → O) rather than tightening the bend.</div>
+
+<div class="frame">
+  <div class="frame-head"><span>4 curve modes · same source/target pair</span><span class="meta">light</span></div>
+  <svg viewBox="0 0 1660 280" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="cuBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <marker id="cuArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/></marker>
+      <filter id="cuFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="280" fill="url(#cuBgL)"/>
+
+    <!-- L -->
+    <text x="80" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">L · STRAIGHT</text>
+    <rect x="60"  y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <rect x="260" y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <path d="M 180 130 L 254 130" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#cuArr)"/>
+    <text x="220" y="124" text-anchor="middle" font-size="9" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">CALL</text>
+
+    <!-- Q -->
+    <text x="480" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">Q · SINGLE BEND</text>
+    <rect x="460" y="80"  width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <rect x="660" y="180" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <path d="M 580 110 Q 660 110 660 210 L 654 210" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#cuArr)"/>
+    <text x="640" y="146" font-size="9" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">ASYNC</text>
+
+    <!-- C -->
+    <text x="880" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">C · S-CURVE</text>
+    <rect x="860"  y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <rect x="1060" y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <!-- obstruction -->
+    <rect x="990" y="50" width="60" height="40" rx="6" fill="#e9e5d9" stroke="#d2cdc0"/>
+    <text x="1020" y="74" text-anchor="middle" font-size="9" fill="#4d5159">obstacle</text>
+    <path d="M 980 130 C 1010 60 1030 60 1054 130" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#cuArr)"/>
+
+    <!-- O -->
+    <text x="1280" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">O · ORTHOGONAL</text>
+    <rect x="1260" y="80"  width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <rect x="1460" y="180" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cuFL)"/>
+    <path d="M 1380 110 L 1500 110 Q 1520 110 1520 130 L 1520 210 L 1454 210" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#cuArr)"/>
+    <text x="1430" y="104" font-size="9" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">EVENT</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="gutters"><span class="num">04.4</span>Lanes &amp; gutters · parallel arrows</h2>
+<p class="section-lede">When multiple arrows run between the same source/target pair, they share a <strong>gutter</strong> — a stack of parallel paths separated by <code>--lane-gutter</code> (16px). Three or fewer parallel arrows: stack them. Four or more: collapse to a single trunk arrow + <code>chip.count</code>.</p>
+
+<table class="tokens">
+  <thead><tr><th>Parallel count</th><th>Treatment</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="value">1</td><td class="note">Single arrow, labeled normally</td><td class="note">Trivial case.</td></tr>
+    <tr><td class="value">2</td><td class="note">Two arrows, 16px gutter, each labeled</td><td class="note">Top label in zone A, bottom in zone B (italic).</td></tr>
+    <tr><td class="value">3</td><td class="note">Three arrows, 16px gutters, each labeled</td><td class="note">Density warning — consider whether the third belongs.</td></tr>
+    <tr><td class="value">4+</td><td class="note"><strong>Single trunk arrow + <code>chip.count</code></strong> showing the count, e.g. "×5 messages"</td><td class="note">Drawing 4+ parallel arrows is a content failure dressed as design.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>parallel arrow patterns · light</span><span class="meta">2, 3, and 4+ collapse</span></div>
+  <svg viewBox="0 0 1660 240" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="paBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <marker id="paArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/></marker>
+      <filter id="paFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="240" fill="url(#paBgL)"/>
+
+    <!-- 2 parallel -->
+    <text x="60" y="50" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">2 PARALLEL · 16px GUTTER</text>
+    <rect x="40"  y="70" width="120" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#paFL)"/>
+    <rect x="280" y="70" width="120" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#paFL)"/>
+    <line x1="160" y1="104" x2="274" y2="104" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#paArr)"/>
+    <text x="220" y="98" text-anchor="middle" font-size="9" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">CREATE</text>
+    <line x1="160" y1="136" x2="274" y2="136" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#paArr)"/>
+    <text x="220" y="152" text-anchor="middle" font-size="9" font-style="italic" fill="#6f7480">batch · 100/sec</text>
+
+    <!-- 3 parallel -->
+    <text x="500" y="50" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">3 PARALLEL · DENSITY WARN</text>
+    <rect x="480" y="70" width="120" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#paFL)"/>
+    <rect x="720" y="70" width="120" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#paFL)"/>
+    <line x1="600" y1="92"  x2="714" y2="92"  stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#paArr)"/>
+    <line x1="600" y1="120" x2="714" y2="120" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#paArr)"/>
+    <line x1="600" y1="148" x2="714" y2="148" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#paArr)"/>
+    <text x="657" y="180" text-anchor="middle" font-size="9" fill="#6f7480">creates · updates · deletes</text>
+
+    <!-- 4+ collapse to trunk + count -->
+    <text x="940" y="50" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">4+ COLLAPSE TO TRUNK + COUNT</text>
+    <rect x="920"  y="70" width="120" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#paFL)"/>
+    <rect x="1160" y="70" width="120" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#paFL)"/>
+    <line x1="1040" y1="120" x2="1154" y2="120" stroke="#6b9cf0" stroke-width="2.5" marker-end="url(#paArr)"/>
+    <text x="1097" y="112" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">MUTATIONS</text>
+    <rect x="1078" y="124" width="40" height="18" rx="9" fill="#6b9cf0"/>
+    <text x="1098" y="137" text-anchor="middle" font-size="10" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">×7</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="labels"><span class="num">04.5</span>Label placement · zones &amp; the no-rotation rule</h2>
+<p class="section-lede">Every connector label sits in one of three zones. <strong>Labels are never rotated 90°.</strong> If a horizontal label doesn't fit, the line jogs to make room — or the label becomes a <code>chip.label</code> on the source card. No exceptions.</p>
+
+<table class="tokens">
+  <thead><tr><th>Zone</th><th>Position</th><th>Style</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">A · above-line</td><td class="value">12px above line center</td><td class="note">10px, 600 weight, ALL CAPS, 0.8 letter-spacing, color matches stroke</td><td class="note">Primary verb / action: "CREATES", "VALIDATES", "NOTIFIES"</td></tr>
+    <tr><td class="token">B · below-line</td><td class="value">12px below line center</td><td class="note">9px, 400 weight italic, ink-4</td><td class="note">Subtitle / qualifier: "json blob · 6kb · signed"</td></tr>
+    <tr><td class="token">C · on-line pill</td><td class="value">centered on line, white fill</td><td class="note">11px chip with 9999px corners, ink-1 text on white</td><td class="note">Curve midpoints where above/below would collide. Pill creates its own contrast against the line.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn"><strong>The no-rotation rule.</strong> Vertical labels are forbidden — even on vertical connectors. If a label can't fit horizontally, options in order: (1) jog the connector to make room, (2) move the label to a <code>chip.label</code> on the source card, (3) use a zone-C pill at the bend. <em>Never</em> rotate.</div>
+
+<div class="frame">
+  <div class="frame-head"><span>label zones A / B / C · light</span><span class="meta">three placement strategies</span></div>
+  <svg viewBox="0 0 1660 240" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="laBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <marker id="laArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/></marker>
+      <filter id="laFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="240" fill="url(#laBgL)"/>
+
+    <!-- zone A -->
+    <text x="60" y="40" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">ZONE A · ABOVE-LINE CAPS</text>
+    <rect x="40"  y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <rect x="280" y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <line x1="160" y1="130" x2="274" y2="130" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#laArr)"/>
+    <text x="217" y="124" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">CREATES</text>
+
+    <!-- zone B -->
+    <text x="500" y="40" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">ZONE B · BELOW-LINE ITALIC</text>
+    <rect x="480" y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <rect x="720" y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <line x1="600" y1="130" x2="714" y2="130" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#laArr)"/>
+    <text x="657" y="124" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">NOTIFIES</text>
+    <text x="657" y="148" text-anchor="middle" font-size="9" font-style="italic" fill="#6f7480">json · webhook</text>
+
+    <!-- zone C -->
+    <text x="940" y="40" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">ZONE C · ON-LINE PILL</text>
+    <rect x="920"  y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <rect x="1160" y="100" width="120" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <path d="M 1040 130 Q 1100 100 1154 130" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#laArr)"/>
+    <rect x="1075" y="98" width="56" height="18" rx="9" fill="#ffffff" stroke="#6b9cf0"/>
+    <text x="1103" y="111" text-anchor="middle" font-size="9" font-weight="600" fill="#3a6ec9" letter-spacing="0.8">RETRY</text>
+
+    <!-- forbidden: rotation -->
+    <text x="1340" y="40" font-size="10" font-weight="600" fill="#d96a6a" letter-spacing="1.6">✕ ROTATION · FORBIDDEN</text>
+    <rect x="1320" y="80"  width="100" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <rect x="1320" y="160" width="100" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#laFL)"/>
+    <line x1="1370" y1="140" x2="1370" y2="156" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#laArr)"/>
+    <g transform="translate(1400, 150) rotate(-90)">
+      <text x="0" y="0" text-anchor="middle" font-size="10" font-weight="600" fill="#d96a6a" text-decoration="line-through" letter-spacing="0.8">DEPLOY</text>
+    </g>
+    <text x="1440" y="200" font-size="10" fill="#d96a6a" font-style="italic">jog the line<br/>or use zone C</text>
+  </svg>
+</div>
+
+<h3>The arrow-anchoring rule (no orphan arrows)</h3>
+<p>Every arrow's <code>M x y</code> must start at a defined <strong>source card edge</strong> (with <code>--arrow-stub</code> 8 inset). Every arrow's marker-end must land at a defined <strong>target card edge</strong>. An arrow that starts in a gutter or ends in empty space is an "orphan" — the reader can't tell what it's connecting.</p>
+
+<div class="callout err"><strong>Forbidden pattern: orphan arrow.</strong> If you can't identify a specific source card or target card, the arrow is wrong — either pick one, or delete the arrow. If you genuinely need to show a region-level flow, anchor the arrow to a <code>group.boundary</code> rather than to empty space.</div>
+
+<!-- =========================================================== -->
+<h2 id="crossings"><span class="num">04.6</span>Crossings · which arrow jogs over which</h2>
+<p class="section-lede">Crossings happen. The contract: <strong>secondary jogs over primary</strong>; <strong>shorter jogs over longer</strong>. Jog arc is 6px. <strong>Maximum 3 crossings per diagram</strong> — beyond that, restructure the layout.</p>
+
+<table class="tokens">
+  <thead><tr><th>Rule</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td class="note">Primary (solid-primary, sync-call, bidirectional) wins — secondary (dashed-handoff, mirror-secondary) jogs over it.</td><td class="note">The primary flow is what the reader is tracing; making it jog interrupts the read.</td></tr>
+    <tr><td class="note">Among same-priority arrows: shorter jogs over longer.</td><td class="note">Shorter arrows have less linear momentum; jogging them is visually cheaper.</td></tr>
+    <tr><td class="note">Jog arc is exactly 6px (small semicircle bumping over the line being crossed).</td><td class="note">Tight enough to read as a crossing-skip, not as a curve change.</td></tr>
+    <tr><td class="note">Maximum 3 crossings per diagram.</td><td class="note">More than 3 = the layout is the problem, not the arrows. Restructure into lanes or split.</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<h2 id="clearance"><span class="num">04.7</span>Clearance &amp; density caps</h2>
+<p class="section-lede">Clearance is the minimum perpendicular distance between an arrow and an unrelated card it passes near. Density caps are the maximum number of arrows / connections per card before the diagram is "too dense" to read.</p>
+
+<table class="tokens">
+  <thead><tr><th>Constraint</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--arrow-clearance</td><td class="value">16</td><td class="note">Min perpendicular distance from any arrow segment to any unrelated card edge.</td></tr>
+    <tr><td class="token">--arrow-stub</td><td class="value">8</td><td class="note">Arrow starts 8px inside its source card edge so the arrowhead has visual air on the target side.</td></tr>
+    <tr><td class="token">--lane-gutter</td><td class="value">16</td><td class="note">Between parallel arrows in same gutter.</td></tr>
+    <tr><td class="token">max arrows per card</td><td class="value">6</td><td class="note">Above 6, the card is over-connected — split it or remap to a hub-and-spoke.</td></tr>
+    <tr><td class="token">max parallel arrows per pair</td><td class="value">3</td><td class="note">Above 3, collapse to trunk + <code>chip.count</code>.</td></tr>
+    <tr><td class="token">max cards per diagram</td><td class="value">18</td><td class="note">Above 18, the diagram tries to do too much — split into multiple figures.</td></tr>
+    <tr><td class="token">max arrow types per diagram</td><td class="value">4</td><td class="note">Of the 8 taxonomy types, no diagram should use more than 4 different ones.</td></tr>
+    <tr><td class="token">max surface gradients per diagram</td><td class="value">5</td><td class="note">Of the 7 categorical surfaces, no diagram should use more than 5 different ones.</td></tr>
+    <tr><td class="token">max crossings per diagram</td><td class="value">3</td><td class="note">Above 3, restructure.</td></tr>
+    <tr><td class="token">max animation classes per diagram</td><td class="value">3</td><td class="note">Calm aesthetic — see foundations §01.6.</td></tr>
+  </tbody>
+</table>
+
+<h3>Density caps · the "split it" numbers</h3>
+<p>When a draft diagram hits any of the above caps, the answer is almost always to split the diagram rather than push the cap. Diagrams are cheap; readers' attention isn't.</p>
+
+<!-- =========================================================== -->
+<h2><span class="num">04.8</span>Connector contract · the checklist</h2>
+<p class="section-lede">Before any diagram is finalized, walk this list. Every "yes" earns the connector its place in the diagram; any "no" means the connector is wrong or the diagram is too dense.</p>
+
+<ul class="checks">
+  <li>Every arrow has one of the 8 taxonomy types (no improvised stroke).</li>
+  <li>Every arrow starts at a defined source card edge (no orphan starts).</li>
+  <li>Every arrow ends at a defined target card edge (no orphan ends).</li>
+  <li>Every arrow's curve mode is L / Q / C / O — chosen by geometry, not aesthetics.</li>
+  <li>Every label sits in zone A, B, or C — never rotated.</li>
+  <li>Every parallel arrow respects the 16px gutter; 4+ collapse to trunk + count.</li>
+  <li>Every crossing follows the jog priority (secondary over primary, shorter over longer, 6px arc).</li>
+  <li>Every arrow stays ≥ <code>--arrow-clearance</code> 16px from any unrelated card.</li>
+  <li>Card-density cap of 18 is respected.</li>
+  <li>Arrow-type cap of 4 is respected.</li>
+  <li>Surface-gradient cap of 5 is respected.</li>
+  <li>Crossing cap of 3 is respected.</li>
+  <li>Animation cap of 3 classes is respected.</li>
+</ul>
+
+<div class="callout good"><strong>If the checklist passes, the connectors are right.</strong> Most "this diagram feels off" complaints trace back to a missed checklist item.</div>
+
+</main>
+</div>
+</body>
+</html>

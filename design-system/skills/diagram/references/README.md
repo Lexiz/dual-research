@@ -1,41 +1,43 @@
-# architecture-diagram · design system v1.1 (dual-theme extension)
+# diagram skill · reference bundle · v2.0.0
 
-A complete, locked visual specification for the `architecture-diagram` Claude Code skill. **v1.1 adds a full dark-theme token registry alongside the v1 cream palette.** Every diagram now ships as a pair: `<slug>.light.svg` + `<slug>.dark.svg`.
+**What this skill is.** The `diagram` skill produces polished SVG architecture diagrams from prose. It restates the user's intent, classifies the dominant structure (static / time-ordered / data model / topology / integration surface), picks one of nine templates, and renders.
 
-For the dark-theme extension specifically:
-- `OPEN-QUESTIONS-answers.md` — decisions for the 11 questions in the briefing, with reasoning.
-- `CHANGELOG.md` — what changed in v1.1, file-by-file.
-- `foundations.html` §01.0 “Theme model” — the contract for dual-theme tokens (same names + `-dark` suffix; gradient and filter IDs stable across themes).
-- `examples/*.{light,dark}.svg` — 18 canonical anchor files (9 templates × 2 themes).
-- `SKILL.md` Steps 3, 5, 6, 7 — the dual-output workflow.
-- `troubleshooting.md` — 5 new entries for dark-theme failure modes.
+**What it produces.** A pair of self-contained SVG files — `<slug>.<mode>.light.svg` + `<slug>.<mode>.dark.svg` — no external assets, all gradients / filters / markers / keyframes inlined in `<defs>`. ViewBox 1660 × height-to-fit. Light and dark renders share layout, arrows, icons, and labels; only canvas, surface, ink, shadow, and connector colors swap.
 
-This bundle is the source of truth for the visual side of the skill. Read it top-to-bottom and apply verbatim. Nothing in here is a suggestion.
+**When to invoke.** Any time the user wants to visualise, diagram, or chart a system — "draw this", "show me X as a diagram", "create a chart for this", "visualise this architecture / data model / flow / topology", or "give me a Material dark version of this". Skip for prose-only explanations, mermaid-style text diagrams, or hand-drawn aesthetics.
+
+**Input contract.** Free prose. The skill detects (a) the mode + theme requested and (b) the dominant structure to classify into a template. If the input is genuinely ambiguous about either, the skill asks one focused question before drawing — see `SKILL.md` Step 1.
+
+**Output contract.** Two SVG files per requested theme variant (or four if `theme: both`), written by convention to `diagrams/<slug>.<mode>.{light,dark}.svg` adjacent to the document referencing them. Self-contained — Notion, GitHub, Slack, and PDF all paste-friendly.
 
 ---
 
-## What this is
+## Two design systems, one skill
 
-A drop-in replacement for the visual side of the `architecture-diagram` skill. It defines — by closed registries and named primitives — every visual decision the skill is allowed to make. A downstream generator that follows this spec produces diagrams that look like siblings across a proposal, not strangers.
+The skill ships **two parallel design systems** — pick one per request:
 
-The brief was to fix nine specific failure modes visible in current output (icons crashing through titles, labels rotated 90°, arrows passing through unrelated cards, unexplained dashed borders, inconsistent dim-state treatments, floating labels, parallel arrow bunching, viewBox-width overflow, ad-hoc routing). Each is addressed below by a named primitive or rule the generator references instead of inventing.
+| Mode | Identity | Type | Icons |
+|---|---|---|---|
+| **Pixel** (`pixel`, default) | cream + indigo on a polished doc page | Inter | 78-icon custom library |
+| **Material** (`material`) | Material 3 inspired by dual-research — sable + sage palette | Roboto Flex (plain) + Roboto Serif (brand) | 78-icon library hand-drawn in M3 style |
+
+Both modes ship light + dark variants. Mode is part of the filename so both versions of the same diagram can coexist in one folder without collision.
+
+**The skill defaults to Pixel** when the user doesn't say which mode they want — this preserves the behavior of every existing invocation.
+
+A multi-diagram proposal pins one mode for the whole set via the manifest; mixing modes within a single proposal is a hard error (a proposal is a coherent reader experience).
 
 ---
 
 ## How to use this bundle
 
-You have two ways to consume it:
+Two ways to consume it:
 
-1. **For humans reviewing the system** — open `index.html` in a browser. Top-to-bottom navigation in the left sidebar covers everything: foundations → components → icons → connectors → templates → examples → set manifest. Each page has rendered SVG specimens so the spec is visible, not just described.
+1. **For humans reviewing the system** — open `index.html` in a browser. The reviewer site has a per-mode bundle: `pixel/` covers the cream + indigo design system; `material/` covers the Material 3 design system. Each mode bundle has the same shape: foundations → components → icons → connectors → templates → examples. Mode-agnostic pages (set manifest, input contracts) live at the bundle root.
 
-2. **For the skill generating diagrams** — feed this entire folder into the skill's context (or commit it into `architecture-diagram/`). The skill should:
-   - Read `index.html` (overview) and `foundations.html` first to load token vocabulary
-   - Reference `components.html`, `icons.html`, `connectors.html` whenever generating
-   - Use the per-template contracts in `templates.html` to drive each diagram type
-   - Use `examples/*.svg` as anchor files for what correct output looks like
-   - Maintain a `diagram-set-manifest.yaml` (schema in `manifest.html`) across any multi-diagram proposal
+2. **For the skill generating diagrams** — `SKILL.md` is the orchestrator. After detecting the requested mode in Step 1, every subsequent `references/<mode>/...` reference in Steps 3–7 routes to the right bundle. Template input contracts (`templates/<name>.md`) are mode-agnostic and live at `references/` root.
 
-The HTML site is the reviewer; the source-of-truth for the downstream generator is the cumulative spec captured across all eight pages. Treat any rendered SVG primitive on a page as a copy-pasteable fragment — they're built from the same locked tokens.
+The HTML reference pages are the visual reviewer; the canonical truth is the cumulative spec captured across both mode bundles. Treat any rendered SVG primitive on a page as a copy-pasteable fragment for that mode.
 
 ---
 
@@ -44,50 +46,71 @@ The HTML site is the reviewer; the source-of-truth for the downstream generator 
 ```
 references/
 ├── README.md                       ← you are here
-├── index.html                      ← entry · overview · deliverables map
-├── foundations.html                ← D1 · color (light + dark), type, spacing, shadow, animation tokens
-├── components.html                 ← D2 · cards, chips, shapes, lanes, stages, groups, callouts (paired light/dark notes)
-├── icons.html                      ← D3 · 78 icons × theme matrix + monogram fallback
-├── connectors.html                 ← D4 · arrow taxonomy, gutters, labels, crossings, density caps (+ theme behavior table)
-├── templates.html                  ← D5 · per-template visual contracts + dark-variant notes (all 9 filled)
-├── examples.html                   ← D6 · canonical worked SVGs viewer (9 paired galleries)
-├── manifest.html                   ← cross-diagram consistency mechanism + theme pinning (§07.4)
-├── troubleshooting.md              ← common failure modes (incl. 5 dark-theme entries)
-├── CHANGELOG.md                    ← v1.1 dual-theme extension changelog
-├── OPEN-QUESTIONS-answers.md       ← decisions + reasoning for the 11 brief questions
-├── _shared.css                     ← styles for the reviewer site (with .pair, .frame.dark, .theme-banner)
-├── templates/                      ← per-template input contracts (theme-agnostic)
+├── index.html                      ← entry · overview · mode picker · deliverables map
+├── manifest.html                   ← cross-diagram consistency mechanism · mode + theme pinning
+├── troubleshooting.md              ← common failure modes (mode-tagged where relevant)
+├── CHANGELOG.md                    ← v2.0.0 mode-aware split + Material mode arrival
+├── OPEN-QUESTIONS-answers.md       ← historical decision log (dual-theme rollout questions)
+├── templates/                      ← per-template input contracts · mode + theme agnostic
 │   └── <name>.md  × 9
-└── examples/                       ← 18 canonical SVGs (9 templates × 2 themes)
-    ├── <name>.light.svg  × 9       ← cream canvas, v1 palette
-    └── <name>.dark.svg   × 9       ← near-black canvas, lifted surfaces
+├── pixel/                          ← Pixel mode (cream + indigo) — the default
+│   ├── foundations.html            ← D1 · color (light + dark), type, spacing, shadow, animation tokens
+│   ├── components.html             ← D2 · cards, chips, shapes, lanes, stages, groups, callouts
+│   ├── icons.html                  ← D3 · 78 icons × theme matrix + monogram fallback
+│   ├── connectors.html             ← D4 · arrow taxonomy, gutters, labels, crossings, density caps
+│   ├── templates.html              ← D5 · per-template visual contracts (all 9 filled)
+│   ├── examples.html               ← D6 · canonical worked SVGs viewer (9 paired galleries)
+│   ├── _shared.css                 ← styles for the reviewer site
+│   └── examples/                   ← 18 canonical SVGs (9 templates × 2 themes)
+│       ├── <name>.pixel.light.svg  × 9    ← cream canvas, indigo accent
+│       └── <name>.pixel.dark.svg   × 9    ← near-black canvas, lifted surfaces
+└── material/                       ← Material mode (dual-research M3) — under construction in P2
+    ├── foundations.html            ← (P2)
+    ├── components.html             ← (P3)
+    ├── icons.html                  ← (P3) · 78 icons hand-drawn in M3 style
+    ├── connectors.html             ← (P3)
+    ├── templates.html              ← (P3)
+    ├── examples.html               ← (P3)
+    ├── _shared.css                 ← (P2)
+    └── examples/                   ← 18 canonical SVGs (P2 anchor + P4 rest)
+        ├── <name>.material.light.svg  × 9
+        └── <name>.material.dark.svg   × 9
 ```
 
 ---
 
 ## What's locked (do not change)
 
-These are the load-bearing brand surfaces. Every diagram inherits them.
+These are the load-bearing contracts. They hold across both modes.
 
-| Token | Value | Why locked |
+| Contract | Value | Why locked |
 |---|---|---|
 | `--canvas-width` | **1660** | Visual rhythm across diagrams. Wide variant `2200` exists only for explicit landscape three-column overviews. |
-| `--canvas-bg` / `--canvas-bg-dark` | `#f5f1ea → #ece8e0` (light) · `#1a1a1f → #14141a` (dark) | Identity. Every diagram emits in both themes. |
-| `--font-family` | `Inter, system-ui, ...` | Identity. Theme-agnostic. |
-| `--indigo` / `--indigo-dark` | `#4f5fb8` (light) · `#7785d4` (dark, AAA-adjacent) | Primary accent. The only color that crosses every template. |
-| Output format | **Two** self-contained SVGs per diagram — `<slug>.light.svg` + `<slug>.dark.svg`, no external assets, all gradients/filters/keyframes inline | Notion embedability + theme parity. |
-| Animation cap | **Max 3 animation classes per diagram** | Calm aesthetic — see `foundations.html` §01.6. Theme-portable. |
+| Output format | **Two** self-contained SVGs per diagram — `<slug>.<mode>.light.svg` + `<slug>.<mode>.dark.svg`, no external assets, all gradients/filters/keyframes inline | Notion embedability + theme parity. |
+| Mode is in the filename | `.pixel.` or `.material.` segment between slug and theme | Lets both design-system versions of one diagram coexist; reader can see the mode at a glance. |
+| Animation cap | **Max 3 animation classes per diagram** | Calm aesthetic — codified in each mode's `foundations.html` §01.6. Theme-portable. |
+| Mode pin per set | Manifest's `mode:` field is authoritative; per-diagram override is a hard error | A proposal is a coherent reader experience — mixing design systems is a design failure. |
+| Theme pin per set | Manifest's `theme:` field is authoritative; per-diagram override is a hard error | Same logic as mode pin. |
+
+**Per-mode identity (the mode-specific load-bearing surfaces):**
+
+| Mode | Canvas (light / dark) | Accent | Type |
+|---|---|---|---|
+| **Pixel** | `#f5f1ea → #ece8e0` / `#1a1a1f → #14141a` | indigo `#4f5fb8` / `#7785d4` | Inter |
+| **Material** | `#faf9f6 → #ece8de` / `#0d0f12 → #08090b` | info-blue `#6b9cf0` (`--md-tertiary`) | Roboto Flex (plain) + Roboto Serif (brand) |
 
 ---
 
 ## The six deliverables, at a glance
 
-### D1 · Foundations (`foundations.html`)
-Locked registries for everything: canvas, semantic color palette (8 surface gradients incl. new `--surface-cache` and `--surface-deferred`), typography roles, 14 spacing tokens (`--gap-card`, `--lane-gutter`, `--label-clearance`, etc.), shadow registry (2 entries), and animation registry (5 keyframes + 7 classes). 
+Each deliverable exists in both `pixel/` and `material/`. The mode-shared content (template input contracts, manifest schema) sits at the root.
+
+### D1 · Foundations (`<mode>/foundations.html`)
+Locked registries for everything in the mode: canvas, semantic color palette, surface gradients, typography roles, spacing tokens (`--gap-card`, `--lane-gutter`, `--label-clearance`, etc.), shadow registry, and animation registry.
 
 **Use it when:** any spatial or stylistic decision needs a value — never invent a hex, font-size, or pixel offset.
 
-### D2 · Components (`components.html`)
+### D2 · Components (`<mode>/components.html`)
 A closed library of slotted primitives:
 - **Cards** — 7 variants: `card.primary` / `card.secondary` / `card.reference` / `card.compact` / `card.deferred` / `card.highlight` (+ optional icon, status, footer slots)
 - **Chips** — `chip.status` (5 states) · `chip.count` · `chip.version` · `chip.label`
@@ -99,8 +122,8 @@ A closed library of slotted primitives:
 
 **Use it when:** drawing any structural element. If a primitive isn't in this list, the generator does not invent one — it picks the closest match, or uses the documented fallback.
 
-### D3 · Icons (`icons.html`)
-**78 icons** in 9 categories drawn to one density spec (32 × 32 bounding box, filled silhouettes, consistent radii), each with explicit light-card and dark-card variants:
+### D3 · Icons (`<mode>/icons.html`)
+**78 icons** in 9 categories drawn to one density spec (32 × 32 bounding box, filled silhouettes, consistent radii), each with explicit light-card and dark-card variants. Each mode has its own full library — Pixel's is the hand-tuned cream + indigo set; Material's is the M3-style sibling.
 
 | Category | Count | Examples |
 |---|---|---|
@@ -122,7 +145,7 @@ A closed library of slotted primitives:
 
 Plus the **fallback rule**: when no icon matches, use `icon.generic-service` — a monogram tile (first letter or first two initials of the service name) in the service's canonical surface color. Never invent a new bespoke shape.
 
-### D4 · Connectors (`connectors.html`) — the highest-value page
+### D4 · Connectors (`<mode>/connectors.html`) — the highest-value page
 The biggest source of visible failures today. Fixed in spec:
 
 - **Arrow taxonomy (8 types)** — `solid-primary` · `dashed-handoff` · `mirror-secondary` · `sync-call` · `return` · `async-event` · `bidirectional` · `error-path`
@@ -136,18 +159,20 @@ The biggest source of visible failures today. Fixed in spec:
 
 The "no rotated labels" rule alone eliminates two of the screenshot's most visible failures.
 
-### D5 · Templates (`templates.html`)
-A visual contract per template — five fields: components used, icons used, layout rules, arrow types, anti-patterns. **All nine templates are filled** (v1.1): `layered-architecture`, `pipeline-flow`, `sequence`, `system-context`, `data-schema`, `infrastructure`, `event-flow`, `connector-map`, `freeform`. Each has a dark-variant note (mostly "swap surface tokens, no layout change").
+### D5 · Templates (`<mode>/templates.html` + shared `templates/<name>.md`)
+A visual contract per template — five fields: components used, icons used, layout rules, arrow types, anti-patterns. **All nine templates are filled** in Pixel; Material fills them as part of P3. The nine: `layered-architecture`, `pipeline-flow`, `sequence`, `system-context`, `data-schema`, `infrastructure`, `event-flow`, `connector-map`, `freeform`. Each has a dark-variant note.
+
+**Input contracts (`templates/<name>.md`) are mode-shared** — they describe what the user must supply, not how it renders. One contract drives both modes.
 
 The `freeform` template is the catch-all — when no other template fits, decompose the request into nouns → cards, verbs → arrows, groupings → boundaries, ordering → stages or lanes.
 
-### D6 · Worked canonical examples (`examples.html`)
-**Eighteen** end-to-end SVGs — nine templates × two themes — of the same proposal ("Partner Vetting") built only from the new system:
+### D6 · Worked canonical examples (`<mode>/examples.html`)
+**Eighteen** end-to-end SVGs per mode — nine templates × two themes — of the same proposal ("Partner Vetting") built only from that mode's system:
 
-- `examples/<name>.light.svg` × 9 — cream canvas, v1 palette
-- `examples/<name>.dark.svg`  × 9 — near-black canvas, lifted surfaces, AAA-adjacent indigo
+- `<mode>/examples/<name>.<mode>.light.svg` × 9
+- `<mode>/examples/<name>.<mode>.dark.svg`  × 9
 
-Open a `.light.svg` next to its `.dark.svg` sibling and they read as the same diagram on different backgrounds — same layout, same arrows, same icons, same labels, only colors swap. The pairs are the anchors a fresh generation should match.
+Open a `.light.svg` next to its `.dark.svg` sibling and they read as the same diagram on different backgrounds — same layout, same arrows, same icons, same labels, only colors swap. The pairs are the anchors a fresh generation should match. Across modes, the same diagram in `pixel/` and `material/` shares structure but expresses it in different visual languages — useful for comparing the two systems side-by-side.
 
 ### Cross-diagram consistency · the set manifest (`manifest.html`)
 A small YAML file authored on the first diagram of a proposal that pins:
@@ -166,15 +191,16 @@ Every later diagram in the set reads this manifest before generating. The exampl
 
 When the skill is asked to produce a diagram, the workflow is:
 
-1. **Load foundations** — read `foundations.html`. Start with §01.0 "Theme model" (the dual-theme contract), then the locked tokens. Apply verbatim.
-2. **Pick template** — read the matching contract in `templates.html`. If user request doesn't match any of the nine named templates cleanly, use `freeform` with its decomposition procedure.
-3. **Consult the set manifest** — if this is not the first diagram in the set, read the existing `diagram-set-manifest.yaml`. Use pinned service → label / surface / icon mappings; honor the `theme:` field (`light` / `dark` / `both`, default `both`).
-4. **Compose from the library** — every card is a named variant from `components.html`. Every icon is from `icons.html` (or `icon.generic-service` fallback). Every shape is a `node.*` primitive.
-5. **Apply the connector contract** — every arrow has a taxonomy name; every label sits in a legal zone; every parallel run respects gutters; every crossing follows the jog priority. Check against the contract checklist on `connectors.html` §04.8.
-6. **Animate sparingly** — at most 3 animation classes per diagram, from the registry. If a fourth feels needed, drop one or split the diagram.
-7. **Theme pass** — render once with light tokens, once with dark tokens, producing `<slug>.light.svg` + `<slug>.dark.svg`. The two files share structure; only color values, shadow filter bodies, and canvas gradient stops differ.
-8. **Self-check both renders** against the canonical example pair for the template (`examples/<name>.{light,dark}.svg`). Apply the standard checks (arrow routing, label clearance, height locking, icon alignment) to each PNG plus the five dark-specific checks (cream leakage, invisible elevation, indigo legibility, text contrast, layout parity). Iterate against the *worse* variant.
-9. **Update the manifest** — if new services were drawn, append them so the next diagram in the set inherits.
+1. **Detect mode + theme** — parse the request for `pixel` / `material` and `light` / `dark` / `both`. Default to `pixel` + `both` if unstated. Surface the choice in the restatement.
+2. **Load the mode's foundations** — read `<mode>/foundations.html`. Start with §01.0 "Theme model", then the locked tokens. Apply verbatim.
+3. **Pick template** — read the matching contract in `<mode>/templates.html` plus the shared input contract `templates/<name>.md`. If user request doesn't match any of the nine named templates cleanly, use `freeform` with its decomposition procedure.
+4. **Consult the set manifest** — if this is not the first diagram in the set, read the existing `diagram-set-manifest.yaml`. Use pinned `mode:` / `theme:` and pinned service → label / surface / icon mappings. A per-diagram mode or theme override is a hard error.
+5. **Compose from the mode's library** — every card is a named variant from `<mode>/components.html`. Every icon is from `<mode>/icons.html` (or that mode's `icon.generic-service` fallback). Every shape is a `node.*` primitive.
+6. **Apply the connector contract** — every arrow has a taxonomy name; every label sits in a legal zone; every parallel run respects gutters; every crossing follows the jog priority. Check against the contract checklist on `<mode>/connectors.html`.
+7. **Animate sparingly** — at most 3 animation classes per diagram, from the mode's registry. If a fourth feels needed, drop one or split the diagram.
+8. **Theme pass** — render once with the mode's light tokens, once with its dark tokens, producing `<slug>.<mode>.light.svg` + `<slug>.<mode>.dark.svg`. The two files share structure; only color values, shadow filter bodies, and canvas gradient stops differ.
+9. **Self-check both renders** against the canonical example pair for the template (`<mode>/examples/<name>.<mode>.{light,dark}.svg`). Apply the standard checks (arrow routing, label clearance, height locking, icon alignment) to each PNG plus the five dark-specific checks (canvas leakage, invisible elevation, accent legibility, text contrast, layout parity). Iterate against the *worse* variant.
+10. **Update the manifest** — if new services were drawn, append them so the next diagram in the set inherits.
 
 ---
 
@@ -184,15 +210,15 @@ For each historically observed failure mode, the prevention now lives in a speci
 
 | Original failure | Prevented by |
 |---|---|
-| Icons crash through card titles | `card` anatomy — reserved icon slot (top-left, 36×36 with 20/20 inset) — `components.html` §02.1 |
-| Connector labels rotated vertically | Zone A/B/C rule, no rotation ever — `connectors.html` §04.5 |
+| Icons crash through card titles | `card` anatomy — reserved icon slot (top-left, 36×36 with 20/20 inset) — `<mode>/components.html` §02.1 |
+| Connector labels rotated vertically | Zone A/B/C rule, no rotation ever — `<mode>/connectors.html` §04.5 |
 | Floating labels with no anchor | Every connector label bound to a line; orphan labels become `chip.label` on a card — §04.5b |
-| Inconsistent "deferred" treatment | `card.deferred` is the single canonical look — `components.html` §02.2 |
-| Floating chip row with no flow | Chips never freestanding — adjacency rule — `components.html` §02.3 |
-| Unexplained highlight border | `card.highlight` requires a paired `chip.label` — `components.html` §02.2 |
+| Inconsistent "deferred" treatment | `card.deferred` is the single canonical look — `<mode>/components.html` §02.2 |
+| Floating chip row with no flow | Chips never freestanding — adjacency rule — `<mode>/components.html` §02.3 |
+| Unexplained highlight border | `card.highlight` requires a paired `chip.label` — `<mode>/components.html` §02.2 |
 | Inconsistent card heights in a row | Height-lock via the row primitive — referenced from the per-template contract |
-| Diagram exceeds locked viewBox | `--canvas-width-wide` 2200 variant + split rule — `foundations.html` §01.1 |
-| Arrows route through unrelated cards | `--arrow-clearance` 16 + lane gutter system — `connectors.html` §04.4, §04.7 |
+| Diagram exceeds locked viewBox | `--canvas-width-wide` 2200 variant + split rule — `<mode>/foundations.html` §01.1 |
+| Arrows route through unrelated cards | `--arrow-clearance` 16 + lane gutter system — `<mode>/connectors.html` §04.4, §04.7 |
 
 ---
 
@@ -206,11 +232,11 @@ For each historically observed failure mode, the prevention now lives in a speci
 ## Quality bar (for the downstream generator)
 
 A diagram passes if every one of these is true:
-- Both `<slug>.light.svg` AND `<slug>.dark.svg` were emitted
+- Both `<slug>.<mode>.light.svg` AND `<slug>.<mode>.dark.svg` were emitted
 - The two files share structure — only color values, shadow filter bodies, and canvas gradient stops differ
-- Background, font, viewBox width, indigo identity all match foundations verbatim (theme-appropriate)
-- Every card is a named variant from `components.html` (slot positions locked)
-- Every icon is from `icons.html` or the `icon.generic-service` fallback
+- Background, font, viewBox width, accent identity all match the mode's foundations verbatim (theme-appropriate)
+- Every card is a named variant from the mode's `<mode>/components.html` (slot positions locked)
+- Every icon is from the mode's `icons.html` or the mode's `icon.generic-service` fallback
 - Every arrow is one of the eight taxonomy types
 - Every connector label is in zone A, B, or C — no rotation
 - Parallel arrows obey the gutter rule; > 3 collapse to a trunk
@@ -218,6 +244,7 @@ A diagram passes if every one of these is true:
 - No arrow passes within `--arrow-clearance` (16) of an unrelated card
 - ≤ 3 animation classes
 - Cross-diagram services use manifest-pinned label + surface + icon
+- Mode pin honored: every diagram in a manifested set uses the same `mode:` and `theme:`
 
 Anything else and the diagram is wrong — not a matter of taste.
 
@@ -225,4 +252,4 @@ Anything else and the diagram is wrong — not a matter of taste.
 
 ## Contact / iteration
 
-Open `index.html` in a browser. Each page has anchor-linked sections (e.g. `connectors.html#labels`) so a tighter feedback loop is easy. The reviewer site is the spec — comments and changes should reference its section numbers.
+Open `index.html` in a browser to navigate the reviewer site. Each mode bundle has anchor-linked sections (e.g. `pixel/connectors.html#labels` or `material/connectors.html#labels`) so a tighter feedback loop is easy. The reviewer site is the spec — comments and changes should reference its section numbers.

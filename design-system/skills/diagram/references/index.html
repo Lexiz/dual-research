@@ -18,29 +18,31 @@
     <div class="group">Read me first</div>
     <a href="index.html" class="active"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
-    <a href="foundations.html"><span class="n">01</span>Foundations</a>
-    <a href="components.html"><span class="n">02</span>Components</a>
-    <a href="icons.html"><span class="n">03</span>Icons</a>
-    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <a href="pixel/foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="pixel/components.html"><span class="n">02</span>Components</a>
+    <a href="pixel/icons.html"><span class="n">03</span>Icons</a>
+    <a href="pixel/connectors.html"><span class="n">04</span>Connectors</a>
     <div class="group">Application</div>
-    <a href="templates.html"><span class="n">05</span>Templates</a>
-    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="pixel/templates.html"><span class="n">05</span>Templates</a>
+    <a href="pixel/examples.html"><span class="n">06</span>Examples</a>
     <a href="manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">v2.0.0 · mode-aware · pixel + material · light + dark</div>
 </aside>
 
 <main>
 
-<p class="eyebrow">Design system · v1.1 · dual-theme</p>
-<h1 class="page">A locked visual contract for nine kinds of architecture diagram, now in light and dark — every figure in a proposal ships on cream or near-black.</h1>
-<p class="lede">The <code>architecture-diagram</code> skill emits <strong>two</strong> self-contained SVGs per request — <code>&lt;slug&gt;.light.svg</code> + <code>&lt;slug&gt;.dark.svg</code>. Diagrams ship in clusters of 3–6 for any given Notion proposal, so cross-diagram coherence across both themes is the actual quality bar. This system locks the primitives the generator improvises today — cards, icons, connectors, spacing — into a closed, named, copy-pasteable library, defines theme-equivalent tokens for every theme-dependent value, and adds a manifest mechanism that pins entity → gradient → icon across a whole set in either theme.</p>
+<p class="eyebrow">Design system · v2.0.0 · two modes · light + dark</p>
+<h1 class="page">A locked visual contract for nine kinds of architecture diagram — in two parallel design systems, each shipping light + dark.</h1>
+<p class="lede">The <code>diagram</code> skill ships two design systems side-by-side. <strong>Pixel</strong> (the default) is cream + indigo on a polished doc page — the system this site has documented since v1. <strong>Material</strong> is a Material 3 sibling inspired by the dual-research dashboard — sable + sage palette, Roboto Flex + Roboto Serif type. Every diagram emits a pair of self-contained SVGs under the requested mode: <code>&lt;slug&gt;.&lt;mode&gt;.{light,dark}.svg</code>. Diagrams ship in clusters of 3–6 for any given proposal; cross-diagram coherence across both themes <em>and</em> within one mode is the quality bar. Each mode locks its own primitives — cards, icons, connectors, spacing — into a closed, named, copy-pasteable library, and the shared manifest mechanism pins mode, theme, and entity → gradient → icon across a whole set.</p>
 
-<div class="callout"><strong>What's new in v1.1.</strong> A complete dark-theme token registry alongside the v1 cream palette — see <a href="foundations.html#01.0">foundations §01.0</a>. Same diagram, two backgrounds. Dual-output workflow in <a href="SKILL.md">SKILL.md</a>. Nine new canonical examples in <a href="examples.html">examples</a>. Decisions and trade-offs documented in <a href="OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>.</div>
+<div class="callout"><strong>What's new in v2.0.0.</strong> Mode-aware skill: <code>pixel</code> is the default; <code>material</code> opts into the M3 design system. Mode is part of the filename so both versions of a diagram coexist without collision. Per-set <code>mode:</code> + <code>theme:</code> pin in the manifest — see <a href="manifest.html#07.5">manifest §07.5</a>. Pixel mode is at <a href="pixel/foundations.html">pixel/</a>; Material mode is at <a href="material/foundations.html">material/</a>. Decisions log in <a href="OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>; v2 changelog in <a href="CHANGELOG.md">CHANGELOG.md</a>.</div>
+
+<div class="callout"><strong>Two identity panels follow.</strong> The Pixel panel shows the cream + indigo + Inter vocabulary; the Material panel below it shows the same structural primitives expressed in sable + sage + Roboto Flex/Serif. Same diagrams, two visual languages.</div>
 
 <!-- ============== identity panel ============== -->
 <div class="frame">
-  <div class="frame-head"><span>Identity at a glance</span><span class="meta">cream · indigo · Inter · viewBox 1660</span></div>
+  <div class="frame-head"><span>Pixel · identity at a glance</span><span class="meta">cream · indigo · Inter · viewBox 1660</span></div>
   <svg viewBox="0 0 1660 380" font-family="Inter, system-ui, sans-serif">
     <defs>
       <linearGradient id="ovBg" x1="0" y1="0" x2="0" y2="1">
@@ -153,6 +155,119 @@
   </svg>
 </div>
 
+<!-- ============== MATERIAL identity panel ============== -->
+<div class="frame">
+  <div class="frame-head"><span>Material · identity at a glance</span><span class="meta">M3 cream · info-blue · Roboto Flex + Roboto Serif · viewBox 1660</span></div>
+  <svg viewBox="0 0 1660 380" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="mvBg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#faf9f6"/>
+        <stop offset="100%" stop-color="#ece8de"/>
+      </linearGradient>
+      <linearGradient id="mvPrimary" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#3a5fa8"/>
+        <stop offset="100%" stop-color="#234686"/>
+      </linearGradient>
+      <linearGradient id="mvNeutral" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#3a3f47"/>
+        <stop offset="100%" stop-color="#21252b"/>
+      </linearGradient>
+      <linearGradient id="mvSlate" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#5e636d"/>
+        <stop offset="100%" stop-color="#3a3e46"/>
+      </linearGradient>
+      <linearGradient id="mvSecure" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#34805a"/>
+        <stop offset="100%" stop-color="#1d4f37"/>
+      </linearGradient>
+      <linearGradient id="mvSql" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#1d4480"/>
+        <stop offset="100%" stop-color="#0d2354"/>
+      </linearGradient>
+      <linearGradient id="mvStore" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#8a6d4e"/>
+        <stop offset="100%" stop-color="#5e4632"/>
+      </linearGradient>
+      <filter id="mvShadow" x="-4%" y="-4%" width="108%" height="116%">
+        <feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#14171c" flood-opacity="0.22"/>
+      </filter>
+      <filter id="mvShadowLt" x="-4%" y="-4%" width="108%" height="116%">
+        <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/>
+      </filter>
+      <marker id="mvArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
+      </marker>
+    </defs>
+
+    <rect width="1660" height="380" fill="url(#mvBg)"/>
+
+    <!-- left column: identity -->
+    <text x="64" y="58" font-size="11" font-weight="600" fill="#6f7480" letter-spacing="1.6">PALETTE</text>
+    <rect x="64" y="78" width="92" height="56" rx="8" fill="#6b9cf0"/>
+    <text x="110" y="152" text-anchor="middle" font-size="10" font-family="Roboto Flex, monospace" fill="#4d5159">info-blue</text>
+    <rect x="166" y="78" width="48" height="56" rx="8" fill="url(#mvNeutral)"/>
+    <rect x="222" y="78" width="48" height="56" rx="8" fill="url(#mvSlate)"/>
+    <rect x="278" y="78" width="48" height="56" rx="8" fill="url(#mvSql)"/>
+    <rect x="334" y="78" width="48" height="56" rx="8" fill="url(#mvSecure)"/>
+    <rect x="390" y="78" width="48" height="56" rx="8" fill="url(#mvStore)"/>
+
+    <text x="64" y="200" font-size="11" font-weight="600" fill="#6f7480" letter-spacing="1.6">TYPE</text>
+    <text x="64" y="234" font-family="Roboto Serif, ui-serif, Charter, Georgia, serif" font-size="28" font-weight="500" letter-spacing="-0.5" fill="#04060a">Roboto Serif + Flex</text>
+    <text x="64" y="254" font-size="12" fill="#4d5159">brand serif for hero · plain flex for body · tabular nums</text>
+
+    <!-- center: card primitives -->
+    <text x="540" y="58" font-size="11" font-weight="600" fill="#6f7480" letter-spacing="1.6">CARDS</text>
+    <!-- primary -->
+    <rect x="540" y="78" width="220" height="92" rx="12" fill="url(#mvPrimary)" filter="url(#mvShadow)"/>
+    <rect x="558" y="100" width="28" height="22" rx="4" fill="rgba(0,0,0,0.25)"/>
+    <rect x="562" y="106" width="20" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+    <rect x="562" y="112" width="14" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
+    <text x="596" y="111" font-size="13" font-weight="500" fill="#ffffff">card.primary</text>
+    <text x="596" y="127" font-size="10" fill="rgba(255,255,255,0.72)">hero / active</text>
+    <text x="558" y="155" font-size="9" fill="#a8c0e8" letter-spacing="1.4">INFO-BLUE · DARK</text>
+
+    <!-- secondary light -->
+    <rect x="540" y="182" width="220" height="92" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#mvShadowLt)"/>
+    <rect x="558" y="204" width="28" height="22" rx="4" fill="#3a3f47"/>
+    <text x="596" y="215" font-size="13" font-weight="500" fill="#04060a">card.secondary</text>
+    <text x="596" y="231" font-size="10" fill="#4d5159">supporting</text>
+    <text x="558" y="259" font-size="9" fill="#4d5159" letter-spacing="1.4">LIGHT · BORDERED</text>
+
+    <!-- right: connector -->
+    <text x="800" y="58" font-size="11" font-weight="600" fill="#6f7480" letter-spacing="1.6">CONNECTORS</text>
+    <rect x="800" y="78" width="180" height="62" rx="10" fill="url(#mvNeutral)" filter="url(#mvShadow)"/>
+    <text x="890" y="103" text-anchor="middle" font-size="12" font-weight="500" fill="#ffffff">Producer</text>
+    <text x="890" y="120" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.65)">api.create()</text>
+
+    <rect x="1100" y="78" width="180" height="62" rx="10" fill="url(#mvPrimary)" filter="url(#mvShadow)"/>
+    <text x="1190" y="103" text-anchor="middle" font-size="12" font-weight="500" fill="#ffffff">Consumer</text>
+    <text x="1190" y="120" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.72)">worker.run()</text>
+
+    <path d="M 980 109 L 1100 109" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#mvArrow)"/>
+    <text x="1040" y="100" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">EVENT</text>
+    <text x="1040" y="124" text-anchor="middle" font-size="9" font-style="italic" fill="#6f7480">at-least-once</text>
+
+    <!-- bottom: numbered principles (same 4 as Pixel — proving they apply identically) -->
+    <text x="64" y="290" font-size="11" font-weight="600" fill="#6f7480" letter-spacing="1.6">FOUR LOCKED-IN PRINCIPLES</text>
+    <circle cx="80" cy="338" r="14" fill="#6b9cf0"/>
+    <text x="80" y="343" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">1</text>
+    <circle cx="450" cy="338" r="14" fill="#6b9cf0"/>
+    <text x="450" y="343" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">2</text>
+    <circle cx="900" cy="338" r="14" fill="#6b9cf0"/>
+    <text x="900" y="343" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">3</text>
+    <circle cx="1380" cy="338" r="14" fill="#6b9cf0"/>
+    <text x="1380" y="343" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">4</text>
+    <text x="110" y="334" font-size="12" font-weight="500" fill="#04060a">Named primitives only</text>
+    <text x="110" y="350" font-size="11" fill="#3a3f47">no improvised shapes</text>
+    <text x="480" y="334" font-size="12" font-weight="500" fill="#04060a">Geometry by token</text>
+    <text x="480" y="350" font-size="11" fill="#3a3f47">not by guess</text>
+    <text x="930" y="334" font-size="12" font-weight="500" fill="#04060a">Same service, same look</text>
+    <text x="930" y="350" font-size="11" fill="#3a3f47">every diagram, every mode</text>
+    <text x="1410" y="334" font-size="12" font-weight="500" fill="#04060a">Improvise nothing</text>
+    <text x="1410" y="350" font-size="11" fill="#3a3f47">closed registry</text>
+  </svg>
+</div>
+
 <h2><span class="num">00.1</span>What changed</h2>
 <p class="section-lede">The current skill ships abstract rules and lets the model fill the gaps. The annotated screenshot in <code>screenshots/</code> shows what happens when the gaps are visual primitives — icons crash through titles, labels rotate vertically, arrows route through cards, deferred state is drawn two different ways in the same diagram. Each fix below is a named primitive the generator references by ID instead of inventing.</p>
 
@@ -187,12 +302,12 @@
 <table class="tokens">
   <thead><tr><th>Brief deliverable</th><th>This site</th><th>Source file</th><th>Status</th></tr></thead>
   <tbody>
-    <tr><td>D1 · Master design system</td><td><a href="foundations.html">Foundations</a></td><td><code>design-system.md</code></td><td><span class="tag good">v1</span></td></tr>
-    <tr><td>D2 · Component library</td><td><a href="components.html">Components</a></td><td><code>components/*.md</code></td><td><span class="tag good">v1</span></td></tr>
-    <tr><td>D3 · Expanded icon library</td><td><a href="icons.html">Icons</a></td><td><code>icons/icons.svg</code></td><td><span class="tag good">v1</span></td></tr>
-    <tr><td>D4 · Connector geometry</td><td><a href="connectors.html">Connectors</a></td><td><code>connectors/CONNECTORS.md</code></td><td><span class="tag good">v1</span></td></tr>
-    <tr><td>D5 · Per-template visual contracts (×9)</td><td><a href="templates.html">Templates</a></td><td><code>templates/*.md</code></td><td><span class="tag good">3/9 v1 · 6 stubs · dark notes added</span></td></tr>
-    <tr><td>D6 · Worked canonical examples (×9, light + dark)</td><td><a href="examples.html">Examples</a></td><td><code>examples/*.{light,dark}.svg</code></td><td><span class="tag good">18 files · 9 light + 9 dark</span></td></tr>
+    <tr><td>D1 · Master design system</td><td><a href="pixel/foundations.html">Foundations</a></td><td><code>design-system.md</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D2 · Component library</td><td><a href="pixel/components.html">Components</a></td><td><code>components/*.md</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D3 · Expanded icon library</td><td><a href="pixel/icons.html">Icons</a></td><td><code>icons/icons.svg</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D4 · Connector geometry</td><td><a href="pixel/connectors.html">Connectors</a></td><td><code>connectors/CONNECTORS.md</code></td><td><span class="tag good">v1</span></td></tr>
+    <tr><td>D5 · Per-template visual contracts (×9)</td><td><a href="pixel/templates.html">Templates</a></td><td><code>templates/*.md</code></td><td><span class="tag good">3/9 v1 · 6 stubs · dark notes added</span></td></tr>
+    <tr><td>D6 · Worked canonical examples (×9, light + dark)</td><td><a href="pixel/examples.html">Examples</a></td><td><code>examples/*.{light,dark}.svg</code></td><td><span class="tag good">18 files · 9 light + 9 dark</span></td></tr>
     <tr><td>Cross-diagram consistency mechanism</td><td><a href="manifest.html">Set manifest</a></td><td><code>diagram-set-manifest.md</code></td><td><span class="tag good">v1 schema</span></td></tr>
   </tbody>
 </table>
@@ -220,30 +335,30 @@
 </div>
 
 <h2><span class="num">00.4</span>Where to go next</h2>
-<p class="section-lede">Reviewers can follow the sidebar top-to-bottom — Foundations sets vocabulary, Components and Icons are the visible primitives, Connectors is the geometry that fixes the screenshot's worst failures, Templates and Examples show the system in motion. The single highest-value page is <a href="connectors.html">Connectors</a> — that's where most visible bugs originate today.</p>
+<p class="section-lede">Reviewers can follow the sidebar top-to-bottom — Foundations sets vocabulary, Components and Icons are the visible primitives, Connectors is the geometry that fixes the screenshot's worst failures, Templates and Examples show the system in motion. The single highest-value page is <a href="pixel/connectors.html">Connectors</a> — that's where most visible bugs originate today.</p>
 
 <div class="grid cols-3" style="margin-top:18px">
-  <a class="card" href="foundations.html" style="text-decoration:none;color:inherit;display:block">
+  <a class="card" href="pixel/foundations.html" style="text-decoration:none;color:inherit;display:block">
     <p class="eyebrow" style="margin-bottom:4px">01</p>
     <h3 style="margin:0 0 6px">Foundations</h3>
     <p style="margin:0;font-size:13px">Color, type, spacing, shadow, gradient, animation tokens. Locked.</p>
   </a>
-  <a class="card" href="components.html" style="text-decoration:none;color:inherit;display:block">
+  <a class="card" href="pixel/components.html" style="text-decoration:none;color:inherit;display:block">
     <p class="eyebrow" style="margin-bottom:4px">02</p>
     <h3 style="margin:0 0 6px">Components</h3>
     <p style="margin:0;font-size:13px">Cards, chips, shapes (circles · pills · diamonds · hexagons · stars · notes), lanes, stages, groups, callouts.</p>
   </a>
-  <a class="card" href="icons.html" style="text-decoration:none;color:inherit;display:block">
+  <a class="card" href="pixel/icons.html" style="text-decoration:none;color:inherit;display:block">
     <p class="eyebrow" style="margin-bottom:4px">03</p>
     <h3 style="margin:0 0 6px">Icons</h3>
     <p style="margin:0;font-size:13px">78 density-locked glyphs across 9 categories + monogram fallback.</p>
   </a>
-  <a class="card" href="connectors.html" style="text-decoration:none;color:inherit;display:block;border:1px solid var(--indigo);box-shadow:0 4px 14px rgba(79,95,184,0.18)">
+  <a class="card" href="pixel/connectors.html" style="text-decoration:none;color:inherit;display:block;border:1px solid var(--indigo);box-shadow:0 4px 14px rgba(79,95,184,0.18)">
     <p class="eyebrow" style="margin-bottom:4px">04 · the big one</p>
     <h3 style="margin:0 0 6px">Connectors</h3>
     <p style="margin:0;font-size:13px">Taxonomy, gutters, label zones, crossing jogs, density caps.</p>
   </a>
-  <a class="card" href="examples.html" style="text-decoration:none;color:inherit;display:block">
+  <a class="card" href="pixel/examples.html" style="text-decoration:none;color:inherit;display:block">
     <p class="eyebrow" style="margin-bottom:4px">06</p>
     <h3 style="margin:0 0 6px">Examples</h3>
     <p style="margin:0;font-size:13px">Canonical SVGs — what a correct application of the system looks like.</p>

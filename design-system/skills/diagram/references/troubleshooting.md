@@ -2,6 +2,8 @@
 
 Common failure modes and how to recover. Read this when a diagram came out wrong, or when the skill behaved oddly. Add new entries as patterns emerge.
 
+> **Mode awareness.** Most entries here apply to **both** the Pixel and Material modes — the workflow gates (Step 1 restatement, Step 4 spec, etc.) and the structural rules (orphan arrows, label rotation, density caps) are mode-agnostic. The five **dark-theme** entries (cream leakage, invisible elevation, indigo legibility, light/dark drift, PDF export) reference Pixel-specific token names (`#f5f1ea`, `--indigo` `#4f5fb8`, etc.) and apply directly to Pixel. The equivalent Material failure modes follow the same shape — the fix is in `references/material/foundations.html` rather than `references/pixel/foundations.html`. Cross-mode entries (mixing modes within a proposal, wrong mode for the diagram's purpose) sit at the bottom of this file.
+
 ---
 
 ## The diagram doesn't match what the user described
@@ -210,3 +212,41 @@ A useful check: `diff <(grep -o '<rect\|<text\|<path\|<line\|<circle' light.svg 
 **Fix:** For PDF export, always paste the `<slug>.light.svg`, even if the source Notion page is in dark mode. Document this in the proposal's authoring notes. The skill emits both files specifically to give the author this choice; the dark variant is screen-only by current design.
 
 If a dark-on-dark PDF is needed in the future (a dark-themed branded PDF), that's a separate ask — generate the PDF from a dark Notion duplicate page that doesn't get exported normally. Not in scope for v1 of dual-output.
+
+---
+
+## Cross-mode failure modes (Pixel ↔ Material)
+
+The entries below are specific to running two design systems side-by-side. They didn't exist before v2.0.0.
+
+### A multi-diagram proposal accidentally mixed Pixel and Material
+
+**Symptom:** Three diagrams in a proposal look like siblings; the fourth looks like a stranger — different font, different palette, different surface gradients — even though it's the same Partner Vetting set.
+
+**Cause:** The manifest's `mode:` pin wasn't honored. Either (a) the first diagram was authored without a manifest and the second one's invocation specified a different mode, or (b) the manifest exists but `mode:` was omitted and the skill defaulted to Pixel mid-set.
+
+**Fix:** A proposal is a coherent reader experience. Pick one mode and re-render every diagram in the set against that mode. Add `mode: pixel` (or `material`) to the manifest's `set:` block explicitly. From spec §07.5: per-diagram mode override is a hard error — the skill should reject it; if it didn't, that's a bug in the skill, not a styling tradeoff.
+
+### Wrong mode for the diagram's purpose
+
+**Symptom:** A general-purpose architecture diagram (not related to dual-research at all) was rendered in Material mode, and it reads as "a dual-research diagram" — the sable-bronze blob storage tile in particular reads as Anthropic-warm and creates an unintended brand association.
+
+**Cause:** The user's request didn't name a mode and the default kicked in correctly to Pixel — but the user later asked for "the Material version" without thinking about what it would imply.
+
+**Fix:** Default to Pixel for subject-agnostic architecture diagrams. Use Material when the diagram should share visual DNA with the dual-research app (e.g., the how-it-works set, in-app reference diagrams, dashboards documenting dual-research itself). The mode chip in the request matters — surface it during Step 1 restatement so the user sees what they're picking.
+
+### Token-name confusion across modes
+
+**Symptom:** A skill generation references `--surface-sql` (a Pixel token) inside a Material-mode SVG, or vice versa. The fill resolves to a brown-bronze gradient that wasn't intended.
+
+**Cause:** The Step 3 context-load wasn't actually mode-routed — the agent read `references/pixel/foundations.html` while the request asked for Material.
+
+**Fix:** Re-verify the mode detected in Step 1, then re-load §01.2 from the matching mode's `foundations.html`. Material's categorical surfaces are named `--ds-surface-sql` etc. (prefixed with `--ds-` to mark them as diagram-skill-namespaced derivations of V2 palette tokens). Pixel's are `--surface-sql` (no prefix; they're standalone). The prefix collision is intentional — it's a fail-fast signal that mode routing slipped.
+
+### Material accent looks "wrong" against a dark canvas
+
+**Symptom:** Info-blue `#6b9cf0` on Material's `#0d0f12` dark canvas reads "OK but not crisp" — visibly different from Pixel's lifted indigo `#7785d4` on the Pixel dark canvas at the same comparable elements.
+
+**Cause:** Not a bug. Material's accent is intentionally theme-portable — the same hex in both themes — because info-blue is the dual-research V2 focus-ring color and behaves predictably across both M3 surfaces. Pixel's accent lifts because indigo `#4f5fb8` would be unreadable on near-black; Material doesn't need that lift because `#6b9cf0` is already crisp on both.
+
+**Fix:** Nothing to fix. Don't apply a Pixel-style lift inside a Material SVG — that would break the theme-portability contract documented in `references/material/foundations.html` §01.2 "Dark variant · accent stays put."

@@ -52,7 +52,7 @@
   <h1>architecture-diagram</h1>
   <nav>
     <div class="group">Read me first</div>
-    <a href="index.html"><span class="n">00</span>Overview</a>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
     <a href="foundations.html"><span class="n">01</span>Foundations</a>
     <a href="components.html"><span class="n">02</span>Components</a>
@@ -61,16 +61,16 @@
     <div class="group">Application</div>
     <a href="templates.html"><span class="n">05</span>Templates</a>
     <a href="examples.html"><span class="n">06</span>Examples</a>
-    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">pixel mode · v2.0.0 · cream &amp; indigo · light + dark · viewBox 1660</div>
 </aside>
 
 <main>
 
 <p class="eyebrow">Deliverable 03 · Icon library</p>
 <h1 class="page">Seventy-eight icons drawn to one density spec, organized in nine categories, plus a fallback for everything else.</h1>
-<p class="lede">Every icon fits a 32 × 32 bounding box, uses filled silhouettes with consistent radii, and pairs with a canonical surface gradient via the <a href="manifest.html">set manifest</a>. The library now covers compute (incl. VM, k8s, edge, batch, GPU), data (incl. warehouse, lake, ETL, ML, time-series), network (proxy, mesh, ingress, VPN, NAT), security (RBAC, signing, audit, MFA), observability (health, SLO, error tracker), workflow nodes (start/end, branch, timer, signal, manual), integration (webhook, websocket, GraphQL, gRPC, polling), and domain icons (payment, email, push, calendar, media). The <code>icon.generic-service</code> fallback handles everything else — the system never improvises a new icon shape inline.</p>
+<p class="lede">Every icon fits a 32 × 32 bounding box, uses filled silhouettes with consistent radii, and pairs with a canonical surface gradient via the <a href="../manifest.html">set manifest</a>. The library now covers compute (incl. VM, k8s, edge, batch, GPU), data (incl. warehouse, lake, ETL, ML, time-series), network (proxy, mesh, ingress, VPN, NAT), security (RBAC, signing, audit, MFA), observability (health, SLO, error tracker), workflow nodes (start/end, branch, timer, signal, manual), integration (webhook, websocket, GraphQL, gRPC, polling), and domain icons (payment, email, push, calendar, media). The <code>icon.generic-service</code> fallback handles everything else — the system never improvises a new icon shape inline.</p>
 
 <div class="callout"><strong>Color via <code>fill="currentColor"</code>.</strong> All icons render with <code>currentColor</code> on their root, so one ancestor <code>color</code> attribute drives the whole icon. Use <code>fill="#1a1a18"</code> on light cards, <code>fill="rgba(255,255,255,0.85)"</code> on dark cards. Category-tinted icons (e.g. blue for sql) inherit their category color from the surface gradient.</p></div>
 
@@ -946,7 +946,7 @@
 <!-- =========================================================== -->
 
 <h2><span class="num">03.4</span>Canonical icon → gradient map</h2>
-<p class="section-lede">When an icon appears in <code>card.primary</code> (any categorical surface gradient), this table defines which gradient. Pinned across diagrams via the <a href="manifest.html">set manifest</a>. Same service → same icon → same gradient, every figure.</p>
+<p class="section-lede">When an icon appears in <code>card.primary</code> (any categorical surface gradient), this table defines which gradient. Pinned across diagrams via the <a href="../manifest.html">set manifest</a>. Same service → same icon → same gradient, every figure.</p>
 
 <table class="tokens">
   <thead><tr><th>Service kind</th><th>Icon</th><th>Surface gradient</th></tr></thead>
@@ -970,7 +970,7 @@
   </tbody>
 </table>
 
-<div class="callout good"><strong>Cross-diagram lock.</strong> Whichever gradient + icon a service gets in the first diagram of a proposal, every subsequent diagram in that proposal uses the same pairing. See <a href="manifest.html">Set manifest</a> for the YAML stub that pins it.</div>
+<div class="callout good"><strong>Cross-diagram lock.</strong> Whichever gradient + icon a service gets in the first diagram of a proposal, every subsequent diagram in that proposal uses the same pairing. See <a href="../manifest.html">Set manifest</a> for the YAML stub that pins it.</div>
 
 </main>
 </div>

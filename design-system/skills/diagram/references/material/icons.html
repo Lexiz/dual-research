@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Icons · diagram skill · material mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+<style>
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    background: white;
+    border: 1px solid var(--rule-soft);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(20,23,28,.10), 0 2px 6px 2px rgba(20,23,28,.06);
+    margin: 14px 0 32px;
+  }
+  @media (max-width: 1100px) { .icon-grid { grid-template-columns: repeat(4, 1fr); } }
+  .icon-cell {
+    padding: 18px 14px 16px;
+    border-right: 1px solid var(--rule-soft);
+    border-bottom: 1px solid var(--rule-soft);
+    text-align: center;
+    background: white;
+  }
+  .icon-cell .light { background: var(--bg-1); border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; }
+  .icon-cell .dark { background: #0d0f12; border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; margin-left: 6px; }
+  .icon-cell .name { font-family: var(--mono); font-size: 11px; color: var(--accent-2); margin-top: 10px; }
+  .icon-cell .desc { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+  .cat-head {
+    grid-column: 1 / -1;
+    background: var(--bg-tint);
+    padding: 10px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.6;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--rule);
+  }
+  /* M3 outlined icon defaults */
+  .ico-light { fill: none; stroke: #04060a; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ico-light-fill { fill: #04060a; stroke: none; }
+  .ico-dark { fill: none; stroke: rgba(255,255,255,0.92); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ico-dark-fill { fill: rgba(255,255,255,0.92); stroke: none; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>diagram · material</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html" class="active"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
+    <div class="group">Other modes</div>
+    <a href="../pixel/icons.html"><span class="n">··</span>Pixel mode</a>
+  </nav>
+  <div class="foot">material mode · v2.0.0 · M3 outlined · light + dark · viewBox 1660</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Deliverable 03 · Icon library · Material mode</p>
+<h1 class="page">Seventy-eight icons hand-drawn in Material 3 outlined style, organized in nine categories, plus a fallback for everything else.</h1>
+<p class="lede">Every icon fits a 32 × 32 bounding box, uses M3 outlined-style strokes (1.8px round caps + joins), and pairs with a canonical surface gradient via the <a href="../manifest.html">set manifest</a>. The library mirrors Pixel mode's icon set name-for-name — same 78 icons, same 9 categories, same fallback rule — so a multi-diagram proposal can swap modes by re-rendering against this page without re-mapping services to icons. M3-style glyphs are lighter weight than Pixel's filled silhouettes; they read as "drawn" rather than "stamped."</p>
+
+<div class="callout"><strong>Color via <code>currentColor</code>.</strong> All icon glyphs render with stroke/fill resolved to the closest <code>color</code> ancestor. Set the card-level color attribute and every icon inside inherits it. Use <code>#04060a</code> on light cards, <code>rgba(255,255,255,0.92)</code> on dark cards. Category-tinted icons (e.g. info-blue for sql) inherit their category color from the surface gradient.</div>
+
+<!-- =========================================================== -->
+<h2><span class="num">03.0</span>Theme × variant matrix</h2>
+<p class="section-lede">Each icon ships in two visual variants: <strong>on-light-card</strong> (dark stroke on cream tile) and <strong>on-dark-card</strong> (light stroke on dark tile). With the dual-theme architecture, these two variants are <em>orthogonal to theme</em> — there are four contexts an icon can sit in, not two. The geometry of every icon is identical across all four cells; only the stroke / fill color and tile background change.</p>
+
+<table class="tokens">
+  <thead><tr><th>Context</th><th>Tile fill</th><th>Glyph stroke/fill</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="note"><strong>Light theme · on light card</strong><br><span class="mono" style="font-size:11px;color:#4d5159">card.secondary on M3 cream canvas</span></td><td class="value">#ffffff (--md-surface-container-lowest)</td><td class="value">#04060a (--md-on-surface)</td><td class="note">Default for light card icons. M3 ink-1 stroke at 1.8px.</td></tr>
+    <tr><td class="note"><strong>Light theme · on dark card</strong><br><span class="mono" style="font-size:11px;color:#4d5159">card.categorical on M3 cream</span></td><td class="value">rgba(255,255,255,0.18)</td><td class="value">rgba(255,255,255,0.92)</td><td class="note">Translucent white tile + bright stroke. Glyph reads on the saturated card surface beneath.</td></tr>
+    <tr><td class="note"><strong>Dark theme · on light card</strong><br><span class="mono" style="font-size:11px;color:#4d5159">card.secondary (#21252b) on M3 near-black</span></td><td class="value">rgba(255,255,255,0.18)</td><td class="value">rgba(255,255,255,0.92)</td><td class="note"><strong>Visually identical</strong> to the light-theme-on-dark-card cell — the mid-tone surface reads "darkish" so the same fill works.</td></tr>
+    <tr><td class="note"><strong>Dark theme · on dark card</strong><br><span class="mono" style="font-size:11px;color:#4d5159">card.categorical (lifted) on M3 near-black</span></td><td class="value">rgba(255,255,255,0.22)</td><td class="value">rgba(255,255,255,0.95)</td><td class="note">Slight bump in both opacities — the lifted categorical surfaces in dark theme are paler than their light-theme originals, so the icon tile + stroke lift to keep the contrast step.</td></tr>
+  </tbody>
+</table>
+
+<h3>Practical consequence: two pairs, not four variants</h3>
+<p>Although there are four theoretical contexts, only two pairs of tile/stroke colors exist:</p>
+<ol>
+  <li><strong>Pair A</strong> (dark glyph on light tile) — used only in "light-theme · on light card." The icon body is solid dark stroke.</li>
+  <li><strong>Pair B</strong> (light glyph on dark tile) — used in the other three contexts, with a small opacity bump for "dark-theme · on dark card."</li>
+</ol>
+<p>So in practice the generator renders two glyphs per icon, not four. The cells below show pair A on the left and pair B on the right.</p>
+
+<h3>Monogram fallback (<code>icon.generic-service</code>)</h3>
+<p>When no icon matches, draw a rounded square tile (8 corner radius) with the service's first letter (or 2 initials) centered in Roboto Flex 14 / 600. The tile color comes from the service's pinned categorical surface via the manifest. Never improvise a bespoke shape.</p>
+
+<h3>M3 outlined stroke convention</h3>
+<p>Every Material icon glyph uses <strong>stroke-only</strong> shapes by default (not filled silhouettes). Stroke width 1.8px, round caps and joins, no inner fill except for small accent dots. This is the "outlined" variant of Material Symbols — lighter visual weight than filled icons, more sympathetic to M3's information-density bias.</p>
+
+<!-- =========================================================== -->
+<h2><span class="num">03.1</span>Density spec</h2>
+<p class="section-lede">Geometric rules that hold across every icon in the set.</p>
+
+<table class="tokens">
+  <thead><tr><th>Rule</th><th>Value</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td class="token">Bounding box</td><td class="value">32 × 32</td><td class="note">Matches Pixel mode for layout parity.</td></tr>
+    <tr><td class="token">ViewBox</td><td class="value">-16 -16 32 32</td><td class="note">Centered origin so glyph paths read symmetrically.</td></tr>
+    <tr><td class="token">Stroke width</td><td class="value">1.8px</td><td class="note">M3 outlined default. Lighter than Pixel's 2px filled equivalents.</td></tr>
+    <tr><td class="token">Stroke caps + joins</td><td class="value">round</td><td class="note">M3 default — softer than the square caps of pixel-style filled icons.</td></tr>
+    <tr><td class="token">Accent dots / small fills</td><td class="value">fill = stroke color</td><td class="note">Where an icon needs a small filled accent (e.g. cursor dot), use the stroke color as a fill.</td></tr>
+    <tr><td class="token">Slot inset (in card)</td><td class="value">20px from card edge</td><td class="note">36×36 slot rect at (card.x+20, card.y+20); icon ART centered at (card.x+38, card.y+38).</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<h2><span class="num">03.2</span>The set</h2>
+<p class="section-lede">Each cell shows pair A (light-tile · dark stroke) on the left and pair B (dark-tile · light stroke) on the right. The glyph geometry is identical between them — color is the only difference.</p>
+
+<div class="icon-grid">
+  <div class="cat-head">Compute · 10 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-12" y="-8" width="24" height="16" rx="3"/><circle class="ico-light-fill" cx="-6" cy="0" r="1.4"/><circle class="ico-light-fill" cx="0" cy="0" r="1.4"/><circle class="ico-light-fill" cx="6" cy="0" r="1.4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-12" y="-8" width="24" height="16" rx="3"/><circle class="ico-dark-fill" cx="-6" cy="0" r="1.4"/><circle class="ico-dark-fill" cx="0" cy="0" r="1.4"/><circle class="ico-dark-fill" cx="6" cy="0" r="1.4"/></svg></span>
+    <div class="name">icon.service</div><div class="desc">generic compute</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,-10 L11,-10 L11,10 L-11,10 Z M-11,-4 L11,-4 M-7,-7 L-4,-7 M-7,1 L-4,1 M-7,7 L-4,7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,-10 L11,-10 L11,10 L-11,10 Z M-11,-4 L11,-4 M-7,-7 L-4,-7 M-7,1 L-4,1 M-7,7 L-4,7"/></svg></span>
+    <div class="name">icon.container</div><div class="desc">docker / k8s pod</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-10,-2 L-10,-8 L10,-8 L10,-2 M-10,2 L-10,8 L10,8 L10,2 M-12,-2 L12,-2 M-12,2 L12,2"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-10,-2 L-10,-8 L10,-8 L10,-2 M-10,2 L-10,8 L10,8 L10,2 M-12,-2 L12,-2 M-12,2 L12,2"/></svg></span>
+    <div class="name">icon.function</div><div class="desc">lambda · serverless</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M0,-10 L0,0 L7,4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M0,-10 L0,0 L7,4"/></svg></span>
+    <div class="name">icon.worker</div><div class="desc">background job</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><circle class="ico-light-fill" cx="0" cy="0" r="2"/><path class="ico-light" d="M0,-10 L0,-6 M0,6 L0,10 M-10,0 L-6,0 M6,0 L10,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><circle class="ico-dark-fill" cx="0" cy="0" r="2"/><path class="ico-dark" d="M0,-10 L0,-6 M0,6 L0,10 M-10,0 L-6,0 M6,0 L10,0"/></svg></span>
+    <div class="name">icon.scheduled</div><div class="desc">cron · periodic</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="-2" r="9"/><path class="ico-light" d="M-5,-3 Q-5,-7 0,-7 Q5,-7 5,-3 M-3,2 L-3,2.1 M3,2 L3,2.1 M-5,7 Q-5,12 0,12 Q5,12 5,7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="-2" r="9"/><path class="ico-dark" d="M-5,-3 Q-5,-7 0,-7 Q5,-7 5,-3 M-3,2 L-3,2.1 M3,2 L3,2.1 M-5,7 Q-5,12 0,12 Q5,12 5,7"/></svg></span>
+    <div class="name">icon.agent</div><div class="desc">ai agent · llm caller</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-10" y="-10" width="20" height="20" rx="3"/><circle class="ico-light-fill" cx="-4" cy="-2" r="1.8"/><circle class="ico-light-fill" cx="4" cy="-2" r="1.8"/><path class="ico-light" d="M-5,4 Q0,7 5,4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-10" y="-10" width="20" height="20" rx="3"/><circle class="ico-dark-fill" cx="-4" cy="-2" r="1.8"/><circle class="ico-dark-fill" cx="4" cy="-2" r="1.8"/><path class="ico-dark" d="M-5,4 Q0,7 5,4"/></svg></span>
+    <div class="name">icon.model</div><div class="desc">trained ml model</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-8" width="22" height="16" rx="2"/><path class="ico-light" d="M-11,-4 L11,-4 M-9,-6 L-9,-6.1 M-6,-6 L-6,-6.1 M-3,-6 L-3,-6.1"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-8" width="22" height="16" rx="2"/><path class="ico-dark" d="M-11,-4 L11,-4 M-9,-6 L-9,-6.1 M-6,-6 L-6,-6.1 M-3,-6 L-3,-6.1"/></svg></span>
+    <div class="name">icon.browser</div><div class="desc">web client · spa</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-6" y="-12" width="12" height="24" rx="2"/><circle class="ico-light-fill" cx="0" cy="9" r="1.2"/><path class="ico-light" d="M-3,-9 L3,-9"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-6" y="-12" width="12" height="24" rx="2"/><circle class="ico-dark-fill" cx="0" cy="9" r="1.2"/><path class="ico-dark" d="M-3,-9 L3,-9"/></svg></span>
+    <div class="name">icon.mobile</div><div class="desc">mobile client</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-12" y="-9" width="24" height="18" rx="2"/><path class="ico-light" d="M-8,-3 L-5,0 L-8,3 M-3,4 L3,4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-12" y="-9" width="24" height="18" rx="2"/><path class="ico-dark" d="M-8,-3 L-5,0 L-8,3 M-3,4 L3,4"/></svg></span>
+    <div class="name">icon.terminal</div><div class="desc">cli · shell</div>
+  </div>
+
+  <div class="cat-head">Compute · extended (5 more)</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-9" width="22" height="14" rx="2"/><rect class="ico-light-fill" x="-8" y="-6" width="3" height="3"/><path class="ico-light" d="M-7,9 L7,9 M-3,5 L-3,9 M3,5 L3,9"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-9" width="22" height="14" rx="2"/><rect class="ico-dark-fill" x="-8" y="-6" width="3" height="3"/><path class="ico-dark" d="M-7,9 L7,9 M-3,5 L-3,9 M3,5 L3,9"/></svg></span>
+    <div class="name">icon.vm</div><div class="desc">virtual machine</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><polygon class="ico-light" points="0,-11 9,-6 9,5 0,11 -9,5 -9,-6"/><polygon class="ico-light" points="0,-5 5,-2 5,4 0,7 -5,4 -5,-2"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><polygon class="ico-dark" points="0,-11 9,-6 9,5 0,11 -9,5 -9,-6"/><polygon class="ico-dark" points="0,-5 5,-2 5,4 0,7 -5,4 -5,-2"/></svg></span>
+    <div class="name">icon.k8s</div><div class="desc">kubernetes</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M-10,0 L10,0 M0,-10 Q5,0 0,10 M0,-10 Q-5,0 0,10"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M-10,0 L10,0 M0,-10 Q5,0 0,10 M0,-10 Q-5,0 0,10"/></svg></span>
+    <div class="name">icon.edge</div><div class="desc">edge / cdn pop</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-10" width="9" height="9" rx="1"/><rect class="ico-light" x="2" y="-10" width="9" height="9" rx="1"/><rect class="ico-light" x="-11" y="2" width="9" height="9" rx="1"/><rect class="ico-light" x="2" y="2" width="9" height="9" rx="1"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-10" width="9" height="9" rx="1"/><rect class="ico-dark" x="2" y="-10" width="9" height="9" rx="1"/><rect class="ico-dark" x="-11" y="2" width="9" height="9" rx="1"/><rect class="ico-dark" x="2" y="2" width="9" height="9" rx="1"/></svg></span>
+    <div class="name">icon.batch</div><div class="desc">batch · job array</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-8" width="22" height="16" rx="2"/><path class="ico-light" d="M-7,-4 L-7,4 M-3,-4 L-3,4 M1,-4 L1,4 M5,-4 L5,4 M-9,-10 L-9,-8 M-5,-10 L-5,-8 M5,-10 L5,-8 M9,-10 L9,-8 M-9,8 L-9,10 M-5,8 L-5,10 M5,8 L5,10 M9,8 L9,10"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-8" width="22" height="16" rx="2"/><path class="ico-dark" d="M-7,-4 L-7,4 M-3,-4 L-3,4 M1,-4 L1,4 M5,-4 L5,4 M-9,-10 L-9,-8 M-5,-10 L-5,-8 M5,-10 L5,-8 M9,-10 L9,-8 M-9,8 L-9,10 M-5,8 L-5,10 M5,8 L5,10 M9,8 L9,10"/></svg></span>
+    <div class="name">icon.gpu</div><div class="desc">gpu accelerator</div>
+  </div>
+
+  <div class="cat-head">Data · 9 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><ellipse class="ico-light" cx="0" cy="-8" rx="10" ry="3"/><path class="ico-light" d="M-10,-8 L-10,8 Q-10,11 0,11 Q10,11 10,8 L10,-8 M-10,0 Q-10,3 0,3 Q10,3 10,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><ellipse class="ico-dark" cx="0" cy="-8" rx="10" ry="3"/><path class="ico-dark" d="M-10,-8 L-10,8 Q-10,11 0,11 Q10,11 10,8 L10,-8 M-10,0 Q-10,3 0,3 Q10,3 10,0"/></svg></span>
+    <div class="name">icon.sql</div><div class="desc">postgres · mysql</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="-3" r="7"/><path class="ico-light" d="M-7,-3 L-7,7 Q-7,11 0,11 Q7,11 7,7 L7,-3 M-7,2 Q-7,6 0,6 Q7,6 7,2"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="-3" r="7"/><path class="ico-dark" d="M-7,-3 L-7,7 Q-7,11 0,11 Q7,11 7,7 L7,-3 M-7,2 Q-7,6 0,6 Q7,6 7,2"/></svg></span>
+    <div class="name">icon.nosql</div><div class="desc">mongo · dynamodb</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M-6,-3 L-3,0 L-6,3 M6,-3 L3,0 L6,3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M-6,-3 L-3,0 L-6,3 M6,-3 L3,0 L6,3"/></svg></span>
+    <div class="name">icon.cache</div><div class="desc">redis · memcached</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-4" width="22" height="8" rx="1"/><rect class="ico-light-fill" x="-8" y="-2" width="3" height="4" rx="0.5"/><rect class="ico-light-fill" x="-3" y="-2" width="3" height="4" rx="0.5"/><rect class="ico-light-fill" x="2" y="-2" width="3" height="4" rx="0.5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-4" width="22" height="8" rx="1"/><rect class="ico-dark-fill" x="-8" y="-2" width="3" height="4" rx="0.5"/><rect class="ico-dark-fill" x="-3" y="-2" width="3" height="4" rx="0.5"/><rect class="ico-dark-fill" x="2" y="-2" width="3" height="4" rx="0.5"/></svg></span>
+    <div class="name">icon.queue</div><div class="desc">sqs · rabbitmq</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-12,-8 Q-6,-12 0,-8 Q6,-4 12,-8 M-12,0 Q-6,-4 0,0 Q6,4 12,0 M-12,8 Q-6,4 0,8 Q6,12 12,8"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-12,-8 Q-6,-12 0,-8 Q6,-4 12,-8 M-12,0 Q-6,-4 0,0 Q6,4 12,0 M-12,8 Q-6,4 0,8 Q6,12 12,8"/></svg></span>
+    <div class="name">icon.stream</div><div class="desc">kafka · kinesis</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,4 Q-11,-2 -6,-4 Q-7,-10 0,-10 Q8,-10 8,-3 Q12,-3 12,3 Q12,9 6,9 L-6,9 Q-11,9 -11,4 Z"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,4 Q-11,-2 -6,-4 Q-7,-10 0,-10 Q8,-10 8,-3 Q12,-3 12,3 Q12,9 6,9 L-6,9 Q-11,9 -11,4 Z"/></svg></span>
+    <div class="name">icon.bucket</div><div class="desc">s3 · gcs · blob</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-9,-10 L0,-10 L3,-7 L11,-7 L11,10 L-9,10 Z M-5,-3 L7,-3 M-5,1 L7,1 M-5,5 L4,5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-9,-10 L0,-10 L3,-7 L11,-7 L11,10 L-9,10 Z M-5,-3 L7,-3 M-5,1 L7,1 M-5,5 L4,5"/></svg></span>
+    <div class="name">icon.fs</div><div class="desc">file system</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-2" cy="-2" r="8"/><path class="ico-light" d="M4,4 L11,11"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-2" cy="-2" r="8"/><path class="ico-dark" d="M4,4 L11,11"/></svg></span>
+    <div class="name">icon.search</div><div class="desc">elasticsearch · opensearch</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-10,-8 L10,-8 M-8,-3 L8,-3 M-6,2 L6,2 M-3,7 L3,7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-10,-8 L10,-8 M-8,-3 L8,-3 M-6,2 L6,2 M-3,7 L3,7"/></svg></span>
+    <div class="name">icon.vector</div><div class="desc">embedding · vector db</div>
+  </div>
+
+  <div class="cat-head">Data · extended (5 more)</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-3" width="22" height="14" rx="1"/><path class="ico-light" d="M-11,3 L11,3 M-7,-3 L-7,-10 L7,-10 L7,-3 M-3,-7 L3,-7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-3" width="22" height="14" rx="1"/><path class="ico-dark" d="M-11,3 L11,3 M-7,-3 L-7,-10 L7,-10 L7,-3 M-3,-7 L3,-7"/></svg></span>
+    <div class="name">icon.warehouse</div><div class="desc">snowflake · bigquery</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,2 Q-7,8 0,5 Q7,2 11,8 L11,11 L-11,11 Z M-8,-8 L-8,-4 M-2,-10 L-2,-3 M5,-7 L5,-3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,2 Q-7,8 0,5 Q7,2 11,8 L11,11 L-11,11 Z M-8,-8 L-8,-4 M-2,-10 L-2,-3 M5,-7 L5,-3"/></svg></span>
+    <div class="name">icon.lake</div><div class="desc">data lake · raw</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-9" cy="0" r="3"/><circle class="ico-light" cx="0" cy="0" r="3"/><circle class="ico-light" cx="9" cy="0" r="3"/><path class="ico-light" d="M-6,0 L-3,0 M3,0 L6,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-9" cy="0" r="3"/><circle class="ico-dark" cx="0" cy="0" r="3"/><circle class="ico-dark" cx="9" cy="0" r="3"/><path class="ico-dark" d="M-6,0 L-3,0 M3,0 L6,0"/></svg></span>
+    <div class="name">icon.etl</div><div class="desc">extract · transform · load</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-7" cy="-3" r="3"/><circle class="ico-light" cx="7" cy="-3" r="3"/><circle class="ico-light" cx="0" cy="7" r="3"/><path class="ico-light" d="M-5,-1 L-2,5 M5,-1 L2,5 M-4,-3 L4,-3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-7" cy="-3" r="3"/><circle class="ico-dark" cx="7" cy="-3" r="3"/><circle class="ico-dark" cx="0" cy="7" r="3"/><path class="ico-dark" d="M-5,-1 L-2,5 M5,-1 L2,5 M-4,-3 L4,-3"/></svg></span>
+    <div class="name">icon.ml</div><div class="desc">ml pipeline · training</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,8 L-11,-8 M-11,8 L11,8 M-8,4 L-4,0 L0,3 L4,-2 L8,-6"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,8 L-11,-8 M-11,8 L11,8 M-8,4 L-4,0 L0,3 L4,-2 L8,-6"/></svg></span>
+    <div class="name">icon.timeseries</div><div class="desc">influx · prometheus</div>
+  </div>
+
+  <div class="cat-head">Network · 6 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-7" cy="-7" r="2.5"/><circle class="ico-light" cx="7" cy="-7" r="2.5"/><circle class="ico-light" cx="-7" cy="7" r="2.5"/><circle class="ico-light" cx="7" cy="7" r="2.5"/><circle class="ico-light" cx="0" cy="0" r="3"/><path class="ico-light" d="M-5,-5 L-2,-2 M5,-5 L2,-2 M-5,5 L-2,2 M5,5 L2,2"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-7" cy="-7" r="2.5"/><circle class="ico-dark" cx="7" cy="-7" r="2.5"/><circle class="ico-dark" cx="-7" cy="7" r="2.5"/><circle class="ico-dark" cx="7" cy="7" r="2.5"/><circle class="ico-dark" cx="0" cy="0" r="3"/><path class="ico-dark" d="M-5,-5 L-2,-2 M5,-5 L2,-2 M-5,5 L-2,2 M5,5 L2,2"/></svg></span>
+    <div class="name">icon.lb</div><div class="desc">load balancer</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="11"/><path class="ico-light" d="M-11,0 L11,0 M0,-11 Q5,-6 5,0 Q5,6 0,11 Q-5,6 -5,0 Q-5,-6 0,-11"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="11"/><path class="ico-dark" d="M-11,0 L11,0 M0,-11 Q5,-6 5,0 Q5,6 0,11 Q-5,6 -5,0 Q-5,-6 0,-11"/></svg></span>
+    <div class="name">icon.cdn</div><div class="desc">cloudflare · fastly</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-4" width="22" height="8" rx="2"/><circle class="ico-light-fill" cx="-7" cy="0" r="1.5"/><path class="ico-light" d="M-3,0 L8,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-4" width="22" height="8" rx="2"/><circle class="ico-dark-fill" cx="-7" cy="0" r="1.5"/><path class="ico-dark" d="M-3,0 L8,0"/></svg></span>
+    <div class="name">icon.gateway</div><div class="desc">api gateway</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-12,-2 L-12,8 L12,8 L12,-2 M-12,-2 L0,-12 L12,-2 M-6,8 L-6,2 L6,2 L6,8"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-12,-2 L-12,8 L12,8 L12,-2 M-12,-2 L0,-12 L12,-2 M-6,8 L-6,2 L6,2 L6,8"/></svg></span>
+    <div class="name">icon.vpc</div><div class="desc">virtual network</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M0,-12 L10,-7 L10,5 Q10,12 0,12 Q-10,12 -10,5 L-10,-7 Z M-4,2 L-1,5 L5,-2"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M0,-12 L10,-7 L10,5 Q10,12 0,12 Q-10,12 -10,5 L-10,-7 Z M-4,2 L-1,5 L5,-2"/></svg></span>
+    <div class="name">icon.firewall</div><div class="desc">waf · network policy</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M0,-10 Q-5,-5 -5,0 Q-5,5 0,10 Q5,5 5,0 Q5,-5 0,-10 M-10,0 L10,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M0,-10 Q-5,-5 -5,0 Q-5,5 0,10 Q5,5 5,0 Q5,-5 0,-10 M-10,0 L10,0"/></svg></span>
+    <div class="name">icon.dns</div><div class="desc">route53 · cloud dns</div>
+  </div>
+
+  <div class="cat-head">Network · extended (5 more)</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-7" cy="0" r="3"/><circle class="ico-light" cx="7" cy="0" r="3"/><path class="ico-light" d="M-4,0 L4,0 M-7,3 L-7,9 M7,3 L7,9"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-7" cy="0" r="3"/><circle class="ico-dark" cx="7" cy="0" r="3"/><path class="ico-dark" d="M-4,0 L4,0 M-7,3 L-7,9 M7,3 L7,9"/></svg></span>
+    <div class="name">icon.proxy</div><div class="desc">reverse proxy</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="3"/><circle class="ico-light" cx="-9" cy="-6" r="2"/><circle class="ico-light" cx="9" cy="-6" r="2"/><circle class="ico-light" cx="-9" cy="6" r="2"/><circle class="ico-light" cx="9" cy="6" r="2"/><path class="ico-light" d="M-2,-1 L-7,-5 M2,-1 L7,-5 M-2,1 L-7,5 M2,1 L7,5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="3"/><circle class="ico-dark" cx="-9" cy="-6" r="2"/><circle class="ico-dark" cx="9" cy="-6" r="2"/><circle class="ico-dark" cx="-9" cy="6" r="2"/><circle class="ico-dark" cx="9" cy="6" r="2"/><path class="ico-dark" d="M-2,-1 L-7,-5 M2,-1 L7,-5 M-2,1 L-7,5 M2,1 L7,5"/></svg></span>
+    <div class="name">icon.mesh</div><div class="desc">service mesh</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,8 L-11,-8 L11,-8 L11,8 M-7,-4 L7,-4 M-3,0 L7,0 M-7,4 L3,4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,8 L-11,-8 L11,-8 L11,8 M-7,-4 L7,-4 M-3,0 L7,0 M-7,4 L3,4"/></svg></span>
+    <div class="name">icon.ingress</div><div class="desc">ingress controller</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,-2 Q-11,-8 -5,-8 Q-5,-12 0,-12 Q5,-12 5,-8 Q11,-8 11,-2 L11,8 L-11,8 Z M-3,0 L3,0 M0,-3 L0,3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,-2 Q-11,-8 -5,-8 Q-5,-12 0,-12 Q5,-12 5,-8 Q11,-8 11,-2 L11,8 L-11,8 Z M-3,0 L3,0 M0,-3 L0,3"/></svg></span>
+    <div class="name">icon.tunnel</div><div class="desc">vpn · tunnel</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-5" width="22" height="10" rx="2"/><path class="ico-light" d="M-7,-1 L-3,-1 L-3,-9 L0,-9 L0,-1 L3,-1 L3,-9 L7,-9 M-7,5 L7,5 M-5,5 L-5,9 M5,5 L5,9"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-5" width="22" height="10" rx="2"/><path class="ico-dark" d="M-7,-1 L-3,-1 L-3,-9 L0,-9 L0,-1 L3,-1 L3,-9 L7,-9 M-7,5 L7,5 M-5,5 L-5,9 M5,5 L5,9"/></svg></span>
+    <div class="name">icon.nat</div><div class="desc">nat gateway</div>
+  </div>
+
+  <div class="cat-head">Security · 5 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-8" y="0" width="16" height="11" rx="2"/><path class="ico-light" d="M-5,0 L-5,-5 Q-5,-10 0,-10 Q5,-10 5,-5 L5,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-8" y="0" width="16" height="11" rx="2"/><path class="ico-dark" d="M-5,0 L-5,-5 Q-5,-10 0,-10 Q5,-10 5,-5 L5,0"/></svg></span>
+    <div class="name">icon.lock</div><div class="desc">secret · password</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-5" cy="-5" r="5"/><path class="ico-light" d="M-2,-2 L9,9 M5,7 L9,9 L7,5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-5" cy="-5" r="5"/><path class="ico-dark" d="M-2,-2 L9,9 M5,7 L9,9 L7,5"/></svg></span>
+    <div class="name">icon.key</div><div class="desc">api key · jwt</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M0,-12 L10,-7 L10,5 Q10,12 0,12 Q-10,12 -10,5 L-10,-7 Z M-4,0 L-1,3 L5,-3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M0,-12 L10,-7 L10,5 Q10,12 0,12 Q-10,12 -10,5 L-10,-7 Z M-4,0 L-1,3 L5,-3"/></svg></span>
+    <div class="name">icon.cert</div><div class="desc">tls cert · ca</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M-5,0 Q-3,-3 0,-3 Q3,-3 3,0 Q3,3 0,3 L0,5"/><circle class="ico-light-fill" cx="0" cy="8" r="0.8"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M-5,0 Q-3,-3 0,-3 Q3,-3 3,0 Q3,3 0,3 L0,5"/><circle class="ico-dark-fill" cx="0" cy="8" r="0.8"/></svg></span>
+    <div class="name">icon.oauth</div><div class="desc">oauth2 · oidc</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,-8 L11,-8 L11,8 L-11,8 Z M-11,-3 L11,-3 M-11,3 L11,3 M-7,-8 L-7,8 M0,-8 L0,8 M7,-8 L7,8"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,-8 L11,-8 L11,8 L-11,8 Z M-11,-3 L11,-3 M-11,3 L11,3 M-7,-8 L-7,8 M0,-8 L0,8 M7,-8 L7,8"/></svg></span>
+    <div class="name">icon.vault</div><div class="desc">vault · secrets manager</div>
+  </div>
+
+  <div class="cat-head">Security · extended (4 more)</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-9" width="22" height="14" rx="1"/><path class="ico-light" d="M-7,-4 L7,-4 M-7,0 L4,0 M-3,11 L3,11 M0,5 L0,11"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-9" width="22" height="14" rx="1"/><path class="ico-dark" d="M-7,-4 L7,-4 M-7,0 L4,0 M-3,11 L3,11 M0,5 L0,11"/></svg></span>
+    <div class="name">icon.rbac</div><div class="desc">role policy</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-10,-8 L10,-8 L10,8 L-10,8 Z M-7,-3 L7,-3 M-7,1 L4,1 M-7,5 L0,5"/><path class="ico-light-fill" d="M5,3 L9,9 L7,9 L6,7 L4,9 L3,9 Z"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-10,-8 L10,-8 L10,8 L-10,8 Z M-7,-3 L7,-3 M-7,1 L4,1 M-7,5 L0,5"/><path class="ico-dark-fill" d="M5,3 L9,9 L7,9 L6,7 L4,9 L3,9 Z"/></svg></span>
+    <div class="name">icon.signing</div><div class="desc">signed payload</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-10,-10 L7,-10 L11,-6 L11,11 L-10,11 Z M-7,-5 L8,-5 M-7,-1 L8,-1 M-7,3 L5,3 M-7,7 L2,7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-10,-10 L7,-10 L11,-6 L11,11 L-10,11 Z M-7,-5 L8,-5 M-7,-1 L8,-1 M-7,3 L5,3 M-7,7 L2,7"/></svg></span>
+    <div class="name">icon.audit</div><div class="desc">audit log</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-7" y="-2" width="14" height="11" rx="2"/><path class="ico-light" d="M-4,-2 L-4,-5 Q-4,-10 0,-10 Q4,-10 4,-5 L4,-2 M-10,11 L-10,9 M10,11 L10,9"/><circle class="ico-light-fill" cx="0" cy="3" r="1.5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-7" y="-2" width="14" height="11" rx="2"/><path class="ico-dark" d="M-4,-2 L-4,-5 Q-4,-10 0,-10 Q4,-10 4,-5 L4,-2 M-10,11 L-10,9 M10,11 L10,9"/><circle class="ico-dark-fill" cx="0" cy="3" r="1.5"/></svg></span>
+    <div class="name">icon.mfa</div><div class="desc">2fa · multifactor</div>
+  </div>
+
+  <div class="cat-head">Observability · 5 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,8 L-11,-8 M-11,8 L11,8 M-7,4 L-4,0 L0,3 L4,-2 L8,-6"/><circle class="ico-light-fill" cx="-4" cy="0" r="1.5"/><circle class="ico-light-fill" cx="0" cy="3" r="1.5"/><circle class="ico-light-fill" cx="4" cy="-2" r="1.5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,8 L-11,-8 M-11,8 L11,8 M-7,4 L-4,0 L0,3 L4,-2 L8,-6"/><circle class="ico-dark-fill" cx="-4" cy="0" r="1.5"/><circle class="ico-dark-fill" cx="0" cy="3" r="1.5"/><circle class="ico-dark-fill" cx="4" cy="-2" r="1.5"/></svg></span>
+    <div class="name">icon.metrics</div><div class="desc">prometheus · datadog</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-9" width="22" height="18" rx="2"/><path class="ico-light" d="M-7,-4 L7,-4 M-7,0 L7,0 M-7,4 L4,4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-9" width="22" height="18" rx="2"/><path class="ico-dark" d="M-7,-4 L7,-4 M-7,0 L7,0 M-7,4 L4,4"/></svg></span>
+    <div class="name">icon.logs</div><div class="desc">log aggregator</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-7" cy="-5" r="2"/><circle class="ico-light" cx="0" cy="0" r="2"/><circle class="ico-light" cx="7" cy="-3" r="2"/><circle class="ico-light" cx="5" cy="7" r="2"/><path class="ico-light" d="M-5,-4 L-2,-1 M2,0 L5,-2 M6,-1 L6,5 M3,7 L2,1"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-7" cy="-5" r="2"/><circle class="ico-dark" cx="0" cy="0" r="2"/><circle class="ico-dark" cx="7" cy="-3" r="2"/><circle class="ico-dark" cx="5" cy="7" r="2"/><path class="ico-dark" d="M-5,-4 L-2,-1 M2,0 L5,-2 M6,-1 L6,5 M3,7 L2,1"/></svg></span>
+    <div class="name">icon.trace</div><div class="desc">distributed trace</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-4,-12 L4,-12 L4,-5 L8,-5 L0,9 L-8,-5 L-4,-5 Z"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-4,-12 L4,-12 L4,-5 L8,-5 L0,9 L-8,-5 L-4,-5 Z"/></svg></span>
+    <div class="name">icon.alert</div><div class="desc">pagerduty · alert</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-9" width="22" height="18" rx="2"/><rect class="ico-light-fill" x="-7" y="-5" width="4" height="6"/><rect class="ico-light-fill" x="-1" y="-2" width="4" height="3"/><rect class="ico-light-fill" x="5" y="-7" width="4" height="8"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-9" width="22" height="18" rx="2"/><rect class="ico-dark-fill" x="-7" y="-5" width="4" height="6"/><rect class="ico-dark-fill" x="-1" y="-2" width="4" height="3"/><rect class="ico-dark-fill" x="5" y="-7" width="4" height="8"/></svg></span>
+    <div class="name">icon.dashboard</div><div class="desc">grafana · kibana</div>
+  </div>
+
+  <div class="cat-head">Observability · extended (3 more)</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M-4,0 L-1,3 L5,-3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M-4,0 L-1,3 L5,-3"/></svg></span>
+    <div class="name">icon.health</div><div class="desc">healthcheck · uptime</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,8 Q-6,-10 0,-10 Q6,-10 11,8"/><path class="ico-light" d="M-11,5 L11,5"/><circle class="ico-light-fill" cx="0" cy="-2" r="1.5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,8 Q-6,-10 0,-10 Q6,-10 11,8"/><path class="ico-dark" d="M-11,5 L11,5"/><circle class="ico-dark-fill" cx="0" cy="-2" r="1.5"/></svg></span>
+    <div class="name">icon.slo</div><div class="desc">sla · error budget</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M-4,-4 L4,4 M4,-4 L-4,4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M-4,-4 L4,4 M4,-4 L-4,4"/></svg></span>
+    <div class="name">icon.error</div><div class="desc">sentry · errors</div>
+  </div>
+
+  <div class="cat-head">People · 3 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="-4" r="4"/><path class="ico-light" d="M-9,11 Q-9,2 0,2 Q9,2 9,11"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="-4" r="4"/><path class="ico-dark" d="M-9,11 Q-9,2 0,2 Q9,2 9,11"/></svg></span>
+    <div class="name">icon.user</div><div class="desc">end user</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="-5" r="4"/><circle class="ico-light" cx="0" cy="-11" r="2"/><path class="ico-light" d="M-9,10 Q-9,1 0,1 Q9,1 9,10"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="-5" r="4"/><circle class="ico-dark" cx="0" cy="-11" r="2"/><path class="ico-dark" d="M-9,10 Q-9,1 0,1 Q9,1 9,10"/></svg></span>
+    <div class="name">icon.admin</div><div class="desc">admin · platform</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="-5" r="4"/><path class="ico-light" d="M-9,10 Q-9,1 0,1 Q9,1 9,10 M-4,-5 L-2,-3 L0,-7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="-5" r="4"/><path class="ico-dark" d="M-9,10 Q-9,1 0,1 Q9,1 9,10 M-4,-5 L-2,-3 L0,-7"/></svg></span>
+    <div class="name">icon.analyst</div><div class="desc">analyst · reviewer</div>
+  </div>
+
+  <div class="cat-head">External / generic · 4 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="11"/><path class="ico-light" d="M-7,-3 L0,-7 L7,-3 L7,5 L0,9 L-7,5 Z"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="11"/><path class="ico-dark" d="M-7,-3 L0,-7 L7,-3 L7,5 L0,9 L-7,5 Z"/></svg></span>
+    <div class="name">icon.external</div><div class="desc">third party · external</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-2" cy="0" r="8"/><path class="ico-light" d="M6,-6 L10,-10 M6,6 L10,10"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-2" cy="0" r="8"/><path class="ico-dark" d="M6,-6 L10,-10 M6,6 L10,10"/></svg></span>
+    <div class="name">icon.api-external</div><div class="desc">external api</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-7" cy="0" r="3"/><circle class="ico-light" cx="7" cy="0" r="3"/><path class="ico-light" d="M-4,0 L4,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-7" cy="0" r="3"/><circle class="ico-dark" cx="7" cy="0" r="3"/><path class="ico-dark" d="M-4,0 L4,0"/></svg></span>
+    <div class="name">icon.connector</div><div class="desc">integration link</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-9" y="-9" width="18" height="18" rx="3"/><text x="0" y="4" text-anchor="middle" font-family="Roboto Flex" font-size="11" font-weight="600" fill="#04060a">Aa</text></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-9" y="-9" width="18" height="18" rx="3"/><text x="0" y="4" text-anchor="middle" font-family="Roboto Flex" font-size="11" font-weight="600" fill="rgba(255,255,255,0.92)">Aa</text></svg></span>
+    <div class="name">icon.generic-service</div><div class="desc">monogram fallback</div>
+  </div>
+
+  <div class="cat-head">Workflow · 6 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light-fill" cx="0" cy="0" r="6"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark-fill" cx="0" cy="0" r="6"/></svg></span>
+    <div class="name">icon.start</div><div class="desc">start node · entry</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="9"/><circle class="ico-light-fill" cx="0" cy="0" r="5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="9"/><circle class="ico-dark-fill" cx="0" cy="0" r="5"/></svg></span>
+    <div class="name">icon.end</div><div class="desc">end node · exit</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><g transform="rotate(45)"><rect class="ico-light" x="-9" y="-9" width="18" height="18"/></g></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><g transform="rotate(45)"><rect class="ico-dark" x="-9" y="-9" width="18" height="18"/></g></svg></span>
+    <div class="name">icon.branch</div><div class="desc">decision · gateway</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="10"/><path class="ico-light" d="M0,-7 L0,0 L5,3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="10"/><path class="ico-dark" d="M0,-7 L0,0 L5,3"/></svg></span>
+    <div class="name">icon.timer</div><div class="desc">timer · delay</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-9,2 Q-9,-9 0,-9 Q9,-9 9,2 M-2,5 L0,8 L2,5"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-9,2 Q-9,-9 0,-9 Q9,-9 9,2 M-2,5 L0,8 L2,5"/></svg></span>
+    <div class="name">icon.signal</div><div class="desc">signal · event trigger</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-2,-9 L8,-9 L8,8 L-2,8 Z M-8,-2 Q-8,-9 -2,-9 M-8,-2 L-2,-2 M-8,3 L-2,3"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-2,-9 L8,-9 L8,8 L-2,8 Z M-8,-2 Q-8,-9 -2,-9 M-8,-2 L-2,-2 M-8,3 L-2,3"/></svg></span>
+    <div class="name">icon.manual</div><div class="desc">human task · approval</div>
+  </div>
+
+  <div class="cat-head">Integration · 5 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="-6" cy="-6" r="3"/><path class="ico-light" d="M-4,-4 L2,2 L-2,8 L8,8"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="-6" cy="-6" r="3"/><path class="ico-dark" d="M-4,-4 L2,2 L-2,8 L8,8"/></svg></span>
+    <div class="name">icon.webhook</div><div class="desc">webhook callback</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-10,0 L-6,4 L-6,-4 Z M10,0 L6,4 L6,-4 Z M-6,0 L6,0"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-10,0 L-6,4 L-6,-4 Z M10,0 L6,4 L6,-4 Z M-6,0 L6,0"/></svg></span>
+    <div class="name">icon.websocket</div><div class="desc">persistent socket</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-light" cx="0" cy="0" r="3"/><circle class="ico-light" cx="-9" cy="-6" r="2"/><circle class="ico-light" cx="9" cy="-6" r="2"/><circle class="ico-light" cx="-9" cy="6" r="2"/><circle class="ico-light" cx="9" cy="6" r="2"/><circle class="ico-light" cx="0" cy="-10" r="2"/><circle class="ico-light" cx="0" cy="10" r="2"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><circle class="ico-dark" cx="0" cy="0" r="3"/><circle class="ico-dark" cx="-9" cy="-6" r="2"/><circle class="ico-dark" cx="9" cy="-6" r="2"/><circle class="ico-dark" cx="-9" cy="6" r="2"/><circle class="ico-dark" cx="9" cy="6" r="2"/><circle class="ico-dark" cx="0" cy="-10" r="2"/><circle class="ico-dark" cx="0" cy="10" r="2"/></svg></span>
+    <div class="name">icon.graphql</div><div class="desc">graphql endpoint</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-11,0 Q-11,-11 0,-11 Q11,-11 11,0 Q11,11 0,11 Q-11,11 -11,0"/><text x="0" y="3" text-anchor="middle" font-family="Roboto Flex" font-size="8" font-weight="600" fill="#04060a">gRPC</text></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-11,0 Q-11,-11 0,-11 Q11,-11 11,0 Q11,11 0,11 Q-11,11 -11,0"/><text x="0" y="3" text-anchor="middle" font-family="Roboto Flex" font-size="8" font-weight="600" fill="rgba(255,255,255,0.92)">gRPC</text></svg></span>
+    <div class="name">icon.grpc</div><div class="desc">grpc · protobuf</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-9,0 Q-9,-9 0,-9 Q9,-9 9,0"/><path class="ico-light" d="M5,-2 L9,0 L11,-4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-9,0 Q-9,-9 0,-9 Q9,-9 9,0"/><path class="ico-dark" d="M5,-2 L9,0 L11,-4"/></svg></span>
+    <div class="name">icon.polling</div><div class="desc">polling · poll loop</div>
+  </div>
+
+  <div class="cat-head">Domain · 5 icons</div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-7" width="22" height="14" rx="2"/><path class="ico-light" d="M-11,-3 L11,-3"/><path class="ico-light-fill" d="M-7,2 L1,2 L1,4 L-7,4 Z"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-7" width="22" height="14" rx="2"/><path class="ico-dark" d="M-11,-3 L11,-3"/><path class="ico-dark-fill" d="M-7,2 L1,2 L1,4 L-7,4 Z"/></svg></span>
+    <div class="name">icon.payment</div><div class="desc">stripe · payments</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-7" width="22" height="14" rx="1"/><path class="ico-light" d="M-11,-7 L0,3 L11,-7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-7" width="22" height="14" rx="1"/><path class="ico-dark" d="M-11,-7 L0,3 L11,-7"/></svg></span>
+    <div class="name">icon.email</div><div class="desc">smtp · sendgrid</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-light" d="M-7,-7 Q-7,-11 0,-11 Q7,-11 7,-7 L7,3 L9,7 L-9,7 L-7,3 Z M-3,7 Q-3,11 0,11 Q3,11 3,7"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><path class="ico-dark" d="M-7,-7 Q-7,-11 0,-11 Q7,-11 7,-7 L7,3 L9,7 L-9,7 L-7,3 Z M-3,7 Q-3,11 0,11 Q3,11 3,7"/></svg></span>
+    <div class="name">icon.notification</div><div class="desc">push · alert</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-7" width="22" height="16" rx="1"/><path class="ico-light" d="M-11,-2 L11,-2 M-7,-10 L-7,-4 M7,-10 L7,-4"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-7" width="22" height="16" rx="1"/><path class="ico-dark" d="M-11,-2 L11,-2 M-7,-10 L-7,-4 M7,-10 L7,-4"/></svg></span>
+    <div class="name">icon.calendar</div><div class="desc">scheduling · calendar</div>
+  </div>
+
+  <div class="icon-cell">
+    <span class="light"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-light" x="-11" y="-8" width="22" height="16" rx="2"/><path class="ico-light-fill" d="M-3,-3 L5,1 L-3,5 Z"/></svg></span>
+    <span class="dark"><svg width="32" height="32" viewBox="-16 -16 32 32"><rect class="ico-dark" x="-11" y="-8" width="22" height="16" rx="2"/><path class="ico-dark-fill" d="M-3,-3 L5,1 L-3,5 Z"/></svg></span>
+    <div class="name">icon.media</div><div class="desc">video · streaming media</div>
+  </div>
+</div>
+
+<!-- =========================================================== -->
+<h2><span class="num">03.3</span>Fallback rule · when no icon matches</h2>
+<p class="section-lede">When a service doesn't fit any of the 78, use <code>icon.generic-service</code> — a rounded square tile with a 1–2 letter monogram in Roboto Flex 14 / 600. The tile fill comes from the service's pinned categorical surface; the monogram color uses the service's contrast ink (white on dark tile, ink-1 on light tile).</p>
+
+<table class="tokens">
+  <thead><tr><th>Service example</th><th>Monogram</th><th>Tile</th></tr></thead>
+  <tbody>
+    <tr><td class="note">Stripe</td><td class="value">St</td><td class="value">--ds-surface-slate</td></tr>
+    <tr><td class="note">Sendgrid</td><td class="value">Sg</td><td class="value">--ds-surface-store</td></tr>
+    <tr><td class="note">LaunchDarkly</td><td class="value">L</td><td class="value">--ds-surface-secure</td></tr>
+    <tr><td class="note">Notion</td><td class="value">N</td><td class="value">--ds-surface-neutral</td></tr>
+  </tbody>
+</table>
+
+<div class="callout warn"><strong>Never improvise a new glyph.</strong> If you find yourself wanting to draw a custom shape for a service that's not in the 78, stop. Use <code>icon.generic-service</code> with a monogram. The icon library is closed by design — every diagram in a multi-set proposal needs to use the same shape vocabulary, and ad-hoc shapes break that.</div>
+
+<!-- =========================================================== -->
+<h2><span class="num">03.4</span>Canonical icon → gradient map</h2>
+<p class="section-lede">When an icon appears in <code>card.categorical</code>, this table defines which categorical surface it sits on. Pinned across diagrams via the <a href="../manifest.html">set manifest</a>. Same service → same icon → same gradient, every figure.</p>
+
+<table class="tokens">
+  <thead><tr><th>Icon</th><th>Gradient</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td class="token">icon.sql / nosql / warehouse / vector / search</td><td class="value">--ds-surface-sql</td><td class="note">Persistent stores — cool blue identity</td></tr>
+    <tr><td class="token">icon.cache</td><td class="value">--ds-surface-cache</td><td class="note">In-memory transient — purple identity</td></tr>
+    <tr><td class="token">icon.queue / stream</td><td class="value">--ds-surface-slate</td><td class="note">Pub/sub / message broker — slate identity</td></tr>
+    <tr><td class="token">icon.bucket / fs / lake</td><td class="value">--ds-surface-store</td><td class="note">Blob / object / artifact — sable warmth</td></tr>
+    <tr><td class="token">icon.lock / key / cert / oauth / vault / rbac / signing / audit / mfa</td><td class="value">--ds-surface-secure</td><td class="note">Security family — green identity</td></tr>
+    <tr><td class="token">icon.agent / service / model / function</td><td class="value">--ds-surface-primary</td><td class="note">Active compute — info-blue identity (hero)</td></tr>
+    <tr><td class="token">icon.worker / container / vm / k8s / batch / gpu</td><td class="value">--ds-surface-neutral</td><td class="note">Background compute — neutral</td></tr>
+    <tr><td class="token">icon.gateway / lb / cdn / proxy / mesh / ingress / vpc / firewall / tunnel / nat / dns / edge</td><td class="value">--ds-surface-slate</td><td class="note">Network plane — slate identity</td></tr>
+    <tr><td class="token">icon.metrics / logs / trace / alert / dashboard / health / slo / error</td><td class="value">--ds-surface-neutral</td><td class="note">Observability — neutral (lives outside the system being diagrammed)</td></tr>
+    <tr><td class="token">icon.user / admin / analyst / external</td><td class="value">card.secondary (light surface, not categorical)</td><td class="note">Actors live on light cards, not categorical</td></tr>
+    <tr><td class="token">icon.webhook / websocket / graphql / grpc / polling</td><td class="value">--ds-surface-slate</td><td class="note">Integration plane — slate</td></tr>
+    <tr><td class="token">icon.start / end / branch / timer / signal / manual</td><td class="value">card.secondary or node primitive</td><td class="note">Workflow control nodes — usually outlined, not categorical</td></tr>
+    <tr><td class="token">icon.payment / email / notification / calendar / media</td><td class="value">card.compact + monogram tile</td><td class="note">Domain integrations — monogram tile inside a light card</td></tr>
+    <tr><td class="token">icon.etl / ml / timeseries</td><td class="value">--ds-surface-slate</td><td class="note">Data pipeline plane — slate</td></tr>
+  </tbody>
+</table>
+
+<div class="callout good"><strong>Cross-diagram lock.</strong> Whichever gradient + icon a service gets in the first diagram of a proposal, every subsequent diagram in that proposal uses the same pairing. See <a href="../manifest.html">Set manifest</a> for the YAML stub that pins it.</div>
+
+</main>
+</div>
+</body>
+</html>

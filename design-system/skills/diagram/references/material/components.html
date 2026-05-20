@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Components · diagram skill · material mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>design system</div>
+  <h1>diagram · material</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html" class="active"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
+    <div class="group">Other modes</div>
+    <a href="../pixel/components.html"><span class="n">··</span>Pixel mode</a>
+  </nav>
+  <div class="foot">material mode · v2.0.0 · M3 (sable + sage) · light + dark · viewBox 1660</div>
+</aside>
+
+<main>
+
+<p class="eyebrow">Deliverable 02 · Component library · Material mode</p>
+<h1 class="page">Named, slotted, copy-pasteable. Every template builds from these.</h1>
+<p class="lede">A card is not a rectangle the generator draws — it is a slotted component the generator <em>fills</em>. Reserved positions for the icon, the status dot, the footer line. Material mode keeps the same library as Pixel (7 cards, 4 chips, 6 nodes, stages, lanes, groups, callouts) so a downstream generator switching modes only swaps token values, not component names.</p>
+
+<div class="callout"><strong>How to read these specs.</strong> Each card shows a true-pixel rendering on the left and the slot anatomy on the right. The dimensions, paddings, and slot positions are <em>locked</em> — fill the slots, don't move them. Optional slots stay empty if unused; the card geometry doesn't reflow.</div>
+
+<!-- =========================================================== -->
+<!--                       THEME BEHAVIOR                          -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.0</span>Theme behavior across components</h2>
+<p class="section-lede">Every primitive on this page exists in both <strong>light</strong> and <strong>dark</strong> theme. Geometry, slots, paddings, slot positions are <em>identical</em> — only token values swap. The categorical surfaces (<code>--ds-surface-sql</code>, <code>--ds-surface-primary</code>, etc.) keep their <em>id</em> across themes; the gradient stops inside change. The two filter ids (<code>cardShadow</code>, <code>cardShadowDark</code>) stay the same; their bodies rewrite per theme — see <a href="foundations.html#01.5">foundations §01.5</a>.</p>
+
+<table class="tokens">
+  <thead><tr><th>Primitive group</th><th>Theme behavior</th></tr></thead>
+  <tbody>
+    <tr><td class="token">Cards · all 7 variants</td><td class="note">Identical layout. Surface tokens swap per foundations §01.2. <strong>Light cards (<code>card.secondary</code>, <code>card.reference</code>, <code>card.compact</code>) lose their drop shadow in dark</strong> — they get a 1px <code>rgba(255,255,255,0.10)</code> stroke instead. Dark categorical cards keep their drop shadow (deeper flood, <code>#000000</code> at 0.55).</td></tr>
+    <tr><td class="token">Chips · 4 types</td><td class="note">Identical. M3 chip default is pill (<code>--md-shape-full</code>). <code>chip.status</code> dot colors are V2 palette tokens — theme-portable. <code>chip.count</code> and <code>chip.label</code> use the light/dark card tokens depending on the card they sit on.</td></tr>
+    <tr><td class="token">Shapes · 6 nodes</td><td class="note">Identical geometry. <code>node.note</code> has a theme-specific fill: light = warm sable-tinted <code>#f4ecd9</code>; dark = warm near-black <code>#2a2620</code>. The amber stroke (<code>--p-warn</code> <code>#d4a056</code>) stays in both — it's what makes the note read as a note.</td></tr>
+    <tr><td class="token">Stages · numbered tokens</td><td class="note">Identical. Number circle uses the theme-portable accent (<code>#6b9cf0</code>). Stage label ink swaps from <code>--ink-4</code> to <code>--ink-4-dark</code>.</td></tr>
+    <tr><td class="token">Lanes · sequence primitives</td><td class="note">Identical. Lifeline stroke uses <code>--rule-strong</code> / <code>--rule-strong-dark</code>. Activation box fill stays solid surface gradient.</td></tr>
+    <tr><td class="token">Groups · boundaries</td><td class="note">Identical. Dashed stroke uses <code>--ink-4</code> / <code>--ink-4-dark</code> for neutral boundaries; <code>--accent</code> for trust boundaries (same hex in both themes). Label chip uses the light-card token of its theme.</td></tr>
+    <tr><td class="token">Callouts &amp; legend</td><td class="note"><code>callout.note</code> has the same theme-specific fill as <code>node.note</code> (warm). Legend chips use light-card tokens per theme.</td></tr>
+  </tbody>
+</table>
+
+<h3>Worked side-by-side · the four most common primitives</h3>
+<div class="pair">
+  <div class="frame">
+    <div class="frame-head"><span class="theme">Light</span><span class="meta">card.primary + card.secondary + chip + node.note</span></div>
+    <svg viewBox="0 0 720 240" font-family="Roboto Flex, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="cmBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+        <linearGradient id="cmSp1L" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a5fa8"/><stop offset="100%" stop-color="#234686"/></linearGradient>
+        <filter id="cmFL"  x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+        <filter id="cmFDL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#14171c" flood-opacity="0.22"/></filter>
+      </defs>
+      <rect width="720" height="240" fill="url(#cmBgL)"/>
+      <!-- card.primary -->
+      <rect x="40" y="40" width="180" height="100" rx="12" fill="url(#cmSp1L)" filter="url(#cmFDL)"/>
+      <text x="58" y="68" font-size="13" font-weight="500" fill="#ffffff">card.primary</text>
+      <text x="58" y="86" font-size="11" fill="rgba(255,255,255,0.72)">surface gradient · white inks</text>
+      <circle cx="200" cy="58" r="4" fill="#6fb380"/>
+      <!-- card.secondary -->
+      <rect x="240" y="40" width="180" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cmFL)"/>
+      <text x="258" y="68" font-size="13" font-weight="500" fill="#04060a">card.secondary</text>
+      <text x="258" y="86" font-size="11" fill="#3a3f47">light surface · ink-1 + ink-2</text>
+      <!-- chip (M3 pill) -->
+      <rect x="440" y="48" width="84" height="24" rx="12" fill="rgba(107,156,240,0.14)" stroke="#6b9cf0"/>
+      <text x="482" y="64" text-anchor="middle" font-size="10" font-weight="600" fill="#3a6ec9" letter-spacing="0.8">CHIP</text>
+      <!-- node.note -->
+      <rect x="440" y="92" width="240" height="50" rx="8" fill="#f4ecd9" stroke="#d4a056"/>
+      <text x="452" y="112" font-size="12" font-weight="500" fill="#5e4632">node.note · warm sable tint</text>
+      <text x="452" y="128" font-size="10" font-style="italic" fill="#4d5159">amber stroke · ink-3 caption</text>
+      <!-- meta -->
+      <text x="40" y="180" font-size="10" letter-spacing="1.6" font-weight="600" fill="#6f7480">CARD.SECONDARY KEEPS DROP SHADOW IN LIGHT</text>
+    </svg>
+  </div>
+  <div class="frame dark">
+    <div class="frame-head"><span class="theme">Dark</span><span class="meta">light card loses shadow → 1px halo</span></div>
+    <svg viewBox="0 0 720 240" font-family="Roboto Flex, system-ui, sans-serif">
+      <defs>
+        <linearGradient id="cmBgD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0f12"/><stop offset="100%" stop-color="#08090b"/></linearGradient>
+        <linearGradient id="cmSp1D" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5687d4"/><stop offset="100%" stop-color="#3a5fa8"/></linearGradient>
+        <filter id="cmFD"  x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"/></filter>
+        <filter id="cmFDD" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/></filter>
+      </defs>
+      <rect width="720" height="240" fill="url(#cmBgD)"/>
+      <!-- card.primary lifted -->
+      <rect x="40" y="40" width="180" height="100" rx="12" fill="url(#cmSp1D)" filter="url(#cmFDD)"/>
+      <text x="58" y="68" font-size="13" font-weight="500" fill="#ffffff">card.primary</text>
+      <text x="58" y="86" font-size="11" fill="rgba(255,255,255,0.72)">lifted surface · white inks</text>
+      <circle cx="200" cy="58" r="4" fill="#6fb380"/>
+      <!-- card.secondary dark mid-tone with stroke -->
+      <rect x="240" y="40" width="180" height="100" rx="12" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cmFD)"/>
+      <text x="258" y="68" font-size="13" font-weight="500" fill="#ffffff">card.secondary</text>
+      <text x="258" y="86" font-size="11" fill="#b4bac4">mid-tone · ink-1-dark + ink-2-dark</text>
+      <!-- chip dark pill -->
+      <rect x="440" y="48" width="84" height="24" rx="12" fill="rgba(107,156,240,0.18)" stroke="#6b9cf0"/>
+      <text x="482" y="64" text-anchor="middle" font-size="10" font-weight="600" fill="#d6e3ff" letter-spacing="0.8">CHIP</text>
+      <!-- node.note dark warm -->
+      <rect x="440" y="92" width="240" height="50" rx="8" fill="#2a2620" stroke="#d4a056"/>
+      <text x="452" y="112" font-size="12" font-weight="500" fill="#f3deca">node.note · warm dark neutral</text>
+      <text x="452" y="128" font-size="10" font-style="italic" fill="#9aa0ac">amber stroke · ink-3-dark caption</text>
+      <!-- meta -->
+      <text x="40" y="180" font-size="10" letter-spacing="1.6" font-weight="600" fill="#7d8290">CARD.SECONDARY LOSES SHADOW → HALO</text>
+    </svg>
+  </div>
+</div>
+
+<!-- =========================================================== -->
+<!--                      02.1 CARDS · ANATOMY                    -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.1</span>Cards · anatomy</h2>
+<p class="section-lede">Every card has three locked slots: <strong>icon</strong> (top-left, 36 × 36 with 20/20 inset), <strong>status</strong> (top-right, 12 × 12), <strong>footer</strong> (bottom-left, italic ink-3). Slot positions don't move between variants. If a slot is unused, it stays empty — the geometry doesn't reflow.</p>
+
+<div class="callout warn"><strong>Two-step icon pattern.</strong> Always draw the 36 × 36 slot rect FIRST at <code>(card.x + 20, card.y + 20)</code>, then wrap the icon ART in <code>&lt;g transform="translate(card.x+38, card.y+38)"&gt;</code> (the slot center) with all shape coordinates relative to <code>(0, 0)</code>. The slot rect is the load-bearing geometry — without it, hand-computed per-icon offsets compound into baseline drift across same-rank cards. See <a href="../troubleshooting.md">troubleshooting</a> entry "Icons drift / sit at different baselines".</p></div>
+
+<div class="frame">
+  <div class="frame-head"><span>card · slot anatomy</span><span class="meta">280 × 108 baseline</span></div>
+  <svg viewBox="0 0 720 240" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="anBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <filter id="anFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="720" height="240" fill="url(#anBgL)"/>
+    <!-- card with all slots labeled -->
+    <rect x="40" y="40" width="320" height="160" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#anFL)"/>
+    <!-- icon slot (top-left) -->
+    <rect x="60" y="60" width="36" height="36" rx="8" fill="rgba(107,156,240,0.10)" stroke="#6b9cf0" stroke-dasharray="3,3"/>
+    <text x="78" y="83" text-anchor="middle" font-size="8" font-family="Roboto Flex, monospace" fill="#3a6ec9" letter-spacing="0.6">ICON</text>
+    <text x="78" y="93" text-anchor="middle" font-size="8" font-family="Roboto Flex, monospace" fill="#3a6ec9">36×36</text>
+    <!-- status slot (top-right) -->
+    <rect x="316" y="60" width="24" height="24" rx="12" fill="rgba(107,156,240,0.10)" stroke="#6b9cf0" stroke-dasharray="3,3"/>
+    <text x="328" y="78" text-anchor="middle" font-size="8" font-family="Roboto Flex, monospace" fill="#3a6ec9">STATUS</text>
+    <!-- title -->
+    <text x="116" y="88" font-size="16" font-weight="500" fill="#04060a">Card title</text>
+    <!-- body -->
+    <text x="60" y="124" font-size="12" fill="#3a3f47">card body row 1 — first detail</text>
+    <text x="60" y="144" font-size="12" fill="#3a3f47">card body row 2 — second detail</text>
+    <!-- footer -->
+    <text x="60" y="180" font-size="11" font-style="italic" fill="#4d5159">footer slot · italic ink-3 caption</text>
+    <!-- annotations -->
+    <text x="400" y="60" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480" letter-spacing="0.6">SLOTS · LOCKED POSITIONS</text>
+    <text x="400" y="80" font-size="11" fill="#3a3f47">• icon @ (x+20, y+20), 36×36</text>
+    <text x="400" y="98" font-size="11" fill="#3a3f47">• status @ (x+w-24, y+20), 12×12 dot</text>
+    <text x="400" y="116" font-size="11" fill="#3a3f47">• title @ (x+icon-slot+20, y+38), title-m</text>
+    <text x="400" y="134" font-size="11" fill="#3a3f47">• body rows @ y+padding, line-height 20</text>
+    <text x="400" y="152" font-size="11" fill="#3a3f47">• footer @ bottom-left, label-s italic</text>
+    <text x="400" y="180" font-size="10" font-family="Roboto Flex, monospace" fill="#3a6ec9" letter-spacing="0.6">--card-pad 24 · --md-shape-md 12</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                      02.2 CARD · VARIANTS                    -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.2</span>Card · variants</h2>
+<p class="section-lede">Seven card variants. The generator picks by what the card <em>is</em>, not by what it looks like. Default size: 280 × 84 (compact) or 280 × 108 (detailed); same-rank cards share height.</p>
+
+<table class="tokens">
+  <thead><tr><th>Variant</th><th>Fill</th><th>Shadow</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">card.primary</td><td class="value"><span class="chip-color" style="background:linear-gradient(135deg,#3a5fa8,#234686)"></span>--ds-surface-primary</td><td class="note">cardShadowDark</td><td class="note">Active agent, primary API, the hero element. White text. Used for the system-context hub.</td></tr>
+    <tr><td class="token">card.secondary</td><td class="value"><span class="chip-color" style="background:#ffffff;border:1px solid #d2cdc0"></span>--surface-light</td><td class="note">cardShadow (light theme), 1px halo (dark)</td><td class="note">Default card. Light surface, ink-1 text. Used for users, internal components.</td></tr>
+    <tr><td class="token">card.categorical</td><td class="value"><span class="chip-color" style="background:linear-gradient(135deg,#1d4480,#0d2354)"></span>varies (sql/secure/store/etc)</td><td class="note">cardShadowDark</td><td class="note">Service cards with categorical identity (Postgres, Auth, GCS, Redis). White text. Surface picked from §01.2 §categorical.</td></tr>
+    <tr><td class="token">card.reference</td><td class="value"><span class="chip-color" style="background:#e9e5d9"></span>--surface-reference</td><td class="note">no shadow (1px rule border)</td><td class="note">Lookup / enum / parameter cards. Visually subordinate to <code>card.secondary</code>.</td></tr>
+    <tr><td class="token">card.compact</td><td class="value"><span class="chip-color" style="background:#ffffff;border:1px solid #d2cdc0"></span>--surface-light</td><td class="note">cardShadow</td><td class="note">Connector-map spokes, lifeline headers. Same fill as secondary, tighter padding (<code>--card-pad-tight</code> 16).</td></tr>
+    <tr><td class="token">card.deferred</td><td class="value"><span class="chip-color" style="background:rgba(107,156,240,0.10);border:1px dashed #6b9cf0"></span>--ds-surface-deferred</td><td class="note">no shadow (dashed accent stroke)</td><td class="note">"Not yet built / v2 stub" cards. Canonical look — never improvise a "coming soon" treatment.</td></tr>
+    <tr><td class="token">card.highlight</td><td class="value"><span class="chip-color" style="background:rgba(107,156,240,0.18);border:2px solid #6b9cf0"></span>accent border + tint</td><td class="note">cardShadow</td><td class="note">A single card the diagram is calling attention to. <strong>Requires a paired <code>chip.label</code></strong> explaining why (e.g. "FIXED · spec 0119") — bare highlight is forbidden.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>all 7 card variants · light</span><span class="meta">280 × 100 each</span></div>
+  <svg viewBox="0 0 1660 360" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="cvBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <linearGradient id="cvSpL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a5fa8"/><stop offset="100%" stop-color="#234686"/></linearGradient>
+      <linearGradient id="cvSqL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1d4480"/><stop offset="100%" stop-color="#0d2354"/></linearGradient>
+      <filter id="cvFL"  x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+      <filter id="cvFDL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#14171c" flood-opacity="0.22"/></filter>
+    </defs>
+    <rect width="1660" height="360" fill="url(#cvBgL)"/>
+
+    <!-- card.primary -->
+    <rect x="40" y="40" width="220" height="100" rx="12" fill="url(#cvSpL)" filter="url(#cvFDL)"/>
+    <text x="60" y="74" font-size="13" font-weight="500" fill="#ffffff">card.primary</text>
+    <text x="60" y="92" font-size="11" fill="rgba(255,255,255,0.72)">active · hero</text>
+    <text x="60" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">cardShadowDark</text>
+
+    <!-- card.secondary -->
+    <rect x="280" y="40" width="220" height="100" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cvFL)"/>
+    <text x="300" y="74" font-size="13" font-weight="500" fill="#04060a">card.secondary</text>
+    <text x="300" y="92" font-size="11" fill="#3a3f47">default light surface</text>
+    <text x="300" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">cardShadow</text>
+
+    <!-- card.categorical (sql) -->
+    <rect x="520" y="40" width="220" height="100" rx="12" fill="url(#cvSqL)" filter="url(#cvFDL)"/>
+    <text x="540" y="74" font-size="13" font-weight="500" fill="#ffffff">card.categorical</text>
+    <text x="540" y="92" font-size="11" fill="rgba(255,255,255,0.72)">sql · postgres · mysql</text>
+    <text x="540" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">--ds-surface-sql</text>
+
+    <!-- card.reference -->
+    <rect x="760" y="40" width="220" height="100" rx="12" fill="#e9e5d9" stroke="#d2cdc0"/>
+    <text x="780" y="74" font-size="13" font-weight="500" fill="#04060a">card.reference</text>
+    <text x="780" y="92" font-size="11" fill="#3a3f47">lookup · enum · params</text>
+    <text x="780" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">no shadow · 1px rule</text>
+
+    <!-- card.compact -->
+    <rect x="1000" y="40" width="180" height="80" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#cvFL)"/>
+    <text x="1016" y="68" font-size="13" font-weight="500" fill="#04060a">card.compact</text>
+    <text x="1016" y="86" font-size="10" fill="#4d5159">tighter pad · 16px</text>
+    <text x="1000" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">--card-pad-tight</text>
+
+    <!-- card.deferred -->
+    <rect x="1200" y="40" width="220" height="100" rx="12" fill="rgba(107,156,240,0.10)" stroke="#6b9cf0" stroke-dasharray="5,4"/>
+    <text x="1220" y="74" font-size="13" font-weight="500" fill="#3a6ec9">card.deferred</text>
+    <text x="1220" y="92" font-size="11" fill="#4d5159" font-style="italic">v2 stub · not yet built</text>
+    <text x="1200" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">--ds-surface-deferred</text>
+
+    <!-- card.highlight -->
+    <rect x="1440" y="40" width="180" height="100" rx="12" fill="rgba(107,156,240,0.18)" stroke="#6b9cf0" stroke-width="2" filter="url(#cvFL)"/>
+    <text x="1460" y="74" font-size="13" font-weight="500" fill="#04060a">card.highlight</text>
+    <text x="1460" y="92" font-size="11" fill="#3a3f47">paired chip.label →</text>
+    <rect x="1460" y="100" width="80" height="18" rx="9" fill="#6b9cf0"/>
+    <text x="1500" y="113" text-anchor="middle" font-size="9" font-weight="600" fill="#ffffff" letter-spacing="0.8">SPEC 0119</text>
+    <text x="1440" y="160" font-size="10" font-family="Roboto Flex, monospace" fill="#6f7480">accent border + tint</text>
+
+    <!-- section label -->
+    <text x="40" y="220" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">SAME 7 VARIANTS IN DARK · LIGHT CARDS LOSE SHADOW</text>
+  </svg>
+</div>
+
+<div class="frame dark">
+  <div class="frame-head"><span class="theme">Dark</span><span class="meta">same 7 variants · token swap only</span></div>
+  <svg viewBox="0 0 1660 220" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="cvBgD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0f12"/><stop offset="100%" stop-color="#08090b"/></linearGradient>
+      <linearGradient id="cvSpD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5687d4"/><stop offset="100%" stop-color="#3a5fa8"/></linearGradient>
+      <linearGradient id="cvSqD" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2d5fa8"/><stop offset="100%" stop-color="#1d4480"/></linearGradient>
+      <filter id="cvFD"  x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"/></filter>
+      <filter id="cvFDD" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/></filter>
+    </defs>
+    <rect width="1660" height="220" fill="url(#cvBgD)"/>
+    <rect x="40"   y="40" width="220" height="100" rx="12" fill="url(#cvSpD)" filter="url(#cvFDD)"/>
+    <text x="60" y="74" font-size="13" font-weight="500" fill="#ffffff">card.primary</text>
+    <text x="60" y="92" font-size="11" fill="rgba(255,255,255,0.72)">lifted · #5687d4 → #3a5fa8</text>
+    <rect x="280"  y="40" width="220" height="100" rx="12" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cvFD)"/>
+    <text x="300" y="74" font-size="13" font-weight="500" fill="#ffffff">card.secondary</text>
+    <text x="300" y="92" font-size="11" fill="#b4bac4">halo replaces drop</text>
+    <rect x="520"  y="40" width="220" height="100" rx="12" fill="url(#cvSqD)" filter="url(#cvFDD)"/>
+    <text x="540" y="74" font-size="13" font-weight="500" fill="#ffffff">card.categorical</text>
+    <text x="540" y="92" font-size="11" fill="rgba(255,255,255,0.72)">sql lifted</text>
+    <rect x="760"  y="40" width="220" height="100" rx="12" fill="#111317" stroke="rgba(255,255,255,0.16)"/>
+    <text x="780" y="74" font-size="13" font-weight="500" fill="#ffffff">card.reference</text>
+    <text x="780" y="92" font-size="11" fill="#b4bac4">--surface-reference-dark</text>
+    <rect x="1000" y="40" width="180" height="80" rx="12" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cvFD)"/>
+    <text x="1016" y="68" font-size="13" font-weight="500" fill="#ffffff">card.compact</text>
+    <text x="1016" y="86" font-size="10" fill="#9aa0ac">tighter pad</text>
+    <rect x="1200" y="40" width="220" height="100" rx="12" fill="rgba(107,156,240,0.16)" stroke="#6b9cf0" stroke-dasharray="5,4"/>
+    <text x="1220" y="74" font-size="13" font-weight="500" fill="#d6e3ff">card.deferred</text>
+    <text x="1220" y="92" font-size="11" fill="#9aa0ac" font-style="italic">v2 stub · dark</text>
+    <rect x="1440" y="40" width="180" height="100" rx="12" fill="rgba(107,156,240,0.20)" stroke="#6b9cf0" stroke-width="2" filter="url(#cvFD)"/>
+    <text x="1460" y="74" font-size="13" font-weight="500" fill="#ffffff">card.highlight</text>
+    <rect x="1460" y="100" width="80" height="18" rx="9" fill="#6b9cf0"/>
+    <text x="1500" y="113" text-anchor="middle" font-size="9" font-weight="600" fill="#ffffff" letter-spacing="0.8">SPEC 0119</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                       02.3 CHIPS                             -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.3</span>Chips &amp; badges</h2>
+<p class="section-lede">Four chip types. Material mode follows M3 convention — chips are pills (<code>--md-shape-full</code>) by default, 22–24 px tall, label-s type. Chips are never freestanding: always adjacent to a card or arrow.</p>
+
+<table class="tokens">
+  <thead><tr><th>Type</th><th>Shape</th><th>States / variants</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">chip.status</td><td class="value">pill · 22px · leading 6px dot</td><td class="note">running · ok · warn · error · idle · queued</td><td class="note">Status of a card. Dot color = V2 palette token (info / ok / warn / err / idle / sable-dim). Theme-portable.</td></tr>
+    <tr><td class="token">chip.count</td><td class="value">pill · 18px · numeric only</td><td class="note">solid bg, white text</td><td class="note">Count badge next to a label. Tint follows the chip's parent context (info / sable / sage).</td></tr>
+    <tr><td class="token">chip.version</td><td class="value">pill · 18px · mono</td><td class="note">light surface, accent border</td><td class="note">Version markers (v1.5.0, spec 0119). Always paired with a card or section header.</td></tr>
+    <tr><td class="token">chip.label</td><td class="value">pill · 22px · ALL CAPS</td><td class="note">multiple tints (info, ok, warn, err, neutral)</td><td class="note">Inline classification or tag. Required pair for <code>card.highlight</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>chips · light</span><span class="meta">M3 pill shape (--md-shape-full)</span></div>
+  <svg viewBox="0 0 1660 200" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="chBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+    </defs>
+    <rect width="1660" height="200" fill="url(#chBgL)"/>
+
+    <!-- chip.status row -->
+    <text x="40" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">CHIP.STATUS · 6 STATES</text>
+    <g transform="translate(40, 76)">
+      <rect width="76" height="22" rx="11" fill="rgba(107,156,240,0.14)" stroke="#6b9cf0"/><circle cx="14" cy="11" r="4" fill="#6b9cf0"/><text x="26" y="15" font-size="10" font-weight="600" fill="#3a6ec9" letter-spacing="0.8">RUNNING</text>
+    </g>
+    <g transform="translate(132, 76)">
+      <rect width="48" height="22" rx="11" fill="rgba(111,179,128,0.14)" stroke="#6fb380"/><circle cx="14" cy="11" r="4" fill="#6fb380"/><text x="24" y="15" font-size="10" font-weight="600" fill="#2f6840" letter-spacing="0.8">OK</text>
+    </g>
+    <g transform="translate(196, 76)">
+      <rect width="64" height="22" rx="11" fill="rgba(212,160,86,0.14)" stroke="#d4a056"/><circle cx="14" cy="11" r="4" fill="#d4a056"/><text x="26" y="15" font-size="10" font-weight="600" fill="#7a5320" letter-spacing="0.8">WARN</text>
+    </g>
+    <g transform="translate(276, 76)">
+      <rect width="62" height="22" rx="11" fill="rgba(217,106,106,0.14)" stroke="#d96a6a"/><circle cx="14" cy="11" r="4" fill="#d96a6a"/><text x="26" y="15" font-size="10" font-weight="600" fill="#8b2f2f" letter-spacing="0.8">ERROR</text>
+    </g>
+    <g transform="translate(354, 76)">
+      <rect width="56" height="22" rx="11" fill="rgba(94,99,109,0.14)" stroke="#5e636d"/><circle cx="14" cy="11" r="4" fill="#5e636d"/><text x="26" y="15" font-size="10" font-weight="600" fill="#3a3f47" letter-spacing="0.8">IDLE</text>
+    </g>
+    <g transform="translate(426, 76)">
+      <rect width="70" height="22" rx="11" fill="rgba(138,109,78,0.14)" stroke="#8a6d4e"/><circle cx="14" cy="11" r="4" fill="#8a6d4e"/><text x="26" y="15" font-size="10" font-weight="600" fill="#5e4632" letter-spacing="0.8">QUEUED</text>
+    </g>
+
+    <!-- chip.count row -->
+    <text x="600" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">CHIP.COUNT · NUMERIC</text>
+    <g transform="translate(600, 76)">
+      <rect width="32" height="18" rx="9" fill="#6b9cf0"/>
+      <text x="16" y="13" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">12</text>
+    </g>
+    <g transform="translate(644, 76)">
+      <rect width="32" height="18" rx="9" fill="#d4a574"/>
+      <text x="16" y="13" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">8</text>
+    </g>
+    <g transform="translate(688, 76)">
+      <rect width="40" height="18" rx="9" fill="#7cc4b8"/>
+      <text x="20" y="13" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">142</text>
+    </g>
+
+    <!-- chip.version row -->
+    <text x="780" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">CHIP.VERSION · MONO</text>
+    <g transform="translate(780, 76)">
+      <rect width="64" height="18" rx="9" fill="#ffffff" stroke="#6b9cf0"/>
+      <text x="32" y="13" text-anchor="middle" font-size="10" font-family="Roboto Flex, monospace" fill="#3a6ec9" style="font-variant-numeric: tabular-nums">v1.5.0</text>
+    </g>
+    <g transform="translate(856, 76)">
+      <rect width="78" height="18" rx="9" fill="#ffffff" stroke="#6b9cf0"/>
+      <text x="39" y="13" text-anchor="middle" font-size="10" font-family="Roboto Flex, monospace" fill="#3a6ec9">spec 0119</text>
+    </g>
+
+    <!-- chip.label row -->
+    <text x="980" y="60" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">CHIP.LABEL · ALL CAPS</text>
+    <g transform="translate(980, 76)">
+      <rect width="84" height="22" rx="11" fill="rgba(107,156,240,0.14)"/>
+      <text x="42" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#3a6ec9" letter-spacing="0.8">VALIDATED</text>
+    </g>
+    <g transform="translate(1076, 76)">
+      <rect width="76" height="22" rx="11" fill="rgba(111,179,128,0.14)"/>
+      <text x="38" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#2f6840" letter-spacing="0.8">SHIPPED</text>
+    </g>
+    <g transform="translate(1164, 76)">
+      <rect width="92" height="22" rx="11" fill="rgba(212,160,86,0.14)"/>
+      <text x="46" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#7a5320" letter-spacing="0.8">DEFERRED</text>
+    </g>
+    <g transform="translate(1268, 76)">
+      <rect width="68" height="22" rx="11" fill="rgba(217,106,106,0.14)"/>
+      <text x="34" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#8b2f2f" letter-spacing="0.8">BROKEN</text>
+    </g>
+
+    <!-- annotation -->
+    <text x="40" y="160" font-size="11" fill="#3a3f47">Chips never appear in isolation. Every <code>chip.label</code> sits on a card or beside an arrow; every <code>chip.status</code> on a card; every <code>chip.count</code> after a parent label.</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                  02.4 SHAPES · NON-CARD NODES                -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.4</span>Shape primitives · beyond the card</h2>
+<p class="section-lede">Six shapes for elements that aren't cards — events, decisions, mesh nodes, highlights, annotations. Used in event-flow, sequence, and freeform templates. Each shape has a documented size, fill rule, and theme behavior.</p>
+
+<table class="tokens">
+  <thead><tr><th>Shape</th><th>Size / shape</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">node.circle</td><td class="value">40 dia</td><td class="note">Event source / sink in event-flow. Filled with categorical surface.</td></tr>
+    <tr><td class="token">node.pill</td><td class="value">120 × 28, fully rounded</td><td class="note">Small actor or service in sequence/system-context. Outlined.</td></tr>
+    <tr><td class="token">node.diamond</td><td class="value">60 × 60, 45° rotated square</td><td class="note">Decision point in pipeline-flow. Always paired with two labeled outgoing arrows (yes/no).</td></tr>
+    <tr><td class="token">node.hexagon</td><td class="value">72 wide, regular hexagon</td><td class="note">Mesh node / cluster member in infrastructure topology. Filled with categorical surface.</td></tr>
+    <tr><td class="token">node.star</td><td class="value">36 across, 5-point</td><td class="note">Highlight marker — "this is the entry point" / "spec 0119 location". Sparingly.</td></tr>
+    <tr><td class="token">node.note</td><td class="value">variable, 8px rounded rect</td><td class="note">Annotation / aside. <strong>Warm-tinted fill</strong> with amber stroke — the only shape with theme-specific colors. Light: <code>#f4ecd9</code> fill, <code>#d4a056</code> stroke. Dark: <code>#2a2620</code> fill, <code>#d4a056</code> stroke. Never used inside cards.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>6 shape primitives · light</span><span class="meta">non-card nodes</span></div>
+  <svg viewBox="0 0 1660 200" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="shBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <linearGradient id="shSlL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5e636d"/><stop offset="100%" stop-color="#3a3e46"/></linearGradient>
+    </defs>
+    <rect width="1660" height="200" fill="url(#shBgL)"/>
+
+    <!-- circle -->
+    <circle cx="100" cy="90" r="20" fill="url(#shSlL)"/>
+    <text x="100" y="150" text-anchor="middle" font-size="11" font-family="Roboto Flex, monospace" fill="#3a6ec9">node.circle</text>
+    <text x="100" y="166" text-anchor="middle" font-size="10" fill="#4d5159">event source</text>
+
+    <!-- pill -->
+    <rect x="220" y="76" width="160" height="28" rx="14" fill="#ffffff" stroke="#d2cdc0" stroke-width="1"/>
+    <text x="300" y="94" text-anchor="middle" font-size="11" font-weight="500" fill="#04060a">Actor pill</text>
+    <text x="300" y="150" text-anchor="middle" font-size="11" font-family="Roboto Flex, monospace" fill="#3a6ec9">node.pill</text>
+    <text x="300" y="166" text-anchor="middle" font-size="10" fill="#4d5159">small actor</text>
+
+    <!-- diamond -->
+    <g transform="translate(500, 90) rotate(45)">
+      <rect x="-21" y="-21" width="42" height="42" fill="#ffffff" stroke="#04060a" stroke-width="1.5"/>
+    </g>
+    <text x="500" y="94" text-anchor="middle" font-size="10" font-weight="500" fill="#04060a">Decide?</text>
+    <text x="500" y="150" text-anchor="middle" font-size="11" font-family="Roboto Flex, monospace" fill="#3a6ec9">node.diamond</text>
+    <text x="500" y="166" text-anchor="middle" font-size="10" fill="#4d5159">decision</text>
+
+    <!-- hexagon -->
+    <polygon points="710,60 745,72 745,108 710,120 675,108 675,72" fill="url(#shSlL)"/>
+    <text x="710" y="94" text-anchor="middle" font-size="10" font-weight="500" fill="#ffffff">node A</text>
+    <text x="710" y="150" text-anchor="middle" font-size="11" font-family="Roboto Flex, monospace" fill="#3a6ec9">node.hexagon</text>
+    <text x="710" y="166" text-anchor="middle" font-size="10" fill="#4d5159">mesh / cluster</text>
+
+    <!-- star -->
+    <polygon points="900,72 906,86 920,86 909,95 913,109 900,101 887,109 891,95 880,86 894,86" fill="#6b9cf0"/>
+    <text x="900" y="150" text-anchor="middle" font-size="11" font-family="Roboto Flex, monospace" fill="#3a6ec9">node.star</text>
+    <text x="900" y="166" text-anchor="middle" font-size="10" fill="#4d5159">highlight marker</text>
+
+    <!-- note -->
+    <rect x="1040" y="68" width="320" height="48" rx="8" fill="#f4ecd9" stroke="#d4a056"/>
+    <text x="1056" y="86" font-size="11" font-weight="500" fill="#5e4632">node.note · warm sable tint</text>
+    <text x="1056" y="104" font-size="10" font-style="italic" fill="#4d5159">amber stroke makes it read as an annotation</text>
+    <text x="1200" y="150" text-anchor="middle" font-size="11" font-family="Roboto Flex, monospace" fill="#3a6ec9">node.note</text>
+    <text x="1200" y="166" text-anchor="middle" font-size="10" fill="#4d5159">annotation / aside</text>
+  </svg>
+</div>
+
+<h3>Color &amp; sizing rules</h3>
+<ul class="checks">
+  <li><strong>Categorical-filled shapes</strong> (circle, hexagon) use one of the 7 <code>--ds-surface-*</code> gradients — never an improvised fill.</li>
+  <li><strong>Outlined shapes</strong> (pill, diamond) use <code>--surface-light</code> + <code>--rule-strong</code> border in light theme; <code>--surface-light-dark</code> + <code>rgba(255,255,255,0.16)</code> border in dark.</li>
+  <li><strong>node.note is the one exception</strong> — its warm fill is theme-specific by design. Don't refactor it to a "normal" surface; the warmth is what marks it as commentary.</li>
+  <li><strong>node.star</strong> uses the accent (<code>#6b9cf0</code>) in both themes — theme-portable.</li>
+  <li><strong>Sizes are locked.</strong> A 40 dia circle in one diagram is a 40 dia circle in every diagram of the set.</li>
+</ul>
+
+<!-- =========================================================== -->
+<!--                       02.5 STAGES                            -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.5</span>Stage tokens · numbered &amp; dividers</h2>
+<p class="section-lede">Stages mark progression through a pipeline. Two primitives — the numbered token (a circle with a stage number) and the divider (a vertical or horizontal rule between stages). Used heavily in <code>pipeline-flow</code> and to a lesser extent in <code>sequence</code>.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Size · shape · color</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">stage.numbered-token</td><td class="value">36 dia circle, accent fill, white numeral</td><td class="note">Sits above its stage's first card. Numeral in Roboto Flex 14 / 600.</td></tr>
+    <tr><td class="token">stage.divider</td><td class="value">vertical rule, <code>--rule-strong</code> color, 2px dashed</td><td class="note">Between stages in a horizontal flow. Optional — sometimes the gap (<code>--gap-stage</code> 120px) is divider enough.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>stages in context · light</span><span class="meta">4 stages of a pipeline</span></div>
+  <svg viewBox="0 0 1660 220" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="stBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <filter id="stFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="220" fill="url(#stBgL)"/>
+
+    <!-- stage 1 -->
+    <circle cx="160" cy="60" r="18" fill="#6b9cf0"/>
+    <text x="160" y="65" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">1</text>
+    <text x="160" y="98" text-anchor="middle" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">INGEST</text>
+    <rect x="60" y="120" width="200" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#stFL)"/>
+    <text x="80" y="142" font-size="13" font-weight="500" fill="#04060a">Upload handler</text>
+    <text x="80" y="160" font-size="11" fill="#3a3f47">POST /docs</text>
+
+    <line x1="320" y1="40" x2="320" y2="200" stroke="#d2cdc0" stroke-dasharray="6,4" stroke-width="2"/>
+
+    <!-- stage 2 -->
+    <circle cx="460" cy="60" r="18" fill="#6b9cf0"/>
+    <text x="460" y="65" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">2</text>
+    <text x="460" y="98" text-anchor="middle" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">VALIDATE</text>
+    <rect x="360" y="120" width="200" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#stFL)"/>
+    <text x="380" y="142" font-size="13" font-weight="500" fill="#04060a">Schema check</text>
+    <text x="380" y="160" font-size="11" fill="#3a3f47">size + mime</text>
+
+    <line x1="620" y1="40" x2="620" y2="200" stroke="#d2cdc0" stroke-dasharray="6,4" stroke-width="2"/>
+
+    <!-- stage 3 -->
+    <circle cx="760" cy="60" r="18" fill="#6b9cf0"/>
+    <text x="760" y="65" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">3</text>
+    <text x="760" y="98" text-anchor="middle" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">CLASSIFY</text>
+    <rect x="660" y="120" width="200" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#stFL)"/>
+    <text x="680" y="142" font-size="13" font-weight="500" fill="#04060a">ML classifier</text>
+    <text x="680" y="160" font-size="11" fill="#3a3f47">category + conf</text>
+
+    <line x1="920" y1="40" x2="920" y2="200" stroke="#d2cdc0" stroke-dasharray="6,4" stroke-width="2"/>
+
+    <!-- stage 4 -->
+    <circle cx="1060" cy="60" r="18" fill="#6b9cf0"/>
+    <text x="1060" y="65" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff" style="font-variant-numeric: tabular-nums">4</text>
+    <text x="1060" y="98" text-anchor="middle" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">STORE</text>
+    <rect x="960" y="120" width="200" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#stFL)"/>
+    <text x="980" y="142" font-size="13" font-weight="500" fill="#04060a">Postgres write</text>
+    <text x="980" y="160" font-size="11" fill="#3a3f47">indexed by category</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                       02.6 LANES                             -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.6</span>Lanes &amp; swimlanes</h2>
+<p class="section-lede">Lanes are the vertical lifelines of <code>sequence</code> diagrams. Three primitives — the lane header (small card identifying the actor), the vertical lifeline (dashed rule from header to bottom), and the activation box (solid surface gradient overlay on the lifeline marking when the actor is active).</p>
+
+<table class="tokens">
+  <thead><tr><th>Primitive</th><th>Geometry</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">lane.header</td><td class="value"><code>card.compact</code> sized to <code>--lane-width</code> 240</td><td class="note">Top of every lane. Actor name + small icon.</td></tr>
+    <tr><td class="token">lane.vertical</td><td class="value">1px dashed rule, <code>--rule-strong</code> color</td><td class="note">Lifeline from header center down to last activation.</td></tr>
+    <tr><td class="token">lane.activation-box</td><td class="value">12px wide rect, centered on lifeline, categorical fill</td><td class="note">Marks when the actor is processing. Fill picked from the actor's categorical surface.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>lane primitives · sequence diagram excerpt</span><span class="meta">3 lanes, 2 messages</span></div>
+  <svg viewBox="0 0 1660 320" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="lnBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <linearGradient id="lnSpL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3a5fa8"/><stop offset="100%" stop-color="#234686"/></linearGradient>
+      <linearGradient id="lnSqL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1d4480"/><stop offset="100%" stop-color="#0d2354"/></linearGradient>
+      <linearGradient id="lnScL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#34805a"/><stop offset="100%" stop-color="#1d4f37"/></linearGradient>
+      <marker id="lnArr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/></marker>
+      <filter id="lnFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="320" fill="url(#lnBgL)"/>
+
+    <!-- lane 1 header (Client) -->
+    <rect x="80" y="40" width="240" height="56" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#lnFL)"/>
+    <text x="200" y="74" text-anchor="middle" font-size="14" font-weight="500" fill="#04060a">Client</text>
+    <line x1="200" y1="96" x2="200" y2="290" stroke="#d2cdc0" stroke-dasharray="4,4"/>
+
+    <!-- lane 2 header (API) — categorical primary -->
+    <rect x="380" y="40" width="240" height="56" rx="12" fill="url(#lnSpL)"/>
+    <text x="500" y="74" text-anchor="middle" font-size="14" font-weight="500" fill="#ffffff">API</text>
+    <line x1="500" y1="96" x2="500" y2="290" stroke="#d2cdc0" stroke-dasharray="4,4"/>
+
+    <!-- lane 3 header (DB) — categorical sql -->
+    <rect x="680" y="40" width="240" height="56" rx="12" fill="url(#lnSqL)"/>
+    <text x="800" y="74" text-anchor="middle" font-size="14" font-weight="500" fill="#ffffff">DB</text>
+    <line x1="800" y1="96" x2="800" y2="290" stroke="#d2cdc0" stroke-dasharray="4,4"/>
+
+    <!-- message 1: Client → API -->
+    <text x="350" y="138" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">POST /vetting</text>
+    <path d="M 200 148 L 494 148" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#lnArr)" fill="none"/>
+
+    <!-- activation box on API lane -->
+    <rect x="494" y="148" width="12" height="100" fill="url(#lnSpL)"/>
+
+    <!-- message 2: API → DB -->
+    <text x="650" y="178" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="0.8">INSERT</text>
+    <path d="M 506 188 L 794 188" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#lnArr)" fill="none"/>
+
+    <!-- activation box on DB -->
+    <rect x="794" y="188" width="12" height="40" fill="url(#lnSqL)"/>
+
+    <!-- annotations -->
+    <text x="1000" y="64" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">PRIMITIVES IN USE</text>
+    <text x="1000" y="92" font-size="12" fill="#3a3f47">• <code>lane.header</code> — three card.compact sized 240 wide</text>
+    <text x="1000" y="112" font-size="12" fill="#3a3f47">• <code>lane.vertical</code> — dashed lifelines</text>
+    <text x="1000" y="132" font-size="12" fill="#3a3f47">• <code>lane.activation-box</code> — 12px solid bars on API + DB</text>
+    <text x="1000" y="152" font-size="12" fill="#3a3f47">• Messages are connector arrows with zone-A labels</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                       02.7 GROUPS                            -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.7</span>Groups &amp; boundaries</h2>
+<p class="section-lede">Groups visually contain related cards. Two primitives — the boundary (dashed-rect frame around contained cards) and the label (a chip in the top-left of the boundary identifying the group's purpose).</p>
+
+<table class="tokens">
+  <thead><tr><th>Primitive</th><th>Geometry</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">group.boundary</td><td class="value">dashed rect, <code>--boundary-pad</code> 32 inset, 20px corner radius</td><td class="note">Around 2+ cards belonging to the same logical region. Stroke: <code>--ink-4</code> for neutral regions, <code>--accent</code> for trust boundaries.</td></tr>
+    <tr><td class="token">group.label</td><td class="value">10px font, 600 weight, 1.6 letter-spacing, ALL CAPS</td><td class="note">Sits above the boundary's top-left corner, slightly negative y-offset. Color matches the boundary stroke.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>two boundaries · neutral vs trust</span><span class="meta">light</span></div>
+  <svg viewBox="0 0 1660 260" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="grBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <filter id="grFL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+    </defs>
+    <rect width="1660" height="260" fill="url(#grBgL)"/>
+
+    <!-- neutral boundary -->
+    <rect x="60" y="80" width="640" height="140" rx="20" fill="none" stroke="#6f7480" stroke-dasharray="8,5" opacity="0.55"/>
+    <text x="60" y="74" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.6">REGION · INTERNAL VPC</text>
+    <rect x="100" y="120" width="180" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#grFL)"/>
+    <text x="190" y="156" text-anchor="middle" font-size="13" font-weight="500" fill="#04060a">Service A</text>
+    <rect x="320" y="120" width="180" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#grFL)"/>
+    <text x="410" y="156" text-anchor="middle" font-size="13" font-weight="500" fill="#04060a">Service B</text>
+    <rect x="540" y="120" width="140" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#grFL)"/>
+    <text x="610" y="156" text-anchor="middle" font-size="13" font-weight="500" fill="#04060a">Worker</text>
+
+    <!-- trust boundary -->
+    <rect x="800" y="80" width="780" height="140" rx="20" fill="none" stroke="#6b9cf0" stroke-dasharray="8,5" opacity="0.55"/>
+    <text x="800" y="74" font-size="10" font-weight="600" fill="#3a6ec9" letter-spacing="1.6">TRUST BOUNDARY · AUTHORIZED ZONE</text>
+    <rect x="840" y="120" width="200" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#grFL)"/>
+    <text x="940" y="156" text-anchor="middle" font-size="13" font-weight="500" fill="#04060a">Gated API</text>
+    <rect x="1080" y="120" width="200" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#grFL)"/>
+    <text x="1180" y="156" text-anchor="middle" font-size="13" font-weight="500" fill="#04060a">Auth provider</text>
+    <rect x="1320" y="120" width="220" height="60" rx="12" fill="#ffffff" stroke="#e7e3d9" filter="url(#grFL)"/>
+    <text x="1430" y="156" text-anchor="middle" font-size="13" font-weight="500" fill="#04060a">Audit ledger</text>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                       02.8 CALLOUTS                          -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.8</span>Callouts &amp; legend</h2>
+<p class="section-lede">Two primitives for explanatory chrome — the callout (a warm-tinted note pointing at something) and the legend chip (a colored swatch + label explaining a semantic color used in the diagram).</p>
+
+<table class="tokens">
+  <thead><tr><th>Primitive</th><th>Geometry</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">callout.note</td><td class="value">Same fill as <code>node.note</code>: warm sable tint (light) / warm near-black (dark), amber stroke in both. 12px rounded.</td><td class="note">An "aside" anchored to a specific card or arrow. Always paired with a thin line connecting it to its anchor. Used sparingly — 1 per diagram max.</td></tr>
+    <tr><td class="token">legend.chip</td><td class="value">14 × 14 swatch + 12px label, on light-card surface</td><td class="note">Only present when the diagram uses ≥ 4 semantic colors that aren't self-evident from icons. Anchored to bottom of canvas.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>callout + legend · light</span><span class="meta">when explanation belongs in-canvas</span></div>
+  <svg viewBox="0 0 1660 280" font-family="Roboto Flex, system-ui, sans-serif">
+    <defs>
+      <linearGradient id="caBgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient>
+      <linearGradient id="caSpL" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3a5fa8"/><stop offset="100%" stop-color="#234686"/></linearGradient>
+      <filter id="caFL"  x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#14171c" flood-opacity="0.10"/></filter>
+      <filter id="caFDL" x="-4%" y="-4%" width="108%" height="116%"><feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#14171c" flood-opacity="0.22"/></filter>
+    </defs>
+    <rect width="1660" height="280" fill="url(#caBgL)"/>
+
+    <!-- anchor card with a callout -->
+    <rect x="200" y="60" width="240" height="100" rx="12" fill="url(#caSpL)" filter="url(#caFDL)"/>
+    <text x="220" y="92" font-size="14" font-weight="500" fill="#ffffff">Vetting Agent</text>
+    <text x="220" y="112" font-size="11" fill="rgba(255,255,255,0.72)">claude-sonnet-4-6</text>
+
+    <!-- callout pointing at it -->
+    <line x1="440" y1="100" x2="540" y2="80" stroke="#d4a056" stroke-width="1"/>
+    <rect x="540" y="40" width="380" height="80" rx="12" fill="#f4ecd9" stroke="#d4a056"/>
+    <text x="556" y="62" font-size="11" font-weight="500" fill="#5e4632">callout.note</text>
+    <text x="556" y="80" font-size="11" font-style="italic" fill="#4d5159">"We pinned the model version after the v1.6 regression — see CHANGELOG"</text>
+    <text x="556" y="100" font-size="10" font-family="Roboto Flex, monospace" fill="#7a5320">spec 0119 · 2026-05-12</text>
+
+    <!-- legend at bottom -->
+    <line x1="60" y1="200" x2="1600" y2="200" stroke="#d2cdc0"/>
+    <text x="60" y="226" font-size="11" font-weight="600" fill="#4d5159" letter-spacing="1.6">LEGEND</text>
+    <g transform="translate(60, 240)">
+      <rect width="14" height="14" rx="3" fill="#3a5fa8"/>
+      <text x="22" y="11" font-size="11" fill="#3a3f47">primary flow</text>
+    </g>
+    <g transform="translate(180, 240)">
+      <rect width="14" height="14" rx="3" fill="#1d4480"/>
+      <text x="22" y="11" font-size="11" fill="#3a3f47">sql / postgres</text>
+    </g>
+    <g transform="translate(310, 240)">
+      <rect width="14" height="14" rx="3" fill="#34805a"/>
+      <text x="22" y="11" font-size="11" fill="#3a3f47">secure / auth</text>
+    </g>
+    <g transform="translate(440, 240)">
+      <rect width="14" height="14" rx="3" fill="#8a6d4e"/>
+      <text x="22" y="11" font-size="11" fill="#3a3f47">store / blob</text>
+    </g>
+    <g transform="translate(570, 240)">
+      <rect width="14" height="14" rx="3" fill="#5d4a7a"/>
+      <text x="22" y="11" font-size="11" fill="#3a3f47">cache / memory</text>
+    </g>
+  </svg>
+</div>
+
+<div class="callout warn"><strong>Legend is opt-in.</strong> Add a legend only when the diagram uses ≥ 4 semantic surface colors that aren't self-evident from icons or labels. A 2-item legend (e.g., "primary" + "secure") is usually noise — drop it and let the icons carry the meaning.</div>
+
+<!-- =========================================================== -->
+<!--                       02.9 INDEX                             -->
+<!-- =========================================================== -->
+
+<h2><span class="num">02.9</span>Index · what's in the library</h2>
+<p class="section-lede">The full closed list. If a structural element you want to draw isn't here, the answer is to remap (use the closest match) or fall back to <code>freeform</code> — never invent a new primitive inline.</p>
+
+<table class="tokens">
+  <thead><tr><th>Category</th><th>Primitives</th></tr></thead>
+  <tbody>
+    <tr><td class="token">Cards (7)</td><td class="note">card.primary · card.secondary · card.categorical · card.reference · card.compact · card.deferred · card.highlight</td></tr>
+    <tr><td class="token">Chips (4)</td><td class="note">chip.status · chip.count · chip.version · chip.label</td></tr>
+    <tr><td class="token">Shapes (6)</td><td class="note">node.circle · node.pill · node.diamond · node.hexagon · node.star · node.note</td></tr>
+    <tr><td class="token">Stages (2)</td><td class="note">stage.numbered-token · stage.divider</td></tr>
+    <tr><td class="token">Lanes (3)</td><td class="note">lane.header · lane.vertical · lane.activation-box</td></tr>
+    <tr><td class="token">Groups (2)</td><td class="note">group.boundary · group.label</td></tr>
+    <tr><td class="token">Callouts (2)</td><td class="note">callout.note · legend.chip</td></tr>
+  </tbody>
+</table>
+
+<p style="margin-top:24px"><strong>26 primitives total.</strong> Every diagram is composed entirely from this list. The set manifest pins entity → primitive choices across multi-diagram proposals — see <a href="../manifest.html">Set manifest</a>.</p>
+
+</main>
+</div>
+</body>
+</html>

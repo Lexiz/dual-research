@@ -86,7 +86,7 @@
     return (
       <div style={{ margin: '8px 0 16px', borderRadius: 8, overflow: 'hidden' }}>
         <img
-          src={`/diagrams/how-it-works/01-pipeline.${variant}.svg?v=0124a`}
+          src={`/diagrams/how-it-works/01-pipeline.${variant}.svg?v=0133a`}
           alt="Dual Research six-phase pipeline"
           style={{ width: '100%', height: 'auto', display: 'block' }}
           loading="lazy"

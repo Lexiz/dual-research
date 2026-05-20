@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 760" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
+  
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    </filter>
+
+    
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0f12"></stop><stop offset="100%" stop-color="#08090b"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6b9cf0"></stop><stop offset="100%" stop-color="#3a5fa8"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#494e57"></stop><stop offset="100%" stop-color="#2c3138"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2d5fa8"></stop><stop offset="100%" stop-color="#1d4480"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5aaa7d"></stop><stop offset="100%" stop-color="#36805a"></stop>
+    </linearGradient>
+
+    
+    <marker id="arrowSlate" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7e88"></path></marker>
+    <marker id="arrowOpen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7" stroke="#7a7e88" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></marker>
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"></path></marker>
+  </defs>
+
+  <rect width="1660" height="760" fill="url(#bgGrad)"></rect>
+
+  
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Partner Vetting · Run a Vet · Sequence</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Analyst submits a partner URL through to signed verdict</text>
+
+  
+
+  
+  <rect x="110" y="120" width="240" height="56" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(140, 148)">
+    <circle cx="0" cy="-5" r="5" fill="#ffffff"></circle>
+    <path d="M-10,11 Q-10,3 0,3 Q10,3 10,11 Z" fill="#ffffff"></path>
+  </g>
+  <text x="180" y="142" font-size="13" font-weight="600" fill="#ffffff">Analyst</text>
+  <text x="180" y="158" font-size="10" fill="#9aa0ac">internal user</text>
+
+  
+  <rect x="410" y="120" width="240" height="56" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
+  <g transform="translate(440, 148)">
+    <rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#ffffff"></rect>
+    <rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect>
+    <rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
+    <rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
+  </g>
+  <text x="480" y="142" font-size="13" font-weight="600" fill="#ffffff">Vetting Dashboard</text>
+  <text x="480" y="158" font-size="10" fill="#9aa0ac">React SPA</text>
+
+  
+  <rect x="710" y="120" width="240" height="56" rx="10" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(740, 148)">
+    <path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path>
+    <line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+    <line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+  </g>
+  <text x="780" y="142" font-size="13" font-weight="600" fill="white">Vetting API</text>
+  <text x="780" y="158" font-size="10" fill="rgba(255,255,255,0.65)">Cloud Run</text>
+
+  
+  <rect x="1010" y="120" width="240" height="56" rx="10" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1040, 148)">
+    <path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path>
+    <path d="M-4,0 L-1,4 L5,-3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+  </g>
+  <text x="1080" y="142" font-size="13" font-weight="600" fill="white">Auth Service</text>
+  <text x="1080" y="158" font-size="10" fill="rgba(255,255,255,0.65)">Auth0 · RS256</text>
+
+  
+  <rect x="1310" y="120" width="240" height="56" rx="10" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1340, 148)">
+    <ellipse cx="0" cy="-7" rx="9" ry="3" fill="rgba(255,255,255,0.85)"></ellipse>
+    <rect x="-9" y="-7" width="18" height="14" fill="rgba(255,255,255,0.85)"></rect>
+    <ellipse cx="0" cy="7" rx="9" ry="3" fill="rgba(255,255,255,0.85)"></ellipse>
+    <ellipse cx="0" cy="-7" rx="9" ry="3" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse>
+  </g>
+  <text x="1380" y="142" font-size="13" font-weight="600" fill="white">Postgres</text>
+  <text x="1380" y="158" font-size="10" fill="rgba(255,255,255,0.65)">Cloud SQL</text>
+
+  
+  <g stroke="#7d8290" stroke-width="1" stroke-dasharray="3,4" opacity="0.7">
+    <line x1="230" y1="176" x2="230" y2="704"></line>
+    <line x1="530" y1="176" x2="530" y2="704"></line>
+    <line x1="830" y1="176" x2="830" y2="704"></line>
+    <line x1="1130" y1="176" x2="1130" y2="704"></line>
+    <line x1="1430" y1="176" x2="1430" y2="704"></line>
+  </g>
+
+  
+  <rect x="822" y="248" width="16" height="384" fill="#6b9cf0" opacity="0.75"></rect>
+  <rect x="1122" y="288" width="16" height="64" fill="#5aaa7d" opacity="0.75"></rect>
+  <rect x="1422" y="384" width="16" height="64" fill="#2d5fa8" opacity="0.75"></rect>
+  <rect x="1422" y="500" width="16" height="48" fill="#2d5fa8" opacity="0.75"></rect>
+
+  
+
+  
+  <line x1="230" y1="216" x2="522" y2="216" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
+  <text x="376" y="208" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">SUBMIT URL</text>
+  <text x="376" y="232" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">paste · enter</text>
+
+  
+  <line x1="530" y1="272" x2="822" y2="272" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
+  <text x="676" y="264" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">POST /runs</text>
+  <text x="676" y="288" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">cookie · csrf token</text>
+
+  
+  <line x1="838" y1="328" x2="1122" y2="328" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
+  <text x="980" y="320" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">VERIFY SESSION</text>
+  <text x="980" y="344" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">JWT 30m</text>
+
+  
+  <line x1="1122" y1="384" x2="838" y2="384" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
+  <text x="980" y="376" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">200 · CLAIMS</text>
+  <text x="980" y="400" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">role · org · scope</text>
+
+  
+  <line x1="838" y1="440" x2="1422" y2="440" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
+  <text x="1130" y="432" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">INSERT INTO spec_runs</text>
+  <text x="1130" y="456" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">analyst_id, raw_payload</text>
+
+  
+  <line x1="1422" y1="496" x2="838" y2="496" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
+  <text x="1130" y="488" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">200 · RUN_ID</text>
+
+  
+  <line x1="838" y1="552" x2="1422" y2="552" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
+  <text x="1130" y="544" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">UPDATE · VERDICT</text>
+  <text x="1130" y="568" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">signed payload + sha</text>
+
+  
+  <line x1="822" y1="608" x2="530" y2="608" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
+  <text x="676" y="600" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">200 · VERDICT</text>
+  <text x="676" y="624" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">application/signed-json</text>
+
+  
+  <line x1="522" y1="664" x2="230" y2="664" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
+  <text x="376" y="656" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">RENDER VERDICT</text>
+
+  
+  <rect x="40" y="360" width="170" height="64" rx="8" fill="#fffdf7" stroke="#d4a056" filter="url(#cardShadow)" opacity="0.95"></rect>
+  <text x="52" y="378" font-size="9" font-weight="600" fill="#7a5a1a" letter-spacing="1">NOTE</text>
+  <text x="52" y="396" font-size="11" fill="#b4bac4">Agent runs inside this API</text>
+  <text x="52" y="410" font-size="11" fill="#b4bac4">activation — see layered.svg</text>
+
+  
+  <line x1="60" y1="720" x2="1600" y2="720" stroke="#3a3a47"></line>
+  <text x="830" y="744" text-anchor="middle" font-size="11" fill="#9aa0ac" font-style="italic">Solid arrows are synchronous calls · dashed-open arrows are returns · activation boxes mark when each actor is busy. Median run is 2.1s end-to-end.</text>
+</svg>

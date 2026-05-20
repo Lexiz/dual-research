@@ -16,7 +16,7 @@
   <h1>architecture-diagram</h1>
   <nav>
     <div class="group">Read me first</div>
-    <a href="index.html"><span class="n">00</span>Overview</a>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
     <a href="foundations.html" class="active"><span class="n">01</span>Foundations</a>
     <a href="components.html"><span class="n">02</span>Components</a>
@@ -25,9 +25,9 @@
     <div class="group">Application</div>
     <a href="templates.html"><span class="n">05</span>Templates</a>
     <a href="examples.html"><span class="n">06</span>Examples</a>
-    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">pixel mode · v2.0.0 · cream &amp; indigo · light + dark · viewBox 1660</div>
 </aside>
 
 <main>
@@ -78,9 +78,9 @@
 <p>The two shadow filters (<code>cardShadow</code>, <code>cardShadowDark</code>) keep the same ids across themes. The dark theme rewrites their bodies — <code>cardShadow</code> becomes a near-zero halo at <code>rgba(255,255,255,0.08)</code> (elevation via stroke-like glow), <code>cardShadowDark</code> becomes a deeper <code>#000000</code> drop at 0.55 opacity. See §01.5.</p>
 
 <h3>Dual-output workflow</h3>
-<p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token set to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
+<p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token set to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
 
-<div class="callout"><strong>Decisions locked in this delivery</strong> — two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming; mixed elevation strategy (light cards lose shadow, dark cards deepen it); neutral mid-tone dark surfaces; renaming of the canonical 9 examples to <code>.light.svg</code>; manifest-level theme is authoritative. Rationale in <a href="OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>.</div>
+<div class="callout"><strong>Decisions locked in this delivery</strong> — two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming; mixed elevation strategy (light cards lose shadow, dark cards deepen it); neutral mid-tone dark surfaces; renaming of the canonical 9 examples to <code>.light.svg</code>; manifest-level theme is authoritative. Rationale in <a href="../OPEN-QUESTIONS-answers.md">OPEN-QUESTIONS-answers.md</a>.</div>
 
 <!-- =========================================================== -->
 <!--                          CANVAS                              -->
@@ -680,7 +680,7 @@
 <!-- =========================================================== -->
 
 <h2><span class="num">01.7</span>Cross-template consistency rules</h2>
-<p class="section-lede">A proposal ships 3–6 diagrams. Today the same Postgres can show up as <code>--surface-sql</code> in one and <code>--surface-neutral</code> in another, because each template re-decides. The rules below are enforced by the <a href="manifest.html">set manifest</a>; this is the list it pins.</p>
+<p class="section-lede">A proposal ships 3–6 diagrams. Today the same Postgres can show up as <code>--surface-sql</code> in one and <code>--surface-neutral</code> in another, because each template re-decides. The rules below are enforced by the <a href="../manifest.html">set manifest</a>; this is the list it pins.</p>
 
 <ul class="checks">
   <li><strong>Service → gradient is pinned per-set.</strong> First diagram in the set declares the mapping; every subsequent diagram in the same proposal consults it.</li>
@@ -689,10 +689,10 @@
   <li><strong>Title typography is identical.</strong> Same size, weight, letter-spacing, position (centered, <code>y=56</code>).</li>
   <li><strong>Letter-spacing values come from <code>--type-section</code> and <code>--type-conn-label</code>.</strong> Never tighten or loosen for one diagram.</li>
   <li><strong>Margin and gap tokens are identical.</strong> A “wide” diagram doesn't get to compress <code>--gap-card</code> — it uses <code>--canvas-width-wide</code> instead.</li>
-  <li><strong>Theme is pinned per-set in the manifest.</strong> Within one proposal, all diagrams render <em>at minimum</em> all-light or all-dark; the default <code>theme: both</code> ships both flavors of every figure. Per-diagram theme override is a hard error — see <a href="manifest.html">Set manifest</a> §07.4.</li>
+  <li><strong>Theme is pinned per-set in the manifest.</strong> Within one proposal, all diagrams render <em>at minimum</em> all-light or all-dark; the default <code>theme: both</code> ships both flavors of every figure. Per-diagram theme override is a hard error — see <a href="../manifest.html">Set manifest</a> §07.4.</li>
 </ul>
 
-<div class="callout"><strong>The set manifest enforces these.</strong> A one-page YAML stub authored on the first diagram becomes part of the conversation; subsequent diagrams read it before generating. See <a href="manifest.html">Set manifest</a> for the schema.</div>
+<div class="callout"><strong>The set manifest enforces these.</strong> A one-page YAML stub authored on the first diagram becomes part of the conversation; subsequent diagrams read it before generating. See <a href="../manifest.html">Set manifest</a> for the schema.</div>
 
 </main>
 </div>
