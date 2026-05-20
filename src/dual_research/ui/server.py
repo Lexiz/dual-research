@@ -31,7 +31,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator
 
@@ -377,6 +377,17 @@ def _make_supabase_app(
                 full_name = meta.get("full_name") or meta.get("name")
             except Exception:
                 pass
+        # Spec 0125 — bump last_seen_at on every /api/me call so admins can
+        # see who's active. Best-effort: silently skip if the column doesn't
+        # exist yet (migration not yet applied).
+        caller_email = (user.get("email") or "").lower()
+        if caller_email:
+            try:
+                client.table("approved_emails").update(
+                    {"last_seen_at": datetime.now(timezone.utc).isoformat()}
+                ).eq("email", caller_email).execute()
+            except Exception:
+                pass
         return {
             "email": user.get("email") or "",
             "isAdmin": bool(user.get("is_admin")),
@@ -436,6 +447,282 @@ def _make_supabase_app(
 
         client.table("approved_emails").delete().eq("email", target).execute()
         return JSONResponse({"deleted": target})
+
+    # ─── Spec 0125 — Users + onboarding state + system settings ─────────
+
+    # The spec 0125 columns on approved_emails: onboarded_at,
+    # onboarded_at_version, tour_step, tour_force_reset_at, last_seen_at.
+    # Endpoints are defensive — if the migration hasn't been applied yet,
+    # they fall back to selecting only the pre-0124 columns and surface
+    # null for the new fields. Once the migration lands, the same code
+    # picks up the new columns automatically.
+
+    _USER_COLS_FULL = (
+        "email,is_admin,added_at,onboarded_at,onboarded_at_version,"
+        "tour_step,tour_force_reset_at,last_seen_at"
+    )
+    _USER_COLS_LEGACY = "email,is_admin,added_at"
+
+    def _select_users() -> list[dict[str, Any]]:
+        """Return all approved-emails rows with new columns when available."""
+        try:
+            res = (
+                client.table("approved_emails")
+                .select(_USER_COLS_FULL)
+                .order("added_at", desc=True)
+                .execute()
+            )
+            return res.data or []
+        except Exception:
+            # Migration not yet applied — fall back to legacy columns.
+            res = (
+                client.table("approved_emails")
+                .select(_USER_COLS_LEGACY)
+                .order("added_at", desc=True)
+                .execute()
+            )
+            rows = res.data or []
+            for r in rows:
+                r.setdefault("onboarded_at", None)
+                r.setdefault("onboarded_at_version", None)
+                r.setdefault("tour_step", 1)
+                r.setdefault("tour_force_reset_at", None)
+                r.setdefault("last_seen_at", None)
+            return rows
+
+    def _compute_must_restart(row: dict[str, Any]) -> bool:
+        force = row.get("tour_force_reset_at")
+        if not force:
+            return False
+        onboarded = row.get("onboarded_at")
+        if not onboarded:
+            return True
+        # Both are ISO-8601 strings from PostgREST; lexicographic compare is
+        # sound for UTC timestamps in this format.
+        return force > onboarded
+
+    @app.get("/api/users")
+    async def list_users(request: Request) -> JSONResponse:
+        _require_admin(request)
+        rows = _select_users()
+        for r in rows:
+            r["must_restart"] = _compute_must_restart(r)
+        return JSONResponse(_to_camel(rows))
+
+    @app.post("/api/users/{email}/reset-onboarding")
+    async def reset_onboarding_for_user(request: Request, email: str) -> JSONResponse:
+        _require_admin(request)
+        target = email.strip().lower()
+        # Confirm the user exists in the allowlist.
+        check = (
+            client.table("approved_emails")
+            .select("email")
+            .eq("email", target)
+            .limit(1)
+            .execute()
+        )
+        if not (check.data or []):
+            raise HTTPException(status_code=404, detail="email not on allowlist")
+        ts = datetime.now(timezone.utc).isoformat()
+        try:
+            client.table("approved_emails").update(
+                {"tour_force_reset_at": ts}
+            ).eq("email", target).execute()
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "onboarding columns not migrated yet — apply spec 0125 "
+                    "migration in Supabase Studio"
+                ),
+            ) from e
+        return JSONResponse({"ok": True, "tourForceResetAt": ts})
+
+    @app.post("/api/users/bulk-reset-onboarding")
+    async def bulk_reset_onboarding(request: Request) -> JSONResponse:
+        _require_admin(request)
+        body = await request.json()
+        emails = [
+            (e or "").strip().lower()
+            for e in (body or {}).get("emails", [])
+            if (e or "").strip()
+        ]
+        if not emails:
+            raise HTTPException(status_code=400, detail="emails array is required")
+        ts = datetime.now(timezone.utc).isoformat()
+        reset_count = 0
+        try:
+            for e in emails:
+                res = (
+                    client.table("approved_emails")
+                    .update({"tour_force_reset_at": ts})
+                    .eq("email", e)
+                    .execute()
+                )
+                reset_count += len(res.data or [])
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "onboarding columns not migrated yet — apply spec 0125 "
+                    "migration in Supabase Studio"
+                ),
+            ) from e
+        return JSONResponse({"ok": True, "reset": reset_count, "at": ts})
+
+    @app.post("/api/onboarding/broadcast-reset")
+    async def broadcast_reset_onboarding(request: Request) -> JSONResponse:
+        _require_admin(request)
+        ts = datetime.now(timezone.utc).isoformat()
+        try:
+            # neq("email", "") matches every row; PostgREST refuses
+            # filter-free updates as a safety guard, mirrored by our fake.
+            res = (
+                client.table("approved_emails")
+                .update({"tour_force_reset_at": ts})
+                .neq("email", "")
+                .execute()
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "onboarding columns not migrated yet — apply spec 0125 "
+                    "migration in Supabase Studio"
+                ),
+            ) from e
+        return JSONResponse({"ok": True, "reset": len(res.data or []), "at": ts})
+
+    @app.get("/api/onboarding/state")
+    async def get_onboarding_state(request: Request) -> JSONResponse:
+        user = request.scope.get("user") or {}
+        email = (user.get("email") or "").lower()
+        if not email:
+            raise HTTPException(status_code=401, detail="unauthenticated")
+        try:
+            res = (
+                client.table("approved_emails")
+                .select(
+                    "tour_step,onboarded_at,onboarded_at_version,tour_force_reset_at"
+                )
+                .eq("email", email)
+                .limit(1)
+                .execute()
+            )
+            rows = res.data or []
+            if not rows:
+                return JSONResponse({
+                    "tourStep": 1,
+                    "onboardedAt": None,
+                    "onboardedAtVersion": None,
+                    "mustRestart": False,
+                })
+            row = rows[0]
+            return JSONResponse({
+                "tourStep": row.get("tour_step") or 1,
+                "onboardedAt": row.get("onboarded_at"),
+                "onboardedAtVersion": row.get("onboarded_at_version"),
+                "mustRestart": _compute_must_restart(row),
+            })
+        except Exception:
+            # Migration not yet applied — return defaults so the client falls
+            # back to localStorage-driven behaviour.
+            return JSONResponse({
+                "tourStep": 1,
+                "onboardedAt": None,
+                "onboardedAtVersion": None,
+                "mustRestart": False,
+            })
+
+    @app.put("/api/onboarding/state")
+    async def put_onboarding_state(request: Request) -> JSONResponse:
+        user = request.scope.get("user") or {}
+        email = (user.get("email") or "").lower()
+        if not email:
+            raise HTTPException(status_code=401, detail="unauthenticated")
+        body = await request.json() or {}
+        patch: dict[str, Any] = {}
+        if "tourStep" in body:
+            try:
+                step = int(body["tourStep"])
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail="tourStep must be int")
+            if not 1 <= step <= 16:  # generous upper bound
+                raise HTTPException(status_code=400, detail="tourStep out of range")
+            patch["tour_step"] = step
+        if "onboardedAt" in body:
+            val = body["onboardedAt"]
+            if val is None or isinstance(val, str):
+                patch["onboarded_at"] = val
+                if val:
+                    patch["onboarded_at_version"] = __version__
+            else:
+                raise HTTPException(
+                    status_code=400, detail="onboardedAt must be ISO-8601 string or null"
+                )
+        if not patch:
+            return JSONResponse({"ok": True})
+        try:
+            client.table("approved_emails").update(patch).eq("email", email).execute()
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "onboarding columns not migrated yet — apply spec 0125 "
+                    "migration in Supabase Studio"
+                ),
+            ) from e
+        return JSONResponse({"ok": True})
+
+    @app.get("/api/system-settings")
+    async def get_system_settings(request: Request) -> JSONResponse:
+        # Any authed user can read system flags (the client uses them to
+        # decide whether to gate the tour). Only admins can write.
+        user = request.scope.get("user") or {}
+        if not user.get("email"):
+            raise HTTPException(status_code=401, detail="unauthenticated")
+        try:
+            res = (
+                client.table("system_settings")
+                .select("onboarding_required")
+                .eq("id", 1)
+                .limit(1)
+                .execute()
+            )
+            rows = res.data or []
+            if not rows:
+                return JSONResponse({"onboardingRequired": False})
+            return JSONResponse({"onboardingRequired": bool(rows[0].get("onboarding_required"))})
+        except Exception:
+            # Migration not yet applied.
+            return JSONResponse({"onboardingRequired": False})
+
+    @app.put("/api/system-settings")
+    async def put_system_settings(request: Request) -> JSONResponse:
+        caller = _require_admin(request)
+        body = await request.json() or {}
+        if "onboardingRequired" not in body:
+            raise HTTPException(
+                status_code=400, detail="onboardingRequired field is required"
+            )
+        flag = bool(body["onboardingRequired"])
+        patch = {
+            "id": 1,
+            "onboarding_required": flag,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": caller,
+        }
+        try:
+            client.table("system_settings").upsert([patch], on_conflict="id").execute()
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "system_settings table not migrated yet — apply spec 0125 "
+                    "migration in Supabase Studio"
+                ),
+            ) from e
+        return JSONResponse({"ok": True, "onboardingRequired": flag})
 
     @app.get("/api/runs")
     async def list_runs() -> JSONResponse:

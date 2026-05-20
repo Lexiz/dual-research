@@ -160,7 +160,7 @@ function App() {
         {route.view === 'how-it-works'  && <HowItWorksPage />}
         {route.view === 'compare'       && <CompareScreen navigate={navigate} />}
         {route.view === 'search'        && <CrossRunSearchScreen navigate={navigate} />}
-        {route.view === 'admin-users'   && <AdminUsers />}
+        {/* Spec 0125: 'admin-users' route folded into '/settings' (Users sub-tab). */}
       </div>
 
       {/* SPEC-0059: keyboard-accessible overlays */}
@@ -445,10 +445,6 @@ function AvatarMenu({ navigate, route, client, session, me }) {
                       try { window.dispatchEvent(new Event('dr-replay-tour')); } catch (e) {}
                     }}
                     icon={Icon.Help} label="Replay tour" />
-          {me?.isAdmin && (
-            <MenuItem onClick={() => { setOpen(false); navigate('admin-users'); }}
-                      icon={Icon.List} label="Admin: users" active={route.view === 'admin-users'} />
-          )}
           {me?.isAdmin && (
             <MenuItem onClick={() => { setOpen(false); navigate('settings'); }}
                       icon={Icon.Gear} label="Settings" active={route.view === 'settings'} />

@@ -34,6 +34,7 @@ class FakeBuilder:
         self._upsert: list[dict[str, Any]] | None = None
         self._on_conflict: str | None = None
         self._delete: bool = False
+        self._update: dict[str, Any] | None = None
 
     # ─── chain ───────────────────────────────────────────────────────────────
 
@@ -42,6 +43,10 @@ class FakeBuilder:
 
     def eq(self, col: str, val: Any) -> "FakeBuilder":
         self._filters.append(lambda r: r.get(col) == val)
+        return self
+
+    def neq(self, col: str, val: Any) -> "FakeBuilder":
+        self._filters.append(lambda r: r.get(col) != val)
         return self
 
     def in_(self, col: str, vals: list[Any]) -> "FakeBuilder":
@@ -67,6 +72,13 @@ class FakeBuilder:
         self._on_conflict = on_conflict
         return self
 
+    def update(self, patch: dict[str, Any]) -> "FakeBuilder":
+        # Spec 0125: in-place UPDATE on rows matching the chain's eq/neq/in_
+        # filters. PostgREST always requires a filter; we mirror that by
+        # returning empty if no filters were applied.
+        self._update = dict(patch)
+        return self
+
     def delete(self) -> "FakeBuilder":
         self._delete = True
         return self
@@ -74,6 +86,16 @@ class FakeBuilder:
     # ─── terminator ──────────────────────────────────────────────────────────
 
     def execute(self) -> FakeResult:
+        if self._update is not None:
+            if not self._filters:
+                return FakeResult(data=[])
+            updated: list[dict[str, Any]] = []
+            for r in self._rows:
+                if all(f(r) for f in self._filters):
+                    r.update(self._update)
+                    updated.append(r)
+            return FakeResult(data=updated)
+
         if self._delete:
             if not self._filters:
                 # Refuse to delete-all by accident — same as PostgREST's guard.
@@ -164,6 +186,10 @@ class FakeSupabaseClient:
     session_files: list[dict[str, Any]] = field(default_factory=list)
     attachment_blobs: list[dict[str, Any]] = field(default_factory=list)
     approved_emails: list[dict[str, Any]] = field(default_factory=list)
+    # Spec 0125 — single-row table holding the global onboarding_required flag.
+    system_settings: list[dict[str, Any]] = field(
+        default_factory=lambda: [{"id": 1, "onboarding_required": False}]
+    )
     auth: FakeAuth = field(default_factory=FakeAuth)
 
     def table(self, name: str) -> FakeBuilder:
