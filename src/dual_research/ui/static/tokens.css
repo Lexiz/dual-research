@@ -1,29 +1,17 @@
 /* =============================================================
-   dual-research — Design System V1 — Tokens
+   dual-research — Design System v2 (Material 3) — Tokens
    Authoritative. Every component reads from these.
    No hex codes anywhere in components.
+   --------------------------------------------------------------
+   This file used to carry the v1 token block (--bg-*, --fg-*,
+   --border-*, --r-*, --t-*, --sans/--serif/--mono) as the source
+   of truth for the additive layering pattern introduced by spec
+   SPEC-0092. Spec 0131 closed the v1 → v2 migration arc by
+   migrating every consumer to --md-* and deleting the v1 block.
+   See design-system/SPEC.md for the canonical v2 reference.
    ============================================================= */
 
 :root {
-  /* ── Surfaces ───────────────────────────────────── */
-  --bg-0: #08090b;          /* page background, streaming body */
-  --bg-1: #0d0f12;          /* default panel */
-  --bg-2: #131519;          /* elevated row / chip bg / modal header */
-  --bg-3: #191c21;          /* hover, active chip */
-  --bg-4: #1f2329;          /* high-contrast surface (dropdown row) */
-
-  /* ── Borders ────────────────────────────────────── */
-  --border-1: #1c1f24;      /* hairline */
-  --border-2: #262a31;      /* medium */
-  --border-3: #343941;      /* strong */
-
-  /* ── Foreground ─────────────────────────────────── */
-  --fg-0: #ffffff;          /* primary text, numbers, headings — pure white for max heading punch */
-  --fg-1: #b4bac4;          /* body prose — dimmed more to widen heading→body gap */
-  --fg-2: #9aa0ac;          /* secondary, meta, labels */
-  --fg-3: #7d8290;          /* muted, column headers */
-  --fg-4: #50545d;          /* decorative, dividers in copy */
-
   /* ── Agent A · Claude — warm sable ──────────────── */
   --agent-a:            #d4a574;
   --agent-a-dim:        #8a6d4e;
@@ -74,24 +62,6 @@
   /* ── On-accent ──────────────────────────────────── */
   --on-accent: #14110a;     /* text/icon atop agent-color solid fills */
 
-  /* ── Type families ──────────────────────────────── */
-  /* Two families from the IBM Plex system. Designed together —
-     same x-height, same proportions — so they blend visually
-     while staying clearly distinct (sans vs serif).
-     No monospace; tabular figures via font-feature-settings. */
-  --sans:  "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --serif: "IBM Plex Serif", ui-serif, "Iowan Old Style", Charter, Georgia, serif;
-  --mono:  var(--sans);
-
-  /* ── Type scale (7 steps, period) ───────────────── */
-  --t-display:  28px;       /* page hero (Landing, Design Language) */
-  --t-title:    20px;       /* section H2, modal title */
-  --t-h3:       16px;       /* card title, panel title */
-  --t-body:     13px;       /* default UI body */
-  --t-meta:     12px;       /* secondary body, table cells, subtitle */
-  --t-mono:     11px;       /* numbers, IDs, status labels, chips */
-  --t-label:    10px;       /* UPPERCASE labels (letter-spacing 0.08em) */
-
   /* Line-heights — keep stacked items baselining cleanly */
   --lh-tight:   1.15;
   --lh-snug:    1.30;
@@ -116,13 +86,6 @@
   --s-12: 48px;
   --s-16: 64px;
   --s-20: 80px;
-
-  /* ── Radii — 4 named + pill ─────────────────────── */
-  --r-1:    4px;            /* status pills, mini chips, indicators */
-  --r-2:    6px;            /* buttons, inputs, segments */
-  --r-3:    8px;            /* cards, panels, modal body */
-  --r-4:    12px;           /* modal frame, tweaks dev panel */
-  --r-pill: 999px;          /* run ID, agent strip, true pills */
 
   /* ── Borders ────────────────────────────────────── */
   --bw-1: 1px;              /* hairlines */
@@ -162,14 +125,12 @@
   --consumption-round-w: 64px;
 
   /* =============================================================
-     SPEC-0092 — Material 3 token layer (foundation, additive)
+     Material 3 token layer (introduced by SPEC-0092 as the v2
+     additive layer; v1 → v2 migration completed in spec 0131).
      Mirrors design-system/assets/styles/tokens-and-primitives.css:7-174.
-     The v1 tokens above stay authoritative for v1 components;
-     the --md-* layer here is what subsequent specs (0093…0104)
-     read as they migrate components.
      ============================================================= */
 
-  /* ── M3 palette source vars (alias the v1 palette) ─────────── */
+  /* ── M3 palette source vars (canonical agent / status hues) ─────────── */
   --p-sable:           #d4a574;
   --p-sable-dim:       #8a6d4e;
   --p-sage:            #7cc4b8;
@@ -236,7 +197,7 @@
   --md-surface-5: color-mix(in srgb, var(--md-surface-tint) 14%, var(--md-surface));
 
   /* ── Typography — Roboto Flex + Roboto Serif (M3 default pair) ─── */
-  /* Available for opt-in by subsequent specs; v1 body keeps --sans. */
+  /* Authoritative font stacks. base.css sets body to --md-font-plain. */
   --md-font-plain:  "Roboto Flex", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
   --md-font-brand:  "Roboto Serif", ui-serif, Charter, Georgia, serif;
   --md-font-data:   "Roboto Flex", "Roboto", ui-monospace, monospace;
@@ -343,24 +304,12 @@
   --md-focus-offset: 2px;
 }
 
-/* ── Light mode ─────────────────────────────────────────────── */
+/* ── Light mode (M3-orthogonal tokens) ───────────────────────── */
+/* Holds light-mode values for tokens that live outside the M3
+   color roles: agent identity bg/border, status hue bg, --on-accent,
+   --e-1 / --e-2 v1 elevation. The M3 color roles themselves flip
+   at the body.light block farther down (was SPEC-0092). */
 body.light, .light {
-  --bg-0: #faf9f6;
-  --bg-1: #ffffff;
-  --bg-2: #f3f0e9;
-  --bg-3: #ddd8cb;          /* nudged darker for hover lift (was e8e4db) */
-  --bg-4: #d6d1c4;
-
-  --border-1: #e7e3d9;
-  --border-2: #d2cdc0;
-  --border-3: #aaa599;
-
-  --fg-0: #04060a;          /* darker still — maximum heading punch on cream */
-  --fg-1: #3a3f47;          /* body prose — lifted further from --fg-0 */
-  --fg-2: #4d5159;          /* slightly darker, more legible */
-  --fg-3: #6f7480;          /* significantly darker — was #898d95, unreadable */
-  --fg-4: #a8aab0;
-
   --agent-a-bg:        rgba(212,165,116,0.14);
   --agent-a-bg-strong: rgba(212,165,116,0.26);
   --agent-a-border:    rgba(212,165,116,0.42);
@@ -382,11 +331,10 @@ body.light, .light {
 }
 
 /* =============================================================
-   SPEC-0092 — M3 light-mode role-token overrides.
-   Parallel to the v1 body.light block above. Mirrors
-   design-system/assets/styles/tokens-and-primitives.css:200-245.
-   Only --md tokens flip here; v1 components keep reading
-   their v1 surface and foreground tokens from the v1 block.
+   M3 light-mode role-token overrides (originally SPEC-0092).
+   Flips every --md-* surface/ink/outline value to its cream
+   counterpart. Mirrors design-system/assets/styles/
+   tokens-and-primitives.css:200-245.
    ============================================================= */
 body.light {
   --md-on-primary:             #1f1407;
