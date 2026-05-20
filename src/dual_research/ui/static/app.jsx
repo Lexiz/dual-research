@@ -74,24 +74,9 @@ function App() {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [paletteOpen, setPaletteOpen] = React.useState(false);
 
-  // SPEC-0102: How It Works overlay state. Deep link via ?how=1.
-  const [howOpen, setHowOpen] = React.useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('how') === '1';
-    } catch (e) { return false; }
-  });
-  const closeHow = React.useCallback(() => {
-    setHowOpen(false);
-    try {
-      const url = new URL(window.location);
-      url.searchParams.delete('how');
-      window.history.replaceState({}, '', url.toString());
-    } catch (e) {}
-  }, []);
-  const openHow = React.useCallback(() => {
-    setHowOpen(true);
-  }, []);
+  // SPEC-0123: How-It-Works is now a full-page route (#/how-it-works),
+  // not a modal. The pre-0123 howOpen / openHow / closeHow state +
+  // the ?how=1 deep-link query param were retired here.
 
   // SPEC-0059: Global keyboard contract (A11Y-03/04).
   React.useEffect(() => {
@@ -165,8 +150,7 @@ function App() {
       <ChromeBar route={route} navigate={navigate}
                  theme={theme}
                  onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                 client={client} session={session} me={me}
-                 onOpenHow={openHow} />
+                 client={client} session={session} me={me} />
 
       <div id="main" style={{ height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
         {route.view === 'detail'        && <DetailScreen runId={route.runId} navigate={navigate} />}
@@ -182,8 +166,7 @@ function App() {
       {/* SPEC-0059: keyboard-accessible overlays */}
       <ShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <SearchPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      {/* SPEC-0102: How It Works overlay */}
-      <HowItWorks open={howOpen} onClose={closeHow} />
+      {/* SPEC-0123: How It Works is now a full-page route mounted above. */}
       {/* SPEC-0103: 8-step onboarding tour overlay */}
       {tourOpen && (
         <TourOverlay
@@ -249,7 +232,7 @@ function ListScreen({ navigate }) {
 
 // ─────────────────── Top chrome ───────────────────
 
-function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me, onOpenHow }) {
+function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me }) {
   const onList = route.view === 'list';
   return (
     <header className="md-appbar">
@@ -286,7 +269,6 @@ function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me,
         client={client}
         session={session}
         me={me}
-        onOpenHow={onOpenHow}
       />
     </header>
   );
@@ -322,7 +304,7 @@ function ChromeTab({ label, icon, active, onClick }) {
 // Spec 0056 SUR-05: unified visual styling across all chrome-right controls.
 // SUR-06: ActiveRunChip — shows short run ID when viewing a run detail.
 
-function RightCluster({ theme, onToggleTheme, navigate, route, client, session, me, onOpenHow }) {
+function RightCluster({ theme, onToggleTheme, navigate, route, client, session, me }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', height: 40 }}>
       <ConnectionPill />
@@ -330,8 +312,8 @@ function RightCluster({ theme, onToggleTheme, navigate, route, client, session, 
       <span className="vbar" style={{ margin: '0 4px' }} />
       <button
         type="button"
-        className="md-btn md-btn--text md-btn--sm"
-        onClick={onOpenHow}
+        className={'md-btn md-btn--text md-btn--sm' + (route.view === 'how-it-works' ? ' is-active' : '')}
+        onClick={() => navigate('how-it-works')}
       >
         How it works
       </button>

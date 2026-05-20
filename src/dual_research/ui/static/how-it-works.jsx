@@ -524,13 +524,57 @@
 
   function HiwDiagram({ name, alt }) {
     const variant = useThemeMode();
+    const src = `/diagrams/how-it-works/${name}.${variant}.svg?v=0123a`;
+    const [open, setOpen] = React.useState(false);
     return (
-      <div className="hiw-diagram">
-        <img
-          src={`/diagrams/how-it-works/${name}.${variant}.svg?v=0121a`}
-          alt={alt}
-          loading="lazy"
-        />
+      <React.Fragment>
+        <button
+          type="button"
+          className="hiw-diagram hiw-diagram--clickable"
+          onClick={() => setOpen(true)}
+          aria-label={`Enlarge: ${alt}`}
+        >
+          <img src={src} alt={alt} loading="lazy" />
+          <span className="hiw-diagram__hint" aria-hidden="true">⤢ click to enlarge</span>
+        </button>
+        {open && <DiagramViewer src={src} alt={alt} onClose={() => setOpen(false)} />}
+      </React.Fragment>
+    );
+  }
+
+  // ─── DiagramViewer — full-viewport SVG enlarger ──────────────
+  // Spec 0123: click any embedded HiwDiagram → shows the SVG at
+  // near-fullscreen size in a scrim-backed modal. Esc / scrim-click
+  // / close-button dismisses.
+
+  function DiagramViewer({ src, alt, onClose }) {
+    React.useEffect(() => {
+      function onKey(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+      }
+      window.addEventListener('keydown', onKey, true);
+      return () => window.removeEventListener('keydown', onKey, true);
+    }, [onClose]);
+
+    function onScrimClick(e) {
+      if (e.target === e.currentTarget) onClose();
+    }
+
+    return (
+      <div
+        className="diagram-viewer__scrim"
+        onClick={onScrimClick}
+        role="dialog"
+        aria-modal="true"
+        aria-label={alt}
+      >
+        <button
+          type="button"
+          className="diagram-viewer__close"
+          onClick={onClose}
+          aria-label="Close diagram viewer"
+        >×</button>
+        <img className="diagram-viewer__img" src={src} alt={alt} />
       </div>
     );
   }
@@ -1236,131 +1280,107 @@
     );
   }
 
-  // ─── Main overlay component ───────────────────────────────────
+  // ─── HowItWorksBody — the section/changelog/menu/tabs payload ─
+  // Same content as the pre-0123 modal, minus the modal scrim and
+  // chrome. Rendered inside HowItWorksPage for the full-page route.
 
-  function HowItWorks({ open, onClose }) {
-    const [view, setView] = React.useState('how');
-    const triggerRef = React.useRef(null);
+  function HowItWorksBody() {
+    // Default to "how" view; switch to "changelog" if the URL hash
+    // points at a changelog anchor (e.g. /#how-it-works#cl-150).
+    const initialView = (() => {
+      try {
+        const h = window.location.hash || '';
+        return h.includes('#cl-') ? 'changelog' : 'how';
+      } catch (e) { return 'how'; }
+    })();
+    const [view, setView] = React.useState(initialView);
 
+    // Reflect view in <title>.
     React.useEffect(() => {
-      if (!open) return;
-      function onKey(e) {
-        if (e.key === 'Escape') {
-          e.stopPropagation();
-          onClose();
-        }
-      }
-      window.addEventListener('keydown', onKey, true);
-      return () => window.removeEventListener('keydown', onKey, true);
-    }, [open, onClose]);
-
-    React.useEffect(() => {
-      if (open) {
-        triggerRef.current = document.activeElement;
-      } else if (triggerRef.current) {
-        try { triggerRef.current.focus(); } catch (e) { /* ignore */ }
-        triggerRef.current = null;
-      }
-    }, [open]);
-
-    if (!open) return null;
-
-    function onScrimClick(e) {
-      if (e.target === e.currentTarget) onClose();
-    }
+      const prev = document.title;
+      document.title = (view === 'how' ? 'How it works' : 'Changelog') + ' · Dual Research';
+      return () => { document.title = prev; };
+    }, [view]);
 
     return (
-      <div
-        className="md-dialog__scrim"
-        onClick={onScrimClick}
-        role="dialog"
-        aria-modal="true"
-        aria-label="How it works"
-      >
-        <div className="md-dialog md-dialog--rich" style={{ maxHeight: '92vh', overflow: 'hidden' }}>
-          {/* Header */}
-          <div className="dr-modal-header">
-            <h2>How it works</h2>
-            <span className="spacer" />
-            <div className="dr-modal-tabs" role="tablist">
-              <button
-                type="button"
-                className={'tab' + (view === 'how' ? ' is-active' : '')}
-                role="tab"
-                aria-selected={view === 'how'}
-                onClick={() => setView('how')}
-              >How it works</button>
-              <button
-                type="button"
-                className={'tab' + (view === 'changelog' ? ' is-active' : '')}
-                role="tab"
-                aria-selected={view === 'changelog'}
-                onClick={() => setView('changelog')}
-              >Changelog</button>
-            </div>
+      <div className="hiw-page__inner">
+        <header className="hiw-page__header">
+          <h1 className="hiw-page__title">
+            {view === 'how' ? 'How it works' : 'Changelog'}
+          </h1>
+          <span className="hiw-page__spacer" />
+          <div className="hiw-page__tabs" role="tablist">
             <button
               type="button"
-              className="dr-modal-close"
-              onClick={onClose}
-              aria-label="Close"
-            >×</button>
+              className={'tab' + (view === 'how' ? ' is-active' : '')}
+              role="tab"
+              aria-selected={view === 'how'}
+              onClick={() => setView('how')}
+            >How it works</button>
+            <button
+              type="button"
+              className={'tab' + (view === 'changelog' ? ' is-active' : '')}
+              role="tab"
+              aria-selected={view === 'changelog'}
+              onClick={() => setView('changelog')}
+            >Changelog</button>
           </div>
+        </header>
 
-          {/* Two-column layout: side menu + scrollable content */}
-          <div className="hiw-overlay__layout">
-            <nav className="hiw-overlay__menu" aria-label="Section navigation">
-              <ul className="hiw-overlay__menu-list">
-                {view === 'how'
-                  ? HIW_SECTIONS.map((s, i) =>
-                      <li key={s.id}>
-                        <a href={`#${s.id}`}>
-                          <span className="menu-section-num">{i + 1}</span>{s.label}
-                        </a>
-                      </li>
-                    )
-                  : VERSION_NOTES.slice(0, 12).map((e) =>
-                      <li key={e.version}>
-                        <a href={`#cl-${e.version.replace(/\./g, '')}`}>
-                          <span className="menu-section-num">{e.version}</span>{e.summary.slice(0, 30)}
-                        </a>
-                      </li>
-                    )
-                }
-              </ul>
-            </nav>
+        <div className="hiw-page__layout">
+          <nav className="hiw-page__menu" aria-label="Section navigation">
+            <ul className="hiw-overlay__menu-list">
+              {view === 'how'
+                ? HIW_SECTIONS.map((s, i) =>
+                    <li key={s.id}>
+                      <a href={`#${s.id}`}>
+                        <span className="menu-section-num">{i + 1}</span>{s.label}
+                      </a>
+                    </li>
+                  )
+                : VERSION_NOTES.slice(0, 12).map((e) =>
+                    <li key={e.version}>
+                      <a href={`#cl-${e.version.replace(/\./g, '')}`}>
+                        <span className="menu-section-num">{e.version}</span>{e.summary.slice(0, 30)}
+                      </a>
+                    </li>
+                  )
+              }
+            </ul>
+          </nav>
 
-            <div className="hiw-overlay__content">
-              {view === 'how' ? (
-                <div className="hiw">
-                  <ProtocolOverviewSection />
-                  {PHASES.map((p) => <PhaseSection key={p.anchor} phase={p} />)}
-                  <ModalAnatomySection />
-                  <ItemTaxonomySection />
-                  <ItemLifecycleSection />
-                  <ConvergenceSection />
-                  <CostSection />
-                </div>
-              ) : (
-                <ChangelogList />
-              )}
-            </div>
+          <div className="hiw-page__content">
+            {view === 'how' ? (
+              <div className="hiw">
+                <ProtocolOverviewSection />
+                {PHASES.map((p) => <PhaseSection key={p.anchor} phase={p} />)}
+                <ModalAnatomySection />
+                <ItemTaxonomySection />
+                <ItemLifecycleSection />
+                <ConvergenceSection />
+                <CostSection />
+              </div>
+            ) : (
+              <ChangelogList />
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // Vestigial — legacy onboarding tour and a few deep-links still hit
-  // HowItWorksPage. Keep it as a no-op that dispatches an open event the
-  // app shell catches to surface the overlay.
+  // ─── HowItWorksPage — full-page route mount ───────────────────
+  // Mounted at route.view === 'how-it-works' in app.jsx. No modal
+  // scrim, no max-width cap below --md-content-max. The old modal
+  // wrapper (HowItWorks) was retired in spec 0123.
+
   function HowItWorksPage() {
-    React.useEffect(() => {
-      if (typeof window === 'undefined') return;
-      window.dispatchEvent(new CustomEvent('dr-open-how-it-works'));
-    }, []);
-    return null;
+    return (
+      <div className="hiw-page">
+        <HowItWorksBody />
+      </div>
+    );
   }
 
-  window.HowItWorks = HowItWorks;
   window.HowItWorksPage = HowItWorksPage;
 })();
