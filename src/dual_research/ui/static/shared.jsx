@@ -563,20 +563,21 @@ const _mkIcon = (mdiName, defaultSize) => (p = {}) => {
   return <Mdi name={mdiName} size={size || defaultSize} {...rest} />;
 };
 const Icon = {
-  Activity:  _mkIcon('pulse',          14),
-  List:      _mkIcon('menu',           14),
-  Palette:   _mkIcon('palette',        14),
-  Chevron:   _mkIcon('chevron-right',  12),
-  Dot:       _mkIcon('circle-filled',   8),
-  Check:     _mkIcon('check',          12),
-  X:         _mkIcon('close',          12),
-  Arrow:     _mkIcon('arrow-right',    12),
-  ArrowLeft: _mkIcon('arrow-left',     14),
-  Spark:     _mkIcon('shimmer',        12),
-  Warn:      _mkIcon('alert',          14),
-  Gear:      _mkIcon('cog',            14),
-  SignOut:   _mkIcon('logout',         14),
-  Help:      _mkIcon('help-circle',    14),
+  Activity:     _mkIcon('pulse',          14),
+  List:         _mkIcon('menu',           14),
+  Palette:      _mkIcon('palette',        14),
+  Chevron:      _mkIcon('chevron-right',  12),
+  Dot:          _mkIcon('circle-filled',   8),
+  Check:        _mkIcon('check',          12),
+  X:            _mkIcon('close',          12),
+  Arrow:        _mkIcon('arrow-right',    12),
+  ArrowLeft:    _mkIcon('arrow-left',     14),
+  Spark:        _mkIcon('shimmer',        12),
+  Warn:         _mkIcon('alert',          14),
+  Gear:         _mkIcon('cog',            14),
+  SignOut:      _mkIcon('logout',         14),
+  Help:         _mkIcon('help-circle',    14),
+  FileDocument: _mkIcon('file-document',  12),
 };
 
 // ───────────────────────── formatting helpers ─────────────────────────

@@ -2168,6 +2168,14 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   font: 11px/1 var(--md-font-data);
   color: var(--md-on-surface-faint);
 }
+/* Spec 0119 §8.2 — phase-header category summary chip cluster. Lives
+   in the rightmost grid column of .tl-phase__hd; flex-wraps when
+   the timeline column gets narrow. */
+.tl-phase__chips {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+  justify-self: end;
+}
 .tl-phase__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 14px; }
 
 /* SPEC polish — Timeline turn rows now reuse the critique-pane .qthread card

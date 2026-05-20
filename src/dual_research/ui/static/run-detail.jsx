@@ -850,6 +850,7 @@ function Timeline({ run, highlightedTurnKeys }) {
                       <span className="tl-phase__pcode">PHASE {vp.pid}</span>
                       <span className="tl-phase__name">{vp.pDef?.label || `Phase ${vp.pid}`}</span>
                       <span className="tl-phase__meta">{metaParts.join(' \u00b7 ') || '\u2014'}</span>
+                      <TlPhaseHeadChips phaseId={vp.pid} run={run} />
                     </header>
                     {!isCollapsed && (
                       <div className="tl-phase__body">
@@ -925,6 +926,69 @@ function dispatchCritiqueJump({ category, round, phase }) {
   window.dispatchEvent(new CustomEvent('dr-critique-jump', {
     detail: { category, round, phase },
   }));
+}
+
+// Spec 0119 §8.2 — phase-header category-summary chip cluster.
+//
+// Aggregates ``PhaseCategoryStats`` across both agents for the phase.
+// Phase 0 + 2 show Questions + Disagreements; Phase 4 also shows
+// Issues + Comments. Phase 1 + 3 (parallel research / draft) raise
+// no items and render no category chips.
+//
+// Ledger-drift modifier (spec 0119 §6 / Q5): when ``run.drifts``
+// contains entries whose turnKey starts with ``phase{N}_``, prepend
+// a ``⚠ ledger drift`` chip with the count. Drift is computed
+// end-of-phase by the aggregator (per-turn granularity isn't there
+// yet), so the phase header is the right surface.
+function TlPhaseHeadChips({ phaseId, run }) {
+  const phaseSummary = run?.phaseStats?.[`phaseSummary_${phaseId}`];
+  const cats = (phaseId === 4)
+    ? ['questions', 'disagreements', 'issues', 'comments']
+    : (phaseId === 0 || phaseId === 2)
+      ? ['questions', 'disagreements']
+      : [];
+
+  const phaseDrifts = (run?.drifts || []).filter(
+    (d) => (d.turnKey || '').startsWith(`phase${phaseId}_`)
+  );
+
+  if (!phaseSummary && phaseDrifts.length === 0) return null;
+  if (cats.length === 0 && phaseDrifts.length === 0) return null;
+
+  return (
+    <div className="tl-phase__chips">
+      {phaseDrifts.length > 0 && (
+        <Chip
+          mono
+          tone="warn"
+          label="⚠ ledger drift"
+          value={phaseDrifts.length}
+          title={phaseDrifts.map(d => `${d.kind}: agent=${d.agentCount} · ledger=${d.ledgerCount}`).join('\n')}
+        />
+      )}
+      {cats.map((cat) => {
+        const c = phaseSummary?.[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
+        const noActivity = (c.raised + c.closed) === 0;
+        return (
+          <Chip
+            key={cat}
+            tone={CATEGORY_TONE[cat]}
+            categoryBubble={CATEGORY_BUBBLE[cat]}
+            value={c.standing}
+            add={c.raised}
+            sub={c.closed}
+            trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
+            dim={noActivity}
+            ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatchCritiqueJump({ category: cat, phase: phaseId });
+            }}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 // Spec 0119 §5.4 / §8.1 — never-bare status chip for timeline turn
@@ -1037,7 +1101,19 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
             label={agentName}
           />
         )}
-        <Chip mono tone="neutral" label={activityLabel.toLowerCase()} />
+        {/* Spec 0119 §8.8 — Phase 0 brief card is the only no-agent
+            card; it gets a file-document glyph as its leading icon so
+            it reads as "the document we're working from" rather than
+            as an activity step. */}
+        {!agent && item.kind === 'input' ? (
+          <Chip
+            tone="neutral"
+            leadingIcon={<Icon.FileDocument size={12} />}
+            label="brief"
+          />
+        ) : (
+          <Chip mono tone="neutral" label={activityLabel.toLowerCase()} />
+        )}
 
         {/* Spec 0119 §8.1 — per-category summary chips in fixed
             Q→D→I→C order. Always present (zero-activity dims to
