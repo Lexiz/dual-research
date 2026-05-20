@@ -163,7 +163,7 @@
 
   /* =============================================================
      SPEC-0092 — Material 3 token layer (foundation, additive)
-     Mirrors docs/design-system-v2/assets/styles/v2-m3.css:7-174.
+     Mirrors design-system/assets/styles/tokens-and-primitives.css:7-174.
      The v1 tokens above stay authoritative for v1 components;
      the --md-* layer here is what subsequent specs (0093…0104)
      read as they migrate components.
@@ -384,7 +384,7 @@ body.light, .light {
 /* =============================================================
    SPEC-0092 — M3 light-mode role-token overrides.
    Parallel to the v1 body.light block above. Mirrors
-   docs/design-system-v2/assets/styles/v2-m3.css:200-245.
+   design-system/assets/styles/tokens-and-primitives.css:200-245.
    Only --md tokens flip here; v1 components keep reading
    their v1 surface and foreground tokens from the v1 block.
    ============================================================= */

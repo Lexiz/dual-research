@@ -1,8 +1,12 @@
 # dual-research — Design System Spec
 
-**Version:** snapshot of `main` as of `0fd9b95` (v0.69.12)
-**Last sync:** 2026-05-18 — drift fixes for specs 0084 / 0085 / 0086 / 0087 brought into the in-app `design-language.jsx` reference
-**Status:** canonical text reference — pair with [`../src/dual_research/ui/static/tokens.css`](../src/dual_research/ui/static/tokens.css), [`../src/dual_research/ui/static/components.css`](../src/dual_research/ui/static/components.css), and the live page at [`/#/language`](../src/dual_research/ui/static/design-language.jsx) for the implementation.
+**Status:** canonical text reference for the dual-research design system.
+**Visual reference:** [`assets/Design System v2.html`](assets/Design%20System%20v2.html) — open in a browser to see every primitive and composed component rendered.
+**Token + primitive CSS:** [`assets/styles/tokens-and-primitives.css`](assets/styles/tokens-and-primitives.css) and [`assets/styles/composed-components.css`](assets/styles/composed-components.css).
+**Live implementation:** [`src/dual_research/ui/static/`](../src/dual_research/ui/static/) — `tokens.css`, `base.css`, `components.css`, `theme.css`, `design-language.jsx`, `shared.jsx`. **Authoritative for what users actually see.**
+**Live in-app reference:** [`/#/language`](../src/dual_research/ui/static/design-language.jsx).
+
+> This spec describes the Material 3 design system that the dual-research dashboard runs on. There is no "v1" / "v2" framing in this document — the previous design system was archived under [`_archive/v1/`](_archive/v1/) on 2026-05-20 (spec 0127). When a reader encounters references to v1 tokens (`--bg-1`, `--fg-2`, IBM Plex) in older PRs, CHANGELOG entries, or specs 0001–0091, those refer to the archived system.
 
 ---
 
@@ -13,269 +17,380 @@
 
 The whole design follows three rules: **never compete with the agent output, never compete with the terminal next to it, never hide the one number that matters.**
 
+The Material 3 vocabulary is applied selectively. M3 gives us a coherent token system (color roles, surfaces, elevation, state layers, motion, type) and a primitive library that scales across themes and densities without per-component overrides. It does **not** give us our identity — the pastel-palette (sable + sage), the calm motion profile, the read-only discipline, and the information-density bias are all dual-research-specific decisions that survive the M3 mapping.
+
 ---
 
 ## 1 — Principles
 
 1. **Read-only is a discipline.** No buttons that mutate state. Every affordance is a view filter, a tab, or a focus shift. If the user wants to act, they go to the terminal.
-2. **One color per agent, everywhere.** Sable for Claude, sage for GPT. Status colors are the only other hues. A third hue in a wireframe gets cut.
-3. **Mono for anything an agent produced.** Streaming output, tokens, costs, IDs, positions in the disagreements panel. Sans for prose the UI itself wrote.
-4. **Density is a feature.** A run-list row fits eight columns at 1200px without ellipses below the topic. Padding is generous between panels and minimal within them.
-5. **Calm transitions or none.** No bounces, no scale, no springs. Soft pulses for live states; everything else is opacity + position only.
+2. **One color per agent, everywhere.** Sable (`--p-sable`) for Claude, sage (`--p-sage`) for GPT. Status colors are the only other hues. A third hue in a wireframe gets cut.
+3. **Type pairs by role.** `--md-font-plain` (Roboto Flex) for chrome, body, labels, IDs, numbers (with tabular-nums via `font-feature-settings`). `--md-font-brand` (Roboto Serif) for hero text, page-level headings, blockquotes, QuestionThread quotes — anything that should read as "the agent's voice." `--md-font-data` is an alias for the plain font with tabular-nums baked in. The project does **not** ship a separate monospace font; tabular figures come from feature settings, not a separate face.
+4. **Density is a feature.** Comfortable density (`--md-density: 0`) by default. Compact (`--md-density: 1`, applied via `body.compact`) tightens paddings, row heights, rail width, and the display/headline type scale for laptop-class viewports. A run-list row fits eight columns at 1200 px without ellipses below the topic.
+5. **Calm transitions or none.** No bounces, no scale, no springs. Motion uses M3's `--md-easing-standard` / `--md-easing-emphasized` family; durations sit in the `short-1` (50 ms) to `medium-2` (300 ms) range. The "loud" states (cap approaching, deadlock, error) use a slow 2.2 s soft-pulse halo. Never a hard flash.
 6. **Show why a run is slow.** The disagreements panel always tells the operator which contested point is blocking convergence. No buried logs.
-7. **Token-only colors.** No hex codes in components. Every color reads from `tokens.css` so theme changes propagate everywhere.
-8. **Full-word vocabulary.** Labels use complete words, never abbreviated codes. "conceded by Claude", not "→ c". Codified in SPEC-0067.
+7. **Token-only colors.** No hex codes in components. Every color reads from a `--md-*` token. If a needed color doesn't have a token, add it to `tokens.css` first.
+8. **Full-word vocabulary.** Labels use complete words, never abbreviated codes. "conceded by Claude", not "→ c". Codified in [§ 9 Badge governance](#9--badge-governance--spec-0119) and SPEC-0067.
 9. **Brand fidelity.** Official Anthropic sunburst and OpenAI hexagonal rosette everywhere an agent is identified. No generic substitutes.
-10. **Accessibility.** `:focus-visible` ring on every interactive primitive; `prefers-reduced-motion` honored on every animation; semantic ARIA where the markup needs it. Codified in SPEC-0087.
+10. **Accessibility.** `:focus-visible` ring via `--md-focus-ring` on every interactive primitive; `prefers-reduced-motion` honored on every animation; semantic ARIA where the markup needs it. Codified in SPEC-0087.
 
 ---
 
 ## 2 — Foundations
 
-All foundation values are CSS custom properties defined in [`tokens.css`](../src/dual_research/ui/static/tokens.css). Components MUST read from these tokens; no hex codes anywhere in component CSS.
+All foundation values are CSS custom properties defined in [`src/dual_research/ui/static/tokens.css`](../src/dual_research/ui/static/tokens.css) (live) and mirrored in [`assets/styles/tokens-and-primitives.css`](assets/styles/tokens-and-primitives.css) (canonical reference). Components MUST read from `--md-*` tokens; no hex codes anywhere in component CSS.
 
-### 2.1 Palette
+### 2.1 — Palette
 
-#### Agents (the two-color system)
+The pastel palette is the dual-research identity. Sable and sage sit on opposite sides of the warm/cool axis at near-identical L\*, so neither agent feels louder than the other.
 
-| Token             | Hex       | Role                                                                                              |
-|-------------------|-----------|---------------------------------------------------------------------------------------------------|
-| `--agent-a`       | `#d4a574` | **Claude — Sable.** Track A. Output accents, agent-tagged borders, last-turn tags.                |
-| `--agent-a-dim`   | `#8a6d4e` | Dimmed sable for muted states.                                                                    |
-| `--agent-a-bg`    | rgba 0.08 | Background tint behind Claude content.                                                            |
-| `--agent-a-bg-strong` | rgba 0.16 | Stronger tint (selected / focused Claude row).                                                |
-| `--agent-a-border` | rgba 0.22 | Hairline border for Claude-tinted containers.                                                    |
-| `--agent-b`       | `#7cc4b8` | **GPT — Sage.** Track B. Same roles, GPT side.                                                    |
-| `--agent-b-dim`   | `#4f8079` | Dimmed sage.                                                                                       |
-| `--agent-b-bg`    | rgba 0.08 | GPT bg tint.                                                                                       |
-| `--agent-b-bg-strong` | rgba 0.16 | GPT bg tint (strong).                                                                          |
-| `--agent-b-border` | rgba 0.22 | GPT hairline border.                                                                              |
+#### Base palette (preserved across themes)
 
-Sable and sage sit on opposite sides of the warm/cool axis at near-identical L\*, so neither agent feels louder than the other.
+| Token | Hex | Role |
+|---|---|---|
+| `--p-sable` | `#d4a574` | **Claude.** Track A. Primary brand surface. |
+| `--p-sable-dim` | `#8a6d4e` | Dimmed sable for muted states. |
+| `--p-sage` | `#7cc4b8` | **GPT.** Track B. Secondary brand surface. |
+| `--p-sage-dim` | `#4f8079` | Dimmed sage. |
+| `--p-info` | `#6b9cf0` | Running · current phase · live cursor · focus ring base. |
+| `--p-ok` | `#6fb380` | Resolved · converged · completed · approved. |
+| `--p-warn` | `#d4a056` | Approaching cap · deadlocked · drift. |
+| `--p-err` | `#d96a6a` | Errored · halted. |
+| `--p-idle` | `#5e636d` | Idle · paused · awaiting. |
 
-#### Surfaces (5 levels, dark mode default)
+#### M3 color roles
 
-| Token     | Hex       | Role                                |
-|-----------|-----------|-------------------------------------|
-| `--bg-0`  | `#08090b` | Page background, streaming body     |
-| `--bg-1`  | `#0d0f12` | Default panel                       |
-| `--bg-2`  | `#131519` | Elevated row / chip bg / modal header |
-| `--bg-3`  | `#191c21` | Hover, active chip                  |
-| `--bg-4`  | `#1f2329` | High-contrast surface (dropdown row) |
+The palette feeds the M3 role tokens. Components read the roles, not the base palette.
 
-#### Borders (3 weights)
+| Role | Maps to | On-role pair | Container pair |
+|---|---|---|---|
+| `--md-primary` | `var(--p-sable)` | `--md-on-primary` | `--md-primary-container` / `--md-on-primary-container` |
+| `--md-secondary` | `var(--p-sage)` | `--md-on-secondary` | `--md-secondary-container` / `--md-on-secondary-container` |
+| `--md-tertiary` | `var(--p-info)` | `--md-on-tertiary` | `--md-tertiary-container` / `--md-on-tertiary-container` |
+| `--md-error` | `var(--p-err)` | `--md-on-error` | `--md-error-container` / `--md-on-error-container` |
+| `--md-warning` | `var(--p-warn)` | — (use status pills) | — |
+| `--md-success` | `var(--p-ok)` | — (use status pills) | — |
 
-| Token        | Hex       | Role                                            |
-|--------------|-----------|-------------------------------------------------|
-| `--border-1` | `#1c1f24` | Hairline (default container border)             |
-| `--border-2` | `#262a31` | Medium (cards, panels needing more definition)  |
-| `--border-3` | `#343941` | Strong (focus + active states)                  |
+Containers are rgba tints of the base hue (~18% in dark mode, ~26% in light), giving the agent-tagged backgrounds room to read against the surface tier without competing.
 
-#### Foreground (5 levels)
+### 2.2 — Surfaces (M3 tonal scale)
 
-| Token    | Hex       | Role                                          |
-|----------|-----------|-----------------------------------------------|
-| `--fg-0` | `#ffffff` | Primary text, numbers, headings (pure white for max heading punch on dark) |
-| `--fg-1` | `#b4bac4` | Body prose                                    |
-| `--fg-2` | `#9aa0ac` | Secondary, meta, labels                       |
-| `--fg-3` | `#7d8290` | Muted, column headers                         |
-| `--fg-4` | `#50545d` | Decorative, dividers in copy                  |
+M3 expresses elevation through both **shadow** and **tonal surface tint**. The surface tier set is:
 
-#### Status (4 hues + idle)
+| Token | Dark mode | Light mode | Role |
+|---|---|---|---|
+| `--md-surface-dim` | `#08090b` | `#ece8de` | Page background, streaming body. |
+| `--md-surface` | `#0d0f12` | `#faf9f6` | Default surface. |
+| `--md-surface-bright` | `#21242a` | `#ffffff` | Bright surface (rare; used for callouts on pure-black backgrounds). |
+| `--md-surface-container-lowest` | `#0a0c0f` | `#ffffff` | Lowest tier (recessed). |
+| `--md-surface-container-low` | `#111317` | `#f5f3ec` | Default panel. |
+| `--md-surface-container` | `#14171c` | `#f0ede4` | Elevated row / chip bg / modal header. |
+| `--md-surface-container-high` | `#191c21` | `#e9e5d9` | Hover, active chip, secondary sticky surfaces. |
+| `--md-surface-container-highest` | `#21252b` | `#e3decf` | Highest static tier. |
 
-Used only on state changes. Same dusty saturation as agent colors — reads as the same family, never marketing-grade.
+On top of the static tiers, M3 layers **tonal-overlay surfaces** that mix the surface tint into the surface at increasing opacity. Components read these for "this surface is elevated above context."
 
-| Token    | Hex       | Role                                  |
-|----------|-----------|---------------------------------------|
-| `--ok`   | `#6fb380` | resolved · converged · completed · approved |
-| `--info` | `#6b9cf0` | running · current phase · live cursor · focus ring |
-| `--warn` | `#d4a056` | approaching cap · deadlocked · drift  |
-| `--err`  | `#d96a6a` | errored · halted                       |
-| `--idle` | `#5e636d` | idle · paused · awaiting              |
+| Token | Recipe | Use |
+|---|---|---|
+| `--md-surface-1` | `surface + tint @ 5%` | Slight lift (resting card). |
+| `--md-surface-2` | `surface + tint @ 8%` | Hover lift. |
+| `--md-surface-3` | `surface + tint @ 11%` | Dialogs, modal frames. |
+| `--md-surface-4` | `surface + tint @ 12%` | Dragged / picked-up. |
+| `--md-surface-5` | `surface + tint @ 14%` | Topmost (sticky bars, app bars when scrolled). |
 
-Each status hue also has a `-bg` and `-border` rgba variant for banners and inline cards.
+`--md-surface-tint` is `var(--md-primary)` by default. The `body.tint-secondary` class swaps it to `var(--md-secondary)` — used on GPT-led routes so sage tints the surface instead of sable.
 
-#### On-accent
+### 2.3 — On-surface inks
 
-`--on-accent: #14110a` — text/icon color atop solid agent-color fills.
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `--md-on-surface` | `#ffffff` | `#04060a` | Primary text, numbers, headings. |
+| `--md-on-surface-variant` | `#b4bac4` | `#3a3f47` | Body prose. |
+| `--md-on-surface-muted` | `#9aa0ac` | `#4d5159` | Secondary, meta, labels. |
+| `--md-on-surface-faint` | `#7d8290` | `#6f7480` | Muted, column headers. |
+| `--md-on-surface-decor` | `#50545d` | `#a8aab0` | Decorative, dividers in copy. |
 
-#### Light mode
+### 2.4 — Outlines
 
-`body.light` (or `.light` class) swaps all the above to a cream + dark-text palette. Defined at the bottom of `tokens.css`. Spacing, type, and shape tokens are theme-independent.
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `--md-outline` | `#343941` | `#aaa599` | Strong outline (focus, active boundaries). |
+| `--md-outline-variant` | `#262a31` | `#d2cdc0` | Medium (cards, panels needing more definition). |
+| `--md-outline-hair` | `#1c1f24` | `#e7e3d9` | Hairline (default container border). |
 
-### 2.2 Typography
+### 2.5 — Typography
 
-Two families from the IBM Plex system. Designed together — same x-height, same proportions — so they blend visually while staying clearly distinct (sans vs serif). **No monospace family** — tabular figures via `font-feature-settings` on the sans.
+| Token | Family | Use |
+|---|---|---|
+| `--md-font-plain` | Roboto Flex (variable) | UI chrome, body, labels, buttons, navigation, status pills, IDs, costs, tokens. |
+| `--md-font-brand` | Roboto Serif | Hero text, page-level headings, blockquotes, QuestionThread quotes. The agent's voice. |
+| `--md-font-data` | Roboto Flex with `font-variant-numeric: tabular-nums` and `font-feature-settings: "tnum","ss01"` | Numbers, IDs, costs — anywhere column alignment matters. Alias to plain with feature settings; not a separate font face. |
 
-| Family | Token       | Used for                                                                 |
-|--------|-------------|--------------------------------------------------------------------------|
-| Sans   | `--sans`    | UI chrome, body, labels, buttons, navigation, status pills, IDs, costs, tokens (with tabular-nums via `.num` utility). |
-| Serif  | `--serif`   | Agent-produced prose, hero text, page-level headings, blockquotes, QuestionThread quotes. The agent's voice. |
-| Mono   | `--mono`    | Aliased to `--sans` — the project does not ship a separate mono family.   |
+Fallbacks: `--md-font-plain` → `"Roboto", system-ui, -apple-system, "Segoe UI", sans-serif` · `--md-font-brand` → `ui-serif, Charter, Georgia, serif`.
 
-Fallbacks: `--sans` → `ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif` · `--serif` → `ui-serif, "Iowan Old Style", Charter, Georgia, serif`.
+#### M3 type scale — 15 roles
 
-#### Type scale (7 steps, exact pixel values)
+The scale is `<category>-<size>` where category ∈ {display, headline, title, body, label} and size ∈ {l, m, s}. Each role has a size, line-height, and (for some) letter-spacing token, plus a `.t-<category>-<size>` utility class.
 
-| Token         | Size  | Role                                            |
-|---------------|-------|-------------------------------------------------|
-| `--t-display` | 28px  | Page hero (Landing, Design Language)            |
-| `--t-title`   | 20px  | Section H2, modal title                         |
-| `--t-h3`      | 16px  | Card title, panel title                         |
-| `--t-body`    | 13px  | Default UI body                                 |
-| `--t-meta`    | 12px  | Secondary body, table cells, subtitle           |
-| `--t-mono`    | 11px  | Numbers, IDs, status labels, chips              |
-| `--t-label`   | 10px  | UPPERCASE labels (letter-spacing 0.08em)        |
+| Role | Size / Line height | Track | Utility class |
+|---|---|---|---|
+| `display-l` | 57 / 64 | -0.25 px | `.t-display-l` |
+| `display-m` | 45 / 52 | 0 | `.t-display-m` |
+| `display-s` | 36 / 44 | 0 | `.t-display-s` |
+| `headline-l` | 32 / 40 | — | `.t-headline-l` |
+| `headline-m` | 28 / 36 | — | `.t-headline-m` |
+| `headline-s` | 24 / 32 | — | `.t-headline-s` |
+| `title-l` | 22 / 28 | — | `.t-title-l` |
+| `title-m` | 16 / 24 | 0.15 px | `.t-title-m` |
+| `title-s` | 14 / 20 | 0.1 px | `.t-title-s` |
+| `body-l` | 16 / 24 | — | `.t-body-l` |
+| `body-m` | 14 / 20 | — | `.t-body-m` |
+| `body-s` | 12 / 16 | — | `.t-body-s` |
+| `label-l` | 14 / 20 | 0.1 px | `.t-label-l` |
+| `label-m` | 12 / 16 | 0.5 px (uppercase) | `.t-label-m` |
+| `label-s` | 11 / 16 | 0.5 px (uppercase) | `.t-label-s` |
 
-#### Line heights
+Display + headline roles use the brand font (Roboto Serif). Everything else uses the plain font. `.t-data` is a helper class that sets the data font + tabular-nums.
 
-| Token         | Value | Use                                          |
-|---------------|-------|----------------------------------------------|
-| `--lh-tight`  | 1.15  | Display / title                              |
-| `--lh-snug`   | 1.30  | H3 / card titles                             |
-| `--lh-body`   | 1.45  | Default UI body                              |
-| `--lh-prose`  | 1.60  | Long-form prose (agent output, descriptions) |
+Body default is `body-m` (14 / 20). Display + headline tighten under `body.compact` density.
 
 #### Weights
 
-| Token         | Value | Use                                                      |
-|---------------|-------|----------------------------------------------------------|
-| `--w-regular` | 400   | Body, prose                                              |
-| `--w-medium`  | 500   | Labels, secondary emphasis                               |
-| `--w-semi`    | 600   | Headings, primary emphasis, hero                         |
-| `--w-bold`    | 700   | Uppercase section labels                                 |
+| Token | Value |
+|---|---|
+| `--md-w-regular` | 400 |
+| `--md-w-medium` | 500 |
+| `--md-w-semi` | 600 |
+| `--md-w-bold` | 700 |
 
-### 2.3 Spacing & shape
+### 2.6 — Shape scale
 
-**4px grid.** No values outside this scale; the tokens below are the only allowed spacings.
+| Token | Value | Use |
+|---|---|---|
+| `--md-shape-xs` | 4 px | Status pills, mini indicators. |
+| `--md-shape-sm` | 8 px | Chips, small cards. |
+| `--md-shape-md` | 12 px | **Default card / panel radius.** |
+| `--md-shape-lg` | 16 px | FAB, large showcase frames. |
+| `--md-shape-xl` | 28 px | Dialogs, modal frames. |
+| `--md-shape-full` | 9999 px | True pills — buttons, status, run IDs, segmented controls. |
 
-| Token    | Value | Common use                              |
-|----------|-------|-----------------------------------------|
-| `--s-1`  | 4px   | Tight gap inside a chip                 |
-| `--s-2`  | 8px   | Gap between chips, between row siblings |
-| `--s-3`  | 12px  | Card inner padding (compact)            |
-| `--s-4`  | 16px  | Card inner padding (default)            |
-| `--s-5`  | 20px  | Panel inner padding                     |
-| `--s-6`  | 24px  | Gap between panels                      |
-| `--s-8`  | 32px  | Section spacing                         |
-| `--s-10` | 40px  | Hero spacing                            |
-| `--s-12` | 48px  | Page padding                            |
-| `--s-16` | 64px  | Hero top                                |
-| `--s-20` | 80px  | Marketing-page hero                     |
+### 2.7 — Spacing (M3 8 dp grid + 4 dp half-step)
 
-#### Radii (4 named + pill)
+All spacing reads from `--md-sp-<N>` tokens. No values outside this scale.
 
-| Token      | Value | Role                                                  |
-|------------|-------|-------------------------------------------------------|
-| `--r-1`    | 4px   | Status pills, mini chips, indicators                  |
-| `--r-2`    | 6px   | Buttons, inputs, segments                             |
-| `--r-3`    | 8px   | Cards, panels, modal body                             |
-| `--r-4`    | 12px  | Modal frame, tweaks dev panel                         |
-| `--r-pill` | 999px | Run ID, agent strip, true pills                       |
+| Token | Value |
+|---|---|
+| `--md-sp-0` | 0 |
+| `--md-sp-1` | 4 px |
+| `--md-sp-2` | 8 px |
+| `--md-sp-3` | 12 px |
+| `--md-sp-4` | 16 px |
+| `--md-sp-5` | 20 px |
+| `--md-sp-6` | 24 px |
+| `--md-sp-8` | 32 px |
+| `--md-sp-10` | 40 px |
+| `--md-sp-12` | 48 px |
+| `--md-sp-14` | 56 px |
+| `--md-sp-16` | 64 px |
+| `--md-sp-20` | 80 px |
 
-#### Border widths
+### 2.8 — Density
 
-| Token    | Value | Use                                              |
-|----------|-------|--------------------------------------------------|
-| `--bw-1` | 1px   | Hairlines                                        |
-| `--bw-2` | 2px   | Streaming outline, modal accent stripe           |
-| `--bw-3` | 3px   | Error card severity stripe (only)                |
+Two density modes — comfortable (default) and compact. Compact is applied via `body.compact` and tightens M3 spacing tokens, row height, rail width, and the display/headline type scale.
 
-### 2.4 Motion
+| Token | Comfortable | Compact |
+|---|---|---|
+| `--md-density` | 0 | 1 |
+| `--md-pad-card` | `--md-sp-6` (24) | `--md-sp-4` (16) |
+| `--md-pad-card-y` | `--md-sp-5` (20) | `--md-sp-3` (12) |
+| `--md-gap-row` | `--md-sp-8` (32) | `--md-sp-5` (20) |
+| `--md-gap-col` | `--md-sp-6` (24) | `--md-sp-4` (16) |
+| `--md-row-h` | 56 px | 44 px |
+| `--md-rail-w` | 280 px | 240 px |
 
-Streaming should feel like a calm typewriter. State transitions should be **noticed, not announced.**
+### 2.9 — Elevation (6 levels)
 
-| Token       | Value                      | Use                                  |
-|-------------|----------------------------|--------------------------------------|
-| `--m-fast`  | 120ms                      | Hover / focus state changes          |
-| `--m-base`  | 180ms                      | Default state transition             |
-| `--m-slow`  | 400ms                      | Layout opacity transitions           |
-| `--ease`    | `cubic-bezier(0.2, 0, 0, 1)` | Default ease-out                   |
+| Token | Recipe |
+|---|---|
+| `--md-elev-0` | `none` |
+| `--md-elev-1` | Subtle (resting card). |
+| `--md-elev-2` | Hover. |
+| `--md-elev-3` | Dialogs, modals, FAB. |
+| `--md-elev-4` | Drag / pick-up state. |
+| `--md-elev-5` | Topmost (rarely needed). |
 
-**Rules:**
-- **Streaming tokens:** 60–90 chars/sec, per-frame batch (16ms), no per-char layout thrash. A 0.9-opacity block caret pulses at 1.05s to anchor the eye.
-- **State transitions:** 180ms ease-out, single property at a time (opacity, color, position). No `transform: scale`. No `transform: translate` unless replacing the entire element.
-- **Loud states** (cap approaching, deadlock, error): slow 2.2s soft-pulse halo. Never a hard flash.
-- **No success animations** on convergence — the document just renders.
-- **No toast notifications** — this is a read-only surface.
-- **The one loading visual** is `<LoadingState>` (SPEC-0084) — used at the page or panel level when no useful payload has arrived yet. **No spinners within the run document.**
+Light mode reduces opacity in every shadow recipe so elevation reads softer on cream backgrounds without losing the hierarchy. M3 also layers **tonal overlay** (`--md-surface-1..5`) on elevated surfaces — in dark mode the tint visibly lifts the surface; in light mode it adds a subtle warmth.
 
-#### Focus + accessibility
+### 2.10 — State layers
 
-| Token             | Value                          | Use                                  |
-|-------------------|--------------------------------|--------------------------------------|
-| `--focus-ring`    | `2px solid var(--info)`        | `:focus-visible` ring                |
-| `--focus-offset`  | `2px`                          | Outline offset                       |
+Hover / focus / pressed / dragged are rendered as `currentColor` overlays at fixed opacity, not as background-color swaps. This keeps the underlying element identity stable.
 
-`prefers-reduced-motion` is honored on every animation (caret pulse, soft-pulse halo, streaming append).
+| Token | Opacity |
+|---|---|
+| `--md-state-hover` | 0.08 |
+| `--md-state-focus` | 0.10 |
+| `--md-state-pressed` | 0.12 |
+| `--md-state-dragged` | 0.16 |
 
-### 2.5 Layout
+Standard pattern (used by every interactive primitive):
 
-| Token            | Value | Role                                                       |
-|------------------|-------|------------------------------------------------------------|
-| `--chrome-h`     | 44px  | Height of the top chrome bar (All runs / Compare / Search) |
-| `--content-max`  | 1400px | Max width of the main content column                      |
+```css
+.thing { position: relative; }
+.thing::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.thing:hover::before { opacity: var(--md-state-hover); }
+.thing:active::before { opacity: var(--md-state-pressed); }
+```
 
-**Known limitation (responsive density audit, 2026-05-18):** the content cap and the spacing scale are tuned for a single viewport class (~2560px wide, single Samsung Odyssey G7). At 1512px (MacBook Pro 14" laptop logical resolution), the run-detail surface becomes cramped. Fix proposed in [`audits/2026-05-18-responsive-audit/`](audits/2026-05-18-responsive-audit/): add a `--density` token + `body.compact` class for content-density swaps below ~1700px.
+### 2.11 — Motion
+
+M3's emphasized + standard easings, 8 named durations.
+
+| Token | Value | Use |
+|---|---|---|
+| `--md-easing-emphasized` | `cubic-bezier(0.2, 0, 0, 1)` | Default "make the user notice" curve. |
+| `--md-easing-emphasized-decel` | `cubic-bezier(0.05, 0.7, 0.1, 1)` | Entry. |
+| `--md-easing-emphasized-accel` | `cubic-bezier(0.3, 0, 0.8, 0.15)` | Exit. |
+| `--md-easing-standard` | `cubic-bezier(0.2, 0, 0, 1)` | Most state transitions. |
+| `--md-easing-standard-decel` | `cubic-bezier(0, 0, 0, 1)` | Subtle entry. |
+| `--md-easing-standard-accel` | `cubic-bezier(0.3, 0, 1, 1)` | Subtle exit. |
+| `--md-dur-short-1` | 50 ms | Color flips, opacity toggles. |
+| `--md-dur-short-2` | 100 ms | Hover. |
+| `--md-dur-short-3` | 150 ms | Default state transition. |
+| `--md-dur-short-4` | 200 ms | Default layout transition. |
+| `--md-dur-medium-1` | 250 ms | Modal entry. |
+| `--md-dur-medium-2` | 300 ms | Page transitions. |
+| `--md-dur-medium-4` | 400 ms | Long layout shifts. |
+| `--md-dur-long-2` | 500 ms | Loud-state pulses (rare). |
+
+**Streaming output** uses a soft per-token append at 60–90 chars/sec; the caret is a 0.9-opacity block that pulses at 1.05 s to anchor the eye. **Loud states** (cap approaching, deadlock, error) use the slow soft-pulse halo. `prefers-reduced-motion` is honored everywhere.
+
+### 2.12 — Icons
+
+| Family | Use |
+|---|---|
+| Material Symbols Outlined | General UI iconography. ~60 glyphs across 6 grouped catalogues. Loaded via Google Fonts CDN in `index.html`. `.ms` sizing helper class. |
+| Anthropic sunburst (custom) | Claude agent identity. Sizes 48 / 32 / 24 / 16. Variants solid + ghost. Lives in `shared.jsx` as `<BrandMark>` primitive. |
+| OpenAI hexagonal rosette (custom) | GPT agent identity. Same sizes + variants. |
+
+Brand marks are the only custom icons. Everything else is Material Symbols Outlined.
+
+### 2.13 — Focus ring
+
+| Token | Value |
+|---|---|
+| `--md-focus-ring` | `3px solid color-mix(in srgb, var(--md-tertiary) 80%, transparent)` |
+| `--md-focus-offset` | 2 px |
+
+Applied via `:focus-visible` on every interactive primitive. The tertiary (info) hue is the focus color across the system.
+
+### 2.14 — Layout constants
+
+| Token | Value | Role |
+|---|---|---|
+| `--md-content-max` | 1440 px | Max width of page-level content columns. |
+| `--md-rail-w` | 280 px (comfortable) / 240 px (compact) | Side navigation rail width. |
 
 ---
 
-## 3 — Components
+## 3 — Primitives
 
-Components are catalogued live in [`design-language.jsx`](../src/dual_research/ui/static/design-language.jsx) (served at `/#/language`). The full reference (at `/#/language?full=1`) preserves historical content. This section gives the markdown overview.
+Primitives are the M3 atoms — the closed set of building blocks that every composed component is built from. Each lives as a CSS class (`.md-*`) and, where it has component behavior, as a React function in [`src/dual_research/ui/static/shared.jsx`](../src/dual_research/ui/static/shared.jsx).
 
-| Name                | Lives in                          | Purpose                                                                            | Introduced |
-|---------------------|-----------------------------------|------------------------------------------------------------------------------------|------------|
-| `<Chip>`            | `shared.jsx` + `.chip` CSS        | Compact labeled token with optional icon and count. Tones: info, ok, warn, neutral, agentA, agentB. |  early  |
-| `<Card>`            | `shared.jsx` + `.card` CSS        | Expandable container for timeline entries and critique items.                       |  early  |
-| `<Tab>` + `<TabGroup>` | `shared.jsx` + `.tab` CSS      | Three variants: bordered pill, minimal underline (`variant="line"`), segmented solid (`variant="solid"`). |  early  |
-| `<AgentStrip>`      | `shared.jsx` + `.as` CSS          | Equal-width agent identifier with model, tokens, cost, and status. Both pills share width via `flex: 1 1 0`. Compact 4px vertical padding. | SPEC-0070 |
-| `<StatusBadge>`     | `shared.jsx` + `.sb` CSS          | Fixed-width status pill with dot + label. Uniform 88px min-width.                   |  early  |
-| `<CollapsibleSection>` | `shared.jsx` + `.cs-*` CSS     | Generic disclosure primitive. Persists open/closed state to `localStorage`.         |  early  |
-| `<QuoteCallout>`    | `shared.jsx` + `.quote-callout` CSS | Styled callout for quote fields on critique cards. Left border + italic + muted bg. | SPEC-0073 |
-| **Agent Input panel** | `run-detail.jsx` + `.agent-input-*` CSS | **3-tier hierarchy**: System Prompt (collapsed) → User Prompt (expanded, with nested 'From chat' + 'External resources mentioned' sub-sections) → Child Pages. | SPEC-0074, extended by SPEC-0085 |
-| **Consumption row** | `run-detail.jsx` + `.consumption-*` CSS | **Phase header above the row** (not glued to cards). Below: paired agent cards — 3 zones each (data header, divider, bars zone). Equal-height via grid stretch. | SPEC-0075, reworked by SPEC-0086 |
-| `<LoadingState>`    | `shared.jsx` + `.dr-loading-*` CSS | **Three sizes**: `inline` (14px spinner, row layout), `panel` (28px, column), `page` (44px, column). Spinner + label + optional hint. Default hint: "Just a moment, please." **The one loading visual everywhere.** | SPEC-0084 |
-| `<PhaseRail>`       | `run-detail.jsx` + `.phase-rail-*` CSS | Left-edge vertical timeline navigator. Dots per phase, current phase animated.   | SPEC-0066 |
-| `<RoundScrubber>`   | `run-detail.jsx` + `.round-scrubber-*` CSS | Inline round navigator inside phase headers (R1 R2 R3 R4 …).                |  early  |
-| `<QuestionThread>`  | `run-detail.jsx` + `.qthread`, `.qt-*` CSS | Critique-card body: question, two agent positions, optional drift + resolution timeline. |  early  |
-| `<ModalDialog>`     | `shared.jsx` + `.dr-modal-*` CSS  | Generic split-pane modal for inputs / attachments / searches.                       |  early  |
-| `<BrandMark>`       | `shared.jsx`                      | Anthropic sunburst (Claude) / OpenAI rosette (GPT). Sizes: 48 / 32 / 24 / 16. Variants: solid, ghost. | SPEC-0087 |
+| Primitive | CSS class(es) | React component | Used for |
+|---|---|---|---|
+| **Button** | `.md-btn`, `.md-btn--{filled,tonal,outlined,text,elevated}`, `.md-btn--{sm,lg}` | — | All interactive buttons. Filled = primary action; tonal = secondary; outlined = tertiary; text = inline; elevated = on-surface emphasis. Pill radius (`--md-shape-full`), 40 dp default height, 24 dp horizontal padding, label-large type. State layers via `::before`. |
+| **FAB** | `.md-fab`, `.md-fab--ext` | — | Floating action — 56 × 56 dp, `--md-shape-lg`, elevation-3. Extended FAB carries label after icon. Rare in this app (read-only) but spec'd for completeness. |
+| **Icon button** | `.md-icon-btn` | — | 40 × 40 dp circular icon-only action. State layer overlay. |
+| **Chip** | `.md-chip`, `.md-chip--{selected,filter-a,sm}` | `<Chip>` (see § 9 Badge governance) | Assist · filter · input · suggestion. 32 dp height (24 dp sm), `--md-shape-sm` corners, label-large type. **Every chip on every surface uses this primitive.** |
+| **Status pill** | `.md-status`, `.md-status--{running,converged,drift,errored,idle,queued}` | `<StatusBadge>` | 22 dp height, pill, leading 6 dp dot in currentColor. Six states. Tinted via `color-mix` from the base palette. |
+| **Switch** | `.md-switch` | — | 52 × 32 dp, M3 thumb-grows-on-on. Rare (read-only). |
+| **Segmented buttons** | `.md-seg`, `.md-seg__opt` | `<TabGroup variant="solid">` (CSS class compat) | Pill container with inset divider lines. M3 secondary-container on selected. Used for phase tabs, kind filters, agent filters, status filters. |
+| **Card** | `.md-card`, `.md-card--{elevated,filled,outlined,tonal-a,tonal-b}` | `<Card>` | Four base variants + two agent-tonal (primary-container / secondary-container). `--md-shape-md` (12 dp). Card header (`.md-card__hd`), title (`.md-card__title`), support (`.md-card__support`). |
+| **Tab** | `.md-tabs`, `.md-tab` | `<Tab>`, `<TabGroup>` | Primary tabs with active-indicator bar. M3 secondary as solid segmented pill (used for theme + density + agent + status filters). |
+| **Dialog / Modal** | `.md-dialog`, `.md-dialog__{icon,title,body,actions}` | `<ModalDialog>` (in `shared.jsx`) | `--md-shape-xl` (28 dp), elevation-3, max-width 560 dp basic / 1080 dp rich (spec 0096). Rich variant has scrim, focus trap, ESC close. |
+| **Top app bar** | `.md-appbar`, `.md-appbar__{title,spacer}` | — | 64 dp, surface-container, sticky. |
+| **Navigation rail** | `.md-rail`, `.md-rail__{brand,group-label}`, `.md-rail nav a` | — | 280 dp open, collapses to 80 dp icon-only under 1500 px. |
+| **List item** | `.md-list`, `.md-list__{item,lead,body,overline,headline,support}` | — | M3 three-line list anatomy (lead · headline · support). |
+| **Divider** | `.md-divider`, `.md-divider--inset` | — | Hairline, optional inset. |
+| **AgentStrip** | `.as` | `<AgentStrip>` | Equal-width agent identifier with model, tokens, cost, status. Both pills share width via `flex: 1 1 0`. Compact 4 px vertical padding. |
+| **CollapsibleSection** | `.cs-*` | `<CollapsibleSection>` | Generic disclosure primitive. Rotating chevron + count chip. Persists open/closed to `localStorage`. Used inside critique pane sections, How-It-Works sections, timeline phase groups. |
+| **QuoteCallout** | `.quote-callout` | `<QuoteCallout>` | Styled callout for quote fields on critique cards. Left border tinted by agent + serif italic + muted bg. |
+| **LoadingState** | `.dr-loading-*` | `<LoadingState>` | Three sizes: `inline` (14 px spinner, row), `panel` (28 px, column), `page` (44 px, column). Spinner + label + optional hint. Default hint: "Just a moment, please." **The one loading visual everywhere.** |
+| **BrandMark** | — | `<BrandMark>` | Anthropic sunburst / OpenAI rosette. Sizes 48 / 32 / 24 / 16. Variants solid + ghost. |
 
-Additional primitives in the design-language full reference (`?full=1`): `Pill`, `PhaseMini`, `Streaming box`, `Cap bar`, `Disagreement row`.
+The full rendered catalog lives at `assets/Design System v2.html` and at the live `/#/language` page.
 
 ---
 
-## 4 — Patterns (composed)
+## 4 — Composed components
 
-Patterns are how components compose into surfaces. These are conventions, not separate components.
+Composed components are surface-level patterns built from the primitives. They are conventions — surfaces consume them, they don't reinvent them.
 
-### 4.1 Run-detail three-pane layout
+### 4.1 — Critique pane
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│ chrome (All runs · Compare · Search                ⬤ v0.69 · etc.) │
-├──────────────────────────────────────────────────────────────────────┤
-│ run header: title + draft button | agent strip pair | reconcile chip │
-├────────────┬──────────────────────────┬──────────────────────────────┤
-│            │                          │                              │
-│ Timeline   │   Conversation /         │   Critique pane              │
-│ (artifacts)│   Consumption (main)     │   (questions / disagreements)│
-│            │                          │                              │
-└────────────┴──────────────────────────┴──────────────────────────────┘
-```
+Two-bar header + status-grouped body. The canonical reference for this lives in spec 0098 (M3 rework) and was tightened by spec 0124 (filter header parity + responsive compaction).
 
-Three columns. Left ~10% (Timeline), middle ~55% (main content), right ~35% (Critique). **Known density problem at viewports < 1700px** — see responsive audit.
+**Bar 1** carries: title (`Critique`) · phase tabs (P2 Negotiate / P4 Review / Σ Summary) · run-wide totals (`introduced` · `open` · `resolved`) + drift chip on the right.
 
-### 4.2 Run-list table
+**Bar 2** carries: kind tabs (All / Issues / Comments / Questions / Disagreements) with **per-phase counts** baked into each tab as a tinted chip · agent segmented filter (All / Claude / GPT) · status segmented filter (All / Open / Resolved / Drift). **Hidden in Σ Summary state.**
 
-Data table at `--content-max` (1400px). Columns: RUN ID, STATUS, TOPIC, PHASE, STARTED, DURATION, COST. Filter chips above ("Needs attention", "All", "running", "converged", "deadlocked", "errored", "completed").
+**Body** is **status-grouped collapsible sections** with rotating chevron headers:
+- `Open · new this round` — info-strong tint, info count chip
+- `Open · carried over` — warn tint, warn count chip
+- `Resolved` — ok tint, ok count chip (collapsed by default)
+- `Drift` — err tint, err count chip (collapsed by default)
 
-### 4.3 Consumption phase group
+**Phase header sizing** — phase headers use `t-title-m`; card titles use `t-body-m`. Phase headers are taller than the cards inside them.
 
-A `.consumption-phase-group` contains a `.consumption-phase-header` (phase name + meta) ABOVE one or more `.consumption-row` entries. Each row is a 2-column grid (or 3-column with a leading round chip for phases with rounds) of paired agent cards.
+**Hover** — every card (not the section header) gains elevation-2 on hover.
 
-### 4.4 Agent Input panel (3-tier hierarchy)
+### 4.2 — QuestionThread
+
+The thread component lives inside the expanded state of a question / disagreement / issue / comment card. Anatomy (spec 0097):
+
+1. **Card header (always visible).** First chip = agent who raised it (AgentStrip, sable or sage). Second chip = `qref` (e.g. `Q · 03` with the kind letter colour-coded — see § 9). Third chip = status (`open · new`, `open · carried`, `resolved · r3`, `drift`). Fourth chip = phase + round meta.
+2. **Quote (only when expanded).** Render the quote *inside* the tonal-tinted message bubble of the agent who said it. Use serif italic (`--md-font-brand`), full card width, pill (`agent · round · verdict`) above on its own line.
+3. **Subsequent turns.** Same bubble pattern, ordered chronologically: `raised` → `pushback` → `conceded` → `resolved`. Verdict vocabulary is fixed at six words: `raised`, `pushback`, `conceded`, `resolved`, `ghosted`, `drift`. Never abbreviate. See § 9 for the full canonical vocabulary.
+4. **Resolved or drift footer.** A single dashed top-border line carrying a one-line summary (`resolved at round 3 · 2 turns to converge · hash match` / `drift · recorded with full history · does not block exit`).
+
+**Sequence rule:** who → when → what → quote. In that order. Always.
+
+**Anti-patterns** (codified by specs 0097 + 0098 to fix Notion issues 7 / 8 / 9 / 10):
+- Duplicating the question/disagreement title both in the card header and inside the first bubble.
+- Cryptic codes like `C1`, `D3` without a full-word badge.
+- Status mismatch between the card header pill and the inner bubble pill.
+- Showing the quote more than once on a single card.
+- "Flagged by Claude · first seen in round 1 · last seen in round 2" lines that duplicate badge info.
+
+### 4.3 — Consumption row
+
+Three forms (spec 0100, polished by specs 0116, 0118):
+
+**Collapsed:** header (provider icon + name + total tokens + total cost + % of context window) → total input bar → total output bar. Three numeric values right-align to the bar's left edge.
+
+**Unfolded:** all of the collapsed view + breakdown sub-rows under total-in (system prompt, conversation history with `×N reuse` mark, round context, tool definitions `cached`, web sources `Nq`) and under total-out (reasoning, response, tool calls). Each sub-row has a label · thin bar (same horizontal scale as the total) · count, with a **diagonal-stripe overlay** on segments where cache reuse happened. Each total block has lines: tokens billed → input cost → web search cost (if applicable) → cache savings (if applicable) → grand total (bold rule above).
+
+**Uniform across phases:** all cards share the same horizontal width across phases. Round label sits **above** the card as a small uppercase chip, not inside the header trio.
+
+**Sticky bottom legend** (spec 0100 § 6.4) sits inside the consumption pane (not the viewport). Surface-container-high background, hairline top border, elevation-1.
+
+### 4.4 — Timeline pane
+
+Header chrome only — body is built from existing primitives. `.tl-phase` is a collapsible section per phase; `.tl-turn` is a one-line row per turn; `.tl-turn--open` is the expanded card form. No new primitives — composition only.
+
+**Phase indicators** (spec 0099) render outside the timeline column as a vertical rail. One marker per visible phase header, anchored to the header's vertical centre. Markers for phases with no data are hidden, not greyed.
+
+**REPAIR-round explainer** (spec 0099 § 7.4 / Notion issue 16): a REPAIR turn renders as `.tl-turn` with the `REPAIR` tag inline; expanded body contains one explanatory sentence (e.g., *"GPT was silent this turn. Claude will reissue the same plan on the next round. No data lost."*).
+
+**Double-divider on unfold** (Notion issue 11): when a `.tl-turn--open` opens, render one dashed top border between the still-visible row and the body. No second solid divider.
+
+### 4.5 — Agent input panel + PhaseRail + RoundScrubber
+
+The agent input panel (spec 0074, extended by 0085, refreshed by 0101) is a 3-tier hierarchy:
 
 ```
 ▶ System prompt              (system)                       4,915 chars
@@ -286,13 +401,111 @@ A `.consumption-phase-group` contains a `.consumption-phase-header` (phase name 
 ▶ Child page: Internal RFC-2023-04                         4,512 chars
 ```
 
+**PhaseRail** (`.phase-rail-*`, spec 0066) is the left-edge vertical timeline navigator. Dots per phase, current phase animated.
+
+**RoundScrubber** (`.round-scrubber-*`) is the inline round navigator inside phase headers (R1 R2 R3 R4 …).
+
+### 4.6 — Modal / dialog
+
+Single primitive (`<ModalDialog>` in `shared.jsx`, spec 0096): scrim-backed centered dialog with two variants:
+- **Basic** — `max-width: 560 px`, `--md-shape-xl` corners, elevation-3.
+- **Rich** — `max-width: 1080 px`, otherwise identical chrome. Used for the turn-detail modal, the spec-view modal, the diagram-viewer modal.
+
+Behaviors: ESC closes, scrim-click closes, focus trap, body overflow lock, theme-aware.
+
 ---
 
-## 4.5 — Badge governance (spec 0119)
+## 5 — Page-level patterns
+
+### 5.1 — Onboarding tour overlay
+
+The 8-step tour (spec 0103, rewritten by spec 0125) is an **overlay over the live application**. It never re-creates the underlying UI; it mounts on top of the routed page and uses `data-tour-anchor` attributes on real components as spotlight anchors.
+
+**Anatomy:** `<TourSpotlight>` is an SVG-based component with `<mask>` cutout around the anchor + radial-gradient halo + crisp info-toned outline ring. Callout card uses M3 elevation-2 + info-border + CSS arrow pointing at the anchor. Card placement uses an overflow-aware positioner (right → below → left → above with viewport clamp).
+
+**Skip-on-missing-anchor:** if the anchor isn't on the page after 4×250 ms retries (~1 s), the step auto-skips with a bottom-right toast. Users are never stuck on a centered card with nothing to point at.
+
+**Cross-route navigation:** steps 3, 5, 6, 7 (all anchor inside run-detail) navigate to the most-recent run before they fire.
+
+**Server-persisted state:** spec 0125 introduced server-side onboarding state via `approved_emails` columns + `system_settings`. Per-user step + completion + force-reset tracking; admin can broadcast a reset.
+
+### 5.2 — How-It-Works + Changelog
+
+A full-page route at `#/how-it-works` (spec 0121 introduced as modal, spec 0123 promoted to route). Sticky 240 px side menu + content column up to `--md-content-max`. Tab strip in the header: How it works / Changelog.
+
+**11 collapsible sections** (spec 0121): Protocol overview (open by default) → Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → How turns are reviewed → Item taxonomy & categories → Item lifecycle → Convergence & escape hatches → Cost & consumption. Side-menu navigation persists per-section collapse state to `localStorage`.
+
+**14 diagrams** (7 light + 7 dark, spec 0121, authored via the diagram skill): pipeline, per-phase inputs, item lifecycle, categories, cost flow, convergence, modal anatomy. Click any diagram to enlarge it in a viewer modal (spec 0123).
+
+**Changelog tab** opens spec entries in a full-view modal (spec 0126).
+
+### 5.3 — Admin / Settings · ProgressSegs
+
+Unified Admin + Settings page at `#/settings` (spec 0125). Sub-tabs: `[Allowlist] [Users]`. Users tab is a multi-user table backed by `/api/users`: select-checkbox · email · role · onboarding status (`✓ completed · v1.5.0` / `in progress · step 5/8` / `⊘ not started` / `reset pending`) · last seen · actions. Filter chips, search input, bulk-action bar.
+
+**ProgressSegs** is an 8-segment track per user (one per onboarding step), used in the Users table to show onboarding progress.
+
+---
+
+## 6 — Themes (dark + light)
+
+Token layer is theme-agnostic. Light mode flips a body class (`body.light`); every component re-resolves through the token registry.
+
+**Components MUST NOT** hard-code colors in CSS. Components read `--md-*` role tokens, and the theme block defines what those tokens resolve to.
+
+**Both themes ship together.** No spec is complete that only works in dark. The light-mode token block is the comparison reference.
+
+**Surface tier swaps:**
+- Dark: near-black canvas with rising tonal tiers (#08–#21 range).
+- Light: cream canvas (`#faf9f6`) with rising tiers up to `#e3decf`. The cream lineage carries over from v1; the M3 surface scale gives more tiers to work with.
+
+**Inks swap:**
+- Dark: white-to-grey ladder (`#ffffff → #50545d`).
+- Light: near-black-to-grey ladder (`#04060a → #a8aab0`).
+
+**Elevation softens:**
+- Dark: shadow opacity 0.30 / 0.15.
+- Light: shadow opacity 0.10 / 0.06 (less aggressive against cream).
+
+---
+
+## 7 — Density + responsiveness
+
+### 7.1 — Density modes
+
+**Comfortable** (default) — M3 standard spacing. Targets wide displays (≥1700 px).
+
+**Compact** (`body.compact`) — tightens paddings, row height, rail width; shrinks display + headline type. Applied automatically below ~1700 px and via a manual toggle.
+
+The two modes share every component CSS rule; only token values change. No per-component compact styles.
+
+### 7.2 — Responsiveness — three breakpoints
+
+| Width | Layout |
+|---|---|
+| ≥ 1500 px | Full layout: rail open at 280 dp, comfortable density, full type scale. |
+| 900–1499 px | Rail collapses to 80 dp icon-only. `--md-content-max` shrinks to 1200 px. Paddings tighten. Hero shrinks (`headline-l` instead of `display-s`). `.cols-3` / `.cols-4` collapse to 2 columns. |
+| < 900 px | Single column. Rail hidden. `.cols-2` / `.cols-3` / `.cols-4` collapse to 1. Hero further shrinks (`headline-m`). |
+
+Specs that touch layout must address all three buckets or explicitly defer them with a follow-up note.
+
+---
+
+## 8 — Accessibility
+
+- **`:focus-visible` ring** on every interactive primitive — uses `--md-focus-ring` (3 px solid tertiary at 80% opacity). Applied at `--md-focus-offset` (2 px). Border-radius matches the element (`--md-shape-xs` minimum).
+- **`prefers-reduced-motion`** honored everywhere — global CSS rule disables all transitions + animations. Spec-by-spec components that have animation (caret pulse, soft-pulse halo, streaming append) check the media query inline.
+- **Semantic ARIA** — `aria-current="page"` on nav rail items, `aria-selected` on tabs / segmented options, `role="dialog"` + `aria-modal` on modals, `aria-label` required on icon-only buttons.
+- **Color contrast** — surface + on-surface pairs target WCAG AA at minimum; agent containers tested against both surfaces; light mode independently verified.
+- **Keyboard navigation** — every interactive element reachable via Tab. Modal focus trap (spec 0096). Search palette navigable via arrow keys (spec 0079).
+
+---
+
+## 9 — Badge governance (spec 0119)
 
 The single chip primitive owns every badge / pill / verdict-label on every surface. The rules below are normative — surfaces consume them, they don't override them. Full implementation reference: [spec 0119](../specs/0119-badge-governance.md).
 
-### 4.5.1 One primitive
+### 9.1 — One primitive
 
 `<Chip>` (`shared.jsx`) is the only chip. Slot API:
 
@@ -311,7 +524,7 @@ The single chip primitive owns every badge / pill / verdict-label on every surfa
 
 Render order inside the chip: leading slot → label → value → add → sub → trailingSuffix → children. Absent slots emit no DOM.
 
-### 4.5.2 The nine canonical kinds
+### 9.2 — The nine canonical kinds
 
 | Kind | Leading | Label | Value | Deltas | Where |
 |---|---|---|---|---|---|
@@ -325,13 +538,13 @@ Render order inside the chip: leading slot → label → value → add → sub �
 | **Sources** | — | "Sources" | count | — | critique card header when item has evidence |
 | **Identifier** | — | "Q-plan-c-04" | — | — | inline body text ONLY — never in card headers |
 
-### 4.5.3 Fixed mappings (never swap)
+### 9.3 — Fixed mappings (never swap)
 
 - **Category tones:** Q = info · D = warn · I = err · C = idle
 - **Category bubble letters:** Q · D · I · C
 - **Category order:** Q → D → I → C, left to right, always — enables down-column scanning
 
-### 4.5.4 Composition rules
+### 9.4 — Composition rules
 
 1. Provider FIRST on every card header and every lifecycle row.
 2. Activity / round SECOND.
@@ -343,7 +556,7 @@ Render order inside the chip: leading slot → label → value → add → sub �
 8. Zero-activity chips render dim (opacity 0.55) but stay present so category columns align across rounds.
 9. The filter row at the top of the critique pane is the legend and the canonical disambiguator for every bubble + color combination on every other surface.
 
-### 4.5.5 Canonical vocabulary
+### 9.5 — Canonical vocabulary
 
 | Context | Allowed | Forbidden |
 |---|---|---|
@@ -354,27 +567,30 @@ Render order inside the chip: leading slot → label → value → add → sub �
 
 Enforcement: `tests/contract/test_ui_vocabulary.py` scans `src/dual_research/ui/static/` for the forbidden literals and fails CI if any chip-rendering surface drifts. Legitimate data-layer compat references carry a `// spec-0119:vocab-ok` marker.
 
-### 4.5.6 Letter-bubble rule (evolution of 0115's "never abbreviate")
+### 9.6 — Letter-bubble rule
 
 The 14 px filled circle with a knockout-white first letter (Q / D / I / C) is a **designed icon glyph**, not a raw abbreviation. The full word always appears in the critique-pane filter-row legend, one scroll away from any surface that uses the dense form. Color + bubble glyph + fixed Q→D→I→C order make the combination unambiguous given the legend is always visible.
 
 ---
 
-## 5 — Implementation map
+## 10 — Implementation map
 
-| File                                                          | Owns                                                                                   |
-|---------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| [`tokens.css`](../src/dual_research/ui/static/tokens.css)     | All CSS custom properties (palette, type, spacing, motion, layout). Dark + light mode token sets. **Authoritative for token values.** |
-| [`theme.css`](../src/dual_research/ui/static/theme.css)       | Theme-level overrides not covered by token swaps (e.g., elevation shadows tuned per theme). |
-| [`base.css`](../src/dual_research/ui/static/base.css)         | Resets, typography defaults, `.num` utility for tabular figures, scrollbar styling, focus-visible ring application. |
-| [`components.css`](../src/dual_research/ui/static/components.css) | All component CSS — `.chip`, `.card`, `.tab`, `.as`, `.sb`, `.cs-*`, `.quote-callout`, `.agent-input-*`, `.consumption-*`, `.dr-loading-*`, `.dr-modal-*`, `.phase-rail-*`, `.qthread` / `.qt-*`, `.round-scrubber-*`. **Authoritative for component visual rules.** |
-| [`design-language.jsx`](../src/dual_research/ui/static/design-language.jsx) | Live in-app design system reference. DNA one-pager (default) + Full reference (`?full=1`). Component Spotlights are mock representations — should match the production rendering. |
-| [`shared.jsx`](../src/dual_research/ui/static/shared.jsx)     | Function-component implementations of design system primitives: `Chip`, `Card`, `Tab`, `TabGroup`, `AgentStrip`, `StatusBadge`, `CollapsibleSection`, `QuoteCallout`, `LoadingState`, `BrandMark`, `ModalDialog`. **Application-logic helpers also live here** — pure design system contributors should only touch the primitive functions. |
-| Per-surface JSX (`run-detail.jsx`, `runs-list.jsx`, `how-it-works.jsx`, `compare.jsx`, `onboarding.jsx`, etc.) | Compose the primitives into surfaces. **Not part of the design system** — they consume it. Changes here are application work, not design system work. |
+| File | Owns |
+|---|---|
+| [`tokens.css`](../src/dual_research/ui/static/tokens.css) | All CSS custom properties (palette, type, spacing, motion, shape, elevation, state layers, density). Dark + light theme token sets. **Authoritative for token values.** |
+| [`base.css`](../src/dual_research/ui/static/base.css) | Resets, typography defaults, M3 `.t-*` type role utilities, `.ms` Material Symbols sizing helpers, scrollbar styling, `:focus-visible` ring application. |
+| [`components.css`](../src/dual_research/ui/static/components.css) | All component CSS — every `.md-*` primitive, every composed component, the M3 atoms catalogue. **Authoritative for visual rules.** |
+| [`theme.css`](../src/dual_research/ui/static/theme.css) | Theme-level body class additives (`body.tint-secondary`, `body.compact`). |
+| [`design-language.jsx`](../src/dual_research/ui/static/design-language.jsx) | Live in-app design system reference at `/#/language`. DNA one-pager (default) + Full reference (`?full=1`). Component Spotlights are mock representations — should match the production rendering. |
+| [`shared.jsx`](../src/dual_research/ui/static/shared.jsx) | Function-component implementations of design system primitives: `<Chip>`, `<Card>`, `<Tab>`, `<TabGroup>`, `<AgentStrip>`, `<StatusBadge>`, `<CollapsibleSection>`, `<QuoteCallout>`, `<LoadingState>`, `<BrandMark>`, `<ModalDialog>`. **Application-logic helpers also live here** — pure design system contributors should only touch the primitive functions. |
+| Per-surface JSX (`run-detail.jsx`, `run-list.jsx`, `how-it-works.jsx`, `compare.jsx`, `onboarding.jsx`, etc.) | Compose the primitives into surfaces. **Not part of the design system** — they consume it. Changes here are application work, not design system work. |
+| [`assets/Design System v2.html`](assets/Design%20System%20v2.html) | Canonical visual reference — every primitive + composed component rendered in a single browsable document. Open in a browser to see what every spec section means visually. |
+| [`assets/styles/tokens-and-primitives.css`](assets/styles/tokens-and-primitives.css) | Source-of-truth M3 token + primitive CSS. The live `tokens.css` + `components.css` mirror this file for the M3 layer. When values diverge, this is the authoritative reference. |
+| [`assets/styles/composed-components.css`](assets/styles/composed-components.css) | Source-of-truth page-level + composed-component CSS that accompanies the canonical visual reference. |
 
 ---
 
-## 6 — Versioning
+## 11 — Versioning
 
 This file (`SPEC.md`) is updated in lockstep with every design system change. Version history is captured by:
 
@@ -382,11 +598,34 @@ This file (`SPEC.md`) is updated in lockstep with every design system change. Ve
 - **Git history of `SPEC.md`** — exact prior states, diff-able.
 - **In-file SPEC-NNNN references** — every component row above cites the spec that introduced or last touched it.
 
-There is no separate V1/V2 file. The single living `SPEC.md` is authoritative; proposed future states live in PR descriptions until merged.
+There is no separate version file. The single living `SPEC.md` is authoritative; proposed future states live in PR descriptions until merged.
+
+The deprecated v1 spec is preserved at [`_archive/v1/SPEC.md`](_archive/v1/SPEC.md) for code-archaeology purposes. The v2 seeding artifacts (the original Material 3 briefing + the prompt that landed it) are at [`_archive/seeding/`](_archive/seeding/).
 
 ---
 
-## 7 — Open items
+## 12 — Migration status (temporary)
 
-- **Responsive density gap** (laptop 1512px vs. wide ≥2200px) — full audit at [`audits/2026-05-18-responsive-audit/`](audits/2026-05-18-responsive-audit/). Proposed fix: add `--density` token + `body.compact` class. Not yet implemented; awaiting Claude Design's V1 to integrate.
-- **Awaiting from Claude Design**: V1 deliverable based on the design brief packaged on 2026-05-17. Will land via PR through this folder once the two-way flow is set up.
+> **This section will be removed when spec 0131 ships.** It exists only while the live frontend completes its v1 → v2 token migration. Once every `--bg-*` / `--fg-*` / `--border-*` / `--t-*` v1 token reference has been replaced with its `--md-*` v2 equivalent in the live code, this section becomes stale and is deleted in the spec 0131 PR.
+
+The design system text spec (this file) is v2-canonical as of 2026-05-20 (spec 0127). The live frontend code uses an additive layering pattern (v1 tokens + v2 tokens coexist) that was introduced by spec 0092 to enable an incremental migration. The remaining four specs complete the live code migration:
+
+| Spec | Scope | V1 token refs removed | Status |
+|---|---|---:|---|
+| [0128](../specs/) | `run-detail.jsx` v2 token migration | 242 | _planned_ |
+| [0129](../specs/) | `design-language.jsx` v2 rebuild | 142 | _planned_ |
+| [0130](../specs/) | Remaining JSX (`app/errors/compare/auth/search/shared.jsx`) v2 migration | 172 | _planned_ |
+| [0131](../specs/) | CSS finalization: v1 token block removal + IBM Plex font removal + `theme.css` legacy-class drain | 345 + theme.css | _planned_ |
+
+**While this section is live**, contributors writing new code should:
+- Use `--md-*` tokens only. Do not add new `--bg-*` / `--fg-*` / `--border-*` references.
+- Migrate any v1-token consumer they touch incidentally, even if the file isn't in the active migration spec.
+
+After spec 0131 lands, the v1 token block is deleted from `tokens.css`, IBM Plex is unloaded from `index.html`, and any remaining `var(--bg-*)` / `var(--fg-*)` references will fail visibly (so no silent fallback masks the bug). This section, plus the additive-layering comments in `tokens.css`, are removed in that same PR.
+
+---
+
+## 13 — Open items
+
+- **Diagram skill palette alignment.** The vendored diagram skill at [`skills/diagram/`](skills/diagram/) uses a cream-and-indigo visual language independent of the dual-research palette (sable + sage). This is intentional today — the skill produces general-purpose architecture diagrams, not in-app UI. If we want the skill output to share visual DNA with the app, a follow-up spec aligns it to the M3 palette. **Status:** deferred per spec 0127 decision.
+- **Responsive density gap** (laptop 1512 px vs. wide ≥ 2200 px) — original audit at [`audits/2026-05-18-responsive-audit/`](audits/2026-05-18-responsive-audit/). Partially addressed by `body.compact` + the 1500 px breakpoint introduced in spec 0092 + further by spec 0124. Watch for outstanding regressions at specific viewport widths.

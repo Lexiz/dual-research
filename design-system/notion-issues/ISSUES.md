@@ -254,6 +254,8 @@ As you can see on the screenshot, this is a view of the top bar when I'm viewing
 
 ---
 
-## Discrepancies vs `docs/design-system-v2/README.md` §5
+## Discrepancies vs `_archive/seeding/V2-BRIEFING.md` §5
 
-None. The Notion source and the verbatim block in the briefing README agree word-for-word. The only header difference is that Notion calls issue 11 "Picture number eleven" while the README calls it "Issue 11"; semantically identical.
+None. The Notion source and the verbatim block in the briefing agree word-for-word. The only header difference is that Notion calls issue 11 "Picture number eleven" while the briefing calls it "Issue 11"; semantically identical.
+
+> Path note: this section originally referenced `docs/design-system-v2/README.md`. That file was renamed to `V2-BRIEFING.md` and moved to `design-system/_archive/seeding/` in spec 0127 (2026-05-20). The content didn't change.
