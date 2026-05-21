@@ -2221,6 +2221,33 @@ function piecePropCost(pieceTokens, billedInputTokens, totalInputCost) {
   return (pieceTokens / billedInputTokens) * totalInputCost;
 }
 
+// Spec 0146 — `_to_camel` server-side preserves dotted canonical IDs
+// verbatim, but single-segment canonical IDs with underscores
+// (`user_prompt`, `current_draft`, `all_p2_turns`) still get
+// camelCased on the wire. Mirror the inverse here so the JS-side
+// canonical lookups always succeed. Aliases are additive — original
+// keys stay in place, only missing snake-case forms are filled in.
+function normalisePiecesRaw(piecesRaw) {
+  if (!piecesRaw || typeof piecesRaw !== 'object') return piecesRaw;
+  const out = {};
+  for (const [k, v] of Object.entries(piecesRaw)) {
+    out[k] = v;
+    if (typeof k === 'string' && /[A-Z]/.test(k)) {
+      const snake = k.replace(/([A-Z])/g, '_$1').toLowerCase();
+      if (!(snake in out)) out[snake] = v;
+    }
+  }
+  return out;
+}
+
+// Spec 0146 — one-decimal cost formatter scoped to the Consumption card.
+// The global `fmt.cost` keeps 4-decimal precision for audit surfaces
+// (footer aggregate, reconcile delta, status chips, tooltips).
+function fmtCost1(n) {
+  const v = Number(n) || 0;
+  return `$${v.toFixed(1)}`;
+}
+
 // Display-name resolver. Routes through the spec 0117 registry
 // (window.DrArtifacts.displayName) so no display strings are hardcoded
 // in the Consumption tab. Falls back to the artifact ID if the registry
@@ -2257,7 +2284,7 @@ function SubInputRow({ id, label, tokens, totalDenom, billedIn, inputCost, fillI
         fontSize: 10.5, color: 'var(--md-on-surface-faint)', whiteSpace: 'nowrap',
         textAlign: 'right',
       }}>
-        {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
+        {fmt.tokens(tokens)}t &middot; {fmtCost1(propCost)}
       </span>
     </div>
   );
@@ -2289,10 +2316,6 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const iconClass = agent === 'claude' ? 'a' : 'b';
   const fillIn = agent === 'claude' ? 'in' : 'in-b';
   const fillOut = agent === 'claude' ? 'out' : 'out-b';
-  // Spec 0145 — per-attachment expansion lives on the User-prompt row.
-  // Default-collapsed so the consumption card stays compact on runs
-  // with many attachments; user clicks to reveal the breakdown.
-  const [userPromptExpanded, setUserPromptExpanded] = React.useState(false);
 
   if (!usage) {
     return (
@@ -2314,7 +2337,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const pctOfCap   = ctxWindow > 0 ? (totalTok / ctxWindow * 100) : 0;
   const denom      = scale?.denom || 1;
   const reuse      = reuseInfo(usage);
-  const piecesRaw  = usage.promptPieces || {};
+  const piecesRaw  = normalisePiecesRaw(usage.promptPieces) || {};
   const outputCost = outputCostFor(usage);
 
   const tokenCost  = Number(usage?.tokenCost ?? usage?.cost ?? 0) || 0;
@@ -2358,10 +2381,11 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
     const tip = isSystem && row.breakdown
       ? systemPromptTooltip(row.breakdown, tokens, propCost)
       : undefined;
-    // Spec 0145 — User-prompt row with per-attachment breakdown gets an
-    // expand chevron. On expand, sub-rows render user_prompt.message
-    // followed by one row per user_prompt.attachment.<id>.
-    const isUserPromptExpandable = row.id === 'user_prompt' && row.attachmentBreakdown;
+    // Spec 0146 — User-prompt row with per-attachment breakdown auto-shows
+    // its sub-rows when the card is unfolded. Spec 0145's chevron-collapse
+    // is retired so the per-attachment surface is visible without a second
+    // click.
+    const hasSubRows = row.id === 'user_prompt' && row.attachmentBreakdown;
     return (
       <React.Fragment key={row.id}>
         <div className="ccx-bar-row" title={tip} style={{
@@ -2373,40 +2397,8 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
           <span className="lbl" style={{
             fontSize: 11, color: 'var(--md-on-surface-muted)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            display: 'flex', alignItems: 'center', gap: 4,
           }}>
-            {isUserPromptExpandable && (
-              <span
-                role="button"
-                tabIndex={0}
-                aria-expanded={userPromptExpanded}
-                aria-label={userPromptExpanded ? 'Collapse user-prompt breakdown' : 'Expand user-prompt breakdown'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setUserPromptExpanded((v) => !v);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setUserPromptExpanded((v) => !v);
-                  }
-                }}
-                style={{
-                  display: 'inline-flex',
-                  width: 12,
-                  cursor: 'pointer',
-                  transform: userPromptExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 120ms ease',
-                  color: 'var(--md-on-surface-faint)',
-                }}
-              >
-                &#9654;
-              </span>
-            )}
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {label}
-            </span>
+            {label}
           </span>
           <div className="ccx-bar" style={{ height: 6 }}>
             <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%` }} />
@@ -2415,10 +2407,10 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
             fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
             textAlign: 'right',
           }}>
-            {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
+            {fmt.tokens(tokens)}t &middot; {fmtCost1(propCost)}
           </span>
         </div>
-        {isUserPromptExpandable && userPromptExpanded && (
+        {hasSubRows && (
           <React.Fragment>
             {row.attachmentBreakdown.hasMessage && (
               <SubInputRow
@@ -2451,15 +2443,17 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
 
   return (
     <article className="ccx" data-tour-anchor={tourAnchor ? 'consumption-card' : undefined} onClick={onToggle} style={{ cursor: 'pointer' }}>
-      {/* Spec 0118 header: provider badge + agent name (left), bracketed
-          context-window-% (right). No more separate total/cost in header. */}
+      {/* Spec 0146 header: 3-column grid that mirrors the bar-row grid
+          below. The percentage at column 2 sits with its closing `)`
+          aligned to the right edge of the bar fill; the chevron at
+          column 3 sits at the card's right edge. */}
       <header className="ccx-header">
-        <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
-        <span className="nm">{meta.name}</span>
-        <span className="stats" style={{ marginLeft: 'auto' }}>
-          <span className="pct" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>
-            ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
-          </span>
+        <span className="hd-id">
+          <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
+          <span className="nm">{meta.name}</span>
+        </span>
+        <span className="stats">
+          ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
         </span>
         <span className="chev" tabIndex={0} role="button" aria-expanded={expanded}
               aria-label={expanded ? 'Collapse' : 'Expand'}
@@ -2483,7 +2477,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
           )}
         </div>
         <span className="num" style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-          {fmt.tokens(totalTok)}t &middot; {fmt.cost(cost)}
+          {fmt.tokens(totalTok)}t &middot; {fmtCost1(cost)}
         </span>
       </div>
 
@@ -2530,21 +2524,36 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
               fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
               textAlign: 'right',
             }}>
-              {fmt.tokens(tokensOut)}t &middot; {fmt.cost(outCostUsd)}
+              {fmt.tokens(tokensOut)}t &middot; {fmtCost1(outCostUsd)}
             </span>
           </div>
 
-          {/* Web-search cost line (orthogonal to spec 0118; kept here
-              because it's the only place per-turn search cost surfaces). */}
-          {hasSearches && (
-            <div className="mono" style={{
-              fontSize: 10.5, color: 'var(--md-on-surface-faint)', paddingTop: 4,
-              textAlign: 'right',
-            }}>
-              Web search &middot; {queries || searches} queries &middot;{' '}
-              {fmt.cost(searchCost)}
+          {/* Spec 0146 totals block: label-left / value-right, mirroring
+              the bar-row grid. Replaces the free-text web-search mono
+              line; consolidates the per-card audit surface. */}
+          <div className="ccx-totals">
+            <div className="line">
+              <span className="l">input tokens &middot; billed</span>
+              <span className="v">{tokensIn.toLocaleString()}</span>
             </div>
-          )}
+            <div className="line">
+              <span className="l">input cost</span>
+              <span className="v">{fmtCost1(inputCost)}</span>
+            </div>
+            {hasSearches && (
+              <div className="line">
+                <span className="l">
+                  web search &middot; {queries || searches}{' '}
+                  {(queries || searches) === 1 ? 'query' : 'queries'}
+                </span>
+                <span className="v">{fmtCost1(searchCost)}</span>
+              </div>
+            )}
+            <div className="line is-grand">
+              <span className="l">total input</span>
+              <span className="v">{fmtCost1(inputCost + searchCost)}</span>
+            </div>
+          </div>
         </React.Fragment>
       )}
     </article>
