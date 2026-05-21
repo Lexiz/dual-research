@@ -41,7 +41,7 @@ function ShortcutsOverlay({ open, onClose }) {
             <div style={{
               fontSize: 'var(--md-label-m-size)',
               lineHeight: 'var(--md-label-m-lh)',
-              fontWeight: 'var(--w-semibold)',
+              fontWeight: 'var(--md-w-semi)',
               color: 'var(--md-on-surface-variant)',
               marginBottom: 8,
               textTransform: 'uppercase',

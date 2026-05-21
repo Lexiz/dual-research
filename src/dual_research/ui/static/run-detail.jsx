@@ -143,7 +143,13 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
 // Spec 0056 D7: migrated to the class-backed AgentStrip from shared.jsx
 // (SPEC-0052). The `right` prop carries the live-activity phrase (dot +
 // sentence) that the bespoke version rendered inline.
-function TimelineAgentPill({ agent, run }) {
+// Spec 0133: relocated from the dedicated `.agent-bar` row into the
+// Timeline pane headers (Claude in `.tl__head`, GPT in `.tl__tabs`).
+// `className="in-header"` lets `components.css` swap the `.as-timeline`
+// 460–720 px width contract for content-natural sizing + tight padding.
+// Cost renders at 2 decimals (fmt.costShort) — 4-digit precision is noise
+// at this surface; the top-bar CostBadge keeps the precise figure.
+function TimelineAgentPill({ agent, run, className = 'in-header' }) {
   const meta = AGENT_META[agent];
   const ag = run.agents?.[agent] || {};
   const tokensIn = ag.tokens?.in || 0;
@@ -174,19 +180,18 @@ function TimelineAgentPill({ agent, run }) {
       model={modelId}
       tokens={totalTokens}
       cost={cost}
+      costFormatter={fmt.costShort}
       right={activityRight}
-      className="as-timeline"
+      // Spec 0138 §5.1 — append `is-live` when the agent is mid-round so
+      // the `.as.in-header.is-live::before` gradient sweep (added in the
+      // CSS at components.css) animates. The class is keyed off the same
+      // `live` boolean that drives the inner dot pulse, so the two
+      // animations engage / disengage together as one "this model is
+      // breathing" gesture. `_cn` is a top-level helper in shared.jsx
+      // (line 682), reachable from this file by virtue of the
+      // index.html script ordering (shared.jsx loads before run-detail.jsx).
+      className={_cn(className, live && 'is-live')}
     />
-  );
-}
-
-// ─────────────────── Spec 0105 — restored agent bar above timeline ───────────
-function TimelineAgentBar({ run }) {
-  return (
-    <div className="agent-bar">
-      <TimelineAgentPill agent="claude" run={run} />
-      <TimelineAgentPill agent="gpt" run={run} />
-    </div>
   );
 }
 
@@ -252,7 +257,31 @@ function RunSearchSummary({ onJump }) {
 
 // ─────────────────── Spec 0033 — phase dots row with labels ─────────────────
 // Spec 0056 SUR-07: drafter callout pill replaces inline "drafter: X" text.
+// Spec 0138 §5.3: full run-id RunIDChip with click-to-copy, sitting in
+// the right-side cluster to the left of the started/elapsed/round metadata
+// so the visual hierarchy reads identity first → activity context second.
 function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
+  // Spec 0138 §5.3 — click-to-copy state for the run-id chip. The
+  // confirmation surface is the chip's `title` tooltip; on success it
+  // swaps to "copied!" for ~1.4 s and reverts. The spec considered a
+  // full M3 snackbar (§7) but defers to keep the affordance simple.
+  const [copiedRunId, setCopiedRunId] = React.useState(false);
+  const copyRunId = React.useCallback((e) => {
+    e.stopPropagation();
+    if (!run?.id || !navigator.clipboard) return;
+    navigator.clipboard.writeText(run.id).then(
+      () => {
+        setCopiedRunId(true);
+        setTimeout(() => setCopiedRunId(false), 1400);
+      },
+      () => {
+        // navigator.clipboard.writeText can reject in non-secure
+        // contexts (HTTP non-localhost). Silently no-op — the user can
+        // still triple-click the chip text and Cmd+C manually.
+      },
+    );
+  }, [run?.id]);
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -267,6 +296,18 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
       {/* Spec 0056 D4: drafter callout pill — agent-tinted Chip with icon. */}
       {run.drafter && <DrafterCalloutPill drafter={run.drafter} />}
       <span style={{ flex: 1 }} />
+      {/* Spec 0138 §5.3 — full run id, copyable. Sits to the LEFT of the
+          existing started/elapsed/round metadata so the visual hierarchy
+          reads identity first → activity context second. The chip uses
+          the existing `.rid` primitive (shared.jsx:844-852); no new
+          design-system surface. */}
+      {run.id && (
+        <RunIDChip
+          id={run.id}
+          onClick={copyRunId}
+          title={copiedRunId ? 'copied!' : `${run.id} — click to copy`}
+        />
+      )}
       <span className="mono" style={{
         fontSize: 10.5, color: 'var(--md-on-surface-faint)',
         whiteSpace: 'nowrap',
@@ -353,14 +394,14 @@ function BlockingItemCallout({ run }) {
            style={{ color: counts.ghosted > 0 ? COLORS.warn : COLORS.info }} />
       <span className="mono" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
         {counts.open > 0 && (
-          <span><span className="num" style={{ fontWeight: 600 }}>{counts.open}</span> open</span>
+          <span><span className="num" style={{ fontWeight: 'var(--md-w-semi)' }}>{counts.open}</span> open</span>
         )}
         {counts.open > 0 && counts.ghosted > 0 && (
           <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
         )}
         {counts.ghosted > 0 && (
           <span style={{ color: COLORS.warn }}>
-            <span className="num" style={{ fontWeight: 600 }}>{counts.ghosted}</span> ghosted
+            <span className="num" style={{ fontWeight: 'var(--md-w-semi)' }}>{counts.ghosted}</span> ghosted
           </span>
         )}
       </span>
@@ -373,7 +414,7 @@ function Topic({ text }) {
   return (
     <div title={text}
          style={{
-           color: 'var(--md-on-surface)', fontSize: 14, lineHeight: 1.35, fontWeight: 500,
+           color: 'var(--md-on-surface)', fontSize: 14, lineHeight: 1.35, fontWeight: 'var(--md-w-medium)',
            flex: 1, minWidth: 0,
            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
          }}>
@@ -662,39 +703,37 @@ function StatusErrorsBadge({ status, errorCount, showErrors, onToggleErrors }) {
   );
 }
 
+// Spec 0133 — M3 segmented linear phase-progress indicator. Replaces the
+// pre-M3 circles-and-lines treatment with one rounded bar segment per
+// PHASES entry. Cell state (done / current / errored / deadlocked /
+// pending) maps to a class that drives the background color via the
+// existing palette tokens in components.css (.phase-progress__seg.is-*).
 function PhaseDots({ run }) {
   const { phase, status } = run;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-      {PHASES.map((p, i) => {
-        const completed = p.id < phase || (status === 'completed' && p.id <= 5);
-        const current = p.id === phase && status !== 'completed';
-        const failed = (status === 'errored' || status === 'deadlocked') && p.id === phase;
-        const color = failed
-          ? (status === 'errored' ? COLORS.err : COLORS.warn)
-          : current ? COLORS.info
-          : completed ? COLORS.ok
-          : 'var(--md-outline)';
-        const isLast = i === PHASES.length - 1;
+    <div className="phase-progress" aria-label="Run progress">
+      {PHASES.map((p) => {
+        const completed = p.id < phase || (status === 'completed' && p.id <= PHASES.length - 1);
+        const current   = p.id === phase && status !== 'completed';
+        const failed    = (status === 'errored' || status === 'deadlocked') && p.id === phase;
+        const cls = ['phase-progress__seg'];
+        if (failed && status === 'errored')         cls.push('is-error');
+        else if (failed && status === 'deadlocked') cls.push('is-warn');
+        else if (current)                            cls.push('is-current');
+        else if (completed)                          cls.push('is-done');
+        const stateLabel = completed
+          ? 'done'
+          : current
+            ? 'in progress'
+            : failed
+              ? status
+              : 'pending';
         return (
-          <React.Fragment key={p.id}>
-            <span style={{
-              position: 'relative',
-              width: 6, height: 6, borderRadius: '50%',
-              background: completed || current || failed ? color : 'transparent',
-              border: completed || current || failed ? 'none' : `1px solid ${color}`,
-              flexShrink: 0,
-            }}>
-              {current && <span className="pulse-a" style={{ position: 'absolute', inset: -2, borderRadius: '50%' }} />}
-            </span>
-            {!isLast && (
-              <span style={{
-                width: 12, height: 1,
-                background: completed ? COLORS.ok : 'var(--md-outline-variant)',
-                opacity: completed ? 0.5 : 1,
-              }} />
-            )}
-          </React.Fragment>
+          <span
+            key={p.id}
+            className={cls.join(' ')}
+            title={`${p.short} ${p.label} · ${stateLabel}`}
+          />
         );
       })}
     </div>
@@ -793,14 +832,17 @@ function Timeline({ run, highlightedTurnKeys }) {
       borderRight: '1px solid var(--md-outline-hair)',
       minWidth: 0, minHeight: 0,
     }}>
-      {/* HEAD — title + count */}
+      {/* HEAD — title + count + (spec 0133) right-aligned Claude agent pill. */}
       <header className="tl__head">
         <span className="ttl">Timeline</span>
         <span className="ct">{artifactCount} artifacts</span>
+        <TimelineAgentPill agent="claude" run={run} />
       </header>
 
       {/* TABS — Conversation / Consumption. Outer .tl__tabs is the full-width
-          band (matches .bar2); inner .tl__tabs-inner is the segmented pill. */}
+          band (matches .bar2); inner .tl__tabs-inner is the segmented pill.
+          Spec 0133 — GPT agent pill rides on the right of this row, vertically
+          aligned with the Claude pill above. */}
       <div className="tl__tabs">
         <div className="tl__tabs-inner">
           <button
@@ -816,6 +858,7 @@ function Timeline({ run, highlightedTurnKeys }) {
             <span className="ms ms-18">stacked_bar_chart</span>Consumption
           </button>
         </div>
+        <TimelineAgentPill agent="gpt" run={run} />
       </div>
 
       {tab === 'conversation' ? (
@@ -1125,7 +1168,12 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
           {/* Spec 0119 §8.1 — per-category summary chips in fixed
               Q→D→I→C order. Always present (zero-activity dims to
               0.55 opacity) so columns align across rounds. Clicking
-              a chip jumps the critique pane to (category, round). */}
+              a chip jumps the critique pane to (category, round).
+              Spec 0133 §5.9 — slim Δ-pair presentation: bubble and
+              standing-total slots dropped; tone color + Q→D→I→C order
+              carry category identity, add + sub carry the per-round
+              delta. Phase-aggregate standing reads at TlPhaseHeadChips
+              instead. */}
           {showCategoryChips && chipCategories.map((cat) => {
             const c = categories[cat] || { standing: 0, raised: 0, closed: 0, capped: 0 };
             const noActivity = (c.raised + c.closed) === 0;
@@ -1133,13 +1181,11 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
               <Chip
                 key={cat}
                 tone={CATEGORY_TONE[cat]}
-                categoryBubble={CATEGORY_BUBBLE[cat]}
-                value={c.standing}
                 add={c.raised}
                 sub={c.closed}
                 trailingSuffix={c.capped > 0 ? `⊘ ${c.capped}` : null}
                 dim={noActivity}
-                ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]}: ${c.standing} standing, ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
+                ariaLabel={`${CATEGORY_LABEL_PLURAL[cat]} this round: ${c.raised} raised, ${c.closed} closed${c.capped > 0 ? `, ${c.capped} capped` : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   dispatchCritiqueJump({
@@ -2329,7 +2375,7 @@ function CostsCluster({ usage, outputCost }) {
         )}
         <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
         <span>Total:{' '}
-          <span className="num" style={{ color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>
+          <span className="num" style={{ color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>
             {fmt.cost(total)}
           </span>
         </span>
@@ -2446,7 +2492,7 @@ function TotalInputBar({ label, content, reused, billed, scale, color }) {
       minWidth: 0,
     }}>
       <span style={{
-        fontSize: 11, color: 'var(--md-on-surface-variant)', fontWeight: 500,
+        fontSize: 11, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>
         {label}
@@ -2895,7 +2941,7 @@ function ConsumptionEmptyState() {
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', gap: 12,
     }}>
-      <div style={{ fontSize: 13, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>
+      <div style={{ fontSize: 13, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>
         No per-turn token data
       </div>
       <div className="mono" style={{
@@ -2946,7 +2992,7 @@ function PaneHeader({ title, count, left, right, accentGradient, accentColor }) 
             this twice — see the critique-pane chrome screenshot. */}
         <span style={{
           fontSize: 14,
-          fontWeight: 600,
+          fontWeight: 'var(--md-w-semi)',
           color: 'var(--md-on-surface)',
           letterSpacing: '-0.005em',
         }}>
@@ -3007,13 +3053,13 @@ function GroupHeader({ label, color, count, style, tone = 'tinted' }) {
       ...style,
     }}>
       <span style={{
-        fontSize: 11, fontWeight: 700, color: labelColor,
+        fontSize: 11, fontWeight: 'var(--md-w-bold)', color: labelColor,
         letterSpacing: '0.08em', textTransform: 'uppercase',
       }}>{label}</span>
       <span style={{ flex: 1 }} />
       {count != null && (
         <span className="mono num" style={{
-          fontSize: 11.5, color: labelColor, fontWeight: 600,
+          fontSize: 11.5, color: labelColor, fontWeight: 'var(--md-w-semi)',
         }}>{count}</span>
       )}
     </div>
@@ -3071,12 +3117,12 @@ function PhaseDividerHeader({ item, run, open }) {
       <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
       <span className="mono" style={{
         fontSize: 10.5, color: 'var(--md-on-surface-muted)',
-        letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 700,
+        letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 'var(--md-w-bold)',
       }}>
         Phase&nbsp;{item.phaseId}
       </span>
       <span style={{ color: 'var(--md-on-surface-decor)' }}>·</span>
-      <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', fontWeight: current ? 700 : 600 }}>
+      <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)', fontWeight: current ? 'var(--md-w-bold)' : 'var(--md-w-semi)' }}>
         {p.label}
       </span>
       <span style={{ flex: 1 }} />
@@ -3100,7 +3146,7 @@ function renderInlineBold(text) {
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={i} style={{ color: 'var(--md-on-surface)', fontWeight: 600 }}>
+        <strong key={i} style={{ color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>
           {part.slice(2, -2)}
         </strong>
       );
@@ -3149,7 +3195,7 @@ function ArtifactExpandedBody({ item, gist, summary, onOpen, turnKey }) {
             border: '1px solid var(--md-outline-hair)',
             borderRadius: 999,
             fontFamily: 'inherit',
-            fontWeight: 500,
+            fontWeight: 'var(--md-w-medium)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}>
@@ -3237,6 +3283,27 @@ function composeGist(item, run) {
       return `${agentName} flagged ${plur(issues, 'issue')} on the brief.`;
     }
     return '';
+  }
+
+  // ─── Phase 0 — multi-round brief critique (spec 0135) ──────────────────
+  if (phase === 0 && item.round != null) {
+    const parts = [];
+    if (status === 'AGREED' || status === 'BRIEF_OK') parts.push(`${agentName} agreed`);
+    else if (status === 'NEGOTIATING' || status === 'BRIEF_NEEDS_INPUT') parts.push(`${agentName} still negotiating`);
+    else parts.push(agentName);
+    if (typeof stats.openQuestions === 'number' && stats.openQuestions > 0) {
+      parts.push(`raised ${plur(stats.openQuestions, 'question')}`);
+    }
+    if (typeof stats.blocking === 'number' && stats.blocking > 0) {
+      parts.push(`${plur(stats.blocking, 'blocking disagreement')}`);
+    }
+    if (typeof stats.fsd === 'number' && stats.fsd > 0) {
+      parts.push(`${stats.fsd} final-surfaced`);
+    }
+    if (typeof stats.briefIssues === 'number' && stats.briefIssues > 0) {
+      parts.push(`${plur(stats.briefIssues, 'brief issue')}`);
+    }
+    return parts.length === 1 ? '' : parts[0] + ', ' + parts.slice(1).join(', ') + '.';
   }
 
   // ─── Phase 1 — independent draft ───────────────────────────────────────
@@ -3362,6 +3429,62 @@ function composeSentiment(item, run) {
     return briefIssues > 0
       ? lead('Cautious', `${agentName} flagged ${plur(briefIssues, 'issue')} on the brief.`)
       : lead('Neutral', `${agentName} reviewed the brief.`);
+  }
+
+  // ─── Phase 0 — multi-round critique turn (spec 0135) ────────────────────
+  if (phase === 0 && item.round != null) {
+    const myNewQs = allQuestions.filter(
+      q => q.phase === 0 && q.raisedBy === agent && q.raisedRound === round
+    );
+    const otherQsAnsweredHere = allQuestions.filter(
+      q => q.phase === 0 && q.answeredRound === round && q.answeredBy === agent
+    );
+    const myOpenedDsHere = allDis.filter(
+      d => d.phase === 0 && d.openedRound === round
+              && (d.progression || []).some(p => p.round === round && p.agent === agent)
+    );
+    const myClosedDsHere = allDis.filter(
+      d => d.phase === 0 && d.closedRound === round
+              && (d.progression || []).some(p => p.round === round && p.agent === agent)
+    );
+
+    let sentimentWord = 'Neutral';
+    let leadRest;
+    if (status === 'AGREED' || status === 'BRIEF_OK') {
+      sentimentWord = 'Positive';
+      leadRest = `${agentName} agreed the brief is ready to research.`;
+    } else if (status === 'NEGOTIATING' || status === 'BRIEF_NEEDS_INPUT' || !status) {
+      if (round === 1) {
+        sentimentWord = 'Cautious';
+        leadRest = `${agentName}'s round-1 brief critique.`;
+      } else if (myClosedDsHere.length === 0 && otherQsAnsweredHere.length === 0
+                 && myOpenedDsHere.length === 0 && myNewQs.length === 0) {
+        sentimentWord = 'Critical';
+        leadRest = `${agentName} still negotiating in round ${round} with no movement.`;
+      } else {
+        sentimentWord = 'Cautious';
+        leadRest = `${agentName} still negotiating in round ${round}.`;
+      }
+    } else {
+      leadRest = `${agentName} · ${status.toLowerCase()}.`;
+    }
+
+    const sentences = [lead(sentimentWord, leadRest)];
+    const movements = [];
+    if (myNewQs.length > 0) movements.push(`raised ${plur(myNewQs.length, 'new question')}`);
+    if (otherQsAnsweredHere.length > 0) movements.push(
+      `answered ${plur(otherQsAnsweredHere.length, 'prior question')}`,
+    );
+    if (myOpenedDsHere.length > 0) movements.push(
+      `surfaced ${plur(myOpenedDsHere.length, 'disagreement')}`,
+    );
+    if (myClosedDsHere.length > 0) movements.push(
+      `resolved ${plur(myClosedDsHere.length, 'disagreement')}`,
+    );
+    if (movements.length > 0) {
+      sentences.push(`This round, ${agentName} ${movements.join(', ')}.`);
+    }
+    return sentences.join(' ');
   }
 
   // ─── Phase 0 — shared input card ────────────────────────────────────────
@@ -3761,7 +3884,11 @@ function ArtifactModal({ item, run, onClose }) {
     return <PreflightResponseModal item={item} run={run} onClose={onClose} accent={accent} />;
   }
   if ((item.kind === 'turn' || item.kind === 'turn-live')
-      && (item.statsPhase === 2 || item.statsPhase === 4)) {
+      && (item.statsPhase === 0 || item.statsPhase === 2 || item.statsPhase === 4)) {
+    // Spec 0135 — Phase 0 multi-round critique cards open the same
+    // side-by-side modal Phase 2 / Phase 4 use, with the brief on the
+    // left at round 1 and the other agent's prior phase-0 turn at
+    // round ≥ 2.
     return <NegotiateReviewModal item={item} run={run} meta={meta} onClose={onClose} accent={accent} />;
   }
   // Spec 0034: Phase 1 plan drafts open a side-by-side viewer (brief on
@@ -3966,9 +4093,20 @@ function NegotiateReviewModal({ item, run, meta, onClose, accent }) {
   // clue for readers.
   const turnLabel = typeof item.index === 'string' ? `turn ${item.index}` : `turn ${item.index || ''}`;
   const title = displayNameForItem(item, `${meta?.name || 'Agent'} — ${turnLabel}`);
-  const subtitle = item.statsPhase === 4
-    ? `reviewing the converged document`
-    : `reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+  // Spec 0135 — Phase 0 gets its own subtitle phrasing: round 1
+  // critiques the brief directly; round ≥ 2 responds to the other
+  // agent's prior phase-0 turn.
+  let subtitle;
+  if (item.statsPhase === 4) {
+    subtitle = 'reviewing the converged document';
+  } else if (item.statsPhase === 0) {
+    const otherName = otherAgent === 'claude' ? 'Claude' : 'GPT';
+    subtitle = (Number(item.round) || 1) === 1
+      ? 'critiquing the brief'
+      : `responding to ${otherName}'s prior critique`;
+  } else {
+    subtitle = `reviewing ${otherAgent === 'claude' ? 'Claude' : 'GPT'}'s prior content`;
+  }
   const agentSlot = item.agent === 'claude' ? 'a' : 'b';
 
   // SPEC-0058 SUR-12: RoundScrubber — find available rounds for this agent+phase.
@@ -4542,7 +4680,7 @@ function Phase1ItemStrip({ items, onItemClick }) {
               display: 'inline-flex', alignItems: 'center', gap: 4,
             }}
           >
-            <span className="mono num" style={{ fontWeight: 600 }}>{glyph}-{i + 1}</span>
+            <span className="mono num" style={{ fontWeight: 'var(--md-w-semi)' }}>{glyph}-{i + 1}</span>
             <span style={{
               color: 'var(--md-on-surface-muted)',
               overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180,
@@ -4752,7 +4890,18 @@ function ReviewCard({ item, panelKind, color, raiser, raisedRound, active, onCli
 //     aggregator on `run.currentDraftPath`. Falls back to `phase3/draft-v1.md`
 //     server-side; null when neither file exists yet.
 function priorContentPathFor(item, otherUiAgent, run) {
-  const phase = item.statsPhase || 2;
+  // Spec 0135 — accept `statsPhase === 0` explicitly (the legacy
+  // `item.statsPhase || 2` fallback collapsed Phase 0 onto the Phase 2
+  // path, which would point the left pane at a non-existent
+  // `phase1/draft-<other>.md`).
+  const phase = item.statsPhase != null ? item.statsPhase : 2;
+  if (phase === 0) {
+    const beAgent = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
+    const round = Number(item.round) || 1;
+    if (round <= 1) return 'brief.md';
+    const rr = String(round - 1).padStart(2, '0');
+    return `phase0/round-${rr}-${beAgent}.md`;
+  }
   if (phase === 1) {
     return 'brief.md';
   }
@@ -4777,10 +4926,26 @@ function priorContentPathFor(item, otherUiAgent, run) {
 // document context (caller falls back to the legacy ``priorFilePath``
 // rendering).
 function leftPaneTabsFor(item, otherUiAgent, run) {
-  const phase = item.statsPhase || 2;
+  // Spec 0135 — accept `statsPhase === 0` explicitly. See
+  // `priorContentPathFor` for the same fix.
+  const phase = item.statsPhase != null ? item.statsPhase : 2;
   const otherBe = otherUiAgent === 'gpt' ? 'openai' : otherUiAgent;
   const ownBe   = otherBe === 'openai' ? 'claude' : 'openai';
   const round   = Number(item.round) || 1;
+
+  if (phase === 0) {
+    // Phase 0 — brief is the artefact being critiqued. From round 2
+    // onward the other agent's prior phase-0 turn joins as the default
+    // tab.
+    const tabs = [];
+    if (round >= 2) {
+      const rr = String(round - 1).padStart(2, '0');
+      tabs.push({ id: 'priorTurn', label: "Other's prior turn",
+                  path: `phase0/round-${rr}-${otherBe}.md` });
+    }
+    tabs.push({ id: 'brief', label: 'Brief', path: 'brief.md' });
+    return tabs;
+  }
 
   if (phase === 4) {
     const tabs = [];
@@ -4994,11 +5159,11 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
         renderTitle={({ open }) => (
           <>
             <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-            <span className="cs-title" style={{ fontWeight: 500, fontSize: 12 }}>{label}</span>
+            <span className="cs-title" style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>{label}</span>
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>({piece})</span>
             {isAgentDefault && (
               <span
-                className="chip tone-muted chip-pill"
+                className="chip tone-muted"
                 style={{ marginLeft: 6, fontSize: 10, padding: '0 6px' }}
                 title="The per-run system prompt was not recorded; showing the agent's current default."
               >
@@ -5144,7 +5309,7 @@ function HallucinationBanner({ unmatched }) {
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        fontSize: 12, color: COLORS.warn, fontWeight: 600,
+        fontSize: 12, color: COLORS.warn, fontWeight: 'var(--md-w-semi)',
       }}>
         <Mdi name="alert" size={12} />
         <span>
@@ -5231,7 +5396,7 @@ function QueryGroup({ event, citations, provider, defaultOpen }) {
           display: 'inline-block', width: 10, textAlign: 'center',
           color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
         }}>{open ? '▾' : '▸'}</span>
-        <span style={{ fontWeight: 500, flex: 1, minWidth: 0,
+        <span style={{ fontWeight: 'var(--md-w-medium)', flex: 1, minWidth: 0,
                        overflow: 'hidden', textOverflow: 'ellipsis',
                        whiteSpace: 'nowrap' }}>
           {queryLabel}
@@ -5324,7 +5489,7 @@ function ConsultedSourceCard({ source, isCited, citationsForSource }) {
            title={url}
            style={{
              color: title ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
-             fontSize: 12.5, fontWeight: 500,
+             fontSize: 12.5, fontWeight: 'var(--md-w-medium)',
              textDecoration: 'none', wordBreak: 'break-word', minWidth: 0,
              fontStyle: title ? 'normal' : 'italic',
            }}>
@@ -5409,7 +5574,7 @@ function CitationOnlyCard({ citation }) {
            title={url}
            style={{
              color: title ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
-             fontSize: 12.5, fontWeight: 500,
+             fontSize: 12.5, fontWeight: 'var(--md-w-medium)',
              textDecoration: 'none', wordBreak: 'break-word',
              fontStyle: title ? 'normal' : 'italic',
            }}>
@@ -5629,7 +5794,7 @@ function SourceRowAttachment({ attachment }) {
         color: 'var(--md-on-surface)',
       }}>
       <div style={{
-        fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
+        fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{displayTitle}</div>
       <div className="mono" style={{
@@ -5691,7 +5856,7 @@ function FileCard({ attachment, runId }) {
       </div>
       <div style={{ padding: '10px 12px' }}>
         <div title={title || ''} style={{
-          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
+          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>{title || '(unnamed)'}</div>
         <div className="mono" style={{
@@ -5732,7 +5897,7 @@ function formatBytes(n) {
 function FinalDocPreview() {
   return (
     <div>
-      <h2 style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--md-on-surface)', fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.35 }}>
+      <h2 style={{ margin: '0 0 10px', fontSize: 15, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', letterSpacing: '-0.01em', lineHeight: 1.35 }}>
         Effects of urban density on residential heat-pump retrofit economics in temperate climates
       </h2>
       <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--md-on-surface-muted)', lineHeight: 1.6 }}>
@@ -6547,7 +6712,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
       return (
         <section style={{ marginBottom: 22 }}>
           <h3 style={{
-            fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+            fontSize: 12, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
             letterSpacing: '0.04em', textTransform: 'uppercase',
             margin: '0 0 8px',
           }}>{label}</h3>
@@ -6566,7 +6731,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     return (
       <section style={{ marginBottom: 22 }}>
         <h3 style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+          fontSize: 12, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
           letterSpacing: '0.04em', textTransform: 'uppercase',
           margin: '0 0 10px',
         }}>{label}</h3>
@@ -6697,7 +6862,7 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
         {highestLeverageThread && (
           <div style={{ marginBottom: 20 }}>
             <div style={{
-              fontSize: 11, fontWeight: 600, color: 'var(--md-on-surface-muted)',
+              fontSize: 11, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
               letterSpacing: '0.06em', textTransform: 'uppercase',
               marginBottom: 8,
             }}>
@@ -6747,7 +6912,7 @@ function SummaryKindTable({ kind, items, rows, totalOpen, totalResolved }) {
         display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
         marginBottom: 6,
       }}>
-        <span style={{ color: 'var(--md-on-surface-variant)', fontWeight: 600 }}>{KIND_PLURAL[kind] || kind}</span>
+        <span style={{ color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-semi)' }}>{KIND_PLURAL[kind] || kind}</span>
         <span>·</span>
         <span>{items.length} total</span>
         {!isStateless && (
@@ -6830,7 +6995,7 @@ const _summaryTh = {
   padding: '8px 10px',
   fontSize: 10, color: 'var(--md-on-surface-faint)',
   letterSpacing: '0.06em', textTransform: 'uppercase',
-  fontWeight: 600,
+  fontWeight: 'var(--md-w-semi)',
 };
 const _summaryTd = {
   padding: '7px 10px',
@@ -6871,7 +7036,7 @@ function SmallStat({ label, value, color }) {
     <span style={{
       display: 'inline-flex', alignItems: 'baseline', gap: 6, whiteSpace: 'nowrap',
     }}>
-      <span className="mono num" style={{ fontSize: 13, color, fontWeight: 600 }}>{value}</span>
+      <span className="mono num" style={{ fontSize: 13, color, fontWeight: 'var(--md-w-semi)' }}>{value}</span>
       <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{label}</span>
     </span>
   );
@@ -6966,7 +7131,7 @@ function SmallLabel({ children, color, style }) {
     <div style={{
       fontSize: 10, color: color || 'var(--md-on-surface-faint)',
       letterSpacing: '0.08em', textTransform: 'uppercase',
-      fontWeight: 500,
+      fontWeight: 'var(--md-w-medium)',
       marginBottom: 8,
       ...style,
     }}>{children}</div>
@@ -7029,10 +7194,10 @@ function ProgressionStep({ step, last, pending }) {
             <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>R{step.round}</span>
           )}
           {meta && (
-            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>{meta.name}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>{meta.name}</span>
           )}
           {step.agent === 'both' && (
-            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 500 }}>Both agents</span>
+            <span style={{ fontSize: 11.5, color: 'var(--md-on-surface-variant)', fontWeight: 'var(--md-w-medium)' }}>Both agents</span>
           )}
           <span className="mono" style={{
             fontSize: 10.5, color: actionColor, letterSpacing: '0.02em',
@@ -7231,9 +7396,10 @@ function RunDetail({ run }) {
           onToggleErrors={() => setShowErrors(s => !s)}
           onJumpToFirstSearch={onJumpToFirstSearch}
         />
-        <TimelineAgentBar run={run} />
         {/* Spec 0070 D4: blocking-item callout banner removed (user: "completely useless").
-           Same info available in critique pane DRIFT/OPEN section headers. */}
+           Same info available in critique pane DRIFT/OPEN section headers.
+           Spec 0133: <TimelineAgentBar /> removed; per-agent pills now ride inside
+           the Timeline pane headers (Claude in .tl__head, GPT in .tl__tabs). */}
         <main style={{
           flex: 1, minHeight: 0,
           display: 'grid',

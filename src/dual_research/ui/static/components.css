@@ -1,19 +1,14 @@
 /* =============================================================
-   dual-research — V1 Component vocabulary
+   dual-research — Component vocabulary (Material 3)
    --------------------------------------------------------------
-   Sections landed in SPEC-0052 (primitive vocabulary):
-     · Button (.btn)
-     · StatusBadge (.sb)
-     · Chip (.chip)
-     · RunIDChip (.rid)
-     · AgentStrip + AgentIcon (.as / .ai)
-     · Card + variants (.card / .card-expandable / .card-live)
-     · ThemeToggle (.tt)
-   Other sections (Tab, QuestionThread, Modal, etc.) arrive in
-   their respective specs (SPEC-0053..0058).
+   Every component class the app uses. Reads tokens from
+   tokens.css; per-document hooks live in theme.css.
+   No hex codes here — tokens only.
 
-   Copied verbatim from the Claude Design brief's
-   `styles/components.css`. No hex codes — tokens only.
+   Primitives: Button (.btn) · StatusBadge (.sb) · Chip (.chip) ·
+   RunIDChip (.rid) · AgentStrip + AgentIcon (.as / .ai) ·
+   Card + variants (.card / .card-expandable / .card-live) ·
+   ThemeToggle (.tt) · Tab · QuestionThread · Modal · etc.
    ============================================================= */
 
 /* ─────────────────────────────────────────────────────────────
@@ -29,7 +24,7 @@
   height: 28px;
   font-family: var(--md-font-plain);
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   line-height: 1;
   color: var(--md-on-surface);
   background: var(--md-surface-container);
@@ -74,7 +69,7 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: -0.005em;
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
@@ -96,18 +91,15 @@
 
 /* ─────────────────────────────────────────────────────────────
    Chip (.chip) — Spec 0119 unified primitive
-   The single chip primitive across every surface. Replaces the
-   v1 .chip + the M3 .chip.tone-* cascade that previously lived
-   further down this file.
+   The single chip primitive across every surface.
 
    Slots (rendered in order, each emitted only when set):
      leadingDot | leadingIcon | cat-bubble  →  label  →
      value  →  add  →  sub  →  trailingSuffix  →  children
 
-   Tones:  info · ok · warn · err · idle · claude · gpt · neutral
-           (plus legacy aliases: a (=claude), b (=gpt),
-            muted, info-strong)
-   Shapes: pill (default, --r-pill) | square (.chip-square, --r-1)
+   Tones:  info · info-strong · ok · warn · err · idle · muted ·
+           claude · gpt · neutral
+   Shapes: pill (default, --md-shape-full) | square (.chip-square, --md-shape-xs)
    Sizes:  default 22px | lg 26px (.chip-lg)
    ───────────────────────────────────────────────────────────── */
 .chip {
@@ -120,7 +112,7 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: 11px;
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: -0.005em;
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
@@ -129,10 +121,6 @@
   white-space: nowrap;
   line-height: 1;
 }
-/* Legacy: .chip-pill was the opt-in to pill shape. Pill is now the
-   default; keep the class as a no-op so existing callsites don't
-   break. Same for .chip-lg (still flips to the larger 26px size). */
-.chip-pill { border-radius: var(--md-shape-full); }
 .chip-lg   { height: 26px; padding: 0 11px; }
 .chip.chip-square { border-radius: var(--md-shape-xs); }
 
@@ -156,10 +144,6 @@
 .chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
 .chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
 .chip.tone-neutral     { color: var(--md-on-surface-variant);    background: var(--md-surface-container-high); border-color: transparent; }
-/* Legacy tone names — alias to the canonical pair. Code is being
-   migrated to tone-claude / tone-gpt; until then both work. */
-.chip.tone-a           { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
-.chip.tone-b           { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
 
 /* Auto leading-dot for status tones only. Identity tones
    (claude/gpt/neutral) intentionally do not get one. Suppressed
@@ -177,6 +161,21 @@
   background: currentColor; flex-shrink: 0;
 }
 .chip.no-dot::before { display: none; }
+
+/* Spec 0133 §5.7 — safety net for the auto-dot vs slot collision.
+   Mirrors the JSX `usesNewSlots` heuristic in shared.jsx (the
+   upgraded <Chip> auto-adds .no-dot whenever any slot prop is set).
+   Active even when a callsite bypasses the Chip primitive and writes
+   raw `<span className="chip tone-X">` markup (audited at spec time:
+   compare.jsx, run-detail.jsx:5003, how-it-works.jsx all carry such
+   call sites). Result: zero double-dots anywhere. */
+.chip:has(.chip-label)::before,
+.chip:has(.chip-value)::before,
+.chip:has(.chip-dot)::before,
+.chip:has(.cat-bubble)::before,
+.chip:has(.chip-leading-icon)::before {
+  display: none;
+}
 
 /* Slot children */
 .chip .chip-dot {
@@ -223,6 +222,30 @@
 }
 .chip.dim .chip-add,
 .chip.dim .chip-sub { color: var(--md-on-surface-faint); }
+
+/* Spec 0133 §5.9 — subtle vertical separator between .chip-add and
+   .chip-sub when they sit adjacent. The slim Δ-pair presentation used
+   by timeline turn-card category chips (after Goal 8 drops bubble +
+   standing-total) reads "+raised | −closed"; without a separator the
+   two figures bleed into each other and a column of cards becomes
+   unreadable. Universal rule — applies to any chip with both add+sub
+   slots, including the unchanged TlPhaseHeadChips, so the design
+   language stays consistent across surfaces. */
+.chip .chip-add + .chip-sub {
+  position: relative;
+  padding-left: 8px;
+  margin-left: 2px;
+}
+.chip .chip-add + .chip-sub::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 1px;
+  background: currentColor;
+  opacity: 0.28;
+}
 .chip .chip-suffix {
   font-family: var(--md-font-data);
   font-size: 10.5px;
@@ -236,7 +259,7 @@
   outline-offset: 1px;
 }
 
-/* Legacy slot — kept for back-compat with <Chip icon=…>. */
+/* Chip icon + unit slots — used by <Chip icon=…> across run-list, run-detail, and others. */
 .chip .unit { color: var(--md-on-surface-faint); }
 .chip .ico  { width: 12px; height: 12px; flex: 0 0 auto; }
 
@@ -263,7 +286,7 @@ button.chip:focus-visible {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum", "ss01";
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
   border-radius: var(--md-shape-full);
@@ -309,7 +332,7 @@ button.chip:focus-visible {
    without forcing internal text wrap (Notion issue 3). The 720px cap
    keeps the row under --md-content-max on ultrawide displays. */
 .as.as-timeline { min-width: 460px; max-width: 720px; flex: 1 1 460px; }
-.as .as-name  { color: var(--md-on-surface); font-weight: var(--w-medium); white-space: nowrap; }
+.as .as-name  { color: var(--md-on-surface); font-weight: var(--md-w-medium); white-space: nowrap; }
 .as .as-model { font-family: var(--md-font-data); font-size: var(--md-label-s-size); color: var(--md-on-surface-muted); white-space: nowrap; }
 
 /* Spec 0112 — activity label inside .as-right. Absorbs whatever
@@ -323,6 +346,120 @@ button.chip:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
+}
+
+/* Spec 0133 — `.as.in-header` relocates the AgentStrip into a Timeline
+   pane header (`.tl__head` for Claude, `.tl__tabs` for GPT). Relative
+   to `.as-timeline` (the agent-bar placement), the chip:
+   - Drops the agent name (logo + model carry identity).
+   - Uses tight vertical padding so it never grows .tl__head / .tl__tabs
+     past their `min-height` contract.
+   - Right-aligns inside the row via `margin-left: auto`.
+   - Sizes its `min-width` to fit the longest activity phrase
+     (`drafting parallel plan` / `drafting converged doc` /
+     `negotiating · round NN` — all 22 chars) without truncation.
+   - Both chips share an identical wide-mode min-width so they appear
+     equal-sized despite different model-name lengths. */
+.as.in-header {
+  min-width: 600px;
+  max-width: 100%;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 4px 24px;
+  gap: 18px;
+  border-radius: var(--md-shape-full);
+  font-size: 13px;
+  align-self: center;
+  /* Spec 0138 §5.1 — required so the absolutely-positioned ::before
+     overlay (gradient sweep, below) clips to the pill's rounded edge
+     and so `inset: 0` is positioned against this element. */
+  position: relative;
+  overflow: hidden;
+}
+.as.in-header .as-left  { gap: 16px; }
+.as.in-header .as-right { gap: 16px; font-size: 13px; }
+.as.in-header .as-name  { display: none; }   /* logo carries identity */
+.as.in-header .as-model { font-size: 13px; }
+.as.in-header .num      { font-size: 13px; }
+
+/* Spec 0138 §5.1 — Variant B gradient sweep on active `.as.in-header`.
+   Signals "this agent is currently doing work in the active round" by
+   gently sweeping an agent-tinted soft-light gradient across the badge
+   surface. The sweep is felt before it's seen: the gradient peak is
+   18% alpha against the surface-container background, which on both
+   the dark (#14171c) and light (#e8dec9) variants reads as a subtle
+   warmth rather than as an explicit colour change.
+
+   Why this recipe (vs the existing pulse-a/b halo on the inner dot):
+   - The halo applied to the full badge reads as a hard alarm pulse and
+     competes with the in-pane activity-phrase dot pulse.
+   - A surface sweep avoids the halo's outward-pressure feel — the badge
+     stays the same size at all keyframes; only the surface texture
+     animates.
+   - No new tokens, no new shadows, no translate / scale. Lives entirely
+     in the surface-color space.
+
+   Agent identity comes from `--agent-{a,b}-rgb` (tokens.css, spec 0138
+   token addition). Phase offset is set per-agent via animation-delay so
+   two simultaneously-live agents don't pulse in lockstep. */
+.as.in-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(var(--agent-rgb, 255, 255, 255), 0.18) 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  transition: opacity 200ms ease;
+}
+/* The overlay sits behind the badge's content; the immediate children
+   (.as-left / .as-right) need to render above it. `position: relative`
+   + z-index lifts them over the ::before pseudo. */
+.as.in-header > .as-left,
+.as.in-header > .as-right {
+  position: relative;
+  z-index: 1;
+}
+.as.in-header.is-a { --agent-rgb: var(--agent-a-rgb); }
+.as.in-header.is-b { --agent-rgb: var(--agent-b-rgb); }
+.as.in-header.is-live::before {
+  opacity: 1;
+  animation: as-pulse-sweep 3.2s ease-in-out infinite;
+}
+/* When both agents are live simultaneously, offset the GPT animation
+   so the two badges don't sweep in lockstep — sympathetic motion, not
+   synchronised. The negative delay starts the animation mid-cycle on
+   mount. */
+.as.in-header.is-b.is-live::before { animation-delay: -1.6s; }
+
+@keyframes as-pulse-sweep {
+  0%   { background-position: 100% 0; }
+  50%  { background-position: 0%   0; }
+  100% { background-position: 100% 0; }
+}
+
+/* Reduced-motion contract — degrade to a static tint so liveness stays
+   legible without motion. The base.css global @media block already
+   zeros animation-duration on `*`, which would freeze the gradient at
+   its starting position (transparent on the right) and effectively
+   hide the signal entirely. Override here with an explicit
+   non-animated background. */
+@media (prefers-reduced-motion: reduce) {
+  .as.in-header.is-live::before {
+    animation: none;
+    opacity: 0;
+  }
+  .as.in-header.is-live {
+    background: var(--md-surface-container-high);
+  }
 }
 
 /* AgentIcon (.ai) — agent logo tile */
@@ -457,7 +594,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   padding: 0 var(--s-3);
   font-family: var(--md-font-plain);
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted);
   background: transparent;
   border: 1px solid var(--md-outline-hair);
@@ -478,14 +615,14 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   color: var(--md-on-surface);
   background: var(--md-surface-container);
   border-color: var(--md-outline-variant);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .tab[disabled] { color: var(--md-on-surface-decor); cursor: not-allowed; }
 .tab .count {
   font-family: var(--md-font-data);
   font-size: var(--md-label-s-size);
   color: var(--md-on-surface-faint);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
 }
 .tab.is-active .count { color: var(--md-on-surface-variant); }
 
@@ -521,7 +658,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   color: var(--md-on-surface-muted);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   font-size: var(--md-body-m-size);
   transition: color var(--m-fast) var(--ease), border-color var(--m-base) var(--ease);
 }
@@ -538,7 +675,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   color: var(--md-on-surface);
   background: transparent;
   border-bottom-color: var(--md-on-surface);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .tab-group.tabs-line .tab .count {
   color: var(--md-on-surface-faint);
@@ -568,7 +705,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   border: 0;
   border-radius: var(--md-shape-xs);
   color: var(--md-on-surface-muted);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
 }
 .tab-group.tabs-solid .tab.tab-sm {
   height: 24px;
@@ -582,7 +719,7 @@ button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 10
   color: var(--md-on-surface);
   background: var(--md-surface-container-highest);
   border: 0;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   box-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 0 1px var(--md-outline-variant);
 }
 body.light .tab-group.tabs-solid .tab.is-active,
@@ -612,7 +749,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--md-on-surface-muted);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   background: var(--md-surface-container);
   border-bottom: 1px solid var(--md-outline-variant);
 }
@@ -647,10 +784,9 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 .qt-head .right { margin-left: auto; }
 
-/* Spec 0119 — timeline turn-card chip-row header. Replaces the
-   legacy .qt-head composition for new-protocol render. Tighter
-   6px gap fits four category chips + provider + activity + status
-   on one line at ~600 px column width; wraps gracefully below. */
+/* Spec 0119 — timeline turn-card chip-row header. Tighter 6px gap
+   fits four category chips + provider + activity + status on one
+   line at ~600 px column width; wraps gracefully below. */
 .tl-card-head {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   cursor: pointer;
@@ -701,15 +837,30 @@ body.light .tab-group.tabs-solid .tab.is-active,
   width: 12px; height: 1px; flex: 0 0 12px;
 }
 
-/* Spec 0125 — narrow-desktop compaction. Below 1500 px the kind-filter
-   chips (Questions/Disagreements/Issues/Comments/All) collapse to
-   bubble+count only; status and agent chips keep their labels but the
-   row tightens via reduced gap and thinner spacers. Reuses the same
-   1499 px narrow-desktop breakpoint used at line 902 (.agent-input).
+/* Spec 0125 — narrow-desktop compaction. Below the breakpoint the
+   kind-filter chips (Questions/Disagreements/Issues/Comments/All)
+   collapse to bubble+count only; status and agent chips keep their
+   labels but the row tightens via reduced gap and thinner spacers.
    Targets are tagged with data-kind-filter at the call site in
    run-detail.jsx so the rule is local and the Chip primitive stays
-   single-purpose. */
-@media (max-width: 1499px) {
+   single-purpose.
+
+   Spec 0133 follow-up — breakpoint bumped from 1499 → 1799 px. The
+   original 1499 was sized for SPEC-0125's filter row alone, but
+   SPEC-0133 added the relocated agent pills + Bar 1 compaction +
+   extended Bar 2 collapse into the same block. The combined wide-mode
+   content (Timeline pill + Conversation/Consumption tabs in one row;
+   Critique title + 3 phase tabs + 3 counter triples in another;
+   10 filter chips with full labels in a third) only fits comfortably
+   when each two-pane column is ≥ ~900 px wide. That requires viewport
+   ≥ ~1800 px (column ≈ half the viewport). MacBook Pro 16" (1728 px),
+   MacBook Pro 14" (1512 px), and the typical half-screen browser
+   window on a 27" display all sit in the 1500–1799 range and need
+   narrow rules. 1799 covers them; 1800+ ultrawides and full-screen
+   external monitors still get wide mode. The .agent-input and
+   .resp-grid breakpoints elsewhere stay at 1499 — they govern
+   different layouts. */
+@media (max-width: 1799px) {
   .crit2 .bar2.crit-filter-row {
     gap: 4px;
     padding: 10px 10px;
@@ -719,6 +870,91 @@ body.light .tab-group.tabs-solid .tab.is-active,
   }
   .crit2 .bar2.crit-filter-row .crit-filter-spacer {
     width: 6px; flex: 0 0 6px;
+  }
+
+  /* Spec 0133 §5.6 — extend the kind-filter label collapse to the
+     status filter cluster (Open / Resolved / Drift — identified by
+     .chip-dot) and the agent filter cluster (Claude / GPT — identified
+     by .chip-leading-icon). The dot color + agent icon already carry
+     the identity at this width; the text is redundant. */
+  .crit2 .bar2.crit-filter-row .chip:has(.chip-dot) .chip-label,
+  .crit2 .bar2.crit-filter-row .chip:has(.chip-leading-icon) .chip-label {
+    display: none;
+  }
+
+  /* Spec 0133 §5.5 — Critique Bar 1 narrow compaction. The shared
+     `.bar1, .bar2 { flex-wrap: wrap }` rule wraps Bar 1's right cluster
+     onto a second row at narrow viewports, blowing the height match
+     with .tl__head. Force nowrap and drop redundant labels so the bar
+     stays single-row at the same `min-height` as .tl__head. */
+  .crit2 .bar1 {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  /* Phase tabs lose their textual label — the P-code / Σ glyph reads
+     on its own and the active-tab tint disambiguates Negotiate vs
+     Review vs Summary. */
+  .crit2 .bar1 .phase-tab .pname {
+    display: none;
+  }
+  /* Counter labels (uppercase "INTRODUCED / OPEN / RESOLVED") are
+     signal at wide widths but redundant alongside the colored number;
+     drop them in narrow, keep just the three numerals. */
+  .crit2 .bar1 .crit-totals .lbl {
+    display: none;
+  }
+  /* Prevent the right cluster itself from wrapping its three counters. */
+  .crit2 .right {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+
+  /* Spec 0133 §5.3 — narrow-view AgentStrip compaction (the relocated
+     pills introduced by §5.1 / §5.2). Drop the tokens + cost slots
+     (they read at the run-total level via CostBadge in the top bar);
+     keep logo + model + activity. Both chips lock to the same `width`
+     (Claude's natural content width with the longest activity phrase)
+     so they remain visually equal-sized despite "gpt-5.5" being much
+     shorter than "claude-sonnet-4-6". */
+  .as.in-header {
+    width: 380px;
+    min-width: 0;
+    max-width: none;
+    padding: 4px 14px;
+    gap: 10px;
+  }
+  .as.in-header .as-left  { gap: 10px; }
+  .as.in-header .as-right { gap: 8px; }
+  /* Hide every child of .as-right except the activity span (the last
+     child). The .as-right contents are tokens, sep, cost, sep, activity
+     — in that order — per AgentStrip's render in shared.jsx. The
+     activity is always the last `right` slot, so :not(:last-child) hits
+     the four token/cost-related children and leaves the activity. */
+  .as.in-header .as-right > *:not(:last-child) {
+    display: none;
+  }
+
+  /* The Conversation / Consumption segmented control labels can't share
+     the .tl__tabs row with a 380 px chip — collapse to icons-only at
+     the same breakpoint. `font-size: 0` collapses the text node next
+     to the icon span; the icon span re-asserts its own font-size so
+     the glyph stays visible. No HTML change needed. */
+  .tl__tab {
+    font-size: 0;
+    gap: 0;
+    padding: 0 10px;
+  }
+  .tl__tab .ms {
+    font-size: 18px;
+  }
+
+  /* Bring the chip closer to the right edge — the shared .tl__head /
+     .tl__tabs `padding: 10px 20px` is too generous in narrow when the
+     chip is the dominant element on the right. */
+  .tl__head,
+  .tl__tabs {
+    padding-right: 10px;
   }
 }
 
@@ -731,13 +967,9 @@ body.light .tab-group.tabs-solid .tab.is-active,
   padding: 0;
 }
 .crit-card-head__spacer { flex: 1; min-width: 8px; }
-.crit-card-id {
-  font-family: var(--md-font-data);
-  font-size: 10.5px;
-  color: var(--md-on-surface-faint);
-  padding: 2px 0 0;
-  user-select: text;
-}
+/* Spec 0138 §5.2 — `.crit-card-id` rule deleted. The corresponding
+   `<div className="crit-card-id">id: {id}</div>` markup is gone from
+   shared.jsx's QuestionThread; rule had zero remaining callers. */
 
 /* Spec 0119 §8.5 — lifecycle row inside an expanded critique card.
    Each row is a chip cluster (provider + round + verb chip) above
@@ -748,7 +980,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   margin: 14px 0 8px;
 }
 .lc-rows { display: flex; flex-direction: column; gap: 0; }
@@ -775,13 +1007,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
 .lc-row-body p { margin: 0; }
 .lc-row-body p + p { margin-top: 6px; }
 
-/* Spec 0119 §7.2 — legacy ``.qref*`` and ``.qt-pill / .qt-row / .qt-
-   agent / .qt-sep / .qt-round / .qt-verdict`` rules retired. The
-   timeline turn-card header now uses ``.tl-card-head`` + Chip slots;
-   the expanded critique-card lifecycle rows use ``.lc-row``. The
-   ``.qt-drift`` / ``.qt-resolved-foot`` footer hints are kept below
-   because the QuestionThread footer still surfaces "resolved at
-   round N" / drift summaries on legacy data. */
+/* QuestionThread timeline + footer hints. The timeline body uses
+   .tl-card-head + Chip slots (rendered in shared.jsx). The footer
+   surfaces "resolved at round N" / drift summaries via
+   .qt-drift / .qt-resolved-foot below. */
 .qt-timeline {
   display: flex; flex-direction: column;
   gap: 0;
@@ -790,7 +1019,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
 
 .qt-drift, .qt-resolved-foot {
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--md-on-surface-faint);
@@ -855,7 +1084,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
    Rendered in serif for editorial weight.
    ───────────────────────────────────────────────────────────── */
 .sentp { font-family: var(--md-font-brand); font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.6; letter-spacing: 0; }
-.sentp strong { color: var(--md-on-surface); font-weight: var(--w-semi); }
+.sentp strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
 
 /* ─────────────────────────────────────────────────────────────
    ChipCluster (.cc) — wraps multiple chips into a constrained row
@@ -869,7 +1098,7 @@ body.light .tab-group.tabs-solid .tab.is-active,
   padding: 0 8px;
   font-family: var(--md-font-plain);
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface-muted);
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
@@ -1141,11 +1370,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
   animation: dr-modal-in 120ms ease-out;
 }
 .light .dr-backdrop { background: rgba(20,23,28,0.45); }
-/* SPEC-0109 — modal chrome migrated to M3 surface tokens. The .md-dialog
-   block below provides M3-only styling on the outer frame; these
-   .dr-modal-* rules style the legacy header / tabs / body / close button
-   markup that every modal in the app still emits via the shared Modal
-   primitive. Migrating them here flips every modal at once. */
+/* Modal chrome (SPEC-0109). The .md-dialog block below provides
+   M3-only styling on the outer frame; these .dr-modal-* rules
+   style the header / tabs / body / close-button markup that every
+   modal emits via the shared Modal primitive. */
 .dr-modal {
   background: var(--md-surface-container-low);
   border: 1px solid var(--md-outline-variant);
@@ -1328,7 +1556,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   padding: 0 8px;
   font-family: var(--md-font-plain);
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted);
   background: transparent;
   border: 1px solid var(--md-outline-hair);
@@ -1341,7 +1569,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   background: var(--md-surface-container-high);
   color: var(--md-on-surface);
   border-color: var(--md-outline-variant);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .round-scrubber-label {
   font-family: var(--md-font-plain);
@@ -1353,10 +1581,9 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 }
 
 /* =============================================================
-   SPEC-0093 — M3 Atoms (buttons, chips, status pills, switch,
-   segmented buttons, FAB, icon-btn, tonal chips)
-   Mirrors v2-m3.css:299-494 verbatim. Additive — v1 classes above
-   remain for call sites not yet migrated.
+   M3 Atoms (SPEC-0093) — buttons, chips, status pills, switch,
+   segmented buttons, FAB, icon-btn, tonal chips.
+   Mirrors v2-m3.css:299-494.
    ============================================================= */
 
 /* ── M3 Buttons ─────────────────────────────────────────── */
@@ -1530,9 +1757,8 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   left: 28px; width: 24px; height: 24px; background: var(--md-on-primary);
 }
 
-/* Tonal chip tones + auto-dot moved into the canonical .chip section
-   near the top of this file (spec 0119). The duplicated cascade
-   that lived here was the source of the v1/M3 split. */
+/* Tonal chip tones + auto-dot live in the canonical .chip section
+   near the top of this file (spec 0119). */
 
 /* ── Focus ring for all M3 focusable atoms ──────────────── */
 .md-btn:focus-visible,
@@ -1560,12 +1786,11 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 }
 
 /* =============================================================
-   SPEC-0092 — Material Symbols Outlined sizing helpers (additive).
+   Material Symbols Outlined sizing helpers.
    Use as <span class="ms ms-20">check_circle</span>. The base
    .ms class names the family + the icon-rendering reset; .ms-18 /
    ms-20 / ms-24 set the three documented dp sizes
    (18 dp inside chips, 20 dp inside buttons, 24 dp in chrome).
-   No live component reads these yet — subsequent specs migrate.
    ============================================================= */
 .ms {
   font-family: "Material Symbols Outlined";
@@ -2874,6 +3099,30 @@ body.light .tour-overlay__mask {
   flex-shrink: 0;
 }
 
+/* ── Spec 0133 — M3 segmented linear phase-progress indicator ──────
+   Replaces the legacy <PhaseDots> circles-and-lines treatment with one
+   rounded bar segment per PHASES entry. Cell state drives background
+   color via the palette tokens — `--md-outline-variant` for the track
+   / pending state, the status palette (--p-ok / --p-info / --p-err /
+   --p-warn) for done / current / errored / deadlocked respectively. */
+.phase-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.phase-progress__seg {
+  width: 26px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--md-outline-variant);
+  transition: background var(--md-dur-short-4) var(--md-easing-standard);
+}
+.phase-progress__seg.is-done    { background: var(--p-ok); }
+.phase-progress__seg.is-current { background: var(--p-info); }
+.phase-progress__seg.is-error   { background: var(--p-err); }
+.phase-progress__seg.is-warn    { background: var(--p-warn); }
+
 /* ── Spec 0120 — Turn-modal right-pane (review cards) ─────────────
    Right-pane structure: a stack of `ReviewGroup` panels, each one a
    `.rp-panel-head` chip + a column of `.rp-item-card`s. Cards carry
@@ -2922,7 +3171,7 @@ body.light .tour-overlay__mask {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
 }
 .rp-anchor {
   margin: 0;
@@ -2941,7 +3190,7 @@ body.light .tour-overlay__mask {
 }
 .rp-title {
   font-size: 13px;
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface-variant);
   line-height: 1.4;
 }
@@ -3015,7 +3264,7 @@ body.light .tour-overlay__mask {
   background: var(--md-surface-container-low);
 }
 .dr-modal-header h2 {
-  margin: 0; font-size: var(--md-title-l-size); font-weight: var(--w-semi);
+  margin: 0; font-size: var(--md-title-l-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .dr-modal-header .spacer { flex: 1; }
@@ -3027,7 +3276,7 @@ body.light .tour-overlay__mask {
 .dr-modal-tabs .tab {
   appearance: none; background: transparent; border: none;
   padding: 6px 14px; border-radius: var(--md-shape-sm);
-  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--w-medium);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted); cursor: pointer;
 }
 .dr-modal-tabs .tab.is-active {
@@ -3060,7 +3309,7 @@ body.light .tour-overlay__mask {
 }
 .cs-section.is-open .cs-chevron { transform: rotate(90deg); }
 .cs-title {
-  font-size: var(--md-title-m-size); font-weight: var(--w-semi);
+  font-size: var(--md-title-m-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
   display: flex; align-items: center; gap: var(--s-3);
   flex: 1;
@@ -3094,7 +3343,7 @@ body.light .tour-overlay__mask {
 .dr-card-body { padding: var(--s-4); }
 .dr-card-body h4 {
   margin: 0 0 var(--s-2) 0;
-  font-size: var(--md-body-m-size); font-weight: var(--w-semi);
+  font-size: var(--md-body-m-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .dr-card-body p {
@@ -3152,7 +3401,7 @@ body.light .tour-overlay__mask {
 .hiw-note[data-tone="idle"] { border-left-color: var(--idle); }
 .hiw-note__label {
   font-size: var(--md-label-s-size); text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--md-on-surface-faint); margin-right: var(--s-2); font-weight: var(--w-semi);
+  color: var(--md-on-surface-faint); margin-right: var(--s-2); font-weight: var(--md-w-semi);
 }
 
 /* ── Table ─────────────────────────────────────────────────── */
@@ -3164,7 +3413,7 @@ body.light .tour-overlay__mask {
 }
 .hiw-table th {
   background: var(--md-surface-container);
-  font-weight: var(--w-semi); color: var(--md-on-surface-muted);
+  font-weight: var(--md-w-semi); color: var(--md-on-surface-muted);
   font-size: var(--md-body-s-size); text-transform: uppercase; letter-spacing: 0.06em;
 }
 .hiw-table td.num { font-variant-numeric: tabular-nums; }
@@ -3202,7 +3451,7 @@ body.light .tour-overlay__mask {
   color: var(--md-on-surface-faint); font-family: var(--md-font-data); font-size: var(--md-label-s-size);
 }
 .changelog-summary {
-  color: var(--md-on-surface); font-size: var(--md-body-m-size); font-weight: var(--w-semi);
+  color: var(--md-on-surface); font-size: var(--md-body-m-size); font-weight: var(--md-w-semi);
   flex: 1;
 }
 .changelog-bullets {
@@ -3210,7 +3459,7 @@ body.light .tour-overlay__mask {
   color: var(--md-on-surface-variant); font-size: var(--md-body-m-size); line-height: var(--lh-snug);
 }
 .changelog-bullets li + li { margin-top: var(--s-2); }
-.changelog-bullets li strong { color: var(--md-on-surface); font-weight: var(--w-semi); }
+.changelog-bullets li strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
 .changelog-shots {
   display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3);
   margin-top: var(--s-3);
@@ -3255,7 +3504,7 @@ body.light .tour-overlay__mask {
   margin-bottom: var(--s-6);
 }
 .hiw-page__title {
-  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--w-semi);
+  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .hiw-page__spacer { flex: 1; }
@@ -3268,7 +3517,7 @@ body.light .tour-overlay__mask {
 .hiw-page__tabs .tab {
   appearance: none; background: transparent; border: none;
   padding: 8px 16px; border-radius: var(--md-shape-sm);
-  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--w-medium);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted); cursor: pointer;
 }
 .hiw-page__tabs .tab.is-active {
@@ -3422,13 +3671,13 @@ body.light .tour-spotlight__dim {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--info);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   margin-bottom: var(--s-2);
 }
 .tour-callout .callout__title {
   font-family: var(--md-font-brand);
   font-size: var(--md-title-l-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
   margin-bottom: var(--s-3);
   line-height: var(--lh-snug);
@@ -3524,7 +3773,7 @@ body.light .tour-spotlight__dim {
   margin-bottom: var(--s-6);
 }
 .settings-page__title {
-  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--w-semi);
+  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
 }
 .settings-page__spacer { flex: 1; }
@@ -3538,7 +3787,7 @@ body.light .tour-spotlight__dim {
 .settings-tabs .tab {
   appearance: none; background: transparent; border: none;
   padding: 8px 16px; border-radius: var(--md-shape-sm);
-  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--w-medium);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
   color: var(--md-on-surface-muted); cursor: pointer;
 }
 .settings-tabs .tab.is-active {
@@ -3573,7 +3822,7 @@ body.light .tour-spotlight__dim {
   margin: 12px 0;
 }
 .settings-admin-badge {
-  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  display: inline-block; padding: 1px 8px; border-radius: var(--md-shape-full);
   background: var(--agent-b-bg-strong); color: var(--agent-b);
   font-size: 11px; font-weight: 500;
   border: 1px solid var(--agent-b-border);
@@ -3602,7 +3851,7 @@ body.light .tour-spotlight__dim {
   border: 1px solid var(--md-outline-variant); font-family: inherit;
   min-width: 220px;
 }
-.settings-input--search { padding: 6px 12px; border-radius: 999px; min-width: 240px; }
+.settings-input--search { padding: 6px 12px; border-radius: var(--md-shape-full); min-width: 240px; }
 .settings-add-row {
   margin-top: 16px; padding: 16px;
   border: 1px dashed var(--md-outline-variant); border-radius: 8px;
@@ -3620,7 +3869,7 @@ body.light .tour-spotlight__dim {
 }
 .gop__title {
   font-size: var(--md-body-s-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--info);
   text-transform: uppercase; letter-spacing: 0.06em;
 }
@@ -3643,7 +3892,7 @@ body.light .tour-spotlight__dim {
 .users-chip {
   appearance: none;
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 10px; border-radius: 999px;
+  padding: 4px 10px; border-radius: var(--md-shape-full);
   background: var(--md-surface-container); color: var(--md-on-surface-muted);
   border: 1px solid var(--md-outline-hair);
   font-size: 12px; font-family: inherit;
@@ -3684,7 +3933,7 @@ body.light .tour-spotlight__dim {
 }
 .users-status {
   display: inline-flex; align-items: center;
-  padding: 2px 8px; border-radius: 999px;
+  padding: 2px 8px; border-radius: var(--md-shape-full);
   font-size: 11px; font-weight: 500;
   white-space: nowrap;
 }
@@ -3716,7 +3965,7 @@ body.light .tour-spotlight__dim {
 }
 .spec-modal__body h3 {
   font-size: var(--md-body-m-size);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   margin-top: var(--s-4);
   color: var(--md-on-surface);
 }
@@ -3735,7 +3984,7 @@ body.light .tour-spotlight__dim {
 }
 .spec-modal__body th {
   background: var(--md-surface-container);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   color: var(--md-on-surface-muted);
   font-size: var(--md-label-s-size);
   text-transform: uppercase;
@@ -3779,16 +4028,11 @@ body.light .tour-spotlight__dim {
 }
 
 /* =============================================================
-   Spec 0131 — legacy classes drained from theme.css.
-   These five class families were moved here under M3 tokens
-   when theme.css was emptied of v1 component rules in the
-   v1 → v2 finalization arc (0127 → 0131).
+   Misc class helpers used by specific routes.
      - .uppercase-label   (4 consumers in design-language.jsx)
      - .dr-ghost-block + ::before + .dr-ghost-block-kind  (run-detail.jsx)
      - .dr-section-brief-btn + :hover  (run-detail.jsx)
      - .cap-bar + > i + > .soft-mark  (design-language.jsx)
-   .phase-step-line and .bg-grid had no remaining consumers
-   at audit time and were deleted, not moved.
    ============================================================= */
 
 /* Generic uppercase label helper — superseded by .t-label-s

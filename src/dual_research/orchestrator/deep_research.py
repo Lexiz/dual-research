@@ -152,6 +152,15 @@ class PhaseRunResult:
     via_hard_cap: bool
     ledger: tuple[LedgerEntryV2, ...]
     converged_event: PhaseConverged | None
+    # Spec 0137 — substantive-convergence escape valve. True when the
+    # orchestrator declared convergence at a round where both agents
+    # emitted AGREED with a terminal ledger but the strict three-gate
+    # check_convergence rejected on the artifact-hash gate. The
+    # canonical artifact body comes from the designated agent's turn
+    # file regardless (claude for phase 0; the drafter for phase 2;
+    # the drafter for phase 4), so the non-canonical agent's drift
+    # does not block downstream consumption.
+    via_artifact_promotion: bool = False
 
 
 # ─── Agent-turn callable ─────────────────────────────────────────────
@@ -583,6 +592,7 @@ class DeepResearchPhase:
         via_closeout: bool,
         via_ghost_cap: bool,
         via_hard_cap: bool,
+        via_artifact_promotion: bool = False,
     ) -> PhaseConverged:
         return PhaseConverged(
             phase=self.phase,
@@ -590,6 +600,7 @@ class DeepResearchPhase:
             via_closeout=via_closeout,
             via_ghost_cap=via_ghost_cap,
             via_hard_cap=via_hard_cap,
+            via_artifact_promotion=via_artifact_promotion,
         )
 
     def run_round(self, *, round: int, is_closeout_round: bool) -> RoundResult:
@@ -755,12 +766,15 @@ class DeepResearchPhase:
 
     def run(self) -> tuple[PhaseRunResult, list]:
         """Run the phase end-to-end. Returns (result, all_events)."""
+        from dual_research.events import ArtifactCanonicallyPromoted
+
         all_events: list = []
         is_closeout_round = False
         final_round = 0
         via_closeout = False
         via_ghost_cap = False
         via_hard_cap = False
+        via_artifact_promotion = False
         converged = False
         round_no = 0
 
@@ -782,6 +796,26 @@ class DeepResearchPhase:
             if rr.converged:
                 converged = True
                 via_closeout = is_closeout_round
+                break
+
+            # Spec 0137 — substantive-convergence escape valve. Mirrors
+            # the production-path branch in ``dr_run._drive_interaction_phase``.
+            # When both agents emit AGREED with a terminal ledger but
+            # the strict three-gate check_convergence rejected, the
+            # artifact-hash gate is the only remaining blocker; the
+            # agents wrote semantically-equivalent but byte-different
+            # artifact bodies. Accept their self-declared AGREED.
+            if (
+                rr.claude_status == "AGREED"
+                and rr.openai_status == "AGREED"
+                and not items_blocking_convergence(self.state.item_views())
+            ):
+                converged = True
+                via_artifact_promotion = True
+                all_events.append(ArtifactCanonicallyPromoted(
+                    phase=f"phase{self.phase}",
+                    round=round_no,
+                ))
                 break
 
             if rr.closeout_event is not None:
@@ -825,13 +859,19 @@ class DeepResearchPhase:
             is_closeout_round = False
 
         if not converged and round_no >= self.caps.hard:
-            # Hit hard cap without convergence — auto-cap remaining
-            # non-terminal items.
+            # Hit hard cap without convergence — auto-cap any remaining
+            # non-terminal items and flag the run as via-hard-cap so the
+            # UI status pipeline can mark it deadlocked. Spec 0136
+            # dropped the ``if hard_caps:`` gate: pre-spec the
+            # "every-item-terminal-but-no-AGREED" pattern returned
+            # ``converged=False, via_hard_cap=False`` and the orchestrator
+            # exit code stayed at 0, which the UI then rendered as a
+            # silent "completed". The async ``_drive_interaction_phase``
+            # in ``dr_run.py`` carries the same fix.
             hard_caps = self._hard_cap_all_blocking(round=round_no)
-            if hard_caps:
-                all_events.extend(hard_caps)
-                via_hard_cap = True
-                converged = True
+            all_events.extend(hard_caps)  # may be empty; that's fine
+            via_hard_cap = True
+            converged = True
 
         converged_event: PhaseConverged | None = None
         if converged:
@@ -841,6 +881,7 @@ class DeepResearchPhase:
                 via_closeout=via_closeout,
                 via_ghost_cap=via_ghost_cap,
                 via_hard_cap=via_hard_cap,
+                via_artifact_promotion=via_artifact_promotion,
             )
             all_events.append(converged_event)
 
@@ -854,6 +895,7 @@ class DeepResearchPhase:
             via_hard_cap=via_hard_cap,
             ledger=tuple(self.state.ledger),
             converged_event=converged_event,
+            via_artifact_promotion=via_artifact_promotion,
         )
         return result, all_events
 

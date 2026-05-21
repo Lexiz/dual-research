@@ -352,10 +352,11 @@ def project_phase_ledgers(bundle: AggregatedItems) -> dict[int, list[dict]]:
 
     The frontend consumes ``run.phaseLedgers[phase]`` as a list of
     dicts (the typed ``LedgerEntry`` already dict-serializes cleanly).
-    Phases 2 and 4 are the slots the UI reads from (Phase 0 ledger is
-    not yet surfaced on the timeline cards).
+    Spec 0135 added Phase 0 alongside phases 2 and 4 so the new-protocol
+    multi-round brief negotiation contributes to the chip-deltas and
+    cross-round ledger math just like the plan/review negotiations do.
     """
-    out: dict[int, list[dict]] = {2: [], 4: []}
+    out: dict[int, list[dict]] = {0: [], 2: [], 4: []}
     for item in bundle.items:
         if item.phase not in out:
             continue

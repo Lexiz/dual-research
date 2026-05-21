@@ -1077,15 +1077,26 @@ def _status_from_columns(*, phase_reached: str, exit_code: int | None, state: di
 
     Pushed runs are by definition completed (push happens post-run), so we
     only really see done / errored / deadlocked here.
+
+    Spec 0136 — passes the raw ``exit_code`` through to
+    ``derive_run_status`` so the unified truth table's silent-exit
+    defence branch (``exit_code == 0`` + not done → ``deadlocked``)
+    fires for Supabase-backed runs the same way it fires for the
+    disk-backed path. Pre-spec the helper folded the exit code into
+    derived ``run_failed`` / ``hard_cap_hit`` booleans before calling
+    ``derive_run_status``, which discarded the ``exit_code == 0`` +
+    not-done signal and left the All-Runs list reading ``running``
+    forever for any pushed run that exited cleanly without reaching
+    ``done`` — exactly the pattern the user surfaced on the hosted
+    DVS-backend and LLM-vs-human-grading rows.
     """
     final_emitted = bool(state.get("final_emitted_to"))
-    run_failed = exit_code not in (None, 0, 51)
-    hard_cap_hit = exit_code == 51
     return derive_run_status(
         state_phase=phase_reached,
         final_emitted=final_emitted,
-        hard_cap_hit=hard_cap_hit,
-        run_failed=run_failed,
+        hard_cap_hit=exit_code == 51,
+        run_failed=False,  # truth table derives this from exit_code now
+        run_completed_exit_code=exit_code,
     )
 
 

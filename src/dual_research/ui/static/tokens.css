@@ -1,14 +1,8 @@
 /* =============================================================
-   dual-research — Design System v2 (Material 3) — Tokens
+   dual-research — Design System (Material 3) — Tokens
    Authoritative. Every component reads from these.
    No hex codes anywhere in components.
-   --------------------------------------------------------------
-   This file used to carry the v1 token block (--bg-*, --fg-*,
-   --border-*, --r-*, --t-*, --sans/--serif/--mono) as the source
-   of truth for the additive layering pattern introduced by spec
-   SPEC-0092. Spec 0131 closed the v1 → v2 migration arc by
-   migrating every consumer to --md-* and deleting the v1 block.
-   See design-system/SPEC.md for the canonical v2 reference.
+   See design-system/SPEC.md for the canonical reference.
    ============================================================= */
 
 :root {
@@ -25,6 +19,15 @@
   --agent-b-bg:         rgba(124,196,184,0.08);
   --agent-b-bg-strong:  rgba(124,196,184,0.16);
   --agent-b-border:     rgba(124,196,184,0.22);
+
+  /* Spec 0138 §5.1 — RGB-triple variants of the agent palette. Needed
+     by the `.as.in-header.is-live::before` gradient-sweep recipe, which
+     uses `rgba(var(--agent-X-rgb), …)` to interpolate alpha at animation
+     keyframes without committing to a static fill colour. Identical
+     triples in light and dark mode — only the surface underneath
+     changes; the gradient overlay reads identically on both. */
+  --agent-a-rgb: 212, 165, 116;
+  --agent-b-rgb: 124, 196, 184;
 
   /* ── Status (the only other hues allowed) ───────── */
   --ok:    #6fb380;         /* resolved · converged · completed · approved */
@@ -67,12 +70,6 @@
   --lh-snug:    1.30;
   --lh-body:    1.45;
   --lh-prose:   1.60;
-
-  /* ── Weights ──────────────────────────────────── */
-  --w-regular: 400;
-  --w-medium:  500;
-  --w-semi:    600;
-  --w-bold:    700;
 
   /* ── Spacing (4px grid — only these values) ─────── */
   --s-1:  4px;
@@ -125,8 +122,8 @@
   --consumption-round-w: 64px;
 
   /* =============================================================
-     Material 3 token layer (introduced by SPEC-0092 as the v2
-     additive layer; v1 → v2 migration completed in spec 0131).
+     Material 3 token layer — full M3 color / typography / shape /
+     spacing / motion roles.
      Mirrors design-system/assets/styles/tokens-and-primitives.css:7-174.
      ============================================================= */
 
@@ -305,10 +302,10 @@
 }
 
 /* ── Light mode (M3-orthogonal tokens) ───────────────────────── */
-/* Holds light-mode values for tokens that live outside the M3
-   color roles: agent identity bg/border, status hue bg, --on-accent,
-   --e-1 / --e-2 v1 elevation. The M3 color roles themselves flip
-   at the body.light block farther down (was SPEC-0092). */
+/* Light-mode values for tokens that live outside the M3 color
+   roles: agent identity bg/border, status hue bg, --on-accent,
+   --e-1 / --e-2 elevation. The M3 color roles themselves flip at
+   the body.light block farther down. */
 body.light, .light {
   --agent-a-bg:        rgba(212,165,116,0.14);
   --agent-a-bg-strong: rgba(212,165,116,0.26);
@@ -331,7 +328,7 @@ body.light, .light {
 }
 
 /* =============================================================
-   M3 light-mode role-token overrides (originally SPEC-0092).
+   M3 light-mode role-token overrides.
    Flips every --md-* surface/ink/outline value to its cream
    counterpart. Mirrors design-system/assets/styles/
    tokens-and-primitives.css:200-245.

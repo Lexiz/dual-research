@@ -28,7 +28,7 @@ function DnaOnePager() {
         <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
           dual-research · design language
         </div>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, color: 'var(--md-on-surface)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
           A calm, dense observability surface for a two-agent convergence loop.
         </h1>
         <p style={{ marginTop: 12, color: 'var(--md-on-surface-muted)', fontSize: 13.5, maxWidth: 720, lineHeight: 1.55 }}>
@@ -188,7 +188,7 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>System prompt</span>
+                  <span style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>System prompt</span>
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>(system)</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>4,915 chars</span>
@@ -197,7 +197,7 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)', transform: 'rotate(90deg)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>User prompt</span>
+                  <span style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>User prompt</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>245,378 chars</span>
                 </div>
@@ -213,7 +213,7 @@ function DnaOnePager() {
               <div className="agent-input-entry" style={{ pointerEvents: 'none' }}>
                 <div className="cs-header" style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="cs-chevron" style={{ fontSize: 8, color: 'var(--md-on-surface-faint)' }}>&#9654;</span>
-                  <span style={{ fontWeight: 500, fontSize: 12 }}>Child page: Notion ADR-014</span>
+                  <span style={{ fontWeight: 'var(--md-w-medium)', fontSize: 12 }}>Child page: Notion ADR-014</span>
                   <span style={{ flex: 1 }} />
                   <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>12,847 chars</span>
                 </div>
@@ -231,7 +231,7 @@ function DnaOnePager() {
                 <div className="consumption-card" style={{ border: '1px solid var(--agent-a-border)' }}>
                   <div className="consumption-data-zone">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--md-on-surface)' }}>Claude</span>
+                      <span style={{ fontWeight: 'var(--md-w-medium)', color: 'var(--md-on-surface)' }}>Claude</span>
                       <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)' }}>86.5kt seen</span>
                     </div>
                     <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>Input: $0.56 · Total: $0.72</div>
@@ -245,7 +245,7 @@ function DnaOnePager() {
                 <div className="consumption-card" style={{ border: '1px solid var(--agent-b-border)' }}>
                   <div className="consumption-data-zone">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
-                      <span style={{ fontWeight: 500, color: 'var(--md-on-surface)' }}>GPT</span>
+                      <span style={{ fontWeight: 'var(--md-w-medium)', color: 'var(--md-on-surface)' }}>GPT</span>
                       <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-muted)' }}>42.1kt seen</span>
                     </div>
                     <div className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>Input: $0.21 · Total: $0.35</div>
@@ -338,7 +338,7 @@ function DnaOnePager() {
           ].map(([title, bp, rules], i) => (
             <div key={i} className="resp-card">
               <div className="lbl">{bp}</div>
-              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 500, color: 'var(--md-on-surface)' }}>{title}</h4>
+              <h4 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 'var(--md-w-medium)', color: 'var(--md-on-surface)' }}>{title}</h4>
               <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--md-on-surface-muted)', fontSize: 13, lineHeight: 1.6 }}>
                 {rules.map((r, j) => <li key={j}>{r}</li>)}
               </ul>
@@ -358,7 +358,7 @@ function DnaOnePager() {
             ['Accessibility', ':focus-visible ring on every interactive primitive; prefers-reduced-motion honored on every animation; semantic ARIA where the markup needs it.'],
           ].map(([t, d], i) => (
             <div key={i} style={{ padding: '10px 14px', background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)' }}>
-              <span style={{ color: 'var(--md-on-surface)', fontWeight: 600, fontSize: 12.5 }}>{t}</span>
+              <span style={{ color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', fontSize: 12.5 }}>{t}</span>
               <span style={{ color: 'var(--md-on-surface-muted)', fontSize: 12, marginLeft: 8 }}>{d}</span>
             </div>
           ))}
@@ -371,7 +371,7 @@ function DnaOnePager() {
 function DnaSection({ title, children }) {
   return (
     <section style={{ marginBottom: 36 }}>
-      <h2 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: 'var(--md-on-surface)', borderBottom: '1px solid var(--md-outline-hair)', paddingBottom: 8 }}>{title}</h2>
+      <h2 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)', borderBottom: '1px solid var(--md-outline-hair)', paddingBottom: 8 }}>{title}</h2>
       {children}
     </section>
   );
@@ -390,7 +390,7 @@ function Spotlight({ label, caption, children }) {
   return (
     <div role="figure" aria-label={label + ': ' + caption}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-        <span className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>{label}</span>
+        <span className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>{label}</span>
       </div>
       <div style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', padding: 12, marginBottom: 6 }}>
         {children}
@@ -412,7 +412,7 @@ function FullReference() {
           <div className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>
             dual-research · design language · full reference
           </div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, color: 'var(--md-on-surface)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
             A calm, dense observability surface for a two-agent convergence loop.
           </h1>
           <p style={{ marginTop: 12, color: 'var(--md-on-surface-muted)', fontSize: 13.5, maxWidth: 720, lineHeight: 1.55 }}>
@@ -516,7 +516,7 @@ function FullReference() {
           overflow: 'hidden',
         }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>Type scale</span>
+            <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>Type scale</span>
             <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>13px body · 1.45 line-height</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 90px 1fr', borderTop: '1px solid var(--md-outline-hair)' }}>
@@ -544,7 +544,7 @@ function FullReference() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
           <div style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', overflow: 'hidden' }}>
             <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)' }}>
-              <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>Spacing scale (4px base)</span>
+              <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>Spacing scale (4px base)</span>
             </div>
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[2, 4, 6, 8, 10, 12, 14, 18, 24, 32, 48].map(s => (
@@ -559,7 +559,7 @@ function FullReference() {
 
           <div style={{ background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-hair)', borderRadius: 'var(--md-shape-md)', overflow: 'hidden' }}>
             <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)' }}>
-              <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 600 }}>Radii & borders</span>
+              <span style={{ fontSize: 12, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>Radii & borders</span>
             </div>
             <div style={{ padding: 14, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
               {[
@@ -707,7 +707,7 @@ function FullReference() {
             }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>{String(i + 1).padStart(2, '0')}</span>
-                <span style={{ color: 'var(--md-on-surface)', fontWeight: 600, fontSize: 13 }}>{t}</span>
+                <span style={{ color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', fontSize: 13 }}>{t}</span>
               </div>
               <p style={{ margin: 0, color: 'var(--md-on-surface-muted)', fontSize: 12, lineHeight: 1.55 }}>{d}</p>
             </div>
@@ -724,7 +724,7 @@ function Section({ title, subtitle, children }) {
   return (
     <section style={{ marginBottom: 48 }}>
       <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--md-outline-hair)' }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--md-on-surface)', letterSpacing: '-0.01em' }}>{title}</div>
+        <div style={{ fontSize: 18, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)', letterSpacing: '-0.01em' }}>{title}</div>
         {subtitle && <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--md-on-surface-muted)' }}>{subtitle}</div>}
       </div>
       {children}
@@ -753,7 +753,7 @@ function AgentSwatch({ name, hex, role, dim, alpha, border, isFirst }) {
       </div>
       <div style={{ padding: '10px 14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 600, whiteSpace: 'nowrap' }}>{name}</span>
+          <span style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', whiteSpace: 'nowrap' }}>{name}</span>
           <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-variant)', whiteSpace: 'nowrap' }}>{hex.toUpperCase()}</span>
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)', marginTop: 4 }}>{role}</div>
@@ -869,7 +869,7 @@ function MotionCard({ title, spec, detail, demo }) {
       display: 'flex', flexDirection: 'column',
     }}>
       <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--md-outline-hair)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 600 }}>{title}</span>
+        <span style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>{title}</span>
         <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{spec}</span>
       </div>
       <div style={{ padding: 14, background: 'var(--md-surface)', borderBottom: '1px solid var(--md-outline-hair)' }}>
@@ -932,7 +932,7 @@ function PrimitiveCard({ name, role, children }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: 12.5, color: 'var(--md-on-surface)', fontWeight: 600 }}>{name}</span>
+        <span style={{ fontSize: 12.5, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)' }}>{name}</span>
       </div>
       <div style={{
         background: 'var(--md-surface)',

@@ -39,9 +39,9 @@ input, textarea, select { font-family: inherit; color: inherit; }
 a { color: var(--info); text-decoration: underline; text-decoration-color: rgba(107,156,240,0.45); text-underline-offset: 2px; }
 a:hover { text-decoration-color: var(--info); }
 
-/* Global focus indicator — V1 fix.
+/* Global focus indicator.
    Applies to every focusable element unless explicitly overridden.
-   Replaced by :focus-visible so mouse focus stays clean. */
+   :focus-visible is used so mouse focus stays clean. */
 :focus { outline: none; }
 :focus-visible {
   outline: var(--focus-ring);
@@ -53,15 +53,15 @@ a:hover { text-decoration-color: var(--info); }
 .mono  { font-family: var(--md-font-plain); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
 .num   { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 .serif { font-family: var(--md-font-brand); font-feature-settings: "ss01"; }
-.t-display { font-family: var(--md-font-brand); font-size: var(--md-display-s-size); font-weight: var(--w-semi); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--md-on-surface); }
-.t-title   { font-size: var(--md-title-l-size);   font-weight: var(--w-bold); line-height: var(--lh-snug);  color: var(--md-on-surface); letter-spacing: -0.01em; }
-.t-h3      { font-size: var(--md-title-m-size);      font-weight: var(--w-semi); line-height: var(--lh-snug);  color: var(--md-on-surface); }
-.t-body    { font-size: var(--md-body-m-size);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--md-on-surface-variant); }
-.t-meta    { font-size: var(--md-body-s-size);    font-weight: var(--w-regular); line-height: var(--lh-body); color: var(--md-on-surface-muted); }
-.t-mono    { font-size: var(--md-label-s-size); font-family: var(--md-font-plain); font-weight: var(--w-medium); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.t-display { font-family: var(--md-font-brand); font-size: var(--md-display-s-size); font-weight: var(--md-w-semi); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--md-on-surface); }
+.t-title   { font-size: var(--md-title-l-size);   font-weight: var(--md-w-bold); line-height: var(--lh-snug);  color: var(--md-on-surface); letter-spacing: -0.01em; }
+.t-h3      { font-size: var(--md-title-m-size);      font-weight: var(--md-w-semi); line-height: var(--lh-snug);  color: var(--md-on-surface); }
+.t-body    { font-size: var(--md-body-m-size);    font-weight: var(--md-w-regular); line-height: var(--lh-body); color: var(--md-on-surface-variant); }
+.t-meta    { font-size: var(--md-body-s-size);    font-weight: var(--md-w-regular); line-height: var(--lh-body); color: var(--md-on-surface-muted); }
+.t-mono    { font-size: var(--md-label-s-size); font-family: var(--md-font-plain); font-weight: var(--md-w-medium); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
 .t-label   {
   font-size: var(--md-label-s-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--md-w-medium);
   letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--md-on-surface-faint);
@@ -143,7 +143,7 @@ a:hover { text-decoration-color: var(--info); }
 }
 .hr { height: 1px; background: var(--md-outline-hair); }
 
-/* ── Markdown rendering — tightened to V1 scale ─────── */
+/* ── Markdown rendering ─────── */
 /* Agent-produced markdown content uses the serif family
    (Newsreader). Code blocks and inline code stay sans + tabular
    for alignment. Hard rule: prose breathes, IDs/numbers align. */
@@ -159,7 +159,7 @@ a:hover { text-decoration-color: var(--info); }
 .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
   color: var(--md-on-surface);
   font-family: var(--md-font-brand);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   letter-spacing: -0.005em;
   line-height: var(--lh-snug);
   margin: var(--s-4) 0 var(--s-2);
@@ -168,14 +168,14 @@ a:hover { text-decoration-color: var(--info); }
 .md h2 { font-size: 18px; }
 .md h3 {
   font-family: var(--md-font-plain);
-  font-weight: var(--w-semi);
+  font-weight: var(--md-w-semi);
   font-size: var(--md-label-s-size);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--md-on-surface-muted);
   margin-top: var(--s-4);
 }
-.md h4, .md h5, .md h6 { font-size: var(--md-body-m-size); font-weight: var(--w-medium); }
+.md h4, .md h5, .md h6 { font-size: var(--md-body-m-size); font-weight: var(--md-w-medium); }
 .md p { margin: var(--s-2) 0; }
 .md ul, .md ol { margin: var(--s-2) 0; padding-left: var(--s-5); }
 .md li { margin: 3px 0; }
@@ -209,8 +209,8 @@ a:hover { text-decoration-color: var(--info); }
   letter-spacing: -0.005em;
 }
 .md pre code { padding: 0; background: none; border: 0; font-size: inherit; }
-.md strong { color: var(--md-on-surface); font-weight: var(--w-semi); }
-.md em     { color: var(--md-on-surface); font-weight: var(--w-medium); font-style: normal; }
+.md strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
+.md em     { color: var(--md-on-surface); font-weight: var(--md-w-medium); font-style: normal; }
 .md blockquote {
   margin: var(--s-2) 0;
   padding: var(--s-1) 0 var(--s-1) var(--s-3);
@@ -221,15 +221,13 @@ a:hover { text-decoration-color: var(--info); }
 .md hr { border: 0; border-top: 1px solid var(--md-outline-hair); margin: var(--s-4) 0; }
 .md table { border-collapse: collapse; margin: var(--s-2) 0; font-size: var(--md-body-s-size); }
 .md th, .md td { padding: 6px 10px; border: 1px solid var(--md-outline-hair); text-align: left; }
-.md th { background: var(--md-surface-container); color: var(--md-on-surface-variant); font-weight: var(--w-semi); }
+.md th { background: var(--md-surface-container); color: var(--md-on-surface-variant); font-weight: var(--md-w-semi); }
 .md del { color: var(--md-on-surface-faint); text-decoration: line-through; }
 
 /* =============================================================
-   SPEC-0092 — Material 3 typography role utilities (additive).
+   Material 3 typography role utilities.
    The 15 .t-display-l / -m / -s … .t-label-l / -m / -s classes
-   plus .t-data. Existing v1 .t-display / .t-title / .t-h3 /
-   .t-body / .t-meta / .t-mono / .t-label classes above are
-   untouched so v1 components keep rendering identically.
+   plus .t-data.
    Mirrors design-system/assets/styles/tokens-and-primitives.css:247-298.
    ============================================================= */
 
@@ -251,15 +249,12 @@ a:hover { text-decoration-color: var(--info); }
 
 .t-data { font-family: var(--md-font-data); font-variant-numeric: tabular-nums; font-feature-settings: "tnum","ss01"; }
 
-/* On-surface colour helpers (additive — no collision with v1 .muted etc.
-   if any were to be added). */
+/* On-surface colour helpers. */
 .muted   { color: var(--md-on-surface-variant); }
 .faint   { color: var(--md-on-surface-faint); }
 .subtle  { color: var(--md-on-surface-muted); }
 
-/* M3 reduced-motion companion. The v1 @media block above is
-   authoritative for live components; this one reinforces the
-   contract with the M3-shaped declaration. */
+/* M3 reduced-motion companion. */
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

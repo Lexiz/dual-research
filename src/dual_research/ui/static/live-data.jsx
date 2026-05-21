@@ -472,23 +472,92 @@ function buildLiveTimeline(run) {
   const ph = run.phase;
   const st = run.status;
 
-  // Phase 0: the brief + per-agent preflight critiques (spec 0033).
+  // Phase 0 — spec 0135 makes Phase 0 a full multi-round negotiation
+  // mirror of Phase 2 / Phase 4. Cards are produced in three branches:
   //
-  // Spec 0033 split the single Phase 0 card into three:
-  // - `input` — the shared brief + system prompt (one modal)
-  // - `p0-claude` — Claude's brief-critique response (per-agent modal)
-  // - `p0-gpt` — GPT's brief-critique response (per-agent modal)
-  //
-  // The per-agent critique cards only render once both responses are on
-  // disk (i.e. Phase 0 has completed). While Phase 0 is in-flight the
-  // single `input` card stands alone — same behaviour as pre-0033 so
-  // there's no flicker mid-preflight.
+  // - Brief input card (`kind: 'input'`) — always rendered; opens the
+  //   shared brief / Input modal (spec 0033).
+  // - New-protocol round cards (`kind: 'turn'` / `'turn-live'`,
+  //   `statsPhase: 0`) — emitted when `phaseStats.phase0` is round-keyed
+  //   (integer keys, after the camelCase wire pass becomes integer
+  //   stringified). One card per (round, agent), opening the
+  //   side-by-side `NegotiateReviewModal` with the brief or other
+  //   agent's prior phase-0 turn on the left.
+  // - Legacy preflight cards (`kind: 'preflight'`) — fallback for
+  //   pre-0114 transcripts whose only Phase 0 files are
+  //   `preflight-{agent}.md`. Render only when no round-keyed stats
+  //   exist.
   items.push({ id: 'phase-0', kind: 'phase-divider', phaseId: 0, duration: run.phaseTimings?.['0'] });
   items.push({
     id: 'input', kind: 'input', filePath: 'brief.md', topic: run.topic,
     turnKey: 'input',
   });
-  if (ph >= 1) {
+
+  // Spec 0135 — detect new-protocol Phase 0 by the shape of
+  // `phaseStats.phase0`. New shape: round-keyed (int keys, becoming
+  // stringified integers after the camelCase wire pass, e.g. "1", "2").
+  // Legacy shape: per-agent keys ("claude", "gpt").
+  const phase0Stats = run.phaseStats?.phase0 || {};
+  const phase0Keys = Object.keys(phase0Stats);
+  const hasNewPhase0 = phase0Keys.some((k) => /^\d+$/.test(k));
+
+  if (hasNewPhase0) {
+    const cur = run.round?.current ?? 0;
+    const p0StatsRoundCount = phase0Keys.filter((k) => /^\d+$/.test(k)).length;
+    const p0Rounds = ph === 0
+      ? (st === 'running' ? cur : Math.max(cur, p0StatsRoundCount))
+      : p0StatsRoundCount;
+    // Update the phase-divider's `extra` label to mirror Phase 2/4 style.
+    items[items.length - 2].extra = `${p0Rounds} round${p0Rounds === 1 ? '' : 's'}`;
+
+    if (ph === 0 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
+      const completedThrough = st === 'running'
+        ? Math.max(0, cur - 1)
+        : Math.max(cur, p0StatsRoundCount);
+      for (let r = 1; r <= completedThrough; r++) {
+        items.push({ id: `p0-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
+                     statsPhase: 0,
+                     filePath: fileForRound(0, r, 'claude'),
+                     turnKey: `phase0_round${r}_claude` });
+        items.push({ id: `p0-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: r,
+                     statsPhase: 0,
+                     filePath: fileForRound(0, r, 'gpt'),
+                     turnKey: `phase0_round${r}_gpt` });
+      }
+      if (cur > 0 && st === 'running') {
+        items.push({
+          id: `p0-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
+          round: cur, index: cur, live: true, statsPhase: 0,
+          status: run.agents?.claude?.status,
+          body: run.agents?.claude?.currentTurn?.body || '',
+          filePath: fileForRound(0, cur, 'claude'),
+          turnKey: `phase0_round${cur}_claude`,
+        });
+        items.push({
+          id: `p0-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
+          round: cur, index: cur, live: true, statsPhase: 0,
+          status: run.agents?.gpt?.status,
+          body: run.agents?.gpt?.currentTurn?.body || '',
+          filePath: fileForRound(0, cur, 'gpt'),
+          turnKey: `phase0_round${cur}_gpt`,
+        });
+      }
+    } else if (ph >= 1) {
+      for (let r = 1; r <= p0Rounds; r++) {
+        items.push({ id: `p0-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
+                     statsPhase: 0,
+                     filePath: fileForRound(0, r, 'claude'),
+                     turnKey: `phase0_round${r}_claude` });
+        items.push({ id: `p0-r${r}-gpt`,    kind: 'turn', agent: 'gpt',    round: r, index: r,
+                     statsPhase: 0,
+                     filePath: fileForRound(0, r, 'gpt'),
+                     turnKey: `phase0_round${r}_gpt` });
+      }
+    }
+  } else if (ph >= 1) {
+    // Legacy fallback — pre-0114 transcripts only have
+    // `preflight-{agent}.md`. The two per-agent cards open the
+    // single-pane `PreflightResponseModal` (spec 0033 behaviour).
     items.push({
       id: 'p0-claude', kind: 'preflight', agent: 'claude',
       filePath: 'phase0/preflight-claude.md',
@@ -736,15 +805,32 @@ function attachItemStats(items, run) {
   for (const item of items) {
     if (item.kind === 'phase-divider' || item.kind === 'error' || item.kind === 'deadlock') continue;
     if (item.kind === 'input') {
-      // Phase 0 preflight is keyed per agent, but the input card is shared.
-      // Use max(claude, gpt) rather than the sum — the two agents critique
-      // the same brief and their issue lists overlap heavily, so the sum is
-      // misleading. The larger of the two is the better single proxy.
+      // Phase 0 stats: legacy single-shot transcripts have `phase0`
+      // keyed per agent (`claude` / `gpt`); spec-0135 new-protocol runs
+      // have it round-keyed (string-int keys after the camelCase wire
+      // pass). Either way the input card surfaces the agents' brief
+      // critique state; pick the most recent round's stats for the new
+      // shape, or the single per-agent slot for the legacy shape.
       const p0 = ps.phase0 || {};
-      const cIssues = p0.claude?.briefIssues ?? 0;
-      const gIssues = p0.gpt?.briefIssues ?? 0;
+      const keys = Object.keys(p0);
+      const isRoundKeyed = keys.some((k) => /^\d+$/.test(k));
+      let cStat = null;
+      let gStat = null;
+      if (isRoundKeyed) {
+        const lastRound = Math.max(0, ...keys.filter((k) => /^\d+$/.test(k)).map((k) => parseInt(k, 10)));
+        const slot = p0[String(lastRound)] || {};
+        cStat = slot.claude || null;
+        gStat = slot.gpt || null;
+      } else {
+        cStat = p0.claude || null;
+        gStat = p0.gpt || null;
+      }
+      // Use max(claude, gpt) — the two agents critique the same brief
+      // and their issue lists overlap heavily, so the sum is misleading.
+      const cIssues = cStat?.briefIssues ?? cStat?.openQuestions ?? 0;
+      const gIssues = gStat?.briefIssues ?? gStat?.openQuestions ?? 0;
       const count = Math.max(cIssues, gIssues);
-      const bothOk = p0.claude?.status === 'BRIEF_OK' && p0.gpt?.status === 'BRIEF_OK';
+      const bothOk = cStat?.status === 'BRIEF_OK' && gStat?.status === 'BRIEF_OK';
       item.stats = bothOk
         ? { kind: 'preflight', state: 'ok' }
         : count > 0
@@ -771,8 +857,20 @@ function attachItemStats(items, run) {
     if (item.kind === 'turn' || item.kind === 'turn-live') {
       // Round + agent lookup. Round-keyed dicts come over the wire with
       // string keys after the snake_case → camelCase server pass.
-      const phase = (item.round && item.index && String(item.index).startsWith('rev-')) ? 4 : 2;
-      const bucket = phase === 4 ? ps.phase4 : ps.phase2;
+      //
+      // Spec 0135 — Phase 0 turn cards carry an explicit `statsPhase: 0`
+      // stamp from the timeline builder; respect it before the legacy
+      // `rev-`-based phase 2/4 inference. The phase 4 path stays
+      // marked by an `index` of `rev-<r>`; phase 2 is the default.
+      let phase;
+      if (item.statsPhase === 0) {
+        phase = 0;
+      } else if (item.round && item.index && String(item.index).startsWith('rev-')) {
+        phase = 4;
+      } else {
+        phase = 2;
+      }
+      const bucket = phase === 0 ? ps.phase0 : (phase === 4 ? ps.phase4 : ps.phase2);
       item.stats = bucket?.[String(item.round)]?.[item.agent] || null;
       item.statsPhase = phase;
       item.summary =

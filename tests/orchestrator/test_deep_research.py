@@ -20,6 +20,7 @@ from typing import Callable
 
 from dual_research.contract.caps import PhaseCaps
 from dual_research.events import (
+    ArtifactCanonicallyPromoted,
     CloseoutUrged,
     CloseoutViolation,
     ItemRaised,
@@ -279,6 +280,40 @@ def test_organic_convergence_after_closeout_cleanup():
 # ─── Scenario: hard cap fires when agents never converge ──────────────
 
 
+def test_hard_cap_with_no_remaining_items_still_marks_via_hard_cap():
+    """Spec 0136 — agents never reach AGREED but never raise any items
+    either. Hard cap fires at round 4; ``hard_cap_remaining_items``
+    returns ``[]`` because there are no items to cap. Pre-spec the
+    gating ``if hard_caps:`` predicate let this case return
+    ``converged=False, via_hard_cap=False`` and the orchestrator
+    exit code stayed at 0 (silent-exit deadlock). Post-spec the
+    predicate is gone: ``via_hard_cap=True`` regardless of
+    remaining-item count."""
+    caps = PhaseCaps(soft=2, hard=4, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    for r in range(1, 5):
+        for agent in ("claude", "openai"):
+            scripts[(r, agent)] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        caps_override=caps,
+    )
+    result, events = phase.run()
+
+    assert result.converged is True
+    assert result.via_hard_cap is True
+    # No items raised → no items capped.
+    capped = [e for e in events if isinstance(e, ItemTransitioned) and e.to_state == "capped"]
+    assert capped == []
+    # PhaseConverged event still emits with via_hard_cap=True.
+    converged_events = [e for e in events if isinstance(e, PhaseConverged)]
+    assert len(converged_events) == 1
+    assert converged_events[0].via_hard_cap is True
+
+
 def test_hard_cap_auto_caps_remaining_items():
     """Agents never reach AGREED. Hard cap fires at round 4 (caps.hard
     overridden to 4). All non-terminal items auto-cap via hard_cap."""
@@ -491,3 +526,240 @@ def test_raise_in_closeout_round_dropped_with_violation():
 # per-category counters directly from the ItemRaised /
 # ItemTransitioned event stream via ui.items.aggregate_items;
 # verified in tests/ui/test_items.py.
+
+
+# ─── Spec 0137 — substantive-convergence escape valve ─────────────────
+
+
+def _hash_mismatch_match(a, b) -> bool:
+    """artifact_hash_match stub that always rejects — simulates the
+    production failure mode where agents emit semantically-equivalent
+    but byte-different artifact bodies."""
+    return False
+
+
+def _hash_match(a, b) -> bool:
+    """artifact_hash_match stub that always accepts — simulates organic
+    byte-equal convergence."""
+    return True
+
+
+def test_artifact_promotion_fires_when_both_agreed_ledger_terminal_hash_drifts():
+    """Spec 0137 — substantive-convergence escape valve.
+
+    Round 1: claude raises a question; openai is silent.
+    Round 2: openai addresses (item → addressed); both IN_PROGRESS.
+    Round 3: claude resolves (item → resolved, terminal); both AGREED
+    with DIFFERENT artifact text (the hash-drift signature).
+    The artifact_hash_match stub rejects. The escape valve fires:
+    result.via_artifact_promotion=True, the phase converges at
+    round 3, and an ArtifactCanonicallyPromoted event is emitted."""
+    caps = PhaseCaps(soft=2, hard=8, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    scripts[(1, "claude")] = _wrap_turn(
+        status="IN_PROGRESS",
+        body_sections={
+            "New items I'm raising": _raise_block(
+                kind="question", body="how about X?",
+            ),
+        },
+    )
+    scripts[(1, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+
+    # Round 2: openai addresses the question. Item → ADDRESSED. Both
+    # still negotiating.
+    scripts[(2, "claude")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    scripts[(2, "openai")] = _wrap_turn(
+        status="IN_PROGRESS",
+        body_sections={
+            "Addressing items raised against me": _address_block(
+                item_id="Q-plan-c-01", response="here is my answer.",
+            ),
+        },
+    )
+
+    # Round 3: claude resolves; both emit AGREED with byte-different
+    # artifacts. Ledger fully terminal.
+    scripts[(3, "claude")] = _wrap_turn(
+        status="AGREED",
+        body_sections={
+            "Ratifying my own items": _resolve_block(
+                item_id="Q-plan-c-01", reason="the answer convinced me.",
+            ),
+        },
+        artifact="### AGREED_PLAN\nclaude wrote this version",
+    )
+    scripts[(3, "openai")] = _wrap_turn(
+        status="AGREED",
+        body_sections={},
+        artifact="### AGREED_PLAN\nopenai wrote this DIFFERENT version",
+    )
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        artifact_hash_match=_hash_mismatch_match,
+        caps_override=caps,
+    )
+    result, events = phase.run()
+
+    assert result.converged is True
+    assert result.via_artifact_promotion is True
+    assert result.via_closeout is False
+    assert result.via_ghost_cap is False
+    assert result.via_hard_cap is False
+    assert result.final_round == 3
+
+    promoted = [e for e in events if isinstance(e, ArtifactCanonicallyPromoted)]
+    assert len(promoted) == 1
+    assert promoted[0].phase == "phase2"
+    assert promoted[0].round == 3
+
+    converged_events = [e for e in events if isinstance(e, PhaseConverged)]
+    assert len(converged_events) == 1
+    assert converged_events[0].via_artifact_promotion is True
+
+
+def test_artifact_promotion_does_not_fire_when_ledger_has_open_items():
+    """Spec 0137 — the escape valve must NOT fire when items are
+    non-terminal, even if both agents emit AGREED with hash drift.
+    The closeout mechanism must take precedence (this is the existing
+    closeout-urge path)."""
+    caps = PhaseCaps(soft=2, hard=8, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    scripts[(1, "claude")] = _wrap_turn(
+        status="IN_PROGRESS",
+        body_sections={
+            "New items I'm raising": _raise_block(
+                kind="question", body="how about X?",
+            ),
+        },
+    )
+    scripts[(1, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+
+    # Round 2: openai addresses, both AGREE. Item is now `addressed`
+    # (non-terminal) — closeout should urge, not artifact-promote.
+    scripts[(2, "claude")] = _wrap_turn(
+        status="AGREED",
+        body_sections={},
+        artifact="### AGREED_PLAN\nclaude version",
+    )
+    scripts[(2, "openai")] = _wrap_turn(
+        status="AGREED",
+        body_sections={
+            "Addressing items raised against me": _address_block(
+                item_id="Q-plan-c-01", response="here is my answer.",
+            ),
+        },
+        artifact="### AGREED_PLAN\nopenai DIFFERENT version",
+    )
+
+    # Round 3 (closeout round): both still don't ratify. Same artifact
+    # drift. Closeout budget decrements, but artifact promotion still
+    # must not fire while the item is non-terminal.
+    scripts[(3, "claude")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nclaude version",
+    )
+    scripts[(3, "openai")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nopenai DIFFERENT version",
+    )
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        artifact_hash_match=_hash_mismatch_match,
+        caps_override=PhaseCaps(soft=2, hard=4, closeout_budget=1),
+    )
+    result, events = phase.run()
+
+    # Should NOT have fired artifact promotion — closeout urged
+    # instead, and at budget exhaustion the item ghost-caps.
+    promoted = [e for e in events if isinstance(e, ArtifactCanonicallyPromoted)]
+    assert promoted == [], (
+        "artifact promotion fired despite non-terminal item; "
+        "this would short-circuit the closeout mechanism."
+    )
+    assert result.via_artifact_promotion is False
+    # The closeout path runs — exact via_* depends on budget timing,
+    # but result.converged must still be True.
+    assert result.converged is True
+
+
+def test_artifact_promotion_does_not_fire_when_only_one_agreed():
+    """Spec 0137 — the escape valve requires BOTH agents to emit AGREED.
+    One-sided AGREED + terminal ledger continues the loop until the
+    other side also agrees or hard-cap fires."""
+    caps = PhaseCaps(soft=2, hard=3, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    # Round 1: no items raised. Both IN_PROGRESS.
+    scripts[(1, "claude")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    scripts[(1, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    # Round 2: claude AGREED, openai still IN_PROGRESS. Ledger empty
+    # (no items were raised). Escape valve must not fire.
+    scripts[(2, "claude")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nclaude version",
+    )
+    scripts[(2, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    # Round 3: same one-sided state — hard-cap fires.
+    scripts[(3, "claude")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nclaude version",
+    )
+    scripts[(3, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        artifact_hash_match=_hash_mismatch_match,
+        caps_override=caps,
+    )
+    result, events = phase.run()
+
+    promoted = [e for e in events if isinstance(e, ArtifactCanonicallyPromoted)]
+    assert promoted == []
+    assert result.via_artifact_promotion is False
+    # Should hard-cap instead.
+    assert result.via_hard_cap is True
+
+
+def test_organic_convergence_keeps_all_via_flags_false():
+    """Spec 0137 sanity — when the artifact hashes DO match (organic
+    convergence), every ``via_*`` flag stays False, including the new
+    ``via_artifact_promotion``."""
+    caps = PhaseCaps(soft=2, hard=8, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    scripts[(1, "claude")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    scripts[(1, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    # Round 2: empty ledger, both AGREED, artifact_hash_match returns True
+    scripts[(2, "claude")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nshared",
+    )
+    scripts[(2, "openai")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nshared",
+    )
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        artifact_hash_match=_hash_match,
+        caps_override=caps,
+    )
+    result, events = phase.run()
+
+    assert result.converged is True
+    assert result.via_artifact_promotion is False
+    assert result.via_closeout is False
+    assert result.via_ghost_cap is False
+    assert result.via_hard_cap is False
+    # No promotion event in stream.
+    promoted = [e for e in events if isinstance(e, ArtifactCanonicallyPromoted)]
+    assert promoted == []

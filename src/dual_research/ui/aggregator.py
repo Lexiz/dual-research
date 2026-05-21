@@ -97,6 +97,12 @@ def load_run_snapshot(session_dir: Path) -> Run:
         apply_event(run, event, session_dir)
 
     _augment_from_state_json(run, session_dir / "state.json")
+    # Spec 0136 — re-run the unified truth table once more after state.json
+    # augmentation (which can advance ``run.phase`` to 5 for runs whose
+    # transcript is missing the ``final_emitted`` event but where
+    # ``state.final_emitted_to`` was written). The truth table is idempotent;
+    # running it again is a no-op for runs already correctly classified.
+    _finalise_status(run)
     _populate_current_bodies(run, session_dir)
 
     # Disagreements: reconstruct after replay so all rounds are visible.
@@ -239,7 +245,11 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
         _on_turn_searches(run, event, session_dir)
     elif kind == "turn_ended":
         _on_turn_ended(run, event)
-    elif kind in ("phase2_round_complete", "phase4_round_complete"):
+    elif kind in (
+        "phase0_round_complete",
+        "phase2_round_complete",
+        "phase4_round_complete",
+    ):
         _on_round_complete(run, event)
     elif kind == "phase2_complete":
         _on_phase2_complete(run, event)
@@ -255,11 +265,21 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
     elif kind == "run_failed":
         _on_run_failed(run, event)
     elif kind == "hard_cap_hit":
-        run.status = "deadlocked"
+        # Spec 0136 — stash the signal on _terminal_signals; the
+        # unified _finalise_status pass below applies the truth table.
+        # Pre-spec this assigned ``run.status = "deadlocked"`` directly,
+        # which raced with the later ``_on_run_completed`` handler that
+        # could overwrite it back to ``"completed"`` when the orchestrator
+        # emitted ``exit_code 0``.
+        run._terminal_signals.hard_cap_hit = True
     # Other events (cost_update, soft_cap_hit, repair_invoked,
     # drafter_tiebreak_resolved, phase{0,1,3}_complete) carry information
     # already covered by other code paths.
 
+    # Spec 0136 — re-derive status after every event so live SSE pushes
+    # and replayed transcripts both apply the same truth table. The
+    # function is pure dict reads + a 6-row short-circuit; sub-microsecond.
+    _finalise_status(run)
     return run
 
 
@@ -277,13 +297,19 @@ def summarize_run(session_dir: Path) -> RunListRow:
     duration = _duration_seconds(session_dir / "transcript.jsonl")
 
     final_emitted = bool(state and state.final_emitted_to)
-    # Detect hard-cap / failure cheaply by scanning the transcript tail.
-    hard_cap_hit, run_failed = _scan_terminal_signals(session_dir / "transcript.jsonl")
+    # Spec 0136 — also pull run_completed.exit_code so the unified
+    # derive_run_status truth table can distinguish "exited cleanly,
+    # reached done" from "exited cleanly, never reached done"
+    # (silent-exit deadlock).
+    hard_cap_hit, run_failed, run_completed_exit_code = _scan_terminal_signals(
+        session_dir / "transcript.jsonl"
+    )
     status = derive_run_status(
         state_phase=state.phase if state else "phase0",
         final_emitted=final_emitted,
         hard_cap_hit=hard_cap_hit,
         run_failed=run_failed,
+        run_completed_exit_code=run_completed_exit_code,
     )
 
     # Spec 0039 D3 — transcript is the canonical truth; metrics.json is
@@ -420,12 +446,16 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     )
     # Per-turn token usage (spec 0029) — keyed the same way as
     # phase_summaries / phase_review_items so the Consumption tab can join
-    # cleanly. Single-shot phases (0, 1, 3) use phase{N}_<agent>;
-    # round-loop phases (2, 4) use phase{N}_round{R}_<agent>. The model id
-    # is recorded so the frontend can pick the right context-window
-    # denominator, even if the agent's `model_id` later changes mid-run.
+    # cleanly. Single-shot phases (1, 3) use phase{N}_<agent>; round-loop
+    # phases (0, 2, 4) use phase{N}_round{R}_<agent>.
+    #
+    # Spec 0135 — Phase 0 joined the round-loop family when the
+    # new-protocol multi-round negotiation landed. Legacy single-shot
+    # Phase 0 transcripts emit labels like ``phase0-claude`` (no round
+    # marker); ``_round_index_from_label`` returns ``0`` for those, so
+    # they keep the legacy ``phase0_<agent>`` key.
     phase_int = phase_to_int(phase_str)
-    if phase_int in (2, 4) and idx > 0:
+    if phase_int in (0, 2, 4) and idx > 0:
         key = f"phase{phase_int}_round{idx}_{ag}"
     else:
         key = f"phase{phase_int}_{ag}"
@@ -830,27 +860,41 @@ def _on_phase2_complete(run: Run, event: dict) -> None:
 
 
 def _on_final_emitted(run: Run, event: dict) -> None:
-    # confidence: 'HIGH' | 'MODERATE' | 'LOW' — not currently displayed but
-    # could feed a future "confidence" pill. Ignored for now.
-    pass
+    # Spec 0136 — record the final-emitted signal so ``_finalise_status``
+    # can promote ``run.status`` to "completed" via the truth-table's
+    # final-emitted branch. Pre-spec this handler was a no-op; the
+    # detail page relied on the subsequent ``run_completed{exit_code: 0}``
+    # event to flip status, and the All-Runs page read
+    # ``state.final_emitted_to`` directly. Stashing here keeps the two
+    # paths in sync without depending on the orchestrator's exit-code
+    # mapping.
+    # confidence: 'HIGH' | 'MODERATE' | 'LOW' — not currently displayed
+    # but could feed a future "confidence" pill.
+    run._terminal_signals.final_emitted = True
 
 
 def _on_run_completed(run: Run, event: dict) -> None:
-    exit_code = int(event.get("exit_code", 0))
-    if exit_code == 0:
-        run.status = "completed"
-    elif exit_code == 51:
-        run.status = "deadlocked"
-    elif exit_code in (1, 2, 52):
-        run.status = "errored"
+    # Spec 0136 — stash the exit code on _terminal_signals; _finalise_status
+    # runs the unified truth table after the dispatch returns. Pre-spec
+    # the handler imperatively mapped exit_code 0 → "completed" without
+    # cross-checking ``state.phase`` or ``final_emitted_to``, which
+    # produced false "completed" pills for runs that exited at the hard
+    # cap with every item already terminal (Phase 2 silent-exit).
+    try:
+        exit_code = int(event.get("exit_code", 0))
+    except (TypeError, ValueError):
+        exit_code = 0
+    run._terminal_signals.run_completed_exit_code = exit_code
     # All agents go idle on terminal.
     for ag in run.agents.values():
         ag.status = "idle"
 
 
 def _on_run_failed(run: Run, event: dict) -> None:
-    run.status = "errored"
-    run.error = TopLevelError(
+    # Spec 0136 — stash the signal + error payload on _terminal_signals;
+    # _finalise_status applies the truth table.
+    run._terminal_signals.run_failed = True
+    run._terminal_signals.run_failed_error = TopLevelError(
         when=event.get("ts", ""),
         where=event.get("phase_reached", "orchestrator"),
         code=event.get("error_type", "ORCHESTRATOR_PANIC"),
@@ -858,6 +902,38 @@ def _on_run_failed(run: Run, event: dict) -> None:
     )
     for ag in run.agents.values():
         ag.status = "idle"
+
+
+def _finalise_status(run: Run) -> None:
+    """Spec 0136 — apply the unified ``derive_run_status`` truth table.
+
+    Reads the terminal signals stashed on ``run._terminal_signals`` by
+    the event handlers + the snapshot fields (``run.phase``,
+    ``run.current_draft_path`` if any) and writes a single canonical
+    ``run.status``. Called after every ``apply_event`` tick so live SSE
+    deliveries re-derive status the same way the snapshot path does.
+
+    Idempotent — safe to call repeatedly. Side-effects: writes
+    ``run.status`` and (when ``run_failed``) ``run.error``.
+    """
+    sigs = run._terminal_signals
+    # ``state.phase == "done"`` is the orchestrator's terminal-state
+    # marker; on the Run dataclass that's ``run.phase == 5`` because the
+    # UI uses int phase numbers (Phase 5 == post-Phase-4 / final-emitted).
+    state_phase = "done" if run.phase == 5 else f"phase{run.phase}"
+    # Either the ``final_emitted`` transcript event arrived (sigs.final_emitted)
+    # or ``_augment_from_state_json`` set ``run.phase = 5`` from
+    # ``state.final_emitted_to`` — both signal the run reached done.
+    final_emitted = sigs.final_emitted or run.phase == 5
+    run.status = derive_run_status(
+        state_phase=state_phase,
+        final_emitted=final_emitted,
+        hard_cap_hit=sigs.hard_cap_hit,
+        run_failed=sigs.run_failed,
+        run_completed_exit_code=sigs.run_completed_exit_code,
+    )
+    if sigs.run_failed and sigs.run_failed_error is not None:
+        run.error = sigs.run_failed_error
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1077,12 +1153,21 @@ def _sum_transcript_cost(transcript_path: Path) -> float:
     return sum(by_label.values())
 
 
-def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool]:
-    """Tail-scan the transcript for ``hard_cap_hit`` / ``run_failed`` markers."""
+def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool, int | None]:
+    """Tail-scan the transcript for terminal-event markers.
+
+    Returns ``(hard_cap_hit, run_failed, run_completed_exit_code)``.
+    ``run_completed_exit_code`` is ``None`` when the event hasn't fired
+    yet (live in-flight runs); ``int`` when the orchestrator has emitted
+    ``RunCompleted``. Spec 0136 added the third return value so
+    ``summarize_run`` can pass it to ``derive_run_status`` and unify the
+    list-page status derivation with the detail-page replay path.
+    """
     hard_cap = False
     run_failed = False
+    run_completed_exit_code: int | None = None
     if not transcript_path.exists():
-        return False, False
+        return False, False, None
     try:
         for line in transcript_path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -1092,13 +1177,19 @@ def _scan_terminal_signals(transcript_path: Path) -> tuple[bool, bool]:
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if event.get("event") == "hard_cap_hit":
+            kind = event.get("event")
+            if kind == "hard_cap_hit":
                 hard_cap = True
-            elif event.get("event") == "run_failed":
+            elif kind == "run_failed":
                 run_failed = True
+            elif kind == "run_completed":
+                try:
+                    run_completed_exit_code = int(event.get("exit_code", 0))
+                except (TypeError, ValueError):
+                    run_completed_exit_code = 0
     except OSError:
-        return False, False
-    return hard_cap, run_failed
+        return False, False, None
+    return hard_cap, run_failed, run_completed_exit_code
 
 
 _ROUND_RE = re.compile(r"round-(\d+)-(?:claude|openai)\.md$")
@@ -1173,9 +1264,18 @@ def _populate_current_bodies(run: Run, session_dir: Path) -> None:
     served on-demand via the file endpoint (spec 0010).
     """
     if run.phase == 0:
-        # Phase 0: each agent's preflight critique.
-        _set_body_if_present(run, "claude", session_dir / "phase0" / "preflight-claude.md", kind="thinking")
-        _set_body_if_present(run, "gpt", session_dir / "phase0" / "preflight-openai.md", kind="thinking")
+        # Phase 0 — spec 0135. New-protocol runs write multi-round
+        # ``round-NN-{agent}.md`` files; prefer the latest round for the
+        # in-flight live-card body. Fall back to legacy
+        # ``preflight-{agent}.md`` when no round files exist (pre-0114
+        # transcripts).
+        rnd = _latest_round_for(session_dir, 0)
+        if rnd is not None and rnd > 0:
+            _set_body_if_present(run, "claude", session_dir / "phase0" / f"round-{rnd:02d}-claude.md", kind="thinking", index=rnd)
+            _set_body_if_present(run, "gpt", session_dir / "phase0" / f"round-{rnd:02d}-openai.md", kind="thinking", index=rnd)
+        else:
+            _set_body_if_present(run, "claude", session_dir / "phase0" / "preflight-claude.md", kind="thinking")
+            _set_body_if_present(run, "gpt", session_dir / "phase0" / "preflight-openai.md", kind="thinking")
     elif run.phase == 1:
         _set_body_if_present(run, "claude", session_dir / "phase1" / "draft-claude.md", kind="plan-draft")
         _set_body_if_present(run, "gpt", session_dir / "phase1" / "draft-openai.md", kind="plan-draft")
@@ -1247,15 +1347,19 @@ def _read_phase_summaries(session_dir: Path) -> dict[str, str]:
     """Walk every turn file and pull each agent's `## Summary` section.
 
     Keys are stable for the UI to look up:
-        phase0_<agent>            (preflight critique)
-        phase1_<agent>            (research draft)
-        phase2_round{R}_<agent>   (negotiate turns)
-        phase3                    (converged draft — no agent split)
-        phase4_round{R}_<agent>   (review turns)
+        phase0_<agent>             (legacy single-shot preflight critique)
+        phase0_round{R}_<agent>    (spec 0135 — new-protocol multi-round)
+        phase1_<agent>             (research draft)
+        phase2_round{R}_<agent>    (negotiate turns)
+        phase3                     (converged draft — no agent split)
+        phase4_round{R}_<agent>    (review turns)
     """
     out: dict[str, str] = {}
 
-    # Phase 0 — preflight critiques (one per agent).
+    # Phase 0 (legacy) — pre-0114 single-shot preflight critiques. Stays
+    # populated for legacy transcripts that only carry
+    # ``phase0/preflight-{agent}.md`` files; new-protocol runs add
+    # ``phase0_round{R}_<agent>`` entries below.
     for agent in ("claude", "openai"):
         path = session_dir / "phase0" / f"preflight-{agent}.md"
         _maybe_set_summary(out, f"phase0_{_ui_agent(agent)}", path)
@@ -1265,8 +1369,10 @@ def _read_phase_summaries(session_dir: Path) -> dict[str, str]:
         path = session_dir / "phase1" / f"draft-{agent}.md"
         _maybe_set_summary(out, f"phase1_{_ui_agent(agent)}", path)
 
-    # Phase 2 and 4 — turn-based; enumerate every round file on disk.
-    for phase in (2, 4):
+    # Phase 0, 2, and 4 — turn-based; enumerate every round file on disk.
+    # Spec 0135 — Phase 0 joined the round-keyed loop when the new-protocol
+    # multi-round negotiation landed.
+    for phase in (0, 2, 4):
         phase_dir = session_dir / f"phase{phase}"
         if not phase_dir.exists():
             continue
@@ -1391,7 +1497,16 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
     def _resolve_prior_blocks(phase_n: int, round_n: int, agent_be: str):
         nonlocal cached_current_draft
         # Mirror ``ui/static/run-detail.jsx::priorContentPathFor``.
-        if phase_n == 1:
+        if phase_n == 0:
+            # Spec 0135 — Phase 0 critiques the brief at round 1; round
+            # N ≥ 2 responds to the other agent's prior Phase 0 turn.
+            other_be = "openai" if agent_be == "claude" else "claude"
+            if round_n <= 1:
+                prior_path = session_dir / "brief.md"
+            else:
+                rr = f"{round_n - 1:02d}"
+                prior_path = session_dir / "phase0" / f"round-{rr}-{other_be}.md"
+        elif phase_n == 1:
             # Spec 0042 — Phase 1 draft claims/questions anchor against
             # the brief (the agent's only input at that point).
             prior_path = session_dir / "brief.md"
@@ -1447,7 +1562,11 @@ def _read_phase_review_items(session_dir: Path) -> dict[str, list[dict]]:
             key = f"phase1_{_ui_agent(agent)}"
             out[key] = [asdict(i) for i in items]
 
-    for phase_n in (2, 4):
+    # Spec 0135 — Phase 0 walks alongside Phase 2 + Phase 4. Round files
+    # produced by ``dr_run.run_dr_phase0`` carry the same RAISE-block
+    # schema; the side-by-side modal opens with the brief on the left
+    # at round 1 and the other agent's prior Phase 0 turn at round ≥ 2.
+    for phase_n in (0, 2, 4):
         phase_dir = session_dir / f"phase{phase_n}"
         if not phase_dir.exists():
             continue
@@ -1734,7 +1853,12 @@ def _attach_item_aggregation(run, transcript_path, session_dir=None):
                 elif phase == 4:
                     slot = run.phase_stats.phase4.setdefault(round_no, {})
                 elif phase == 0:
-                    slot = run.phase_stats.phase0
+                    # Spec 0135 — Phase 0 is now round-keyed (matching
+                    # Phase 2 / Phase 4). Pre-0114 legacy transcripts
+                    # produce no Phase 0 item events at all and never
+                    # reach this branch, so the round-keyed shape is
+                    # safe to assume here.
+                    slot = run.phase_stats.phase0.setdefault(round_no, {})
                 else:
                     continue
                 existing = slot.get(ui_agent) or TurnStats()
@@ -1761,8 +1885,19 @@ def _fill_carry_forward_categories(run) -> None:
     every item regardless of whether the round had any operations.
     """
     from dual_research.ui.models import CategoryCounters, TurnCategoryStats
-    for phase_dict in (run.phase_stats.phase2, run.phase_stats.phase4):
+    for phase_dict in (
+        run.phase_stats.phase0,
+        run.phase_stats.phase2,
+        run.phase_stats.phase4,
+    ):
         if not phase_dict:
+            continue
+        # Spec 0135 — phase 0 is dual-shape during the transition. Skip
+        # the carry-forward pass for the legacy per-agent shape (values
+        # are TurnStats, not dict[str, TurnStats]); only the new
+        # round-keyed shape participates in carry-forward standing.
+        sample_key = next(iter(phase_dict))
+        if not isinstance(sample_key, int):
             continue
         # Per-agent running standing across rounds, in ascending order.
         running: dict[str, dict[str, int]] = {}

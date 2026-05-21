@@ -273,7 +273,7 @@ function RunListView({ runs, loading, onSelect }) {
         background: 'var(--md-surface-container-high)',
         borderBottom: '1px solid var(--md-outline-variant)',
         fontSize: 10, color: 'var(--md-on-surface-muted)',
-        fontWeight: 600,
+        fontWeight: 'var(--md-w-semi)',
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
       }}>
@@ -313,7 +313,7 @@ function RunListView({ runs, loading, onSelect }) {
               background: 'var(--md-surface-container-low)',
               borderBottom: '1px solid var(--md-outline-hair)',
               fontSize: 11,
-              fontWeight: 600,
+              fontWeight: 'var(--md-w-semi)',
               color: 'var(--md-on-surface-muted)',
               display: 'flex',
               alignItems: 'center',
@@ -340,7 +340,7 @@ function RunListView({ runs, loading, onSelect }) {
                 background: 'var(--md-surface-container-low)',
                 borderBottom: '1px solid var(--md-outline-hair)',
                 fontSize: 11,
-                fontWeight: 600,
+                fontWeight: 'var(--md-w-semi)',
                 color: 'var(--md-on-surface-faint)',
               }}>
                 Other runs

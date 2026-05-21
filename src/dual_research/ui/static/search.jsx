@@ -68,7 +68,7 @@ function CrossRunSearchScreen({ navigate }) {
           <h2 style={{
             fontSize: 'var(--md-title-l-size)',
             lineHeight: 'var(--md-title-l-lh)',
-            fontWeight: 'var(--w-semibold)',
+            fontWeight: 'var(--md-w-semi)',
             color: 'var(--md-on-surface)',
             margin: 0,
             display: 'flex', alignItems: 'center', gap: 8,
@@ -153,7 +153,7 @@ function CrossRunSearchScreen({ navigate }) {
                 {group.displayId}
               </span>
               <span style={{
-                fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 500,
+                fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
                 {group.topic || group.runId}

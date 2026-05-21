@@ -35,11 +35,13 @@ from dual_research.contract.caps import caps_for
 from dual_research.contract.categories import Category
 from dual_research.contract.lifecycle import State, is_terminal
 from dual_research.events import (
+    ArtifactCanonicallyPromoted,
     EventBus,
     HardCapHit,
     ItemRaised,
     ItemTransitioned,
     Phase0Complete,
+    Phase0RoundComplete,
     Phase1Complete,
     Phase2Complete,
     Phase2RoundComplete,
@@ -51,6 +53,7 @@ from dual_research.events import (
     PhaseExited,
     SoftCapHit,
 )
+from dual_research.orchestrator.closeout import items_blocking_convergence
 # Spec 0115 — legacy_shim removed; the new event stream is the only
 # source of per-category data. Round-complete events emit as marker
 # events with no counter payload.
@@ -192,6 +195,7 @@ async def _drive_interaction_phase(
     via_closeout = False
     via_ghost_cap = False
     via_hard_cap = False
+    via_artifact_promotion = False
     converged = False
     soft_hit_emitted = False
     round_no = 0
@@ -319,6 +323,43 @@ async def _drive_interaction_phase(
             via_closeout = is_closeout_round
             break
 
+        # ── Spec 0137 — substantive-convergence escape valve ───────────
+        # When both agents emit AGREED and the ledger holds zero
+        # non-terminal items but ``check_convergence`` still rejected,
+        # the artifact-hash gate is the only remaining blocker. The
+        # agents wrote semantically-equivalent but byte-different
+        # artifact bodies (a known LLM failure mode of the parallel-
+        # emission "Adoption procedure"). Trust the agents' self-
+        # declared AGREED — promote the canonical artifact from the
+        # designated agent's turn (claude for phase 0; the drafter for
+        # phase 2 / 4) and exit. No repair turn: the downstream
+        # consumer (run_dr_phase{0,2,4} post-loop) reads from one
+        # specific agent's emission anyway, so the other agent's
+        # drift is not load-bearing.
+        if (
+            rr.claude_status == "AGREED"
+            and rr.openai_status == "AGREED"
+            and not items_blocking_convergence(phase.state.item_views())
+        ):
+            converged = True
+            via_artifact_promotion = True
+            await event_bus.publish(
+                ArtifactCanonicallyPromoted(phase=phase_label, round=round_no)
+            )
+            ctx.transcript.write(
+                "artifact_canonically_promoted",
+                phase=phase_label,
+                round=round_no,
+            )
+            print(
+                f"\n[{phase_label}] AGREED (artifact promotion). Both agents "
+                f"emitted STATUS: AGREED with a terminal ledger at round "
+                f"{round_no}, but their artifact bodies hash-drifted. "
+                f"Accepting their self-declared agreement.",
+                flush=True,
+            )
+            break
+
         if rr.closeout_event is not None:
             if is_closeout_round:
                 # Burn budget; check ghost-cap.
@@ -334,15 +375,24 @@ async def _drive_interaction_phase(
             is_closeout_round = False
 
     if not converged and round_no >= caps.hard:
+        # Spec 0136 — emit HardCapHit + flip via_hard_cap whenever the
+        # loop exits at caps.hard without convergence, regardless of
+        # whether any items remain non-terminal. Pre-spec the gating
+        # ``if hard:`` predicate let the "every item terminal but no
+        # AGREED status" pattern leak through with exit_code 0, which
+        # the UI then rendered as a silent "completed" on the detail
+        # page (and stuck on "running" forever on the All-Runs list).
+        # The two phases that hit this loop (Phase 2 and Phase 4) emit
+        # the deadlock signal here so downstream code can mark the run
+        # ``deadlocked`` consistently.
         await event_bus.publish(
             HardCapHit(phase=phase_label, round=round_no, cap=caps.hard)
         )
         hard = phase.hard_cap_remaining_items(round=round_no)
-        if hard:
-            for ev in hard:
-                await event_bus.publish(ev)
-            via_hard_cap = True
-            converged = True
+        for ev in hard:
+            await event_bus.publish(ev)
+        via_hard_cap = True
+        converged = True
 
     converged_event = None
     if converged:
@@ -351,6 +401,7 @@ async def _drive_interaction_phase(
             via_closeout=via_closeout,
             via_ghost_cap=via_ghost_cap,
             via_hard_cap=via_hard_cap,
+            via_artifact_promotion=via_artifact_promotion,
         )
         await event_bus.publish(converged_event)
 
@@ -368,6 +419,7 @@ async def _drive_interaction_phase(
         via_hard_cap=via_hard_cap,
         ledger=tuple(phase.state.ledger),
         converged_event=converged_event,
+        via_artifact_promotion=via_artifact_promotion,
     )
     return result, phase
 
@@ -423,8 +475,19 @@ async def _publish_legacy_round_complete(
 
     The legacy counter fields stay at their None defaults; all
     per-category data now flows via ItemRaised / ItemTransitioned.
+
+    Spec 0135 — Phase 0 now emits its own ``Phase0RoundComplete`` per
+    round so the UI can render the same per-round-per-agent timeline
+    cards Phase 2 / Phase 4 already render.
     """
-    if phase_int == 2:
+    if phase_int == 0:
+        await bus.publish(Phase0RoundComplete(
+            round=round,
+            agreed=agreed,
+            claude_status=claude_status,
+            openai_status=openai_status,
+        ))
+    elif phase_int == 2:
         await bus.publish(Phase2RoundComplete(
             round=round,
             agreed=agreed,
@@ -439,7 +502,6 @@ async def _publish_legacy_round_complete(
             openai_status=openai_status,
             draft_round=ctx.state.draft_round,
         ))
-    # Phase 0 has no per-round event in the legacy schema.
 
 
 # ─── Phase 0 ──────────────────────────────────────────────────────────

@@ -154,7 +154,7 @@ function AllowlistManager({ myEmail }) {
   return (
     <div>
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 18, fontWeight: 600 }}>Email allowlist</div>
+        <div style={{ fontSize: 18, fontWeight: 'var(--md-w-semi)' }}>Email allowlist</div>
         <div style={{ fontSize: 13, color: 'var(--md-on-surface-muted)', marginTop: 4 }}>
           Anyone with a Google account at one of these addresses can sign in.
           Admins can manage this list.
@@ -438,7 +438,7 @@ function UsersManager({ myEmail }) {
   return (
     <div>
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 18, fontWeight: 600 }}>Users</div>
+        <div style={{ fontSize: 18, fontWeight: 'var(--md-w-semi)' }}>Users</div>
         <div style={{ fontSize: 13, color: 'var(--md-on-surface-muted)', marginTop: 4 }}>
           Every allowlisted user with their role and onboarding state. Reset the
           tour for one user, several at once, or everyone.

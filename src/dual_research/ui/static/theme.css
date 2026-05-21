@@ -1,18 +1,10 @@
 /* =============================================================
    dual-research — M3 body-level class hooks
    --------------------------------------------------------------
-   After spec 0131 closed the v1 → v2 migration arc, this file
-   contains only the body.* hooks that flip M3 token *values* at
-   the document level (agent tint, density). Every per-component
-   class lives in components.css.
-   ============================================================= */
+   Body.* hooks that flip M3 token *values* at the document level
+   (agent tint, density). Every per-component class lives in
+   components.css.
 
-/* =============================================================
-   SPEC-0092 — M3 tint + density body classes (additive).
-   No v1 component currently reads these — they exist so
-   subsequent specs (0093…0104) can flip agent tint (sable ⇄
-   sage) and density (comfortable ⇄ compact) via a single body
-   class without touching component CSS per route.
    Mirrors design-system/assets/styles/tokens-and-primitives.css:177-198.
    ============================================================= */
 

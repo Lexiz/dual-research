@@ -192,12 +192,12 @@ function PanelHeader({ icon, agent, title, status, right }) {
           fontFamily: 'var(--md-font-data)',
           color: meta.color,
           fontSize: 11,
-          fontWeight: 600,
+          fontWeight: 'var(--md-w-semi)',
         }}>{meta.name[0]}</div>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span style={{ color: meta ? meta.color : 'var(--md-on-surface)', fontWeight: 600, fontSize: 13, letterSpacing: '-0.005em' }}>
+          <span style={{ color: meta ? meta.color : 'var(--md-on-surface)', fontWeight: 'var(--md-w-semi)', fontSize: 13, letterSpacing: '-0.005em' }}>
             {meta ? meta.name : title}
           </span>
           {meta && (
@@ -777,7 +777,6 @@ function Chip({
     ? _cn(
         'chip',
         `tone-${tone}`,
-        pill && 'chip-pill',                                 // legacy no-op (pill is default)
         (lg || size === 'lg') && 'chip-lg',
         shape === 'square' && 'chip-square',
         mono && 'mono',
@@ -883,7 +882,10 @@ function CardBody({ children, className }) {
 
 // AgentStrip — uses brief's 'a'/'b' agent convention.
 // `name` defaults to 'Claude'/'GPT' based on agent.
-function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', live, right, className }) {
+// Spec 0133 — optional `costFormatter` lets call sites swap the default
+// 4-decimal `fmt.cost` for `fmt.costShort` (2-decimal) when 4-digit
+// precision is noise at this surface (run-detail relocated agent chips).
+function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', live, right, className, costFormatter = fmt.cost }) {
   const displayName = name || (agent === 'a' ? 'Claude' : 'GPT');
   return (
     <div className={_cn('as', `is-${agent}`, className)}>
@@ -903,7 +905,7 @@ function AgentStrip({ agent = 'a', name, model, tokens, cost, status = 'idle', l
         )}
         {cost != null && (
           <>
-            <span className="num v">{fmt.cost(cost)}</span>
+            <span className="num v">{costFormatter(cost)}</span>
             <span className="sep">·</span>
           </>
         )}
@@ -1093,9 +1095,14 @@ function parseQId(legacy) {
 function _agentSlot(agent) { return agent === 'claude' ? 'a' : agent === 'gpt' ? 'b' : agent; }
 
 // Spec 0119 §7.2 — ``QuestionRef`` retired. The critique card
-// header now leads with a provider Chip + category-bubble Chip;
-// the public ID renders as small mono inline text inside the card
-// body (``.crit-card-id``), not as a separate primitive.
+// header now leads with a provider Chip + category-bubble Chip; the
+// public ID was previously rendered as small mono inline text inside
+// the card body (``.crit-card-id``), and was removed by spec 0138 §5.2
+// once the redundancy with the chip cluster was called out (D / Q
+// prefix duplicates the category chip, -c-/-g- suffix duplicates the
+// provider icon chip, round number duplicates the "raised in r{N}"
+// chip). The id is still threaded through the React `key` and remains
+// recoverable from the item data structure.
 
 // Spec 0097 — canonical six-word verdict vocabulary.
 // Spec 0119 §7.1 — canonical lifecycle verbs for chip labels on the
@@ -1262,10 +1269,22 @@ function QuestionThread({
           <Icon.Chevron />
         </span>
       </header>
-      {/* Spec 0119 §8.4 — public ID renders as small mono inline text,
-          not as a chip in the header. Always visible (collapsed or
-          expanded) so it's copyable. */}
-      {id && <div className="crit-card-id">id: {id}</div>}
+      {/* Spec 0138 §5.2 — the public ID line was previously always
+          rendered as small mono text below the header (spec 0119 §8.4).
+          Removed because:
+          - The `D`/`Q`/`I`/`C` prefix duplicates the category chip in
+            the header.
+          - The `-c-` / `-g-` suffix duplicates the provider icon chip.
+          - The trailing round counter duplicates the `raised in r{N}` chip.
+          - The middle phase fragment (`plan` / `draft`) is disambiguated
+            by the surrounding `.crit-group` header and the Phase 2 /
+            Phase 4 tab selection.
+          Dropping the line lets every collapsed critique card match the
+          vertical footprint of a collapsed timeline turn card (Notion
+          feedback: critique pane reads visibly taller at the same item
+          count). The id is still passed as the React `key` and is
+          recoverable from the item data structure if a future feature
+          needs it in DOM. */}
 
       {/* TIMELINE + FOOTER — visible when expanded. Spec 0119 §8.5:
           each row is a chip cluster (provider + round + verb) above

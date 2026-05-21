@@ -123,7 +123,10 @@ def test_issue_status_maps_to_open_when_state_is_open() -> None:
     assert i.quote == "convention-over-configuration"
 
 
-def test_project_phase_ledgers_fills_only_phases_2_and_4() -> None:
+def test_project_phase_ledgers_fills_phases_0_2_and_4() -> None:
+    # Spec 0135 — Phase 0 joined Phase 2 + Phase 4 in the ledger
+    # projection so the new-protocol multi-round brief negotiation
+    # contributes to the cross-round ledger + chip deltas.
     bundle = _bundle(
         _open_question(),
         _resolved_disagreement(),
@@ -131,7 +134,9 @@ def test_project_phase_ledgers_fills_only_phases_2_and_4() -> None:
         _comment(),
     )
     ledgers = project_phase_ledgers(bundle)
-    assert set(ledgers) == {2, 4}
+    assert set(ledgers) == {0, 2, 4}
+    # Phase 0 is empty in this fixture (no phase-0 items).
+    assert ledgers[0] == []
     # Phase 2 has the question + the disagreement.
     assert {e["kind"] for e in ledgers[2]} == {"question", "disagreement"}
     # Phase 4 has the issue + the comment.
