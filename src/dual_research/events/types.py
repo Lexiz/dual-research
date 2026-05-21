@@ -492,6 +492,59 @@ class CloseoutViolation(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class ProtocolViolation(Event):
+    """Spec 0141 — the orchestrator dropped a block that would have
+    violated the item-state invariant.
+
+    Today this fires for exactly one case: an ADDRESS block targeting an
+    item already in a terminal state (resolved / acknowledged /
+    withdrawn / capped). Future invariants reuse the same event with a
+    different ``violation_code``.
+
+    Anchor-run smoking gun (20260521-010637-dvs-backend-language-choice,
+    item ``D-plan-g-01``): r2.1 claude addressed; r2.2 openai RESOLVED;
+    r2.3 claude ADDRESSED the resolved item — without the guard this
+    leaked the item back to ``addressed`` and r2.3 openai RESOLVED it a
+    second time, producing the ``closed > raised`` invariant violation
+    in the run-summary aggregator (B02).
+    """
+
+    phase: int
+    round: int
+    agent: str
+    violation_code: str     # "terminal_state_re_address" | …
+    item_id: str
+    from_state: str
+    dropped_block: str = ""
+    kind: str = "protocol_violation"
+
+
+@dataclass(frozen=True, kw_only=True)
+class EmptyTurnDetected(Event):
+    """Spec 0141 — a negotiate / review turn produced zero
+    ledger-affecting blocks (no RAISE / ADDRESS / RESOLVE / WITHDRAW /
+    ACKNOWLEDGE) at parse time.
+
+    Fires only in phases that expect item movement (0, 2, 4). Phases 1
+    (parallel drafts) and 3 (single-agent drafting) are by design item-
+    silent and do not generate this event.
+
+    Informational only — does not abort the turn or advance any retry
+    counter. Consumers (the UI surface, post-run analytics) decide what
+    to do with it. ``finish_reason == "max_tokens"`` is the dispositive
+    "model was producing output but ran out of room" signal.
+    """
+
+    phase: int
+    round: int
+    agent: str
+    parser_block_count: int = 0     # always 0 by definition; carried for future
+    finish_reason: str | None = None
+    output_tokens: int = 0
+    kind: str = "empty_turn_detected"
+
+
+@dataclass(frozen=True, kw_only=True)
 class PhaseConverged(Event):
     """A phase reached terminal convergence.
 

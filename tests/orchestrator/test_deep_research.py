@@ -19,14 +19,26 @@ from __future__ import annotations
 from typing import Callable
 
 from dual_research.contract.caps import PhaseCaps
+from dual_research.contract.categories import Category
+from dual_research.contract.lifecycle import State
+from dual_research.contract.operations import (
+    AcknowledgeBlock,
+    AddressBlock,
+    RaiseBlock,
+    ResolveBlock,
+)
 from dual_research.events import (
     ArtifactCanonicallyPromoted,
     CloseoutUrged,
     CloseoutViolation,
+    EmptyTurnDetected,
     ItemRaised,
     ItemTransitioned,
     PhaseConverged,
+    ProtocolViolation,
 )
+from dual_research.orchestrator.deep_research import LedgerEntryV2
+from dual_research.protocol.parse_v2 import ParsedTurnV2
 # Spec 0115 — legacy_shim removed; the shim-test below is also gone.
 from dual_research.orchestrator.deep_research import (
     AgentTurnRequest,
@@ -812,3 +824,351 @@ def test_organic_convergence_keeps_all_via_flags_false():
     # No promotion event in stream.
     promoted = [e for e in events if isinstance(e, ArtifactCanonicallyPromoted)]
     assert promoted == []
+
+
+# ─── Spec 0141 — terminal-state-absorbing invariant (B02) ─────────────
+
+
+def _seed_phase_with_disagreement(*, raiser: str, current_state: State) -> tuple[DeepResearchPhase, LedgerEntryV2]:
+    """Build a Phase 2 DR phase with one disagreement already in ``current_state``."""
+    phase = DeepResearchPhase(phase=2, agent_turn=lambda req: "")
+    entry = LedgerEntryV2(
+        id="D-plan-g-01",
+        kind=Category.DISAGREEMENT,
+        phase=2,
+        raiser=raiser,
+        body="we hold X.",
+        anchor_type="none",
+        anchor_text="",
+        evidence_required=False,
+        current_state=current_state,
+        raised_round=1,
+    )
+    phase.state.ledger.append(entry)
+    return phase, entry
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "terminal_state",
+    [State.RESOLVED, State.ACKNOWLEDGED, State.WITHDRAWN, State.CAPPED],
+)
+def test_address_on_terminal_item_dropped_with_protocol_violation(terminal_state):
+    """Spec 0141 B02 — ADDRESS targeting a terminal item is silently
+    dropped at the orchestrator with a ProtocolViolation event.
+
+    Anchor-run smoking gun: r2.2 openai RESOLVED D-plan-g-01, then r2.3
+    claude ADDRESSED the resolved item. Without this guard the ADDRESS
+    leaked it back to ``addressed`` and r2.3 openai RESOLVED it a second
+    time — producing closed > raised in the run-summary aggregator.
+    """
+    phase, entry = _seed_phase_with_disagreement(
+        raiser="openai", current_state=terminal_state,
+    )
+    parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[AddressBlock(
+            item_id="D-plan-g-01",
+            response="we now think it's fine.",
+            raw_text="### ADDRESS D-plan-g-01\nresponse: we now think it's fine.\n",
+        )],
+    )
+
+    raised, transitions, violations, empty_turns = phase.apply_turn(
+        text="",
+        parsed=parsed,
+        agent="claude",
+        round=3,
+        is_closeout_round=False,
+    )
+
+    assert raised == []
+    assert transitions == []
+    assert len(violations) == 1
+    pv = violations[0]
+    assert isinstance(pv, ProtocolViolation)
+    assert pv.violation_code == "terminal_state_re_address"
+    assert pv.item_id == "D-plan-g-01"
+    assert pv.from_state == terminal_state.value
+    assert pv.agent == "claude"
+    assert pv.phase == 2
+    assert pv.round == 3
+    # Ledger entry stays in the terminal state — guard prevented the flip.
+    assert entry.current_state == terminal_state
+
+
+def test_address_on_open_item_still_transitions_to_addressed():
+    """Spec 0141 regression-pin — the happy path is unchanged: an
+    ADDRESS targeting a non-terminal (open) item still flips it to
+    ``addressed`` and emits an ItemTransitioned (no violation)."""
+    phase, entry = _seed_phase_with_disagreement(
+        raiser="openai", current_state=State.OPEN,
+    )
+    parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[AddressBlock(
+            item_id="D-plan-g-01",
+            response="here is my response.",
+            raw_text="### ADDRESS D-plan-g-01\nresponse: here is my response.\n",
+        )],
+    )
+
+    raised, transitions, violations, _ = phase.apply_turn(
+        text="",
+        parsed=parsed,
+        agent="claude",
+        round=2,
+        is_closeout_round=False,
+    )
+
+    assert raised == []
+    assert len(transitions) == 1
+    assert transitions[0].from_state == "open"
+    assert transitions[0].to_state == "addressed"
+    assert violations == []
+    assert entry.current_state == State.ADDRESSED
+
+
+def test_addressed_to_addressed_no_op_still_silent_no_violation():
+    """Spec 0141 regression-pin — the pre-existing line-366 no-op
+    short-circuit for already-addressed items stays. The terminal-state
+    guard must not change behaviour on the non-terminal ADDRESSED state.
+    """
+    phase, entry = _seed_phase_with_disagreement(
+        raiser="openai", current_state=State.ADDRESSED,
+    )
+    parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[AddressBlock(
+            item_id="D-plan-g-01",
+            response="more thoughts.",
+            raw_text="### ADDRESS D-plan-g-01\nresponse: more thoughts.\n",
+        )],
+    )
+
+    raised, transitions, violations, _ = phase.apply_turn(
+        text="",
+        parsed=parsed,
+        agent="claude",
+        round=3,
+        is_closeout_round=False,
+    )
+
+    assert raised == []
+    assert transitions == []   # no-op short-circuit kept
+    assert violations == []     # not a violation — just a redundant address
+    assert entry.current_state == State.ADDRESSED
+
+
+def test_anchor_run_double_close_scenario_now_blocked_at_orchestrator():
+    """Spec 0141 — end-to-end shape of the anchor-run double-close.
+    Replays the four lifecycle events on D-plan-g-01 (raise → address →
+    resolve → re-address → resolve) and asserts the second close never
+    fires because the re-address is dropped with a ProtocolViolation."""
+    phase = DeepResearchPhase(phase=2, agent_turn=lambda req: "")
+
+    # r1 openai: RAISE.
+    r1_parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[RaiseBlock(
+            kind=Category.DISAGREEMENT,
+            body="we hold X.",
+            anchor_type="none",
+            anchor_text="",
+            evidence_required=False,
+            raw_text="### RAISE\nkind: disagreement\nbody: we hold X.\n",
+        )],
+    )
+    raised, _, _, _ = phase.apply_turn(
+        text="", parsed=r1_parsed, agent="openai",
+        round=1, is_closeout_round=False,
+    )
+    assert len(raised) == 1
+    item_id = raised[0].id  # parser-stamped, e.g. "D-plan-g-01"
+
+    # r2 claude: ADDRESS (legal: open → addressed).
+    r2_parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[AddressBlock(
+            item_id=item_id,
+            response="addressing.",
+            raw_text=f"### ADDRESS {item_id}\nresponse: addressing.\n",
+        )],
+    )
+    _, t1, v1, _ = phase.apply_turn(
+        text="", parsed=r2_parsed, agent="claude",
+        round=2, is_closeout_round=False,
+    )
+    assert len(t1) == 1 and t1[0].to_state == "addressed"
+    assert v1 == []
+
+    # r2 openai: RESOLVE (legal: addressed → resolved — first close).
+    r2o_parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[ResolveBlock(
+            item_id=item_id,
+            reason="we accept the address.",
+            raw_text=f"### RESOLVE {item_id}\nreason: we accept.\n",
+        )],
+    )
+    _, t2, v2, _ = phase.apply_turn(
+        text="", parsed=r2o_parsed, agent="openai",
+        round=2, is_closeout_round=False,
+    )
+    assert len(t2) == 1 and t2[0].to_state == "resolved"
+    assert v2 == []
+
+    # r3 claude: ADDRESS — illegal (resolved → addressed). Pre-fix this
+    # leaked the item back to addressed; post-fix it's dropped with a
+    # ProtocolViolation.
+    r3_parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[AddressBlock(
+            item_id=item_id,
+            response="actually, more thoughts.",
+            raw_text=f"### ADDRESS {item_id}\nresponse: more thoughts.\n",
+        )],
+    )
+    _, t3, v3, _ = phase.apply_turn(
+        text="", parsed=r3_parsed, agent="claude",
+        round=3, is_closeout_round=False,
+    )
+    assert t3 == []
+    assert len(v3) == 1
+    assert isinstance(v3[0], ProtocolViolation)
+    assert v3[0].violation_code == "terminal_state_re_address"
+
+    # r3 openai: RESOLVE — pre-fix this would have been the second
+    # close. Post-fix the item is still RESOLVED (ResolveBlock's
+    # `current_state != ADDRESSED` guard rejects it), so no second
+    # ItemTransitioned. Aggregate stays at 1 raise, 1 close.
+    r3o_parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[ResolveBlock(
+            item_id=item_id,
+            reason="closing again.",
+            raw_text=f"### RESOLVE {item_id}\nreason: closing.\n",
+        )],
+    )
+    _, t4, v4, _ = phase.apply_turn(
+        text="", parsed=r3o_parsed, agent="openai",
+        round=3, is_closeout_round=False,
+    )
+    assert t4 == []           # second close blocked
+    assert v4 == []           # ResolveBlock just silently no-ops
+
+    # Final state — exactly one terminal transition on this item.
+    entry = phase.state.find(item_id)
+    assert entry is not None
+    terminal_transitions = [
+        tr for tr in entry.transitions if tr["to"] == "resolved"
+    ]
+    assert len(terminal_transitions) == 1
+
+
+# ─── Spec 0141 — empty-turn detector (B06) ─────────────────────────────
+
+
+@pytest.mark.parametrize("phase_id", [0, 2, 4])
+def test_empty_turn_detected_fires_in_negotiate_phases(phase_id):
+    """Spec 0141 B06 — zero ledger-affecting blocks in phase 0 / 2 / 4
+    emits exactly one EmptyTurnDetected with the threaded finish_reason
+    / output_tokens. Anchor-run shape: phase4-r6-claude turn_ended
+    finish_reason='max_tokens', output_tokens=8750.
+    """
+    phase = DeepResearchPhase(phase=phase_id, agent_turn=lambda req: "")
+    parsed = ParsedTurnV2(status="IN_PROGRESS", blocks=[])
+
+    _, _, _, empty_turns = phase.apply_turn(
+        text="",
+        parsed=parsed,
+        agent="claude",
+        round=6,
+        is_closeout_round=False,
+        finish_reason="max_tokens",
+        output_tokens=8750,
+    )
+
+    assert len(empty_turns) == 1
+    e = empty_turns[0]
+    assert isinstance(e, EmptyTurnDetected)
+    assert e.phase == phase_id
+    assert e.round == 6
+    assert e.agent == "claude"
+    assert e.parser_block_count == 0
+    assert e.finish_reason == "max_tokens"
+    assert e.output_tokens == 8750
+
+
+@pytest.mark.parametrize("phase_id", [1, 3])
+def test_empty_turn_detected_does_not_fire_in_silent_phases(phase_id):
+    """Spec 0141 B06 — Phase 1 (parallel drafts) and Phase 3 (single-
+    agent drafting) are item-silent by design. An empty turn there is
+    not a signal worth surfacing.
+
+    ``DeepResearchPhase`` only supports phases 0/2/4 at construction;
+    phases 1/3 don't run through ``apply_turn`` in production. We
+    exercise the phase-gating predicate by constructing a phase-2 DR
+    phase and mutating ``.phase`` so the in-method `self.phase in
+    (0, 2, 4)` check sees the silent-phase value.
+    """
+    phase = DeepResearchPhase(phase=2, agent_turn=lambda req: "")
+    phase.phase = phase_id  # type: ignore[assignment]
+    parsed = ParsedTurnV2(status="IN_PROGRESS", blocks=[])
+
+    _, _, _, empty_turns = phase.apply_turn(
+        text="",
+        parsed=parsed,
+        agent="claude",
+        round=1,
+        is_closeout_round=False,
+        finish_reason="stop",
+        output_tokens=4000,
+    )
+
+    assert empty_turns == []
+
+
+def test_empty_turn_detected_does_not_fire_when_any_block_present():
+    """Spec 0141 B06 — a single RAISE / ADDRESS / etc. block keeps the
+    turn out of the empty-turn bucket. False positives on legit movement
+    would defeat the purpose."""
+    phase = DeepResearchPhase(phase=2, agent_turn=lambda req: "")
+    parsed = ParsedTurnV2(
+        status="IN_PROGRESS",
+        blocks=[RaiseBlock(
+            kind=Category.QUESTION,
+            body="what about Y?",
+            anchor_type="none",
+            anchor_text="",
+            evidence_required=False,
+            raw_text="### RAISE\nkind: question\nbody: what about Y?\n",
+        )],
+    )
+
+    _, _, _, empty_turns = phase.apply_turn(
+        text="", parsed=parsed, agent="claude",
+        round=1, is_closeout_round=False,
+        finish_reason="stop", output_tokens=200,
+    )
+
+    assert empty_turns == []
+
+
+def test_empty_turn_detected_with_unknown_finish_reason_carries_none():
+    """Spec 0141 B06 — finish_reason defaults to None when the upstream
+    payload doesn't carry one (e.g. the replay path, which has no
+    turn_ended event to read from)."""
+    phase = DeepResearchPhase(phase=4, agent_turn=lambda req: "")
+    parsed = ParsedTurnV2(status="IN_PROGRESS", blocks=[])
+
+    _, _, _, empty_turns = phase.apply_turn(
+        text="", parsed=parsed, agent="openai",
+        round=8, is_closeout_round=False,
+    )
+
+    assert len(empty_turns) == 1
+    assert empty_turns[0].finish_reason is None
+    assert empty_turns[0].output_tokens == 0

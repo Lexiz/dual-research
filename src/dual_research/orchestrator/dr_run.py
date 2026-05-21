@@ -149,6 +149,7 @@ async def _publish_round_events(
     transitions: list[ItemTransitioned],
     violations: list,
     closeout_event,
+    empty_turns: list | None = None,
 ):
     for ev in raised:
         await bus.publish(ev)
@@ -158,6 +159,9 @@ async def _publish_round_events(
         await bus.publish(ev)
     if closeout_event is not None:
         await bus.publish(closeout_event)
+    # Spec 0141 — empty-turn signals (informational, phases 0/2/4).
+    for ev in empty_turns or ():
+        await bus.publish(ev)
 
 
 # ─── Interaction-phase driver (shared by phase 0, 2, 4) ───────────────
@@ -217,6 +221,7 @@ async def _drive_interaction_phase(
         raised_all: list[ItemRaised] = []
         transitions_all: list[ItemTransitioned] = []
         violations_all = []
+        empty_turns_all: list = []
 
         for agent_name, agent_call in (
             ("claude", claude_agent),
@@ -281,16 +286,26 @@ async def _drive_interaction_phase(
             else:
                 parsed_openai = parsed
 
-            r, t, v = phase.apply_turn(
+            # Spec 0141 — thread the upstream turn_ended payload's
+            # finish_reason + output_tokens into apply_turn so an empty
+            # negotiate / review turn can be attributed to ``max_tokens``
+            # vs a genuinely empty model output.
+            _finish_reason = (result.extras or {}).get("stop_reason") \
+                or (result.extras or {}).get("finish_reason")
+            _output_tokens = int(getattr(result.usage, "output_tokens", 0) or 0)
+            r, t, v, e = phase.apply_turn(
                 text=result.text,
                 parsed=parsed,
                 agent=agent_name,
                 round=round_no,
                 is_closeout_round=is_closeout_round,
+                finish_reason=str(_finish_reason) if _finish_reason is not None else None,
+                output_tokens=_output_tokens,
             )
             raised_all.extend(r)
             transitions_all.extend(t)
             violations_all.extend(v)
+            empty_turns_all.extend(e)
 
         rr = phase.process_round_end(
             parsed_claude=parsed_claude,
@@ -300,6 +315,7 @@ async def _drive_interaction_phase(
             raised_events=raised_all,
             transition_events=transitions_all,
             violation_events=violations_all,
+            empty_turn_events=empty_turns_all,
         )
 
         await _publish_round_events(
@@ -308,6 +324,7 @@ async def _drive_interaction_phase(
             transitions=list(rr.transition_events),
             violations=list(rr.violation_events),
             closeout_event=rr.closeout_event,
+            empty_turns=list(rr.empty_turn_events),
         )
 
         # Round-complete marker event (no per-category payload — those

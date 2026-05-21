@@ -30,8 +30,10 @@ from dual_research.contract.caps import caps_for
 from dual_research.events import (
     CloseoutUrged,
     CloseoutViolation,
+    EmptyTurnDetected,
     ItemRaised,
     ItemTransitioned,
+    ProtocolViolation,
 )
 from dual_research.orchestrator.deep_research import DeepResearchPhase
 from dual_research.protocol.parse import parse_turn_v2
@@ -108,7 +110,8 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
         parsed_openai = None
         raised_all: list[ItemRaised] = []
         transitions_all: list[ItemTransitioned] = []
-        violations_all: list[CloseoutViolation] = []
+        violations_all: list[CloseoutViolation | ProtocolViolation] = []
+        empty_turns_all: list[EmptyTurnDetected] = []
 
         for agent in ("claude", "openai"):
             path = phase_dir / f"round-{round_no:02d}-{agent}.md"
@@ -123,7 +126,11 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
                 parsed_claude = parsed
             else:
                 parsed_openai = parsed
-            r, t, v = dr_phase.apply_turn(
+            # Spec 0141 — replay can't see the upstream turn_ended
+            # payload's finish_reason / output_tokens, so apply_turn
+            # falls back to None / 0. The empty-turn detector still
+            # fires; the cause-attribution field is just unknown.
+            r, t, v, e = dr_phase.apply_turn(
                 text=text,
                 parsed=parsed,
                 agent=agent,
@@ -133,9 +140,11 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
             raised_all.extend(r)
             transitions_all.extend(t)
             violations_all.extend(v)
+            empty_turns_all.extend(e)
             events.extend(_event_to_dict(ev) for ev in r)
             events.extend(_event_to_dict(ev) for ev in t)
             events.extend(_event_to_dict(ev) for ev in v)
+            events.extend(_event_to_dict(ev) for ev in e)
 
         if parsed_claude is None and parsed_openai is None:
             continue
@@ -148,6 +157,7 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
             raised_events=raised_all,
             transition_events=transitions_all,
             violation_events=violations_all,
+            empty_turn_events=empty_turns_all,
         )
 
         if rr.closeout_event is not None:
