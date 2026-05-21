@@ -4118,3 +4118,170 @@ body.light .tour-spotlight__dim {
   width: 1px;
   background: var(--md-outline);
 }
+
+/* ───────── Spec 0144 — per-card SOURCES segment + SourceRow + ItemCard ───
+   Per the iter-3 mockup at design-system/audits/2026-05-19-badge-
+   governance-iter3/mockup.html. The item-card surface is the
+   kind-agnostic primitive: Q/D/I/C all render with the same layout. */
+
+.item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm, 8px);
+  margin: 8px 0;
+  cursor: pointer;
+}
+.item-card:hover {
+  background: var(--md-surface-container-high);
+}
+.item-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.item-card__body {
+  color: var(--md-on-surface);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+.item-card__anchor {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  background: var(--md-surface-container-low);
+  border-left: 2px solid var(--md-outline);
+  color: var(--md-on-surface-variant);
+  font-size: 12px;
+  border-radius: 2px;
+}
+.item-card__evidence-needed {
+  font-style: italic;
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  padding: 4px 0;
+}
+.item-card__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.item-card__timeline-hd {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-on-surface-variant);
+}
+.item-card__transition {
+  padding: 4px 0;
+}
+.item-card__transition-meta {
+  font-size: 12px;
+  color: var(--md-on-surface);
+}
+.item-card__transition-reason {
+  margin-top: 2px;
+  padding-left: 12px;
+  font-size: 11.5px;
+  color: var(--md-on-surface-variant);
+}
+.item-card__lifecycle-footer {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  padding-top: 8px;
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.item-card__sources {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.item-card__sources-hd {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 8px;
+}
+.item-card__sources-chip {
+  border: 0;
+  background: var(--md-surface-container-low);
+  cursor: pointer;
+  font: inherit;
+  color: var(--md-on-surface);
+  margin-left: auto;
+}
+.item-card__sources-chip:hover {
+  background: var(--md-surface-container-high);
+}
+
+.source-row {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-xs, 4px);
+  padding: 8px 10px;
+  margin: 6px 0;
+}
+.source-row__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.source-row__chev {
+  color: var(--md-on-surface-variant);
+  font-size: 10px;
+  width: 10px;
+}
+.source-row__title {
+  color: var(--md-on-surface);
+  font-size: 12.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.source-row__host {
+  color: var(--md-on-surface-variant);
+  font-size: 11px;
+}
+.source-row__body {
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.source-row__field {
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  margin: 2px 0;
+  word-break: break-word;
+}
+.source-row__label {
+  color: var(--md-on-surface-faint);
+  font-size: 11px;
+}
+.source-row__excerpt-wrap {
+  margin-top: 4px;
+}
+.source-row__excerpt {
+  white-space: pre-wrap;
+  font-size: 11.5px;
+  padding: 6px 8px;
+  background: var(--md-surface);
+  border-radius: 4px;
+  margin: 2px 0 0;
+  color: var(--md-on-surface);
+}
+.source-row.is-unverified {
+  border-color: var(--md-tone-warn-border, #b8860b66);
+}

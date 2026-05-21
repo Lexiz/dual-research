@@ -221,8 +221,8 @@ class DeepResearchPhase:
         agent_turn: AgentTurnFn,
         artifact_hash_match: Callable[[ParsedTurnV2, ParsedTurnV2], bool] | None = None,
         evidence_validator: Callable[
-            [list, ParsedTurnV2, str],  # records, parsed, agent
-            list,                        # list[EvidenceFlag]
+            [list, ParsedTurnV2, str, list],  # records, parsed, agent, audit_tool_events
+            list,                              # list[EvidenceFlag]
         ] | None = None,
         caps_override=None,
     ) -> None:
@@ -239,8 +239,12 @@ class DeepResearchPhase:
         # ``evidence_validator`` is the anti-hallucination check that
         # consumes the parsed ADDRESS block's evidence records and the
         # turn's tool-call audit. Default: no-op (returns []) so unit
-        # tests don't need to supply tool-call audits.
-        self.evidence_validator = evidence_validator or (lambda recs, p, a: [])
+        # tests don't need to supply tool-call audits. Spec 0144 widened
+        # the signature to (records, parsed, agent, audit_tool_events)
+        # so the production wire-up in ``dr_run.py`` / ``replay.py`` can
+        # supply the per-turn audit at call time without rebinding the
+        # slot every round.
+        self.evidence_validator = evidence_validator or (lambda recs, p, a, ate: [])
         self.caps = caps_override or caps_for(phase)
         self.state = PhaseState(
             phase=phase,
@@ -301,6 +305,7 @@ class DeepResearchPhase:
         is_closeout_round: bool,
         finish_reason: str | None = None,
         output_tokens: int = 0,
+        audit_tool_events: list[dict] | None = None,
     ) -> tuple[
         list[ItemRaised],
         list[ItemTransitioned],
@@ -393,15 +398,25 @@ class DeepResearchPhase:
                     ))
                     continue
                 # Anti-hallucination validation when evidence is required.
+                # Spec 0144 §6.1.c — flagged records no longer drop the
+                # whole ADDRESS block. Each flagged evidence dict is
+                # annotated with ``unverified=True`` + a comma-joined
+                # reason, so the UI can render a ⚠ chip on the offending
+                # SourceRow while the rest of the transition lands
+                # normally. Maintaining this annotator semantics is the
+                # only substrate the per-card surface has to flag bad
+                # citations without hiding the entire response.
+                unverified_codes_by_event_id: dict[str, list[str]] = {}
                 if ent.evidence_required:
-                    flags = self.evidence_validator(blk.evidence, parsed, agent)
-                    if flags:
-                        # Evidence rejected → item stays in its current state.
-                        # The orchestrator will urge closeout for this item
-                        # in the next round. We still emit a transition
-                        # event with the rejection reason for the audit
-                        # trail.
-                        continue
+                    flags = self.evidence_validator(
+                        blk.evidence, parsed, agent, audit_tool_events or [],
+                    )
+                    for f in flags:
+                        rec = getattr(f, "record", None)
+                        eid = getattr(rec, "evidence_event_id", "") if rec else ""
+                        unverified_codes_by_event_id.setdefault(eid, []).append(
+                            getattr(f, "code", "evidence_unverified")
+                        )
                 from_state = ent.current_state
                 to_state = State.ADDRESSED
                 if from_state == to_state:
@@ -409,8 +424,10 @@ class DeepResearchPhase:
                     # don't emit a duplicate transition.
                     continue
                 ent.current_state = to_state
-                evidence_dicts = [
-                    {
+                evidence_dicts = []
+                for ev in blk.evidence:
+                    codes = unverified_codes_by_event_id.get(ev.evidence_event_id, [])
+                    evidence_dicts.append({
                         "item_id": ev.item_id,
                         "url": ev.url,
                         "title": ev.title,
@@ -418,9 +435,9 @@ class DeepResearchPhase:
                         "fetched_at": ev.fetched_at,
                         "evidence_event_id": ev.evidence_event_id,
                         "content_excerpt": ev.content_excerpt,
-                    }
-                    for ev in blk.evidence
-                ]
+                        "unverified": bool(codes),
+                        "unverified_reason": ", ".join(codes),
+                    })
                 transition = {
                     "from": from_state.value,
                     "to": to_state.value,

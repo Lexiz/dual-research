@@ -21,6 +21,7 @@ swap one for the other transparently.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
@@ -46,6 +47,36 @@ _ROUND_FILE_RE = re.compile(r"^round-(\d+)-(claude|openai)\.md$")
 # ``categories.PHASE_TOKEN``). Phase 1 is single-shot drafts and Phase 3
 # is the silent drafter; neither produces operation blocks.
 _RAISABLE_PHASES = (0, 2, 4)
+
+
+def _read_replay_audit_tool_events(
+    session_dir: Path, *, phase: int, round_no: int, agent: str,
+) -> list[dict]:
+    """Spec 0144 — load the persisted TurnSearchAudit for a replay turn.
+
+    Mirrors the round-keyed convention spec 0142 established (Phase 0
+    rounds 1+ and Phases 2 / 4 always; Phase 0 round 1 on pre-0142
+    runs lands on the flat ``phase0_<agent>.json``). Both files are
+    tried so historical runs replay cleanly.
+    """
+    ui_ag = "gpt" if agent == "openai" else agent
+    searches = session_dir / "searches"
+    candidates = [
+        searches / f"phase{phase}_round{round_no}_{ui_ag}.json",
+        searches / f"phase{phase}_{ui_ag}.json",
+    ]
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        tool_events = data.get("tool_events") or []
+        return [te for te in tool_events if isinstance(te, dict)]
+    return []
 
 
 def _discover_rounds(phase_dir: Path) -> list[int]:
@@ -94,7 +125,17 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
     if not rounds:
         return []
 
-    dr_phase = DeepResearchPhase(phase=phase, agent_turn=lambda req: "")
+    # Spec 0144 §6.1.b — replay path also runs the production
+    # validator. The closure resolves the per-turn audit from
+    # ``session_dir/searches/<turn-key>.json``; missing audits fall
+    # back to the default (no flags fire), matching pre-spec replay
+    # behaviour for runs that pre-date the search-audit capture path.
+    from dual_research.orchestrator.dr_run import _evidence_validator_for_run
+    dr_phase = DeepResearchPhase(
+        phase=phase,
+        agent_turn=lambda req: "",
+        evidence_validator=_evidence_validator_for_run,
+    )
     caps = caps_for(phase)
 
     events: list[dict] = []
@@ -130,12 +171,18 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
             # payload's finish_reason / output_tokens, so apply_turn
             # falls back to None / 0. The empty-turn detector still
             # fires; the cause-attribution field is just unknown.
+            # Spec 0144 — also feed the persisted search audit so the
+            # production validator can run during cold replay.
+            audit_tool_events = _read_replay_audit_tool_events(
+                session_dir, phase=phase, round_no=round_no, agent=agent,
+            )
             r, t, v, e = dr_phase.apply_turn(
                 text=text,
                 parsed=parsed,
                 agent=agent,
                 round=round_no,
                 is_closeout_round=is_closeout_round,
+                audit_tool_events=audit_tool_events,
             )
             raised_all.extend(r)
             transitions_all.extend(t)
@@ -187,7 +234,11 @@ def _replay_phase(session_dir: Path, *, phase: int) -> list[dict]:
     return events
 
 
-def replay_items_from_disk(session_dir: Path) -> AggregatedItems:
+def replay_items_from_disk(
+    session_dir: Path,
+    *,
+    audit_lookup=None,
+) -> AggregatedItems:
     """Reconstruct the canonical ``AggregatedItems`` for a session.
 
     Walks every phase that admits items (0, 2, 4), reads the round
@@ -204,4 +255,4 @@ def replay_items_from_disk(session_dir: Path) -> AggregatedItems:
     events: list[dict] = []
     for phase in _RAISABLE_PHASES:
         events.extend(_replay_phase(session_dir, phase=phase))
-    return aggregate_items(events)
+    return aggregate_items(events, audit_lookup=audit_lookup)

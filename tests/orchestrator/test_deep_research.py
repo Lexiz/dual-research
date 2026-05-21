@@ -373,10 +373,13 @@ def test_hard_cap_auto_caps_remaining_items():
 # ─── Scenario: evidence anti-hallucination rejects ADDRESS ────────────
 
 
-def test_evidence_fabricated_event_id_blocks_address_transition():
-    """An ADDRESS with evidence_required=True but fabricated
-    evidence_event_id is rejected. The item stays in `open` state and
-    closeout fires next round."""
+def test_evidence_fabricated_event_id_annotates_unverified():
+    """Spec 0144 §6.1.c — an ADDRESS with evidence_required=True but
+    fabricated evidence_event_id no longer blocks the transition. The
+    item moves to ``addressed`` but the offending evidence record is
+    annotated with ``unverified=True`` so the UI can render a ⚠ chip
+    on the source row. Pre-spec behaviour (silent drop) is the
+    structural defect this fix closes."""
     caps = PhaseCaps(soft=2, hard=8, closeout_budget=2)
 
     scripts: dict[tuple[int, str], str] = {}
@@ -428,10 +431,12 @@ def test_evidence_fabricated_event_id_blocks_address_transition():
         for agent in ("claude", "openai"):
             scripts[(r, agent)] = _wrap_turn(status="IN_PROGRESS", body_sections={})
 
-    # Stub evidence validator that always rejects fabricated event ids.
+    # Stub evidence validator that always flags fabricated event ids.
+    # Spec 0144 widened the slot to a 4-arg signature so the audit
+    # tool_events list can ride along with the call.
     from dual_research.contract.evidence import EvidenceFlag
 
-    def reject_fabricated(records, parsed, agent):
+    def reject_fabricated(records, parsed, agent, audit_tool_events):
         flags = []
         for rec in records:
             if rec.evidence_event_id == "srvtoolu_fake":
@@ -450,15 +455,26 @@ def test_evidence_fabricated_event_id_blocks_address_transition():
     )
     result, events = phase.run()
 
-    # The item must NOT have transitioned to addressed (because evidence
-    # was rejected). No ItemTransitioned event with to_state=addressed.
+    # Spec 0144 — the transition DOES land (no silent drop). The
+    # offending evidence record is annotated with unverified=True and
+    # carries the validator's flag code in unverified_reason.
     addressed = [
         e for e in events
         if isinstance(e, ItemTransitioned) and e.to_state == "addressed"
     ]
-    assert len(addressed) == 0
+    assert len(addressed) == 1, f"expected one addressed transition; got {len(addressed)}"
+    ev_recs = addressed[0].evidence_records
+    assert len(ev_recs) == 1
+    assert ev_recs[0]["unverified"] is True
+    assert ev_recs[0]["unverified_reason"] == "evidence_event_id_fabricated"
 
-    # Closeout was urged at round 2 (both AGREED, item still non-terminal)
+    # The item is now ``addressed`` (not terminal); the raiser can
+    # still RESOLVE/ACKNOWLEDGE in a later round. Closeout fires only
+    # if the standing item set is non-empty at end-of-round AGREED;
+    # since the address landed, the item moved to addressed but is
+    # still non-terminal, so closeout still urges. The annotator
+    # semantics preserve the closeout-urge dynamic exactly as the
+    # spec §6.1.c verbatim goal states.
     closeout_events = [e for e in events if isinstance(e, CloseoutUrged)]
     assert len(closeout_events) >= 1
     assert closeout_events[0].round == 2

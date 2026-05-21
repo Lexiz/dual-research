@@ -23,6 +23,7 @@ structured carry-forward inputs read from ``SessionState``.
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 import time
 from dataclasses import asdict
@@ -33,6 +34,7 @@ from dual_research.agents.base import AgentCall
 from dual_research.contract.artifacts import canonical_hash
 from dual_research.contract.caps import caps_for
 from dual_research.contract.categories import Category
+from dual_research.contract.evidence import validate_all_evidence
 from dual_research.contract.lifecycle import State, is_terminal
 from dual_research.events import (
     ArtifactCanonicallyPromoted,
@@ -57,7 +59,7 @@ from dual_research.orchestrator.closeout import items_blocking_convergence
 # Spec 0115 — legacy_shim removed; the new event stream is the only
 # source of per-category data. Round-complete events emit as marker
 # events with no counter payload.
-from dual_research.orchestrator._call import run_one_call
+from dual_research.orchestrator._call import _derive_turn_key, run_one_call
 from dual_research.orchestrator._turns import (
     list_turns,
     next_malformed_n,
@@ -130,6 +132,42 @@ def _carry_forward_payload(ledger: Iterable[LedgerEntryV2]) -> list[dict]:
     return out
 
 
+def _evidence_validator_for_run(recs, parsed, agent, audit_tool_events):
+    """Spec 0144 §6.1.b — production evidence validator.
+
+    Wraps ``contract.evidence.validate_all_evidence`` with the per-turn
+    ``tool_events`` list supplied by the orchestrator at apply_turn
+    time. The signature matches the 4-arg slot on
+    ``DeepResearchPhase``. Called only when at least one ADDRESS block
+    targets an evidence-required item.
+    """
+    if not recs:
+        return []
+    return validate_all_evidence(list(recs), tool_events=list(audit_tool_events or []))
+
+
+def _read_turn_audit_tool_events(session_dir: Path, turn_key: str) -> list[dict]:
+    """Read ``session_dir/searches/<turn_key>.json`` and return tool_events.
+
+    Returns an empty list when the audit file is absent / unreadable /
+    malformed so the validator defers (no flag fires) rather than
+    rejecting a real evidence record because of an I/O glitch.
+    """
+    if not turn_key:
+        return []
+    path = session_dir / "searches" / f"{turn_key}.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(data, dict):
+        return []
+    tool_events = data.get("tool_events") or []
+    return [te for te in tool_events if isinstance(te, dict)]
+
+
 def _build_dr_phase(
     phase: int,
     *,
@@ -139,6 +177,7 @@ def _build_dr_phase(
         phase=phase,
         agent_turn=lambda req: "",  # never used in async path
         artifact_hash_match=artifact_hash_match,
+        evidence_validator=_evidence_validator_for_run,
     )
 
 
@@ -182,10 +221,15 @@ async def _drive_interaction_phase(
     openai_agent: AgentCall,
 ) -> tuple[PhaseRunResult, DeepResearchPhase]:
     """Run an interaction phase end-to-end using DeepResearchPhase + real agents."""
+    # Spec 0144 §6.1.b — wire the production evidence validator. The
+    # 4-arg signature lets apply_turn pass the per-turn ``tool_events``
+    # list directly, so the validator never has to reach back into the
+    # session directory at validation time.
     phase = DeepResearchPhase(
         phase=phase_int,
         agent_turn=lambda req: "",  # unused in async flow
         artifact_hash_match=artifact_hash_match,
+        evidence_validator=_evidence_validator_for_run,
     )
 
     phase_dir = ctx.session.phase_dir(phase_label)
@@ -293,6 +337,21 @@ async def _drive_interaction_phase(
             _finish_reason = (result.extras or {}).get("stop_reason") \
                 or (result.extras or {}).get("finish_reason")
             _output_tokens = int(getattr(result.usage, "output_tokens", 0) or 0)
+            # Spec 0144 §6.1.b — the search audit for this turn was
+            # persisted by ``_on_turn_searches`` immediately after
+            # ``run_one_call`` published ``turn_searches``, so by the
+            # time we reach apply_turn the file is on disk. Read it
+            # once per turn and hand the tool_events to apply_turn so
+            # the production evidence validator can resolve the
+            # address-block's evidence_event_id refs. We derive the
+            # turn_key with the canonical helper so phase 0's pre-spec-
+            # 0142 collapsed shape and the round-keyed shape both work.
+            audit_turn_key = _derive_turn_key(
+                agent_label=agent_name, phase=phase_label, label=label,
+            )
+            audit_tool_events = _read_turn_audit_tool_events(
+                Path(ctx.transcript.path).parent, audit_turn_key,
+            )
             r, t, v, e = phase.apply_turn(
                 text=result.text,
                 parsed=parsed,
@@ -301,6 +360,7 @@ async def _drive_interaction_phase(
                 is_closeout_round=is_closeout_round,
                 finish_reason=str(_finish_reason) if _finish_reason is not None else None,
                 output_tokens=_output_tokens,
+                audit_tool_events=audit_tool_events,
             )
             raised_all.extend(r)
             transitions_all.extend(t)
