@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from typing import Any, TextIO
 
@@ -190,6 +191,23 @@ class GptAgent:
         if search_audit is not None:
             extras["search_audit"] = search_audit
 
+        # Spec 0148 D14 — tool-definitions JSON for the
+        # ``system.tool_definitions`` Consumption-card row.
+        if web_search_enabled():
+            extras["tool_definitions_text"] = json.dumps(
+                [WEB_SEARCH_TOOL], sort_keys=True
+            )
+
+        # Spec 0148 D13 — concatenate the snippet text of every
+        # ``web_search_call`` item's ``action.sources`` list on the
+        # final response. ``action.sources`` is only populated when
+        # WEB_SEARCH_INCLUDE asked for it (set above when web_search
+        # is enabled). Empty / missing → key absent → no row.
+        if searches > 0 and final_response is not None:
+            ws_text = _concat_web_search_results(final_response)
+            if ws_text:
+                extras["web_sources_text"] = ws_text
+
         # Spec 0143 §3.1 Step 3 — best-effort raw-usage capture (off by
         # default; gated by DUAL_RESEARCH_DEBUG_USAGE). Symmetric with
         # the Anthropic path so a future cost regression has both
@@ -214,3 +232,30 @@ class GptAgent:
             label=self.label,
             extras=extras,
         )
+
+
+def _concat_web_search_results(response) -> str:
+    """Spec 0148 D13 — concatenate the snippet text of every
+    ``web_search_call.action.sources`` entry on the final Response.
+
+    OpenAI's Responses API surfaces retrieved pages under
+    ``output[*].action.sources`` when the request includes
+    ``web_search_call.action.sources``. Each source has ``title`` /
+    ``url`` / sometimes a content snippet. We concatenate the
+    discoverable title + url per source (uniform with the Anthropic
+    helper) so the token estimate has a deterministic input. A
+    future SDK exposing decrypted snippet text can drop it in here.
+    """
+    parts: list[str] = []
+    output = getattr(response, "output", None) or []
+    for item in output:
+        if getattr(item, "type", None) != "web_search_call":
+            continue
+        action = getattr(item, "action", None)
+        sources = getattr(action, "sources", None) or []
+        for src in sources:
+            title = getattr(src, "title", None) or ""
+            url = getattr(src, "url", None) or ""
+            if title or url:
+                parts.append(f"{title}\n{url}")
+    return "\n\n".join(parts)

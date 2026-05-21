@@ -4300,3 +4300,80 @@ body.light .tour-spotlight__dim {
 .source-row.is-unverified {
   border-color: var(--md-tone-warn-border, #b8860b66);
 }
+
+/* ─── Spec 0148 D03 — ViolationChip ───────────────────────────────────────
+ *
+ * Warning chip for ProtocolViolation / EmptyTurnDetected events, mounted
+ * on each affected timeline turn card. Two tones via M3 container roles —
+ * ``--error`` (protocol_violation, harder signal) and ``--tertiary``
+ * (empty_turn_detected, soft warning). Reuses existing tokens; no new
+ * design-system additions.
+ */
+.violation-chip {
+  display: inline-flex;
+  align-items: stretch;
+  font-size: 10.5px;
+  line-height: 1;
+  user-select: none;
+}
+.violation-chip__head {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  cursor: pointer;
+  font: inherit;
+}
+.violation-chip__head:hover {
+  filter: brightness(1.05);
+}
+.violation-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--md-on-surface-faint);
+}
+.violation-chip__label {
+  white-space: nowrap;
+}
+.violation-chip__chev {
+  opacity: 0.6;
+  font-size: 9.5px;
+}
+.violation-chip--error .violation-chip__head {
+  background: var(--md-sys-color-error-container, #f9dedc);
+  color: var(--md-sys-color-on-error-container, #410e0b);
+  border-color: var(--md-sys-color-error, #b3261e);
+}
+.violation-chip--error .violation-chip__dot {
+  background: var(--md-sys-color-error, #b3261e);
+}
+.violation-chip--tertiary .violation-chip__head {
+  background: var(--md-sys-color-tertiary-container, #ffd8e4);
+  color: var(--md-sys-color-on-tertiary-container, #31111d);
+  border-color: var(--md-sys-color-tertiary, #7d5260);
+}
+.violation-chip--tertiary .violation-chip__dot {
+  background: var(--md-sys-color-tertiary, #7d5260);
+}
+.violation-chip__body {
+  position: absolute;
+  z-index: 10;
+  margin: 4px 0 0;
+  max-width: 480px;
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}

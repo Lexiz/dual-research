@@ -145,6 +145,32 @@ def compute_search_cost(model_id: str, n: int) -> float:
     return n * p.web_search_per_request
 
 
+def compute_cache_savings_usd(model_id: str, cache_read_tokens: int) -> float:
+    """USD savings from cache-read tokens vs. paying full input rate.
+
+    Spec 0148 D12 — backs the ``cache savings · ×N reuse on Xkt`` line
+    in the Consumption-card totals block. The arithmetic is the rate
+    delta between fresh input and cache-read times the cache-read
+    token count::
+
+        savings = cache_read × (input_per_mtok − cache_read_per_mtok) / 1e6
+
+    Returns 0.0 for unknown models (consistent with the fallback in
+    ``compute_token_cost``) and for ``cache_read_tokens <= 0``. Pure
+    helper — no side effects, safe to call per-turn at aggregator
+    time.
+    """
+    if cache_read_tokens <= 0:
+        return 0.0
+    p = lookup_pricing(model_id)
+    if p is None:
+        return 0.0
+    rate_delta = p.input_per_mtok - p.cache_read_per_mtok
+    if rate_delta <= 0:
+        return 0.0
+    return cache_read_tokens * rate_delta / 1_000_000
+
+
 def compute_full_cost(model_id: str, usage: TokenUsage, searches: int = 0) -> float:
     """Canonical headline cost: tokens + per-request tool fees.
 

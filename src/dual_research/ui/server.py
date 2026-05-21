@@ -1868,6 +1868,21 @@ def _search_runs_supabase(client: Any, query: str) -> list[dict[str, Any]]:
 _SNAKE_RE = re.compile(r"_([a-zA-Z])")
 
 
+# Spec 0148 — single-segment canonical-ID allowlist for ``_to_camel``. Sourced
+# from the artifact registry at import time so future single-segment IDs
+# (e.g. a hypothetical ``final_draft``) are picked up without code change.
+# Dotted IDs (``user_prompt.message``, etc.) are already handled by the
+# ``"." in k`` guard inherited from spec 0146; this allowlist closes the
+# single-segment hole that the FE ``normalisePiecesRaw`` shim used to cover.
+from dual_research.contract.artifacts import REGISTRY as _ARTIFACT_REGISTRY
+
+_CANONICAL_SINGLE_SEGMENT_IDS: frozenset[str] = frozenset(
+    artifact.id_template
+    for artifact in _ARTIFACT_REGISTRY
+    if "." not in artifact.id_template and "<" not in artifact.id_template
+)
+
+
 def _snake_to_camel(name: str) -> str:
     """``"phase_timings"`` → ``"phaseTimings"``. Single-trailing-underscore
     fields (``in_``) lose the trailing underscore."""
@@ -1887,12 +1902,20 @@ def _to_camel(obj: Any) -> Any:
     is the source of truth) and pass through verbatim. Without this guard
     ``user_prompt.message`` arrives at JS as ``userPrompt.message`` and the
     Consumption-card per-piece lookups silently miss.
+
+    Spec 0148 — extends the guard with an import-time-derived allowlist of
+    single-segment canonical IDs (``user_prompt``, ``current_draft``,
+    ``all_p2_turns``, …). Before this guard, those keys were camelCased
+    on the wire and the frontend inverted them via ``normalisePiecesRaw``;
+    that workaround is retired in this PR so the canonical-ID contract
+    matches end-to-end. New single-segment additions to the registry are
+    picked up automatically.
     """
     if isinstance(obj, dict):
         out: dict[str, Any] = {}
         for k, v in obj.items():
             if isinstance(k, str):
-                if "." in k:
+                if "." in k or k in _CANONICAL_SINGLE_SEGMENT_IDS:
                     out[k] = _to_camel(v)
                 else:
                     out[_snake_to_camel(k)] = _to_camel(v)

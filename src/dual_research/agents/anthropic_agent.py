@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any, TextIO
@@ -136,6 +137,12 @@ class ClaudeAgent:
             # already comes out right from the breakdown.
             pass
         cache_read = getattr(u, "cache_read_input_tokens", 0) or 0
+        # Spec 0148 D11 — defensive capture of extended-thinking
+        # ``thinking_tokens``. Absent on the response (or 0) when
+        # extended-thinking is not enabled in the model config, which
+        # is the current production state; field is forward-ready for
+        # when it gets turned on.
+        thinking_tokens = getattr(u, "thinking_tokens", 0) or 0
         usage = TokenUsage(
             input_tokens=getattr(u, "input_tokens", 0) or 0,
             output_tokens=getattr(u, "output_tokens", 0) or 0,
@@ -143,6 +150,7 @@ class ClaudeAgent:
             cache_write_tokens=cw_5m + cw_1h,
             cache_write_5m_tokens=cw_5m,
             cache_write_1h_tokens=cw_1h,
+            reasoning_tokens=thinking_tokens,
         )
         searches = _count_web_searches(final_msg)
         text = "".join(text_parts)
@@ -213,6 +221,26 @@ class ClaudeAgent:
         if search_audit is not None:
             extras["search_audit"] = search_audit
 
+        # Spec 0148 D14 — tool-definitions JSON, captured for the
+        # ``system.tool_definitions`` row on the Consumption card. Only
+        # present when web_search is enabled (the only tool we ship);
+        # absent → key never lands in prompt_pieces → no row renders.
+        if web_search_enabled():
+            extras["tool_definitions_text"] = json.dumps(
+                [WEB_SEARCH_TOOL], sort_keys=True
+            )
+
+        # Spec 0148 D13 — concatenated text of every web_search_tool_result
+        # block returned this turn. The provider feeds search snippets
+        # back to the model mid-generation; those snippets contribute
+        # to the turn's input-token bill but the spec-0145 emitter
+        # never broke them out as a piece. Surfaces a real
+        # ``system.web_sources`` row on the Consumption card.
+        if searches > 0:
+            ws_text = _concat_web_search_results(final_msg)
+            if ws_text:
+                extras["web_sources_text"] = ws_text
+
         return AgentResult(
             text=text,
             usage=usage,
@@ -233,6 +261,32 @@ def _count_web_searches(message) -> int:
         if btype == "server_tool_use" and getattr(block, "name", None) == "web_search":
             n += 1
     return n
+
+
+def _concat_web_search_results(message) -> str:
+    """Spec 0148 D13 — concatenate the text of every web_search_tool_result
+    block on the final message.
+
+    Anthropic returns each search result as a ``web_search_tool_result``
+    content block whose ``content`` is a list of result objects with
+    ``title`` / ``url`` / ``page_age`` / ``encrypted_content`` /
+    ``type`` fields. Encrypted_content is opaque so we approximate the
+    snippet bill by concatenating the surfaced title + url for each
+    result; this under-counts the true token cost but produces a
+    stable, deterministic input the token estimator can run over. If
+    a future SDK exposes the decrypted snippet text, swap it in here.
+    """
+    parts: list[str] = []
+    for block in getattr(message, "content", []) or []:
+        if getattr(block, "type", None) != "web_search_tool_result":
+            continue
+        results = getattr(block, "content", None) or []
+        for r in results:
+            title = getattr(r, "title", None) or ""
+            url = getattr(r, "url", None) or ""
+            if title or url:
+                parts.append(f"{title}\n{url}")
+    return "\n\n".join(parts)
 
 
 def _build_content(prompt: str) -> Any:
