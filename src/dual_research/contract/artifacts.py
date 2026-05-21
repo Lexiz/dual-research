@@ -162,6 +162,25 @@ REGISTRY: tuple[ArtifactDef, ...] = (
                 ArtifactKind.SYSTEM, "per-turn", False),
     ArtifactDef("system.task.closeout", "Closeout instructions",
                 ArtifactKind.SYSTEM, "per-turn", False),
+    # Spec 0148 D13 — concatenated text of every web_search_tool_result /
+    # web_search_call.action.sources entry on this turn's response. The
+    # provider feeds search snippets back to the model mid-generation;
+    # those snippets contribute to the turn's input-token bill but
+    # spec-0145's prompt-pieces emitter never broke them out. The agent
+    # layer concatenates the surfaced title + url per result (best
+    # available without decrypted snippet text) and stashes the
+    # concatenated string in ``AgentResult.extras["web_sources_text"]``;
+    # orchestrator/_call.py tokenises it and emits this piece.
+    ArtifactDef("system.web_sources", "Web search results",
+                ArtifactKind.SYSTEM, "per-turn", False),
+    # Spec 0148 D14 — JSON-serialised tools array the agent ships to
+    # the provider API. Small (~15-25 tokens) but discoverable on the
+    # Consumption card so the operator can see the per-turn cost of
+    # ferrying tool defs vs. the prompt instructions proper. Emitted
+    # from ``AgentResult.extras["tool_definitions_text"]`` via the
+    # same orchestrator/_call.py augmentation site as system.web_sources.
+    ArtifactDef("system.tool_definitions", "Tool definitions",
+                ArtifactKind.SYSTEM, "per-turn", False),
     ArtifactDef("user_prompt", "User prompt",
                 ArtifactKind.USER, "run", False),
     ArtifactDef("user_prompt.message", "Chat message",

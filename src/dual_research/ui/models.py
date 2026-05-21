@@ -602,6 +602,30 @@ class TurnTokenUsage:
     # server resolves this to an absolute path when answering
     # ``/api/runs/<id>/searches/<key>``.
     search_audit_path: str | None = None
+    # Spec 0148 D10 — closeout-request signal for CcxCard's
+    # ``closeout.request`` row. Derived in the aggregator as
+    # ``prompt_pieces.get("closeout.request", 0) > 0`` (the closeout
+    # text is included in the prompt bundle for every turn that
+    # received a closeout request; spec 0145's ``pieces_for_*``
+    # emitters already populate the key). Forward-only: pre-0148
+    # serialisations default to False at deserialise time.
+    was_closeout: bool = False
+    # Spec 0148 D11 — output-token breakdown for CcxCard's split
+    # Output row. Keys ``"reasoning"``, ``"response"``, ``"tool_calls"``
+    # (all ints). Invariant: ``sum == out`` (the existing total). The
+    # aggregator clamps ``response`` at 0 on arithmetic underflow with
+    # a single-line warn-log; never negative. In v1.13.0
+    # ``tool_calls`` is always 0 (this codebase's only "tool" is the
+    # providers' built-in web_search, already counted via
+    # ``searches``/``search_cost``); the field is preserved in shape
+    # for future tool-using phases. Empty dict for pre-0148 turns.
+    output_breakdown: dict[str, int] = field(default_factory=dict)
+    # Spec 0148 D12 — USD savings from cache-read tokens vs. fresh
+    # input on this turn. Computed via
+    # ``compute_cache_savings_usd(model_id, cache_read_tokens)``.
+    # Defaults to 0.0 for non-cache-engaged turns and for models
+    # without published cache-read rates.
+    cache_savings_usd: float = 0.0
 
 
 # ─── Run ──────────────────────────────────────────────────────────────────────
@@ -667,6 +691,15 @@ class Run:
     # and the ledger's count for the same turn. Surfaced as a small
     # ``⚠ drift`` badge on the timeline card.
     drifts: list[dict[str, Any]] = field(default_factory=list)
+    # Spec 0148 D03 — protocol-violation + empty-turn events surfaced
+    # for the run, sourced from ``transcript.jsonl`` and filtered to
+    # ``kind in {"protocol_violation", "empty_turn_detected"}``.
+    # Each entry is the raw event payload dict (phase, round, agent,
+    # plus event-specific fields). Empty for runs that pre-date
+    # spec 0141 or that didn't trigger either event. The frontend
+    # renders these as warning chips on the affected turn cards
+    # (join key: ``phase × round × agent``).
+    violations: list[dict[str, Any]] = field(default_factory=list)
     errors: list[RunError] = field(default_factory=list)
     error: TopLevelError | None = None  # populated only when status == "errored"
     phase_stats: PhaseStats = field(default_factory=PhaseStats)

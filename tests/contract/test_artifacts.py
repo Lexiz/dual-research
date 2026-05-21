@@ -222,6 +222,9 @@ def test_spec_0117_normative_id_table_matches_registry():
         "system.task.drafting",
         "system.task.review",
         "system.task.closeout",
+        # Spec 0148 D13/D14 — agent-layer-emitted pieces.
+        "system.web_sources",
+        "system.tool_definitions",
         "user_prompt",
         "user_prompt.message",
         "user_prompt.attachment.<id>",

@@ -10,6 +10,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-05-22
+
+### Added
+
+- **Spec 0148 — Consumption-card backend follow-ups + protocol-violation UI surface (v1.13.0)** ([spec 0148](specs/0148-consumption-card-backend-followups-and-violation-ui-surface.md)). First spec after the 0140–0147 batch; consolidates seven deferred items from the post-batch cleanup audit (D03, D10, D11, D12, D13, D14, D16) into a single ship on the events / aggregator → CcxCard render boundary.
+  - **D16 — single-segment canonical-ID allowlist in `_to_camel`.** Server-side guard extended with an import-time-derived frozenset of single-segment IDs (`user_prompt`, `current_draft`, `all_p2_turns`, `all_carry_forward`) sourced from the artifact registry. Frontend `normalisePiecesRaw` shim retired in the same PR so canonical IDs match end-to-end.
+  - **D10 — `was_closeout: bool` per turn.** Derived in the aggregator from `prompt_pieces["closeout.request"]`; CcxCard now lifts `closeout.request` out of the system-prompt aggregate row and renders it as a discrete row whenever the closeout text was in the prompt bundle. Event-only path; no orchestrator changes.
+  - **D11 — `outputBreakdown` per turn.** Three-field shape (`reasoning` / `response` / `tool_calls`) on every `TurnTokenUsage`. Reasoning sourced from `TokenUsage.reasoning_tokens` (OpenAI today via `output_tokens_details.reasoning_tokens`; Anthropic defensive `thinking_tokens` capture is wired but inactive until extended-thinking is enabled). `tool_calls` is hard-coded to 0 in v1.13.0 because this codebase's only "tool" is the providers' built-in web_search (already billed via `searches` / `search_cost`); the field preserves the breakdown shape for future tool-using phases. CcxCard splits the Output row into Reasoning / Response sub-rows when `reasoning > 0`.
+  - **D12 — `cacheSavingsUsd` per turn + totals-block line.** New `compute_cache_savings_usd(model_id, cache_read_tokens)` helper in `agents/pricing.py` computes the rate-delta savings against the existing per-model `input_per_mtok` / `cache_read_per_mtok` table. Field populated at aggregator time; CcxCard renders `cache savings · ×N reuse on Xkt` in the totals block whenever the turn engaged cache-read.
+  - **D13 — `system.web_sources` row.** New canonical ID in the artifact registry; each agent (Anthropic + OpenAI) concatenates the title + URL of every search-result block returned this turn and stashes the string in `AgentResult.extras["web_sources_text"]`. `orchestrator/_call.py` tokenises it via `estimate_tokens` and augments the per-turn `prompt_pieces` dict before emitting `TurnEnded`. CcxCard renders a discrete `Web search results · Nkt · $X.X` row via the existing data-driven row machinery.
+  - **D14 — `system.tool_definitions` row.** Same shape — each agent JSON-serialises its tools array (currently the built-in web_search tool definition) and stashes in `extras["tool_definitions_text"]`; `_call.py` augments the dict; CcxCard renders a `Tool definitions` row.
+  - **D03 — warning chips for `ProtocolViolation` / `EmptyTurnDetected`.** New `violations: list[dict]` field on `Run`, populated in `load_run_snapshot` by filtering `transcript.jsonl` to the two event kinds emitted by spec 0141. New `<ViolationChip>` component mounts on each `TlTurnRow` joined by `(phase, round, agent)`; click expands an inline JSON detail. Two M3 tones (`--error` for protocol_violation, `--tertiary` for empty_turn) reuse existing tokens; no design-system additions.
+  - **Cache-buster** bumped `?v=0147a → ?v=0148a` across all 25 static-asset imports in `index.html`.
+
 ## [1.12.1] — 2026-05-22
 
 ### Fixed

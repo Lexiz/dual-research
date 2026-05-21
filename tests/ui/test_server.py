@@ -136,6 +136,16 @@ class TestCamelCase:
             "inputPath": None,
             # Spec 0036 — null on entries built without a search audit.
             "searchAuditPath": None,
+            # Spec 0148 D10 — closeout signal; False on a TurnTokenUsage
+            # constructed without prompt_pieces[closeout.request].
+            "wasCloseout": False,
+            # Spec 0148 D11 — output-token breakdown; empty dict for a
+            # TurnTokenUsage constructed without the aggregator's
+            # population step.
+            "outputBreakdown": {},
+            # Spec 0148 D12 — cache-read USD savings; 0.0 on a
+            # cache_read=0 / no model-rate-lookup turn.
+            "cacheSavingsUsd": 0.0,
         }
 
     def test_phase_token_usage_carries_searches_and_search_cost(self):

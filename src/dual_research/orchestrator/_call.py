@@ -169,6 +169,25 @@ async def run_one_call(
     # cost + search cost) per the agents' switch to ``compute_full_cost``.
     search_cost = compute_search_cost(result.model_id, searches)
 
+    # Spec 0148 D13/D14 — augment the prompt-pieces dict with
+    # ``system.tool_definitions`` and ``system.web_sources`` rows
+    # sourced from the agent's extras. These are post-hoc pieces:
+    # tool defs are known at the agent layer (not the protocol
+    # layer that runs ``pieces_for_*``); search-result snippets
+    # come back inside the provider's response, not the system
+    # prompt. Both keys ride the same wire shape as every other
+    # canonical-ID piece; CcxCard renders them via the existing
+    # data-driven row machinery.
+    from dual_research.protocol.prompt_pieces import estimate_tokens
+
+    pieces_dict: dict[str, int] = dict(prompt_pieces) if prompt_pieces else {}
+    td_text = (result.extras or {}).get("tool_definitions_text") or ""
+    if td_text:
+        pieces_dict["system.tool_definitions"] = estimate_tokens(td_text)
+    ws_text = (result.extras or {}).get("web_sources_text") or ""
+    if ws_text:
+        pieces_dict["system.web_sources"] = estimate_tokens(ws_text)
+
     end_event = TurnEnded(
         agent=agent.label,
         phase=phase,
@@ -184,7 +203,7 @@ async def run_one_call(
         duration_ms=duration_ms,
         finish_reason=str(finish_reason) if finish_reason is not None else None,
         model_id=result.model_id,
-        prompt_pieces=dict(prompt_pieces) if prompt_pieces else {},
+        prompt_pieces=pieces_dict,
         searches=searches,
         reasoning_tokens=result.usage.reasoning_tokens,
     )

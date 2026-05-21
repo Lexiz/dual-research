@@ -41,7 +41,7 @@ from dual_research.ui.labels import (
     ui_agent,
 )
 from dual_research.ui.turn_stats import build_phase_stats
-from dual_research.agents.pricing import compute_search_cost
+from dual_research.agents.pricing import compute_cache_savings_usd, compute_search_cost
 from dual_research.config import TIERS
 from dual_research.ui.models import (
     AgentState,
@@ -93,6 +93,16 @@ def load_run_snapshot(session_dir: Path) -> Run:
     # events (turn_started, turn_inputs, turn_searches, …) replay
     # in full — their dedup happens elsewhere if needed.
     transcript = _dedup_turn_ended_by_label(transcript)
+    # Spec 0148 D03 — surface protocol-violation + empty-turn events
+    # for the run. Both ride the spec-0122 transcript bridge so they
+    # are already in ``transcript.jsonl`` (the orchestrator subscriber
+    # at ``_install_transcript_bridge`` mirrors them). Filter to the
+    # two kinds and pass through verbatim; the frontend joins by
+    # ``phase × round × agent`` against each turn card.
+    run.violations = [
+        dict(ev) for ev in transcript
+        if ev.get("event") in ("protocol_violation", "empty_turn_detected")
+    ]
     for event in transcript:
         apply_event(run, event, session_dir)
 
@@ -517,6 +527,45 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     # is what the Consumption tab's "of which web search" reads; the
     # invariant token_cost + search_cost == cost holds for every turn.
     token_cost = max(0.0, cost - search_cost)
+
+    # Spec 0148 D10 — closeout signal derived from the prompt-pieces
+    # dict (the closeout-request text rides as ``closeout.request`` in
+    # the same dict the aggregator just passed through). Event-only
+    # path; no orchestrator changes needed.
+    was_closeout = int(prompt_pieces.get("closeout.request", 0)) > 0
+
+    # Spec 0148 D11 — output-token breakdown. Reasoning is sourced
+    # from the event's ``reasoning_tokens`` (OpenAI extracts it from
+    # ``output_tokens_details.reasoning_tokens``; Anthropic captures
+    # ``thinking_tokens`` when extended-thinking is enabled — both
+    # plumb through ``TokenUsage.reasoning_tokens`` → TurnEnded).
+    # ``tool_calls`` is always 0 in this codebase (no general-purpose
+    # assistant tool calls; web_search invocations bill via
+    # ``searches``/``search_cost``); preserved in the breakdown shape
+    # for future tool-using phases. ``response`` is the remainder,
+    # clamped at 0 if the provider reports inconsistent counts.
+    reasoning_tokens = int(event.get("reasoning_tokens", 0) or 0)
+    tool_call_tokens = 0
+    response_tokens = out_tokens - reasoning_tokens - tool_call_tokens
+    if response_tokens < 0:
+        import logging
+        logging.getLogger(__name__).warning(
+            "[spec-0148] outputBreakdown underflow at %s: out=%d, reasoning=%d, tool_calls=%d",
+            key, out_tokens, reasoning_tokens, tool_call_tokens,
+        )
+        response_tokens = 0
+    output_breakdown = {
+        "reasoning": reasoning_tokens,
+        "response": response_tokens,
+        "tool_calls": tool_call_tokens,
+    }
+
+    # Spec 0148 D12 — cache-read savings vs. paying fresh input rate.
+    # Helper returns 0.0 for unknown models and for cache_read <= 0,
+    # so non-cache-engaged turns and pre-pricing models stay at zero
+    # without special-casing here.
+    cache_savings_usd = compute_cache_savings_usd(turn_model_id or "", cache_read)
+
     run.phase_token_usage[key] = TurnTokenUsage(
         in_=in_tokens,
         out=out_tokens,
@@ -531,6 +580,9 @@ def _on_turn_ended(run: Run, event: dict) -> None:
         search_cost=search_cost,
         input_path=input_path,
         search_audit_path=search_audit_path,
+        was_closeout=was_closeout,
+        output_breakdown=output_breakdown,
+        cache_savings_usd=cache_savings_usd,
     )
 
 

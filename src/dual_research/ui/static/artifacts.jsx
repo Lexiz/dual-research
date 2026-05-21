@@ -18,6 +18,8 @@
     ['system.task.drafting',                  'Drafting instructions'],
     ['system.task.review',                    'Review instructions'],
     ['system.task.closeout',                  'Closeout instructions'],
+    ['system.web_sources',                    'Web search results'],
+    ['system.tool_definitions',               'Tool definitions'],
     ['user_prompt',                           'User prompt'],
     ['user_prompt.message',                   'Chat message'],
     ['user_prompt.attachment.<id>',           'Attachment · {title}'],

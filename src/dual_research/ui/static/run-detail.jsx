@@ -1085,12 +1085,63 @@ function TlStatusChip({ item, isLive }) {
 // Provider FIRST, activity SECOND, category chips in fixed Q→D→I→C
 // order (when applicable), status chip right-aligned, never bare.
 // See spec 0119 §6 (composition rules).
+// Spec 0148 D03 — warning chip surface for ProtocolViolation /
+// EmptyTurnDetected events emitted by the orchestrator (spec 0141) and
+// mirrored to ``transcript.jsonl`` via the spec-0122 bridge. Joins by
+// (phase, round, agent) against ``run.violations``; one chip per
+// matching event. Click expands an inline JSON detail.
+function ViolationChip({ event }) {
+  const [open, setOpen] = React.useState(false);
+  const kind = event && event.event;
+  const label = kind === 'protocol_violation' ? 'Protocol violation' : 'Empty turn';
+  const tone = kind === 'protocol_violation' ? 'error' : 'tertiary';
+  const stop = (e) => e.stopPropagation();
+  return (
+    <span className={`violation-chip violation-chip--${tone}`} onClick={stop}>
+      <button
+        type="button"
+        className="violation-chip__head"
+        title={label}
+        aria-label={label}
+        onClick={(e) => { stop(e); setOpen((o) => !o); }}
+      >
+        <span className="violation-chip__dot" aria-hidden="true" />
+        <span className="violation-chip__label">{label}</span>
+        <span className="violation-chip__chev">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <pre className="violation-chip__body">{JSON.stringify(event, null, 2)}</pre>
+      )}
+    </span>
+  );
+}
+
+// Spec 0148 D03 — agent-name join key: ``run.violations`` events carry
+// ``agent`` as the backend label (``claude`` / ``openai``); the turn
+// card uses ``item.agent`` in UI vocabulary (``claude`` / ``gpt``).
+function _violationsForTurnCard(violations, phase, round, agent) {
+  if (!Array.isArray(violations) || !violations.length) return [];
+  if (phase == null || round == null || !agent) return [];
+  const backendAgent = agent === 'gpt' ? 'openai' : agent;
+  return violations.filter((v) =>
+    Number(v.phase) === Number(phase)
+    && Number(v.round) === Number(round)
+    && v.agent === backendAgent
+  );
+}
+
 function TlTurnRow({ item, run, isOpen, onToggle }) {
   const agent = item.agent || null;
   const agentSlot = agent === 'gpt' ? 'b' : agent === 'claude' ? 'a' : null;
   const agentName = agent ? (AGENT_META[agent]?.name || agent) : null;
   const isRepair = hasRepairSibling(run, item.turnKey);
   const isLive = item.live;
+
+  // Spec 0148 D03 — protocol-violation / empty-turn events for this
+  // turn card. Joined off run.violations by (phase, round, agent).
+  const cardViolations = _violationsForTurnCard(
+    run && run.violations, item.phase, item.round, agent
+  );
 
   // Spec 0115 — full-word activity label (no single-letter badge).
   const activityLabel = item.round != null ? `Turn ${item.round}`
@@ -1216,6 +1267,12 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
               />
             );
           })}
+
+          {/* Spec 0148 D03 — warning chips for ProtocolViolation /
+              EmptyTurnDetected on this turn (zero hits → no chips). */}
+          {cardViolations.map((ev, i) => (
+            <ViolationChip key={`${ev.event}-${i}`} event={ev} />
+          ))}
 
           <TlStatusChip item={item} isLive={isLive} />
 
@@ -2103,14 +2160,19 @@ function hasNewVocabPieces(piecesRaw) {
 // Spec 0118 master grouping table (NORMATIVE). For each phase, which
 // canonical artifact IDs collapse into the "System prompt" aggregate row,
 // and which appear as their own separate rows. Output is handled outside.
+//
+// Spec 0148 — ``closeout.request``, ``system.web_sources``, and
+// ``system.tool_definitions`` are pulled OUT of the system-prompt
+// aggregate and rendered as discrete rows (when present) via
+// ``DYNAMIC_SEPARATE_KEYS`` below. Empty/zero tokens → no row.
 const SYSTEM_PROMPT_AGGREGATE_KEYS = {
-  0: ['system.task.input', 'prior_turns.phase0', 'ledger.standing_items', 'closeout.request'],
+  0: ['system.task.input', 'prior_turns.phase0', 'ledger.standing_items'],
   1: ['system.task.research_plan', 'phase0.agreement.interpretation'],
   2: ['system.task.plan_negotiation', 'phase0.agreement.interpretation',
-      'prior_turns.phase2', 'ledger.standing_items', 'closeout.request'],
+      'prior_turns.phase2', 'ledger.standing_items'],
   3: ['system.task.drafting', 'phase0.agreement.interpretation',
       'phase2.agreement.plan', 'carry_forward.phase2'],
-  4: ['system.task.review', 'ledger.standing_items', 'closeout.request'],
+  4: ['system.task.review', 'ledger.standing_items'],
 };
 
 const PHASE_SEPARATE_KEYS = {
@@ -2120,6 +2182,18 @@ const PHASE_SEPARATE_KEYS = {
   3: ['phase1.claude', 'phase1.openai', 'all_p2_turns'],
   4: ['current_draft', 'prior_turns.phase4'],
 };
+
+// Spec 0148 — canonical artifact IDs that should always render as their
+// own row when their token count is non-zero, regardless of phase.
+// ``closeout.request`` surfaces the closeout-request text on the turn
+// that received it (D10); ``system.web_sources`` and
+// ``system.tool_definitions`` surface input-token bands the spec-0145
+// emitter never broke out (D13/D14).
+const DYNAMIC_SEPARATE_KEYS = [
+  'closeout.request',
+  'system.web_sources',
+  'system.tool_definitions',
+];
 
 // Spec 0145 — gather per-attachment piece keys + the message piece into
 // a single "User prompt" row breakdown. When the producer emitted the
@@ -2179,6 +2253,16 @@ function groupPiecesForPhase(piecesRaw, phase) {
     rows.push({ id: k, tokens: get(k) });
   }
 
+  // Spec 0148 — dynamic separate rows. Emit each only when present in
+  // the wire payload with non-zero tokens, so non-closeout / non-search
+  // / no-tool turns don't grow noise rows.
+  for (const k of DYNAMIC_SEPARATE_KEYS) {
+    const tokens = get(k);
+    if (tokens > 0) {
+      rows.push({ id: k, tokens });
+    }
+  }
+
   // System prompt aggregate (always present, even if tokens=0).
   const breakdown = sysKeys
     .map((k) => ({ id: k, tokens: get(k) }))
@@ -2221,24 +2305,11 @@ function piecePropCost(pieceTokens, billedInputTokens, totalInputCost) {
   return (pieceTokens / billedInputTokens) * totalInputCost;
 }
 
-// Spec 0146 — `_to_camel` server-side preserves dotted canonical IDs
-// verbatim, but single-segment canonical IDs with underscores
-// (`user_prompt`, `current_draft`, `all_p2_turns`) still get
-// camelCased on the wire. Mirror the inverse here so the JS-side
-// canonical lookups always succeed. Aliases are additive — original
-// keys stay in place, only missing snake-case forms are filled in.
-function normalisePiecesRaw(piecesRaw) {
-  if (!piecesRaw || typeof piecesRaw !== 'object') return piecesRaw;
-  const out = {};
-  for (const [k, v] of Object.entries(piecesRaw)) {
-    out[k] = v;
-    if (typeof k === 'string' && /[A-Z]/.test(k)) {
-      const snake = k.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (!(snake in out)) out[snake] = v;
-    }
-  }
-  return out;
-}
+// Spec 0148 — `normalisePiecesRaw` retired. The server-side `_to_camel`
+// now passes both dotted and allowlisted single-segment canonical IDs
+// through verbatim (allowlist derived from the artifact registry at
+// import time), so the JS side reads canonical IDs straight off the
+// wire with no aliasing. See `src/dual_research/ui/server.py::_to_camel`.
 
 // Spec 0146 — one-decimal cost formatter scoped to the Consumption card.
 // The global `fmt.cost` keeps 4-decimal precision for audit surfaces
@@ -2337,7 +2408,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const pctOfCap   = ctxWindow > 0 ? (totalTok / ctxWindow * 100) : 0;
   const denom      = scale?.denom || 1;
   const reuse      = reuseInfo(usage);
-  const piecesRaw  = normalisePiecesRaw(usage.promptPieces) || {};
+  const piecesRaw  = usage.promptPieces || {};
   const outputCost = outputCostFor(usage);
 
   const tokenCost  = Number(usage?.tokenCost ?? usage?.cost ?? 0) || 0;
@@ -2505,28 +2576,65 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
           {/* Divider between inputs and output row */}
           <div className="ccx-divider" />
 
-          {/* Output row */}
-          <div className="ccx-bar-row" style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-            alignItems: 'center', gap: 10,
-            padding: '2px 0',
-          }}>
-            <span className="lbl" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
-              Output
-            </span>
-            <div className="ccx-bar" style={{ height: 6 }}>
-              <div className={`fl ${fillOut}`} style={{
-                width: `${totalDenom > 0 ? Math.min(100, (tokensOut / totalDenom) * 100) : 0}%`,
-              }} />
-            </div>
-            <span className="num" style={{
-              fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
-              textAlign: 'right',
-            }}>
-              {fmt.tokens(tokensOut)}t &middot; {fmtCost1(outCostUsd)}
-            </span>
-          </div>
+          {/* Spec 0148 D11 — Output row. Single ``Output`` line when the
+              turn had no reasoning / no tool_calls (current behaviour).
+              When reasoning > 0, split into a header + sub-rows for
+              Reasoning / Response / Tool calls (sub-row hidden when its
+              own tokens are 0). Cost share is exact: cost-per-output-
+              token is a single rate per model, so the proportional
+              split via token shares is invoice-grade. */}
+          {(() => {
+            const breakdown = usage.outputBreakdown || {};
+            const rTok = Number(breakdown.reasoning) || 0;
+            const tcTok = Number(breakdown.tool_calls) || 0;
+            const rsTok = Number(breakdown.response) || 0;
+            const hasSplit = (rTok + tcTok) > 0 && tokensOut > 0;
+            const propCost = (n) => (tokensOut > 0 ? (n / tokensOut) * outCostUsd : 0);
+            const outputHeader = (
+              <div className="ccx-bar-row" style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+                alignItems: 'center', gap: 10,
+                padding: '2px 0',
+              }}>
+                <span className="lbl" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
+                  Output
+                </span>
+                <div className="ccx-bar" style={{ height: 6 }}>
+                  <div className={`fl ${fillOut}`} style={{
+                    width: `${totalDenom > 0 ? Math.min(100, (tokensOut / totalDenom) * 100) : 0}%`,
+                  }} />
+                </div>
+                <span className="num" style={{
+                  fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
+                  textAlign: 'right',
+                }}>
+                  {fmt.tokens(tokensOut)}t &middot; {fmtCost1(outCostUsd)}
+                </span>
+              </div>
+            );
+            if (!hasSplit) return outputHeader;
+            const renderSub = (id, label, tokens) => (
+              <SubInputRow
+                key={id}
+                id={id}
+                label={label}
+                tokens={tokens}
+                totalDenom={totalDenom}
+                billedIn={tokensOut > 0 ? tokensOut : 1}
+                inputCost={outCostUsd}
+                fillIn={fillOut}
+              />
+            );
+            return (
+              <React.Fragment>
+                {outputHeader}
+                {rTok > 0 && renderSub('output.reasoning', 'Reasoning', rTok)}
+                {rsTok > 0 && renderSub('output.response', 'Response', rsTok)}
+                {tcTok > 0 && renderSub('output.tool_calls', 'Tool calls', tcTok)}
+              </React.Fragment>
+            );
+          })()}
 
           {/* Spec 0146 totals block: label-left / value-right, mirroring
               the bar-row grid. Replaces the free-text web-search mono
@@ -2549,6 +2657,26 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
                 <span className="v">{fmtCost1(searchCost)}</span>
               </div>
             )}
+            {/* Spec 0148 D12 — cache-savings line. Renders only when the
+                turn engaged cache-read (Anthropic side mostly; OpenAI's
+                Responses API cache also reports cache_read_tokens). The
+                "×N reuse on Xkt" copy follows design-system §14. */}
+            {(() => {
+              const cacheReadTokens = Number(usage?.cacheRead ?? usage?.cache_read ?? 0) || 0;
+              const cacheSavingsUsd = Number(usage?.cacheSavingsUsd ?? usage?.cache_savings_usd ?? 0) || 0;
+              if (!(cacheReadTokens > 0 && cacheSavingsUsd > 0)) return null;
+              const billed = tokensIn > 0 ? tokensIn : 1;
+              const multiplier = cacheReadTokens / billed;
+              return (
+                <div className="line">
+                  <span className="l">
+                    cache savings &middot; &times;{multiplier.toFixed(1)} reuse on{' '}
+                    {(cacheReadTokens / 1000).toFixed(1)}kt
+                  </span>
+                  <span className="v">{fmtCost1(cacheSavingsUsd)}</span>
+                </div>
+              );
+            })()}
             <div className="line is-grand">
               <span className="l">total input</span>
               <span className="v">{fmtCost1(inputCost + searchCost)}</span>
