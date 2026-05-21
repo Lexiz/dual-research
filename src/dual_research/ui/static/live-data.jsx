@@ -462,6 +462,48 @@ function fileForPhase1Draft(uiAgent) {
 }
 
 // ─────────────────── Live timeline builder ───────────────────
+//
+// RENDERING CONTRACT (spec 0147):
+//   - A per-turn card for (phase, round, agent) is visible iff
+//     run.phaseStats[phaseN][round][agent] exists. When the per-agent
+//     slot lands in phaseStats, the corresponding `kind: 'turn'` card
+//     surfaces; until then, the in-flight round emits a
+//     `kind: 'turn-live'` placeholder for the missing agent.
+//   - A turn-live placeholder is emitted only for the in-flight
+//     (round, agent) pair where the phaseStats slot is still partial
+//     (slot missing or slot present but the per-agent entry absent).
+//     When both agents' slots land, the placeholder is replaced by
+//     completed-turn cards for both agents on the same poll — no
+//     transient state where `round.current` has advanced past a round
+//     that still shows as live.
+//   - The phase-header "N rounds" badge counts only materialised
+//     rounds (the same predicate above), so it cannot claim a round
+//     that has no card.
+//   - Critique items (run.questions / run.disagreements / …) ride
+//     along in the same snapshot as the phaseStats entries that emit
+//     the turn cards: when the rounds appear, the items appear with
+//     them, killing the "bulk-fill on phase end" flicker.
+//
+// This contract is enforced uniformly across Phase 0, Phase 2, and
+// Phase 4 (the three multi-round phases). Phase 1 + Phase 3 are
+// single-shot per-agent renders — no rounds, no contract needed.
+//
+// Item IDs are deterministic functions of (phase, round, agent):
+// completed cards as `pX-rR-AGENT` and live cards as
+// `pX-rR-AGENT-live`. React reconciles cards stably across polls so
+// the only DOM remount is the one-time flip from live → completed
+// when the per-agent slot lands.
+
+// Per-phase predicate: does the round in `slots[round]` have only
+// some of its expected agents? "Partial" = the slot exists but at
+// least one of {claude, gpt} is missing. Used to subtract a single
+// round from the materialised count when `cur` is mid-flight.
+function _roundHasInFlight(slots, round) {
+  if (round == null || round <= 0) return false;
+  const slot = slots && slots[round];
+  if (slot == null) return false;
+  return slot.claude == null || slot.gpt == null;
+}
 
 // Produces the ordered list of items the run-detail Timeline consumes.
 // Each item carries either an inline `body` (live, in-flight turn) or a
@@ -504,15 +546,27 @@ function buildLiveTimeline(run) {
   if (hasNewPhase0) {
     const cur = run.round?.current ?? 0;
     const p0StatsRoundCount = phase0Keys.filter((k) => /^\d+$/.test(k)).length;
+    // Spec 0147 — `cur - 1` floor is racy when `run.round.current` has
+    // already advanced past a round whose `phaseStats[phase0][round]`
+    // slot is fully populated. Use a phaseStats-derived floor: rounds
+    // whose slot is non-partial surface as completed, regardless of
+    // whether `cur` is still on them or has moved on.
+    const p0RunningFloor = Math.max(
+      0,
+      cur - 1,
+      p0StatsRoundCount - (_roundHasInFlight(phase0Stats, cur) ? 1 : 0)
+    );
+    // Materialised-rounds count — includes `cur` only when the run is
+    // running and at least one live/completed card will surface for it.
     const p0Rounds = ph === 0
-      ? (st === 'running' ? cur : Math.max(cur, p0StatsRoundCount))
+      ? (st === 'running' ? Math.max(p0RunningFloor, cur) : Math.max(cur, p0StatsRoundCount))
       : p0StatsRoundCount;
     // Update the phase-divider's `extra` label to mirror Phase 2/4 style.
     items[items.length - 2].extra = `${p0Rounds} round${p0Rounds === 1 ? '' : 's'}`;
 
     if (ph === 0 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
       const completedThrough = st === 'running'
-        ? Math.max(0, cur - 1)
+        ? p0RunningFloor
         : Math.max(cur, p0StatsRoundCount);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p0-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
@@ -524,23 +578,44 @@ function buildLiveTimeline(run) {
                      filePath: fileForRound(0, r, 'gpt'),
                      turnKey: `phase0_round${r}_gpt` });
       }
-      if (cur > 0 && st === 'running') {
-        items.push({
-          id: `p0-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
-          round: cur, index: cur, live: true, statsPhase: 0,
-          status: run.agents?.claude?.status,
-          body: run.agents?.claude?.currentTurn?.body || '',
-          filePath: fileForRound(0, cur, 'claude'),
-          turnKey: `phase0_round${cur}_claude`,
-        });
-        items.push({
-          id: `p0-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
-          round: cur, index: cur, live: true, statsPhase: 0,
-          status: run.agents?.gpt?.status,
-          body: run.agents?.gpt?.currentTurn?.body || '',
-          filePath: fileForRound(0, cur, 'gpt'),
-          turnKey: `phase0_round${cur}_gpt`,
-        });
+      // Spec 0147 — per-agent gating on the in-flight round. If
+      // phaseStats already holds a per-agent slot for `cur`, render the
+      // completed card; otherwise render the live placeholder. This
+      // kills the flicker where one agent finishes ahead of the other
+      // and the live card shows stale "running" while a real round
+      // file is already on disk.
+      if (cur > completedThrough && st === 'running') {
+        const curSlot = phase0Stats[cur] || {};
+        if (curSlot.claude != null) {
+          items.push({ id: `p0-r${cur}-claude`, kind: 'turn', agent: 'claude',
+                       round: cur, index: cur, statsPhase: 0,
+                       filePath: fileForRound(0, cur, 'claude'),
+                       turnKey: `phase0_round${cur}_claude` });
+        } else {
+          items.push({
+            id: `p0-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
+            round: cur, index: cur, live: true, statsPhase: 0,
+            status: run.agents?.claude?.status,
+            body: run.agents?.claude?.currentTurn?.body || '',
+            filePath: fileForRound(0, cur, 'claude'),
+            turnKey: `phase0_round${cur}_claude`,
+          });
+        }
+        if (curSlot.gpt != null) {
+          items.push({ id: `p0-r${cur}-gpt`, kind: 'turn', agent: 'gpt',
+                       round: cur, index: cur, statsPhase: 0,
+                       filePath: fileForRound(0, cur, 'gpt'),
+                       turnKey: `phase0_round${cur}_gpt` });
+        } else {
+          items.push({
+            id: `p0-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
+            round: cur, index: cur, live: true, statsPhase: 0,
+            status: run.agents?.gpt?.status,
+            body: run.agents?.gpt?.currentTurn?.body || '',
+            filePath: fileForRound(0, cur, 'gpt'),
+            turnKey: `phase0_round${cur}_gpt`,
+          });
+        }
       }
     } else if (ph >= 1) {
       for (let r = 1; r <= p0Rounds; r++) {
@@ -606,16 +681,26 @@ function buildLiveTimeline(run) {
   if (ph >= 2) {
     const cur = run.round?.current ?? 0;
     // Phase 2 round count:
-    // - while ph === 2 and running, `cur` is the in-flight round (authoritative)
-    // - while ph === 2 and stopped (errored/deadlocked), `cur` can lag behind
-    //   the actual round count if the run died mid-state-update — prefer
-    //   max(cur, phaseStats round count) so we don't truncate completed rounds.
-    //   (SPEC-0088 — same issue that affected Phase 4 of run 27de.)
-    // - once the run advances past P2, `cur` has been overwritten by the next
-    //   phase, so derive the count from phaseStats keys.
-    const p2StatsCount = Object.keys(run.phaseStats?.phase2 || {}).length;
+    // - while ph === 2 and running, prefer a phaseStats-derived floor so
+    //   rounds whose `(claude, gpt)` slot is full surface even when
+    //   `run.round.current` has already advanced (spec 0147 — kills the
+    //   "phase-end bulk-fill" flicker).
+    // - while ph === 2 and stopped (errored/deadlocked), `cur` can lag
+    //   behind the actual round count if the run died mid-state-update —
+    //   prefer max(cur, phaseStats round count) so we don't truncate
+    //   completed rounds. (SPEC-0088 — same issue that affected Phase 4
+    //   of run 27de.)
+    // - once the run advances past P2, `cur` has been overwritten by
+    //   the next phase, so derive the count from phaseStats keys.
+    const phase2Stats = run.phaseStats?.phase2 || {};
+    const p2StatsCount = Object.keys(phase2Stats).length;
+    const p2RunningFloor = Math.max(
+      0,
+      cur - 1,
+      p2StatsCount - (_roundHasInFlight(phase2Stats, cur) ? 1 : 0)
+    );
     const p2Rounds = ph === 2
-      ? (st === 'running' ? cur : Math.max(cur, p2StatsCount))
+      ? (st === 'running' ? Math.max(p2RunningFloor, cur) : Math.max(cur, p2StatsCount))
       : p2StatsCount;
     items.push({
       id: 'phase-2', kind: 'phase-divider', phaseId: 2,
@@ -623,11 +708,11 @@ function buildLiveTimeline(run) {
       extra: `${p2Rounds} round${p2Rounds === 1 ? '' : 's'}`,
     });
     if (ph === 2 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
-      // For `running`, `cur` is the in-flight round handled by the live branch
-      // below. For `deadlocked` / `errored`, use the larger of cur and
+      // For `running`, the in-flight round is gated per-agent below.
+      // For `deadlocked` / `errored`, use the larger of cur and
       // phaseStats round count — see comment above. (Spec 0017 + spec 0088.)
       const completedThrough = st === 'running'
-        ? Math.max(0, cur - 1)
+        ? p2RunningFloor
         : Math.max(cur, p2StatsCount);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p2-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
@@ -637,23 +722,40 @@ function buildLiveTimeline(run) {
                      filePath: fileForRound(2, r, 'gpt'),
                      turnKey: `phase2_round${r}_gpt`    });
       }
-      if (cur > 0 && st === 'running') {
-        items.push({
-          id: `p2-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
-          round: cur, index: cur, live: true,
-          status: run.agents?.claude?.status,
-          body: run.agents?.claude?.currentTurn?.body || '',
-          filePath: fileForRound(2, cur, 'claude'),
-          turnKey: `phase2_round${cur}_claude`,
-        });
-        items.push({
-          id: `p2-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
-          round: cur, index: cur, live: true,
-          status: run.agents?.gpt?.status,
-          body: run.agents?.gpt?.currentTurn?.body || '',
-          filePath: fileForRound(2, cur, 'gpt'),
-          turnKey: `phase2_round${cur}_gpt`,
-        });
+      // Spec 0147 — per-agent gating on the in-flight round; see Phase 0
+      // branch above for rationale.
+      if (cur > completedThrough && st === 'running') {
+        const curSlot = phase2Stats[cur] || {};
+        if (curSlot.claude != null) {
+          items.push({ id: `p2-r${cur}-claude`, kind: 'turn', agent: 'claude',
+                       round: cur, index: cur,
+                       filePath: fileForRound(2, cur, 'claude'),
+                       turnKey: `phase2_round${cur}_claude` });
+        } else {
+          items.push({
+            id: `p2-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
+            round: cur, index: cur, live: true,
+            status: run.agents?.claude?.status,
+            body: run.agents?.claude?.currentTurn?.body || '',
+            filePath: fileForRound(2, cur, 'claude'),
+            turnKey: `phase2_round${cur}_claude`,
+          });
+        }
+        if (curSlot.gpt != null) {
+          items.push({ id: `p2-r${cur}-gpt`, kind: 'turn', agent: 'gpt',
+                       round: cur, index: cur,
+                       filePath: fileForRound(2, cur, 'gpt'),
+                       turnKey: `phase2_round${cur}_gpt` });
+        } else {
+          items.push({
+            id: `p2-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
+            round: cur, index: cur, live: true,
+            status: run.agents?.gpt?.status,
+            body: run.agents?.gpt?.currentTurn?.body || '',
+            filePath: fileForRound(2, cur, 'gpt'),
+            turnKey: `phase2_round${cur}_gpt`,
+          });
+        }
       }
     } else if (ph >= 3 || st === 'completed' || st === 'deadlocked') {
       // Run moved past P2 — enumerate all completed rounds. `run.round.current`
@@ -706,16 +808,25 @@ function buildLiveTimeline(run) {
   if (ph >= 4) {
     const cur = run.round?.current ?? 0;
     // Phase 4 round count — same shape as Phase 2:
-    // - running: cur is in-flight (authoritative)
-    // - stopped (errored/deadlocked): cur may lag behind disk reality if the
-    //   run died after a round completed but before round.current advanced.
-    //   27de hit exactly this: round-06 files + phaseStats keys '1'..'6' on
-    //   disk, but round.current = 5. Use max(cur, phaseStats round count) so
-    //   we don't silently drop the last completed round. (SPEC-0088.)
+    // - running: phaseStats-derived floor (spec 0147), so a round whose
+    //   `(claude, gpt)` slot is full surfaces even if `run.round.current`
+    //   has already advanced.
+    // - stopped (errored/deadlocked): cur may lag behind disk reality if
+    //   the run died after a round completed but before round.current
+    //   advanced. 27de hit exactly this: round-06 files + phaseStats
+    //   keys '1'..'6' on disk, but round.current = 5. Use max(cur,
+    //   phaseStats round count) so we don't silently drop the last
+    //   completed round. (SPEC-0088.)
     // - past-phase: cur belongs to the next phase, use phaseStats keys.
-    const p4StatsCount = Object.keys(run.phaseStats?.phase4 || {}).length;
+    const phase4Stats = run.phaseStats?.phase4 || {};
+    const p4StatsCount = Object.keys(phase4Stats).length;
+    const p4RunningFloor = Math.max(
+      0,
+      cur - 1,
+      p4StatsCount - (_roundHasInFlight(phase4Stats, cur) ? 1 : 0)
+    );
     const p4Rounds = ph === 4
-      ? (st === 'running' ? cur : Math.max(cur, p4StatsCount))
+      ? (st === 'running' ? Math.max(p4RunningFloor, cur) : Math.max(cur, p4StatsCount))
       : p4StatsCount;
     items.push({
       id: 'phase-4', kind: 'phase-divider', phaseId: 4,
@@ -723,12 +834,11 @@ function buildLiveTimeline(run) {
       extra: `${p4Rounds} review round${p4Rounds === 1 ? '' : 's'}`,
     });
     if (ph === 4 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
-      // Mirror the Phase 2 pattern: when running, `cur` is in-flight so
-      // completed rounds are 1..cur-1 and `cur` gets a live card. When
-      // stopped (deadlocked/errored), use max(cur, phaseStats round count)
-      // — see comment above.
+      // Mirror the Phase 2 pattern: when running, the in-flight round is
+      // gated per-agent below. When stopped (deadlocked/errored), use
+      // max(cur, phaseStats round count) — see comment above.
       const completedThrough = st === 'running'
-        ? Math.max(0, cur - 1)
+        ? p4RunningFloor
         : Math.max(cur, p4StatsCount);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p4-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: `rev-${r}`,
@@ -738,23 +848,40 @@ function buildLiveTimeline(run) {
                      filePath: fileForRound(4, r, 'gpt'),
                      turnKey: `phase4_round${r}_gpt`    });
       }
-      if (cur > 0 && st === 'running') {
-        items.push({
-          id: `p4-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
-          round: cur, index: `rev-${cur}`, live: true,
-          status: run.agents?.claude?.status,
-          body: run.agents?.claude?.currentTurn?.body || '',
-          filePath: fileForRound(4, cur, 'claude'),
-          turnKey: `phase4_round${cur}_claude`,
-        });
-        items.push({
-          id: `p4-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
-          round: cur, index: `rev-${cur}`, live: true,
-          status: run.agents?.gpt?.status,
-          body: run.agents?.gpt?.currentTurn?.body || '',
-          filePath: fileForRound(4, cur, 'gpt'),
-          turnKey: `phase4_round${cur}_gpt`,
-        });
+      // Spec 0147 — per-agent gating on the in-flight round; see Phase 0
+      // branch above for rationale.
+      if (cur > completedThrough && st === 'running') {
+        const curSlot = phase4Stats[cur] || {};
+        if (curSlot.claude != null) {
+          items.push({ id: `p4-r${cur}-claude`, kind: 'turn', agent: 'claude',
+                       round: cur, index: `rev-${cur}`,
+                       filePath: fileForRound(4, cur, 'claude'),
+                       turnKey: `phase4_round${cur}_claude` });
+        } else {
+          items.push({
+            id: `p4-r${cur}-claude-live`, kind: 'turn-live', agent: 'claude',
+            round: cur, index: `rev-${cur}`, live: true,
+            status: run.agents?.claude?.status,
+            body: run.agents?.claude?.currentTurn?.body || '',
+            filePath: fileForRound(4, cur, 'claude'),
+            turnKey: `phase4_round${cur}_claude`,
+          });
+        }
+        if (curSlot.gpt != null) {
+          items.push({ id: `p4-r${cur}-gpt`, kind: 'turn', agent: 'gpt',
+                       round: cur, index: `rev-${cur}`,
+                       filePath: fileForRound(4, cur, 'gpt'),
+                       turnKey: `phase4_round${cur}_gpt` });
+        } else {
+          items.push({
+            id: `p4-r${cur}-gpt-live`, kind: 'turn-live', agent: 'gpt',
+            round: cur, index: `rev-${cur}`, live: true,
+            status: run.agents?.gpt?.status,
+            body: run.agents?.gpt?.currentTurn?.body || '',
+            filePath: fileForRound(4, cur, 'gpt'),
+            turnKey: `phase4_round${cur}_gpt`,
+          });
+        }
       }
     } else if (ph === 5 || st === 'completed') {
       for (let r = 1; r <= p4Rounds; r++) {

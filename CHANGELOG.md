@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.12.1] — 2026-05-22
+
+### Fixed
+
+- **Spec 0147 — Phase 0 critique section + live timeline determinism (v1.12.1)** ([spec 0147](specs/0147-phase0-critique-section-and-live-timeline-determinism.md)). Final spec in the 0140–0147 batch from the Notion review of run `20260521-010637`. Two small UX polish items merged because they sit on adjacent critique-panel render paths.
+  - **B01 — Phase 0 critique tab.** `CritiqueExplorer` gains a P0 tab alongside the existing P2 / P4 + Summary tabs. `PHASE_CHIP_ALLOWLIST[0]` now lists `questions` + `disagreements` (was `[]` post-0114; stale after spec 0135 promoted Phase 0 to a full multi-round negotiation). The `initial` default-tab guard accepts `run.phase === 0` and falls back through `haveAny(0)` before defaulting to 2; the `dr-critique-jump` cross-pane handler accepts `targetPhase === 0`; `CritiquePhaseContent`'s pending branch carries a defensive `phaseId === 0` arm. Items rendered via the existing P2 codepath verbatim — no new components, no design-system tokens, no CSS additions; the new `phase-tab` button reuses the P2 / P4 styling.
+  - **B04 — Live timeline rendering determinism.** `buildLiveTimeline` (Phase 0 / Phase 2 / Phase 4 live branches) replaces the racy `Math.max(0, cur - 1)` floor with a phaseStats-derived `pXRunningFloor` that includes any round whose `(claude, gpt)` slot is fully populated, regardless of where `run.round.current` happens to be on the poll frame. The in-flight round is gated per-agent: if `phaseStats[phaseX][cur][agent]` exists, render the completed `kind: 'turn'` card; otherwise render `kind: 'turn-live'`. The phase-header "N rounds" badge counts the same materialised rounds. New `_roundHasInFlight(slots, round)` helper at the top of the live-timeline section; new rendering-contract comment block documents the invariant for all three phases.
+  - **Tests.** New `tests/spec0147/test_phase0_critique_tab_and_allowlist.py` (5 cases) and `tests/spec0147/test_live_timeline_determinism.py` (10 cases, including a three-frame monotonic-replay test and a skipped-frame safety test exercising a Python port of the JS predicate).
+  - **Cache-buster** bumped `?v=0146a → ?v=0147a` across all 25 static-asset imports in `index.html`.
+  - **Batch completion.** This spec closes the 0140–0147 backlog from the 2026-05-21 Notion review. Eight specs shipped over 24 hours: 0140 (v1.9.1), 0141 (v1.9.2), 0142 (v1.9.3), 0143 (v1.9.4), 0144 (v1.10.0), 0145 (v1.11.0), 0146 (v1.12.0), 0147 (v1.12.1).
+
 ## [1.12.0] — 2026-05-21
 
 ### Added
