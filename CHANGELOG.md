@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.8.2] — 2026-05-21
+
+### Fixed
+
+- **Spec 0136 follow-up — Supabase list path + non-zero exit-code generalisation.** The v1.8.1 spec-0136 fix unified the status truth table for the disk-backed paths (`summarize_run` + `load_run_snapshot`) and verified locally that DVS-backend / pv-backend-language / LLM-vs-human-grading all flipped from `running`/`completed` → `deadlocked`. But the user immediately surfaced the same divergence on the **hosted** surface — and rightly so: there was a third status deriver, `_status_from_columns` in [`server.py:1075`](src/dual_research/ui/server.py), that maps the Supabase `runs` table columns onto the UI status enum for the All-Runs list when the server runs in Supabase mode. That helper called `derive_run_status` but flattened `exit_code` into derived `run_failed` / `hard_cap_hit` booleans **before** the truth table saw it, which discarded the `exit_code == 0` + not-done signal and left the hosted list reading `running` indefinitely for any pushed run that exited cleanly without reaching `done` — exactly the DVS-backend / LLM-vs-human-grading pattern. The detail-page path on hosted was correct (it materialises the session through `load_run_snapshot`, which already had the fix); only the list path was wrong.
+  - **Pass exit_code through.** `_status_from_columns` now passes `run_completed_exit_code=exit_code` to `derive_run_status`. The truth table's silent-exit defence branch (`exit_code == 0` + not done → `deadlocked`) fires for Supabase-backed rows the same way it fires for disk-backed sessions.
+  - **Generalise the errored predicate.** `derive_run_status` previously hard-coded the errored exit codes as `{2, 52}` (EXIT_RUNTIME + EXIT_PROTOCOL_PARSE_FAILURE). Pre-spec the disk-backed `_on_run_completed` handler treated `{1, 2, 52}` as errored; the legacy hosted `_status_from_columns` treated *any* non-`{None, 0, 51}` exit code as failed. Both meanings collapsed onto a tighter rule: any non-zero exit code that isn't the dedicated hard-cap signal (51) → `errored`. Catches exit 1 (Python uncaught exception), exit 137 (SIGKILL), exit 143 (SIGTERM), etc. — anything the orchestrator didn't structure.
+  - **Tests.** New `TestSupabaseListStatusHelper` class in `test_aggregator_status.py` exercises the exact production payload shape (`phase_reached='phase2', exit_code=0, state.final_emitted_to=null` → `deadlocked`; same for hard-cap / runtime-error / in-flight). New truth-table test `test_unknown_nonzero_exit_code_is_errored` covers exit codes 1 / 3 / 137 / 143. Full suite: **1218 passed**.
+  - **Files touched.** `src/dual_research/ui/server.py` (`_status_from_columns` rewrite). `src/dual_research/ui/labels.py` (`derive_run_status` errored generalisation). `src/dual_research/ui/static/index.html` (cache-bust `?v=0136a → ?v=0136b`). `pyproject.toml` + `src/dual_research/__init__.py` (`1.8.1 → 1.8.2`). `tests/ui/test_aggregator_status.py` (new test class + 1 new truth-table case). `CHANGELOG.md` (this entry).
+  - **Verification.** Hosted DVS-backend + LLM-vs-human-grading list rows now read `deadlocked` consistently with their detail-page status.
+
 ## [1.8.1] — 2026-05-21
 
 ### Fixed

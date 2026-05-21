@@ -155,7 +155,13 @@ def derive_run_status(
     """
     if run_failed:
         return "errored"
-    if run_completed_exit_code in (2, 52):
+    # Any non-zero exit code that isn't the dedicated hard-cap signal
+    # (EXIT_HARD_CAP, 51) indicates an error. This catches the explicit
+    # orchestrator codes (EXIT_RUNTIME=2, EXIT_PROTOCOL_PARSE_FAILURE=52)
+    # plus less-structured signals like exit code 1 from a Python
+    # uncaught exception or an external SIGTERM. ``None`` (terminal
+    # event never fired) falls through to the "running" branch.
+    if run_completed_exit_code is not None and run_completed_exit_code not in (0, 51):
         return "errored"
     if hard_cap_hit or run_completed_exit_code == 51:
         return "deadlocked"

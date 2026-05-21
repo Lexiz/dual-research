@@ -92,6 +92,19 @@ class TestDeriveRunStatusTruthTable:
                 run_completed_exit_code=code,
             ) == "errored"
 
+    def test_unknown_nonzero_exit_code_is_errored(self):
+        # Spec 0136 follow-up — any non-zero exit code that isn't the
+        # hard-cap signal (51) maps to errored. Catches exit 1 from a
+        # Python uncaught exception, exit 137 from a SIGKILL, etc.
+        for code in (1, 3, 137, 143):
+            assert derive_run_status(
+                state_phase="phase2",
+                final_emitted=False,
+                hard_cap_hit=False,
+                run_failed=False,
+                run_completed_exit_code=code,
+            ) == "errored"
+
     def test_hard_cap_hit_marks_deadlocked(self):
         assert derive_run_status(
             state_phase="phase2",
@@ -260,6 +273,57 @@ class TestPathsAgree:
 
 
 _FIXTURE_DVS = Path(__file__).resolve().parents[2] / "runs" / "20260520-170146-dvs-backend-language-choice"
+
+
+class TestSupabaseListStatusHelper:
+    """Spec 0136 follow-up — the Supabase ``_status_from_columns`` helper
+    fed pushed-run columns into ``derive_run_status``. Pre-fix it
+    flattened exit_code into derived ``run_failed`` / ``hard_cap_hit``
+    booleans before the truth table saw it, which discarded the
+    ``exit_code == 0`` + not-done signal and left the All-Runs list
+    reading ``running`` forever on the hosted surface (exactly what the
+    user surfaced after the v1.8.1 deploy)."""
+
+    def _status(self, *, phase_reached: str, exit_code, state):
+        # Import the private helper directly — it's not part of the
+        # public surface but it's the choke-point the bug lived in.
+        from dual_research.ui.server import _status_from_columns
+        return _status_from_columns(
+            phase_reached=phase_reached, exit_code=exit_code, state=state,
+        )
+
+    def test_silent_exit_deadlock_on_hosted_pattern(self):
+        # The DVS-backend / LLM-vs-human-grading row shape on the
+        # hosted ``runs`` table: phase_reached='phase2', exit_code=0,
+        # state.final_emitted_to=null. Pre-fix returned 'running';
+        # post-fix returns 'deadlocked' via the silent-exit branch.
+        assert self._status(
+            phase_reached="phase2", exit_code=0, state={"final_emitted_to": None},
+        ) == "deadlocked"
+
+    def test_healthy_completion_on_hosted_pattern(self):
+        assert self._status(
+            phase_reached="done", exit_code=0,
+            state={"final_emitted_to": "out.md"},
+        ) == "completed"
+
+    def test_hard_cap_on_hosted_pattern(self):
+        assert self._status(
+            phase_reached="phase2", exit_code=51, state={"final_emitted_to": None},
+        ) == "deadlocked"
+
+    def test_runtime_error_on_hosted_pattern(self):
+        for code in (1, 2, 52, 137):
+            assert self._status(
+                phase_reached="phase2", exit_code=code, state={"final_emitted_to": None},
+            ) == "errored", f"exit_code={code}"
+
+    def test_in_flight_pushed_run(self):
+        # Push-while-running emits intermediate rows with exit_code=None
+        # until the orchestrator finishes. Should read as running.
+        assert self._status(
+            phase_reached="phase2", exit_code=None, state={"final_emitted_to": None},
+        ) == "running"
 
 
 def test_dvs_backend_run_resolves_to_deadlocked():
