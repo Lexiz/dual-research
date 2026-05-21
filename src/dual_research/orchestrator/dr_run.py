@@ -35,6 +35,7 @@ from dual_research.contract.caps import caps_for
 from dual_research.contract.categories import Category
 from dual_research.contract.lifecycle import State, is_terminal
 from dual_research.events import (
+    ArtifactCanonicallyPromoted,
     EventBus,
     HardCapHit,
     ItemRaised,
@@ -52,6 +53,7 @@ from dual_research.events import (
     PhaseExited,
     SoftCapHit,
 )
+from dual_research.orchestrator.closeout import items_blocking_convergence
 # Spec 0115 — legacy_shim removed; the new event stream is the only
 # source of per-category data. Round-complete events emit as marker
 # events with no counter payload.
@@ -193,6 +195,7 @@ async def _drive_interaction_phase(
     via_closeout = False
     via_ghost_cap = False
     via_hard_cap = False
+    via_artifact_promotion = False
     converged = False
     soft_hit_emitted = False
     round_no = 0
@@ -320,6 +323,43 @@ async def _drive_interaction_phase(
             via_closeout = is_closeout_round
             break
 
+        # ── Spec 0137 — substantive-convergence escape valve ───────────
+        # When both agents emit AGREED and the ledger holds zero
+        # non-terminal items but ``check_convergence`` still rejected,
+        # the artifact-hash gate is the only remaining blocker. The
+        # agents wrote semantically-equivalent but byte-different
+        # artifact bodies (a known LLM failure mode of the parallel-
+        # emission "Adoption procedure"). Trust the agents' self-
+        # declared AGREED — promote the canonical artifact from the
+        # designated agent's turn (claude for phase 0; the drafter for
+        # phase 2 / 4) and exit. No repair turn: the downstream
+        # consumer (run_dr_phase{0,2,4} post-loop) reads from one
+        # specific agent's emission anyway, so the other agent's
+        # drift is not load-bearing.
+        if (
+            rr.claude_status == "AGREED"
+            and rr.openai_status == "AGREED"
+            and not items_blocking_convergence(phase.state.item_views())
+        ):
+            converged = True
+            via_artifact_promotion = True
+            await event_bus.publish(
+                ArtifactCanonicallyPromoted(phase=phase_label, round=round_no)
+            )
+            ctx.transcript.write(
+                "artifact_canonically_promoted",
+                phase=phase_label,
+                round=round_no,
+            )
+            print(
+                f"\n[{phase_label}] AGREED (artifact promotion). Both agents "
+                f"emitted STATUS: AGREED with a terminal ledger at round "
+                f"{round_no}, but their artifact bodies hash-drifted. "
+                f"Accepting their self-declared agreement.",
+                flush=True,
+            )
+            break
+
         if rr.closeout_event is not None:
             if is_closeout_round:
                 # Burn budget; check ghost-cap.
@@ -361,6 +401,7 @@ async def _drive_interaction_phase(
             via_closeout=via_closeout,
             via_ghost_cap=via_ghost_cap,
             via_hard_cap=via_hard_cap,
+            via_artifact_promotion=via_artifact_promotion,
         )
         await event_bus.publish(converged_event)
 
@@ -378,6 +419,7 @@ async def _drive_interaction_phase(
         via_hard_cap=via_hard_cap,
         ledger=tuple(phase.state.ledger),
         converged_event=converged_event,
+        via_artifact_promotion=via_artifact_promotion,
     )
     return result, phase
 

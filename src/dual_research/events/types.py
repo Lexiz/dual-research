@@ -495,8 +495,9 @@ class CloseoutViolation(Event):
 class PhaseConverged(Event):
     """A phase reached terminal convergence.
 
-    One of ``via_closeout`` / ``via_ghost_cap`` / ``via_hard_cap`` may
-    be ``True``; an organic convergence has all three ``False``.
+    One of ``via_closeout`` / ``via_ghost_cap`` / ``via_hard_cap`` /
+    ``via_artifact_promotion`` may be ``True``; an organic convergence
+    has all four ``False``.
     """
 
     phase: int
@@ -504,4 +505,35 @@ class PhaseConverged(Event):
     via_closeout: bool = False
     via_ghost_cap: bool = False
     via_hard_cap: bool = False
+    via_artifact_promotion: bool = False
     kind: str = "phase_converged"
+
+
+@dataclass(frozen=True, kw_only=True)
+class ArtifactCanonicallyPromoted(Event):
+    """Spec 0137 — orchestrator escaped a hash-drift loop by accepting
+    the agents' self-declared AGREED.
+
+    Fires when both agents emit ``STATUS: AGREED`` in the same round
+    AND the ledger has zero non-terminal items, but the per-phase
+    artifact hash gate ([orchestrator/closeout.py] ``check_convergence``)
+    still rejects (the two agents wrote semantically-equivalent but
+    byte-different artifact bodies). The orchestrator treats this as
+    substantive convergence — agents' AGREED is load-bearing; byte
+    equality of the artifact block was a hopeful structural assertion
+    downstream code does not actually require — promotes the canonical
+    artifact from the designated agent's turn file (claude for phase 0;
+    the drafter for phase 2; the drafter for phase 4), and exits the
+    phase converged.
+
+    Distinct from the legacy ``DrafterCanonicalPromoted`` event (spec
+    0032), which fired in the legacy ``phase2.py`` after a force-verbatim
+    repair turn also failed. This spec's escape valve fires without a
+    repair turn — the downstream consumer reads from one specific
+    agent's emission regardless, so the second agent's drift is not
+    actually load-bearing.
+    """
+
+    phase: str
+    round: int
+    kind: str = "artifact_canonically_promoted"
