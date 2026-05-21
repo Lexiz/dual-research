@@ -47,7 +47,7 @@ Network zones (optional):
 **Normalized canonical spec:**
 
 ```
-Title: Partner Vetting — Infrastructure
+Title: OrderFlow — Infrastructure
 Subtitle: GCP — Cloud Run + managed services
 
 Cloud boundary:
@@ -59,7 +59,7 @@ Services:
   - Cloud Run (API)      | type: compute  | spec: "min=2 max=20"
   - Cloud SQL Postgres   | type: database | spec: "PG15, db-custom-2-7680"
   - GCS (documents)      | type: storage  | spec: "Standard, CMEK"
-  - Pub/Sub (events)     | type: queue    | spec: "Topic: partner.events"
+  - Pub/Sub (events)     | type: queue    | spec: "Topic: order.events"
 
 Connections:
   - External            → Cloud Load Balancing : public  | label "HTTPS"

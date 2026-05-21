@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 720" font-family="'Roboto Flex', 'Roboto', system-ui, -apple-system, sans-serif">
   <title>system-context · material · dark</title>
-  <desc>V2-vocabulary hand-rebuilt anchor (dark theme). ViewBox 1660x720. Composes md-card service-primary hub, md-card outlined user cards, md-card service-{sql,store,secure,cache} external cards, group.boundary.trust, and inlined Material Symbols.</desc>
+  <desc>OrderFlow worked example (dark theme). ViewBox 1660x720. Composes md-card service-primary hub, md-card outlined user cards, md-card service-{sql,store,secure,cache} external cards, group.boundary.trust, and inlined Material Symbols.</desc>
 
   <defs>
     <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
@@ -38,11 +38,10 @@
           fill="#0d0f12" stroke="#6b9cf0" stroke-width="1"/>
     <text x="516" y="104" text-anchor="middle"
           font-size="11" font-weight="600" letter-spacing="0.4" fill="#a4c1ff">
-      TRUST BOUNDARY · TTC TENANT
+      TRUST BOUNDARY · TENANT EDGE
     </text>
   </g>
 
-  <!-- USERS · 3 outlined cards -->
   <g transform="translate(56, 120)">
     <rect width="280" height="140" rx="12" ry="12" fill="#0d0f12"
           stroke="#262a31" stroke-width="1"/>
@@ -50,47 +49,46 @@
       <path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Zm80-80h480v-32q0-11-5.5-20T700-306q-54-27-109-40.5T480-360q-56 0-111 13.5T260-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T560-640q0-33-23.5-56.5T480-720q-33 0-56.5 23.5T400-640q0 33 23.5 56.5T480-560Zm0-80Zm0 400Z"/>
     </g>
     <text x="76" y="52" font-size="18" font-weight="500" fill="#ffffff"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Customer rep</text>
-    <text x="76" y="76" font-size="13" fill="#b4bac4">Initiates partner-vetting</text>
-    <text x="76" y="94" font-size="13" fill="#b4bac4">requests on a deal.</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Shopper</text>
+    <text x="76" y="76" font-size="13" fill="#b4bac4">Browses, places orders,</text>
+    <text x="76" y="94" font-size="13" fill="#b4bac4">tracks status across web + mobile.</text>
     <text x="24" y="124" font-size="11" font-style="italic" fill="#7d8290"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">~120 active · SSO</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">~2.4M MAU · public</text>
   </g>
 
   <g transform="translate(56, 284)">
     <rect width="280" height="140" rx="12" ry="12" fill="#0d0f12"
           stroke="#262a31" stroke-width="1"/>
     <g transform="translate(24, 56) scale(0.0375)" fill="#b4bac4">
-      <path d="M680-280q25 0 42.5-17.5T740-340q0-25-17.5-42.5T680-400q-25 0-42.5 17.5T620-340q0 25 17.5 42.5T680-280Zm0 120q31 0 57-14.5t42-38.5q-22-13-47-20t-52-7q-27 0-52 7t-47 20q16 24 42 38.5t57 14.5ZM480-80q-139-35-229.5-159.5T160-516v-244l320-120 320 120v227q-19-8-39-14.5t-41-9.5v-147l-240-90-240 90v188q0 47 12.5 94t35 89.5Q310-290 342-254t71 60q11 32 29 61t41 52q-1 0-1.5.5t-1.5.5Zm200 0q-83 0-141.5-58.5T480-280q0-83 58.5-141.5T680-480q83 0 141.5 58.5T880-280q0 83-58.5 141.5T680-80ZM480-494Z"/>
+      <path d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z"/>
     </g>
     <text x="76" y="52" font-size="18" font-weight="500" fill="#ffffff"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Deal-desk admin</text>
-    <text x="76" y="76" font-size="13" fill="#b4bac4">Manages approvals,</text>
-    <text x="76" y="94" font-size="13" fill="#b4bac4">policy edits, exceptions.</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Warehouse operator</text>
+    <text x="76" y="76" font-size="13" fill="#b4bac4">Picks, packs, prints labels,</text>
+    <text x="76" y="94" font-size="13" fill="#b4bac4">marks shipments dispatched.</text>
     <text x="24" y="124" font-size="11" font-style="italic" fill="#7d8290"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">~12 admins · MFA required</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">~800 active · SSO</text>
   </g>
 
   <g transform="translate(56, 448)">
     <rect width="280" height="140" rx="12" ry="12" fill="#0d0f12"
           stroke="#262a31" stroke-width="1"/>
     <g transform="translate(24, 56) scale(0.0375)" fill="#b4bac4">
-      <path d="M160-80q-33 0-56.5-23.5T80-160v-440q0-33 23.5-56.5T160-680h200v-120q0-33 23.5-56.5T440-880h80q33 0 56.5 23.5T600-800v120h200q33 0 56.5 23.5T880-600v440q0 33-23.5 56.5T800-80H160Zm0-80h640v-440H600q0 33-23.5 56.5T520-520h-80q-33 0-56.5-23.5T360-600H160v440Zm80-80h240v-18q0-17-9.5-31.5T444-312q-20-9-40.5-13.5T360-330q-23 0-43.5 4.5T276-312q-17 8-26.5 22.5T240-258v18Zm320-60h160v-60H560v60Zm-200-60q25 0 42.5-17.5T420-420q0-25-17.5-42.5T360-480q-25 0-42.5 17.5T300-420q0 25 17.5 42.5T360-360Zm200-60h160v-60H560v60ZM440-600h80v-200h-80v200Zm40 220Z"/>
+      <path d="M680-280q25 0 42.5-17.5T740-340q0-25-17.5-42.5T680-400q-25 0-42.5 17.5T620-340q0 25 17.5 42.5T680-280Zm0 120q31 0 57-14.5t42-38.5q-22-13-47-20t-52-7q-27 0-52 7t-47 20q16 24 42 38.5t57 14.5ZM480-80q-139-35-229.5-159.5T160-516v-244l320-120 320 120v227q-19-8-39-14.5t-41-9.5v-147l-240-90-240 90v188q0 47 12.5 94t35 89.5Q310-290 342-254t71 60q11 32 29 61t41 52q-1 0-1.5.5t-1.5.5Zm200 0q-83 0-141.5-58.5T480-280q0-83 58.5-141.5T680-480q83 0 141.5 58.5T880-280q0 83-58.5 141.5T680-80ZM480-494Z"/>
     </g>
     <text x="76" y="52" font-size="18" font-weight="500" fill="#ffffff"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Compliance reviewer</text>
-    <text x="76" y="76" font-size="13" fill="#b4bac4">Audit trail viewer; signs</text>
-    <text x="76" y="94" font-size="13" fill="#b4bac4">off on high-risk verdicts.</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Finance analyst</text>
+    <text x="76" y="76" font-size="13" fill="#b4bac4">Reconciles ledgers, reviews</text>
+    <text x="76" y="94" font-size="13" fill="#b4bac4">refunds, audits transactions.</text>
     <text x="24" y="124" font-size="11" font-style="italic" fill="#7d8290"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">read-only · audited</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">~24 analysts · MFA</text>
   </g>
 
-  <!-- PLATFORM hub · md-card service-primary -->
   <g transform="translate(420, 180)">
     <rect width="560" height="340" rx="12" ry="12" fill="#3e362f" filter="url(#elev3)"/>
 
     <g transform="translate(28, 84) scale(0.0583)" fill="#f3deca">
-      <path d="m344-60-76-128-144-32 14-148-98-112 98-112-14-148 144-32 76-128 136 58 136-58 76 128 144 32-14 148 98 112-98 112 14 148-144 32-76 128-136-58-136 58Zm34-102 102-44 104 44 56-96 110-26-10-112 74-84-74-86 10-112-110-24-58-96-102 44-104-44-56 96-110 24 10 112-74 86 74 84-10 114 110 24 58 96Zm102-318Zm-42 142 226-226-56-58-170 170-86-84-56 56 142 142Z"/>
+      <path d="M280-80q-33 0-56.5-23.5T200-160v-441q-18-11-29-28.5T160-672q0-14 4.5-26.5T177-721l51-75q11-17 28.5-26.5T296-832h368q19 0 36.5 9.5T729-796l51 75q8 11 12 23.5t4 25.5q0 25-11 42t-29 29v441q0 33-23.5 56.5T676-80H280Zm10-560h380l-32-48q-1-1-9-4H334l-9 4-35 48ZM280-560v400h396v-400H280Zm120 240h160q17 0 28.5-11.5T600-360q0-17-11.5-28.5T560-400H400q-17 0-28.5 11.5T360-360q0 17 11.5 28.5T400-320Z"/>
     </g>
 
     <g transform="translate(444, 24)">
@@ -100,60 +98,59 @@
     </g>
 
     <text x="100" y="68" font-size="32" font-weight="500" fill="#f3deca"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.4">Partner Vetting</text>
-    <text x="100" y="98" font-size="14" fill="#d0b896">Multi-agent SaaS platform · Anthropic-hosted</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.4">OrderFlow</text>
+    <text x="100" y="98" font-size="14" fill="#d0b896">Multi-region order management platform · cloud-hosted</text>
 
-    <text x="28" y="156" font-size="14" fill="#f3deca">Two-agent convergence loop (Claude + GPT) vets prospective partners against</text>
-    <text x="28" y="176" font-size="14" fill="#f3deca">six policy axes. Verdict + reasoning audit trail returned in ≤ 90 s p99.</text>
+    <text x="28" y="156" font-size="14" fill="#f3deca">Coordinates intake, fulfilment, payment, and notification across 8 markets.</text>
+    <text x="28" y="176" font-size="14" fill="#f3deca">~120k orders/day, p99 &lt; 1.2 s from intake to first acknowledgement.</text>
 
     <g transform="translate(28, 208)" font-size="12">
-      <rect x="0" y="0" width="142" height="28" rx="14" ry="14" fill="rgba(243,222,202,0.14)"/>
-      <text x="71" y="18" text-anchor="middle" font-weight="500" fill="#f3deca" font-variant-numeric="tabular-nums">90s p99 verdict</text>
-      <rect x="156" y="0" width="118" height="28" rx="14" ry="14" fill="rgba(243,222,202,0.14)"/>
-      <text x="215" y="18" text-anchor="middle" font-weight="500" fill="#f3deca" font-variant-numeric="tabular-nums">six policy axes</text>
-      <rect x="288" y="0" width="146" height="28" rx="14" ry="14" fill="rgba(243,222,202,0.14)"/>
-      <text x="361" y="18" text-anchor="middle" font-weight="500" fill="#f3deca" font-variant-numeric="tabular-nums">~2.5k vettings / day</text>
+      <rect x="0" y="0" width="138" height="28" rx="14" ry="14" fill="rgba(243,222,202,0.14)"/>
+      <text x="69" y="18" text-anchor="middle" font-weight="500" fill="#f3deca" font-variant-numeric="tabular-nums">1.2 s p99 intake</text>
+      <rect x="152" y="0" width="118" height="28" rx="14" ry="14" fill="rgba(243,222,202,0.14)"/>
+      <text x="211" y="18" text-anchor="middle" font-weight="500" fill="#f3deca" font-variant-numeric="tabular-nums">12 services</text>
+      <rect x="284" y="0" width="150" height="28" rx="14" ry="14" fill="rgba(243,222,202,0.14)"/>
+      <text x="359" y="18" text-anchor="middle" font-weight="500" fill="#f3deca" font-variant-numeric="tabular-nums">~120k orders / day</text>
     </g>
 
     <text x="28" y="306" font-size="13" font-style="italic" fill="#d0b896"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">v2.0.0 · single-tenant SaaS · cloud-hosted</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">v3.2 · multi-region · single-tenant deployment</text>
   </g>
 
-  <!-- EXTERNALS · 4 service cards -->
   <g transform="translate(1064, 120)">
     <rect width="260" height="200" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
     <g transform="translate(24, 60) scale(0.0375)" fill="#d6e3ff">
-      <path d="M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Zm0-80h480q42 0 71-29t29-71q0-42-29-71t-71-29h-60v-80q0-83-58.5-141.5T480-720q-83 0-141.5 58.5T280-520h-20q-58 0-99 41t-41 99q0 58 41 99t99 41Zm220-240Z"/>
+      <path d="M240-440h480v-80H240v80Zm0 200h480v-80H240v80ZM160-80q-33 0-56.5-23.5T80-160v-640q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v640q0 33-23.5 56.5T800-80H160Zm0-80h640v-640H160v640Zm0 0v-640 640Z"/>
     </g>
     <g transform="translate(208, 24)">
       <rect width="28" height="22" rx="6" ry="6" fill="rgba(107,156,240,0.28)"/>
-      <text x="14" y="15" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.4" fill="#d6e3ff">SF</text>
+      <text x="14" y="15" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.4" fill="#d6e3ff">ST</text>
     </g>
     <text x="76" y="56" font-size="18" font-weight="500" fill="#d6e3ff"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Salesforce</text>
-    <text x="76" y="80" font-size="13" fill="#b1c0e2">Deal record · partner</text>
-    <text x="76" y="98" font-size="13" fill="#b1c0e2">metadata · account ID.</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Stripe</text>
+    <text x="76" y="80" font-size="13" fill="#b1c0e2">Payments · cards, ACH,</text>
+    <text x="76" y="98" font-size="13" fill="#b1c0e2">SCA / 3-D Secure 2.</text>
     <text x="24" y="138" font-size="11" font-style="italic" fill="#92a3c8"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">REST · API user · per-org</text>
-    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#92a3c8">SQL CATEGORY</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">REST · per-merchant API key</text>
+    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#92a3c8">SQL CATEGORY · STRUCTURED</text>
   </g>
 
   <g transform="translate(1344, 120)">
     <rect width="260" height="200" rx="12" ry="12" fill="#3a332e" filter="url(#elev1)"/>
     <g transform="translate(24, 60) scale(0.0375)" fill="#b9a895">
-      <path d="m344-60-76-128-144-32 14-148-98-112 98-112-14-148 144-32 76-128 136 58 136-58 76 128 144 32-14 148 98 112-98 112 14 148-144 32-76 128-136-58-136 58Zm34-102 102-44 104 44 56-96 110-26-10-112 74-84-74-86 10-112-110-24-58-96-102 44-104-44-56 96-110 24 10 112-74 86 74 84-10 114 110 24 58 96Zm102-318Zm-42 142 226-226-56-58-170 170-86-84-56 56 142 142Z"/>
+      <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm320-280 320-210v-90L480-520 160-730v90l320 210Z"/>
     </g>
     <g transform="translate(208, 24)">
       <rect width="28" height="22" rx="6" ry="6" fill="rgba(212,165,116,0.20)"/>
-      <text x="14" y="15" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.4" fill="#b9a895">SL</text>
+      <text x="14" y="15" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.4" fill="#b9a895">SG</text>
     </g>
     <text x="76" y="56" font-size="18" font-weight="500" fill="#b9a895"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Slack</text>
-    <text x="76" y="80" font-size="13" fill="#9c8b78">Notifications · verdict</text>
-    <text x="76" y="98" font-size="13" fill="#9c8b78">summary + audit link.</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">SendGrid</text>
+    <text x="76" y="80" font-size="13" fill="#9c8b78">Transactional email · receipts,</text>
+    <text x="76" y="98" font-size="13" fill="#9c8b78">shipping updates, password resets.</text>
     <text x="24" y="138" font-size="11" font-style="italic" fill="#7e6f5c"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">webhook · bot user · per-channel</text>
-    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#7e6f5c">STORE CATEGORY · MONOGRAM</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">API · per-domain authenticated sender</text>
+    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#7e6f5c">STORE CATEGORY · CONTENT</text>
   </g>
 
   <g transform="translate(1064, 340)">
@@ -171,13 +168,13 @@
     <text x="76" y="98" font-size="13" fill="#90b69b">MFA enforced on admins.</text>
     <text x="24" y="138" font-size="11" font-style="italic" fill="#789a82"
           font-family="'Roboto Serif', ui-serif, Georgia, serif">OIDC · per-tenant connection</text>
-    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#789a82">SECURE CATEGORY</text>
+    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#789a82">SECURE CATEGORY · GATED</text>
   </g>
 
   <g transform="translate(1344, 340)">
     <rect width="260" height="200" rx="12" ry="12" fill="#373026" filter="url(#elev1)"/>
     <g transform="translate(24, 60) scale(0.0375)" fill="#e6c69a">
-      <path d="m344-60-76-128-144-32 14-148-98-112 98-112-14-148 144-32 76-128 136 58 136-58 76 128 144 32-14 148 98 112-98 112 14 148-144 32-76 128-136-58-136 58Zm34-102 102-44 104 44 56-96 110-26-10-112 74-84-74-86 10-112-110-24-58-96-102 44-104-44-56 96-110 24 10 112-74 86 74 84-10 114 110 24 58 96Zm102-318Zm-42 142 226-226-56-58-170 170-86-84-56 56 142 142Z"/>
+      <path d="m40-120 440-760 440 760H40Zm138-80h604L480-720 178-200Zm302-40q17 0 28.5-11.5T520-280q0-17-11.5-28.5T480-320q-17 0-28.5 11.5T440-280q0 17 11.5 28.5T480-240Zm-40-120h80v-200h-80v200Zm40-100Z"/>
     </g>
     <g transform="translate(208, 24)">
       <rect width="28" height="22" rx="6" ry="6" fill="rgba(212,160,86,0.20)"/>
@@ -185,27 +182,26 @@
     </g>
     <text x="76" y="56" font-size="18" font-weight="500" fill="#e6c69a"
           font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Sentry</text>
-    <text x="76" y="80" font-size="13" fill="#c4a781">Error capture + release</text>
+    <text x="76" y="80" font-size="13" fill="#c4a781">Error capture · release</text>
     <text x="76" y="98" font-size="13" fill="#c4a781">tracking · per-project DSN.</text>
     <text x="24" y="138" font-size="11" font-style="italic" fill="#a48d6a"
           font-family="'Roboto Serif', ui-serif, Georgia, serif">HTTPS · API key · async</text>
-    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#a48d6a">CACHE CATEGORY · MONOGRAM</text>
+    <text x="24" y="172" font-size="10" font-weight="600" letter-spacing="0.5" fill="#a48d6a">CACHE CATEGORY · WARNING</text>
   </g>
 
-  <!-- arrows -->
   <line x1="344" y1="190" x2="412" y2="280" stroke="#6b9cf0" stroke-width="1.8"
         marker-end="url(#arrowAccent)"/>
   <line x1="344" y1="354" x2="412" y2="350" stroke="#6b9cf0" stroke-width="1.8"
         marker-end="url(#arrowAccent)"/>
   <line x1="344" y1="518" x2="412" y2="420" stroke="#6b9cf0" stroke-width="1.8"
         marker-end="url(#arrowAccent)"/>
-  <text x="378" y="232" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">USES</text>
-  <text x="378" y="346" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">MANAGES</text>
+  <text x="378" y="232" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">PLACES</text>
+  <text x="378" y="346" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">FULFILS</text>
   <text x="378" y="476" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">AUDITS</text>
 
   <line x1="988" y1="260" x2="1056" y2="200" stroke="#6b9cf0" stroke-width="1.8"
         marker-end="url(#arrowAccent)"/>
-  <text x="1004" y="222" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">READS</text>
+  <text x="1004" y="222" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">CHARGES</text>
 
   <line x1="988" y1="280" x2="1336" y2="200" stroke="#9aa0ac" stroke-width="1.3"
         stroke-dasharray="4,3" marker-end="url(#arrowGrey)"/>
@@ -221,12 +217,11 @@
   <text x="1148" y="442" font-size="10" font-style="italic" fill="#9aa0ac"
         font-family="'Roboto Serif', ui-serif, Georgia, serif">reports errors · async</text>
 
-  <!-- legend -->
   <line x1="56" y1="640" x2="1604" y2="640" stroke="#262a31" stroke-width="1"/>
   <text x="56" y="668" font-size="12" fill="#9aa0ac">
     solid arrow (info-blue) = synchronous request   ·   dashed arrow (muted) = async / scheduled handoff   ·   trust boundary = tenant edge
   </text>
   <text x="1604" y="668" text-anchor="end" font-size="11" fill="#50545d" font-variant-numeric="tabular-nums">
-    architecture-diagram · material · v2.0.0 · system-context · 2026-05
+    OrderFlow · system-context · diagram skill v2.0.1 · 2026-05
   </text>
 </svg>

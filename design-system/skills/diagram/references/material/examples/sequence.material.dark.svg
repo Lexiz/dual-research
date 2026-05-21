@@ -1,162 +1,178 @@
-<?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 760" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
-  
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 780" font-family="'Roboto Flex', 'Roboto', system-ui, -apple-system, sans-serif">
+  <title>sequence · material · dark</title>
+  <desc>OrderFlow worked example (dark theme). ViewBox 1660x780. Five vertical lanes (Shopper, Web app, Order API, Payment Service, Stripe) with lane.header md-card--filled, lane.vertical dashed lifelines, lane.activation-box surface overlays, and sync-call / async-event / return arrows in --md-tertiary info-blue.</desc>
+
   <defs>
-    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0f12"/>
+      <stop offset="100%" stop-color="#08090b"/>
+    </linearGradient>
+    <filter id="elev1" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.30"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
     </filter>
-    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    <filter id="elev3" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#000000" flood-opacity="0.30"/>
     </filter>
-
-    
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0d0f12"></stop><stop offset="100%" stop-color="#08090b"></stop>
-    </linearGradient>
-    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6b9cf0"></stop><stop offset="100%" stop-color="#3a5fa8"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#494e57"></stop><stop offset="100%" stop-color="#2c3138"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2d5fa8"></stop><stop offset="100%" stop-color="#1d4480"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#5aaa7d"></stop><stop offset="100%" stop-color="#36805a"></stop>
-    </linearGradient>
-
-    
-    <marker id="arrowSlate" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7e88"></path></marker>
-    <marker id="arrowOpen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7" stroke="#7a7e88" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></marker>
-    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"></path></marker>
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
+    </marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"/>
+    </marker>
+    <marker id="arrowOpen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7" stroke="#6b9cf0" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
   </defs>
 
-  <rect width="1660" height="760" fill="url(#bgGrad)"></rect>
+  <rect width="1660" height="780" fill="url(#canvas)"/>
 
-  
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Partner Vetting · Run a Vet · Sequence</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Analyst submits a partner URL through to signed verdict</text>
+  <text x="830" y="56" text-anchor="middle" font-size="26" font-weight="500" fill="#ffffff"
+        font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.3">OrderFlow · Checkout · Sequence</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Cart submit through to OAuth-gated 3-D Secure capture and receipt</text>
 
-  
-
-  
-  <rect x="110" y="120" width="240" height="56" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(140, 148)">
-    <circle cx="0" cy="-5" r="5" fill="#ffffff"></circle>
-    <path d="M-10,11 Q-10,3 0,3 Q10,3 10,11 Z" fill="#ffffff"></path>
-  </g>
-  <text x="180" y="142" font-size="13" font-weight="600" fill="#ffffff">Analyst</text>
-  <text x="180" y="158" font-size="10" fill="#9aa0ac">internal user</text>
-
-  
-  <rect x="410" y="120" width="240" height="56" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(440, 148)">
-    <rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#ffffff"></rect>
-    <rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect>
-    <rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
-    <rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
-  </g>
-  <text x="480" y="142" font-size="13" font-weight="600" fill="#ffffff">Vetting Dashboard</text>
-  <text x="480" y="158" font-size="10" fill="#9aa0ac">React SPA</text>
-
-  
-  <rect x="710" y="120" width="240" height="56" rx="10" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(740, 148)">
-    <path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path>
-    <line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
-    <line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
-  </g>
-  <text x="780" y="142" font-size="13" font-weight="600" fill="white">Vetting API</text>
-  <text x="780" y="158" font-size="10" fill="rgba(255,255,255,0.65)">Cloud Run</text>
-
-  
-  <rect x="1010" y="120" width="240" height="56" rx="10" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1040, 148)">
-    <path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path>
-    <path d="M-4,0 L-1,4 L5,-3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
-  </g>
-  <text x="1080" y="142" font-size="13" font-weight="600" fill="white">Auth Service</text>
-  <text x="1080" y="158" font-size="10" fill="rgba(255,255,255,0.65)">Auth0 · RS256</text>
-
-  
-  <rect x="1310" y="120" width="240" height="56" rx="10" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1340, 148)">
-    <ellipse cx="0" cy="-7" rx="9" ry="3" fill="rgba(255,255,255,0.85)"></ellipse>
-    <rect x="-9" y="-7" width="18" height="14" fill="rgba(255,255,255,0.85)"></rect>
-    <ellipse cx="0" cy="7" rx="9" ry="3" fill="rgba(255,255,255,0.85)"></ellipse>
-    <ellipse cx="0" cy="-7" rx="9" ry="3" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse>
-  </g>
-  <text x="1380" y="142" font-size="13" font-weight="600" fill="white">Postgres</text>
-  <text x="1380" y="158" font-size="10" fill="rgba(255,255,255,0.65)">Cloud SQL</text>
-
-  
-  <g stroke="#7d8290" stroke-width="1" stroke-dasharray="3,4" opacity="0.7">
-    <line x1="230" y1="176" x2="230" y2="704"></line>
-    <line x1="530" y1="176" x2="530" y2="704"></line>
-    <line x1="830" y1="176" x2="830" y2="704"></line>
-    <line x1="1130" y1="176" x2="1130" y2="704"></line>
-    <line x1="1430" y1="176" x2="1430" y2="704"></line>
+  <!-- Lane 1: Shopper -->
+  <g transform="translate(110, 120)">
+    <rect width="240" height="56" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(16, 36) scale(0.025)" fill="#b4bac4">
+      <path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"/>
+    </g>
+    <text x="56" y="28" font-size="15" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.1">Shopper</text>
+    <text x="56" y="46" font-size="11" fill="#7d8290">external · web + iOS</text>
   </g>
 
-  
-  <rect x="822" y="248" width="16" height="384" fill="#6b9cf0" opacity="0.75"></rect>
-  <rect x="1122" y="288" width="16" height="64" fill="#5aaa7d" opacity="0.75"></rect>
-  <rect x="1422" y="384" width="16" height="64" fill="#2d5fa8" opacity="0.75"></rect>
-  <rect x="1422" y="500" width="16" height="48" fill="#2d5fa8" opacity="0.75"></rect>
+  <!-- Lane 2: Web app -->
+  <g transform="translate(410, 120)">
+    <rect width="240" height="56" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(16, 36) scale(0.025)" fill="#b4bac4">
+      <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H160v400Zm0-480h640v-80H160v80Z"/>
+    </g>
+    <text x="56" y="28" font-size="15" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.1">Web app</text>
+    <text x="56" y="46" font-size="11" fill="#7d8290">storefront · React</text>
+  </g>
 
-  
+  <!-- Lane 3: Order API · service primary sable -->
+  <g transform="translate(710, 120)">
+    <rect width="240" height="56" rx="12" ry="12" fill="#3e362f" filter="url(#elev3)"/>
+    <g transform="translate(16, 36) scale(0.025)" fill="#f3deca">
+      <path d="M120-160v-80h720v80H120Zm60-120v-200h120v200H180Zm180 0v-200h120v200H360Zm180 0v-200h120v200H540Zm180 0v-200h120v200H720ZM120-560v-120l360-180 360 180v120H120Z"/>
+    </g>
+    <text x="56" y="28" font-size="15" font-weight="500" fill="#f3deca"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.1">Order API</text>
+    <text x="56" y="46" font-size="11" fill="#d0b896">REST · ingress gateway</text>
+  </g>
 
-  
-  <line x1="230" y1="216" x2="522" y2="216" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
-  <text x="376" y="208" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">SUBMIT URL</text>
-  <text x="376" y="232" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">paste · enter</text>
+  <!-- Lane 4: Payment Service · service secure sage -->
+  <g transform="translate(1010, 120)">
+    <rect width="240" height="56" rx="12" ry="12" fill="#263630" filter="url(#elev1)"/>
+    <g transform="translate(16, 36) scale(0.025)" fill="#a9d2b3">
+      <path d="M240-80q-33 0-56.5-23.5T160-160v-400q0-33 23.5-56.5T240-640h40v-80q0-83 58.5-141.5T480-920q83 0 141.5 58.5T680-720v80h40q33 0 56.5 23.5T800-560v400q0 33-23.5 56.5T720-80H240Zm0-80h480v-400H240v400Zm240-120q33 0 56.5-23.5T560-360q0-33-23.5-56.5T480-440q-33 0-56.5 23.5T400-360q0 33 23.5 56.5T480-280ZM360-640h240v-80q0-50-35-85t-85-35q-50 0-85 35t-35 85v80Z"/>
+    </g>
+    <text x="56" y="28" font-size="15" font-weight="500" fill="#a9d2b3"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.1">Payment Service</text>
+    <text x="56" y="46" font-size="11" fill="#789a82">auth · capture · refunds</text>
+  </g>
 
-  
-  <line x1="530" y1="272" x2="822" y2="272" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
-  <text x="676" y="264" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">POST /runs</text>
-  <text x="676" y="288" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">cookie · csrf token</text>
+  <!-- Lane 5: Stripe · service sql info blue -->
+  <g transform="translate(1310, 120)">
+    <rect width="240" height="56" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
+    <g transform="translate(16, 36) scale(0.025)" fill="#d6e3ff">
+      <path d="M240-440h480v-80H240v80Zm0 200h480v-80H240v80ZM160-80q-33 0-56.5-23.5T80-160v-640q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v640q0 33-23.5 56.5T800-80H160Z"/>
+    </g>
+    <text x="56" y="28" font-size="15" font-weight="500" fill="#d6e3ff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.1">Stripe</text>
+    <text x="56" y="46" font-size="11" fill="#92a3c8">external · SCA / 3DS2</text>
+  </g>
 
-  
-  <line x1="838" y1="328" x2="1122" y2="328" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
-  <text x="980" y="320" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">VERIFY SESSION</text>
-  <text x="980" y="344" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">JWT 30m</text>
+  <!-- Lifelines -->
+  <g stroke="#50545d" stroke-width="1" stroke-dasharray="3,4" opacity="0.7">
+    <line x1="230" y1="176" x2="230" y2="708"/>
+    <line x1="530" y1="176" x2="530" y2="708"/>
+    <line x1="830" y1="176" x2="830" y2="708"/>
+    <line x1="1130" y1="176" x2="1130" y2="708"/>
+    <line x1="1430" y1="176" x2="1430" y2="708"/>
+  </g>
 
-  
-  <line x1="1122" y1="384" x2="838" y2="384" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
-  <text x="980" y="376" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">200 · CLAIMS</text>
-  <text x="980" y="400" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">role · org · scope</text>
+  <!-- Activation boxes -->
+  <rect x="822" y="252" width="16" height="344" fill="#3e362f" stroke="#5e4f3a" stroke-width="0.5"/>
+  <rect x="1122" y="308" width="16" height="288" fill="#263630" stroke="#4a604f" stroke-width="0.5"/>
+  <rect x="1422" y="364" width="16" height="88" fill="#27344b" stroke="#46557a" stroke-width="0.5"/>
+  <rect x="1422" y="508" width="16" height="88" fill="#27344b" stroke="#46557a" stroke-width="0.5"/>
 
-  
-  <line x1="838" y1="440" x2="1422" y2="440" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
-  <text x="1130" y="432" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">INSERT INTO spec_runs</text>
-  <text x="1130" y="456" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">analyst_id, raw_payload</text>
+  <!-- Row 1 -->
+  <line x1="230" y1="216" x2="522" y2="216" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="376" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">CHECKOUT(CART)</text>
+  <text x="376" y="232" text-anchor="middle" font-size="11" font-style="italic" fill="#9aa0ac" font-family="'Roboto Serif', ui-serif, Georgia, serif">tap "Pay" · 1 click</text>
 
-  
-  <line x1="1422" y1="496" x2="838" y2="496" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
-  <text x="1130" y="488" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">200 · RUN_ID</text>
+  <!-- Row 2 -->
+  <line x1="530" y1="272" x2="822" y2="272" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="676" y="264" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">POST /ORDERS</text>
+  <text x="676" y="288" text-anchor="middle" font-size="11" font-style="italic" fill="#9aa0ac" font-family="'Roboto Serif', ui-serif, Georgia, serif">{ line_items, address, idempotency_key }</text>
 
-  
-  <line x1="838" y1="552" x2="1422" y2="552" stroke="#7a7e88" stroke-width="1.6" marker-end="url(#arrowSlate)"></line>
-  <text x="1130" y="544" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">UPDATE · VERDICT</text>
-  <text x="1130" y="568" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">signed payload + sha</text>
+  <!-- Row 3 -->
+  <line x1="838" y1="328" x2="1122" y2="328" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="980" y="320" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">CHARGE(ORDER_ID, AMOUNT)</text>
+  <text x="980" y="344" text-anchor="middle" font-size="11" font-style="italic" fill="#9aa0ac" font-family="'Roboto Serif', ui-serif, Georgia, serif">gRPC · order-svc → payment-svc</text>
 
-  
-  <line x1="822" y1="608" x2="530" y2="608" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
-  <text x="676" y="600" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">200 · VERDICT</text>
-  <text x="676" y="624" text-anchor="middle" font-size="9" font-style="italic" fill="#7d8290">application/signed-json</text>
+  <!-- Row 4 -->
+  <line x1="1138" y1="384" x2="1422" y2="384" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="1280" y="376" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">POST /PAYMENT_INTENTS</text>
+  <text x="1280" y="400" text-anchor="middle" font-size="11" font-style="italic" fill="#9aa0ac" font-family="'Roboto Serif', ui-serif, Georgia, serif">capture_method=automatic · 3ds=required</text>
 
-  
-  <line x1="522" y1="664" x2="230" y2="664" stroke="#7a7e88" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"></line>
-  <text x="376" y="656" text-anchor="middle" font-size="10" font-weight="600" fill="#7a7e88" letter-spacing="0.8">RENDER VERDICT</text>
+  <!-- Row 5: 3DS challenge async arc -->
+  <path d="M 1422 444 Q 830 472 230 460" stroke="#9aa0ac" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOpen)"/>
+  <text x="826" y="468" text-anchor="middle" font-size="11" font-weight="600" fill="#b4bac4" letter-spacing="0.6">3-D SECURE CHALLENGE</text>
+  <text x="826" y="488" text-anchor="middle" font-size="11" font-style="italic" fill="#7d8290" font-family="'Roboto Serif', ui-serif, Georgia, serif">redirect · issuer-hosted page · OOB push</text>
 
-  
-  <rect x="40" y="360" width="170" height="64" rx="8" fill="#fffdf7" stroke="#d4a056" filter="url(#cardShadow)" opacity="0.95"></rect>
-  <text x="52" y="378" font-size="9" font-weight="600" fill="#7a5a1a" letter-spacing="1">NOTE</text>
-  <text x="52" y="396" font-size="11" fill="#b4bac4">Agent runs inside this API</text>
-  <text x="52" y="410" font-size="11" fill="#b4bac4">activation — see layered.svg</text>
+  <!-- Row 6 -->
+  <line x1="230" y1="508" x2="1422" y2="508" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="826" y="500" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">AUTHENTICATES (biometric · OTP)</text>
 
-  
-  <line x1="60" y1="720" x2="1600" y2="720" stroke="#3a3a47"></line>
-  <text x="830" y="744" text-anchor="middle" font-size="11" fill="#9aa0ac" font-style="italic">Solid arrows are synchronous calls · dashed-open arrows are returns · activation boxes mark when each actor is busy. Median run is 2.1s end-to-end.</text>
+  <!-- Row 7: async-event webhook -->
+  <line x1="1422" y1="552" x2="1138" y2="552" stroke="#6b9cf0" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"/>
+  <text x="1280" y="544" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">PAYMENT_INTENT.SUCCEEDED</text>
+  <text x="1280" y="568" text-anchor="middle" font-size="11" font-style="italic" fill="#9aa0ac" font-family="'Roboto Serif', ui-serif, Georgia, serif">webhook · async-event · signed</text>
+
+  <!-- Row 8: return -->
+  <line x1="1122" y1="596" x2="838" y2="596" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOpen)"/>
+  <text x="980" y="588" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">200 · CAPTURE CONFIRMED</text>
+
+  <!-- Row 9: return -->
+  <line x1="822" y1="636" x2="530" y2="636" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOpen)"/>
+  <text x="676" y="628" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">200 OK · { ORDER_ID, STATUS:PAID }</text>
+
+  <!-- Row 10: return -->
+  <line x1="522" y1="676" x2="230" y2="676" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOpen)"/>
+  <text x="376" y="668" text-anchor="middle" font-size="11" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">RECEIPT + TRACKING LINK</text>
+
+  <!-- Side note -->
+  <g transform="translate(40, 392)">
+    <rect width="172" height="82" rx="12" ry="12" fill="#15171c" stroke="#262a31" stroke-width="1" filter="url(#elev1)"/>
+    <rect x="0" y="0" width="3" height="82" rx="1.5" ry="1.5" fill="#6b9cf0"/>
+    <text x="14" y="22" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">NOTE</text>
+    <text x="14" y="42" font-size="12" fill="#b4bac4">3DS frictionless path</text>
+    <text x="14" y="58" font-size="12" fill="#b4bac4">skips rows 5–6 entirely;</text>
+    <text x="14" y="74" font-size="12" fill="#b4bac4">webhook fires &lt; 1.2 s.</text>
+  </g>
+
+  <!-- Legend -->
+  <line x1="56" y1="724" x2="1604" y2="724" stroke="#262a31" stroke-width="1"/>
+
+  <g transform="translate(56, 748)">
+    <line x1="0" y1="0" x2="36" y2="0" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+    <text x="44" y="3" font-size="12" fill="#b4bac4">sync-call</text>
+
+    <line x1="124" y1="0" x2="160" y2="0" stroke="#6b9cf0" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"/>
+    <text x="168" y="3" font-size="12" fill="#b4bac4">async-event</text>
+
+    <line x1="260" y1="0" x2="296" y2="0" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="5,4" marker-end="url(#arrowOpen)"/>
+    <text x="304" y="3" font-size="12" fill="#b4bac4">return</text>
+
+    <rect x="362" y="-6" width="10" height="12" fill="#3e362f" stroke="#5e4f3a" stroke-width="0.5"/>
+    <text x="378" y="3" font-size="12" fill="#b4bac4">activation box (actor busy)</text>
+  </g>
+  <text x="1604" y="751" text-anchor="end" font-size="11" fill="#50545d" font-variant-numeric="tabular-nums">OrderFlow · sequence · diagram skill v2.0.1 · 2026-05</text>
 </svg>

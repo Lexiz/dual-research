@@ -62,7 +62,7 @@
 
 <pre><code><span class="c"># diagram-set-manifest.yaml</span>
 <span class="a">set</span><span class="k">:</span>
-  <span class="a">name</span><span class="k">:</span> <span class="s">"Partner Vetting"</span>
+  <span class="a">name</span><span class="k">:</span> <span class="s">"OrderFlow"</span>
   <span class="a">version</span><span class="k">:</span> <span class="s">"v1.0"</span>
   <span class="a">canvas_width</span><span class="k">:</span> 1660
   <span class="a">mode</span><span class="k">:</span> <span class="s">pixel</span>          <span class="c"># pixel | material (default: pixel)</span>
@@ -72,19 +72,19 @@
     <span class="a">dark</span><span class="k">:</span>  <span class="s">"#1a1a1f -> #14141a"</span>
 
 <span class="a">services</span><span class="k">:</span>           <span class="c"># service → label + surface + icon, pinned set-wide</span>
-  <span class="a">vetting_api</span><span class="k">:</span>
-    <span class="a">label</span><span class="k">:</span> <span class="s">"Vetting API"</span>
+  <span class="a">order_api</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Order API"</span>
     <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-primary</span>
     <span class="a">icon</span><span class="k">:</span> <span class="s">icon.gateway</span>
     <span class="a">notes</span><span class="k">:</span> <span class="s">"the hero element of the proposal"</span>
 
-  <span class="a">vetting_agent</span><span class="k">:</span>
-    <span class="a">label</span><span class="k">:</span> <span class="s">"Vetting Agent"</span>
+  <span class="a">order_svc</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Order Service"</span>
     <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-primary</span>
     <span class="a">icon</span><span class="k">:</span> <span class="s">icon.agent</span>
 
   <span class="a">dashboard</span><span class="k">:</span>
-    <span class="a">label</span><span class="k">:</span> <span class="s">"Vetting Dashboard"</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Order Dashboard"</span>
     <span class="a">surface</span><span class="k">:</span> <span class="s">light</span>      <span class="c"># light card · white fill</span>
     <span class="a">icon</span><span class="k">:</span> <span class="s">icon.browser</span>
 
@@ -178,20 +178,20 @@
 <span class="c"># icon.sql geometry: identical</span>
 <span class="c"># icon.sql fill: #1a1a18 (light) / rgba(255,255,255,0.18) (dark)</span></code></pre>
 
-<h3>Worked example · <code>theme: both</code> for the Partner Vetting set</h3>
+<h3>Worked example · <code>theme: both</code> for the OrderFlow set</h3>
 <p>A five-diagram proposal under one manifest with <code>theme: both</code> ships ten files:</p>
 
 <pre><code>diagrams/
-  partner-vetting-context.pixel.light.svg
-  partner-vetting-context.pixel.dark.svg
-  partner-vetting-architecture.pixel.light.svg
-  partner-vetting-architecture.pixel.dark.svg
-  partner-vetting-pipeline.pixel.light.svg
-  partner-vetting-pipeline.pixel.dark.svg
-  partner-vetting-sequence.pixel.light.svg
-  partner-vetting-sequence.pixel.dark.svg
-  partner-vetting-schema.pixel.light.svg
-  partner-vetting-schema.pixel.dark.svg
+  orderflow-context.pixel.light.svg
+  orderflow-context.pixel.dark.svg
+  orderflow-architecture.pixel.light.svg
+  orderflow-architecture.pixel.dark.svg
+  orderflow-pipeline.pixel.light.svg
+  orderflow-pipeline.pixel.dark.svg
+  orderflow-sequence.pixel.light.svg
+  orderflow-sequence.pixel.dark.svg
+  orderflow-schema.pixel.light.svg
+  orderflow-schema.pixel.dark.svg
   diagram-set-manifest.yaml</code></pre>
 
 <p>Every pair shares the same layout. Every <em>set</em> uses the same service-to-gradient mappings. Per-pair, the values inside <code>&lt;defs&gt;</code> differ; the structure is byte-for-byte the same.</p>

@@ -1,147 +1,195 @@
 <?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 760" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 760" font-family="'Roboto Flex', 'Roboto', system-ui, -apple-system, sans-serif">
+  <title>connector-map · material · dark</title>
+  <desc>OrderFlow worked example (dark theme). ViewBox 1660x760. Composes md-card service-primary hub, 8 md-card spokes (sql/store/slate/cache/secure variants) arranged in two concentric rings, info-blue solid + bidirectional arrows, monogram tiles per category.</desc>
+
   <defs>
-    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
-    </filter>
-    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
-    </filter>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0d0f12"></stop><stop offset="100%" stop-color="#08090b"></stop>
+    <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0f12"/>
+      <stop offset="100%" stop-color="#08090b"/>
     </linearGradient>
-    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6b9cf0"></stop><stop offset="100%" stop-color="#3a5fa8"></stop>
-    </linearGradient>
-    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"></path></marker>
-    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"></path></marker>
-    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7d8290"></path></marker>
-    
+    <filter id="elev1" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.30"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+    <filter id="elev3" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#000000" flood-opacity="0.30"/>
+    </filter>
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
+    </marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"/>
+    </marker>
   </defs>
 
-  <rect width="1660" height="760" fill="url(#bgGrad)"></rect>
+  <rect width="1660" height="760" fill="url(#canvas)"/>
 
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Partner Vetting · Integration Surface</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Every external system the platform talks to · grouped by category</text>
+  <text x="830" y="48" text-anchor="middle" font-size="24" font-weight="500" fill="#ffffff"
+        font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.3">OrderFlow · Connector Map</text>
+  <text x="830" y="72" text-anchor="middle" font-size="13" fill="#9aa0ac">One ingress · 8 third-party integrations · two concentric rings by traffic class</text>
 
-  <text x="220" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">DATA SOURCES</text>
-  <text x="1440" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">OUTPUTS &amp; OBSERVABILITY</text>
+  <!-- ring guides -->
+  <circle cx="830" cy="380" r="285" fill="none" stroke="rgba(255,255,255,0.06)" stroke-dasharray="2,5"/>
+  <circle cx="830" cy="380" r="470" fill="none" stroke="rgba(255,255,255,0.05)" stroke-dasharray="2,5"/>
+  <text x="830" y="100" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="2" fill="#7d8290">OUTER RING · TELEMETRY &amp; ADMIN</text>
+  <text x="830" y="200" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="2" fill="#7d8290">INNER RING · PRIMARY INTEGRATIONS</text>
 
-  <rect x="80" y="170" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="98" y="184" width="40" height="40" rx="8" fill="#2d5fa8"></rect>
-  <text x="118" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="white">SF</text>
-  <text x="152" y="202" font-size="14" font-weight="600" fill="#ffffff">Salesforce</text>
-  <text x="152" y="222" font-size="10" font-style="italic" fill="#9aa0ac">REST · partner roster + accounts</text>
-  <circle cx="346" cy="186" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
+  <!-- ===== HUB · md-card service-primary ===== -->
+  <g transform="translate(670, 300)">
+    <rect width="320" height="160" rx="12" ry="12" fill="#3e362f" filter="url(#elev3)"/>
 
-  <rect x="80" y="262" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="98" y="276" width="40" height="40" rx="8" fill="#2d5fa8"></rect>
-  <text x="118" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="white">OC</text>
-  <text x="152" y="294" font-size="14" font-weight="600" fill="#ffffff">OpenCorporates</text>
-  <text x="152" y="314" font-size="10" font-style="italic" fill="#9aa0ac">REST · corporate registry</text>
-  <circle cx="346" cy="278" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
+    <g transform="translate(28, 56) scale(0.05)" fill="#f3deca">
+      <path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-82q26-36 45-75t31-83H404q12 44 31 83t45 75Zm-104-16q-18-33-31.5-68.5T322-320H204q29 50 72.5 87t99.5 55Zm208 0q56-18 99.5-55t72.5-87H638q-9 38-22.5 73.5T584-178ZM170-400h136q-3-20-4.5-39.5T300-480q0-21 1.5-40.5T306-560H170q-5 20-7.5 39.5T160-480q0 21 2.5 40.5T170-400Zm216 0h188q3-20 4.5-39.5T580-480q0-21-1.5-40.5T574-560H386q-3 20-4.5 39.5T380-480q0 21 1.5 40.5T386-400Zm268 0h136q5-20 7.5-39.5T800-480q0-21-2.5-40.5T790-560H654q3 20 4.5 39.5T660-480q0 21-1.5 40.5T654-400Zm-16-240h118q-29-50-72.5-87T584-782q18 33 31.5 68.5T638-640Zm-234 0h152q-12-44-31-83t-45-75q-26 36-45 75t-31 83Zm-200 0h118q9-38 22.5-73.5T376-782q-56 18-99.5 55T204-640Z"/>
+    </g>
 
-  <rect x="80" y="354" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="98" y="368" width="40" height="40" rx="8" fill="#2d5fa8"></rect>
-  <text x="118" y="394" text-anchor="middle" font-size="14" font-weight="700" fill="white">CH</text>
-  <text x="152" y="386" font-size="14" font-weight="600" fill="#ffffff">Companies House</text>
-  <text x="152" y="406" font-size="10" font-style="italic" fill="#9aa0ac">REST · UK filings · cached 24h</text>
-  <circle cx="346" cy="370" r="5" fill="#7d8290"></circle>
+    <g transform="translate(214, 22)">
+      <rect width="76" height="22" rx="11" ry="11" fill="rgba(107,156,240,0.20)"/>
+      <circle cx="14" cy="11" r="3" fill="#6b9cf0"/>
+      <text x="24" y="15" font-size="11" font-weight="600" letter-spacing="0.4" fill="#a4c1ff">LIVE</text>
+    </g>
 
-  <rect x="80" y="446" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" stroke-dasharray="4,3" filter="url(#cardShadow)" opacity="0.85"></rect>
-  <rect x="98" y="460" width="40" height="40" rx="8" fill="#7a7e88"></rect>
-  <text x="118" y="486" text-anchor="middle" font-size="14" font-weight="700" fill="white">SA</text>
-  <text x="152" y="478" font-size="14" font-weight="600" fill="#ffffff">Sanctions API</text>
-  <text x="152" y="498" font-size="10" font-style="italic" fill="#9aa0ac">planned · OFAC + EU + UK</text>
-  <circle cx="346" cy="462" r="5" fill="#7d8290"></circle>
+    <text x="98" y="58" font-size="22" font-weight="500" fill="#f3deca"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.3">OrderFlow API</text>
+    <text x="98" y="80" font-size="12" fill="#d0b896">single ingress · v3.2 · mTLS</text>
 
-  <rect x="610" y="240" width="440" height="240" rx="16" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(660, 308)"><path d="M-14,10 L-14,-3 Q-14,-12 0,-14 Q14,-12 14,-3 L14,10 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-10" x2="0" y2="10" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"></line><line x1="-14" y1="0" x2="14" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"></line></g>
-  <text x="700" y="298" font-size="22" font-weight="600" fill="white">Partner Vetting</text>
-  <text x="700" y="322" font-size="13" fill="rgba(255,255,255,0.72)">platform · v1.0 · multi-tenant</text>
-  <line x1="638" y1="352" x2="1022" y2="352" stroke="rgba(255,255,255,0.18)"></line>
+    <line x1="28" y1="98" x2="292" y2="98" stroke="rgba(243,222,202,0.18)" stroke-width="1"/>
 
-  <rect x="640" y="370" width="170" height="32" rx="6" fill="rgba(0,0,0,0.22)"></rect>
-  <text x="652" y="390" font-size="10" font-family="monospace" font-weight="600" fill="white">REST + webhooks</text>
+    <text x="28" y="118" font-size="10" font-weight="600" letter-spacing="0.5" fill="#d0b896">INGRESS</text>
+    <text x="28" y="138" font-size="12" fill="#f3deca" font-variant-numeric="tabular-nums">api.orderflow.io</text>
+    <text x="28" y="154" font-size="11" font-style="italic" fill="#d0b896"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">per-tenant · regional fan-out</text>
+  </g>
 
-  <rect x="820" y="370" width="200" height="32" rx="6" fill="rgba(0,0,0,0.22)"></rect>
-  <text x="832" y="390" font-size="10" font-family="monospace" font-weight="600" fill="white">live integrations: 5/6</text>
+  <!-- ===== INNER RING ===== -->
+  <!-- Stripe · sql -->
+  <g transform="translate(340, 220)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#1a2535"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#d6e3ff">ST</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#d6e3ff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Stripe</text>
+    <text x="68" y="50" font-size="10" fill="#b1c0e2">payments</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#92a3c8"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">cards · ACH · 3DS2</text>
+  </g>
 
-  <rect x="640" y="414" width="380" height="32" rx="6" fill="rgba(0,0,0,0.22)"></rect>
-  <text x="652" y="434" font-size="10" font-family="monospace" font-weight="600" fill="white">all outbound calls observed in Sentry</text>
+  <!-- PayPal · sql -->
+  <g transform="translate(1140, 220)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#1a2535"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#d6e3ff">PP</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#d6e3ff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">PayPal</text>
+    <text x="68" y="50" font-size="10" fill="#b1c0e2">alt payments</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#92a3c8"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">Express Checkout</text>
+  </g>
 
-  <circle cx="1024" cy="262" r="6" fill="#6fb380" class="anim-pulse"></circle>
-  <text x="1014" y="266" text-anchor="end" font-size="10" font-weight="600" fill="rgba(255,255,255,0.78)" letter-spacing="1.2">LIVE</text>
+  <!-- SendGrid · store -->
+  <g transform="translate(340, 460)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#3a332e" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#26211c"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#b9a895">SG</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#b9a895"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">SendGrid</text>
+    <text x="68" y="50" font-size="10" fill="#9c8b78">email</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#7e6f5c"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">receipts · shipping</text>
+  </g>
 
-  <rect x="1300" y="170" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="1318" y="184" width="40" height="40" rx="8" fill="#b48758"></rect>
-  <text x="1338" y="210" text-anchor="middle" font-size="14" font-weight="700" fill="white">SL</text>
-  <text x="1372" y="202" font-size="14" font-weight="600" fill="#ffffff">Slack</text>
-  <text x="1372" y="222" font-size="10" font-style="italic" fill="#9aa0ac">webhook · ops + verdicts channel</text>
-  <circle cx="1566" cy="186" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
+  <!-- Salesforce · sql · 2-way -->
+  <g transform="translate(1140, 460)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#1a2535"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#d6e3ff">SF</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#d6e3ff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Salesforce</text>
+    <text x="68" y="50" font-size="10" fill="#b1c0e2">CRM</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#92a3c8"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">B2B roster · 2-way</text>
+  </g>
 
-  <rect x="1300" y="262" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="1318" y="276" width="40" height="40" rx="8" fill="#b48758"></rect>
-  <text x="1338" y="302" text-anchor="middle" font-size="14" font-weight="700" fill="white">EM</text>
-  <text x="1372" y="294" font-size="14" font-weight="600" fill="#ffffff">Email (SendGrid)</text>
-  <text x="1372" y="314" font-size="10" font-style="italic" fill="#9aa0ac">verdict delivery to partners</text>
-  <circle cx="1566" cy="278" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
+  <!-- ===== OUTER RING ===== -->
+  <!-- Auth0 · secure · 2-way -->
+  <g transform="translate(80, 120)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#263630" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#172521"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#a9d2b3">A0</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#a9d2b3"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Auth0</text>
+    <text x="68" y="50" font-size="10" fill="#90b69b">identity</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#789a82"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">OIDC · MFA admins</text>
+  </g>
 
-  <rect x="1300" y="354" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="1318" y="368" width="40" height="40" rx="8" fill="#5aaa7d"></rect>
-  <text x="1338" y="394" text-anchor="middle" font-size="14" font-weight="700" fill="white">A0</text>
-  <text x="1372" y="386" font-size="14" font-weight="600" fill="#ffffff">Auth0</text>
-  <text x="1372" y="406" font-size="10" font-style="italic" fill="#9aa0ac">OAuth 2 · 4 roles · RS256</text>
-  <circle cx="1566" cy="370" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
+  <!-- Snowflake · slate -->
+  <g transform="translate(1400, 120)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#2c3036" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#1c2026"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#c8ccd4">SN</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#c8ccd4"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Snowflake</text>
+    <text x="68" y="50" font-size="10" fill="#a8acb4">warehouse</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#7e828a"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">Snowpipe · BI</text>
+  </g>
 
-  <rect x="1300" y="446" width="280" height="68" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <rect x="1318" y="460" width="40" height="40" rx="8" fill="#7a7e88"></rect>
-  <text x="1338" y="486" text-anchor="middle" font-size="14" font-weight="700" fill="white">SE</text>
-  <text x="1372" y="478" font-size="14" font-weight="600" fill="#ffffff">Sentry</text>
-  <text x="1372" y="498" font-size="10" font-style="italic" fill="#9aa0ac">errors · trace · perf monitoring</text>
-  <circle cx="1566" cy="462" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
+  <!-- Twilio · store -->
+  <g transform="translate(80, 540)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#3a332e" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#26211c"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#b9a895">TW</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#b9a895"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Twilio</text>
+    <text x="68" y="50" font-size="10" fill="#9c8b78">SMS</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#7e6f5c"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">shipping · MFA codes</text>
+  </g>
 
-  <path d="M 360 204 L 605 280" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="478" y="232" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">READS</text>
+  <!-- Sentry · cache -->
+  <g transform="translate(1400, 540)">
+    <rect width="180" height="80" rx="12" ry="12" fill="#373026" filter="url(#elev1)"/>
+    <rect x="16" y="20" width="40" height="40" rx="8" ry="8" fill="#241e17"/>
+    <text x="36" y="46" text-anchor="middle" font-size="13" font-weight="700" fill="#e6c69a">SE</text>
+    <text x="68" y="32" font-size="13" font-weight="500" fill="#e6c69a"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Sentry</text>
+    <text x="68" y="50" font-size="10" fill="#c4a781">telemetry</text>
+    <text x="68" y="66" font-size="10" font-style="italic" fill="#a48d6a"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">errors · release health</text>
+  </g>
 
-  <path d="M 360 296 L 605 326" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="478" y="304" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">QUERIES</text>
+  <!-- ===== ARROWS hub ↔ spokes ===== -->
+  <line x1="665" y1="338" x2="525" y2="270" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="605" y="292" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">REST</text>
 
-  <path d="M 360 388 L 605 372" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="478" y="392" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">QUERIES</text>
+  <line x1="995" y1="338" x2="1135" y2="270" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="1062" y="292" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">REST</text>
 
-  <path d="M 360 480 L 605 422" stroke="#7d8290" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-  <text x="478" y="466" text-anchor="middle" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="0.8">FUTURE</text>
+  <line x1="665" y1="418" x2="525" y2="490" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"/>
+  <text x="600" y="440" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">WEBHOOK</text>
 
-  <path d="M 1055 280 L 1295 204" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1180" y="232" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">NOTIFIES</text>
+  <line x1="995" y1="418" x2="1135" y2="490" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"/>
+  <text x="1060" y="440" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">REST · 2-WAY</text>
 
-  <path d="M 1055 326 L 1295 296" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1180" y="304" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">SENDS</text>
+  <path d="M 750 300 Q 470 120 265 178" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"/>
+  <text x="475" y="148" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">OIDC · 2-WAY</text>
 
-  <path d="M 1055 372 L 1295 388" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)" marker-start="url(#arrowAccentSm)"></path>
-  <text x="1180" y="392" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">AUTHENTICATES</text>
+  <path d="M 910 300 Q 1190 120 1395 178" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="1185" y="148" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">gRPC</text>
 
-  <path d="M 1055 422 L 1295 480" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1180" y="466" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">REPORTS</text>
+  <path d="M 750 460 Q 470 640 265 562" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="475" y="632" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">REST</text>
 
-  <rect x="60" y="156" width="316" height="372" rx="14" fill="none" stroke="#7d8290" stroke-dasharray="6,5" opacity="0.4"></rect>
-  <rect x="1284" y="156" width="316" height="372" rx="14" fill="none" stroke="#7d8290" stroke-dasharray="6,5" opacity="0.4"></rect>
+  <path d="M 910 460 Q 1190 640 1395 562" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="1185" y="632" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#a4c1ff">HTTPS</text>
 
-  <line x1="60" y1="580" x2="1600" y2="580" stroke="#3a3a47"></line>
-  <text x="60" y="608" font-size="11" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">LEGEND</text>
-
-  <line x1="60" y1="630" x2="100" y2="630" stroke="#6b9cf0" stroke-width="1.8" marker-end="url(#arrowAccent)"></line>
-  <text x="112" y="634" font-size="11" fill="#b4bac4">solid indigo — live integration</text>
-
-  <line x1="380" y1="630" x2="420" y2="630" stroke="#7d8290" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#arrowGrey)"></line>
-  <text x="432" y="634" font-size="11" fill="#b4bac4">grey dashed — planned / future</text>
-
-  <circle cx="680" cy="630" r="5" fill="#6b9cf0" class="anim-pulse"></circle>
-  <text x="694" y="634" font-size="11" fill="#b4bac4">pulsing dot — currently live</text>
-
-  <circle cx="960" cy="630" r="5" fill="#7d8290"></circle>
-  <text x="974" y="634" font-size="11" fill="#b4bac4">static grey dot — degraded or planned</text>
-
-  <text x="60" y="694" font-size="11" font-style="italic" fill="#9aa0ac">Read center-out · hub is the platform; data flows in from the left, outputs flow out to the right · five of six integrations are live.</text>
+  <!-- legend -->
+  <line x1="56" y1="676" x2="1604" y2="676" stroke="#262a31" stroke-width="1"/>
+  <text x="56" y="704" font-size="11" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">CONNECTOR MAP</text>
+  <text x="56" y="724" font-size="12" fill="#b4bac4">Hub-and-spoke · 6 one-way + 2 two-way arrows (Salesforce, Auth0). Monogram tile colour encodes category — sql · store · slate · cache · secure.</text>
+  <text x="56" y="744" font-size="11" font-style="italic" fill="#9aa0ac"
+        font-family="'Roboto Serif', ui-serif, Georgia, serif">Read center-out — inner ring is sync payment + comms; outer ring is identity, warehouse, and telemetry.</text>
+  <text x="1604" y="744" text-anchor="end" font-size="11" fill="#50545d" font-variant-numeric="tabular-nums">OrderFlow · connector-map · diagram skill v2.0.1 · 2026-05</text>
 </svg>

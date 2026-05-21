@@ -27,7 +27,7 @@ If you can write a one-line answer to "what's this diagram for?" using one of th
 Freeform's input is the most flexible, so the normalization step matters most. Extract:
 
 ```
-Title: <e.g. "Partner Vetting — Full Project Landscape">
+Title: <e.g. "OrderFlow — Full Project Landscape">
 Subtitle: <one-line description of the scope>
 
 Regions (columns or zones):
@@ -191,14 +191,14 @@ Freeform is busy. Be conservative:
 
 ## Worked example
 
-> User said: "I want a full landscape of the partner vetting project. Three pipelines — research, development, and the actual application. The research pipeline has human input, web/Notion URLs, and pasted documents flowing into a research wiki with sources, discovery, decisions, and design docs. Development has brainstorming → create-spec → agent-coding → pr-review → spec-retro → merged-PRs. Application has profile/consent, document intake/auth, rules/vetting, and a deferred network signal v2. There's a Postgres persistence layer with RLS. There are 4 web components and 4 consumer types."
+> User said: "I want a full landscape of the order management project. Three pipelines — research, development, and the actual application. The research pipeline has human input, web/Notion URLs, and pasted documents flowing into a research wiki with sources, discovery, decisions, and design docs. Development has brainstorming → create-spec → agent-coding → pr-review → spec-retro → merged-PRs. Application has profile/consent, order intake/auth, rules/eligibility, and a deferred network signal v2. There's a Postgres persistence layer with RLS. There are 4 web components and 4 consumer types."
 
 Decomposition:
 
 - **Regions** (Strategy C, three-column):
   - LEFT — "Brainstorm Pipeline": 3 input cards (light) → research wiki card (dark, primary)
   - CENTER — "Development Pipeline": 6 stage cards stacked vertically with numbered tokens, last one (Merged PRs) is harness-green variant
-  - RIGHT — "Partner Vetting Application": top row of 4 dark cards (Profile, Document Intake, Rules, Network Signal-deferred); persistence layer card below; web components row of 4 light cards; consumers row of 4 light cards
+  - RIGHT — "OrderFlow Application": top row of 4 dark cards (Profile, Document Intake, Rules, Network Signal-deferred); persistence layer card below; web components row of 4 light cards; consumers row of 4 light cards
 - **Cross-region connectors:**
   - LEFT.design-docs → CENTER.brainstorming (solid-primary, label "DESIGN DOCS", horizontal)
   - CENTER.merged-prs → RIGHT.application (solid-primary, label "TO PROD", horizontal)

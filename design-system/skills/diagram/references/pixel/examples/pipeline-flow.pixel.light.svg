@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 660" font-family="Inter, system-ui, -apple-system, sans-serif">
-  
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 680" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <desc>OrderFlow worked example. Pipeline flow · 5 left-to-right stages from order intake through to shipment. ViewBox 1660x680. Composes stage.numbered-token, card.primary heroes in categorical surfaces, card.reference typed-output sub-row, and one bounded dashed repair turn.</desc>
+
   <defs>
     <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
       <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.10"></feDropShadow>
@@ -9,7 +10,6 @@
       <feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#1a1a18" flood-opacity="0.22"></feDropShadow>
     </filter>
 
-    
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#f5f1ea"></stop><stop offset="100%" stop-color="#ece8e0"></stop>
     </linearGradient>
@@ -26,7 +26,6 @@
       <stop offset="0%" stop-color="#2a5e40"></stop><stop offset="100%" stop-color="#1e4530"></stop>
     </linearGradient>
 
-    
     <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"></path>
     </marker>
@@ -36,212 +35,184 @@
     <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L0,6 L8,3 z" fill="#9e9b95"></path>
     </marker>
-
-    
-    <path id="flowPath" d="M 304 256 L 1576 256" fill="none"></path>
-
-    
-    
   </defs>
 
-  <rect width="1660" height="660" fill="url(#bgGrad)"></rect>
+  <rect width="1660" height="680" fill="url(#bgGrad)"></rect>
 
-  
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Partner Vetting · Vet Pipeline</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#706e67">From submission through to a signed verdict · five stages</text>
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">OrderFlow · Order Pipeline</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#706e67">From intake through to shipment · five typed stages · p99 &lt; 1.2 s</text>
 
-  
-
-  
+  <!-- stage tokens -->
   <g transform="translate(180, 140)">
-    <circle r="14" fill="#4f5fb8"></circle>
-    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">1</text>
-    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 1</text>
-    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Intake</text>
+    <circle r="18" fill="#4f5fb8"></circle>
+    <text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="white">1</text>
+    <text x="0" y="44" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 1</text>
+    <text x="0" y="64" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Intake</text>
   </g>
 
-  
   <g transform="translate(500, 140)">
-    <circle r="14" fill="#4f5fb8"></circle>
-    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">2</text>
-    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 2</text>
-    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Enrich</text>
+    <circle r="18" fill="#4f5fb8"></circle>
+    <text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="white">2</text>
+    <text x="0" y="44" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 2</text>
+    <text x="0" y="64" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Validate</text>
   </g>
 
-  
   <g transform="translate(820, 140)">
-    <circle r="14" fill="#4f5fb8"></circle>
-    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">3</text>
-    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 3</text>
-    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Vet</text>
+    <circle r="18" fill="#4f5fb8"></circle>
+    <text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="white">3</text>
+    <text x="0" y="44" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 3</text>
+    <text x="0" y="64" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Reserve</text>
   </g>
 
-  
   <g transform="translate(1140, 140)">
-    <circle r="14" fill="#4f5fb8"></circle>
-    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">4</text>
-    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 4</text>
-    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Score</text>
+    <circle r="18" fill="#4f5fb8"></circle>
+    <text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="white">4</text>
+    <text x="0" y="44" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 4</text>
+    <text x="0" y="64" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Settle</text>
   </g>
 
-  
   <g transform="translate(1460, 140)">
-    <circle r="14" fill="#4f5fb8"></circle>
-    <text y="4" text-anchor="middle" font-size="13" font-weight="700" fill="white">5</text>
-    <text x="0" y="36" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 5</text>
-    <text x="0" y="56" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Emit</text>
+    <circle r="18" fill="#4f5fb8"></circle>
+    <text y="5" text-anchor="middle" font-size="14" font-weight="700" fill="white">5</text>
+    <text x="0" y="44" text-anchor="middle" font-size="11" font-weight="600" fill="#9e9b95" letter-spacing="2">STAGE 5</text>
+    <text x="0" y="64" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a18">Ship</text>
   </g>
 
-  
-
-  
-  <rect x="60" y="216" width="240" height="120" rx="14" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
-  <g transform="translate(86, 258)">
-    <rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#1a1a18"></rect>
-    <rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect>
-    <rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
-    <rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect>
+  <!-- Stage 1: Order API (neutral white card, since it's the public-facing intake) -->
+  <rect x="60" y="226" width="240" height="120" rx="14" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+  <g transform="translate(86, 268)">
+    <rect x="-12" y="-10" width="24" height="20" rx="3" fill="none" stroke="#1a1a18" stroke-width="1.6"></rect>
+    <path d="M-6,-10 L-6,-4 L6,-4 L6,-10" fill="none" stroke="#1a1a18" stroke-width="1.6"></path>
+    <line x1="-7" y1="2" x2="7" y2="2" stroke="#1a1a18" stroke-width="1.4"></line>
+    <line x1="-7" y1="6" x2="3" y2="6" stroke="#1a1a18" stroke-width="1.4"></line>
   </g>
-  <text x="118" y="250" font-size="14" font-weight="600" fill="#1a1a18">Submission Form</text>
-  <text x="118" y="268" font-size="11" fill="#4a4845">analyst pastes a URL or doc</text>
-  <line x1="80" y1="284" x2="280" y2="284" stroke="#e8e2d8"></line>
-  <text x="80" y="304" font-size="11" fill="#4a4845">accepts URL · PDF · DOCX</text>
-  <text x="80" y="322" font-size="10" font-style="italic" fill="#706e67">deduped on sha256</text>
+  <text x="118" y="260" font-size="14" font-weight="600" fill="#1a1a18">Order API</text>
+  <text x="118" y="278" font-size="11" fill="#4a4845">REST gateway · public ingress</text>
+  <line x1="80" y1="294" x2="280" y2="294" stroke="#e8e2d8"></line>
+  <text x="80" y="314" font-size="11" fill="#4a4845">schema check · idempotency-key</text>
+  <text x="80" y="332" font-size="10" font-style="italic" fill="#706e67">dedup on order_ref · 24h window</text>
 
-  
-  <rect x="380" y="216" width="240" height="120" rx="14" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(406, 258)">
-    <rect x="-13" y="-10" width="26" height="20" rx="2" fill="rgba(255,255,255,0.18)"></rect>
-    <line x1="-13" y1="-3" x2="13" y2="-3" stroke="rgba(255,255,255,0.7)" stroke-width="1"></line>
-    <circle cx="-9" cy="-7" r="1.2" fill="rgba(255,255,255,0.85)"></circle>
-    <circle cx="-5" cy="-7" r="1.2" fill="rgba(255,255,255,0.85)"></circle>
-    <circle cx="-1" cy="-7" r="1.2" fill="rgba(255,255,255,0.85)"></circle>
-    <rect x="-8" y="0" width="16" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect>
-    <rect x="-8" y="4" width="10" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect>
+  <!-- Stage 2: Catalog Service (slate surface — lookup tier) -->
+  <rect x="380" y="226" width="240" height="120" rx="14" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(406, 268)">
+    <rect x="-12" y="-10" width="24" height="20" rx="3" fill="rgba(255,255,255,0.18)"></rect>
+    <path d="M-8,-4 L-2,-4 L-2,2 L8,2" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></path>
+    <circle cx="-8" cy="-4" r="2" fill="rgba(255,255,255,0.95)"></circle>
+    <circle cx="8" cy="2" r="2" fill="rgba(255,255,255,0.95)"></circle>
+    <path d="M-7,7 L7,7" stroke="rgba(255,255,255,0.7)" stroke-width="1.2"></path>
   </g>
-  <text x="438" y="250" font-size="14" font-weight="600" fill="white">Enricher</text>
-  <text x="438" y="268" font-size="11" fill="rgba(255,255,255,0.7)">fetch · extract · normalize</text>
-  <line x1="400" y1="284" x2="600" y2="284" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="400" y="304" font-size="11" fill="rgba(255,255,255,0.92)">company · directors · filings</text>
-  <text x="400" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">soft cap at 12s · partial OK</text>
+  <text x="438" y="260" font-size="14" font-weight="600" fill="white">Catalog Service</text>
+  <text x="438" y="278" font-size="11" fill="rgba(255,255,255,0.7)">SKU lookup · live pricing</text>
+  <line x1="400" y1="294" x2="600" y2="294" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="400" y="314" font-size="11" fill="rgba(255,255,255,0.92)">resolves SKU + applies tax</text>
+  <text x="400" y="332" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">price quote valid for 90 s</text>
 
-  
-  <rect x="700" y="216" width="240" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(726, 258)">
-    <rect x="-10" y="-8" width="20" height="16" rx="4" fill="rgba(255,255,255,0.18)"></rect>
-    <rect x="-2" y="-12" width="4" height="4" rx="1" fill="rgba(255,255,255,0.18)"></rect>
-    <line x1="0" y1="-12" x2="0" y2="-8" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"></line>
-    <circle cx="-4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle>
-    <circle cx="4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle>
-    <path d="M-3,4 L3,4" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"></path>
+  <!-- Stage 3: Inventory Service (primary indigo — hero) -->
+  <rect x="700" y="226" width="240" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(726, 268)">
+    <rect x="-12" y="-10" width="24" height="20" rx="3" fill="rgba(255,255,255,0.18)"></rect>
+    <line x1="-12" y1="-3" x2="12" y2="-3" stroke="rgba(255,255,255,0.7)" stroke-width="1"></line>
+    <line x1="-12" y1="3" x2="12" y2="3" stroke="rgba(255,255,255,0.7)" stroke-width="1"></line>
+    <circle cx="-7" cy="-7" r="1.4" fill="rgba(255,255,255,0.95)"></circle>
+    <circle cx="-7" cy="0" r="1.4" fill="rgba(255,255,255,0.95)"></circle>
+    <circle cx="-7" cy="7" r="1.4" fill="rgba(255,255,255,0.95)"></circle>
   </g>
-  <text x="758" y="250" font-size="14" font-weight="600" fill="white">Vetting Agent</text>
-  <text x="758" y="268" font-size="11" fill="rgba(255,255,255,0.7)">co-pilots through 4 phases</text>
-  <line x1="720" y1="284" x2="920" y2="284" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="720" y="304" font-size="11" fill="rgba(255,255,255,0.92)">brief → research → critique</text>
-  <text x="720" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">repair turn on critique fail</text>
-  
-  <circle cx="922" cy="234" r="5" fill="#5aad80" class="anim-pulse"></circle>
+  <text x="758" y="260" font-size="14" font-weight="600" fill="white">Inventory Service</text>
+  <text x="758" y="278" font-size="11" fill="rgba(255,255,255,0.7)">stock-hold orchestrator</text>
+  <line x1="720" y1="294" x2="920" y2="294" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="720" y="314" font-size="11" fill="rgba(255,255,255,0.92)">soft-reserve units · TTL 10 m</text>
+  <text x="720" y="332" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">releases hold on cancel</text>
+  <circle cx="922" cy="244" r="5" fill="#5aad80"></circle>
 
-  
-  <rect x="1020" y="216" width="240" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1046, 258)">
-    <circle cx="0" cy="-8" r="3" fill="rgba(255,255,255,0.85)"></circle>
-    <circle cx="-8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle>
-    <circle cx="8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle>
-    <circle cx="-3" cy="9" r="3" fill="rgba(255,255,255,0.85)"></circle>
-    <circle cx="3" cy="9" r="3" fill="rgba(255,255,255,0.85)"></circle>
-    <line x1="0" y1="-7" x2="-6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
-    <line x1="0" y1="-7" x2="6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
-    <line x1="-6" y1="3" x2="-3" y2="8" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
-    <line x1="6" y1="3" x2="3" y2="8" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line>
+  <!-- Stage 4: Payment Service (neutral dark surface) -->
+  <rect x="1020" y="226" width="240" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1046, 268)">
+    <rect x="-12" y="-8" width="24" height="16" rx="2" fill="rgba(255,255,255,0.18)"></rect>
+    <line x1="-12" y1="-3" x2="12" y2="-3" stroke="rgba(255,255,255,0.7)" stroke-width="1"></line>
+    <rect x="-8" y="2" width="6" height="3" rx="0.6" fill="rgba(255,255,255,0.85)"></rect>
+    <rect x="2" y="2" width="8" height="3" rx="0.6" fill="rgba(255,255,255,0.5)"></rect>
   </g>
-  <text x="1078" y="250" font-size="14" font-weight="600" fill="white">Scoring Engine</text>
-  <text x="1078" y="268" font-size="11" fill="rgba(255,255,255,0.7)">12 weighted rules</text>
-  <line x1="1040" y1="284" x2="1240" y2="284" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="1040" y="304" font-size="11" fill="rgba(255,255,255,0.92)">deterministic · YAML config</text>
-  <text x="1040" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">tx-replay any score in 1.2s</text>
+  <text x="1078" y="260" font-size="14" font-weight="600" fill="white">Payment Service</text>
+  <text x="1078" y="278" font-size="11" fill="rgba(255,255,255,0.7)">auth + capture via Stripe</text>
+  <line x1="1040" y1="294" x2="1240" y2="294" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="1040" y="314" font-size="11" fill="rgba(255,255,255,0.92)">SCA / 3-D Secure when needed</text>
+  <text x="1040" y="332" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">refund path on cancel · idempotent</text>
 
-  
-  <rect x="1340" y="216" width="240" height="120" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1366, 258)">
-    <path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path>
-    <path d="M-4,0 L-1,4 L5,-3" stroke="#1a1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+  <!-- Stage 5: Fulfilment + Notify (secure green — verified terminal) -->
+  <rect x="1340" y="226" width="240" height="120" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1366, 268)">
+    <rect x="-12" y="-6" width="20" height="14" rx="2" fill="rgba(255,255,255,0.18)"></rect>
+    <rect x="8" y="-2" width="6" height="10" rx="1.5" fill="rgba(255,255,255,0.18)"></rect>
+    <circle cx="-7" cy="9" r="2.5" fill="rgba(255,255,255,0.85)"></circle>
+    <circle cx="9" cy="9" r="2.5" fill="rgba(255,255,255,0.85)"></circle>
   </g>
-  <text x="1398" y="250" font-size="14" font-weight="600" fill="white">Signed Verdict</text>
-  <text x="1398" y="268" font-size="11" fill="rgba(255,255,255,0.7)">signed JSON · GPG · ledgered</text>
-  <line x1="1360" y1="284" x2="1560" y2="284" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="1360" y="304" font-size="11" fill="rgba(255,255,255,0.92)">posted to ARC + email</text>
-  <text x="1360" y="322" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">verifiable for 90 days</text>
+  <text x="1398" y="260" font-size="14" font-weight="600" fill="white">Fulfilment + Notify</text>
+  <text x="1398" y="278" font-size="11" fill="rgba(255,255,255,0.7)">pick · pack · dispatch · alert</text>
+  <line x1="1360" y1="294" x2="1560" y2="294" stroke="rgba(255,255,255,0.18)"></line>
+  <text x="1360" y="314" font-size="11" fill="rgba(255,255,255,0.92)">email + SMS via SendGrid · Twilio</text>
+  <text x="1360" y="332" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">tracking-link async on label print</text>
 
-  
+  <!-- inter-stage arrows -->
+  <path d="M 308 286 L 376 286" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="342" y="276" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">DRAFT</text>
 
-  
-  <path d="M 308 276 L 376 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="342" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">RAW INPUT</text>
+  <path d="M 628 286 L 696 286" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="662" y="276" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">PRICED</text>
 
-  
-  <path d="M 628 276 L 696 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="662" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">ENRICHED</text>
+  <path d="M 948 286 L 1016 286" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="982" y="276" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">RESERVED</text>
 
-  
-  <path d="M 948 276 L 1016 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="982" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">FINDINGS</text>
+  <path d="M 1268 286 L 1336 286" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <text x="1302" y="276" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">PAID</text>
 
-  
-  <path d="M 1268 276 L 1336 276" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1302" y="266" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">SCORE</text>
+  <!-- typed output reference sub-row -->
+  <text x="180" y="404" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">TYPED OUTPUT</text>
+  <rect x="60" y="418" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="80" y="440" font-size="12" font-weight="600" fill="#4a4845">OrderDraft</text>
+  <line x1="80" y1="452" x2="280" y2="452" stroke="#ddd5c6"></line>
+  <text x="80" y="468" font-size="10" font-family="monospace" fill="#4a4845">order_ref · customer_id</text>
+  <text x="80" y="484" font-size="10" font-family="monospace" fill="#4a4845">line_items[] · shipping_addr</text>
 
-  
-  
+  <text x="500" y="404" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">TYPED OUTPUT</text>
+  <rect x="380" y="418" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="400" y="440" font-size="12" font-weight="600" fill="#4a4845">OrderPriced</text>
+  <line x1="400" y1="452" x2="600" y2="452" stroke="#ddd5c6"></line>
+  <text x="400" y="468" font-size="10" font-family="monospace" fill="#4a4845">subtotal · tax · currency</text>
+  <text x="400" y="484" font-size="10" font-family="monospace" fill="#4a4845">price_quote_id · valid_until</text>
 
-  <text x="180" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
-  <rect x="60" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
-  <text x="80" y="430" font-size="12" font-weight="600" fill="#4a4845">submission_t</text>
-  <line x1="80" y1="442" x2="280" y2="442" stroke="#ddd5c6"></line>
-  <text x="80" y="458" font-size="10" font-family="monospace" fill="#4a4845">id · analyst_id</text>
-  <text x="80" y="474" font-size="10" font-family="monospace" fill="#4a4845">raw_payload · sha256</text>
+  <text x="820" y="404" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">TYPED OUTPUT</text>
+  <rect x="700" y="418" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="720" y="440" font-size="12" font-weight="600" fill="#4a4845">OrderReserved</text>
+  <line x1="720" y1="452" x2="920" y2="452" stroke="#ddd5c6"></line>
+  <text x="720" y="468" font-size="10" font-family="monospace" fill="#4a4845">reservation_id · holds[]</text>
+  <text x="720" y="484" font-size="10" font-family="monospace" fill="#4a4845">expires_at · warehouse_id</text>
 
-  <text x="500" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
-  <rect x="380" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
-  <text x="400" y="430" font-size="12" font-weight="600" fill="#4a4845">enriched_t</text>
-  <line x1="400" y1="442" x2="600" y2="442" stroke="#ddd5c6"></line>
-  <text x="400" y="458" font-size="10" font-family="monospace" fill="#4a4845">company_profile · officers</text>
-  <text x="400" y="474" font-size="10" font-family="monospace" fill="#4a4845">filings[] · web_signals</text>
+  <text x="1140" y="404" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">TYPED OUTPUT</text>
+  <rect x="1020" y="418" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="1040" y="440" font-size="12" font-weight="600" fill="#4a4845">OrderPaid</text>
+  <line x1="1040" y1="452" x2="1240" y2="452" stroke="#ddd5c6"></line>
+  <text x="1040" y="468" font-size="10" font-family="monospace" fill="#4a4845">payment_intent_id · amount</text>
+  <text x="1040" y="484" font-size="10" font-family="monospace" fill="#4a4845">captured_at · provider_ref</text>
 
-  <text x="820" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
-  <rect x="700" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
-  <text x="720" y="430" font-size="12" font-weight="600" fill="#4a4845">findings_t</text>
-  <line x1="720" y1="442" x2="920" y2="442" stroke="#ddd5c6"></line>
-  <text x="720" y="458" font-size="10" font-family="monospace" fill="#4a4845">phase_outputs[]</text>
-  <text x="720" y="474" font-size="10" font-family="monospace" fill="#4a4845">redflags[] · evidence_refs[]</text>
+  <text x="1460" y="404" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">TYPED OUTPUT</text>
+  <rect x="1340" y="418" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
+  <text x="1360" y="440" font-size="12" font-weight="600" fill="#4a4845">OrderShipped</text>
+  <line x1="1360" y1="452" x2="1560" y2="452" stroke="#ddd5c6"></line>
+  <text x="1360" y="468" font-size="10" font-family="monospace" fill="#4a4845">shipment_id · carrier · tracking_no</text>
+  <text x="1360" y="484" font-size="10" font-family="monospace" fill="#4a4845">notified_via[] · shipped_at</text>
 
-  <text x="1140" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
-  <rect x="1020" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
-  <text x="1040" y="430" font-size="12" font-weight="600" fill="#4a4845">score_t</text>
-  <line x1="1040" y1="442" x2="1240" y2="442" stroke="#ddd5c6"></line>
-  <text x="1040" y="458" font-size="10" font-family="monospace" fill="#4a4845">rule_results · weighted_sum</text>
-  <text x="1040" y="474" font-size="10" font-family="monospace" fill="#4a4845">verdict · confidence</text>
-
-  <text x="1460" y="394" text-anchor="middle" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">OUTPUT</text>
-  <rect x="1340" y="408" width="240" height="76" rx="10" fill="#ebe6db" stroke="#ddd5c6"></rect>
-  <text x="1360" y="430" font-size="12" font-weight="600" fill="#4a4845">verdict_v1</text>
-  <line x1="1360" y1="442" x2="1560" y2="442" stroke="#ddd5c6"></line>
-  <text x="1360" y="458" font-size="10" font-family="monospace" fill="#4a4845">payload · signature</text>
-  <text x="1360" y="474" font-size="10" font-family="monospace" fill="#4a4845">posted_to[] · timestamps</text>
-
-  
-  
-  <path d="M 820 215 C 820 180 660 180 500 180" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="6,5" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <g transform="translate(610, 168)">
-    <rect width="120" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"></rect>
-    <text x="60" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">REPAIR TURN · 1×</text>
+  <!-- repair turn dashed loop: Settle (4) back to Validate (2) on stale price -->
+  <path d="M 1140 230 C 1140 188 820 188 500 188" stroke="#4f5fb8" stroke-width="1.6" stroke-dasharray="6,5" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <g transform="translate(760, 176)">
+    <rect width="140" height="22" rx="11" fill="#f5f1ea" stroke="#4f5fb8"></rect>
+    <text x="70" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="0.8">REPRICE LOOP · 1×</text>
   </g>
 
-  
-  <line x1="60" y1="540" x2="1600" y2="540" stroke="#ddd5c6"></line>
-  <text x="60" y="568" font-size="11" fill="#706e67" letter-spacing="1.6" font-weight="600">CONTRACT</text>
-  <text x="60" y="592" font-size="12" fill="#4a4845">Each stage emits a typed output; the next stage refuses anything that fails the schema check.</text>
-  <text x="60" y="612" font-size="12" fill="#4a4845">The repair turn is the one feedback edge — it re-invokes the enricher when critique fails. Bounded to one cycle per run.</text>
-  <text x="60" y="632" font-size="11" font-style="italic" fill="#706e67">Read left-to-right · numbered stages · indigo arrows are typed handoffs · dashed loop is the bounded repair turn.</text>
+  <!-- legend -->
+  <line x1="60" y1="546" x2="1600" y2="546" stroke="#ddd5c6"></line>
+  <text x="60" y="572" font-size="11" font-weight="600" fill="#706e67" letter-spacing="1.6">CONTRACT</text>
+  <text x="60" y="596" font-size="12" fill="#4a4845">Each stage emits a typed Order event; the next stage refuses anything that fails the schema check.</text>
+  <text x="60" y="616" font-size="12" fill="#4a4845">The reprice loop is the one feedback edge — Settle re-invokes Validate when a price quote has expired. Bounded to one cycle per order.</text>
+  <text x="60" y="644" font-size="11" font-style="italic" fill="#706e67">Read left-to-right · numbered stages · indigo arrows are typed handoffs · dashed loop is the bounded repair turn.</text>
+  <text x="1600" y="644" text-anchor="end" font-size="11" fill="#a8a59c" font-variant-numeric="tabular-nums">OrderFlow · pipeline-flow · diagram skill v2.0.1 · 2026-05</text>
 </svg>

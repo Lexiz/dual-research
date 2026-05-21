@@ -48,11 +48,11 @@ Animations:
 **Normalized canonical spec:**
 
 ```
-Title: Partner Vetting — Integration Surface
+Title: OrderFlow — Integration Surface
 Subtitle: External connectors around the platform
 
 Hub:
-  Name: Partner Vetting
+  Name: OrderFlow
   Variant: main
   Sub-items: [v1.4, multi-tenant, REST + webhooks]
 
