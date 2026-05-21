@@ -116,7 +116,7 @@
     </g>
 
     <text x="28" y="306" font-size="13" font-style="italic" fill="#7a5728"
-          font-family="'Roboto Serif', ui-serif, Georgia, serif">v2.0.0 · spec 0133 · anthropic-cloud / fly · single tenant</text>
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">v2.0.0 · single-tenant SaaS · cloud-hosted</text>
   </g>
 
   <!-- EXTERNALS · 4 service cards -->
