@@ -199,12 +199,11 @@ class TestPhase0Synthesis:
         assert bundle is not None
         assert bundle["phase"] == "phase0"
         assert bundle["agent"] == "shared"
-        # The brief text shows up in the `brief` piece (not the `system`
-        # template, which carries placeholders only).
-        assert bundle["pieces"]["brief"] == "UNIQUE_BRIEF_42"
-        assert "UNIQUE_BRIEF_42" not in bundle["pieces"]["system"]
+        # Spec 0145 — canonical keys replace legacy `brief`/`system`.
+        assert bundle["pieces"]["user_prompt.message"] == "UNIQUE_BRIEF_42"
+        assert "UNIQUE_BRIEF_42" not in bundle["pieces"]["system.task.input"]
         # System has the epistemic-duty preamble.
-        assert "epistemic" in bundle["pieces"]["system"]
+        assert "epistemic" in bundle["pieces"]["system.task.input"]
 
 
 class TestSpec0045InputBundleFiltering:
@@ -277,8 +276,9 @@ class TestSpec0045InputBundleFiltering:
         (tmp_path / "brief.md").write_text("THIS IS THE USER PROMPT", encoding="utf-8")
         bundle = build_phase0_input_bundle(tmp_path)
         assert bundle is not None
-        assert bundle["pieces"]["brief"]
-        assert bundle["pieces"]["brief"] == "THIS IS THE USER PROMPT"
+        # Spec 0145 — canonical key replaces legacy `brief`.
+        assert bundle["pieces"]["user_prompt.message"]
+        assert bundle["pieces"]["user_prompt.message"] == "THIS IS THE USER PROMPT"
 
 
 class TestSpec0085ParseSnakeKey:
@@ -340,14 +340,18 @@ class TestSpec0085BundleSynthesisFallback:
         assert bundle["agent"] == "claude"
         assert bundle["phase"] == "phase1"
         assert bundle["system_source"] == "agent-default"
-        # System prompt is reconstructed from the agent default; the
-        # research-phase prompt contains the word "research".
-        assert "research" in bundle["pieces"]["system"].lower()
-        # Brief flows through from the file.
-        assert bundle["pieces"]["brief"] == "BRIEF_FOR_FALLBACK"
-        # Other pieces stay empty for historical runs.
-        for empty_key in ("d1", "d2", "plan", "hist", "draft", "histp"):
-            assert bundle["pieces"][empty_key] == ""
+        # Spec 0145 — canonical keys replace legacy `system`/`brief`.
+        # Phase 1's system slot resolves to `system.task.research_plan`.
+        assert "research" in bundle["pieces"]["system.task.research_plan"].lower()
+        # Brief flows through from the file under the canonical user-prompt key.
+        assert bundle["pieces"]["user_prompt.message"] == "BRIEF_FOR_FALLBACK"
+        # Spec 0145 — the legacy short-key filler slots are no longer
+        # emitted. The producer only writes keys the phase actually uses.
+        for absent in (
+            "d1", "d2", "plan", "hist", "draft", "histp",
+            "phase1.claude", "phase1.openai", "current_draft",
+        ):
+            assert absent not in bundle["pieces"]
 
     def test_phase2_round1_fallback(self, tmp_path: Path) -> None:
         self._seed_brief(tmp_path)
@@ -355,17 +359,17 @@ class TestSpec0085BundleSynthesisFallback:
         assert bundle is not None
         assert bundle["agent"] == "gpt"
         assert bundle["phase"] == "phase2"
-        assert bundle["pieces"]["system"]
+        assert bundle["pieces"]["system.task.plan_negotiation"]
         assert bundle["system_source"] == "agent-default"
 
     def test_phase2_higher_round_fallback(self, tmp_path: Path) -> None:
         self._seed_brief(tmp_path)
         bundle = build_input_bundle_fallback(tmp_path, "phase2_round4_claude")
         assert bundle is not None
-        assert bundle["pieces"]["system"]
+        assert bundle["pieces"]["system.task.plan_negotiation"]
         # Higher rounds invoke ``negotiation_turn_input_bundle`` — its
         # system prompt has the "Phase 2" marker.
-        assert "Phase 2" in bundle["pieces"]["system"]
+        assert "Phase 2" in bundle["pieces"]["system.task.plan_negotiation"]
 
     def test_phase4_review_fallback(self, tmp_path: Path) -> None:
         self._seed_brief(tmp_path)
@@ -374,7 +378,7 @@ class TestSpec0085BundleSynthesisFallback:
         assert bundle["agent"] == "gpt"
         assert bundle["phase"] == "phase4"
         # Phase 4 builder ``review_input_bundle`` mentions "review".
-        assert "review" in bundle["pieces"]["system"].lower()
+        assert "review" in bundle["pieces"]["system.task.review"].lower()
 
     def test_repair_fallback_has_system_but_empty_other_keys(
         self, tmp_path: Path
@@ -384,12 +388,14 @@ class TestSpec0085BundleSynthesisFallback:
             tmp_path, "phase2_round3_claude_repair"
         )
         assert bundle is not None
-        assert bundle["pieces"]["system"]
+        # Spec 0145 — repair bundles emit `system.task.input` (best-effort
+        # canonical fallback) plus a phase-specific `prior_turns.*` slot.
+        assert bundle["pieces"]["system.task.input"]
         # Repair label survives.
         assert bundle["label"].endswith("-repair")
-        # Repair bundles can't reconstruct ``hist`` (the original
-        # malformed turn) from current source — leave it empty.
-        assert bundle["pieces"]["hist"] == ""
+        # Repair bundles can't reconstruct the malformed prior turn from
+        # current source — the slot is emitted with empty content.
+        assert bundle["pieces"]["prior_turns.phase2"] == ""
 
     def test_fallback_without_brief_still_returns_bundle(
         self, tmp_path: Path
@@ -400,8 +406,8 @@ class TestSpec0085BundleSynthesisFallback:
         # Note: no brief seeded.
         bundle = build_input_bundle_fallback(tmp_path, "phase1_claude")
         assert bundle is not None
-        assert bundle["pieces"]["system"]
-        assert bundle["pieces"]["brief"] == ""
+        assert bundle["pieces"]["system.task.research_plan"]
+        assert bundle["pieces"]["user_prompt.message"] == ""
         assert bundle["system_source"] == "agent-default"
 
     def test_unparseable_key_returns_none(self, tmp_path: Path) -> None:
@@ -420,8 +426,9 @@ class TestSpec0085BundleSynthesisFallback:
             brief_text="HELLO",
         )
         assert payload is not None
-        assert payload["pieces"]["brief"] == "HELLO"
-        assert payload["pieces"]["system"]
+        # Spec 0145 — canonical keys.
+        assert payload["pieces"]["user_prompt.message"] == "HELLO"
+        assert payload["pieces"]["system.task.research_plan"]
         assert payload["system_source"] == "agent-default"
         assert payload["agent"] == "claude"
         assert payload["phase"] == "phase1"

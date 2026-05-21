@@ -24,10 +24,11 @@ def test_persist_initial_brief_bundle_writes_input_json(tmp_path: Path) -> None:
 
     # System source must be "recorded" — the whole point of the spec.
     assert payload["system_source"] == "recorded"
-    # The brief is round-tripped verbatim in pieces.brief.
-    assert payload["pieces"]["brief"] == brief
+    # Spec 0145 — the brief is round-tripped verbatim under the
+    # canonical `user_prompt.message` key (replacing legacy `brief`).
+    assert payload["pieces"]["user_prompt.message"] == brief
     # The system prompt is non-empty — populated via preflight_input_bundle.
-    assert payload["pieces"]["system"]
+    assert payload["pieces"]["system.task.input"]
     # The shared bundle is tagged as cross-agent.
     assert payload["agent"] == "shared"
     assert payload["phase"] == "phase0"
@@ -42,7 +43,8 @@ def test_persist_initial_brief_bundle_is_idempotent(tmp_path: Path) -> None:
     _persist_initial_brief_bundle(tmp_path, second_brief)
 
     payload = json.loads((tmp_path / "inputs" / "input.json").read_text(encoding="utf-8"))
-    assert payload["pieces"]["brief"] == first_brief
+    # Spec 0145 — canonical key replaces legacy `brief`.
+    assert payload["pieces"]["user_prompt.message"] == first_brief
 
 
 def test_persist_initial_brief_bundle_creates_inputs_dir(tmp_path: Path) -> None:

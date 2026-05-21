@@ -17,6 +17,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from dual_research.protocol.prompt_pieces import Attachment
+
+
+def _emit_user_prompt_text(
+    out: dict[str, str],
+    user_prompt_message: str,
+    attachments: Iterable[Attachment],
+) -> None:
+    """Spec 0145 §5.1 — emit one ``user_prompt.message`` key plus one
+    ``user_prompt.attachment.<id>`` row per attachment on the
+    text-content ``pieces`` dict persisted to ``inputs/<turnKey>.json``.
+
+    Mirrors :func:`prompt_pieces._emit_user_prompt` on the token-count
+    side so both producers agree on the key shape.
+    """
+    out["user_prompt.message"] = user_prompt_message or ""
+    for att in attachments:
+        out[f"user_prompt.attachment.{att.id}"] = att.content or ""
+
 
 COMMON_PREAMBLE = """You are participating in a dual-agent research protocol with another large language model from a different family. Your goal is jointly to produce a single high-quality research document.
 
@@ -934,12 +953,20 @@ def _placeholder_prior_turns(label: str) -> "list[PriorTurn]":
     return [PriorTurn(agent="<placeholder>", round=0, content=_placeholder(label))]
 
 
-def preflight_input_bundle(*, brief: str, agent_name: str = "<agent>") -> dict[str, str]:
-    """Spec 0033 — Phase 0 preflight input bundle.
+def preflight_input_bundle(
+    *,
+    brief: str,
+    attachments: Iterable[Attachment] = (),
+    agent_name: str = "<agent>",
+) -> dict[str, str]:
+    """Spec 0145 — Phase 0 preflight input bundle.
 
-    Keys with content (per protocol): ``system``, ``brief``. Other Tk
-    keys are returned as empty strings so the UI can render uniform
-    "(not used in this turn)" stubs.
+    Emits canonical-ID keys: ``system.task.input``,
+    ``user_prompt.message``, plus one ``user_prompt.attachment.<id>``
+    row per attachment. Legacy short-key vocabulary
+    (``brief``/``d1``/``d2``/...) is replaced; historical bundles are
+    translated on the read path via the JS shim in
+    ``artifact-display.js``.
     """
     system_text = _strip_cache_marker(
         preflight_prompt(
@@ -947,36 +974,31 @@ def preflight_input_bundle(*, brief: str, agent_name: str = "<agent>") -> dict[s
             agent_name=agent_name,
         )
     )
-    return {
-        "system": system_text,
-        "brief": brief or "",
-        "d1": "",
-        "d2": "",
-        "plan": "",
-        "hist": "",
-        "draft": "",
-        "histp": "",
-    }
+    out: dict[str, str] = {"system.task.input": system_text}
+    _emit_user_prompt_text(out, brief, attachments)
+    return out
 
 
-def research_input_bundle(*, brief: str, agent_name: str = "<agent>") -> dict[str, str]:
-    """Spec 0033 — Phase 1 research input bundle. Content keys: ``system``, ``brief``."""
+def research_input_bundle(
+    *,
+    brief: str,
+    attachments: Iterable[Attachment] = (),
+    agent_name: str = "<agent>",
+) -> dict[str, str]:
+    """Spec 0145 — Phase 1 research input bundle.
+
+    Canonical keys: ``system.task.research_plan``, ``user_prompt.message``,
+    plus per-attachment rows.
+    """
     system_text = _strip_cache_marker(
         research_prompt(
             brief_content=_placeholder("brief"),
             agent_name=agent_name,
         )
     )
-    return {
-        "system": system_text,
-        "brief": brief or "",
-        "d1": "",
-        "d2": "",
-        "plan": "",
-        "hist": "",
-        "draft": "",
-        "histp": "",
-    }
+    out: dict[str, str] = {"system.task.research_plan": system_text}
+    _emit_user_prompt_text(out, brief, attachments)
+    return out
 
 
 def negotiation_round1_input_bundle(
@@ -984,10 +1006,16 @@ def negotiation_round1_input_bundle(
     brief: str,
     claude_draft: str,
     openai_draft: str,
+    attachments: Iterable[Attachment] = (),
     agent_name: str = "<agent>",
     other_name: str = "<other>",
 ) -> dict[str, str]:
-    """Spec 0033 — Phase 2 round 1 input bundle. Content keys: ``system``, ``brief``, ``d1``, ``d2``."""
+    """Spec 0145 — Phase 2 round 1 input bundle.
+
+    Canonical keys: ``system.task.plan_negotiation``,
+    ``user_prompt.message``, per-attachment rows, ``phase1.claude``,
+    ``phase1.openai``.
+    """
     system_text = _strip_cache_marker(
         negotiation_round1_prompt(
             brief_content=_placeholder("brief"),
@@ -997,16 +1025,11 @@ def negotiation_round1_input_bundle(
             other_name=other_name,
         )
     )
-    return {
-        "system": system_text,
-        "brief": brief or "",
-        "d1": claude_draft or "",
-        "d2": openai_draft or "",
-        "plan": "",
-        "hist": "",
-        "draft": "",
-        "histp": "",
-    }
+    out: dict[str, str] = {"system.task.plan_negotiation": system_text}
+    _emit_user_prompt_text(out, brief, attachments)
+    out["phase1.claude"] = claude_draft or ""
+    out["phase1.openai"] = openai_draft or ""
+    return out
 
 
 def negotiation_turn_input_bundle(
@@ -1015,17 +1038,19 @@ def negotiation_turn_input_bundle(
     claude_draft: str,
     openai_draft: str,
     prior_turns: Iterable[PriorTurn],
+    attachments: Iterable[Attachment] = (),
     agent_name: str = "<agent>",
     other_name: str = "<other>",
     round: int = 0,
     soft_cap: int = 0,
     hard_cap: int = 0,
 ) -> dict[str, str]:
-    """Spec 0033 — Phase 2 rounds 2+ input bundle.
+    """Spec 0145 — Phase 2 rounds 2+ input bundle.
 
-    ``prior_turns`` is the same ``PriorTurn`` iterable the prompt builder
-    receives; the bundle inlines it via the same ``_inline_prior_turns``
-    helper so the ``hist`` text is byte-equal to what the model sees.
+    Canonical keys: ``system.task.plan_negotiation``,
+    ``user_prompt.message``, per-attachment rows, ``phase1.claude``,
+    ``phase1.openai``, ``prior_turns.phase2`` (the inlined transcript
+    of accumulated rounds).
     """
     system_text = _strip_cache_marker(
         negotiation_turn_prompt(
@@ -1041,16 +1066,12 @@ def negotiation_turn_input_bundle(
         )
     )
     hist_text = _inline_prior_turns(prior_turns, "Prior Phase 2 conversation turns (in order)")
-    return {
-        "system": system_text,
-        "brief": brief or "",
-        "d1": claude_draft or "",
-        "d2": openai_draft or "",
-        "plan": "",
-        "hist": hist_text,
-        "draft": "",
-        "histp": "",
-    }
+    out: dict[str, str] = {"system.task.plan_negotiation": system_text}
+    _emit_user_prompt_text(out, brief, attachments)
+    out["phase1.claude"] = claude_draft or ""
+    out["phase1.openai"] = openai_draft or ""
+    out["prior_turns.phase2"] = hist_text
+    return out
 
 
 def drafting_input_bundle(
@@ -1060,12 +1081,15 @@ def drafting_input_bundle(
     openai_draft: str,
     plan: str | None,
     prior_turns: Iterable[PriorTurn],
+    attachments: Iterable[Attachment] = (),
     agent_name: str = "<agent>",
     other_name: str = "<other>",
 ) -> dict[str, str]:
-    """Spec 0033 — Phase 3 drafting input bundle.
+    """Spec 0145 — Phase 3 drafting input bundle.
 
-    Content keys: ``system``, ``brief``, ``d1``, ``d2``, ``plan``, ``hist``.
+    Canonical keys: ``system.task.drafting``, ``user_prompt.message``,
+    per-attachment rows, ``phase1.claude``, ``phase1.openai``,
+    ``phase2.agreement.plan``, ``prior_turns.phase2``.
     """
     system_text = _strip_cache_marker(
         drafting_prompt(
@@ -1080,16 +1104,13 @@ def drafting_input_bundle(
         )
     )
     hist_text = _inline_prior_turns(prior_turns, "Full Phase 2 conversation")
-    return {
-        "system": system_text,
-        "brief": brief or "",
-        "d1": claude_draft or "",
-        "d2": openai_draft or "",
-        "plan": plan or "",
-        "hist": hist_text,
-        "draft": "",
-        "histp": "",
-    }
+    out: dict[str, str] = {"system.task.drafting": system_text}
+    _emit_user_prompt_text(out, brief, attachments)
+    out["phase1.claude"] = claude_draft or ""
+    out["phase1.openai"] = openai_draft or ""
+    out["phase2.agreement.plan"] = plan or ""
+    out["prior_turns.phase2"] = hist_text
+    return out
 
 
 def review_input_bundle(
@@ -1097,6 +1118,7 @@ def review_input_bundle(
     brief: str,
     draft: str,
     prior_turns: Iterable[PriorTurn],
+    attachments: Iterable[Attachment] = (),
     agent_name: str = "<agent>",
     other_name: str = "<other>",
     drafter_name: str = "<drafter>",
@@ -1104,9 +1126,10 @@ def review_input_bundle(
     soft_cap: int = 0,
     hard_cap: int = 0,
 ) -> dict[str, str]:
-    """Spec 0033 — Phase 4 review input bundle.
+    """Spec 0145 — Phase 4 review input bundle.
 
-    Content keys: ``system``, ``brief``, ``draft``, ``histp``.
+    Canonical keys: ``system.task.review``, ``user_prompt.message``,
+    per-attachment rows, ``current_draft``, ``prior_turns.phase4``.
     """
     system_text = _strip_cache_marker(
         review_turn_prompt(
@@ -1122,16 +1145,11 @@ def review_input_bundle(
         )
     )
     histp_text = _inline_prior_turns(prior_turns, "Prior Phase 4 review turns (in order)")
-    return {
-        "system": system_text,
-        "brief": brief or "",
-        "d1": "",
-        "d2": "",
-        "plan": "",
-        "hist": "",
-        "draft": draft or "",
-        "histp": histp_text,
-    }
+    out: dict[str, str] = {"system.task.review": system_text}
+    _emit_user_prompt_text(out, brief, attachments)
+    out["current_draft"] = draft or ""
+    out["prior_turns.phase4"] = histp_text
+    return out
 
 
 def repair_input_bundle(
@@ -1141,10 +1159,15 @@ def repair_input_bundle(
     errors: "list[str] | None" = None,
     malformed_content: str = "",
 ) -> dict[str, str]:
-    """Spec 0033 — repair input bundle.
+    """Spec 0145 — repair input bundle.
 
-    Repair turns inline the (malformed) previous turn under the ``hist``
-    slot — there is no separate brief / draft / drafts payload.
+    Repair turns retry a malformed parse; they don't carry per-phase
+    context. The bundle emits ``system.task.input`` (best-effort
+    canonical fallback) and inlines the malformed turn under the
+    closest matching phase's ``prior_turns.*`` key, so the read shim
+    can render it inline with other turn history. Per spec 0145 §3,
+    repair siblings do not get per-attachment decomposition this
+    release.
     """
     system_text = _strip_cache_marker(
         repair_prompt(
@@ -1154,15 +1177,15 @@ def repair_input_bundle(
             malformed_content=_placeholder("hist"),
         )
     )
+    if phase == 0:
+        prior_key = "prior_turns.phase0"
+    elif phase == 4:
+        prior_key = "prior_turns.phase4"
+    else:
+        prior_key = "prior_turns.phase2"
     return {
-        "system": system_text,
-        "brief": "",
-        "d1": "",
-        "d2": "",
-        "plan": "",
-        "hist": malformed_content or "",
-        "draft": "",
-        "histp": "",
+        "system.task.input": system_text,
+        prior_key: malformed_content or "",
     }
 
 
@@ -1174,9 +1197,9 @@ def force_verbatim_copy_input_bundle(
     canonical_plan: str = "",
     round: int = 0,
 ) -> dict[str, str]:
-    """Spec 0033 — force-verbatim-copy (Phase 2 hash-drift repair) input bundle.
+    """Spec 0145 — force-verbatim-copy (Phase 2 hash-drift repair) input bundle.
 
-    Content keys: ``system``, ``plan``.
+    Canonical keys: ``system.task.plan_negotiation``, ``phase2.agreement.plan``.
     """
     system_text = _strip_cache_marker(
         force_verbatim_copy_prompt(
@@ -1188,20 +1211,19 @@ def force_verbatim_copy_input_bundle(
         )
     )
     return {
-        "system": system_text,
-        "brief": "",
-        "d1": "",
-        "d2": "",
-        "plan": canonical_plan or "",
-        "hist": "",
-        "draft": "",
-        "histp": "",
+        "system.task.plan_negotiation": system_text,
+        "phase2.agreement.plan": canonical_plan or "",
     }
 
 
-# Canonical key order for any bundle. Stays in sync with
-# `ui/static/run-detail.jsx::KIND_ORDER` + the `system` prefix.
-INPUT_BUNDLE_KEY_ORDER: "tuple[str, ...]" = (
+# Spec 0145 — the legacy short-key vocabulary that historical bundles
+# carry on disk. Kept here as the source of truth for the JS read-shim
+# (`artifact-display.js::LEGACY_KEY_TO_CANONICAL`). Producers now emit
+# canonical artifact IDs (`system.task.*`, `user_prompt.message`,
+# `user_prompt.attachment.<id>`, `phase1.claude`, `phase1.openai`,
+# `phase2.agreement.plan`, `prior_turns.phase{0,2,4}`, `current_draft`).
+# Sunset: 2026-08-19 (90 days post-merge, per Q4 in the spec brief).
+LEGACY_INPUT_BUNDLE_KEYS: "tuple[str, ...]" = (
     "system",
     "brief",
     "d1",

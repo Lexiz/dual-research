@@ -26,6 +26,7 @@ from typing import Any, Iterator, Protocol
 EVENT_BATCH_SIZE = 500
 FILE_BATCH_SIZE = 50
 BLOB_BATCH_SIZE = 20
+PIECE_BATCH_SIZE = 200
 SESSION_FILE_GLOBS = ("*.md", "*.json", "*.jsonl")
 
 _SESSION_ID_RE = re.compile(r"^(\d{8})-(\d{6})-(.+)$")
@@ -48,6 +49,8 @@ class PushSummary:
     files_upserted: int
     duration_ms: int
     blobs_upserted: int = 0
+    # Spec 0145 — count of rows upserted into turn_prompt_pieces.
+    prompt_pieces_upserted: int = 0
 
 
 class RemoteSession:
@@ -125,6 +128,21 @@ class RemoteSession:
             ).execute()
             blobs_count += len(batch)
 
+        # Spec 0145 — per-piece token attribution into turn_prompt_pieces.
+        # One row per (artifact_id, tokens) pair on every turn_ended event
+        # carrying a non-empty prompt_pieces dict. Attachment IDs are
+        # parsed from canonical artifact_ids; display_title is resolved
+        # via the contemporaneous attachments.json at push time.
+        pieces_count = 0
+        for batch in _batch(
+            _iter_turn_prompt_pieces_rows(run_id, session_dir, event_rows),
+            PIECE_BATCH_SIZE,
+        ):
+            self._client.table("turn_prompt_pieces").upsert(
+                batch, on_conflict="run_id,turn_key,artifact_id"
+            ).execute()
+            pieces_count += len(batch)
+
         duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
         return PushSummary(
             run_id=run_id,
@@ -132,6 +150,7 @@ class RemoteSession:
             events_upserted=events_count,
             files_upserted=files_count,
             blobs_upserted=blobs_count,
+            prompt_pieces_upserted=pieces_count,
             duration_ms=duration_ms,
         )
 
@@ -355,3 +374,114 @@ def _batch(items: Iterator[dict[str, Any]], size: int) -> Iterator[list[dict[str
             chunk = []
     if chunk:
         yield chunk
+
+
+# ─── Spec 0145 — per-piece token-attribution push ─────────────────────
+
+
+_ATTACHMENT_ID_PREFIX = "user_prompt.attachment."
+
+
+def _load_attachments_title_map(session_dir: Path) -> dict[str, str]:
+    """Read attachments.json and build a `{attachment_id: title}` map for
+    `display_name()`'s `<id>` template substitution.
+
+    Spec 0145 §5.2 — the `attachment_id` we persist in `turn_prompt_pieces`
+    is derived in the orchestrator (`run.py::_attachment_id`) via the
+    same logic — sha256[:8] preferred, slugified basename fallback. This
+    function recomputes it from on-disk metadata so push-from-cold-disk
+    yields the same IDs the live run emitted.
+    """
+    path = session_dir / "attachments.json"
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    from dual_research.ingest import AttachmentBundle
+    from dual_research.orchestrator.run import _attachment_id
+
+    bundle = AttachmentBundle.from_dict(data)
+    out: dict[str, str] = {}
+    for ing in bundle.attachments:
+        aid = _attachment_id(ing)
+        out[aid] = (
+            ing.title
+            or Path(ing.rel_path or ing.source or "").name
+            or "attachment"
+        )
+    return out
+
+
+def _push_turn_prompt_pieces(
+    run_id: str,
+    turn_key: str,
+    prompt_pieces: dict[str, Any],
+    title_for_id: dict[str, str],
+) -> Iterator[dict[str, Any]]:
+    """Yield one `turn_prompt_pieces` row per `(artifact_id, tokens)` pair.
+
+    Spec 0145 §5.2 — the helper exists separately from the inline
+    iteration (Q1 resolution) so unit tests can drive it directly with
+    a fake event. `attachment_id` is parsed from artifact IDs matching
+    the `user_prompt.attachment.<id>` template; `display_title` is the
+    `display_name()` resolution at push time.
+    """
+    from dual_research.contract.artifacts import display_name
+
+    for artifact_id, raw_tokens in (prompt_pieces or {}).items():
+        try:
+            tokens = int(raw_tokens)
+        except (TypeError, ValueError):
+            continue
+        attachment_id: str | None = None
+        if artifact_id.startswith(_ATTACHMENT_ID_PREFIX):
+            attachment_id = artifact_id[len(_ATTACHMENT_ID_PREFIX):]
+        try:
+            title = display_name(artifact_id, title_for_id=title_for_id)
+        except Exception:
+            title = artifact_id
+        yield {
+            "run_id": run_id,
+            "turn_key": turn_key,
+            "artifact_id": artifact_id,
+            "tokens": tokens,
+            "attachment_id": attachment_id,
+            "display_title": title,
+        }
+
+
+def _iter_turn_prompt_pieces_rows(
+    run_id: str,
+    session_dir: Path,
+    event_rows: list[dict[str, Any]],
+) -> Iterator[dict[str, Any]]:
+    """Spec 0145 §5.2 — walk the in-memory event_rows produced by
+    ``_read_transcript`` and emit one row per `(turn_key, artifact_id)`
+    pair extracted from every ``turn_ended`` event.
+
+    The title map is loaded once per push (cheap — attachments.json is
+    typically < 100 entries).
+    """
+    from dual_research.orchestrator._call import _derive_turn_key
+
+    title_for_id = _load_attachments_title_map(session_dir)
+    for row in event_rows:
+        if row.get("kind") != "turn_ended":
+            continue
+        payload = row.get("payload") or {}
+        prompt_pieces = payload.get("prompt_pieces") or {}
+        if not prompt_pieces:
+            continue
+        agent_label = payload.get("agent") or ""
+        phase = payload.get("phase") or ""
+        label = payload.get("label") or ""
+        if not (agent_label and phase and label):
+            continue
+        turn_key = _derive_turn_key(
+            agent_label=agent_label, phase=phase, label=label,
+        )
+        yield from _push_turn_prompt_pieces(
+            run_id, turn_key, prompt_pieces, title_for_id,
+        )
