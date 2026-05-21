@@ -111,12 +111,17 @@ async def run_one_call(
     # Spec 0036 — turn-key + audit context (so the agent can construct
     # the per-turn search-audit payload using the same key the aggregator
     # will later write to disk).
+    # Spec 0143 §3.1 Step 3 — also surface the session dir so the agents
+    # can append raw-usage debug rows to ``<session>/usage-debug.jsonl``
+    # when ``DUAL_RESEARCH_DEBUG_USAGE=1`` is set. Derived from the
+    # transcript path (transcript lives at ``<session>/transcript.jsonl``).
     turn_key = _derive_turn_key(agent_label=agent.label, phase=phase, label=label)
     audit_context = {
         "turn_key": turn_key,
         "phase": phase,
         "agent": agent.label,
         "label": label,
+        "session_dir": str(transcript.path.parent),
     }
 
     start = time.perf_counter()
@@ -181,6 +186,7 @@ async def run_one_call(
         model_id=result.model_id,
         prompt_pieces=dict(prompt_pieces) if prompt_pieces else {},
         searches=searches,
+        reasoning_tokens=result.usage.reasoning_tokens,
     )
     await event_bus.publish(end_event)
     transcript.write(
@@ -201,6 +207,7 @@ async def run_one_call(
         model_id=end_event.model_id,
         prompt_pieces=end_event.prompt_pieces,
         searches=end_event.searches,
+        reasoning_tokens=end_event.reasoning_tokens,
     )
 
     return result

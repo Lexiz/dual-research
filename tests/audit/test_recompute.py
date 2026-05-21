@@ -104,18 +104,18 @@ def test_recompute_partner_vetting_style_full_pricing(tmp_path: Path) -> None:
                 "cache_read_tokens": 0, "cache_write_tokens": 0,
                 "model_id": "gpt-5.5", "duration_ms": 1500,
                 "cost_usd": 0.00,
-                "searches": 4,     # 4 × $0.025 = $0.10
+                "searches": 4,     # spec 0143 — 4 × $0.010 = $0.04 (was $0.025/call)
             },
         ],
         old_total=3.75,
     )
     report = recompute_run(session, write=True)
     # Claude: 1M tokens × $6/Mtok (1h tier) + 5 × $0.010 = $6.00 + $0.05 = $6.05
-    # OpenAI: 0 token cost + 4 × $0.025 = $0.10
-    # Total: $6.15
-    assert report.new_total == pytest.approx(6.15)
+    # OpenAI: 0 token cost + 4 × $0.010 = $0.04 (spec 0143)
+    # Total: $6.09
+    assert report.new_total == pytest.approx(6.09)
     assert report.old_total == pytest.approx(3.75)
-    assert report.delta == pytest.approx(2.40)
+    assert report.delta == pytest.approx(2.34)
     assert report.backed_up is True
     assert report.metrics_written is True
 
@@ -127,7 +127,7 @@ def test_recompute_partner_vetting_style_full_pricing(tmp_path: Path) -> None:
 
     # Rewritten metrics.json reflects the new total.
     fresh = json.loads((session / "metrics.json").read_text(encoding="utf-8"))
-    assert fresh["total_cost_usd"] == pytest.approx(6.15)
+    assert fresh["total_cost_usd"] == pytest.approx(6.09)
 
 
 def test_recompute_is_idempotent(tmp_path: Path) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, TextIO
 
@@ -10,6 +11,7 @@ from dual_research.agents.base import (
     AgentError,
     AgentResult,
     TokenUsage,
+    append_usage_debug,
     cache_enabled,
     web_search_enabled,
     with_rate_limit_retry,
@@ -17,6 +19,14 @@ from dual_research.agents.base import (
 from dual_research.agents.pricing import compute_full_cost
 from dual_research.config import ModelSpec
 from dual_research.protocol import CACHE_BREAKPOINT
+
+logger = logging.getLogger(__name__)
+
+# Spec 0143 §3.1 Step 3 — emit at most one "cache was intended but didn't
+# engage" warning per process. The signal is high-value but noisy if every
+# call logs it; the goal is "future regression is one log line away from
+# observable," not "spam the console for every turn."
+_CACHE_NON_ENGAGEMENT_WARNED = False
 
 
 WEB_SEARCH_TOOL = {
@@ -125,10 +135,11 @@ class ClaudeAgent:
             # would be useful here but the agents stay quiet — pricing
             # already comes out right from the breakdown.
             pass
+        cache_read = getattr(u, "cache_read_input_tokens", 0) or 0
         usage = TokenUsage(
             input_tokens=getattr(u, "input_tokens", 0) or 0,
             output_tokens=getattr(u, "output_tokens", 0) or 0,
-            cache_read_tokens=getattr(u, "cache_read_input_tokens", 0) or 0,
+            cache_read_tokens=cache_read,
             cache_write_tokens=cw_5m + cw_1h,
             cache_write_5m_tokens=cw_5m,
             cache_write_1h_tokens=cw_1h,
@@ -137,6 +148,43 @@ class ClaudeAgent:
         text = "".join(text_parts)
         cost = compute_full_cost(self._spec.model_id, usage, searches)
         duration_ms = int((time.perf_counter() - start) * 1000)
+
+        # Spec 0143 §3.1 Step 3 — if cache_control was intended but the
+        # API returned zero cache fields across the board, surface a
+        # one-shot warning. Anchor-run data (Notion B03) hit this shape:
+        # every Claude call recorded 0 cache_read/write AND the cost
+        # matched plain input-rate arithmetic, proving cache_control
+        # never engaged on the wire. The warning makes the next
+        # regression observable from logs alone.
+        cache_intended = cache_enabled() and CACHE_BREAKPOINT in prompt
+        if cache_intended and cache_read == 0 and cw_total == 0:
+            global _CACHE_NON_ENGAGEMENT_WARNED
+            if not _CACHE_NON_ENGAGEMENT_WARNED:
+                _CACHE_NON_ENGAGEMENT_WARNED = True
+                logger.warning(
+                    "anthropic cache_control intended but did not engage "
+                    "(model=%s, input_tokens=%d, prompt_chars=%d). "
+                    "Set DUAL_RESEARCH_DEBUG_USAGE=1 on the next run to "
+                    "dump raw usage payloads to <session>/usage-debug.jsonl.",
+                    self._spec.model_id, usage.input_tokens, len(prompt),
+                )
+
+        # Spec 0143 §3.1 Step 3 — best-effort raw-usage capture (off by
+        # default; gated by DUAL_RESEARCH_DEBUG_USAGE). The audit_context
+        # carries the session dir on every production call.
+        if audit_context is not None:
+            append_usage_debug(
+                session_dir=audit_context.get("session_dir"),
+                provider=self.provider,
+                model_id=self._spec.model_id,
+                label=str(audit_context.get("label", "")),
+                usage_payload=u,
+                extra={
+                    "cache_intended": cache_intended,
+                    "stop_reason": getattr(final_msg, "stop_reason", None),
+                    "searches": searches,
+                },
+            )
 
         # Spec 0036: when an audit_context is supplied AND web search
         # fired at least once, capture the per-turn audit payload
