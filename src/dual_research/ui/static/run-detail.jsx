@@ -3938,15 +3938,18 @@ function capitalise(s) {
 }
 
 // Spec 0042 D5 — per-phase chip allowlist. Each phase only renders the
-// chip kinds its protocol actually emits. Phase 0 (preflight) + Phase 3
-// (silent drafter) + Phase 5 (final) have no structured turn items and
-// render no chips. Phase 1 (plan draft) raises questions only.
-// Phase 2 (negotiate) renders questions + disagreements. Phase 4
-// (review) renders issues + comments + disagreements.
+// chip kinds its protocol actually emits. Phase 3 (silent drafter) +
+// Phase 5 (final) have no structured turn items and render no chips.
+// Phase 1 (plan draft) raises questions only. Phase 2 (negotiate)
+// renders questions + disagreements. Phase 4 (review) renders
+// issues + comments + disagreements.
 //
 // Spec 0119 §7 — the legacy ``claim`` category is gone post-0114.
+// Spec 0135 promoted Phase 0 to a full multi-round negotiation that
+// emits the same item kinds as Phase 2 (questions + disagreements);
+// spec 0147 surfaces them via a P0 tab in the Critique pane.
 const PHASE_CHIP_ALLOWLIST = {
-  0: [],
+  0: ['questions', 'disagreements'],
   1: ['questions'],
   2: ['questions', 'disagreements'],
   3: [],
@@ -6396,9 +6399,13 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 
   const haveAny = (pid) =>
     questions.some(q => q.phase === pid) || disagreements.some(d => d.phase === pid);
-  const initial = (run.phase === 4 || run.phase === 2) ? run.phase
+  // Spec 0147 — Phase 0 joins the active-tab fallback chain. While the run
+  // is in Phase 0, the critique pane defaults to P0; otherwise the
+  // existing precedence (latest active > earliest has-items) takes over.
+  const initial = (run.phase === 4 || run.phase === 2 || run.phase === 0) ? run.phase
                  : haveAny(4) ? 4
                  : haveAny(2) ? 2
+                 : haveAny(0) ? 0
                  : 2;
   const [selectedPhase, setSelectedPhase] = React.useState(initial);
   const [kindFilter, setKindFilter] = React.useState('all');
@@ -6425,7 +6432,7 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     const handler = (e) => {
       const detail = e.detail || {};
       const { category, phase: targetPhase } = detail;
-      if (targetPhase === 2 || targetPhase === 4) {
+      if (targetPhase === 0 || targetPhase === 2 || targetPhase === 4) {
         setSelectedPhase(targetPhase);
       }
       const validCategories = ['questions', 'disagreements', 'issues', 'comments'];
@@ -6706,6 +6713,11 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
         <span className="ttl">Critique</span>
         <span className="vbar"></span>
         <div className="phase-tabs">
+          <button
+            className={`phase-tab${selectedPhase === 0 ? ' is-active' : ''}`}
+            onClick={() => setSelectedPhase(0)}>
+            <span className="pcode">P0</span><span className="pname">Brief</span>
+          </button>
           <button
             className={`phase-tab${selectedPhase === 2 ? ' is-active' : ''}`}
             onClick={() => setSelectedPhase(2)}>
@@ -7023,7 +7035,12 @@ function CritiquePhaseContent({ run, phaseId, openNewItems, openCarriedItems, re
     return (
       <div className="crit2__body" style={{ display: 'grid', placeItems: 'center' }}>
         <div style={{ textAlign: 'center', maxWidth: 280, lineHeight: 1.6, fontSize: 12.5, color: 'var(--md-on-surface-faint)' }}>
-          {phaseId === 2 ? (
+          {phaseId === 0 ? (
+            // Spec 0147 \u2014 defensive: in practice Phase 0 starts at run
+            // creation and `run.phase < 0` is never true, but if the
+            // pending guard ever fires this gives an honest message.
+            <>Phase 0 hasn't started yet. The brief negotiation begins on run start.</>
+          ) : phaseId === 2 ? (
             <>
               <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <AgentIcon agent="claude" size={16} />
