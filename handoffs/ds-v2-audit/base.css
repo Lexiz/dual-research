@@ -1,0 +1,260 @@
+/* =============================================================
+   dual-research — Base styles, type, animations, focus, .md
+   ============================================================= */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--md-surface);
+  color: var(--md-on-surface-variant);
+  font-family: var(--md-font-plain);
+  font-size: var(--md-body-m-size);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  transition: background var(--m-base) var(--ease), color var(--m-base) var(--ease);
+}
+
+#root { min-height: 100vh; }
+
+/* Scrollbars */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--md-outline-variant);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--md-outline);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+button { font-family: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+input, textarea, select { font-family: inherit; color: inherit; }
+a { color: var(--info); text-decoration: underline; text-decoration-color: rgba(107,156,240,0.45); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--info); }
+
+/* Global focus indicator.
+   Applies to every focusable element unless explicitly overridden.
+   :focus-visible is used so mouse focus stays clean. */
+:focus { outline: none; }
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--md-shape-xs);
+}
+
+/* ── Type utilities ─────────────────────────────────── */
+.mono  { font-family: var(--md-font-plain); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.num   { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.serif { font-family: var(--md-font-brand); font-feature-settings: "ss01"; }
+.t-display { font-family: var(--md-font-brand); font-size: var(--md-display-s-size); font-weight: var(--md-w-semi); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--md-on-surface); }
+.t-title   { font-size: var(--md-title-l-size);   font-weight: var(--md-w-bold); line-height: var(--lh-snug);  color: var(--md-on-surface); letter-spacing: -0.01em; }
+.t-h3      { font-size: var(--md-title-m-size);      font-weight: var(--md-w-semi); line-height: var(--lh-snug);  color: var(--md-on-surface); }
+.t-body    { font-size: var(--md-body-m-size);    font-weight: var(--md-w-regular); line-height: var(--lh-body); color: var(--md-on-surface-variant); }
+.t-meta    { font-size: var(--md-body-s-size);    font-weight: var(--md-w-regular); line-height: var(--lh-body); color: var(--md-on-surface-muted); }
+.t-mono    { font-size: var(--md-label-s-size); font-family: var(--md-font-plain); font-weight: var(--md-w-medium); font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; letter-spacing: -0.005em; }
+.t-label   {
+  font-size: var(--md-label-s-size);
+  font-weight: var(--md-w-medium);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  line-height: 1;
+}
+
+/* ── Caret blink for streaming text ─────────────────── */
+.caret::after {
+  content: "▍";
+  display: inline-block;
+  margin-left: 1px;
+  animation: caret-blink 1.05s steps(1) infinite;
+  opacity: 0.8;
+}
+@keyframes caret-blink { 0%, 50% { opacity: 0.9; } 51%, 100% { opacity: 0; } }
+
+/* ── Status pulse halos ─────────────────────────────── */
+@keyframes pulse-a    { 0%,100%{ box-shadow:0 0 0 0 rgba(212,165,116,.5);} 50%{ box-shadow:0 0 0 6px rgba(212,165,116,0);} }
+@keyframes pulse-b    { 0%,100%{ box-shadow:0 0 0 0 rgba(124,196,184,.5);} 50%{ box-shadow:0 0 0 6px rgba(124,196,184,0);} }
+@keyframes pulse-info { 0%,100%{ box-shadow:0 0 0 0 rgba(107,156,240,.5);} 50%{ box-shadow:0 0 0 6px rgba(107,156,240,0);} }
+@keyframes pulse-warn { 0%,100%{ box-shadow:0 0 0 0 rgba(212,160,86,.5); } 50%{ box-shadow:0 0 0 6px rgba(212,160,86,0); } }
+@keyframes pulse-err  { 0%,100%{ box-shadow:0 0 0 0 rgba(217,106,106,.5);} 50%{ box-shadow:0 0 0 6px rgba(217,106,106,0);} }
+.pulse-a    { animation: pulse-a    2.2s ease-out infinite; }
+.pulse-b    { animation: pulse-b    2.2s ease-out infinite; }
+.pulse-info { animation: pulse-info 2.2s ease-out infinite; }
+.pulse-warn { animation: pulse-warn 1.6s ease-out infinite; }
+.pulse-err  { animation: pulse-err  1.6s ease-out infinite; }
+
+/* ── Newly streamed segment fade-in ─────────────────── */
+@keyframes seg-in { from{ opacity:0; transform:translateY(2px);} to{opacity:1; transform:none;} }
+.seg-in { animation: seg-in var(--m-base) var(--ease) both; }
+
+/* ── Click-to-anchor flash highlight ────────────────── */
+@keyframes dr-flash {
+  0%   { background-color: rgba(212,160,86,0.42); }
+  100% { background-color: rgba(212,160,86,0.00); }
+}
+.dr-flash { animation: dr-flash 1.5s ease-out 1 both; border-radius: var(--md-shape-sm); }
+
+/* ── Modal overlay fade ─────────────────────────────── */
+@keyframes dr-modal-in { from{opacity:0;} to{opacity:1;} }
+.dr-modal-in { animation: dr-modal-in var(--m-base) var(--ease) both; }
+
+/* ── Spinner (spec 0083, sizes via inline style in spec 0084) ─────── */
+@keyframes dr-spin { to { transform: rotate(360deg); } }
+.dr-spinner {
+  /* Width / height / borderWidth come from the LoadingState component
+     in shared.jsx so the same element scales across inline → panel →
+     page contexts. */
+  border-style: solid;
+  border-color: var(--md-outline-hair);
+  border-top-color: var(--accent-a);
+  border-radius: 50%;
+  animation: dr-spin 0.9s linear infinite;
+}
+
+/* ── Reduced motion contract ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .caret::after { animation: none; opacity: 0.6; }
+  .pulse-a, .pulse-b, .pulse-info, .pulse-warn, .pulse-err { animation: none; }
+}
+
+/* ── Selection ──────────────────────────────────────── */
+::selection { background: rgba(124,196,184,0.35); }
+
+/* ── Helpers ────────────────────────────────────────── */
+.dashed-divider {
+  background-image: linear-gradient(to right, var(--md-outline-variant) 50%, transparent 50%);
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+  background-position: left center;
+  height: 1px;
+}
+.hr { height: 1px; background: var(--md-outline-hair); }
+
+/* ── Markdown rendering ─────── */
+/* Agent-produced markdown content uses the serif family
+   (Newsreader). Code blocks and inline code stay sans + tabular
+   for alignment. Hard rule: prose breathes, IDs/numbers align. */
+.md {
+  font-family: var(--md-font-brand);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--md-on-surface-variant);
+  letter-spacing: 0;
+}
+.md > :first-child { margin-top: 0; }
+.md > :last-child  { margin-bottom: 0; }
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+  color: var(--md-on-surface);
+  font-family: var(--md-font-brand);
+  font-weight: var(--md-w-semi);
+  letter-spacing: -0.005em;
+  line-height: var(--lh-snug);
+  margin: var(--s-4) 0 var(--s-2);
+}
+.md h1 { font-size: 22px; }
+.md h2 { font-size: 18px; }
+.md h3 {
+  font-family: var(--md-font-plain);
+  font-weight: var(--md-w-semi);
+  font-size: var(--md-label-s-size);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-muted);
+  margin-top: var(--s-4);
+}
+.md h4, .md h5, .md h6 { font-size: var(--md-body-m-size); font-weight: var(--md-w-medium); }
+.md p { margin: var(--s-2) 0; }
+.md ul, .md ol { margin: var(--s-2) 0; padding-left: var(--s-5); }
+.md li { margin: 3px 0; }
+.md ul li::marker { color: var(--md-on-surface-faint); }
+.md ol li::marker { color: var(--md-on-surface-faint); font-variant-numeric: tabular-nums; }
+.md code {
+  font-family: var(--md-font-plain);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: 0.88em;
+  padding: 1px 5px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-xs);
+  color: var(--md-on-surface);
+  letter-spacing: -0.005em;
+}
+.md pre {
+  font-family: var(--md-font-plain);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--md-label-s-size);
+  margin: var(--s-2) 0;
+  padding: var(--s-3) var(--s-3);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  overflow-x: auto;
+  line-height: 1.55;
+  color: var(--md-on-surface);
+  letter-spacing: -0.005em;
+}
+.md pre code { padding: 0; background: none; border: 0; font-size: inherit; }
+.md strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
+.md em     { color: var(--md-on-surface); font-weight: var(--md-w-medium); font-style: normal; }
+.md blockquote {
+  margin: var(--s-2) 0;
+  padding: var(--s-1) 0 var(--s-1) var(--s-3);
+  border-left: 2px solid var(--md-outline);
+  color: var(--md-on-surface-muted);
+  font-style: normal;
+}
+.md hr { border: 0; border-top: 1px solid var(--md-outline-hair); margin: var(--s-4) 0; }
+.md table { border-collapse: collapse; margin: var(--s-2) 0; font-size: var(--md-body-s-size); }
+.md th, .md td { padding: 6px 10px; border: 1px solid var(--md-outline-hair); text-align: left; }
+.md th { background: var(--md-surface-container); color: var(--md-on-surface-variant); font-weight: var(--md-w-semi); }
+.md del { color: var(--md-on-surface-faint); text-decoration: line-through; }
+
+/* =============================================================
+   Material 3 typography role utilities.
+   The 15 .t-display-l / -m / -s … .t-label-l / -m / -s classes
+   plus .t-data.
+   Mirrors design-system/assets/styles/tokens-and-primitives.css:247-298.
+   ============================================================= */
+
+.t-display-l  { font: var(--md-w-regular) var(--md-display-l-size)/var(--md-display-l-lh) var(--md-font-brand); letter-spacing: var(--md-display-l-track); }
+.t-display-m  { font: var(--md-w-regular) var(--md-display-m-size)/var(--md-display-m-lh) var(--md-font-brand); }
+.t-display-s  { font: var(--md-w-regular) var(--md-display-s-size)/var(--md-display-s-lh) var(--md-font-brand); }
+.t-headline-l { font: var(--md-w-medium)  var(--md-headline-l-size)/var(--md-headline-l-lh) var(--md-font-brand); }
+.t-headline-m { font: var(--md-w-medium)  var(--md-headline-m-size)/var(--md-headline-m-lh) var(--md-font-brand); }
+.t-headline-s { font: var(--md-w-medium)  var(--md-headline-s-size)/var(--md-headline-s-lh) var(--md-font-brand); }
+.t-title-l    { font: var(--md-w-medium)  var(--md-title-l-size)/var(--md-title-l-lh) var(--md-font-plain); }
+.t-title-m    { font: var(--md-w-medium)  var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-plain); letter-spacing: var(--md-title-m-track); }
+.t-title-s    { font: var(--md-w-medium)  var(--md-title-s-size)/var(--md-title-s-lh) var(--md-font-plain); letter-spacing: var(--md-title-s-track); }
+.t-body-l     { font: var(--md-w-regular) var(--md-body-l-size)/var(--md-body-l-lh) var(--md-font-plain); }
+.t-body-m     { font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain); }
+.t-body-s     { font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain); }
+.t-label-l    { font: var(--md-w-medium)  var(--md-label-l-size)/var(--md-label-l-lh) var(--md-font-plain); letter-spacing: var(--md-label-l-track); }
+.t-label-m    { font: var(--md-w-medium)  var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-plain); letter-spacing: var(--md-label-m-track); text-transform: uppercase; }
+.t-label-s    { font: var(--md-w-medium)  var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain); letter-spacing: var(--md-label-s-track); text-transform: uppercase; }
+
+.t-data { font-family: var(--md-font-data); font-variant-numeric: tabular-nums; font-feature-settings: "tnum","ss01"; }
+
+/* On-surface colour helpers. */
+.muted   { color: var(--md-on-surface-variant); }
+.faint   { color: var(--md-on-surface-faint); }
+.subtle  { color: var(--md-on-surface-muted); }
+
+/* M3 reduced-motion companion. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

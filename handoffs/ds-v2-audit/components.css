@@ -1,0 +1,4039 @@
+/* =============================================================
+   dual-research — Component vocabulary (Material 3)
+   --------------------------------------------------------------
+   Every component class the app uses. Reads tokens from
+   tokens.css; per-document hooks live in theme.css.
+   No hex codes here — tokens only.
+
+   Primitives: Button (.btn) · StatusBadge (.sb) · Chip (.chip) ·
+   RunIDChip (.rid) · AgentStrip + AgentIcon (.as / .ai) ·
+   Card + variants (.card / .card-expandable / .card-live) ·
+   ThemeToggle (.tt) · Tab · QuestionThread · Modal · etc.
+   ============================================================= */
+
+/* ─────────────────────────────────────────────────────────────
+   Button (.btn)
+   sizes: .btn-sm | .btn-md (default) | .btn-lg
+   variants: .btn-primary | .btn-secondary (default) | .btn-ghost | .btn-danger
+   ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
+  height: 28px;
+  font-family: var(--md-font-plain);
+  font-size: var(--md-body-s-size);
+  font-weight: var(--md-w-medium);
+  line-height: 1;
+  color: var(--md-on-surface);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease), color var(--m-fast) var(--ease);
+}
+.btn:hover    { background: var(--md-surface-container-high); border-color: var(--md-outline-variant); }
+.btn:active   { background: var(--md-surface-container-highest); }
+.btn[disabled], .btn.is-disabled { cursor: not-allowed; opacity: 0.55; color: var(--md-on-surface-decor); }
+.btn[disabled]:hover, .btn.is-disabled:hover { background: var(--md-surface-container); border-color: var(--md-outline-hair); }
+
+.btn-sm { height: 24px; padding: 0 var(--s-3); font-size: var(--md-label-s-size); }
+.btn-md { height: 28px; padding: 0 var(--s-3); }
+.btn-lg { height: 32px; padding: 0 14px; font-size: var(--md-body-m-size); }
+
+.btn-primary  { background: var(--md-on-surface); color: var(--md-surface); border-color: var(--md-on-surface); }
+.btn-primary:hover { background: var(--md-on-surface-variant); border-color: var(--md-on-surface-variant); }
+.btn-primary:active { background: var(--md-on-surface-variant); }
+
+.btn-ghost    { background: transparent; border-color: transparent; color: var(--md-on-surface-variant); }
+.btn-ghost:hover { background: var(--md-surface-container); border-color: transparent; color: var(--md-on-surface); }
+
+.btn-danger   { color: var(--err); border-color: var(--err-border); background: var(--err-bg); }
+.btn-danger:hover { background: var(--err-bg); border-color: var(--err); color: var(--err); }
+
+/* ─────────────────────────────────────────────────────────────
+   StatusBadge (.sb) — chrome data, sans + tabular
+   anatomy: dot + label. Sizes: sm (16h) | md (20h, default)
+   ───────────────────────────────────────────────────────────── */
+.sb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 20px;
+  min-width: 88px;
+  padding: 0 10px;
+  font-family: var(--md-font-plain);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--md-label-s-size);
+  font-weight: var(--md-w-medium);
+  letter-spacing: -0.005em;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-xs);
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  text-align: center;
+}
+.sb-sm { height: 16px; padding: 0 8px; font-size: var(--md-label-s-size); }
+.sb > .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--idle); flex: 0 0 auto; }
+.sb-ok      > .dot { background: var(--ok); }
+.sb-info    > .dot { background: var(--info); }
+.sb-warn    > .dot { background: var(--warn); }
+.sb-err     > .dot { background: var(--err); }
+.sb-running > .dot { background: var(--info); }
+.sb-running > .dot { animation: pulse-info 2.2s ease-out infinite; }
+.sb-a > .dot { background: var(--agent-a); }
+.sb-b > .dot { background: var(--agent-b); }
+
+/* ─────────────────────────────────────────────────────────────
+   Chip (.chip) — Spec 0119 unified primitive
+   The single chip primitive across every surface.
+
+   Slots (rendered in order, each emitted only when set):
+     leadingDot | leadingIcon | cat-bubble  →  label  →
+     value  →  add  →  sub  →  trailingSuffix  →  children
+
+   Tones:  info · info-strong · ok · warn · err · idle · muted ·
+           claude · gpt · neutral
+   Shapes: pill (default, --md-shape-full) | square (.chip-square, --md-shape-xs)
+   Sizes:  default 22px | lg 26px (.chip-lg)
+   ───────────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  font-family: var(--md-font-plain);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: 11px;
+  font-weight: var(--md-w-medium);
+  letter-spacing: -0.005em;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  line-height: 1;
+}
+.chip-lg   { height: 26px; padding: 0 11px; }
+.chip.chip-square { border-radius: var(--md-shape-xs); }
+
+/* Modifiers */
+.chip.mono { font-family: var(--md-font-data); font-size: 10.5px; }
+.chip.dim  { opacity: 0.55; }
+.chip-icon-only { padding: 0 6px; gap: 0; }
+
+/* Tones — filled-tonal, no border. Backgrounds are
+   color-mix-style tints over the surface; foreground is the
+   tone hue. Status tones (info/ok/warn/err/idle) carry an auto
+   leading dot via ::before (see below); identity tones
+   (claude/gpt/neutral) do NOT. */
+.chip.tone-info        { color: var(--info);    background: color-mix(in srgb, var(--info) 18%, transparent); border-color: transparent; }
+.chip.tone-info-strong { color: var(--info);    background: color-mix(in srgb, var(--info) 28%, transparent); border-color: transparent; }
+.chip.tone-ok          { color: var(--ok);      background: color-mix(in srgb, var(--ok) 18%, transparent);   border-color: transparent; }
+.chip.tone-warn        { color: var(--warn);    background: color-mix(in srgb, var(--warn) 18%, transparent); border-color: transparent; }
+.chip.tone-err         { color: var(--err);     background: color-mix(in srgb, var(--err) 18%, transparent);  border-color: transparent; }
+.chip.tone-idle        { color: var(--idle);    background: color-mix(in srgb, var(--idle) 28%, transparent); border-color: transparent; }
+.chip.tone-muted       { color: var(--md-on-surface-faint);    background: var(--md-surface-container); border-color: transparent; }
+.chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
+.chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+.chip.tone-neutral     { color: var(--md-on-surface-variant);    background: var(--md-surface-container-high); border-color: transparent; }
+
+/* Auto leading-dot for status tones only. Identity tones
+   (claude/gpt/neutral) intentionally do not get one. Suppressed
+   when .no-dot is applied (the upgraded <Chip> auto-adds .no-dot
+   whenever any slot prop is set, so explicit slots never collide
+   with the auto-dot). */
+.chip.tone-info::before,
+.chip.tone-info-strong::before,
+.chip.tone-ok::before,
+.chip.tone-warn::before,
+.chip.tone-err::before,
+.chip.tone-idle::before,
+.chip.tone-muted::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.chip.no-dot::before { display: none; }
+
+/* Spec 0133 §5.7 — safety net for the auto-dot vs slot collision.
+   Mirrors the JSX `usesNewSlots` heuristic in shared.jsx (the
+   upgraded <Chip> auto-adds .no-dot whenever any slot prop is set).
+   Active even when a callsite bypasses the Chip primitive and writes
+   raw `<span className="chip tone-X">` markup (audited at spec time:
+   compare.jsx, run-detail.jsx:5003, how-it-works.jsx all carry such
+   call sites). Result: zero double-dots anywhere. */
+.chip:has(.chip-label)::before,
+.chip:has(.chip-value)::before,
+.chip:has(.chip-dot)::before,
+.chip:has(.cat-bubble)::before,
+.chip:has(.chip-leading-icon)::before {
+  display: none;
+}
+
+/* Slot children */
+.chip .chip-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: 0 0 6px;
+}
+.chip .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+.chip .cat-bubble {
+  width: 14px; height: 14px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800;
+  font-family: var(--md-font-plain);
+  letter-spacing: 0;
+  flex: 0 0 14px;
+  color: #ffffff;                       /* knockout-white letter */
+  background: currentColor;             /* fall-back; overridden by tone-* below */
+}
+.chip.tone-info  .cat-bubble { background: var(--info); }
+.chip.tone-warn  .cat-bubble { background: var(--warn); }
+.chip.tone-err   .cat-bubble { background: var(--err);  }
+.chip.tone-idle  .cat-bubble { background: var(--idle); }
+.chip.dim .cat-bubble { opacity: 0.7; }
+
+.chip .chip-label { color: currentColor; }
+.chip .chip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 12px;
+  color: var(--md-on-surface);
+}
+.chip.dim .chip-value { color: var(--md-on-surface-muted); }
+.chip .chip-add {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; font-size: 11px;
+  color: var(--ok);
+}
+.chip .chip-sub {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; font-size: 11px;
+  color: var(--err);
+}
+.chip.dim .chip-add,
+.chip.dim .chip-sub { color: var(--md-on-surface-faint); }
+
+/* Spec 0133 §5.9 — subtle vertical separator between .chip-add and
+   .chip-sub when they sit adjacent. The slim Δ-pair presentation used
+   by timeline turn-card category chips (after Goal 8 drops bubble +
+   standing-total) reads "+raised | −closed"; without a separator the
+   two figures bleed into each other and a column of cards becomes
+   unreadable. Universal rule — applies to any chip with both add+sub
+   slots, including the unchanged TlPhaseHeadChips, so the design
+   language stays consistent across surfaces. */
+.chip .chip-add + .chip-sub {
+  position: relative;
+  padding-left: 8px;
+  margin-left: 2px;
+}
+.chip .chip-add + .chip-sub::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 1px;
+  background: currentColor;
+  opacity: 0.28;
+}
+.chip .chip-suffix {
+  font-family: var(--md-font-data);
+  font-size: 10.5px;
+  color: var(--md-on-surface-faint);
+}
+
+/* Active state for clickable filter chips (e.g., critique pane legend).
+   Outline ring in the chip's own tone. */
+.chip[data-active="true"] {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* Chip icon + unit slots — used by <Chip icon=…> across run-list, run-detail, and others. */
+.chip .unit { color: var(--md-on-surface-faint); }
+.chip .ico  { width: 12px; height: 12px; flex: 0 0 auto; }
+
+button.chip {
+  cursor: pointer;
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+button.chip:hover { filter: brightness(1.12); }
+button.chip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RunIDChip (.rid)
+   Pill-shaped, weight 500. No state — pure identity.
+   ───────────────────────────────────────────────────────────── */
+.rid {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  font-family: var(--md-font-plain);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: var(--md-label-s-size);
+  font-weight: var(--md-w-medium);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  color: var(--md-on-surface);
+  letter-spacing: 0.01em;
+}
+.rid-sm { height: 18px; padding: 0 8px; font-size: var(--md-label-s-size); }
+
+/* ─────────────────────────────────────────────────────────────
+   AgentStrip (.as) — equal-width pill identifying an agent + key metrics
+   min-width 320 (was 480 — CMP-07)
+   ───────────────────────────────────────────────────────────── */
+.as {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  min-width: 320px;
+  flex: 1 1 0;
+  padding: 4px var(--s-3);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+}
+.as-left  { display: inline-flex; align-items: center; gap: var(--s-2); }
+/* Spec 0112 — `min-width: 0` lets the nested .as-activity grandchild
+   shrink below its content size so text-overflow: ellipsis engages
+   instead of letting the activity phrase overflow the pill. */
+.as-right { display: inline-flex; align-items: center; gap: var(--s-3); color: var(--md-on-surface-muted); min-width: 0; }
+.as-right .num { color: var(--md-on-surface-variant); }
+.as.is-a { border-left: 2px solid var(--agent-a); }
+.as.is-b { border-left: 2px solid var(--agent-b); }
+/* SPEC-0087 § E — `.as-timeline` forces a fixed outer width so the
+   Claude + GPT pills on the run-detail header read at IDENTICAL outer
+   widths regardless of agent-name / model-name string length. They
+   live in separate flex containers (Claude on PaneHeader row, GPT on
+   PaneToolbar row) so flex-grow can't equalize them naturally;
+   pinning the width is the cleanest fix per delta 14.28. */
+/* Spec 0112 — relaxed from hard `width: 460px; flex: 0 0 auto` to a
+   flex rule that grows around a 460px basis but stays equal between
+   the Claude / GPT children of the shared `.agent-bar` parent. Lets
+   the pill absorb longer model id / activity strings on the right
+   without forcing internal text wrap (Notion issue 3). The 720px cap
+   keeps the row under --md-content-max on ultrawide displays. */
+.as.as-timeline { min-width: 460px; max-width: 720px; flex: 1 1 460px; }
+.as .as-name  { color: var(--md-on-surface); font-weight: var(--md-w-medium); white-space: nowrap; }
+.as .as-model { font-family: var(--md-font-data); font-size: var(--md-label-s-size); color: var(--md-on-surface-muted); white-space: nowrap; }
+
+/* Spec 0112 — activity label inside .as-right. Absorbs whatever
+   horizontal space remains in the pill; clips with an ellipsis when
+   the pill is too narrow to fit the full phrase (Notion issue 3).
+   `min-width: 0` is required to let this flex grandchild shrink
+   below its content size so `text-overflow: ellipsis` engages. */
+.as-activity {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+/* Spec 0133 — `.as.in-header` relocates the AgentStrip into a Timeline
+   pane header (`.tl__head` for Claude, `.tl__tabs` for GPT). Relative
+   to `.as-timeline` (the agent-bar placement), the chip:
+   - Drops the agent name (logo + model carry identity).
+   - Uses tight vertical padding so it never grows .tl__head / .tl__tabs
+     past their `min-height` contract.
+   - Right-aligns inside the row via `margin-left: auto`.
+   - Sizes its `min-width` to fit the longest activity phrase
+     (`drafting parallel plan` / `drafting converged doc` /
+     `negotiating · round NN` — all 22 chars) without truncation.
+   - Both chips share an identical wide-mode min-width so they appear
+     equal-sized despite different model-name lengths. */
+.as.in-header {
+  min-width: 600px;
+  max-width: 100%;
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 4px 24px;
+  gap: 18px;
+  border-radius: var(--md-shape-full);
+  font-size: 13px;
+  align-self: center;
+}
+.as.in-header .as-left  { gap: 16px; }
+.as.in-header .as-right { gap: 16px; font-size: 13px; }
+.as.in-header .as-name  { display: none; }   /* logo carries identity */
+.as.in-header .as-model { font-size: 13px; }
+.as.in-header .num      { font-size: 13px; }
+
+/* AgentIcon (.ai) — agent logo tile */
+.ai {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: var(--agent-a);
+  color: var(--on-accent);
+  flex: 0 0 auto;
+}
+.ai-sm { width: 14px; height: 14px; border-radius: 3px; }
+.ai-md { width: 18px; height: 18px; border-radius: 4px; }
+.ai-lg { width: 24px; height: 24px; border-radius: 5px; }
+.ai-xl { width: 32px; height: 32px; border-radius: 7px; }
+.ai-a  { background: var(--agent-a); color: var(--on-accent); }
+.ai-b  { background: var(--agent-b); color: var(--on-accent); }
+.ai-ghost-a { background: var(--agent-a-bg-strong); color: var(--agent-a); }
+.ai-ghost-b { background: var(--agent-b-bg-strong); color: var(--agent-b); }
+.ai svg { width: 60%; height: 60%; }
+
+/* ─────────────────────────────────────────────────────────────
+   Card (.card) — base | .card-expandable | .card-live
+   ───────────────────────────────────────────────────────────── */
+.card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  /* SPEC-0087 § G.3 vertical-density trim + Spec 0111 routing through
+     --dr-card-pad-* tokens so Critique cards (.qthread, .sc) match
+     Timeline cards (.card) exactly — Notion issue 5. */
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
+  transition: background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+button.card, .card.is-interactive { cursor: pointer; text-align: left; width: 100%; }
+.card.is-interactive:hover { background: var(--md-surface-container); }
+.card-expanded { border-color: var(--md-outline-variant); }
+.card-expanded .card-body {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--md-outline-hair);
+}
+.card-live  { border-left: 2px solid var(--agent-a); }
+.card-live.is-b { border-left-color: var(--agent-b); }
+.card-streaming-box {
+  margin-top: var(--s-3);
+  padding: var(--s-3);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  font-family: var(--md-font-brand);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--md-on-surface-variant);
+  white-space: pre-wrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ThemeToggle (.tt) — segmented two-cell sun/moon
+   Restores the original product's segmented pattern with the
+   sliding thumb (current implementation has the segmented shape
+   but no thumb animation — this swap adds the thumb).
+   ───────────────────────────────────────────────────────────── */
+.tt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  width: 56px;
+  height: 26px;
+}
+.tt-cell {
+  flex: 1 1 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--md-on-surface-faint);
+  border: 0;
+  background: transparent;
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  z-index: 1;
+  transition: color var(--m-fast) var(--ease);
+}
+.tt-cell:hover { color: var(--md-on-surface-variant); }
+.tt-cell.is-active { color: var(--md-on-surface); }
+.tt-thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-full);
+  transition: transform var(--m-base) var(--ease);
+  z-index: 0;
+}
+.tt[data-theme="light"] .tt-thumb { transform: translateX(0); }
+.tt[data-theme="dark"]  .tt-thumb { transform: translateX(100%); }
+.tt-cell svg { width: 12px; height: 12px; }
+
+/* ─────────────────────────────────────────────────────────────
+   Tab (.tab) — unified primitive for PaneButton, ChromeTab, segmented control
+   Sizes: .tab-sm | .tab-md (default)
+   States: .is-active
+   Wrap in .tab-group for spacing.
+
+   Two visual variants — pick one per surface:
+     .tab-group.tabs-line   — minimal underline stripe (modal sub-tabs,
+                              narrow rails, hover overlays). No chrome around
+                              the tab itself; the rail is a hairline under
+                              the group, the active stripe sits on the rail.
+     .tab-group.tabs-solid  — prominent segmented control (primary pane
+                              switchers, top chrome). Filled container, raised
+                              active pill.
+
+   Default .tab (no variant) is the bordered pill — kept for standalone
+   buttons in the chrome cluster and for the .tab-filter chip configuration.
+   ───────────────────────────────────────────────────────────── */
+.tab-group { display: inline-flex; gap: var(--s-2); align-items: center; flex-wrap: wrap; }
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 28px;
+  padding: 0 var(--s-3);
+  font-family: var(--md-font-plain);
+  font-size: var(--md-body-s-size);
+  font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-muted);
+  background: transparent;
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  transition: color var(--m-fast) var(--ease), background var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease), box-shadow var(--m-fast) var(--ease);
+}
+.tab-sm { height: 22px; padding: 0 10px; font-size: var(--md-label-s-size); }
+/* SPEC-0087 § B — chrome-cluster tabs (All runs / Compare / Search /
+   How it works) enforce a uniform 110px minimum width so the cluster
+   reads as a coherent segmented control instead of a row of pills
+   each sized to its label. */
+.tab.tab-chrome { min-width: 110px; justify-content: center; }
+.tab:hover { color: var(--md-on-surface-variant); background: var(--md-surface-container); }
+.tab.is-active {
+  color: var(--md-on-surface);
+  background: var(--md-surface-container);
+  border-color: var(--md-outline-variant);
+  font-weight: var(--md-w-semi);
+}
+.tab[disabled] { color: var(--md-on-surface-decor); cursor: not-allowed; }
+.tab .count {
+  font-family: var(--md-font-data);
+  font-size: var(--md-label-s-size);
+  color: var(--md-on-surface-faint);
+  font-weight: var(--md-w-medium);
+}
+.tab.is-active .count { color: var(--md-on-surface-variant); }
+
+/* Filter chip variant — adds a leading dot, dimmer when zero. */
+.tab.tab-filter > .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--idle); }
+.tab.tab-filter.tab-running  > .dot { background: var(--info); animation: pulse-info 2.2s ease-out infinite; }
+.tab.tab-filter.tab-completed > .dot { background: var(--ok); }
+.tab.tab-filter.tab-converged > .dot { background: var(--ok); }
+.tab.tab-filter.tab-deadlocked > .dot { background: var(--warn); }
+.tab.tab-filter.tab-errored   > .dot { background: var(--err); }
+.tab.tab-filter.is-zero .count { opacity: 0.5; }
+
+/* ─── Variant 1 · tabs-line — minimal underline stripe ─────────
+   Used in: modal sub-tabs, split-pane left pane, hover overlays,
+   any narrow row where chrome would crowd the content. The group
+   carries the hairline rail; each tab paints a 2 px stripe over it
+   when active.
+*/
+.tab-group.tabs-line {
+  display: flex;
+  gap: var(--s-4);
+  align-items: stretch;
+  border-bottom: 1px solid var(--md-outline-hair);
+  flex-wrap: wrap;
+  padding: 0;
+}
+.tab-group.tabs-line .tab {
+  height: 34px;
+  padding: 0 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--md-on-surface-muted);
+  font-weight: var(--md-w-medium);
+  font-size: var(--md-body-m-size);
+  transition: color var(--m-fast) var(--ease), border-color var(--m-base) var(--ease);
+}
+.tab-group.tabs-line .tab.tab-sm {
+  height: 30px;
+  font-size: var(--md-body-s-size);
+}
+.tab-group.tabs-line .tab:hover {
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  border-bottom-color: var(--md-outline-variant);
+}
+.tab-group.tabs-line .tab.is-active {
+  color: var(--md-on-surface);
+  background: transparent;
+  border-bottom-color: var(--md-on-surface);
+  font-weight: var(--md-w-semi);
+}
+.tab-group.tabs-line .tab .count {
+  color: var(--md-on-surface-faint);
+}
+.tab-group.tabs-line .tab.is-active .count {
+  color: var(--md-on-surface-variant);
+}
+
+/* ─── Variant 2 · tabs-solid — segmented control ───────────────
+   Used in: primary pane switcher (Conversation / Consumption),
+   top chrome navigation. The container is a filled track; the
+   active tab is a raised pill on bg-0 with a soft elevation.
+*/
+.tab-group.tabs-solid {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  flex-wrap: nowrap;
+}
+.tab-group.tabs-solid .tab {
+  height: 30px;
+  padding: 0 var(--s-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--md-shape-xs);
+  color: var(--md-on-surface-muted);
+  font-weight: var(--md-w-medium);
+}
+.tab-group.tabs-solid .tab.tab-sm {
+  height: 24px;
+  padding: 0 10px;
+}
+.tab-group.tabs-solid .tab:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+}
+.tab-group.tabs-solid .tab.is-active {
+  color: var(--md-on-surface);
+  background: var(--md-surface-container-highest);
+  border: 0;
+  font-weight: var(--md-w-semi);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.45), 0 0 0 1px var(--md-outline-variant);
+}
+body.light .tab-group.tabs-solid .tab.is-active,
+.light .tab-group.tabs-solid .tab.is-active {
+  background: var(--md-surface-container-low);
+  box-shadow: 0 1px 2px rgba(20,23,28,0.10), 0 0 0 1px var(--md-outline-variant);
+}
+.tab-group.tabs-solid .tab .count {
+  color: var(--md-on-surface-faint);
+}
+.tab-group.tabs-solid .tab.is-active .count {
+  color: var(--md-on-surface-variant);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tables — generic baseline + CMP-11 table header distinction
+   ───────────────────────────────────────────────────────────── */
+.tbl { width: 100%; border-collapse: separate; border-spacing: 0; }
+.tbl th, .tbl td {
+  text-align: left;
+  padding: 10px var(--s-3);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.tbl thead th {
+  font-family: var(--md-font-plain);
+  font-size: var(--md-label-s-size);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-muted);
+  font-weight: var(--md-w-semi);
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+.tbl thead tr:first-child th:first-child { border-top-left-radius: var(--md-shape-md); }
+.tbl thead tr:first-child th:last-child  { border-top-right-radius: var(--md-shape-md); }
+.tbl tbody tr:last-child td { border-bottom: 0; }
+.tbl tbody tr:hover td { background: var(--md-surface-container-low); }
+
+/* ─────────────────────────────────────────────────────────────
+   QuestionThread (.qthread)
+   Turn-by-turn conversation timeline for a critique item.
+   ───────────────────────────────────────────────────────────── */
+.qthread {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  /* Spec 0111 — match Timeline .card padding via shared tokens
+     (Notion issue 5 — Critique cards too tall). */
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
+  display: flex; flex-direction: column;
+  gap: 12px;
+  transition: box-shadow var(--m-fast) var(--ease);
+}
+.qthread:hover { box-shadow: var(--elevation-2, 0 2px 6px rgba(0,0,0,0.12)); }
+.qthread.is-open     { border-left: 3px solid var(--warn); }
+.qthread.is-resolved { border-left: 3px solid var(--ok); }
+.qthread.is-drift    { border-left: 3px solid var(--err); }
+
+.qt-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  cursor: pointer;
+}
+.qt-head .right { margin-left: auto; }
+
+/* Spec 0119 — timeline turn-card chip-row header. Tighter 6px gap
+   fits four category chips + provider + activity + status on one
+   line at ~600 px column width; wraps gracefully below. */
+.tl-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  cursor: pointer;
+}
+.tl-card-head > .spacer { flex: 1; min-width: 8px; }
+/* Spec 0125 — right-aligned cluster (Q/D/I/C counters + status check
+   + chevron). margin-left:auto pushes it to the trailing edge so the
+   left group is just [agent] [turn/brief]. Tighter inner gap so the
+   cluster reads as one stack on the right edge across a column of
+   cards. */
+.tl-card-head__right {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.tl-card-chev,
+.crit-card-chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  color: var(--md-on-surface-faint);
+  opacity: 0.25;
+  transition: opacity var(--m-fast) var(--ease), transform var(--m-fast) var(--ease);
+}
+.tl-card-chev[data-open="true"],
+.crit-card-chev[data-open="true"] {
+  opacity: 0.6;
+  transform: rotate(90deg);
+}
+
+/* Spec 0119 §8.3 — critique-pane filter row (the legend). Same
+   chip primitives across the entire row; the leading dividers are
+   visual separators between the kind cluster, the open/resolved
+   cluster, and the agent cluster.
+   Spec 0125 — height parity with .tl__tabs (55 px) and nowrap so the
+   row can't grow on narrow viewports. Selectors below intentionally
+   carry .crit2 .bar2 prefixes so they beat the shared .crit2 .bar2
+   rule at line ~1870 (which sets flex-wrap: wrap + padding: 10px 20px). */
+.crit2 .bar2.crit-filter-row {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: nowrap;
+  padding: 10px 14px;
+  min-height: 55px;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit-filter-spacer {
+  width: 12px; height: 1px; flex: 0 0 12px;
+}
+
+/* Spec 0125 — narrow-desktop compaction. Below the breakpoint the
+   kind-filter chips (Questions/Disagreements/Issues/Comments/All)
+   collapse to bubble+count only; status and agent chips keep their
+   labels but the row tightens via reduced gap and thinner spacers.
+   Targets are tagged with data-kind-filter at the call site in
+   run-detail.jsx so the rule is local and the Chip primitive stays
+   single-purpose.
+
+   Spec 0133 follow-up — breakpoint bumped from 1499 → 1799 px. The
+   original 1499 was sized for SPEC-0125's filter row alone, but
+   SPEC-0133 added the relocated agent pills + Bar 1 compaction +
+   extended Bar 2 collapse into the same block. The combined wide-mode
+   content (Timeline pill + Conversation/Consumption tabs in one row;
+   Critique title + 3 phase tabs + 3 counter triples in another;
+   10 filter chips with full labels in a third) only fits comfortably
+   when each two-pane column is ≥ ~900 px wide. That requires viewport
+   ≥ ~1800 px (column ≈ half the viewport). MacBook Pro 16" (1728 px),
+   MacBook Pro 14" (1512 px), and the typical half-screen browser
+   window on a 27" display all sit in the 1500–1799 range and need
+   narrow rules. 1799 covers them; 1800+ ultrawides and full-screen
+   external monitors still get wide mode. The .agent-input and
+   .resp-grid breakpoints elsewhere stay at 1499 — they govern
+   different layouts. */
+@media (max-width: 1799px) {
+  .crit2 .bar2.crit-filter-row {
+    gap: 4px;
+    padding: 10px 10px;
+  }
+  .crit2 .bar2.crit-filter-row .chip[data-kind-filter] .chip-label {
+    display: none;
+  }
+  .crit2 .bar2.crit-filter-row .crit-filter-spacer {
+    width: 6px; flex: 0 0 6px;
+  }
+
+  /* Spec 0133 §5.6 — extend the kind-filter label collapse to the
+     status filter cluster (Open / Resolved / Drift — identified by
+     .chip-dot) and the agent filter cluster (Claude / GPT — identified
+     by .chip-leading-icon). The dot color + agent icon already carry
+     the identity at this width; the text is redundant. */
+  .crit2 .bar2.crit-filter-row .chip:has(.chip-dot) .chip-label,
+  .crit2 .bar2.crit-filter-row .chip:has(.chip-leading-icon) .chip-label {
+    display: none;
+  }
+
+  /* Spec 0133 §5.5 — Critique Bar 1 narrow compaction. The shared
+     `.bar1, .bar2 { flex-wrap: wrap }` rule wraps Bar 1's right cluster
+     onto a second row at narrow viewports, blowing the height match
+     with .tl__head. Force nowrap and drop redundant labels so the bar
+     stays single-row at the same `min-height` as .tl__head. */
+  .crit2 .bar1 {
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  /* Phase tabs lose their textual label — the P-code / Σ glyph reads
+     on its own and the active-tab tint disambiguates Negotiate vs
+     Review vs Summary. */
+  .crit2 .bar1 .phase-tab .pname {
+    display: none;
+  }
+  /* Counter labels (uppercase "INTRODUCED / OPEN / RESOLVED") are
+     signal at wide widths but redundant alongside the colored number;
+     drop them in narrow, keep just the three numerals. */
+  .crit2 .bar1 .crit-totals .lbl {
+    display: none;
+  }
+  /* Prevent the right cluster itself from wrapping its three counters. */
+  .crit2 .right {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+
+  /* Spec 0133 §5.3 — narrow-view AgentStrip compaction (the relocated
+     pills introduced by §5.1 / §5.2). Drop the tokens + cost slots
+     (they read at the run-total level via CostBadge in the top bar);
+     keep logo + model + activity. Both chips lock to the same `width`
+     (Claude's natural content width with the longest activity phrase)
+     so they remain visually equal-sized despite "gpt-5.5" being much
+     shorter than "claude-sonnet-4-6". */
+  .as.in-header {
+    width: 380px;
+    min-width: 0;
+    max-width: none;
+    padding: 4px 14px;
+    gap: 10px;
+  }
+  .as.in-header .as-left  { gap: 10px; }
+  .as.in-header .as-right { gap: 8px; }
+  /* Hide every child of .as-right except the activity span (the last
+     child). The .as-right contents are tokens, sep, cost, sep, activity
+     — in that order — per AgentStrip's render in shared.jsx. The
+     activity is always the last `right` slot, so :not(:last-child) hits
+     the four token/cost-related children and leaves the activity. */
+  .as.in-header .as-right > *:not(:last-child) {
+    display: none;
+  }
+
+  /* The Conversation / Consumption segmented control labels can't share
+     the .tl__tabs row with a 380 px chip — collapse to icons-only at
+     the same breakpoint. `font-size: 0` collapses the text node next
+     to the icon span; the icon span re-asserts its own font-size so
+     the glyph stays visible. No HTML change needed. */
+  .tl__tab {
+    font-size: 0;
+    gap: 0;
+    padding: 0 10px;
+  }
+  .tl__tab .ms {
+    font-size: 18px;
+  }
+
+  /* Bring the chip closer to the right edge — the shared .tl__head /
+     .tl__tabs `padding: 10px 20px` is too generous in narrow when the
+     chip is the dominant element on the right. */
+  .tl__head,
+  .tl__tabs {
+    padding-right: 10px;
+  }
+}
+
+/* Spec 0119 §8.4 — critique card header. Same anatomy as the
+   timeline turn card head but with a singular-label category chip
+   instead of the dense-form bubble + value/add/sub. */
+.crit-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  cursor: pointer;
+  padding: 0;
+}
+.crit-card-head__spacer { flex: 1; min-width: 8px; }
+.crit-card-id {
+  font-family: var(--md-font-data);
+  font-size: 10.5px;
+  color: var(--md-on-surface-faint);
+  padding: 2px 0 0;
+  user-select: text;
+}
+
+/* Spec 0119 §8.5 — lifecycle row inside an expanded critique card.
+   Each row is a chip cluster (provider + round + verb chip) above
+   an indented quote body. Dashed top-border separator between rows;
+   first row has no border. */
+.crit-section-title {
+  color: var(--md-on-surface-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--md-w-semi);
+  margin: 14px 0 8px;
+}
+.lc-rows { display: flex; flex-direction: column; gap: 0; }
+.lc-row {
+  padding: 8px 0;
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.lc-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+.lc-row-chips {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.lc-row-body {
+  color: var(--md-on-surface-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding-left: 10px;
+  border-left: 2px solid var(--md-outline-variant);
+  margin-left: 4px;
+}
+.lc-row-body p { margin: 0; }
+.lc-row-body p + p { margin-top: 6px; }
+
+/* QuestionThread timeline + footer hints. The timeline body uses
+   .tl-card-head + Chip slots (rendered in shared.jsx). The footer
+   surfaces "resolved at round N" / drift summaries via
+   .qt-drift / .qt-resolved-foot below. */
+.qt-timeline {
+  display: flex; flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+.qt-drift, .qt-resolved-foot {
+  font-size: var(--md-body-s-size);
+  font-weight: var(--md-w-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  padding-top: 6px;
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.qthread.is-resolved .qt-resolved-foot { color: var(--ok); }
+.qthread.is-drift .qt-drift { color: var(--err); }
+
+/* SPEC-0110 — single-column .qt-row is now the default at every breakpoint;
+   the <900px media-query override that used to flip the grid to flex is no
+   longer needed. */
+
+/* ── .sci — side-by-side inline variant for Spec 0098 ── */
+.sci {
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-left: 3px solid var(--md-outline-variant);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.sci.is-open     { border-left-color: var(--warn); }
+.sci.is-open-new { border-left-color: var(--info); }
+.sci.is-resolved { border-left-color: var(--ok); }
+.sci.is-drift    { border-left-color: var(--err); }
+.sci__hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sci__hd .right { margin-left: auto; }
+.sci__q { font-family: var(--md-font-brand); font-size: 14px; line-height: 1.5; color: var(--md-on-surface); }
+.sci__thread {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 8px; border-top: 1px dashed var(--md-outline-hair);
+}
+.sci__msg {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--md-shape-sm);
+  font-size: 13px; line-height: 1.5;
+}
+.sci__msg.is-a { background: var(--agent-a-bg); }
+.sci__msg.is-b { background: var(--agent-b-bg); }
+.sci__msg .qt-pill { align-self: flex-start; font-size: 10px; height: 20px; }
+.sci__msg p { margin: 0; font-family: var(--md-font-brand); font-style: italic; }
+
+/* ─────────────────────────────────────────────────────────────
+   QuoteCallout (.quote-callout) — styled callout for quote fields
+   on critique cards. SPEC-0073 (D4).
+   ───────────────────────────────────────────────────────────── */
+.quote-callout {
+  border-left: 3px solid var(--md-outline);
+  background: var(--md-surface-container-low);
+  padding: var(--s-2) var(--s-3);
+  border-radius: 0 var(--md-shape-sm) var(--md-shape-sm) 0;
+  font-style: italic;
+  font-size: var(--md-body-s-size);
+  color: var(--md-on-surface-muted);
+  line-height: 1.55;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sentiment paragraph (.sentp) — first word bold = mood
+   Rendered in serif for editorial weight.
+   ───────────────────────────────────────────────────────────── */
+.sentp { font-family: var(--md-font-brand); font-size: 14px; color: var(--md-on-surface-variant); line-height: 1.6; letter-spacing: 0; }
+.sentp strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
+
+/* ─────────────────────────────────────────────────────────────
+   ChipCluster (.cc) — wraps multiple chips into a constrained row
+   with +N overflow button. SPEC-0057 (SUR-10).
+   ───────────────────────────────────────────────────────────── */
+.cc { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.cc-overflow {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  font-family: var(--md-font-plain);
+  font-size: var(--md-label-s-size);
+  font-weight: var(--md-w-semi);
+  color: var(--md-on-surface-muted);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--m-fast) var(--ease), color var(--m-fast) var(--ease);
+}
+.cc-overflow:hover { background: var(--md-surface-container-high); color: var(--md-on-surface); }
+
+/* ─────────────────────────────────────────────────────────────
+   PhaseRail (.phase-rail) — M3 horizontal 5-cell phase indicator
+   SPEC-0101. Replaces the old vertical dot-rail from SPEC-0057.
+   Renders inside modals as a horizontal strip with per-phase anatomy.
+   ───────────────────────────────────────────────────────────── */
+.phase-rail {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+}
+.phase-rail__cell {
+  position: relative;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+}
+.phase-rail__cell .ph { font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain); letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-faint); }
+.phase-rail__cell .name { font: var(--md-w-medium) var(--md-title-s-size)/1.3 var(--md-font-plain); color: var(--md-on-surface); }
+.phase-rail__cell .meta { font: 12px/1.3 var(--md-font-plain); color: var(--md-on-surface-faint); }
+.phase-rail__cell--done {
+  background: color-mix(in srgb, var(--p-ok) 14%, var(--md-surface-container-high));
+  color: var(--md-on-surface);
+}
+.phase-rail__cell--current {
+  background: color-mix(in srgb, var(--p-info) 16%, var(--md-surface-container-high));
+  color: var(--md-on-surface);
+  outline: 2px solid color-mix(in srgb, var(--p-info) 50%, transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Agent input panel (.agent-input) — M3 two-pane tonal layout
+   SPEC-0101. Two panes, one per agent, inside the agent-input modal.
+   ───────────────────────────────────────────────────────────── */
+.agent-input {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.agent-input__pane {
+  border-radius: var(--md-shape-md);
+  border: 1px solid var(--md-outline-hair);
+  padding: 16px;
+  background: var(--md-surface-container);
+  min-height: 220px;
+  position: relative;
+}
+.agent-input__pane--a { background: color-mix(in srgb, var(--md-primary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-primary) 28%, var(--md-outline-hair)); }
+.agent-input__pane--b { background: color-mix(in srgb, var(--md-secondary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-secondary) 28%, var(--md-outline-hair)); }
+.agent-input__head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.agent-input__body {
+  font-family: var(--md-font-data); font-size: 13px; line-height: 1.55;
+  color: var(--md-on-surface-variant); white-space: pre-wrap;
+}
+
+@media (max-width: 1499px) { .agent-input { grid-template-columns: 1fr; } }
+
+/* ─────────────────────────────────────────────────────────────
+   CollapsibleSection (.cs) — generic disclosure primitive
+   SPEC-0071 (D9).
+   ───────────────────────────────────────────────────────────── */
+.cs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.cs-header:hover { opacity: 0.85; }
+.cs-chevron {
+  font-size: 8px;
+  color: var(--md-on-surface-faint);
+  transition: transform var(--m-fast) var(--ease);
+  flex-shrink: 0;
+}
+.cs-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cs-count {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.cs-body.cs-open {
+  transition: none;
+}
+.cs-body.cs-closed {
+  display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cs-chevron { transition: transform var(--m-base) var(--ease); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Agent Input entry — SPEC-0074
+   Wraps each input piece inside the Agent Input tab.
+   Uses CollapsibleSection for disclosure; adds card styling.
+   ───────────────────────────────────────────────────────────── */
+.agent-input-entry {
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-low);
+}
+.agent-input-entry .cs-header {
+  padding: 7px 10px;
+}
+.agent-input-body {
+  border-top: 1px solid var(--md-outline-hair);
+  padding: 10px 12px;
+  background: var(--md-surface);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--md-on-surface-variant);
+  /* Spec 0113 — dropped `max-height: 360px; overflow: auto`. The outer
+     .dr-modal-body (spec 0110) is the single scroll surface inside the
+     modal; nested per-accordion scrollbars are out (Notion issue 9). */
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Consumption card — SPEC-0075
+   Three-zone vertical layout: data header (metrics + costs) at top,
+   1px divider, bars zone (total + breakdown) at bottom.
+   ───────────────────────────────────────────────────────────── */
+.consumption-card {
+  padding: 12px 14px;
+  background: var(--md-surface-container-low);
+  border-radius: var(--md-shape-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  position: relative; /* anchor for the absolute chevron */
+  /* SPEC-0086 — card is the click-to-expand surface itself. The whole
+     surface is a button; reset default button appearance. */
+  appearance: none;
+  border: 1px solid var(--md-outline-hair);
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 120ms;
+  width: 100%;
+}
+.consumption-card:hover {
+  border-color: var(--md-outline-variant);
+}
+.consumption-card:focus-visible {
+  outline: var(--focus-ring) solid var(--info);
+  outline-offset: var(--focus-offset);
+}
+.consumption-card .consumption-data-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.consumption-card .consumption-divider {
+  height: 0;
+  border: none;
+  border-top: 1px solid var(--md-outline-hair);
+  margin: 10px 0;
+}
+.consumption-card .consumption-bars-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.consumption-card .consumption-card-chevron {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--md-on-surface-faint);
+  pointer-events: none;
+  transition: transform 120ms;
+}
+
+/* SPEC-0086 — phase-group chrome */
+.consumption-phase-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.consumption-phase-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 4px 4px;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.consumption-phase-header .consumption-phase-name {
+  font-family: var(--md-font-data);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+}
+.consumption-phase-header .consumption-phase-meta {
+  font-size: 10.5px;
+  color: var(--md-on-surface-faint);
+  margin-left: auto;
+}
+
+/* SPEC-0086 — row layout: 2-col for phases without rounds, 3-col with
+   a leading round-chip for phases with rounds. */
+.consumption-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.consumption-row[data-has-round="true"] {
+  grid-template-columns: var(--consumption-round-w) minmax(0, 1fr) minmax(0, 1fr);
+}
+.consumption-row[data-is-repair="true"] .consumption-card {
+  background: var(--md-surface);
+}
+.consumption-round-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-family: var(--md-font-data);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  padding: 0 4px;
+}
+.consumption-round-chip .consumption-round-label {
+  font-weight: 600;
+  color: var(--md-on-surface-muted);
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Modal (.dr-modal) — single | split
+   CMP-06 — SPEC-0058. Class-backed replacement for inline-styled Modal.
+   ───────────────────────────────────────────────────────────── */
+.dr-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: var(--s-8) var(--s-6);
+  overflow-y: auto;
+  animation: dr-modal-in 120ms ease-out;
+}
+.light .dr-backdrop { background: rgba(20,23,28,0.45); }
+/* Modal chrome (SPEC-0109). The .md-dialog block below provides
+   M3-only styling on the outer frame; these .dr-modal-* rules
+   style the header / tabs / body / close-button markup that every
+   modal emits via the shared Modal primitive. */
+.dr-modal {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-xl);
+  box-shadow: var(--md-elev-3);
+  width: 100%;
+  max-width: 1100px;
+  overflow: hidden;
+  border-left: 3px solid var(--md-tertiary);
+  display: flex;
+  flex-direction: column;
+  /* Spec 0113 — harmonised with .md-dialog (the modal element carries
+     both classes). Fixed 92vh height; the prior 72vh floor was the
+     cause of Notion issues 6 + 9. */
+  height: 92vh;
+  max-height: 92vh;
+}
+.dr-modal.is-a { border-left-color: var(--p-sable); }
+.dr-modal.is-b { border-left-color: var(--p-sage); }
+.dr-modal.is-split { max-width: 1300px; }
+.dr-modal-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container-high);
+  flex-shrink: 0;
+}
+.dr-modal-title {
+  font-size: 14px; font-weight: var(--md-w-semi); color: var(--md-on-surface);
+  line-height: 1.30;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: -0.005em;
+}
+.dr-modal-sub {
+  font-family: var(--md-font-plain);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  font-size: 11px;
+  font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-faint);
+  margin-top: 2px;
+  letter-spacing: -0.005em;
+}
+.dr-modal-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: transparent; border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dr-modal-close:hover { background: var(--md-surface-container-highest); color: var(--md-on-surface); }
+.dr-modal-tabs {
+  display: flex; gap: var(--md-sp-2);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container);
+  flex-shrink: 0;
+}
+.dr-modal-tabs > .tab-group { width: 100%; }
+.dr-modal-body {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 18px 22px 22px;
+  background: var(--md-surface-container-low);
+}
+.dr-modal-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  min-height: 60vh;
+  flex: 1; min-height: 0;
+}
+.dr-modal-pane {
+  min-height: 0; min-width: 0;
+  display: flex; flex-direction: column;
+}
+/* SPEC-0110 — Inner body content (single column, tab content, or split
+   pane) stretches to fill the available vertical space between the modal
+   header and footer. Without this, content sits at its natural height
+   and leaves a large dead strip below. */
+.dr-modal-body { display: flex; flex-direction: column; }
+.dr-modal-body > * { min-height: 0; }
+.dr-modal-body > div:only-child,
+.dr-modal-body > article:only-child,
+.dr-modal-body > section:only-child { flex: 1; }
+
+/* ─────────────────────────────────────────────────────────────
+   M3 Dialog (.md-dialog) — SPEC-0096
+   Canonical M3 modal primitive: shape-xl, surface-3, elevation-3.
+   Variants: --basic (560 dp), --rich (1080 dp).
+   Agent-tint: --agent-a (sable), --agent-b (sage).
+   ───────────────────────────────────────────────────────────── */
+.md-dialog__scrim {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 50;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: var(--md-sp-6) var(--md-sp-6);
+  overflow-y: auto;
+  animation: md-dialog-in var(--md-dur-medium-2) var(--md-easing-emphasized-decel);
+}
+body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
+@keyframes md-dialog-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .md-dialog__scrim { animation: none; }
+}
+.md-dialog {
+  border-radius: var(--md-shape-xl);
+  background: var(--md-surface-3);
+  color: var(--md-on-surface);
+  padding: var(--md-sp-6);
+  box-shadow: var(--md-elev-3);
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  /* Spec 0113 — fixed 92vh height (replaces the min:72vh / max:92vh
+     range). Modal is always the same size regardless of content length,
+     so short briefs no longer floor at 72vh and leave a dead strip
+     below (Notion issues 6 + 9). Tall content scrolls inside
+     .dr-modal-body which already carries `overflow: auto`. */
+  height: 92vh;
+  max-height: 92vh;
+  overflow: hidden;
+  border-left: 4px solid transparent;
+}
+/* SPEC-0110 — both variants open at the rich (full) width by default so
+   every modal in the app gets the same canvas. The 560 px basic was an
+   M3-doc default; in this app every modal is content-rich. */
+.md-dialog--basic { max-width: 1080px; }
+.md-dialog--rich  { max-width: 1300px; }
+.md-dialog--agent-a { border-left: 4px solid var(--p-sable); }
+.md-dialog--agent-b { border-left: 4px solid var(--p-sage); }
+.md-dialog__icon {
+  width: 24px; height: 24px; color: var(--md-primary);
+  margin: 0 auto var(--md-sp-4);
+}
+.md-dialog__title {
+  font: var(--md-w-medium) var(--md-headline-s-size)/var(--md-headline-s-lh) var(--md-font-brand);
+  margin: 0 0 var(--md-sp-4);
+}
+.md-dialog__body { color: var(--md-on-surface-variant); margin-bottom: var(--md-sp-6); flex: 1; min-height: 0; overflow: auto; }
+.md-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+
+/* ─────────────────────────────────────────────────────────────
+   RoundScrubber (.round-scrubber) — SUR-12
+   Horizontal round-stepping bar at the bottom of split modals.
+   ───────────────────────────────────────────────────────────── */
+.round-scrubber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: 8px 16px;
+  border-top: 1px solid var(--md-outline-hair);
+  background: var(--md-surface);
+  flex-shrink: 0;
+}
+.round-scrubber-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-muted);
+  cursor: pointer;
+  transition: background var(--m-fast) var(--ease), color var(--m-fast) var(--ease);
+}
+.round-scrubber-btn:hover { background: var(--md-surface-container); color: var(--md-on-surface); }
+.round-scrubber-btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+.round-scrubber-btn[disabled]:hover { background: transparent; color: var(--md-on-surface-muted); }
+.round-scrubber-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px; height: 28px;
+  padding: 0 8px;
+  font-family: var(--md-font-plain);
+  font-size: var(--md-label-s-size);
+  font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-muted);
+  background: transparent;
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  transition: background var(--m-fast) var(--ease), color var(--m-fast) var(--ease), border-color var(--m-fast) var(--ease);
+}
+.round-scrubber-pill:hover { background: var(--md-surface-container); color: var(--md-on-surface); }
+.round-scrubber-pill.is-active {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  border-color: var(--md-outline-variant);
+  font-weight: var(--md-w-semi);
+}
+.round-scrubber-label {
+  font-family: var(--md-font-plain);
+  font-size: var(--md-label-s-size);
+  color: var(--md-on-surface-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0 4px;
+}
+
+/* =============================================================
+   M3 Atoms (SPEC-0093) — buttons, chips, status pills, switch,
+   segmented buttons, FAB, icon-btn, tonal chips.
+   Mirrors v2-m3.css:299-494.
+   ============================================================= */
+
+/* ── M3 Buttons ─────────────────────────────────────────── */
+.md-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 24px;
+  border: 0; background: transparent; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-l-track);
+  color: var(--md-on-surface);
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard),
+              background var(--md-dur-short-3) var(--md-easing-standard);
+  text-decoration: none;
+}
+.md-btn::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+  pointer-events: none;
+}
+.md-btn:hover::before    { opacity: var(--md-state-hover); }
+.md-btn:focus-visible::before { opacity: var(--md-state-focus); }
+.md-btn:active::before   { opacity: var(--md-state-pressed); }
+
+.md-btn--filled   { background: var(--md-primary); color: var(--md-on-primary); }
+.md-btn--filled:hover { box-shadow: var(--md-elev-1); }
+
+.md-btn--tonal    { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.md-btn--tonal:hover { box-shadow: var(--md-elev-1); }
+
+.md-btn--outlined { background: transparent; color: var(--md-primary); box-shadow: inset 0 0 0 1px var(--md-outline); }
+.md-btn--outlined:hover { box-shadow: inset 0 0 0 1px var(--md-primary); }
+
+.md-btn--text     { background: transparent; color: var(--md-on-surface); padding: 0 12px; }
+
+.md-btn--elevated { background: var(--md-surface-1); color: var(--md-primary); box-shadow: var(--md-elev-1); }
+.md-btn--elevated:hover { box-shadow: var(--md-elev-2); }
+
+.md-btn[disabled], .md-btn--disabled {
+  pointer-events: none; opacity: .38; color: var(--md-on-surface);
+  background: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+}
+
+.md-btn--sm { height: 32px; padding: 0 16px; font-size: var(--md-label-m-size); }
+.md-btn--lg { height: 48px; padding: 0 28px; }
+
+/* ── M3 Icon button ─────────────────────────────────────── */
+.md-icon-btn {
+  width: 40px; height: 40px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--md-shape-full);
+  background: transparent; color: var(--md-on-surface-variant);
+  border: 0; cursor: pointer; position: relative;
+}
+.md-icon-btn::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-icon-btn:hover::before { opacity: var(--md-state-hover); }
+.md-icon-btn:active::before { opacity: var(--md-state-pressed); }
+
+/* ── M3 FAB ─────────────────────────────────────────────── */
+.md-fab {
+  width: 56px; height: 56px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--md-shape-lg); border: 0;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+  box-shadow: var(--md-elev-3);
+  cursor: pointer; position: relative;
+}
+.md-fab--ext {
+  width: auto; padding: 0 20px 0 16px; height: 56px;
+  gap: 12px; font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+}
+
+/* ── M3 Chips ───────────────────────────────────────────── */
+.md-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 16px;
+  border-radius: var(--md-shape-sm);
+  background: transparent; color: var(--md-on-surface);
+  box-shadow: inset 0 0 0 1px var(--md-outline);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-l-track);
+  position: relative; cursor: default; white-space: nowrap;
+}
+.md-chip::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-chip:hover::before { opacity: var(--md-state-hover); }
+.md-chip--selected {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  box-shadow: none;
+}
+.md-chip--filter-a {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  box-shadow: none;
+}
+.md-chip--sm { height: 24px; padding: 0 10px; font-size: 11px; }
+
+/* ── M3 Status pills (canonical OK — Issue 4) ──────────── */
+.md-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 10px;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain);
+  letter-spacing: 0.4px; text-transform: uppercase;
+}
+.md-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.md-status--running   { color: var(--p-info);  background: color-mix(in srgb, var(--p-info) 16%, transparent); }
+.md-status--converged { color: var(--p-ok);    background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
+.md-status--drift     { color: var(--p-warn);  background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
+.md-status--errored   { color: var(--p-err);   background: color-mix(in srgb, var(--p-err) 16%, transparent); }
+.md-status--idle      { color: var(--p-idle);  background: color-mix(in srgb, var(--p-idle) 24%, transparent); }
+.md-status--queued    { color: var(--md-on-surface-faint); background: var(--md-surface-container-high); }
+
+/* ── M3 Segmented buttons ───────────────────────────────── */
+.md-seg {
+  display: inline-flex; align-items: center;
+  border-radius: var(--md-shape-full);
+  box-shadow: inset 0 0 0 1px var(--md-outline);
+  overflow: hidden;
+}
+.md-seg__opt {
+  height: 40px; padding: 0 20px;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--md-on-surface);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: var(--md-label-l-track);
+  position: relative;
+}
+.md-seg__opt + .md-seg__opt { box-shadow: inset 1px 0 0 var(--md-outline); }
+.md-seg__opt::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-seg__opt:hover::before { opacity: var(--md-state-hover); }
+.md-seg__opt[aria-selected="true"] {
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* ── M3 Switch ──────────────────────────────────────────── */
+.md-switch {
+  width: 52px; height: 32px; border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-highest);
+  box-shadow: inset 0 0 0 2px var(--md-outline);
+  position: relative; cursor: pointer; transition: background var(--md-dur-short-3);
+  border: 0; padding: 0;
+}
+.md-switch::after {
+  content: ""; position: absolute; top: 50%; left: 8px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--md-outline);
+  transform: translateY(-50%);
+  transition: all var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.md-switch[aria-checked="true"] {
+  background: var(--md-primary); box-shadow: none;
+}
+.md-switch[aria-checked="true"]::after {
+  left: 28px; width: 24px; height: 24px; background: var(--md-on-primary);
+}
+
+/* Tonal chip tones + auto-dot live in the canonical .chip section
+   near the top of this file (spec 0119). */
+
+/* ── Focus ring for all M3 focusable atoms ──────────────── */
+.md-btn:focus-visible,
+.md-icon-btn:focus-visible,
+.md-fab:focus-visible,
+.md-chip:focus-visible,
+.md-switch:focus-visible,
+.md-seg__opt:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .md-btn::before,
+  .md-icon-btn::before,
+  .md-chip::before,
+  .md-seg__opt::before,
+  .md-switch::after {
+    transition: none;
+  }
+  .md-btn, .md-switch {
+    transition: none;
+  }
+}
+
+/* =============================================================
+   Material Symbols Outlined sizing helpers.
+   Use as <span class="ms ms-20">check_circle</span>. The base
+   .ms class names the family + the icon-rendering reset; .ms-18 /
+   ms-20 / ms-24 set the three documented dp sizes
+   (18 dp inside chips, 20 dp inside buttons, 24 dp in chrome).
+   ============================================================= */
+.ms {
+  font-family: "Material Symbols Outlined";
+  font-weight: 400;
+  font-style: normal;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  direction: ltr;
+  font-size: 24px;   /* default */
+}
+.ms-18 { font-size: 18px; }
+.ms-20 { font-size: 20px; }
+.ms-24 { font-size: 24px; }
+
+/* SPEC-0092 — responsive grid utility (additive). Single-column
+   collapse is a no-op here; subsequent specs introduce the
+   @media (max-width: 900px) rule that flips this to one column. */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--md-gap-col);
+}
+
+/* =============================================================
+   SPEC-0094 — M3 Cards + AgentStrip + badge inventory +
+   hover-elevation rule + bcard
+   ============================================================= */
+
+/* ── M3 Cards (elevated / filled / outlined / agent-tonal) ─── */
+.md-card {
+  border-radius: var(--md-shape-md);
+  padding: var(--md-pad-card);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  position: relative;
+}
+.md-card--elevated  { background: var(--md-surface-1); box-shadow: var(--md-elev-1); }
+.md-card--filled    { background: var(--md-surface-container-high); }
+.md-card--outlined  { background: var(--md-surface); box-shadow: inset 0 0 0 1px var(--md-outline-variant); }
+.md-card--tonal-a   { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.md-card--tonal-b   { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+
+.md-card__hd { display: flex; align-items: center; gap: 12px; margin-bottom: var(--md-sp-3); }
+.md-card__title { font: var(--md-w-medium) var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-plain); }
+.md-card__support { color: var(--md-on-surface-variant); }
+
+/* Hover-elevation rule: elevation-1 → elevation-2 (Issue 3 hover-lift).
+   Only fires on cards with data-hoverable="true". Phase/section headers
+   never receive this attribute. */
+.md-card[data-hoverable="true"]:hover {
+  box-shadow: var(--md-elev-2);
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-card[data-hoverable="true"] {
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard);
+}
+/* Focus ring for interactive md-cards */
+.md-card:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Agent strip primitive (M3 — 28dp fixed height) ────────── */
+.agent-strip {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 28px; padding: 0 12px;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+  letter-spacing: 0.04em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.agent-strip--a { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.agent-strip--b { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.agent-strip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.agent-strip--a .dot { background: var(--md-on-primary-container); }
+.agent-strip--b .dot { background: var(--md-on-secondary-container); }
+
+/* ── Delta chip (+5 Q / -1) ────────────────────────────────── */
+.delta-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 8px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-high);
+  font: var(--md-w-medium) 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-variant);
+}
+.delta-chip .up   { color: var(--p-info); }
+.delta-chip .down { color: var(--p-ok);   }
+
+/* Spec 0119 §8.6 — ``.drift-chip`` retired. Per-phase ledger-drift
+   surfaces on the timeline phase-header as a Modifier chip
+   (``⚠ ledger drift <count>``) per commit 4. */
+
+/* ── Badge-rich card container (.bcard) ────────────────────── */
+.bcard {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.bcard__hd { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bcard__title { font: var(--md-w-medium) var(--md-title-m-size)/1.3 var(--md-font-plain); }
+.bcard__body  { color: var(--md-on-surface-variant); font-size: 13px; line-height: 1.5; }
+.bcard__ft { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px dashed var(--md-outline-hair); }
+
+/* ── Reduced motion for hover-elevation ────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .md-card[data-hoverable="true"],
+  .md-card[data-hoverable="true"]:hover {
+    transition: none;
+  }
+}
+
+/* =============================================================
+   SPEC-0095 — M3 Tabs, top app bar, chrome compaction
+   Primary tabs, top app bar, segmented-pill tab variants,
+   phase/kind tabs, fgroup filters, vertical divider.
+   ============================================================= */
+
+/* ── M3 Top app bar ──────────────────────────────────────── */
+.md-appbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 16px;
+  height: 64px; padding: 0 24px;
+  background: var(--md-surface-container);
+  color: var(--md-on-surface);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.md-appbar__title { font: var(--md-w-medium) var(--md-title-l-size)/1 var(--md-font-plain); }
+.md-appbar__spacer { flex: 1; }
+
+/* ── M3 Primary tabs ────────────────────────────────────── */
+.md-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.md-tab {
+  position: relative;
+  padding: 0 24px; height: 48px;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; border: 0; cursor: pointer;
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-medium) var(--md-title-s-size)/1 var(--md-font-plain);
+}
+.md-tab::before {
+  content: ""; position: absolute; inset: 0;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.md-tab:hover::before { opacity: var(--md-state-hover); }
+.md-tab[aria-selected="true"] { color: var(--md-primary); }
+.md-tab[aria-selected="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px; background: var(--md-primary);
+  border-radius: 3px 3px 0 0;
+}
+.md-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -2px;
+}
+
+/* ── Segmented-pill tab group (.tab-group-solid) ─────────── */
+.tab-group-solid {
+  display: inline-flex;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  padding: 4px;
+  gap: 2px;
+}
+.tab-solid {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 12px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.tab-solid.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+.tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ── Phase tabs (.phase-tab) ─────────────────────────────── */
+.phase-tabs { display: inline-flex; gap: 4px; }
+.phase-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px;
+  border: 0; cursor: pointer;
+  background: transparent;
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  position: relative;
+}
+.phase-tab::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.phase-tab:hover::before { opacity: var(--md-state-hover); }
+.phase-tab.is-active {
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+}
+.phase-tab .pcode {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+}
+.phase-tab .pname { font-weight: var(--md-w-medium); }
+.phase-tab .sigma { font-family: var(--md-font-brand); font-size: 16px; font-weight: var(--md-w-regular); line-height: 1; }
+.phase-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Kind tabs (.kind-tab) ───────────────────────────────── */
+.kind-tabs { display: inline-flex; gap: 2px; }
+.kind-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 32px; padding: 0 12px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  position: relative;
+}
+.kind-tab::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.kind-tab:hover::before { opacity: var(--md-state-hover); }
+.kind-tab.is-active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.kind-tab.is-zero  { color: var(--md-on-surface-faint); opacity: 0.55; }
+.kind-tab .ct {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+  padding: 4px 6px;
+  border-radius: var(--md-shape-xs);
+  min-width: 18px; text-align: center;
+}
+.kind-tab .ct.is-info { background: color-mix(in srgb, var(--p-info) 22%, transparent); color: var(--p-info); }
+.kind-tab .ct.is-warn { background: color-mix(in srgb, var(--p-warn) 22%, transparent); color: var(--p-warn); }
+.kind-tab .ct.is-err  { background: color-mix(in srgb, var(--p-err)  22%, transparent); color: var(--p-err); }
+.kind-tab.is-active .ct { background: rgba(0,0,0,0.18); color: inherit; }
+.kind-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Filter group (.fgroup) ──────────────────────────────── */
+.fgroup {
+  display: inline-flex;
+  background: var(--md-surface-container);
+  border-radius: var(--md-shape-full);
+  padding: 3px;
+  gap: 2px;
+}
+.fgroup .ft {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 26px; padding: 0 10px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.fgroup .ft.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+.fgroup .ft .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ── Vertical divider (.vbar) ────────────────────────────── */
+.vbar { width: 1px; height: 20px; background: var(--md-outline-hair); flex-shrink: 0; }
+
+/* ── Reduced motion for M3 tabs ──────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .md-tab::before,
+  .md-tab[aria-selected="true"]::after,
+  .phase-tab::before,
+  .kind-tab::before {
+    transition: none;
+  }
+}
+
+/* ── Focus ring for tab variants ─────────────────────────── */
+.tab-solid:focus-visible,
+.tab-group-solid:focus-visible,
+.fgroup .ft:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Critique pane M3 chrome (.crit2) — Spec 0098 ──────── */
+.crit2 {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0; flex: 1;
+}
+.crit2 .bar1, .crit2 .bar2 {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 20px;
+  flex-wrap: wrap;
+}
+.crit2 .bar1 {
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit2 .bar2 {
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.crit2 .ttl  { font: var(--md-w-medium) var(--md-title-m-size)/1 var(--md-font-plain); white-space: nowrap; }
+.crit2 .right { margin-left: auto; display: inline-flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.crit2__body {
+  flex: 1; min-height: 0; overflow: auto;
+  background: var(--md-surface-container-low);
+  padding: 12px 20px 24px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── Crit-totals cluster (Bar 1 right) ─────────────────── */
+.crit-totals {
+  display: inline-flex; gap: 16px; align-items: baseline;
+  font-family: var(--md-font-plain);
+}
+.crit-totals > span {
+  display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.2;
+}
+.crit-totals .n   { font: var(--md-w-semi) 18px/1 var(--md-font-data); color: var(--md-on-surface); }
+.crit-totals .lbl { font: var(--md-w-medium) 10px/1 var(--md-font-plain); letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-faint); margin-top: 4px; }
+.crit-totals .n.is-info { color: var(--p-info); }
+.crit-totals .n.is-ok   { color: var(--p-ok); }
+
+/* ── Collapsible status-grouped section (.crit-group) ──── */
+.crit-group {
+  display: flex; flex-direction: column;
+  border-radius: var(--md-shape-sm);
+  /* Spec 0111 — keep `overflow: hidden` (rounds-corners-clip the inner
+     header background), BUT add `flex-shrink: 0` so the section cannot
+     be compressed below its intrinsic content height by its flex-column
+     parent (.crit2__body). When the section can't shrink, an expanded
+     card body forces .crit2__body to scroll instead of being clipped by
+     this rule. Resolves Notion issue 1 (expanded comment body cut off
+     inside Resolved container with no scroll affordance). */
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+}
+.crit-group__hd {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+  position: relative;
+  user-select: none;
+}
+.crit-group__hd::before {
+  content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.crit-group__hd:hover::before { opacity: var(--md-state-hover); }
+.crit-group__hd:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -2px;
+}
+.crit-group__chev {
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--md-on-surface-variant);
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+/* Issue 3 sizing: section headers at title-medium (16dp / weight 500) */
+.crit-group__title {
+  font: var(--md-w-medium) var(--md-title-m-size)/1.5 var(--md-font-plain);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.crit-group__count {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  background: var(--md-surface-container);
+  color: var(--md-on-surface-variant);
+  padding: 4px 8px;
+  border-radius: var(--md-shape-full);
+  min-width: 22px; text-align: center;
+}
+.crit-group__count.is-info { background: color-mix(in srgb, var(--p-info) 22%, transparent); color: var(--p-info); }
+.crit-group__count.is-warn { background: color-mix(in srgb, var(--p-warn) 22%, transparent); color: var(--p-warn); }
+.crit-group__count.is-ok   { background: color-mix(in srgb, var(--p-ok)   22%, transparent); color: var(--p-ok); }
+.crit-group__count.is-err  { background: color-mix(in srgb, var(--p-err)  22%, transparent); color: var(--p-err); }
+.crit-group__meta {
+  margin-left: auto;
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+  letter-spacing: 0.04em;
+}
+.crit-group[data-collapsed="true"] .crit-group__chev { transform: rotate(-90deg); }
+.crit-group[data-collapsed="true"] .crit-group__body { display: none; }
+.crit-group__body {
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--md-surface-container-low);
+}
+
+/* ── Short-form item card (.sc) — Spec 0098; padding tokens — Spec 0111 ── */
+.sc {
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-left: 3px solid var(--md-outline);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sc:hover { box-shadow: var(--md-elev-2); }
+.sc.is-open     { border-left-color: var(--p-warn); }
+.sc.is-resolved { border-left-color: var(--p-ok); }
+.sc.is-drift    { border-left-color: var(--p-err); }
+.sc-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sc-by { font-size: 12px; color: var(--md-on-surface-faint); }
+.sc-by .a { color: var(--p-sable); font-weight: var(--md-w-medium); }
+.sc-by .b { color: var(--p-sage);  font-weight: var(--md-w-medium); }
+/* Issue 3: card title at body-medium (14dp / weight 400) */
+.sc-q { font: var(--md-w-regular) var(--md-body-m-size)/1.5 var(--md-font-brand); color: var(--md-on-surface); }
+
+/* ── Reduced motion for crit-group chevron ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .crit-group__chev {
+    transition: none;
+  }
+}
+
+/* ── Timeline pane M3 — Spec 0099 ──────────────────────── */
+
+/* Header chrome */
+/* SPEC-0106 — give the timeline pane the same 3-tier surface treatment as
+   the critique pane (.bar1 / .bar2 / .crit2__body), so light mode has
+   visible surface contrast against the page surface. Without this the
+   whole pane reads as flat cream in light mode. */
+.rdvc__pane {
+  background: var(--md-surface-container-low);
+}
+/* SPEC-0107 / polish — match the critique pane's two-tier header band
+   (.bar1 + .bar2). Both bands span full width with their own surface tier
+   + bottom outline, so the timeline + critique pane bottoms align across
+   the centre divider. */
+.tl__head {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 20px;
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+  min-height: 53px;
+  flex-shrink: 0;
+}
+.tl__head .ttl { font: var(--md-w-medium) var(--md-title-m-size)/1 var(--md-font-plain); white-space: nowrap; }
+.tl__head .ct  { font: 12px/1 var(--md-font-data); color: var(--md-on-surface-faint); }
+
+/* Pill tabs — Conversation / Consumption. Full-width band matching .bar2. */
+.tl__tabs {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  min-height: 55px;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+.tl__tabs-inner {
+  display: inline-flex; gap: 4px;
+  padding: 4px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+}
+.tl__tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 14px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.tl__tab .ms { font-size: 18px; }
+.tl__tab.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+
+/* Body — grid: 40px rail + 1fr phases */
+.tl__body {
+  display: flex; flex-direction: column;
+  padding: 12px 20px 16px;
+}
+
+/* SPEC-0110 — phase marker lives inside each .tl-phase__hd so it stays
+   anchored to its phase header regardless of collapse / expand state.
+   The old .tl__rail layout used flex:1 equal segments and drifted as soon
+   as phase heights diverged. */
+.tl-phase__marker {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.tl-phase__marker .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--md-outline-variant);
+  flex-shrink: 0;
+}
+.tl-phase__marker .lbl {
+  font: var(--md-w-medium) 10px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  letter-spacing: 0.04em;
+}
+.tl-phase__marker.is-done    .dot { background: var(--p-ok); }
+.tl-phase__marker.is-done    .lbl { color: var(--md-on-surface); }
+.tl-phase__marker.is-current .dot { background: var(--p-err); box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-err) 22%, transparent); }
+.tl-phase__marker.is-current .lbl { color: var(--p-err); }
+
+/* Phase list container */
+.tl__phases { display: flex; flex-direction: column; gap: var(--md-sp-2); }
+
+/* SPEC-0107 / polish — phase cards mirror the critique pane's .crit-group
+   anatomy exactly: same surface tier, same outline, same radius, same
+   header-band tier. Visually the two sides of the run-detail page read
+   as a single design language. */
+.tl-phase {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  overflow: hidden;
+}
+.tl-phase__hd {
+  display: grid; grid-template-columns: auto 20px auto auto 1fr auto;
+  gap: 10px; align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.tl-phase__hd::before {
+  content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.tl-phase__hd:hover::before { opacity: var(--md-state-hover); }
+.tl-phase__hd:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.tl-phase__hd .chev {
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.tl-phase[data-collapsed="true"] .chev { transform: rotate(-90deg); }
+.tl-phase[data-collapsed="true"] .tl-phase__body { display: none; }
+.tl-phase__pcode {
+  font: var(--md-w-semi) 10px/1 var(--md-font-data);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+}
+.tl-phase__name {
+  /* Spec 0116 — harmonised with .crit-group__title so Timeline phase
+     headers and Critique section headers read at equal visual weight
+     (user request via 2026-05-19 follow-up screenshot). Was 13px/1;
+     now title-medium (16dp / 1.5). The .tl-phase__pcode "P0" prefix
+     and .tl-phase__meta "0m 20s" suffix stay at their quieter 10/11 px
+     sizes — the user specifically called out the NAME text. */
+  font: var(--md-w-medium) var(--md-title-m-size)/1.5 var(--md-font-plain);
+  color: var(--md-on-surface);
+}
+.tl-phase__meta {
+  font: 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+}
+/* Spec 0119 §8.2 — phase-header category summary chip cluster. Lives
+   in the rightmost grid column of .tl-phase__hd; flex-wraps when
+   the timeline column gets narrow. */
+.tl-phase__chips {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+  justify-self: end;
+}
+.tl-phase__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 14px; }
+
+/* SPEC polish — Timeline turn rows now reuse the critique-pane .qthread card
+   anatomy verbatim (background, border, radius, hover lift, status side
+   border). .tl-thread is a thin override layer for the timeline's tighter
+   padding + smaller font, since timeline rows show a one-line glance rather
+   than the multi-turn critique thread. */
+.qthread.tl-thread {
+  /* Spec 0111 — route through shared --dr-card-pad-* tokens so Timeline
+     turn rows match Timeline .card and Critique .qthread heights (Notion
+     issue 5). The prior 10px/14px override is gone; the token values
+     (6px/12px) are the single source of truth across both panes. */
+  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
+  margin: 0;
+  gap: 0;
+  cursor: pointer;
+}
+.qthread.tl-thread .qt-head {
+  gap: 8px;
+}
+.qthread.tl-thread .qref-n {
+  text-transform: lowercase;
+  letter-spacing: 0;
+}
+.qthread.tl-thread .tl-thread__body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--md-outline-hair);
+  font: 13px/1.55 var(--md-font-brand); font-style: italic;
+  color: var(--md-on-surface-variant);
+}
+.qthread.tl-thread .tl-thread__actions {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--md-outline-hair);
+  flex-wrap: wrap;
+}
+
+/* Turn row — one-line summary */
+.tl-turn {
+  display: grid;
+  grid-template-columns: 22px 64px 1fr auto 28px;
+  gap: 10px; align-items: center;
+  padding: 8px 8px 8px 28px;
+  border-radius: var(--md-shape-sm);
+  cursor: pointer;
+  position: relative;
+}
+.tl-turn::before {
+  content: ""; position: absolute; inset: 0; background: currentColor; opacity: 0;
+  border-radius: inherit;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.tl-turn:hover::before { opacity: var(--md-state-hover); }
+.tl-turn:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.tl-turn.is-current { background: color-mix(in srgb, var(--p-info) 8%, transparent); }
+.tl-turn__ai {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: var(--md-w-semi) 11px/1 var(--md-font-plain);
+}
+.tl-turn__ai.is-a { background: var(--md-primary);   color: var(--md-on-primary); }
+.tl-turn__ai.is-b { background: var(--md-secondary); color: var(--md-on-secondary); }
+.tl-turn__nm   { font: var(--md-w-medium) 13px/1 var(--md-font-plain); color: var(--md-on-surface); }
+.tl-turn__lbl  { font: var(--md-w-regular) 12px/1 var(--md-font-plain); color: var(--md-on-surface-variant); }
+.tl-turn__deltas { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.tl-turn__round {
+  font: var(--md-w-semi) 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  background: var(--md-surface-container);
+  padding: 4px 8px;
+  border-radius: var(--md-shape-xs);
+}
+
+/* Delta chips */
+.tl-delta {
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 8px;
+  border-radius: var(--md-shape-full);
+  font: var(--md-w-medium) 11px/1 var(--md-font-data);
+}
+.tl-delta.up   { background: color-mix(in srgb, var(--p-info) 14%, transparent); color: var(--p-info); }
+.tl-delta.down { background: color-mix(in srgb, var(--p-ok)   14%, transparent); color: var(--p-ok); }
+.tl-delta.rep  { background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn); letter-spacing: 0.08em; }
+
+/* Turn row — expanded (opens inline) · Issue 11: single dashed border */
+.tl-turn--open {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 0;
+  margin: 8px 0;
+  display: block;
+}
+.tl-turn--open .tl-turn { background: var(--md-surface-container); border-radius: var(--md-shape-md) var(--md-shape-md) 0 0; cursor: pointer; }
+.tl-turn--open .tl-turn::before { display: none; }
+.tl-turn--open .body {
+  padding: 12px 14px 14px;
+  font: 13px/1.55 var(--md-font-brand); font-style: italic;
+  color: var(--md-on-surface-variant);
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.tl-turn--open .actions {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px 12px;
+  flex-wrap: wrap;
+}
+
+/* Reduced motion for timeline phase chevron + turn expand */
+@media (prefers-reduced-motion: reduce) {
+  .tl-phase__hd .chev,
+  .tl-turn::before {
+    transition: none;
+  }
+}
+
+/* Responsive: rail collapses to 24dp gutter at narrow viewport */
+@media (max-width: 900px) {
+  .tl__body { grid-template-columns: 24px 1fr; }
+  .tl__rail .seg .lbl { display: none; }
+}
+
+/* =============================================================
+   Spec 0100 — Consumption pane M3 rework (ccx card family)
+   Issues 12-15: collapsed card, unfolded card, uniform width,
+   sticky bottom legend.
+   ============================================================= */
+
+/* ── Card container ──────────────────────────── */
+.ccx {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ccx-header { display: flex; align-items: center; gap: 10px; padding-bottom: 4px; }
+.ccx-icon {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font: var(--md-w-semi) 11px/1 var(--md-font-plain);
+}
+.ccx-icon.a { background: var(--md-primary);   color: var(--md-on-primary); }
+.ccx-icon.b { background: var(--md-secondary); color: var(--md-on-secondary); }
+.ccx-header .nm { font: var(--md-w-medium) var(--md-title-s-size)/1 var(--md-font-plain); }
+.ccx-header .stats {
+  margin-left: auto;
+  display: inline-flex; gap: 8px; align-items: baseline;
+  font: var(--md-w-regular) 13px/1 var(--md-font-data);
+  color: var(--md-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.ccx-header .stats .sep { color: var(--md-on-surface-faint); }
+.ccx-header .stats .pct { color: var(--md-on-surface-faint); font-style: normal; }
+.ccx-header .chev {
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--md-on-surface-variant); cursor: pointer;
+}
+.ccx-header .chev:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+  border-radius: var(--md-shape-xs);
+}
+
+/* ── Bar rows + sub-rows ─────────────────────── */
+.ccx-bar-row, .ccx-sub-row {
+  display: grid; grid-template-columns: 140px 1fr 100px;
+  gap: 12px; align-items: center;
+  font: var(--md-w-regular) 12px/1 var(--md-font-plain);
+}
+.ccx-bar-row.is-total { font-weight: var(--md-w-semi); color: var(--md-on-surface); }
+.ccx-bar-row .lbl, .ccx-sub-row .lbl { color: var(--md-on-surface-variant); }
+.ccx-bar-row.is-total .lbl { color: var(--md-on-surface); }
+.ccx-sub-row .lbl { font-size: 12px; padding-left: 12px; }
+.ccx-bar {
+  position: relative;
+  height: 10px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  overflow: hidden;
+}
+.ccx-bar.thin { height: 6px; }
+.ccx-bar .fl { position: absolute; top: 0; bottom: 0; left: 0; border-radius: inherit; }
+.ccx-bar .fl.in   { background: var(--p-sable); }
+.ccx-bar .fl.out  { background: var(--p-sable); opacity: 0.55; }
+.ccx-bar .fl.in-b { background: var(--p-sage); }
+.ccx-bar .fl.out-b{ background: var(--p-sage); opacity: 0.55; }
+.ccx-bar .fl.sys   { background: color-mix(in srgb, var(--p-sable) 75%, var(--md-on-surface)); }
+.ccx-bar .fl.hist  { background: var(--p-sable); }
+.ccx-bar .fl.round { background: color-mix(in srgb, var(--p-sable) 60%, var(--md-on-surface)); }
+.ccx-bar .fl.tools { background: color-mix(in srgb, var(--p-info)  70%, transparent); }
+.ccx-bar .fl.web   { background: var(--p-info); }
+.ccx-bar .fl.reason{ background: var(--p-sable); }
+.ccx-bar .fl.resp  { background: color-mix(in srgb, var(--p-sable) 60%, var(--md-on-surface)); }
+.ccx-bar .fl.toolc { background: var(--p-info); }
+.ccx-bar .reuse {
+  position: absolute; top: 0; bottom: 0;
+  background:
+    repeating-linear-gradient(135deg,
+      rgba(255,255,255,0.40) 0 3px,
+      rgba(255,255,255,0)    3px 6px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+body.light .ccx-bar .reuse {
+  background: repeating-linear-gradient(135deg, rgba(0,0,0,0.18) 0 3px, rgba(0,0,0,0) 3px 6px);
+  mix-blend-mode: normal;
+}
+
+/* ── Numeric cells ───────────────────────────── */
+.ccx-bar-row .num, .ccx-sub-row .num {
+  font: var(--md-w-medium) 12px/1 var(--md-font-data);
+  text-align: right;
+  display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end;
+}
+.ccx-bar-row .num { font-size: 13px; font-weight: var(--md-w-semi); }
+
+/* ── Dividers + spacers ──────────────────────── */
+.ccx-divider { height: 1px; background: var(--md-outline-hair); margin: 4px 0 6px; }
+.ccx-section-spacer { height: 8px; }
+
+/* ── Totals block ────────────────────────────── */
+.ccx-totals {
+  display: grid; grid-template-columns: 1fr;
+  gap: 4px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--md-surface-container-low);
+  border-radius: var(--md-shape-sm);
+  border: 1px solid var(--md-outline-hair);
+}
+.ccx-totals .line {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font: var(--md-w-regular) 12px/1 var(--md-font-data);
+  color: var(--md-on-surface-variant);
+}
+.ccx-totals .line .v { font: var(--md-w-semi) 13px/1 var(--md-font-data); color: var(--md-on-surface); font-variant-numeric: tabular-nums; }
+.ccx-totals .line .l { font-size: 11px; color: var(--md-on-surface-faint); letter-spacing: 0.04em; }
+.ccx-totals .line.is-savings .v { color: var(--p-ok); }
+.ccx-totals .line.is-grand   { padding-top: 4px; border-top: 1px solid var(--md-outline-hair); margin-top: 4px; }
+.ccx-totals .line.is-grand .v { font-size: 15px; }
+
+/* ── Uniform pair grid (Issue 14) ────────────── */
+.cards-2up { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 1099px) { .cards-2up { grid-template-columns: 1fr; } }
+
+/* ── Round label + phase group head (Issue 14) ── */
+.round-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+  font: var(--md-w-medium) 10px/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+}
+.round-label .pcode { font: var(--md-w-semi) 10px/1 var(--md-font-data); color: var(--md-on-surface); }
+.phase-group-head {
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--md-primary);
+  padding: 16px 0 8px;
+}
+
+/* ── Sticky bottom legend (Issue 15) ─────────── */
+.ccx-pane {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0;
+  overflow: hidden;
+}
+.ccx-pane__body {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 16px;
+}
+.ccx-pane__legend {
+  position: sticky; bottom: 0;
+  background: var(--md-surface-container-high);
+  border-top: 1px solid var(--md-outline-hair);
+  box-shadow: var(--md-elev-1);
+  padding: var(--md-sp-3) var(--md-sp-6);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  font: var(--md-w-regular) 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.ccx-pane__legend .legend-row {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ccx-pane__legend .legend-sep {
+  color: var(--md-on-surface-faint);
+  margin: 0 4px;
+}
+.ccx-pane__legend .legend-sw {
+  display: inline-block; width: 14px; height: 8px;
+  border-radius: var(--md-shape-xs);
+}
+.ccx-pane__legend .legend-sw.a { background: var(--p-sable); }
+.ccx-pane__legend .legend-sw.b { background: var(--p-sage); }
+.ccx-pane__legend .legend-sw.solid { background: var(--md-on-surface-variant); }
+.ccx-pane__legend .legend-sw.striped {
+  background: repeating-linear-gradient(135deg,
+    var(--md-on-surface-variant) 0 3px,
+    transparent 3px 6px);
+}
+.ccx-pane__legend .legend-sw.web { background: var(--p-info); }
+
+/* ── Reuse mark (Issue 13) ───────────────────── */
+.reuse-mark {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 16px; padding: 0 6px;
+  border-radius: var(--md-shape-xs);
+  background: color-mix(in srgb, var(--p-info) 18%, transparent);
+  color: var(--p-info);
+  font: var(--md-w-semi) 10px/1 var(--md-font-plain);
+  letter-spacing: 0.04em;
+  position: relative;
+  cursor: help;
+}
+.reuse-mark .ms { font-size: 12px; }
+.reuse-mark::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%; bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  padding: 6px 10px;
+  font: var(--md-w-regular) 11px/1.4 var(--md-font-plain);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+  box-shadow: var(--md-elev-2);
+  z-index: 10;
+}
+.reuse-mark::before {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: calc(100% + 1px);
+  transform: translateX(-50%) rotate(45deg);
+  width: 6px; height: 6px;
+  background: var(--md-surface-container-highest);
+  border-right: 1px solid var(--md-outline-hair);
+  border-bottom: 1px solid var(--md-outline-hair);
+  opacity: 0;
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+  z-index: 10;
+}
+.reuse-mark:hover::after, .reuse-mark:focus-visible::after,
+.reuse-mark:hover::before, .reuse-mark:focus-visible::before { opacity: 1; }
+.reuse-mark:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+.cache-mark {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 16px; padding: 0 5px;
+  border-radius: var(--md-shape-xs);
+  background: color-mix(in srgb, var(--p-ok) 18%, transparent);
+  color: var(--p-ok);
+  font: var(--md-w-semi) 9px/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.web-mark {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 16px; padding: 0 5px;
+  border-radius: var(--md-shape-xs);
+  background: color-mix(in srgb, var(--p-info) 14%, transparent);
+  color: var(--p-info);
+  font: var(--md-w-semi) 10px/1 var(--md-font-data);
+}
+
+/* ── Chevron rotation (reduced-motion safe) ─── */
+.ccx-header .chev {
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ccx-header .chev { transition: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   How It Works overlay (.hiw-overlay) — SPEC-0102
+   Full-screen M3 rich dialog with sticky right menu.
+   ───────────────────────────────────────────────────────────── */
+.hiw-overlay__layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: var(--md-sp-6);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.hiw-overlay__content {
+  overflow-y: auto;
+  padding-right: var(--md-sp-4);
+}
+.hiw-overlay__menu {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-sp-4);
+}
+.hiw-overlay__menu-toggle {
+  align-self: stretch;
+}
+.hiw-overlay__menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hiw-overlay__menu-list li a {
+  display: block;
+  padding: 6px 12px;
+  border-radius: var(--md-shape-sm);
+  font: var(--md-w-regular) 12px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  text-decoration: none;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard);
+}
+.hiw-overlay__menu-list li a:hover {
+  background: var(--md-surface-container);
+}
+.hiw-overlay__menu-list li a:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── How It Works content (.hiw) ─────────────────────────── */
+.hiw { display: flex; flex-direction: column; gap: 96px; }
+.hiw-sec { scroll-margin-top: 80px; }
+.hiw-sec > .label {
+  font: var(--md-w-medium) var(--md-label-m-size)/1 var(--md-font-plain);
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--md-primary);
+  margin-bottom: 8px;
+}
+.hiw-sec > h3 {
+  font: var(--md-w-regular) var(--md-headline-l-size)/var(--md-headline-l-lh) var(--md-font-brand);
+  margin: 0 0 16px; letter-spacing: -0.01em;
+}
+.hiw-sec > .lede {
+  max-width: 720px;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 28px;
+  font: var(--md-body-l-size)/var(--md-body-l-lh) var(--md-font-plain);
+}
+.hiw-diagram {
+  border-radius: var(--md-shape-lg);
+  overflow: hidden;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  box-shadow: var(--md-elev-1);
+}
+.hiw-diagram svg { display: block; width: 100%; height: auto; }
+
+/* Collapse contract */
+.hiw-sec__body {
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.hiw-sec[data-collapsed="true"] .hiw-sec__body {
+  display: none;
+}
+.hiw-sec__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--md-primary);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  padding: 4px 0;
+}
+.hiw-sec__toggle:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+.hiw-sec__toggle .ms {
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.hiw-sec[data-collapsed="true"] .hiw-sec__toggle .ms {
+  transform: rotate(0deg);
+}
+.hiw-sec[data-collapsed="false"] .hiw-sec__toggle .ms {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hiw-sec__toggle .ms { transition: none; }
+  .hiw-sec__body { transition: none; }
+}
+
+/* ── Changelog (.changelog) ──────────────────────────────── */
+.changelog { display: flex; flex-direction: column; gap: 32px; }
+.changelog__entry { display: grid; grid-template-columns: 140px 1fr; gap: 32px; align-items: baseline; }
+.changelog__date {
+  font: var(--md-w-medium) var(--md-label-m-size)/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  font-family: var(--md-font-data);
+}
+.changelog__body h4 {
+  font: var(--md-w-medium) var(--md-title-m-size)/1.3 var(--md-font-plain);
+  margin: 0 0 8px;
+}
+.changelog__body ul { margin: 0; padding-left: 20px; color: var(--md-on-surface-variant); }
+.changelog__body ul li { margin: 4px 0; }
+.changelog__entry[data-collapsed="true"] .changelog__body { display: none; }
+.changelog__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--md-primary);
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  padding: 4px 0;
+}
+.changelog__toggle:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Responsive: single-column at narrow viewports ─── */
+@media (max-width: 960px) {
+  .hiw-overlay__layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .hiw-overlay__menu {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--md-sp-2);
+    order: -1;
+  }
+  .hiw-overlay__menu-list {
+    display: none;
+  }
+  .hiw-overlay__content {
+    padding-right: 0;
+  }
+}
+
+/* ── Tour overlay (SPEC-0103) ──────────────────────── */
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: auto;
+}
+.tour-overlay__mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  pointer-events: none;
+}
+body.light .tour-overlay__mask {
+  background: rgba(20,23,28,0.30);
+}
+.tour-overlay__cutout {
+  position: fixed;
+  pointer-events: none;
+  border-radius: var(--md-shape-md);
+  box-shadow: 0 0 0 2px var(--p-info);
+  z-index: 1;
+}
+
+/* ── ProgressSegs (admin, SPEC-0103) ───────────────── */
+.seg-track {
+  display: flex; gap: 2px; height: 12px;
+  width: 100%; border-radius: var(--md-shape-full); overflow: hidden;
+  background: var(--md-surface-container);
+}
+.seg-track__seg { flex: 1; min-width: 8px; background: var(--md-surface-container-highest); }
+.seg-track__seg--done   { background: var(--p-ok); }
+.seg-track__seg--curr   { background: var(--p-info); }
+.seg-track__seg--queued { background: var(--md-outline-variant); }
+
+/* ── Callout (tour bubble, SPEC-0103) ──────────────── */
+.callout {
+  position: absolute;
+  width: 360px;
+  background: var(--md-surface-3);
+  color: var(--md-on-surface);
+  border-radius: var(--md-shape-lg);
+  border: 1px solid var(--md-outline-hair);
+  padding: 20px;
+  box-shadow: var(--md-elev-3);
+  z-index: 2;
+}
+.callout__step {
+  font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-primary);
+  margin-bottom: 8px;
+}
+.callout__title {
+  font: var(--md-w-medium) var(--md-title-l-size)/var(--md-title-l-lh) var(--md-font-brand);
+  margin: 0 0 8px;
+}
+.callout__body { color: var(--md-on-surface-variant); margin-bottom: 16px; font: var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain); }
+.callout__progress {
+  display: inline-flex; gap: 4px; vertical-align: middle; margin-right: 16px;
+}
+.callout__progress span {
+  width: 18px; height: 4px; border-radius: 4px;
+  background: var(--md-outline-variant);
+}
+.callout__progress span.on { background: var(--md-primary); }
+.callout__actions { display: flex; align-items: center; }
+.callout__spacer { flex: 1; }
+
+/* ── Skeleton loader (SPEC-0104) ──────────────────────────── */
+@keyframes md-shimmer {
+  0%   { background-position: -240px 0; }
+  100% { background-position: 240px 0; }
+}
+.skel {
+  border-radius: var(--md-shape-sm);
+  background: linear-gradient(90deg, var(--md-surface-container) 0%, var(--md-surface-container-high) 50%, var(--md-surface-container) 100%);
+  background-size: 480px 100%;
+  animation: md-shimmer 1.4s linear infinite;
+}
+.load-card { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Skip link (SPEC-0104 #a11y) ─────────────────────────── */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+  padding: 8px 16px;
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  border: 2px solid var(--info);
+  border-radius: var(--md-shape-sm);
+  font-size: 13px;
+  font-family: var(--md-font-plain);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  width: auto;
+  height: auto;
+  clip: auto;
+  z-index: 9999;
+}
+
+/* ── States gallery (SPEC-0104 — design-language route) ──── */
+.states-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.state-card {
+  padding: 16px;
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+}
+.state-card .name { font-weight: 500; font-size: 14px; margin-bottom: 6px; color: var(--md-on-surface); }
+.state-card .desc { color: var(--md-on-surface-muted); font-size: 13px; line-height: 1.45; }
+
+/* ── A11y row (SPEC-0104 — design-language route) ────────── */
+.a11y-row {
+  display: grid; grid-template-columns: 200px 1fr;
+  align-items: center; gap: 24px;
+  padding: 16px 0; border-bottom: 1px solid var(--md-outline-hair);
+}
+.a11y-row .name { font-weight: 500; font-size: 14px; color: var(--md-on-surface); }
+.a11y-row .desc { color: var(--md-on-surface-muted); }
+
+/* ── Light-mode preview frame (SPEC-0104 — design-language) ── */
+.lm-frame {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.lm-frame__half {
+  border-radius: var(--md-shape-md);
+  overflow: hidden;
+  border: 1px solid var(--md-outline-hair);
+  min-height: 320px;
+  padding: 24px;
+}
+.lm-frame__half--dark  { background: var(--md-surface); color: var(--md-on-surface); }
+.lm-frame__half--light { background: #faf9f6; color: #04060a; }
+
+/* ── Responsive cards (SPEC-0104 — design-language route) ── */
+.resp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.resp-card {
+  padding: 20px;
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+}
+.resp-card .lbl {
+  font-weight: 500; font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--info); margin-bottom: 8px;
+}
+@media (max-width: 1499px) { .resp-grid { grid-template-columns: 1fr; } }
+
+/* ── Spec 0105 — run-detail sub-header + agent bar ──────── */
+.run-detail__head {
+  display: flex; flex-direction: column;
+  padding: 12px 20px;
+  background: var(--md-surface-container-low);
+  border-bottom: 1px solid var(--md-outline-hair);
+  gap: 6px;
+  flex-shrink: 0;
+}
+.agent-bar {
+  display: flex; gap: var(--md-sp-6);
+  padding: var(--md-sp-2) var(--md-sp-5);
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  flex-shrink: 0;
+}
+
+/* ── Spec 0133 — M3 segmented linear phase-progress indicator ──────
+   Replaces the legacy <PhaseDots> circles-and-lines treatment with one
+   rounded bar segment per PHASES entry. Cell state drives background
+   color via the palette tokens — `--md-outline-variant` for the track
+   / pending state, the status palette (--p-ok / --p-info / --p-err /
+   --p-warn) for done / current / errored / deadlocked respectively. */
+.phase-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.phase-progress__seg {
+  width: 26px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--md-outline-variant);
+  transition: background var(--md-dur-short-4) var(--md-easing-standard);
+}
+.phase-progress__seg.is-done    { background: var(--p-ok); }
+.phase-progress__seg.is-current { background: var(--p-info); }
+.phase-progress__seg.is-error   { background: var(--p-err); }
+.phase-progress__seg.is-warn    { background: var(--p-warn); }
+
+/* ── Spec 0120 — Turn-modal right-pane (review cards) ─────────────
+   Right-pane structure: a stack of `ReviewGroup` panels, each one a
+   `.rp-panel-head` chip + a column of `.rp-item-card`s. Cards carry
+   a chip-cluster `.rp-item-card-head` (Provider · Category · raised
+   in rN · …) and a labelled `.rp-item-card-body` (Anchor / Title /
+   Rationale / Sources). The `.rp-segment-label` treatment mirrors
+   `.crit-section-title` for visual consistency with the critique
+   pane's expanded-card sections. */
+.rp-panel-head {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 6px;
+}
+.rp-item-card {
+  display: block; width: 100%; text-align: left;
+  appearance: none;
+  padding: 10px 12px;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-left-width: 3px;
+  border-left-style: solid;
+  border-radius: var(--md-shape-sm);
+  font-family: inherit;
+  color: inherit;
+  transition: background 100ms, border-color 100ms;
+}
+.rp-item-card:hover { background: var(--md-surface-container); }
+.rp-item-card.is-active { background: var(--md-surface-container); }
+.rp-item-card.is-missing { border-left-style: dashed; }
+
+.rp-item-card-head {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.rp-item-card-body {
+  display: flex; flex-direction: column;
+  gap: 0;
+}
+.rp-segment {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.rp-segment:first-child { margin-top: 0; }
+.rp-segment-label {
+  color: var(--md-on-surface-faint);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--md-w-semi);
+}
+.rp-anchor {
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--md-on-surface-muted);
+  font-style: italic;
+  border-left: 2px solid var(--md-outline-variant);
+  background: var(--md-surface);
+  border-radius: 0 var(--md-shape-xs) var(--md-shape-xs) 0;
+}
+.rp-anchor--after {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--warn, var(--md-on-surface-muted));
+}
+.rp-title {
+  font-size: 13px;
+  font-weight: var(--md-w-semi);
+  color: var(--md-on-surface-variant);
+  line-height: 1.4;
+}
+.rp-rationale {
+  font-size: 12.5px;
+  color: var(--md-on-surface-variant);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.rp-sources {
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.rp-item-card-id {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--md-on-surface-faint);
+  user-select: text;
+}
+
+/* =============================================================
+   SPEC-0121 — How-It-Works overlay + Changelog tab
+   Layout, structural, and content classes for the rewritten
+   how-it-works.jsx. All chip / card / collapsible primitives
+   are reused unchanged from earlier specs (0094 + 0096 + 0119).
+   ============================================================= */
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.hiw { display: flex; flex-direction: column; gap: var(--s-8); }
+.hiw-sec { scroll-margin-top: 80px; }
+
+.hiw-overlay__layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 0;
+  min-height: 600px;
+}
+.hiw-overlay__menu {
+  border-right: 1px solid var(--md-outline-hair);
+  padding: var(--s-5) var(--s-4);
+  background: var(--md-surface-container-low);
+  position: sticky;
+  top: 0;
+}
+.hiw-overlay__menu-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.hiw-overlay__menu-list a {
+  display: block; padding: 6px 10px;
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-muted); text-decoration: none;
+  font-size: var(--md-body-s-size);
+}
+.hiw-overlay__menu-list a:hover { color: var(--md-on-surface); background: var(--md-surface-container); }
+.hiw-overlay__menu-list .menu-section-num {
+  display: inline-block; width: 18px; color: var(--md-on-surface-faint);
+  font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+}
+.hiw-overlay__content {
+  padding: var(--s-6) var(--s-8);
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+/* ── Header chrome (the rich-dialog header row) ─────────────── */
+.dr-modal-header {
+  padding: var(--s-4) var(--s-6);
+  display: flex; align-items: center; gap: var(--s-4);
+  border-bottom: 1px solid var(--md-outline-hair);
+  background: var(--md-surface-container-low);
+}
+.dr-modal-header h2 {
+  margin: 0; font-size: var(--md-title-l-size); font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+}
+.dr-modal-header .spacer { flex: 1; }
+.dr-modal-tabs {
+  display: inline-flex; gap: 2px;
+  background: var(--md-surface-container); padding: 2px;
+  border-radius: var(--md-shape-sm);
+}
+.dr-modal-tabs .tab {
+  appearance: none; background: transparent; border: none;
+  padding: 6px 14px; border-radius: var(--md-shape-sm);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-muted); cursor: pointer;
+}
+.dr-modal-tabs .tab.is-active {
+  background: var(--md-surface-container-low); color: var(--md-on-surface); box-shadow: var(--e-1);
+}
+.dr-modal-close {
+  appearance: none; background: transparent; border: 1px solid var(--md-outline-hair);
+  width: 32px; height: 32px; border-radius: var(--md-shape-sm);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--md-on-surface-muted); font-size: 18px;
+}
+.dr-modal-close:hover { background: var(--md-surface-container); color: var(--md-on-surface); }
+
+/* ── Collapsible section (CSS-only — JS toggles .is-open) ─── */
+.cs-section {
+  border-top: 1px solid var(--md-outline-hair);
+  padding-top: var(--s-5);
+}
+.cs-section:first-child { border-top: none; padding-top: 0; }
+.cs-header {
+  display: flex; align-items: center; gap: var(--s-3);
+  cursor: pointer; user-select: none;
+  padding: var(--s-2) 0;
+}
+.cs-chevron {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--md-on-surface-faint);
+  transition: transform var(--m-fast) var(--ease);
+}
+.cs-section.is-open .cs-chevron { transform: rotate(90deg); }
+.cs-title {
+  font-size: var(--md-title-m-size); font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+  display: flex; align-items: center; gap: var(--s-3);
+  flex: 1;
+}
+.cs-body { padding: var(--s-3) 0 var(--s-5) 28px; display: none; }
+.cs-section.is-open .cs-body { display: block; }
+
+/* ── Lede + section-title-cluster ──────────────────────────── */
+.lede {
+  font-size: var(--md-body-m-size); line-height: var(--lh-prose);
+  color: var(--md-on-surface-variant);
+  margin: 0 0 var(--s-5) 0;
+}
+.hiw-section-title {
+  display: inline-flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* ── TL;DR card grid ────────────────────────────────────────── */
+.hiw-tldr {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+.dr-card {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+}
+.dr-card-body { padding: var(--s-4); }
+.dr-card-body h4 {
+  margin: 0 0 var(--s-2) 0;
+  font-size: var(--md-body-m-size); font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+}
+.dr-card-body p {
+  margin: 0; font-size: var(--md-body-s-size); color: var(--md-on-surface-muted);
+  line-height: var(--lh-snug);
+}
+
+/* ── Diagram embed ─────────────────────────────────────────── */
+.hiw-diagram {
+  margin: var(--s-5) 0;
+  padding: var(--s-3);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+}
+.hiw-diagram img { width: 100%; height: auto; display: block; }
+.hiw-caption {
+  font-size: var(--md-body-s-size); color: var(--md-on-surface-faint);
+  margin: var(--s-2) 0 0 0; font-style: italic;
+}
+
+/* ── Chip row ──────────────────────────────────────────────── */
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.chip-row + .chip-row { margin-top: var(--s-2); }
+
+/* ── Input / output lists ──────────────────────────────────── */
+.hiw-input-list, .hiw-output-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--s-2);
+}
+.hiw-input-list li, .hiw-output-list li {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+}
+.hiw-input-name { font-size: var(--md-body-m-size); color: var(--md-on-surface-variant); flex: 1; }
+.hiw-input-note { font-size: var(--md-body-s-size); color: var(--md-on-surface-faint); font-style: italic; }
+.hiw-muted { color: var(--md-on-surface-faint); font-style: italic; }
+
+/* ── Note callout ──────────────────────────────────────────── */
+.hiw-note {
+  border-left: 3px solid var(--info);
+  background: var(--md-surface-container);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--md-shape-sm);
+  margin: var(--s-3) 0;
+  font-size: var(--md-body-m-size);
+  color: var(--md-on-surface-variant);
+}
+.hiw-note[data-tone="warn"] { border-left-color: var(--warn); }
+.hiw-note[data-tone="err"]  { border-left-color: var(--err);  }
+.hiw-note[data-tone="ok"]   { border-left-color: var(--ok);   }
+.hiw-note[data-tone="idle"] { border-left-color: var(--idle); }
+.hiw-note__label {
+  font-size: var(--md-label-s-size); text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--md-on-surface-faint); margin-right: var(--s-2); font-weight: var(--md-w-semi);
+}
+
+/* ── Table ─────────────────────────────────────────────────── */
+.hiw-table { width: 100%; border-collapse: collapse; font-size: var(--md-body-m-size); }
+.hiw-table th, .hiw-table td {
+  text-align: left; padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--md-outline-hair);
+  vertical-align: top;
+}
+.hiw-table th {
+  background: var(--md-surface-container);
+  font-weight: var(--md-w-semi); color: var(--md-on-surface-muted);
+  font-size: var(--md-body-s-size); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.hiw-table td.num { font-variant-numeric: tabular-nums; }
+
+/* ── Code block ────────────────────────────────────────────── */
+.hiw-code {
+  font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+  background: var(--md-surface-container); padding: var(--s-3) var(--s-4);
+  border-radius: var(--md-shape-sm); overflow-x: auto;
+  margin: var(--s-3) 0; color: var(--md-on-surface-variant);
+  border: 1px solid var(--md-outline-hair);
+}
+
+/* ── Changelog ─────────────────────────────────────────────── */
+.cl-list { display: flex; flex-direction: column; gap: var(--s-4); }
+.cl-filter-row {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--md-outline-hair);
+  margin-bottom: var(--s-4);
+}
+.cl-filter-row .spacer { flex: 1; }
+.hiw-search {
+  background: var(--md-surface-container); border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  padding: 4px 12px; font-size: var(--md-body-s-size);
+  color: var(--md-on-surface-variant); font-family: var(--md-font-plain);
+  width: 200px;
+}
+.changelog-head {
+  display: flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap; flex: 1;
+}
+.changelog-date {
+  color: var(--md-on-surface-faint); font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+}
+.changelog-summary {
+  color: var(--md-on-surface); font-size: var(--md-body-m-size); font-weight: var(--md-w-semi);
+  flex: 1;
+}
+.changelog-bullets {
+  list-style: disc; padding-left: var(--s-5); margin: var(--s-2) 0 0 0;
+  color: var(--md-on-surface-variant); font-size: var(--md-body-m-size); line-height: var(--lh-snug);
+}
+.changelog-bullets li + li { margin-top: var(--s-2); }
+.changelog-bullets li strong { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
+.changelog-shots {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.changelog-shots figure {
+  margin: 0; background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair); border-radius: var(--md-shape-sm);
+  padding: var(--s-2); overflow: hidden;
+}
+.changelog-shots figure img {
+  width: 100%; height: auto; display: block;
+  border-radius: var(--md-shape-xs);
+}
+.changelog-shots figcaption {
+  font-size: var(--md-body-s-size); color: var(--md-on-surface-faint);
+  margin-top: var(--s-2); text-align: center;
+}
+.changelog-spec-link { margin-top: var(--s-3); }
+
+/* =============================================================
+   SPEC-0123 — How-It-Works as a full-page route + DiagramViewer
+   Replaces the spec-0121 modal-mode overlay with a full-viewport
+   page (--md-content-max wide) and adds a click-to-enlarge viewer
+   for every embedded HiwDiagram.
+   ============================================================= */
+
+/* ── Full-page route ───────────────────────────────────────── */
+.hiw-page {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--md-surface);
+}
+.hiw-page__inner {
+  max-width: var(--md-content-max, 1440px);
+  margin: 0 auto;
+  padding: var(--s-8) var(--s-6);
+}
+.hiw-page__header {
+  display: flex; align-items: center; gap: var(--s-4);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--md-outline-hair);
+  margin-bottom: var(--s-6);
+}
+.hiw-page__title {
+  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+}
+.hiw-page__spacer { flex: 1; }
+
+.hiw-page__tabs {
+  display: inline-flex; gap: 2px;
+  background: var(--md-surface-container); padding: 2px;
+  border-radius: var(--md-shape-sm);
+}
+.hiw-page__tabs .tab {
+  appearance: none; background: transparent; border: none;
+  padding: 8px 16px; border-radius: var(--md-shape-sm);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-muted); cursor: pointer;
+}
+.hiw-page__tabs .tab.is-active {
+  background: var(--md-surface-container-low); color: var(--md-on-surface); box-shadow: var(--e-1);
+}
+
+.hiw-page__layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--s-8);
+  align-items: start;
+}
+.hiw-page__menu {
+  position: sticky;
+  top: var(--s-4);
+  align-self: start;
+  padding: var(--s-4);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+}
+.hiw-page__content { min-width: 0; }
+
+@media (max-width: 900px) {
+  .hiw-page__layout { grid-template-columns: 1fr; }
+  .hiw-page__menu { position: static; }
+}
+
+/* ── Clickable HiwDiagram wrapper ──────────────────────────── */
+.hiw-diagram--clickable {
+  display: block;
+  width: 100%;
+  appearance: none;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: var(--s-3);
+  margin: var(--s-5) 0;
+  cursor: zoom-in;
+  position: relative;
+  text-align: left;
+  transition: border-color var(--m-fast) var(--ease), background var(--m-fast) var(--ease);
+}
+.hiw-diagram--clickable:hover {
+  border-color: var(--md-outline-variant);
+  background: var(--md-surface-container);
+}
+.hiw-diagram--clickable:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.hiw-diagram--clickable img {
+  width: 100%; height: auto; display: block;
+}
+.hiw-diagram__hint {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  background: var(--md-surface-container);
+  color: var(--md-on-surface-faint);
+  font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+  padding: 2px 8px; border-radius: var(--md-shape-full);
+  border: 1px solid var(--md-outline-hair);
+  opacity: 0;
+  transition: opacity var(--m-fast) var(--ease);
+  pointer-events: none;
+}
+.hiw-diagram--clickable:hover .hiw-diagram__hint,
+.hiw-diagram--clickable:focus-visible .hiw-diagram__hint { opacity: 1; }
+
+/* ── DiagramViewer modal ───────────────────────────────────── */
+.diagram-viewer__scrim {
+  position: fixed; inset: 0;
+  z-index: 1000;
+  background: color-mix(in srgb, var(--md-surface) 92%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--s-6);
+  cursor: zoom-out;
+}
+.diagram-viewer__img {
+  max-width: 95vw;
+  max-height: 90vh;
+  width: auto; height: auto;
+  display: block;
+  object-fit: contain;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  box-shadow: var(--e-2);
+  cursor: default;
+}
+.diagram-viewer__close {
+  position: fixed;
+  top: var(--s-5);
+  right: var(--s-5);
+  width: 40px; height: 40px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
+  font-size: 22px; line-height: 1;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.diagram-viewer__close:hover { background: var(--md-surface-container-high); }
+.diagram-viewer__close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+/* =============================================================
+   SPEC-0125 — Onboarding rewrite + unified Admin/Settings
+   ============================================================= */
+
+/* ── Tour scrim (modal steps) ──────────────────────────────── */
+.tour-overlay {
+  position: fixed; inset: 0; z-index: 90;
+  pointer-events: none;
+}
+.tour-scrim {
+  position: fixed; inset: 0;
+  background: color-mix(in srgb, var(--md-surface) 78%, transparent);
+  pointer-events: auto;
+}
+
+/* ── Spotlight SVG (mask cutout + halo) ────────────────────── */
+.tour-spotlight { pointer-events: none; }
+.tour-spotlight__dim {
+  fill: var(--md-surface);
+  fill-opacity: 0.78;
+}
+body.light .tour-spotlight__dim {
+  fill: #04060a;
+  fill-opacity: 0.42;
+}
+
+/* ── Callout card (spotlight + modal share most styles) ───── */
+.tour-callout {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--info-border);
+  border-radius: var(--md-shape-md);
+  padding: var(--s-5);
+  box-shadow: var(--e-2);
+  color: var(--md-on-surface-variant);
+  pointer-events: auto;
+  z-index: 100;
+}
+.tour-callout .callout__step {
+  font-family: var(--md-font-data);
+  font-size: var(--md-label-s-size);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--info);
+  font-weight: var(--md-w-semi);
+  margin-bottom: var(--s-2);
+}
+.tour-callout .callout__title {
+  font-family: var(--md-font-brand);
+  font-size: var(--md-title-l-size);
+  font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+  margin-bottom: var(--s-3);
+  line-height: var(--lh-snug);
+}
+.tour-callout .callout__body {
+  font-size: var(--md-body-m-size);
+  color: var(--md-on-surface-variant);
+  line-height: var(--lh-prose);
+  margin: 0;
+}
+.tour-callout .callout__progress {
+  display: inline-flex; gap: 4px; align-items: center;
+}
+.tour-callout .callout__progress span {
+  width: 22px; height: 3px; border-radius: 2px;
+  background: var(--md-surface-container-high);
+}
+.tour-callout .callout__progress span.on {
+  background: var(--info);
+}
+.tour-callout .callout__spacer { flex: 1; }
+.tour-callout .row {
+  display: flex; align-items: center; gap: var(--s-2);
+}
+
+/* Arrow pointing AT the anchor — the arrow sits on the SIDE of the card
+   that faces the anchor. arrow-left = card is right-of-anchor → arrow on
+   the left edge of the card. */
+.tour-callout--spotlight::before {
+  content: '';
+  position: absolute;
+  width: 0; height: 0;
+  border-style: solid;
+}
+.tour-callout--arrow-left::before {
+  left: -10px; top: 24px;
+  border-width: 8px 10px 8px 0;
+  border-color: transparent var(--info-border) transparent transparent;
+}
+.tour-callout--arrow-right::before {
+  right: -10px; top: 24px;
+  border-width: 8px 0 8px 10px;
+  border-color: transparent transparent transparent var(--info-border);
+}
+.tour-callout--arrow-top::before {
+  top: -10px; left: 32px;
+  border-width: 0 10px 10px 10px;
+  border-color: transparent transparent var(--info-border) transparent;
+}
+.tour-callout--arrow-bottom::before {
+  bottom: -10px; left: 32px;
+  border-width: 10px 10px 0 10px;
+  border-color: var(--info-border) transparent transparent transparent;
+}
+
+/* ── Skip toast (corner notification) ──────────────────────── */
+.tour-skip-toast {
+  position: fixed;
+  bottom: var(--s-5);
+  right: var(--s-5);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--md-shape-sm);
+  font-size: var(--md-body-s-size);
+  box-shadow: var(--e-1);
+  z-index: 110;
+  pointer-events: auto;
+  animation: tour-skip-fadein var(--m-base) var(--ease) both;
+}
+@keyframes tour-skip-fadein {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Settings page layout (sub-tabbed Admin/Settings) ─────── */
+.settings-page {
+  height: 100%;
+  overflow-y: auto;
+  background: var(--md-surface);
+}
+.settings-page__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--s-8) var(--s-6);
+  color: var(--md-on-surface-variant);
+}
+.settings-page__header {
+  display: flex; align-items: center; gap: var(--s-4);
+  padding-bottom: var(--s-5);
+  border-bottom: 1px solid var(--md-outline-hair);
+  margin-bottom: var(--s-6);
+}
+.settings-page__title {
+  margin: 0; font-size: var(--md-display-s-size); font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+}
+.settings-page__spacer { flex: 1; }
+.settings-page__body { color: var(--md-on-surface); }
+
+.settings-tabs {
+  display: inline-flex; gap: 2px;
+  background: var(--md-surface-container); padding: 2px;
+  border-radius: var(--md-shape-sm);
+}
+.settings-tabs .tab {
+  appearance: none; background: transparent; border: none;
+  padding: 8px 16px; border-radius: var(--md-shape-sm);
+  font-family: var(--md-font-plain); font-size: var(--md-body-m-size); font-weight: var(--md-w-medium);
+  color: var(--md-on-surface-muted); cursor: pointer;
+}
+.settings-tabs .tab.is-active {
+  background: var(--md-surface-container-low); color: var(--md-on-surface); box-shadow: var(--e-1);
+}
+
+/* ── Settings shared table + form bits ─────────────────────── */
+.settings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.settings-table th, .settings-table td {
+  padding: 10px 14px;
+  vertical-align: middle;
+  text-align: left;
+}
+.settings-table th {
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface-muted);
+  font-weight: 500; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.settings-table tbody tr {
+  border-top: 1px solid var(--md-outline-hair);
+}
+.settings-table__muted {
+  color: var(--md-on-surface-muted);
+  padding: 14px;
+}
+.settings-error {
+  background: var(--warn-bg, rgba(217, 130, 80, 0.12));
+  color: var(--warn);
+  border: 1px solid var(--warn-border, rgba(217, 130, 80, 0.35));
+  padding: 8px 12px; border-radius: 6; font-size: 13px;
+  margin: 12px 0;
+}
+.settings-admin-badge {
+  display: inline-block; padding: 1px 8px; border-radius: var(--md-shape-full);
+  background: var(--agent-b-bg-strong); color: var(--agent-b);
+  font-size: 11px; font-weight: 500;
+  border: 1px solid var(--agent-b-border);
+}
+.settings-btn {
+  appearance: none;
+  padding: 4px 10px; border-radius: 5px; cursor: pointer;
+  background: transparent; color: var(--md-on-surface-muted);
+  border: 1px solid var(--md-outline-variant);
+  font-size: 12px; font-family: inherit;
+}
+.settings-btn:hover { background: var(--md-surface-container); color: var(--md-on-surface); }
+.settings-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.settings-btn--primary {
+  background: var(--md-surface-container-high); color: var(--md-on-surface);
+}
+.settings-btn--danger {
+  color: var(--err); border-color: var(--err-border);
+}
+.settings-btn--danger:hover {
+  background: var(--err-bg); color: var(--err);
+}
+.settings-input {
+  padding: 8px 12px; border-radius: 6; font-size: 13px;
+  background: var(--md-surface-container-low); color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant); font-family: inherit;
+  min-width: 220px;
+}
+.settings-input--search { padding: 6px 12px; border-radius: var(--md-shape-full); min-width: 240px; }
+.settings-add-row {
+  margin-top: 16px; padding: 16px;
+  border: 1px dashed var(--md-outline-variant); border-radius: 8px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+
+/* ── Global onboarding panel ───────────────────────────────── */
+.global-onboarding-panel {
+  display: flex; align-items: center; gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--info-bg);
+  border: 1px solid var(--info-border);
+  border-radius: var(--md-shape-sm);
+  margin-bottom: var(--s-4);
+}
+.gop__title {
+  font-size: var(--md-body-s-size);
+  font-weight: var(--md-w-semi);
+  color: var(--info);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.gop__toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--md-body-m-size);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+}
+.gop__spacer { flex: 1; }
+
+/* ── Users tab — filter row + table extras ─────────────────── */
+.users-filter-row {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--md-outline-hair);
+  margin-bottom: var(--s-3);
+}
+.users-filter-row__spacer { flex: 1; }
+.users-chip {
+  appearance: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--md-shape-full);
+  background: var(--md-surface-container); color: var(--md-on-surface-muted);
+  border: 1px solid var(--md-outline-hair);
+  font-size: 12px; font-family: inherit;
+  cursor: pointer;
+}
+.users-chip:hover { background: var(--md-surface-container-high); }
+.users-chip.is-active {
+  background: var(--info-bg);
+  color: var(--info);
+  border-color: var(--info-border);
+}
+.users-chip__count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.users-bulk-bar {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-sm);
+  margin-bottom: var(--s-3);
+  font-size: 13px;
+  color: var(--md-on-surface);
+}
+.users-bulk-bar__spacer { flex: 1; }
+
+.users-table-wrap {
+  border: 1px solid var(--md-outline-hair);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.users-you {
+  color: var(--md-on-surface-muted);
+  font-size: 11px;
+  margin-left: 4px;
+}
+.users-status {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: var(--md-shape-full);
+  font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+}
+.users-status--ok    { background: var(--ok-bg);   color: var(--ok);   border: 1px solid var(--ok-border); }
+.users-status--info  { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
+.users-status--warn  { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+.users-status--muted { background: var(--md-surface-container);    color: var(--md-on-surface-faint); border: 1px solid var(--md-outline-hair); }
+
+/* =============================================================
+   SPEC-0126 — SpecModal (Changelog "Open spec ↗" full-view modal)
+   ============================================================= */
+.spec-modal__body {
+  max-height: 75vh;
+  overflow-y: auto;
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--md-body-m-size);
+  line-height: var(--lh-prose);
+  color: var(--md-on-surface-variant);
+}
+.spec-modal__body h1 {
+  font-size: var(--md-title-l-size);
+  margin-top: 0;
+  color: var(--md-on-surface);
+}
+.spec-modal__body h2 {
+  font-size: var(--md-title-m-size);
+  margin-top: var(--s-6);
+  color: var(--md-on-surface);
+}
+.spec-modal__body h3 {
+  font-size: var(--md-body-m-size);
+  font-weight: var(--md-w-semi);
+  margin-top: var(--s-4);
+  color: var(--md-on-surface);
+}
+.spec-modal__body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--md-body-s-size);
+  margin: var(--s-3) 0;
+}
+.spec-modal__body th,
+.spec-modal__body td {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--md-outline-hair);
+  text-align: left;
+  vertical-align: top;
+}
+.spec-modal__body th {
+  background: var(--md-surface-container);
+  font-weight: var(--md-w-semi);
+  color: var(--md-on-surface-muted);
+  font-size: var(--md-label-s-size);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.spec-modal__body code {
+  font-family: var(--md-font-data);
+  background: var(--md-surface-container);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: var(--md-label-s-size);
+}
+.spec-modal__body pre {
+  background: var(--md-surface-container);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--md-shape-sm);
+  overflow-x: auto;
+  font-size: var(--md-label-s-size);
+  border: 1px solid var(--md-outline-hair);
+  margin: var(--s-3) 0;
+}
+.spec-modal__body pre code {
+  background: transparent;
+  padding: 0;
+}
+.spec-modal__body blockquote {
+  border-left: 3px solid var(--info);
+  background: var(--md-surface-container);
+  padding: var(--s-2) var(--s-4);
+  margin: var(--s-3) 0;
+  border-radius: var(--md-shape-sm);
+  color: var(--md-on-surface-variant);
+}
+.spec-modal__error {
+  color: var(--err);
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
+  border-radius: var(--md-shape-sm);
+  padding: var(--s-3) var(--s-4);
+  margin: var(--s-4);
+}
+
+/* =============================================================
+   Misc class helpers used by specific routes.
+     - .uppercase-label   (4 consumers in design-language.jsx)
+     - .dr-ghost-block + ::before + .dr-ghost-block-kind  (run-detail.jsx)
+     - .dr-section-brief-btn + :hover  (run-detail.jsx)
+     - .cap-bar + > i + > .soft-mark  (design-language.jsx)
+   ============================================================= */
+
+/* Generic uppercase label helper — superseded by .t-label-s
+   (defined in base.css) at the class level, but call sites in
+   design-language.jsx still use this name. */
+.uppercase-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  font-weight: 500;
+}
+
+/* Ghost-block placeholder for "missing X" / "> after:" review items.
+   Rendered underneath the anchored heading on jump; auto-dismissed
+   on next click. */
+.dr-ghost-block {
+  border: 1px dashed var(--warn);
+  border-radius: var(--md-shape-sm);
+  padding: 10px 12px;
+  margin: 10px 0;
+  background: rgba(212, 160, 86, 0.06);
+  color: var(--md-on-surface-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  position: relative;
+}
+.dr-ghost-block::before {
+  content: '\2038';                /* proofreader's caret — "insert here" */
+  position: absolute; left: -14px; top: 6px;
+  color: var(--warn); font-weight: 700; font-size: 13px;
+}
+.dr-ghost-block-kind {
+  font-family: var(--md-font-data);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin-bottom: 4px;
+}
+
+/* Spec 0034 — brief affordance injected next to Phase 1 draft section
+   headings in DraftReviewModal. Quiet by default; hover-darkens. */
+.dr-section-brief-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-family: var(--md-font-data);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--md-on-surface-faint);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  cursor: pointer;
+  vertical-align: middle;
+  transition: color 120ms, background 120ms, border-color 120ms;
+}
+.dr-section-brief-btn:hover {
+  color: var(--md-on-surface-variant);
+  background: var(--md-surface-container-high);
+  border-color: var(--md-outline-variant);
+}
+
+/* Cap meter — used by run-detail / consumption cards. */
+.cap-bar {
+  position: relative;
+  height: 4px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  overflow: hidden;
+}
+.cap-bar > i {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: var(--md-on-surface-muted);
+  transition: width 280ms ease;
+}
+.cap-bar > .soft-mark {
+  position: absolute; top: -3px; bottom: -3px;
+  width: 1px;
+  background: var(--md-outline);
+}

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Badge governance — ideation mockup (v3)</title>
+<style>
+  :root {
+    --bg-0: #0c0e12;
+    --bg-1: #131519;
+    --bg-2: #1a1d23;
+    --bg-3: #21252c;
+    --border-1: #1c1f24;
+    --border-2: #2a2f37;
+    --fg-0: #ffffff;
+    --fg-1: #b4bac4;
+    --fg-2: #9aa0ac;
+    --fg-3: #7d8290;
+
+    --info:    #6b9cf0;
+    --info-bg: rgba(107,156,240,0.16);
+    --ok:      #6fb380;
+    --ok-bg:   rgba(111,179,128,0.16);
+    --warn:    #d4a056;
+    --warn-bg: rgba(212,160,86,0.18);
+    --err:     #d96a6a;
+    --err-bg:  rgba(217,106,106,0.16);
+    --idle:    #7d8290;
+    --idle-bg: rgba(125,130,144,0.18);
+
+    --claude:  #d4a574;
+    --claude-bg: rgba(212,165,116,0.18);
+    --gpt:     #7cc4b8;
+    --gpt-bg:  rgba(124,196,184,0.18);
+
+    --r-1: 4px;
+    --r-pill: 999px;
+
+    --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "SF Mono", Menlo, monospace;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-0); color: var(--fg-1); font-family: var(--font-ui); font-size: 14px; line-height: 1.5; }
+  .page { padding: 24px 32px 96px; max-width: 1700px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; color: var(--fg-0); font-weight: 600; }
+  h2 { font-size: 14px; margin: 32px 0 12px; color: var(--fg-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  h3 { font-size: 13px; margin: 16px 0 6px; color: var(--fg-1); font-weight: 600; }
+  .lede { color: var(--fg-2); font-size: 13px; margin-bottom: 24px; max-width: 1000px; }
+  .note { color: var(--fg-3); font-size: 12px; font-style: italic; margin-top: 4px; }
+  .annot { color: #e9b341; font-size: 11px; font-style: italic; margin-top: 6px; }
+
+  /* ─── Chip primitive ─── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 22px; padding: 0 9px;
+    border-radius: var(--r-pill);
+    font-size: 11px; line-height: 1; font-weight: 500;
+    background: var(--bg-2); color: var(--fg-1);
+    border: 1px solid var(--border-1);
+    white-space: nowrap; user-select: none;
+  }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 6px; }
+  .chip .num { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 12px; color: var(--fg-0); }
+  .chip.mono { font-family: var(--font-mono); font-size: 10.5px; }
+  .chip.dim { opacity: 0.55; }
+  .chip.dim .num { color: var(--fg-2); }
+  .chip.dim .add, .chip.dim .sub { color: var(--fg-3); }
+  .chip.dim .cat-bubble { opacity: 0.65; }
+  .chip.square { border-radius: var(--r-1); }
+  .chip.chip-icon-only { padding: 0 6px; gap: 0; }
+
+  /* Delta numbers — green for added, red for solved */
+  .add { color: var(--ok); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11px; }
+  .sub { color: var(--err); font-weight: 600; font-variant-numeric: tabular-nums; font-size: 11px; }
+
+  /* Category glyph bubble — designed icon, NOT a raw abbreviation */
+  .cat-bubble {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800;
+    color: var(--fg-0);
+    flex: 0 0 14px;
+    letter-spacing: 0;
+    font-family: var(--font-ui);
+  }
+  .t-info  .cat-bubble { background: var(--info); }
+  .t-warn  .cat-bubble { background: var(--warn); }
+  .t-err   .cat-bubble { background: var(--err);  }
+  .t-idle  .cat-bubble { background: var(--idle); }
+
+  /* Check glyph */
+  .check-glyph {
+    width: 12px; height: 12px;
+    color: var(--ok);
+    font-weight: 800;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex: 0 0 12px;
+  }
+
+  /* Tones — M3-style filled tonal */
+  .t-info    { background: var(--info-bg);   color: var(--info);   border-color: transparent; }
+  .t-ok      { background: var(--ok-bg);     color: var(--ok);     border-color: transparent; }
+  .t-warn    { background: var(--warn-bg);   color: var(--warn);   border-color: transparent; }
+  .t-err     { background: var(--err-bg);    color: var(--err);    border-color: transparent; }
+  .t-idle    { background: var(--idle-bg);   color: var(--idle);   border-color: transparent; }
+  .t-claude  { background: var(--claude-bg); color: var(--claude); border-color: transparent; }
+  .t-gpt     { background: var(--gpt-bg);    color: var(--gpt);    border-color: transparent; }
+  .t-neutral { background: #232730; color: var(--fg-1); border-color: transparent; }
+
+  /* Provider icon */
+  .pi { width: 12px; height: 12px; flex: 0 0 12px; border-radius: 50%; display: inline-block; }
+  .pi-claude { background: var(--claude); }
+  .pi-gpt    { background: var(--gpt); }
+
+  /* ─── Layout ─── */
+  .palette { display: flex; flex-direction: column; gap: 18px; padding: 16px; border: 1px solid var(--border-1); background: var(--bg-1); border-radius: 8px; }
+  .palette-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .palette-label { min-width: 180px; color: var(--fg-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 12px; }
+  .pane { background: var(--bg-1); border: 1px solid var(--border-1); border-radius: 8px; padding: 12px 14px; }
+  .pane-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-1); }
+  .pane-title { color: var(--fg-0); font-weight: 600; font-size: 13px; }
+
+  /* Timeline */
+  .tl-phase { margin-top: 10px; }
+  .tl-phase-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; flex-wrap: nowrap; overflow: hidden;
+  }
+  .tl-phase-name { color: var(--fg-1); font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .tl-phase-meta { color: var(--fg-3); font-size: 11px; white-space: nowrap; }
+  .tl-card {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 6px; padding: 10px 12px; margin-bottom: 6px;
+    background: var(--bg-2); border: 1px solid var(--border-1);
+    border-radius: 6px; border-left: 3px solid transparent;
+  }
+  .tl-card.is-open     { border-left-color: var(--info); }
+  .tl-card.is-resolved { border-left-color: var(--ok); }
+  .tl-card.is-live     { border-left-color: var(--info); }
+  .tl-card .spacer { flex: 1; min-width: 8px; }
+
+  /* Critique pane */
+  .crit-filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-1); }
+  .crit-card {
+    background: var(--bg-2); border: 1px solid var(--border-1);
+    border-radius: 6px; margin-bottom: 10px;
+    border-left: 3px solid var(--ok); padding: 12px;
+  }
+  .crit-card.is-open         { border-left-color: var(--info); }
+  .crit-card.is-resolved     { border-left-color: var(--ok); }
+  .crit-card.is-acknowledged { border-left-color: var(--warn); }
+  .crit-card.is-withdrawn    { border-left-color: var(--idle); }
+  .crit-card.is-capped       { border-left-color: var(--err); }
+  .crit-card-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+  .crit-card-body { color: var(--fg-1); font-size: 13px; line-height: 1.55; margin-bottom: 8px; }
+  .crit-card-body em { color: var(--fg-3); font-style: italic; }
+  .crit-card-id { color: var(--fg-3); font-family: var(--font-mono); font-size: 10.5px; margin-bottom: 8px; }
+  .crit-section-title { color: var(--fg-3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 0 8px; }
+
+  /* Lifecycle row */
+  .lc-row { padding: 8px 0; border-top: 1px dashed var(--border-1); }
+  .lc-row:first-of-type { border-top: none; padding-top: 0; }
+  .lc-row-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+  .lc-row-body { color: var(--fg-2); font-size: 12.5px; padding-left: 10px; border-left: 2px solid var(--border-2); margin-left: 4px; }
+  .lc-footer {
+    margin-top: 6px; padding: 8px 10px;
+    background: var(--bg-3); border-radius: 4px;
+    color: var(--ok); font-size: 11px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Sources */
+  .src-row { background: var(--bg-3); border: 1px solid var(--border-1); border-radius: 4px; padding: 8px 10px; margin: 6px 0; }
+  .src-row-head { display: flex; align-items: center; gap: 8px; }
+  .src-row-title { color: var(--fg-1); font-size: 12.5px; font-weight: 500; }
+  .src-row-host { color: var(--fg-3); font-size: 11px; }
+
+  /* Legend */
+  .legend { margin-top: 12px; padding: 16px 20px; background: var(--bg-1); border: 1px dashed var(--border-2); border-radius: 6px; }
+  .legend h3 { margin-top: 0; }
+  .legend ul { padding-left: 18px; margin: 6px 0; }
+  .legend li { margin: 4px 0; color: var(--fg-2); font-size: 12.5px; }
+  .legend code { font-family: var(--font-mono); background: var(--bg-2); padding: 1px 5px; border-radius: 3px; font-size: 11.5px; color: var(--fg-1); }
+  .q { color: #e9b341; font-style: italic; }
+  .strike { color: var(--fg-3); text-decoration: line-through; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Badge governance — ideation mockup <span style="color: var(--fg-3); font-weight: 400; font-size: 14px;">v3</span></h1>
+  <p class="lede">v3 changes: <b>category chips compact to a designed letter-glyph bubble</b> (<code>[Q]</code>, <code>[D]</code>, <code>[I]</code>, <code>[C]</code>) on timeline cards and phase headers; <b>filter chip row at top of critique pane stays the full-word legend</b> so meaning is always visible somewhere; each category gets its own distinct tone (Q=info blue, D=warn amber, I=err red, C=idle grey); every completed turn carries a right-aligned <b><span style="color: var(--ok);">✓</span> chip</b> as the explicit "round completed" signal (in addition to <code>running</code> / <code>agreed</code>).</p>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <h2>§ 1. Canonical chip primitives</h2>
+
+  <div class="palette">
+
+    <div class="palette-row">
+      <div class="palette-label">Provider</div>
+      <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+      <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Activity / round</div>
+      <span class="chip mono t-neutral">brief</span>
+      <span class="chip mono t-neutral">preflight</span>
+      <span class="chip mono t-neutral">research plan</span>
+      <span class="chip mono t-neutral">turn 1</span>
+      <span class="chip mono t-neutral">draft</span>
+      <span class="chip mono t-neutral">review r1</span>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Category counter (dense)</div>
+      <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">4</span> <span class="add">+2</span> <span class="sub">−1</span></span>
+      <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">2</span> <span class="add">+1</span> <span class="sub">−0</span></span>
+      <span class="chip t-err"><span class="cat-bubble">I</span><span class="num">3</span> <span class="add">+0</span> <span class="sub">−2</span></span>
+      <span class="chip t-idle dim"><span class="cat-bubble">C</span><span class="num">0</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+      <div class="note">— glyph bubble (designed icon, not a raw abbreviation) + standing (bold white) + <span class="add">+N added</span> + <span class="sub">−N solved</span>. Color carries the category identity. Dim = no activity. Each category has its own tone so the glyph + color combination is unambiguous even without label.</div>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Category filter (legend — full word)</div>
+      <span class="chip t-info"><span class="cat-bubble">Q</span>Questions <span class="num">30</span></span>
+      <span class="chip t-warn"><span class="cat-bubble">D</span>Disagreements <span class="num">1</span></span>
+      <span class="chip t-err"><span class="cat-bubble">I</span>Issues <span class="num">55</span></span>
+      <span class="chip t-idle"><span class="cat-bubble">C</span>Comments <span class="num">27</span></span>
+      <span class="chip t-neutral">All <span class="num">113</span></span>
+      <div class="note">— the filter row at the top of the Critique pane is the <b>legend</b>: same glyph bubble + full word + count. Anywhere a user sees a dense-form chip, they can scroll up to the filter row to confirm what the bubble means. This evolves 0115's "never abbreviate" rule: <b>full word always present in the legend; designed-icon form permitted on dense surfaces</b>.</div>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Status (right-aligned)</div>
+      <span class="chip t-info"><span class="dot"></span>running</span>
+      <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+      <span class="chip t-ok"><span class="check-glyph">✓</span> agreed</span>
+      <span class="chip t-idle"><span class="dot"></span>queued</span>
+      <div class="note">— <code>running</code> = live streaming. <span style="color: var(--ok);">✓</span> alone = turn finished, didn't emit AGREED (UX-only marker). <span style="color: var(--ok);">✓</span> agreed = turn emitted AGREED. Every completed card carries a right-aligned signal — never bare. <span class="strike">repair</span> removed (spec 0114 closeout replaces it).</div>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Item lifecycle verb</div>
+      <span class="chip t-info">raised</span>
+      <span class="chip t-info">addressed</span>
+      <span class="chip t-ok">resolved</span>
+      <span class="chip t-warn">acknowledged</span>
+      <span class="chip t-idle">withdrawn</span>
+      <span class="chip t-err">capped</span>
+      <div class="note">— the 6 verbs corresponding to states in <code>contract/lifecycle.py</code>. Used inside expanded critique-card lifecycle rows.</div>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Modifier</div>
+      <span class="chip mono t-neutral">via hard cap</span>
+      <span class="chip mono t-neutral">via ghost cap</span>
+      <span class="chip mono t-neutral">⊘ 2 capped</span>
+      <span class="chip mono t-neutral">↻ closeout</span>
+      <span class="chip mono t-warn">⚠ unverified</span>
+      <span class="chip mono t-warn">⚠ ledger drift</span>
+    </div>
+
+    <div class="palette-row">
+      <div class="palette-label">Sources</div>
+      <span class="chip t-neutral">Sources <span class="num">2</span></span>
+    </div>
+
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <h2>§ 2. Applied — timeline pane + critique pane</h2>
+
+  <div class="panes">
+
+    <!-- ─── Timeline pane ────────────────────────────────────────── -->
+    <div class="pane">
+      <div class="pane-head">
+        <span class="pane-title">Timeline</span>
+        <span class="chip t-neutral">30 artifacts</span>
+      </div>
+
+      <!-- Phase 0 -->
+      <div class="tl-phase">
+        <div class="tl-phase-head">
+          <span class="tl-phase-name">Phase 0 — input</span>
+          <span class="tl-phase-meta">· 20 s</span>
+          <span class="spacer"></span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+2</span> <span class="sub">−2</span></span>
+          <span class="chip t-warn dim"><span class="cat-bubble">D</span><span class="num">0</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-neutral">📄 brief</span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip mono t-neutral">preflight</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+1</span> <span class="sub">−1</span></span>
+          <span class="chip t-warn dim"><span class="cat-bubble">D</span><span class="num">0</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+          <span class="chip mono t-neutral">preflight</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+1</span> <span class="sub">−1</span></span>
+          <span class="chip t-warn dim"><span class="cat-bubble">D</span><span class="num">0</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="tl-phase">
+        <div class="tl-phase-head">
+          <span class="tl-phase-name">Phase 1 — research plan</span>
+          <span class="tl-phase-meta">· 2 m 41 s · parallel</span>
+        </div>
+        <div class="tl-card is-resolved">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip mono t-neutral">research plan</span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+        <div class="tl-card is-resolved">
+          <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+          <span class="chip mono t-neutral">research plan</span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="tl-phase">
+        <div class="tl-phase-head">
+          <span class="tl-phase-name">Phase 2 — negotiate plan</span>
+          <span class="tl-phase-meta">· 12 m · 6 rounds</span>
+          <span class="spacer"></span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+7</span> <span class="sub">−7</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">2</span> <span class="add">+5</span> <span class="sub">−3</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip mono t-neutral">turn 1</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">3</span> <span class="add">+3</span> <span class="sub">−0</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">1</span> <span class="add">+1</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+          <span class="chip mono t-neutral">turn 1</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">2</span> <span class="add">+2</span> <span class="sub">−0</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">2</span> <span class="add">+2</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip mono t-neutral">turn 2</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">2</span> <span class="add">+1</span> <span class="sub">−2</span></span>
+          <span class="chip t-warn dim"><span class="cat-bubble">D</span><span class="num">1</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+
+        <div class="tl-card is-resolved">
+          <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+          <span class="chip mono t-neutral">turn 2</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">1</span> <span class="add">+0</span> <span class="sub">−1</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">2</span> <span class="add">+1</span> <span class="sub">−1</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+
+        <!-- closeout AGREED -->
+        <div class="tl-card is-resolved">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip mono t-neutral">turn 5</span>
+          <span class="chip mono t-neutral">↻ closeout</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+0</span> <span class="sub">−1</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">2</span> <span class="add">+1</span> <span class="sub">−1</span> · ⊘ 1</span>
+          <span class="spacer"></span>
+          <span class="chip t-ok"><span class="check-glyph">✓</span> agreed</span>
+        </div>
+
+        <!-- live -->
+        <div class="tl-card is-live">
+          <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+          <span class="chip mono t-neutral">turn 6</span>
+          <span class="chip t-info dim"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+          <span class="chip t-warn dim"><span class="cat-bubble">D</span><span class="num">2</span> <span class="add">+0</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-info"><span class="dot"></span>running</span>
+        </div>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="tl-phase">
+        <div class="tl-phase-head">
+          <span class="tl-phase-name">Phase 4 — review draft</span>
+          <span class="tl-phase-meta">· 8 m · 3 rounds</span>
+          <span class="spacer"></span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">0</span> <span class="add">+2</span> <span class="sub">−2</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">1</span> <span class="add">+1</span> <span class="sub">−0</span></span>
+          <span class="chip t-err"><span class="cat-bubble">I</span><span class="num">2</span> <span class="add">+4</span> <span class="sub">−2</span></span>
+          <span class="chip t-idle"><span class="cat-bubble">C</span><span class="num">1</span> <span class="add">+3</span> <span class="sub">−2</span></span>
+        </div>
+        <div class="tl-card is-resolved">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip mono t-neutral">review r1</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span><span class="num">1</span> <span class="add">+1</span> <span class="sub">−0</span></span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span><span class="num">1</span> <span class="add">+1</span> <span class="sub">−0</span></span>
+          <span class="chip t-err"><span class="cat-bubble">I</span><span class="num">2</span> <span class="add">+2</span> <span class="sub">−0</span></span>
+          <span class="chip t-idle"><span class="cat-bubble">C</span><span class="num">2</span> <span class="add">+2</span> <span class="sub">−0</span></span>
+          <span class="spacer"></span>
+          <span class="chip t-ok chip-icon-only"><span class="check-glyph">✓</span></span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ─── Critique pane ────────────────────────────────────────── -->
+    <div class="pane">
+      <div class="pane-head">
+        <span class="pane-title">Critique</span>
+      </div>
+
+      <!-- Filter row — THE LEGEND (full words present) -->
+      <div class="crit-filter-row">
+        <span class="chip t-info"><span class="cat-bubble">Q</span>Questions <span class="num">30</span></span>
+        <span class="chip t-warn"><span class="cat-bubble">D</span>Disagreements <span class="num">1</span></span>
+        <span class="chip t-err"><span class="cat-bubble">I</span>Issues <span class="num">55</span></span>
+        <span class="chip t-idle"><span class="cat-bubble">C</span>Comments <span class="num">27</span></span>
+        <span class="chip t-neutral">All <span class="num">113</span></span>
+        <span style="width: 12px;"></span>
+        <span class="chip t-info"><span class="dot"></span>Open <span class="num">21</span></span>
+        <span class="chip t-ok"><span class="dot"></span>Resolved <span class="num">92</span></span>
+      </div>
+
+      <!-- Resolved critique card — expanded -->
+      <div class="crit-card is-resolved">
+        <div class="crit-card-head">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span>Question</span>
+          <span class="chip mono t-neutral">raised in r1</span>
+          <span class="chip t-neutral">Sources <span class="num">2</span></span>
+          <span class="spacer" style="flex: 1"></span>
+          <span class="chip t-ok"><span class="check-glyph">✓</span> resolved</span>
+        </div>
+
+        <div class="crit-card-body">
+          Does pgx/v5 + <code>SET LOCAL</code> RLS session context behave correctly against Azure Postgres Flexible Server's built-in PgBouncer?
+          <em>Evidence needed: a proof-of-concept integration test confirming session-context isolation per worker and correct SKIP LOCKED queue behavior under concurrent pool connections.</em>
+        </div>
+        <div class="crit-card-id">id: Q-plan-c-02</div>
+
+        <div class="crit-section-title">Lifecycle</div>
+
+        <div class="lc-row">
+          <div class="lc-row-chips">
+            <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+            <span class="chip mono t-neutral">round 1</span>
+            <span class="chip t-info">raised</span>
+          </div>
+          <div class="lc-row-body">
+            "Need verification — pgx pooling on Flexible Server documents <code>SET LOCAL</code> as transaction-scoped, not session-scoped. Flag as decision check 2."
+          </div>
+        </div>
+
+        <div class="lc-row">
+          <div class="lc-row-chips">
+            <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+            <span class="chip mono t-neutral">round 2</span>
+            <span class="chip t-info">addressed</span>
+          </div>
+          <div class="lc-row-body">
+            "Reframing: <code>SET LOCAL</code> is transaction-scoped per pg docs. PgBouncer documents plain <code>SET/RESET</code> as unsupported in transaction pooling. Protocol-level prepared plans can work if <code>max_prepared_plans</code> is non-zero."
+          </div>
+        </div>
+
+        <div class="lc-row">
+          <div class="lc-row-chips">
+            <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+            <span class="chip mono t-neutral">round 2</span>
+            <span class="chip t-ok">resolved</span>
+          </div>
+          <div class="lc-row-body">
+            "Accepted. Plan now specifies <code>max_prepared_plans</code> and explicit <code>SET LOCAL ... INSIDE TX</code> guarded by pgx middleware."
+          </div>
+        </div>
+
+        <div class="lc-footer">
+          <span class="check-glyph">✓</span>
+          <span>resolved at round 2</span>
+          <span style="color: var(--fg-3);">·</span>
+          <span style="color: var(--fg-3);">2 turns to converge</span>
+        </div>
+
+        <div class="crit-section-title">Sources <span style="color: var(--fg-3); text-transform: none; letter-spacing: 0;">(2)</span></div>
+
+        <div class="src-row">
+          <div class="src-row-head">
+            <span style="color: var(--fg-3);">▶</span>
+            <span class="src-row-title">PostgreSQL — SET</span>
+            <span class="src-row-host">postgresql.org</span>
+          </div>
+        </div>
+        <div class="src-row">
+          <div class="src-row-head">
+            <span style="color: var(--fg-3);">▶</span>
+            <span class="src-row-title">PgBouncer — config / pooling notes</span>
+            <span class="src-row-host">pgbouncer.org</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsed open -->
+      <div class="crit-card is-open">
+        <div class="crit-card-head">
+          <span class="chip t-claude"><span class="pi pi-claude"></span>Claude</span>
+          <span class="chip t-info"><span class="cat-bubble">Q</span>Question</span>
+          <span class="chip mono t-neutral">raised in r6</span>
+          <span class="spacer" style="flex: 1"></span>
+          <span class="chip t-info"><span class="dot"></span>open</span>
+        </div>
+        <div class="crit-card-body" style="margin-bottom: 0;">
+          Is the proposed Postgres logical-replication slot reusable across Flex Server failovers? <em>(collapsed)</em>
+        </div>
+      </div>
+
+      <!-- Capped -->
+      <div class="crit-card is-capped">
+        <div class="crit-card-head">
+          <span class="chip t-gpt"><span class="pi pi-gpt"></span>GPT</span>
+          <span class="chip t-warn"><span class="cat-bubble">D</span>Disagreement</span>
+          <span class="chip mono t-neutral">raised in r3</span>
+          <span class="chip mono t-neutral">via ghost cap</span>
+          <span class="spacer" style="flex: 1"></span>
+          <span class="chip t-err"><span class="dot"></span>capped</span>
+        </div>
+        <div class="crit-card-body" style="margin-bottom: 0;">
+          Disagreement on whether the Outbox should be polled at 1 s vs 5 s. Closeout budget exhausted before mutual ack. <em>(collapsed)</em>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <h2>§ 3. Governance rules</h2>
+  <div class="legend">
+    <h3>One primitive</h3>
+    <ul>
+      <li><code>&lt;Chip&gt;</code> is the only chip primitive. Slots: <code>leadingDot</code> | <code>leadingIcon</code> | <code>categoryBubble</code> (mutually exclusive), <code>label</code>, <code>value</code> (large bold number), <code>add</code> (green +N), <code>sub</code> (red −N), <code>trailingSuffix</code>.</li>
+      <li>All legacy variants retire: <code>StatChip</code>, <code>StatusInline</code>, <code>ConvergedChip</code>, <code>GhostedRoundsBadge</code>, <code>SearchChip</code>, <code>.drift-chip</code>, critique-pane <code>&lt;Tab&gt;</code> filters, inline-text verdict rendering.</li>
+    </ul>
+    <h3>Category labelling — the evolution of 0115's rule</h3>
+    <ul>
+      <li><b>Old rule (0115):</b> "Never use letter abbreviations like Q, D, I, C. Always the full word (plural)."</li>
+      <li><b>New rule:</b> The <b>filter chip row at the top of the Critique pane is the canonical legend</b> — always shows <code>[bubble] FullWord count</code>. Elsewhere (timeline cards, phase headers, critique card headers), the dense <b>category glyph bubble</b> form is permitted: a 14 px colored circle containing the category's first letter, treated as a designed icon. Color carries the category identity; bubble + color is unambiguous given the legend is always one scroll away. This is NOT a bare letter abbreviation in the old sense — it's a typeset glyph in a designed container.</li>
+      <li><b>Tone-to-category mapping is fixed:</b> Q = info blue, D = warn amber, I = err red, C = idle grey. Never swap.</li>
+      <li><b>Order is fixed:</b> Q → D → I → C, left to right, every time. Allows reading down a column.</li>
+    </ul>
+    <h3>Composition rules</h3>
+    <ul>
+      <li><b>Provider chip is always its own chip and always FIRST.</b></li>
+      <li><b>Activity / round chip is its own chip, always SECOND.</b></li>
+      <li><b>No public-ID chips in card headers.</b> The category chip + provider + round disambiguates; the raw ID is small mono inline text inside the card body.</li>
+      <li><b>Item lifecycle vocabulary = the 6 verbs from <code>contract/lifecycle.py</code></b>: raised, addressed, resolved, acknowledged, withdrawn, capped.</li>
+    </ul>
+    <h3>Status — never bare</h3>
+    <ul>
+      <li>Every timeline card carries a right-aligned status chip. No exceptions.</li>
+      <li><b>Values:</b> <code>running</code> (live), <span style="color: var(--ok);">✓</span> alone (turn completed, IN_PROGRESS), <span style="color: var(--ok);">✓</span> agreed (turn emitted AGREED), <code>queued</code> (pre-run). <code>capped</code> appears only on critique <i>item</i> cards (not turn cards).</li>
+      <li><span class="strike">repair</span> removed per spec 0114.</li>
+    </ul>
+    <h3>Numbers</h3>
+    <ul>
+      <li><b>Standing is the lead number</b> (bold white). <span class="add">+N green</span> = added this round. <span class="sub">−N red</span> = solved this round.</li>
+      <li><b>Reconciliation:</b> standing(N) = standing(N−1) + added − solved. Numbers must agree down a column.</li>
+      <li>Zero-activity chips dim to ~55% opacity.</li>
+      <li>Cap suffix: <code>· ⊘ N</code> inside chip when items orchestrator-capped this round.</li>
+    </ul>
+    <h3>Drift (clarified per 0114)</h3>
+    <ul>
+      <li>No run-wide drift counter. <code>⚠ ledger drift</code> modifier chip appears ON the affected turn when ledger drift fires (rare in new protocol). <code>validate-run</code> CLI is the canonical surface for per-run totals.</li>
+    </ul>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════ -->
+  <h2>§ 4. Decisions I still need your call on</h2>
+  <div class="legend">
+    <ul>
+      <li><b>Glyph-bubble override of 0115's "never abbreviate" rule.</b> I framed this as an evolution: full words still appear in the legend (filter row), designed bubble-icons on dense surfaces. Acceptable, or should I shape it differently?</li>
+      <li><b>Issues = red tone.</b> Issues now use err-red (was info-blue). Distinct from Questions (info-blue), Disagreements (warn-amber), Comments (idle-grey). Concern: red can feel alarming. Want me to try a different palette mapping?</li>
+      <li><b>Comments = idle grey.</b> Comments are advisory remarks. Idle felt right because they're the lowest-priority category. Want me to try a warmer color so they stand out more?</li>
+      <li><b>Brief card icon.</b> Mockup uses 📄 emoji as placeholder. Want a proper SVG icon from <code>icons.jsx</code> (<code>file-document</code> exists)?</li>
+      <li><b>Belt-and-suspenders status on critique cards.</b> Mockup keeps left-border tint (open=info, resolved=ok, ack=warn, capped=err) AND right-aligned status chip. Keep both, or rely on border alone?</li>
+      <li><b>Should category chips be clickable to filter the critique pane?</b> 0115's uniformity invariant implies yes. Worth scoping into the new spec.</li>
+      <li><b>Run-list page, header chrome, consumption tab.</b> Inventory those next iteration, or only fully spec the timeline+critique consolidation and let the rest follow the same governance rules?</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

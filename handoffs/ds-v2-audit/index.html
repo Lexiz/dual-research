@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DS v2 Compliance Audit — dual-research</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Roboto+Serif:opsz,wght@8..144,300..800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet" />
+
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="base.css" />
+  <link rel="stylesheet" href="components.css" />
+  <link rel="stylesheet" href="theme.css" />
+
+  <style>
+    /* ============================================================
+       Audit-page chrome — built using DS v2 tokens exclusively.
+       If a value here is a literal px/hex, it is the audit page
+       itself drifting from the system — file an issue against this
+       report.
+       ============================================================ */
+
+    :root {
+      --col-found: var(--md-error-container);
+      --col-should: var(--md-secondary-container);
+      --col-future: var(--md-surface-container-high);
+      --col-future-border: var(--md-outline-variant);
+    }
+
+    body {
+      background: var(--md-surface-dim);
+      color: var(--md-on-surface);
+      font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain);
+      margin: 0;
+      padding: 0;
+    }
+
+    .audit-shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: var(--md-sp-8) var(--md-sp-6) var(--md-sp-16);
+    }
+
+    /* ---------- header ---------- */
+    .audit-hero {
+      display: flex;
+      flex-direction: column;
+      gap: var(--md-sp-3);
+      padding-bottom: var(--md-sp-8);
+      border-bottom: 1px solid var(--md-outline-hair);
+      margin-bottom: var(--md-sp-8);
+    }
+    .audit-eyebrow {
+      font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-data);
+      color: var(--md-on-surface-faint);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .audit-title {
+      font: var(--md-w-regular) var(--md-display-s-size)/var(--md-display-s-lh) var(--md-font-brand);
+      color: var(--md-on-surface);
+      margin: 0;
+    }
+    .audit-lede {
+      font: var(--md-w-regular) var(--md-body-l-size)/var(--md-body-l-lh) var(--md-font-plain);
+      color: var(--md-on-surface-variant);
+      max-width: 78ch;
+      margin: 0;
+    }
+
+    .audit-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--md-sp-4);
+      align-items: center;
+      margin-top: var(--md-sp-2);
+    }
+
+    .audit-stat {
+      display: inline-flex;
+      flex-direction: column;
+      padding: var(--md-sp-3) var(--md-sp-4);
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: var(--md-shape-md);
+      min-width: 9ch;
+    }
+    .audit-stat__value {
+      font: var(--md-w-medium) var(--md-headline-m-size)/1 var(--md-font-data);
+      color: var(--md-on-surface);
+    }
+    .audit-stat__label {
+      font: var(--md-w-regular) var(--md-label-m-size)/1 var(--md-font-plain);
+      color: var(--md-on-surface-faint);
+      margin-top: var(--md-sp-1);
+    }
+    .audit-stat--err .audit-stat__value { color: var(--md-error); }
+    .audit-stat--warn .audit-stat__value { color: var(--md-warning); }
+    .audit-stat--ok .audit-stat__value { color: var(--md-success); }
+
+    /* theme toggle */
+    .audit-actions {
+      margin-left: auto;
+      display: flex;
+      gap: var(--md-sp-2);
+    }
+    .theme-toggle {
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-full);
+      padding: var(--md-sp-2) var(--md-sp-4);
+      font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+      cursor: pointer;
+    }
+    .theme-toggle:hover { background: var(--md-surface-container-highest); }
+
+    /* ---------- nav ---------- */
+    .audit-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--md-sp-2);
+      margin-bottom: var(--md-sp-8);
+    }
+    .audit-nav a {
+      text-decoration: none;
+      padding: var(--md-sp-2) var(--md-sp-3);
+      background: var(--md-surface-container-low);
+      color: var(--md-on-surface-variant);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: var(--md-shape-full);
+      font: var(--md-w-medium) var(--md-label-m-size)/1 var(--md-font-plain);
+    }
+    .audit-nav a:hover {
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface);
+    }
+    .audit-nav .count {
+      color: var(--md-on-surface-faint);
+      margin-left: var(--md-sp-1);
+    }
+
+    /* ---------- section ---------- */
+    .audit-section { margin-top: var(--md-sp-12); }
+    .audit-section__head {
+      display: flex;
+      align-items: baseline;
+      gap: var(--md-sp-3);
+      margin-bottom: var(--md-sp-2);
+    }
+    .audit-section__num {
+      font: var(--md-w-light) var(--md-display-s-size)/1 var(--md-font-data);
+      color: var(--md-on-surface-decor);
+      width: 4ch;
+    }
+    .audit-section__title {
+      font: var(--md-w-regular) var(--md-headline-l-size)/var(--md-headline-l-lh) var(--md-font-brand);
+      color: var(--md-on-surface);
+      margin: 0;
+    }
+    .audit-section__count {
+      font: var(--md-w-regular) var(--md-body-m-size)/1 var(--md-font-data);
+      color: var(--md-on-surface-faint);
+      margin-left: auto;
+    }
+    .audit-section__lede {
+      color: var(--md-on-surface-variant);
+      max-width: 78ch;
+      margin: 0 0 var(--md-sp-6) calc(4ch + var(--md-sp-3));
+    }
+
+    /* ---------- finding row ---------- */
+    .finding {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--md-sp-4);
+      margin-bottom: var(--md-sp-6);
+      padding: var(--md-sp-5);
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: var(--md-shape-lg);
+    }
+    .finding__header {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--md-sp-3);
+      padding-bottom: var(--md-sp-3);
+      margin-bottom: var(--md-sp-2);
+      border-bottom: 1px solid var(--md-outline-hair);
+    }
+    .finding__id {
+      font: var(--md-w-medium) var(--md-label-m-size)/1 var(--md-font-data);
+      color: var(--md-on-surface-faint);
+      letter-spacing: 0.05em;
+    }
+    .finding__title {
+      font: var(--md-w-medium) var(--md-title-m-size)/var(--md-title-m-lh) var(--md-font-plain);
+      color: var(--md-on-surface);
+      margin: 0;
+      flex: 1 1 auto;
+    }
+    .verdict {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--md-sp-1);
+      padding: var(--md-sp-1) var(--md-sp-2);
+      border-radius: var(--md-shape-full);
+      font: var(--md-w-medium) var(--md-label-s-size)/1 var(--md-font-plain);
+      letter-spacing: 0.04em;
+    }
+    .verdict--bespoke {
+      background: var(--md-error-container);
+      color: var(--md-on-error-container);
+    }
+    .verdict--drift {
+      background: color-mix(in srgb, var(--md-warning) 18%, transparent);
+      color: var(--md-warning);
+    }
+    .verdict--gap {
+      background: var(--md-tertiary-container);
+      color: var(--md-on-tertiary-container);
+    }
+
+    .finding__why {
+      grid-column: 1 / -1;
+      color: var(--md-on-surface-variant);
+      font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain);
+      margin: 0 0 var(--md-sp-2);
+    }
+    .finding__locations {
+      grid-column: 1 / -1;
+      font: var(--md-w-regular) var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-data);
+      color: var(--md-on-surface-faint);
+      margin-bottom: var(--md-sp-2);
+    }
+    .finding__locations strong {
+      color: var(--md-on-surface-variant);
+      font-weight: var(--md-w-medium);
+    }
+
+    /* ---------- column ---------- */
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--md-sp-2);
+    }
+    .col__head {
+      display: flex;
+      align-items: center;
+      gap: var(--md-sp-2);
+      font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-plain);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .col__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--md-shape-full);
+    }
+    .col--found .col__head { color: var(--md-error); }
+    .col--found .col__dot  { background: var(--md-error); }
+    .col--should .col__head { color: var(--md-secondary); }
+    .col--should .col__dot  { background: var(--md-secondary); }
+    .col--future .col__head { color: var(--md-on-surface-faint); }
+    .col--future .col__dot  { background: var(--md-on-surface-faint); }
+
+    .col__render {
+      background: var(--md-surface);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      padding: var(--md-sp-4);
+      min-height: 130px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      gap: var(--md-sp-2);
+    }
+    .col__render--placeholder {
+      align-items: center;
+      justify-content: center;
+      background: repeating-linear-gradient(
+        135deg,
+        var(--md-surface-container-low),
+        var(--md-surface-container-low) 8px,
+        var(--md-surface) 8px,
+        var(--md-surface) 16px
+      );
+      border-style: dashed;
+      color: var(--md-on-surface-faint);
+      font: var(--md-w-regular) var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-plain);
+      text-align: center;
+    }
+    .col__caption {
+      font: var(--md-w-regular) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-data);
+      color: var(--md-on-surface-faint);
+    }
+
+    /* legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--md-sp-4);
+      padding: var(--md-sp-4) var(--md-sp-5);
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: var(--md-shape-md);
+      margin-bottom: var(--md-sp-8);
+      font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain);
+      color: var(--md-on-surface-variant);
+    }
+    .legend strong {
+      color: var(--md-on-surface);
+      margin-right: var(--md-sp-1);
+    }
+
+    /* method note */
+    .method {
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-hair);
+      border-left: 3px solid var(--md-tertiary);
+      border-radius: var(--md-shape-md);
+      padding: var(--md-sp-4) var(--md-sp-5);
+      margin-bottom: var(--md-sp-8);
+      font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain);
+      color: var(--md-on-surface-variant);
+    }
+    .method strong { color: var(--md-on-surface); }
+    .method ul { margin: var(--md-sp-2) 0 0; padding-left: var(--md-sp-5); }
+    .method li { margin-bottom: var(--md-sp-1); }
+
+    .footer-note {
+      margin-top: var(--md-sp-16);
+      padding-top: var(--md-sp-6);
+      border-top: 1px solid var(--md-outline-hair);
+      color: var(--md-on-surface-faint);
+      font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain);
+    }
+
+    /* responsive */
+    @media (max-width: 1100px) {
+      .finding { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="audit-shell">
+
+    <!-- ============== HERO ============== -->
+    <header class="audit-hero">
+      <div class="audit-eyebrow">Design System v2 · Compliance Audit · 2026-05-21</div>
+      <h1 class="audit-title">Where the app still bypasses its own design system</h1>
+      <p class="audit-lede">
+        Specs 0127–0134 introduced Design System v2 — a Material 3 vocabulary, token-only colors,
+        and a canonical component catalog. This audit walks every visual element across all 19 JSX
+        modules and surfaces every place the live UI still drifts from the prescribed system.
+        Page chrome below is built from DS v2 tokens; if a row's <em>Found</em> column looks off,
+        that's intentional — it's the deviation reproduced faithfully.
+      </p>
+
+      <div class="audit-meta-row">
+        <div class="audit-stat audit-stat--err">
+          <span class="audit-stat__value">204</span>
+          <span class="audit-stat__label">total deviations</span>
+        </div>
+        <div class="audit-stat">
+          <span class="audit-stat__value">19</span>
+          <span class="audit-stat__label">files audited</span>
+        </div>
+        <div class="audit-stat">
+          <span class="audit-stat__value">7</span>
+          <span class="audit-stat__label">routes</span>
+        </div>
+        <div class="audit-stat audit-stat--warn">
+          <span class="audit-stat__value">5</span>
+          <span class="audit-stat__label">bespoke bypass</span>
+        </div>
+        <div class="audit-stat audit-stat--warn">
+          <span class="audit-stat__value">198</span>
+          <span class="audit-stat__label">token drift</span>
+        </div>
+        <div class="audit-stat audit-stat--ok">
+          <span class="audit-stat__value">1</span>
+          <span class="audit-stat__label">DS gap</span>
+        </div>
+
+        <div class="audit-actions">
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <span id="theme-label">Light mode</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============== LEGEND ============== -->
+    <div class="legend">
+      <span><strong>❌ Bespoke bypass</strong> Entirely custom element where a DS component exists.</span>
+      <span><strong>⚠️ Token drift</strong> Uses inline raw values where DS tokens or classes exist.</span>
+      <span><strong>🆕 DS gap</strong> Legitimate need with no DS equivalent yet — flag for future work.</span>
+    </div>
+
+    <div class="method">
+      <strong>Method.</strong> Static audit against the DS v2 rubric extracted from
+      <code>tokens.css</code>, <code>components.css</code>, and specs 0127–0134. Seven Explore
+      sub-agents ran in parallel, one per file bundle. Findings below are clustered by pattern
+      (one canonical row per pattern with all occurrence sites listed) so the redesign exercise
+      can target classes of fix, not 200 individual line edits.
+      <ul>
+        <li><strong>Found</strong> column reproduces the bespoke pattern using its literal inline styles.</li>
+        <li><strong>Should be</strong> column renders the DS v2 component that exists today.</li>
+        <li><strong>Future</strong> column is a placeholder for the next exercise (redesign).</li>
+        <li>Motion & interaction states sampled statically. A live Chrome-MCP pass remains a follow-up.</li>
+      </ul>
+    </div>
+
+    <!-- ============== NAV ============== -->
+    <nav class="audit-nav">
+      <a href="#colors">Colors & palettes <span class="count">3</span></a>
+      <a href="#typography">Typography <span class="count">~85</span></a>
+      <a href="#spacing">Spacing <span class="count">~75</span></a>
+      <a href="#shape">Shape & radius <span class="count">~30</span></a>
+      <a href="#elevation">Elevation & shadow <span class="count">3</span></a>
+      <a href="#components">Components <span class="count">5</span></a>
+      <a href="#interaction">Interaction & motion <span class="count">3</span></a>
+    </nav>
+
+    <!-- ============== SECTION 1: COLORS ============== -->
+    <section id="colors" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">01</span>
+        <h2 class="audit-section__title">Colors & palettes</h2>
+        <span class="audit-section__count">3 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        Three concentrated color bypasses. KIND_COLORS and SUBINPUT_COLORS are constant objects
+        defining bespoke palettes that shadow the agent / status tokens entirely. The Google
+        sign-in button uses Google's brand hex codes — a deliberate vendor lock-in that may be
+        legitimate but should be expressed as a named token, not raw hex.
+      </p>
+
+      <!-- F-001 KIND_COLORS -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-color-001</span>
+          <h3 class="finding__title">KIND_COLORS — bespoke status palette shadowing agent/status tokens</h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          A module-level constant defines hex/rgba colors per turn-kind that should consume
+          <code>--agent-a</code>, <code>--agent-b</code>, <code>--ok</code>, <code>--warn</code>,
+          <code>--err</code> directly. The mixed approach (rgba bg + token fg) suggests the migration
+          stalled mid-way.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong>
+          run-detail.jsx:1422–1428 (canonical) · referenced from run-detail.jsx:228, 339, 525, 530, 650, 7095, 7096
+        </p>
+
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="font-family: ui-monospace, monospace; font-size: 11px; color: #bbb; background: #1a1a1a; padding: 8px; border-radius: 4px; line-height: 1.5;">
+              <span style="color: #6b9cf0;">brief:</span> <span style="color: #9ab6e8;">'#9ab6e8'</span> + <span style="color:#9ab6e8;">rgba(107,156,240,0.65)</span><br/>
+              <span style="color: #6b9cf0;">d1:</span> <span style="color: #d4a574;">var(--agent-a)</span> + <span style="color:#d4a574;">rgba(212,165,116,0.70)</span><br/>
+              <span style="color: #6b9cf0;">d2:</span> <span style="color: #7cc4b8;">var(--agent-b)</span> + <span style="color:#7cc4b8;">rgba(124,196,184,0.70)</span><br/>
+              <span style="color: #6b9cf0;">plan:</span> <span style="color: #6fb380;">var(--ok)</span> + <span style="color:#6fb380;">rgba(111,179,128,0.65)</span>
+            </div>
+          </div>
+          <div class="col__caption">A const object defines per-turn-kind palette inline.</div>
+        </div>
+
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <span class="md-status md-status--running">brief</span>
+            <span class="md-status" style="color: var(--agent-a); background: var(--agent-a-bg);">d1 · Claude</span>
+            <span class="md-status" style="color: var(--agent-b); background: var(--agent-b-bg);">d2 · GPT</span>
+            <span class="md-status md-status--converged">plan</span>
+          </div>
+          <div class="col__caption">Compose <code>.md-status</code> with <code>--agent-*</code> / <code>--ok</code> tokens.</div>
+        </div>
+
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — define how kind palette extends DS v2</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <!-- F-002 SUBINPUT_COLORS -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-color-002</span>
+          <h3 class="finding__title">SUBINPUT_COLORS — second bespoke hex palette, even further off-system</h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          A second const palette uses raw hex codes (<code>#5a7fc7</code>, <code>#a98a5a</code>, etc.) that
+          the inline comments call out as "NOT Claude orange / NOT GPT green" — i.e. the author
+          deliberately chose off-brand colors, which the DS has no token for. Either this is a
+          legitimate DS gap (alt palette for collapsed timeline rows) or accidental drift.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> run-detail.jsx:1600–1607
+        </p>
+
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render" style="background: #0d0f12;">
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #5a7fc7;" title="#5a7fc7 indigo"></span>
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #a98a5a;" title="#a98a5a ochre"></span>
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #6f8c7a;" title="#6f8c7a sage-alt"></span>
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #7a6b9a;" title="#7a6b9a plum"></span>
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #c08570;" title="#c08570 rose"></span>
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #5d8a8a;" title="#5d8a8a teal"></span>
+              <span style="width: 24px; height: 24px; border-radius: 4px; background: #a18560;" title="#a18560 slate-amber"></span>
+            </div>
+            <div style="font-family: ui-monospace, monospace; font-size: 10px; color: #888; margin-top: 8px;">
+              7× raw hex, no token references
+            </div>
+          </div>
+          <div class="col__caption">Hex-only palette for collapsed segmented bars.</div>
+        </div>
+
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="display: flex; gap: var(--md-sp-1); flex-wrap: wrap;">
+              <span style="width: 24px; height: 24px; border-radius: var(--md-shape-xs); background: var(--md-tertiary);"></span>
+              <span style="width: 24px; height: 24px; border-radius: var(--md-shape-xs); background: var(--agent-a);"></span>
+              <span style="width: 24px; height: 24px; border-radius: var(--md-shape-xs); background: var(--agent-b);"></span>
+              <span style="width: 24px; height: 24px; border-radius: var(--md-shape-xs); background: var(--md-success);"></span>
+              <span style="width: 24px; height: 24px; border-radius: var(--md-shape-xs); background: var(--md-warning);"></span>
+              <span style="width: 24px; height: 24px; border-radius: var(--md-shape-xs); background: var(--md-error);"></span>
+            </div>
+            <div style="font: var(--md-w-regular) var(--md-label-s-size)/1 var(--md-font-data); color: var(--md-on-surface-faint); margin-top: var(--md-sp-2);">
+              all 6 tokens defined in tokens.css
+            </div>
+          </div>
+          <div class="col__caption">Either consume existing tokens, or promote 7 new "kind-*" tokens.</div>
+        </div>
+
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — decide if alt-palette is legitimate</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <!-- F-003 Google sign-in btn raw hex -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-color-003</span>
+          <h3 class="finding__title">Google sign-in button — raw vendor hex codes</h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          The button uses Google's brand colors directly as hex (<code>#dadce0</code>,
+          <code>#fff</code>, <code>#3c4043</code>). Legitimate to match Google's brand spec, but
+          should live as named brand tokens or a <code>.md-btn--google</code> variant so the rest
+          of the system can stay closed.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> auth.jsx:177–183
+        </p>
+
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <button style="display:inline-flex; align-items:center; gap:10px; padding:10px 18px; border-radius:999px; cursor:pointer; border:1px solid #dadce0; background:#fff; color:#3c4043; font-family:inherit; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,0.10);">
+              <span style="width:18px; height:18px; background:#4285f4; border-radius:50%; display:inline-block;"></span>
+              Sign in with Google
+            </button>
+          </div>
+          <div class="col__caption">Inline-styled button with raw hex + raw rgba shadow.</div>
+        </div>
+
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <button class="md-btn md-btn--outlined" style="gap: var(--md-sp-2);">
+              <span style="width:18px; height:18px; background: var(--md-tertiary); border-radius: var(--md-shape-full); display:inline-block;"></span>
+              Sign in with Google
+            </button>
+          </div>
+          <div class="col__caption"><code>.md-btn .md-btn--outlined</code>, glyph as child.</div>
+        </div>
+
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — vendor brand handling</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== SECTION 2: TYPOGRAPHY ============== -->
+    <section id="typography" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">02</span>
+        <h2 class="audit-section__title">Typography</h2>
+        <span class="audit-section__count">~85 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        The biggest single category. The type scale defines <code>display</code> /
+        <code>headline</code> / <code>title</code> / <code>body</code> / <code>label</code> at
+        sm/md/lg sizes — but ~85 inline <code>fontSize: &lt;number&gt;</code> literals scatter
+        across the app, some non-canonical (9, 9.5, 10.5, 11, 12.5, 13.5). Most are clustered in
+        the two largest files. The DS-showcase page is itself the second worst offender, which
+        undermines the demo's authority.
+      </p>
+
+      <!-- T-001 fontSize literals -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-type-001</span>
+          <h3 class="finding__title">Inline <code>fontSize: &lt;number&gt;</code> instead of type-role tokens</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          Inline numeric fontSize bypasses the type scale. Some values (9, 10.5, 13.5) aren't on
+          the scale at all — those need either rounding-to-grid or a documented exception.
+        </p>
+        <p class="finding__locations">
+          <strong>Heaviest locations:</strong>
+          run-detail.jsx (65+ occurrences) ·
+          design-language.jsx (50+ occurrences, lines 28, 31, 34, 37, 82, 88, 95, …) ·
+          compare.jsx:106, 174, 216, 293 ·
+          search.jsx:105, 123, 210 ·
+          search-palette.jsx:152, 158, 179 ·
+          settings.jsx:43, 157, 441 ·
+          auth.jsx:182, 196, 218, 230 ·
+          app.jsx, run-list.jsx (15 typography instances)
+        </p>
+
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="font-size: 18px; font-weight: 600; color: var(--md-on-surface);">Email allowlist</div>
+            <div style="font-size: 13.5px; line-height: 1.55; color: #b4bac4; margin-top: 8px;">A short prose paragraph that uses a non-canonical 13.5px size, no role token.</div>
+            <div style="font-size: 11px; color: #7d8290; margin-top: 6px; letter-spacing: 0.06em; text-transform: uppercase;">CAPTION · 11PX RAW</div>
+          </div>
+          <div class="col__caption">Three inline literals in 20 LOC — typical pattern.</div>
+        </div>
+
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="font: var(--md-w-medium) var(--md-headline-s-size)/var(--md-headline-s-lh) var(--md-font-plain); color: var(--md-on-surface);">Email allowlist</div>
+            <div style="font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain); color: var(--md-on-surface-variant); margin-top: var(--md-sp-2);">A short prose paragraph using <code>body-m</code> tokens for size + line-height.</div>
+            <div style="font: var(--md-w-medium) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain); color: var(--md-on-surface-faint); margin-top: var(--md-sp-1); letter-spacing: 0.06em; text-transform: uppercase;">CAPTION · LABEL-S</div>
+          </div>
+          <div class="col__caption">Three nested type roles, all token-driven.</div>
+        </div>
+
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — refine type scale density</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <!-- T-002 lineHeight magic numbers -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-type-002</span>
+          <h3 class="finding__title">Inline <code>lineHeight</code> magic numbers (1.35, 1.5, 1.55, 1.6)</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          Tokens.css ships paired <code>--md-*-lh</code> values for every type role. Inline
+          floats decouple line-height from font-size, breaking vertical rhythm when sizes change.
+        </p>
+        <p class="finding__locations">
+          <strong>Heaviest:</strong> run-detail.jsx (20+ occurrences) ·
+          design-language.jsx:34, 95 ·
+          auth.jsx:196, 220 ·
+          search-palette.jsx (footer text)
+        </p>
+
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <p style="font-size: 13.5px; line-height: 1.55; color: var(--md-on-surface-variant); margin: 0;">
+              A paragraph whose size and lineHeight were guessed independently. Size = 13.5px,
+              lineHeight = 1.55. Neither value comes from the token scale.
+            </p>
+          </div>
+          <div class="col__caption">Type-role and rhythm have decoupled.</div>
+        </div>
+
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <p style="font: var(--md-w-regular) var(--md-body-m-size)/var(--md-body-m-lh) var(--md-font-plain); color: var(--md-on-surface-variant); margin: 0;">
+              A paragraph using <code>body-m</code>: size and lineHeight come paired from the
+              token scale and stay in rhythm even when global density changes.
+            </p>
+          </div>
+          <div class="col__caption">Paired tokens preserve vertical rhythm.</div>
+        </div>
+
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — line-height density variants</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <!-- T-003 retired IBM Plex Sans in SVG -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-type-003</span>
+          <h3 class="finding__title">Retired font family <code>IBM Plex Sans</code> in SVG text</h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          The v1 type pair was retired by spec 0131 in favor of Roboto Flex + Roboto Serif. SVG
+          text in the auth screen still hard-codes <code>fontFamily="IBM Plex Sans, system-ui,
+          sans-serif"</code>, which now falls through to system-ui on every device.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> auth.jsx:129, 134 (AgentDuoVisual SVG)
+        </p>
+
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <svg viewBox="0 0 280 120" width="100%" style="max-width: 220px;">
+              <circle cx="60" cy="60" r="32" fill="rgba(212,165,116,0.18)" stroke="rgba(212,165,116,0.42)" stroke-width="1.25"/>
+              <text x="60" y="68" text-anchor="middle" font-family="IBM Plex Sans, system-ui, sans-serif" font-weight="600" font-size="26" fill="var(--agent-a)">C</text>
+              <circle cx="220" cy="60" r="32" fill="rgba(124,196,184,0.18)" stroke="rgba(124,196,184,0.42)" stroke-width="1.25"/>
+              <text x="220" y="68" text-anchor="middle" font-family="IBM Plex Sans, system-ui, sans-serif" font-weight="600" font-size="26" fill="var(--agent-b)">G</text>
+            </svg>
+          </div>
+          <div class="col__caption">SVG <code>&lt;text&gt;</code> references retired font.</div>
+        </div>
+
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <svg viewBox="0 0 280 120" width="100%" style="max-width: 220px;">
+              <circle cx="60" cy="60" r="32" fill="rgba(212,165,116,0.18)" stroke="rgba(212,165,116,0.42)" stroke-width="1.25"/>
+              <text x="60" y="68" text-anchor="middle" font-family="Roboto Serif, ui-serif, serif" font-weight="600" font-size="26" fill="var(--agent-a)">C</text>
+              <circle cx="220" cy="60" r="32" fill="rgba(124,196,184,0.18)" stroke="rgba(124,196,184,0.42)" stroke-width="1.25"/>
+              <text x="220" y="68" text-anchor="middle" font-family="Roboto Serif, ui-serif, serif" font-weight="600" font-size="26" fill="var(--agent-b)">G</text>
+            </svg>
+          </div>
+          <div class="col__caption">Use <code>--md-font-brand</code> (Roboto Serif) for SVG text.</div>
+        </div>
+
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — agent identity glyphs</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <!-- T-004 inline fontWeight numerics in SVG -->
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-type-004</span>
+          <h3 class="finding__title">Inline numeric <code>fontWeight</code> in SVG/JSX</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          Spec 0134 was meant to close inline <code>fontWeight</code> literals, replacing them
+          with <code>var(--md-w-medium)</code> etc. SVG <code>&lt;text&gt;</code> elements still
+          carry raw numeric weights (<code>"600"</code>) because SVG attributes don't accept
+          CSS vars in the attribute form.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> auth.jsx:129, 134 (in SVG <code>fontWeight=</code> attribute)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <code style="font-family: ui-monospace, monospace; font-size: 12px; color: var(--md-on-surface-variant); background: var(--md-surface-container); padding: 8px; border-radius: 4px; display: block;">&lt;text fontWeight="600"&gt;C&lt;/text&gt;</code>
+          </div>
+          <div class="col__caption">Numeric literal in SVG attribute.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <code style="font: var(--md-w-regular) var(--md-label-m-size)/var(--md-label-m-lh) var(--md-font-data); color: var(--md-on-surface-variant); background: var(--md-surface-container); padding: var(--md-sp-2); border-radius: var(--md-shape-xs); display: block;">&lt;text style={{ fontWeight: 'var(--md-w-semi)' }}&gt;C&lt;/text&gt;</code>
+          </div>
+          <div class="col__caption">Move to inline-style so CSS var resolves.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — SVG token interop</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== SECTION 3: SPACING ============== -->
+    <section id="spacing" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">03</span>
+        <h2 class="audit-section__title">Spacing</h2>
+        <span class="audit-section__count">~75 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        Inline <code>padding</code> / <code>margin</code> / <code>gap</code> literals throughout.
+        The token scale is <code>--md-sp-1</code> (4px) … <code>--md-sp-18</code> (72px) on a 4px
+        grid. Most violations align to the grid by accident (8, 12, 16, 24); some don't (6, 10, 14)
+        and either need a new half-step token or rounding.
+      </p>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-space-001</span>
+          <h3 class="finding__title">Inline padding/margin/gap numerics instead of <code>--md-sp-*</code> tokens</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          Hardcoded pixel literals bypass the spacing scale entirely. Even grid-aligned values like
+          <code>padding: 16</code> should read <code>padding: 'var(--md-sp-4)'</code> so a future
+          density-mode change propagates.
+        </p>
+        <p class="finding__locations">
+          <strong>Heaviest:</strong>
+          run-detail.jsx (40+ occurrences) ·
+          design-language.jsx:25, 27, 31, 34, 37, 47, 52, 57, 72, 95, 145, 147, 178, 189, 198, 205, 214, 242, 256, 341, 360, 374, 380, 395, 415, 518, 533, 546, 549, 561, 564, 684, 703, 726, 754, 761, 783, 871, 875 ·
+          compare.jsx:80, 82, 85, 98, 131, 173, 215, 238, 277, 304, 307, 383 ·
+          search.jsx:87, 142, 176 ·
+          search-palette.jsx:138, 158, 238 ·
+          settings.jsx:168, 214 ·
+          onboarding.jsx:87 ·
+          auth.jsx:178, 222, 261 ·
+          app.jsx, run-list.jsx (21 occurrences)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="display: flex; gap: 12px; padding: 16px; background: #14171c; border-radius: 8px;">
+              <div style="padding: 4px 8px; background: #21252b; border-radius: 4px; font-size: 12px; color: #b4bac4;">chip</div>
+              <div style="padding: 4px 8px; background: #21252b; border-radius: 4px; font-size: 12px; color: #b4bac4;">chip</div>
+              <div style="padding: 4px 8px; background: #21252b; border-radius: 4px; font-size: 12px; color: #b4bac4;">chip</div>
+            </div>
+          </div>
+          <div class="col__caption">5 literals in a 3-line snippet.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="display: flex; gap: var(--md-sp-3); padding: var(--md-sp-4); background: var(--md-surface-container); border-radius: var(--md-shape-sm);">
+              <span class="md-chip md-chip--sm">chip</span>
+              <span class="md-chip md-chip--sm">chip</span>
+              <span class="md-chip md-chip--sm">chip</span>
+            </div>
+          </div>
+          <div class="col__caption">Tokens for gap/padding + <code>.md-chip</code> for children.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — density variants</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-space-002</span>
+          <h3 class="finding__title">Off-grid spacing values (6, 10, 14) with no token</h3>
+          <span class="verdict verdict--gap">🆕 DS gap</span>
+        </div>
+        <p class="finding__why">
+          Several inline literals (<code>padding: '10px 14px'</code>, <code>gap: 6</code>,
+          <code>padding: '2px 6px'</code>) don't map cleanly to any existing <code>--md-sp-*</code>
+          token. Either round to grid, or define half-step tokens (<code>--md-sp-1-5</code> = 6px,
+          <code>--md-sp-2-5</code> = 10px, <code>--md-sp-3-5</code> = 14px).
+        </p>
+        <p class="finding__locations">
+          <strong>Notable:</strong>
+          search.jsx:87 (input shell) · search.jsx:142, 176 (result row) ·
+          search-palette.jsx:158 (kbd) · auth.jsx:178 (Google btn) ·
+          settings.jsx:214 (checkbox label) · onboarding.jsx:87 (pipeline frame)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <input type="text" placeholder="Search runs…" style="padding: 10px 14px; font-size: 14px; background: #111317; border: 1px solid #2a2f37; border-radius: 4px; color: #b4bac4; width: 100%;" />
+            <kbd style="padding: 2px 6px; font-size: 10px; font-family: ui-monospace, monospace; color: #50545d; background: #191c21; border: 1px solid #2a2f37; border-radius: 3px; align-self: flex-start;">esc</kbd>
+          </div>
+          <div class="col__caption">10/14/6/2 — none on the 4px grid.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <input type="text" placeholder="Search runs…" style="padding: var(--md-sp-2) var(--md-sp-4); font: var(--md-w-regular) var(--md-body-m-size)/1 var(--md-font-plain); background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-sm); color: var(--md-on-surface); width: 100%;" />
+            <kbd style="padding: var(--md-sp-1) var(--md-sp-2); font: var(--md-w-regular) var(--md-label-s-size)/1 var(--md-font-data); color: var(--md-on-surface-decor); background: var(--md-surface-container-high); border: 1px solid var(--md-outline-hair); border-radius: var(--md-shape-xs); align-self: flex-start;">esc</kbd>
+          </div>
+          <div class="col__caption">Round 10→8 / 14→16 OR introduce half-step tokens.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — half-step grid?</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== SECTION 4: SHAPE ============== -->
+    <section id="shape" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">04</span>
+        <h2 class="audit-section__title">Shape & radius</h2>
+        <span class="audit-section__count">~30 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        <code>--md-shape-xs</code> (4) / <code>-sm</code> (8) / <code>-md</code> (12) /
+        <code>-lg</code> (16) / <code>-xl</code> (24) / <code>-full</code> (999) are defined.
+        Inline literals (<code>borderRadius: 3</code>, <code>6</code>, <code>8</code>,
+        <code>999</code>) leak through everywhere.
+      </p>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-shape-001</span>
+          <h3 class="finding__title">Inline <code>borderRadius</code> numerics instead of shape tokens</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          Even pill shapes — where <code>--md-shape-full</code> exists explicitly — are written
+          as <code>borderRadius: 999</code> in three different files. Easy mass fix.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong>
+          auth.jsx:179 (pill) · auth.jsx:222 (6px) ·
+          app.jsx:434, 548 (pill) ·
+          settings.jsx:168 (8px) · onboarding.jsx:87 (8px) ·
+          design-language.jsx:241, 242, 255, 256, 383, 554, 761 ·
+          search-palette.jsx:158, 164 (kbd 3px, modal 4px) ·
+          run-detail.jsx (30+ occurrences across 2, 3, 4, 6, 999)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <span style="padding: 4px 10px; background: #21252b; border-radius: 999px; color: #b4bac4; font-size: 12px;">pill 999</span>
+              <span style="padding: 4px 10px; background: #21252b; border-radius: 6px; color: #b4bac4; font-size: 12px;">btn 6</span>
+              <span style="padding: 4px 10px; background: #21252b; border-radius: 8px; color: #b4bac4; font-size: 12px;">card 8</span>
+              <span style="padding: 4px 10px; background: #21252b; border-radius: 3px; color: #b4bac4; font-size: 12px;">kbd 3</span>
+            </div>
+          </div>
+          <div class="col__caption">Four magic radii.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="display: flex; gap: var(--md-sp-2); flex-wrap: wrap;">
+              <span style="padding: var(--md-sp-1) var(--md-sp-3); background: var(--md-surface-container-high); border-radius: var(--md-shape-full); color: var(--md-on-surface-variant); font: var(--md-w-regular) var(--md-label-m-size)/1 var(--md-font-plain);">shape-full</span>
+              <span style="padding: var(--md-sp-1) var(--md-sp-3); background: var(--md-surface-container-high); border-radius: var(--md-shape-sm); color: var(--md-on-surface-variant); font: var(--md-w-regular) var(--md-label-m-size)/1 var(--md-font-plain);">shape-sm</span>
+              <span style="padding: var(--md-sp-1) var(--md-sp-3); background: var(--md-surface-container-high); border-radius: var(--md-shape-md); color: var(--md-on-surface-variant); font: var(--md-w-regular) var(--md-label-m-size)/1 var(--md-font-plain);">shape-md</span>
+              <span style="padding: var(--md-sp-1) var(--md-sp-3); background: var(--md-surface-container-high); border-radius: var(--md-shape-xs); color: var(--md-on-surface-variant); font: var(--md-w-regular) var(--md-label-m-size)/1 var(--md-font-plain);">shape-xs</span>
+            </div>
+          </div>
+          <div class="col__caption">Four named tokens.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — shape language refinement</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== SECTION 5: ELEVATION ============== -->
+    <section id="elevation" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">05</span>
+        <h2 class="audit-section__title">Elevation & shadow</h2>
+        <span class="audit-section__count">3 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        Three places hand-roll a box-shadow with raw rgba instead of consuming
+        <code>--md-elev-1</code> … <code>--md-elev-5</code>.
+      </p>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-elev-001</span>
+          <h3 class="finding__title">Raw <code>boxShadow</code> recipe instead of elevation token</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          The search palette modal uses <code>boxShadow: '0 16px 48px rgba(0,0,0,0.5)'</code> — a
+          hand-tuned recipe whose strength can drift from the rest of the system if global
+          elevation changes.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong>
+          search-palette.jsx:126 (modal) · auth.jsx:181 (Google btn) ·
+          run-detail.jsx (1 instance ~ command palette)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render" style="background: #0a0c0f;">
+            <div style="background: #14171c; border: 1px solid #2a2f37; border-radius: 12px; padding: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.5); color: #b4bac4;">
+              Search palette modal<br/>
+              <span style="font-size: 11px; color: #7d8290;">shadow: 0 16px 48px rgba(0,0,0,0.5)</span>
+            </div>
+          </div>
+          <div class="col__caption">Hand-rolled shadow recipe.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="background: var(--md-surface-container-high); border-radius: var(--md-shape-md); padding: var(--md-sp-4); box-shadow: var(--md-elev-4); color: var(--md-on-surface);">
+              Search palette modal<br/>
+              <span style="font: var(--md-w-regular) var(--md-label-s-size)/1 var(--md-font-data); color: var(--md-on-surface-faint);">box-shadow: var(--md-elev-4)</span>
+            </div>
+          </div>
+          <div class="col__caption"><code>--md-elev-4</code> is the M3 modal elevation.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — elevation language</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== SECTION 6: COMPONENTS ============== -->
+    <section id="components" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">06</span>
+        <h2 class="audit-section__title">Components</h2>
+        <span class="audit-section__count">5 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        Cases where a whole element is built bespoke despite a DS v2 equivalent existing today.
+        These are higher-leverage fixes than token swaps because they unify behavior in addition
+        to styling.
+      </p>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-comp-001</span>
+          <h3 class="finding__title">Native <code>&lt;select&gt;</code> instead of <code>.md-chip</code> selector</h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          The compare-view run picker uses a styled native <code>&lt;select&gt;</code> with inline
+          tokens. <code>.md-chip</code> is the canonical M3 selector pattern (or
+          <code>.md-seg</code> for segmented choice) — both already exist.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> compare.jsx:172–181
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <select style="padding: 4px 8px; font-size: 12px; font-family: ui-monospace, monospace; background: #111317; color: #b4bac4; border: 1px solid #2a2f37; border-radius: 8px; max-width: 280px;">
+              <option>Run A: select…</option>
+              <option>20260518-083618-backend-language-choice</option>
+              <option>20260519-132908-backend-language-choice</option>
+            </select>
+          </div>
+          <div class="col__caption">OS-native select widget with inline styling.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <button class="md-chip md-chip--selected" style="max-width: 280px;">
+              <span class="material-symbols-outlined" style="font-size: 16px;">expand_more</span>
+              Run A · backend-language-choice
+            </button>
+          </div>
+          <div class="col__caption"><code>.md-chip</code> with chevron, opens menu.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — picker pattern</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-comp-002</span>
+          <h3 class="finding__title">Inline-styled card wrapper instead of <code>.md-card</code></h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          Multiple inline <code>&lt;div style={{ background, border, borderRadius, padding }}&gt;</code>
+          wrappers reproduce what <code>.md-card</code> does — losing the variants
+          (<code>--elevated</code>, <code>--filled</code>, <code>--outlined</code>, <code>--tonal-a/b</code>)
+          and forcing each site to drift independently.
+        </p>
+        <p class="finding__locations">
+          <strong>Heaviest:</strong>
+          compare.jsx:131, 133, 150 (panel containers) ·
+          design-language.jsx:72 (demo cells) ·
+          settings.jsx:168 (table frame) · onboarding.jsx:87 (pipeline frame) ·
+          run-detail.jsx (10+ ad-hoc card wrappers)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="background: #111317; border: 1px solid #2a2f37; border-radius: 8px; padding: 16px; color: #b4bac4;">
+              <div style="font-size: 13px; color: var(--md-on-surface); margin-bottom: 6px;">Panel title</div>
+              <div style="font-size: 12px; color: #7d8290;">A bespoke wrapper that reads like a card but isn't one.</div>
+            </div>
+          </div>
+          <div class="col__caption">Inline-styled <code>div</code> wrapper.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <article class="md-card md-card--outlined">
+              <div class="md-card__hd">
+                <div class="md-card__title">Panel title</div>
+              </div>
+              <div class="md-card__support">A canonical <code>.md-card--outlined</code> with header.</div>
+            </article>
+          </div>
+          <div class="col__caption"><code>.md-card</code> + variants live in components.css.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — card density modes</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-comp-003</span>
+          <h3 class="finding__title">Bespoke sign-out button instead of <code>.md-btn</code></h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          The NotApprovedScreen sign-out button hand-rolls padding, radius, border, and font
+          instead of consuming <code>.md-btn .md-btn--outlined</code>.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> auth.jsx:221–226
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <button style="padding: 8px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-low); color: var(--md-on-surface); font-size: 13px; font-family: inherit; margin-top: 6px;">Sign out</button>
+          </div>
+          <div class="col__caption">Hand-rolled button.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <button class="md-btn md-btn--outlined md-btn--sm">Sign out</button>
+          </div>
+          <div class="col__caption"><code>.md-btn .md-btn--outlined .md-btn--sm</code>.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — auth screen rework</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-comp-004</span>
+          <h3 class="finding__title">Inline status pills not using <code>.md-status</code></h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          Run-detail and run-list contain several inline-styled status indicators that should be
+          <code>.md-status .md-status--running</code> / <code>--converged</code> /
+          <code>--drift</code> / <code>--errored</code> / <code>--idle</code>. <code>.md-status</code>
+          already encodes the correct color-mix backgrounds and is theme-aware.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong>
+          run-list.jsx (status pill column, multiple lines) ·
+          run-detail.jsx (inline kind chips on cards 228, 339, 525, 530, 650)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <span style="padding: 3px 8px; border-radius: 999px; font-size: 11px; color: #6b9cf0; background: rgba(107,156,240,0.16);">running</span>
+              <span style="padding: 3px 8px; border-radius: 999px; font-size: 11px; color: #6fb380; background: rgba(111,179,128,0.16);">converged</span>
+              <span style="padding: 3px 8px; border-radius: 999px; font-size: 11px; color: #d96a6a; background: rgba(217,106,106,0.16);">errored</span>
+            </div>
+          </div>
+          <div class="col__caption">Inline color + bg + rgba per pill.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="display: flex; gap: var(--md-sp-2); flex-wrap: wrap;">
+              <span class="md-status md-status--running">running</span>
+              <span class="md-status md-status--converged">converged</span>
+              <span class="md-status md-status--errored">errored</span>
+            </div>
+          </div>
+          <div class="col__caption">Single class + modifier per pill.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — status taxonomy</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-comp-005</span>
+          <h3 class="finding__title">Avatar with custom HSL fallback instead of <code>.ai</code> classes</h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          The run-list avatar fallback computes an HSL color from the user's email hash rather
+          than consuming the agent-A / agent-B identity tokens. Avatars defined in components.css
+          (<code>.ai</code>, <code>.ai-a</code>, <code>.ai-b</code>, <code>.ai-md</code> etc.) cover this.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> run-list.jsx (user avatar render)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: hsl(217, 50%, 40%); color: #fff; font-size: 13px; font-weight: 600;">AL</div>
+          </div>
+          <div class="col__caption">HSL color hashed from email.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div class="ai ai-a ai-md">AL</div>
+          </div>
+          <div class="col__caption"><code>.ai .ai-a .ai-md</code>.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — user identity treatment</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== SECTION 7: INTERACTION ============== -->
+    <section id="interaction" class="audit-section">
+      <div class="audit-section__head">
+        <span class="audit-section__num">07</span>
+        <h2 class="audit-section__title">Interaction & motion</h2>
+        <span class="audit-section__count">3 deviations</span>
+      </div>
+      <p class="audit-section__lede">
+        Where the app uses imperative JS to mutate styles on hover instead of the M3 state-layer
+        pattern (a translucent overlay driven by CSS <code>:hover</code> / <code>:focus-visible</code>).
+        This is the only category that needs a runtime check to fully catch — static audit can find
+        the imperative patterns but can't compare easing/duration to the M3 motion spec. A
+        Chrome-MCP pass on run-detail and search is recommended as follow-up.
+      </p>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-interact-001</span>
+          <h3 class="finding__title">Imperative hover via <code>onMouseEnter/onMouseLeave</code></h3>
+          <span class="verdict verdict--bespoke">❌ Bespoke bypass</span>
+        </div>
+        <p class="finding__why">
+          Search-result rows mutate <code>e.currentTarget.style.background</code> directly on
+          mouse events. Breaks keyboard <code>:focus-visible</code>, fights the M3 state-layer
+          pattern, and can't be themed.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> search.jsx:147–148, 180–181
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="padding: 10px 14px; background: #14171c; border-radius: 4px; cursor: pointer; color: #b4bac4;" onmouseover="this.style.background='#191c21'" onmouseout="this.style.background='#14171c'">
+              Result row — hover (imperative)
+            </div>
+          </div>
+          <div class="col__caption">JS mutates inline background on hover.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <style>
+              .audit-row-demo { padding: var(--md-sp-2) var(--md-sp-4); background: var(--md-surface-container); border-radius: var(--md-shape-sm); cursor: pointer; color: var(--md-on-surface-variant); transition: background 120ms ease; }
+              .audit-row-demo:hover { background: var(--md-surface-container-high); }
+              .audit-row-demo:focus-visible { outline: 2px solid var(--md-tertiary); outline-offset: 2px; }
+            </style>
+            <div class="audit-row-demo" tabindex="0">Result row — hover via CSS + state layer</div>
+          </div>
+          <div class="col__caption">CSS <code>:hover</code> + <code>:focus-visible</code>.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — state-layer system</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-interact-002</span>
+          <h3 class="finding__title">Missing transition tokens on stateful elements</h3>
+          <span class="verdict verdict--drift">⚠️ Token drift</span>
+        </div>
+        <p class="finding__why">
+          DS v2 ships <code>--md-motion-*</code> easing and duration tokens. Most bespoke
+          interactive elements either skip transitions entirely (instant snap on hover) or
+          hand-pick durations. Static audit can't enumerate these — flag as a Chrome-MCP follow-up.
+        </p>
+        <p class="finding__locations">
+          <strong>Follow-up:</strong>
+          Walk run-detail.jsx, search.jsx, compare.jsx live and compare hover/focus transitions
+          to <code>--md-motion-emphasized</code> / <code>--md-motion-standard</code>.
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render col__render--placeholder">Live Chrome-MCP pass needed to capture motion drift.</div>
+          <div class="col__caption">Not enumerable from source alone.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div style="padding: var(--md-sp-2) var(--md-sp-4); background: var(--md-surface-container); border-radius: var(--md-shape-sm); color: var(--md-on-surface-variant); transition: background var(--md-motion-duration-2, 200ms) var(--md-motion-easing-standard, ease);">
+              Element with motion tokens applied.
+            </div>
+          </div>
+          <div class="col__caption">Tokenized transition.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — motion language</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+
+      <article class="finding">
+        <div class="finding__header">
+          <span class="finding__id">F-interact-003</span>
+          <h3 class="finding__title">Tweaks panel — known legacy CSS-in-JS island</h3>
+          <span class="verdict verdict--gap">🆕 DS gap</span>
+        </div>
+        <p class="finding__why">
+          <code>tweaks-panel.jsx</code> contains a self-contained CSS-in-JS string that uses
+          legacy hex/rgba styling. It's a developer-only overlay (toggleable in production builds)
+          so it doesn't ship to most users — but it IS in the bundle and IS visible when toggled.
+          Either migrate it to DS v2 or formally exclude it from the audit surface.
+        </p>
+        <p class="finding__locations">
+          <strong>Locations:</strong> tweaks-panel.jsx (CSS-in-JS string, full file)
+        </p>
+        <div class="col col--found">
+          <div class="col__head"><span class="col__dot"></span> Found</div>
+          <div class="col__render">
+            <div style="background: rgba(20,23,28,0.95); padding: 12px; border-radius: 6px; color: #b4bac4; font-family: ui-monospace, monospace; font-size: 11px;">
+              tweaks-panel<br/>
+              <span style="color: #7d8290;">legacy CSS-in-JS, raw hex throughout</span>
+            </div>
+          </div>
+          <div class="col__caption">Developer overlay, off-system.</div>
+        </div>
+        <div class="col col--should">
+          <div class="col__head"><span class="col__dot"></span> Should be</div>
+          <div class="col__render">
+            <div class="md-card md-card--filled" style="padding: var(--md-sp-3);">
+              <div style="font: var(--md-w-medium) var(--md-label-l-size)/1 var(--md-font-data); color: var(--md-on-surface);">tweaks-panel</div>
+              <div style="font: var(--md-w-regular) var(--md-label-s-size)/var(--md-label-s-lh) var(--md-font-plain); color: var(--md-on-surface-faint); margin-top: var(--md-sp-1);">migrated to .md-card + tokens</div>
+            </div>
+          </div>
+          <div class="col__caption">Or formally scope it out.</div>
+        </div>
+        <div class="col col--future">
+          <div class="col__head"><span class="col__dot"></span> Future design</div>
+          <div class="col__render col__render--placeholder">Redesign slot — dev overlay system</div>
+          <div class="col__caption">Reserved.</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============== FOOTER NOTE ============== -->
+    <div class="footer-note">
+      <strong>What's NOT in this report.</strong> Compliant elements are counted in the header
+      summary but not listed individually — the file <code>handoffs/ds-v2-audit/rubric.md</code>
+      is the answer key if you want to verify a specific class. Motion / interaction observations
+      (state-layer overlays, focus-ring drift, transition timing) require a live Chrome-MCP pass
+      against the dev server — captured here as F-interact-002 and recommended as the next step.
+      The seven per-file audit summaries (run-detail, design-language, app+list, compare+search,
+      settings+onboarding+auth, how-it-works, shared+utility) live in this conversation's
+      transcript and can be regenerated by re-running the seven Explore agents.
+      <br/><br/>
+      <strong>How to serve.</strong>
+      <code>cd handoffs/ds-v2-audit &amp;&amp; python -m http.server 8000</code> then open
+      <code>http://localhost:8000/</code>. All four DS v2 CSS files are present in this folder.
+    </div>
+
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const root = document.documentElement;
+      const body = document.body;
+      const isLight = root.getAttribute('data-theme') === 'light' || body.classList.contains('light');
+      if (isLight) {
+        root.setAttribute('data-theme', 'dark');
+        body.classList.remove('light');
+        body.classList.add('dark');
+        document.getElementById('theme-label').textContent = 'Light mode';
+      } else {
+        root.setAttribute('data-theme', 'light');
+        body.classList.remove('dark');
+        body.classList.add('light');
+        document.getElementById('theme-label').textContent = 'Dark mode';
+      }
+    }
+    // initial body class so theme.css picks it up
+    document.body.classList.add('dark');
+  </script>
+</body>
+</html>
