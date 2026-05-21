@@ -400,6 +400,23 @@ class PhaseCategoryStats:
 
 
 @dataclass
+class ConsultedSource:
+    """Slim projection of one ToolEvent consulted source — spec 0144.
+
+    Populated by the audit_lookup closure in ``_apply_transition`` when
+    an EvidenceRecord's ``evidence_event_id`` resolves to a ToolEvent.
+    ``encrypted_content`` is intentionally NOT carried — it is multi-KB
+    per source and the UI does not render it (the contract validator
+    consumes it server-side).
+    """
+
+    url: str
+    title: str = ""
+    page_age: str = ""
+    queries: list[str] = field(default_factory=list)
+
+
+@dataclass
 class EvidenceRecord:
     """One structured evidence record linked to an Item address transition (spec 0115).
 
@@ -407,6 +424,12 @@ class EvidenceRecord:
     the UI layer for serialisation. ``unverified`` flips True when the
     contract validator flagged the record (event_id fabricated, URL
     not in consulted, content excerpt not in source).
+
+    Spec 0144 denormalisation: ``raised_in_round`` / ``answered_in_round``
+    / ``requested_by`` / ``provided_by`` / ``attached_at`` give the UI
+    the round + actor metadata the SOURCES surface needs. ``consulted_sources``
+    is populated when ``evidence_event_id`` resolves to a ToolEvent via the
+    per-turn ``TurnSearchAudit``.
     """
 
     item_id: str
@@ -418,6 +441,12 @@ class EvidenceRecord:
     content_excerpt: str
     unverified: bool = False
     unverified_reason: str = ""
+    raised_in_round: int = 0
+    answered_in_round: int = 0
+    requested_by: str | None = None
+    provided_by: str = ""
+    attached_at: str = ""
+    consulted_sources: list[ConsultedSource] = field(default_factory=list)
 
 
 @dataclass

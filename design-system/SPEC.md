@@ -33,6 +33,7 @@ The Material 3 vocabulary is applied selectively. M3 gives us a coherent token s
 8. **Full-word vocabulary.** Labels use complete words, never abbreviated codes. "conceded by Claude", not "→ c". Codified in [§ 9 Badge governance](#9--badge-governance--spec-0119) and SPEC-0067.
 9. **Brand fidelity.** Official Anthropic sunburst and OpenAI hexagonal rosette everywhere an agent is identified. No generic substitutes.
 10. **Accessibility.** `:focus-visible` ring via `--md-focus-ring` on every interactive primitive; `prefers-reduced-motion` honored on every animation; semantic ARIA where the markup needs it. Codified in SPEC-0087.
+11. **One card primitive per surface.** All four critique-item kinds (Question, Disagreement, Issue, Comment) render with the same card layout; only the category chip varies. Spec 0144 — the rule that closes B08 (Phase 4 cards missing Issue/Comment patches) and B14 (per-card sources) on the same primitive: a kind-specific variant would force the layout to be done twice.
 
 ---
 
@@ -306,6 +307,7 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 | **FAB** | `.md-fab`, `.md-fab--ext` | — | Floating action — 56 × 56 dp, `--md-shape-lg`, elevation-3. Extended FAB carries label after icon. Rare in this app (read-only) but spec'd for completeness. |
 | **Icon button** | `.md-icon-btn` | — | 40 × 40 dp circular icon-only action. State layer overlay. |
 | **Chip** | `.md-chip`, `.md-chip--{selected,filter-a,sm}` | `<Chip>` (see § 9 Badge governance) | Assist · filter · input · suggestion. 32 dp height (24 dp sm), `--md-shape-sm` corners, label-large type. **Every chip on every surface uses this primitive.** |
+| **SourceRow** | `.source-row`, `.source-row.is-unverified` | `<SourceRow>` | Spec 0144 — per-evidence-record collapsible row inside a critique card. Collapsed: ▶ chevron + title + host badge + optional `⚠ unverified` chip. Expanded: URL link · fetched-at · search-query · content-excerpt (bounded scroll above 800 chars). One instance per record; multiple per card. The `⚠ unverified` chip slot uses `.md-chip--sm` + the warn tone and renders only when `record.unverified === true`. |
 | **Status pill** | `.md-status`, `.md-status--{running,converged,drift,errored,idle,queued}` | `<StatusBadge>` | 22 dp height, pill, leading 6 dp dot in currentColor. Six states. Tinted via `color-mix` from the base palette. |
 | **Switch** | `.md-switch` | — | 52 × 32 dp, M3 thumb-grows-on-on. Rare (read-only). |
 | **Segmented buttons** | `.md-seg`, `.md-seg__opt` | `<TabGroup variant="solid">` (CSS class compat) | Pill container with inset divider lines. M3 secondary-container on selected. Used for phase tabs, kind filters, agent filters, status filters. |
@@ -412,6 +414,34 @@ Single primitive (`<ModalDialog>` in `shared.jsx`, spec 0096): scrim-backed cent
 - **Rich** — `max-width: 1080 px`, otherwise identical chrome. Used for the turn-detail modal, the spec-view modal, the diagram-viewer modal.
 
 Behaviors: ESC closes, scrim-click closes, focus trap, body overflow lock, theme-aware.
+
+### 4.7 — Sources segment
+
+Spec 0144. The per-evidence-record stack rendered immediately after the lifecycle footer on every critique card.
+
+- **Label.** `Sources (N)` in `t-overline` style — 11 px uppercase, 0.06 em letter-spacing, `--md-on-surface-variant`.
+- **Separator.** Dashed top border (`1px dashed var(--md-outline-hair)`) above the label.
+- **Body.** Vertical stack of `<SourceRow>` instances, one per evidence record.
+- **Empty-state behaviour.** When `N === 0`, **hide the entire segment** (no label, no border, no empty list). A SOURCES segment showing `(0)` on an item that never had source data would be misleading; the segment's presence is itself a signal.
+- **Sources N header chip.** The card header carries a `Sources {N}` chip (when N > 0) that, on click, scrolls the SOURCES segment into view inside the card. Per-card-jump dispatch — consistent with the resolution of spec 0144 open-question #2.
+- **Unverified chip placement.** The `⚠ unverified` chip lives **on the offending source row**, not on the card. A card with 3 sources where only 1 is flagged would mislead with a card-level chip. See spec 0144 open-question #3.
+
+Canonical visual reference: [`audits/2026-05-19-badge-governance-iter3/mockup.html`](audits/2026-05-19-badge-governance-iter3/mockup.html).
+
+### 4.8 — Critique card composition
+
+Spec 0144. **All four critique-item kinds (Question, Disagreement, Issue, Comment) render with the same card primitive (`<ItemCard>` in `run-detail.jsx`).** This is the §1 invariant that closes B08 (Phase 4 cards missing Issue/Comment patches) and B14 (per-card sources) on the same primitive.
+
+The stacking order, top to bottom:
+
+1. **Header chip row.** `{id}` (mono) · kind · state · `raised by X` · `round N` · `Sources N` (only when N>0; clicking jumps the SOURCES segment).
+2. **Body.** Item text. When `anchor_type !== 'none'`, a tinted blockquote follows.
+3. **Evidence-needed helper.** Italic single line, rendered only when `evidence_required === true`: *Evidence needed — addresses must cite consulted sources.*
+4. **Lifecycle timeline.** Vertical list of transitions; each row is `Round N — from → **to** (via) · by Actor` with the reason underneath in a muted block.
+5. **Footer.** Single dashed-top line: `✓ {terminalState} at round N · M turns to converge`. Rendered when the item is in any terminal state (`resolved` / `acknowledged` / `withdrawn` / `capped`); never rendered when the item is still `open` or `addressed`.
+6. **SOURCES (N).** The §4.7 segment.
+
+Only the category chip in (1) varies between kinds. **No kind-specific card variant exists.** The legacy `<QuestionThread>` is retained as a fallback for pre-0114 archived runs (whose items have no `transitions` array) — see [§ 9.5 — Legacy critique renderer](#95--legacy-critique-renderer-pre-0114) if added later; until pre-0114 runs roll out of relevance, the fallback path stays alive.
 
 ---
 

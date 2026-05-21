@@ -1834,13 +1834,23 @@ def _attach_item_aggregation(run, transcript_path, session_dir=None):
     Returns the ``AggregatedItems`` bundle so the caller can project
     it into the legacy typed lists + ``phase_ledgers``.
     """
-    from dual_research.ui.items import aggregate_items_from_transcript
+    from dual_research.ui.items import (
+        aggregate_items_from_transcript,
+        build_session_audit_lookup,
+    )
     from dual_research.ui.models import TurnStats
 
-    bundle = aggregate_items_from_transcript(transcript_path)
+    # Spec 0144 — when we have a session dir, build an audit_lookup so
+    # evidence records get densified with consulted_sources from the
+    # persisted TurnSearchAudit bundles. Cold replay (no session_dir)
+    # gets empty consulted_sources, matching the pre-spec behaviour.
+    audit_lookup = (
+        build_session_audit_lookup(session_dir) if session_dir is not None else None
+    )
+    bundle = aggregate_items_from_transcript(transcript_path, audit_lookup=audit_lookup)
     if not bundle.items and session_dir is not None:
         from dual_research.ledger.replay import replay_items_from_disk
-        bundle = replay_items_from_disk(session_dir)
+        bundle = replay_items_from_disk(session_dir, audit_lookup=audit_lookup)
     run.phase_stats.items = list(bundle.items)
     if 0 in bundle.phase_category_stats:
         run.phase_stats.phase_summary_0 = bundle.phase_category_stats[0]

@@ -1341,7 +1341,17 @@ function SourceRow({ record }) {
   );
 }
 
+// Spec 0144 §4.8 — Terminal states for the lifecycle footer. The
+// invariant: all four item kinds render the same "✓ {state} at round
+// N · M turns to converge" footer when terminal; open items render no
+// footer. Disagreement's legacy "conceded by X" suffix is rolled into
+// the via-clause on the last transition.
+const _ITEM_CARD_TERMINAL_STATES = new Set([
+  'resolved', 'acknowledged', 'withdrawn', 'capped',
+]);
+
 function ItemCard({ item, onHighlight }) {
+  const cardRef = React.useRef(null);
   const kindLabel = ({
     question: 'Question',
     disagreement: 'Disagreement',
@@ -1360,8 +1370,62 @@ function ItemCard({ item, onHighlight }) {
   const raiserName = item.raiser === 'openai' ? 'GPT' : 'Claude';
   const transitions = item.transitions || [];
   const evidence = item.evidence || [];
+  const evidenceRequired = !!(item.evidenceRequired || item.evidence_required);
+  const anchorType = item.anchorType || item.anchor_type;
+  const anchorText = item.anchorText || item.anchor_text;
+  // Spec 0144 §6.2.e — lifecycle footer, parity across all four kinds.
+  // Find the last terminal transition and count total turns to derive
+  // "M turns to converge". Open items get no footer.
+  let lifecycleFooter = null;
+  if (_ITEM_CARD_TERMINAL_STATES.has(stateLabel)) {
+    const lastTerminal = [...transitions]
+      .reverse()
+      .find((t) => _ITEM_CARD_TERMINAL_STATES.has(t.toState || t.to_state || ''));
+    const terminalRound = lastTerminal ? lastTerminal.round : null;
+    const turns = transitions.length || 0;
+    lifecycleFooter = (
+      <div className="item-card__lifecycle-footer">
+        <span aria-hidden="true">✓</span>{' '}
+        {stateLabel}{terminalRound != null ? ` at round ${terminalRound}` : ''}
+        {turns > 0 && ` · ${turns} turn${turns === 1 ? '' : 's'} to converge`}
+      </div>
+    );
+  }
+  // Spec 0144 §6.2.h — clicking the Sources N header chip jumps the
+  // card's SOURCES segment into view. Per-card-jump confirmed as the
+  // default in the open-question round. We compute the scroll-delta
+  // explicitly against the nearest scrollable ancestor because the
+  // critique pane has its own scroll container; relying on
+  // `scrollIntoView({block:'nearest'})` was a no-op in some browsers
+  // when the segment sat outside the pane's clientHeight without
+  // being far enough out to trigger the "minimum scroll" path.
+  const handleSourcesChipClick = (e) => {
+    e.stopPropagation();
+    const root = cardRef.current;
+    if (!root) return;
+    const target = root.querySelector('.item-card__sources');
+    if (!target) return;
+    let scroller = target.parentElement;
+    while (scroller && scroller !== document.body) {
+      const cs = window.getComputedStyle(scroller);
+      const oy = cs.overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && scroller.scrollHeight > scroller.clientHeight) {
+        break;
+      }
+      scroller = scroller.parentElement;
+    }
+    if (!scroller || scroller === document.body) {
+      target.scrollIntoView({ behavior: 'auto', block: 'start' });
+      return;
+    }
+    const targetRect = target.getBoundingClientRect();
+    const scrollerRect = scroller.getBoundingClientRect();
+    const delta = targetRect.top - scrollerRect.top - 12;
+    scroller.scrollBy({ top: delta, behavior: 'auto' });
+  };
   return (
     <article
+      ref={cardRef}
       className={`item-card item-card--${stateLabel}`}
       onClick={onHighlight}
     >
@@ -1371,19 +1435,34 @@ function ItemCard({ item, onHighlight }) {
         <Chip tone={stateTone}>{stateLabel}</Chip>
         <span className="md-chip md-chip--sm">raised by {raiserName}</span>
         <span className="md-chip md-chip--sm">round {item.raisedRound || item.raised_round}</span>
+        {evidence.length > 0 && (
+          <button
+            type="button"
+            className="md-chip md-chip--sm item-card__sources-chip"
+            onClick={handleSourcesChipClick}
+            title="Jump to sources"
+          >
+            Sources {evidence.length}
+          </button>
+        )}
       </header>
       <div className="item-card__body">
         {item.body}
-        {item.anchorType && item.anchorType !== 'none' && (
+        {anchorType && anchorType !== 'none' && (
           <blockquote className="item-card__anchor">
-            {item.anchorType === 'quote' ? '> quote: ' : '> after: '}
-            {item.anchorText || item.anchor_text}
+            {anchorType === 'quote' ? '> quote: ' : '> after: '}
+            {anchorText}
           </blockquote>
         )}
       </div>
+      {evidenceRequired && (
+        <div className="item-card__evidence-needed">
+          Evidence needed — addresses must cite consulted sources.
+        </div>
+      )}
       {transitions.length > 0 && (
         <div className="item-card__timeline">
-          <div className="item-card__timeline-hd">Timeline</div>
+          <div className="item-card__timeline-hd">Lifecycle</div>
           {transitions.map((t, i) => {
             const fromS = t.fromState || t.from_state;
             const toS = t.toState || t.to_state;
@@ -1407,6 +1486,7 @@ function ItemCard({ item, onHighlight }) {
           })}
         </div>
       )}
+      {lifecycleFooter}
       {evidence.length > 0 && (
         <div className="item-card__sources">
           <div className="item-card__sources-hd">Sources ({evidence.length})</div>
@@ -6185,8 +6265,38 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     group.setAttribute('data-collapsed', collapsed ? 'false' : 'true');
   }, []);
 
-  // Spec 0097 — unified renderItem: all four kinds -> <QuestionThread />
+  // Spec 0097 — unified renderItem: legacy items → <QuestionThread />.
+  // Spec 0144 §6.2.a — new-protocol items (those present in
+  // ``run.phaseStats.items`` with a ``transitions`` array from the
+  // ItemRaised/ItemTransitioned event stream) route through
+  // <ItemCard /> so ``evidence``, ``transitions``, ``anchor_*``, and
+  // ``evidence_required`` survive the trip from the event bus to the
+  // JSX. This single switch closes B09's render gap for all four
+  // kinds simultaneously and makes B08 (missing I/C patches on
+  // Phase 4 cards) fall out automatically because ItemCard is
+  // kind-agnostic.
+  const _itemsAll = (run.phaseStats?.items) || [];
+  const _itemsById = new Map();
+  for (const it of _itemsAll) {
+    if (it && it.id) _itemsById.set(it.id, it);
+  }
   const renderItem = (item) => {
+    const newItem = _itemsById.get(item && item.id);
+    if (newItem && Array.isArray(newItem.transitions)) {
+      const variant = item._critiqueKind || (
+        newItem.kind === 'disagreement' ? 'd'
+        : newItem.kind === 'issue' ? 'i'
+        : newItem.kind === 'comment' ? 'c'
+        : 'q'
+      );
+      const highlightKeys = [item.raisedTurnKey, item.answeredTurnKey, item.closedTurnKey]
+        .filter(Boolean);
+      const highlightFn = () => {
+        if (!handleHighlight) return;
+        handleHighlight(highlightKeys, variant);
+      };
+      return <ItemCard key={newItem.id} item={newItem} onHighlight={highlightFn} />;
+    }
     const props = _normalizeToThread(item, run, selectedPhase);
     if (!props) return null;
     const highlightFn = () => {
@@ -6216,7 +6326,8 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   // Spec 0115 — count-augmented kind tabs. Counts come from the new
   // unified Item bundle when available; legacy runs fall back to the
   // per-kind list lengths the legacy renderer already computes.
-  const _itemsAll = (run.phaseStats?.items) || [];
+  // (``_itemsAll`` was hoisted above ``renderItem`` for spec 0144's
+  // ItemCard branch; it's the same list either way.)
   const _phaseItemsForCount = isSummary
     ? _itemsAll
     : _itemsAll.filter((it) => it.phase === selectedPhase);
@@ -6468,6 +6579,16 @@ function _normalizeToThread(item, run, phaseId) {
     return {
       id: q.id, kind: 'question', status, raisedBy: q.raisedBy, raisedRound: q.raisedRound,
       phase: q.phase, turns, footer,
+      // Spec 0144 §6.2.b — surface evidence / transitions / anchor /
+      // evidence_required on the props bag even on the legacy path so
+      // a future caller that still routes a new-protocol item through
+      // QuestionThread doesn't throw the data away. Defaults are safe
+      // for pre-0114 archived runs that never captured these fields.
+      evidence: q.evidence || [],
+      transitions: q.transitions || [],
+      anchor_type: q.anchor_type || q.anchorType || 'none',
+      anchor_text: q.anchor_text || q.anchorText || '',
+      evidence_required: !!(q.evidence_required || q.evidenceRequired),
       _highlightKeys: [q.raisedTurnKey, q.answeredTurnKey].filter(Boolean),
       _highlightVariant: 'q',
     };
@@ -6492,6 +6613,12 @@ function _normalizeToThread(item, run, phaseId) {
     return {
       id: d.id, kind: 'disagreement', status, raisedBy: d.raisedBy,
       raisedRound: d.openedRound || d.round, phase: d.phase, turns, footer: footerText,
+      // Spec 0144 §6.2.b — see question branch above.
+      evidence: d.evidence || [],
+      transitions: d.transitions || [],
+      anchor_type: d.anchor_type || d.anchorType || 'none',
+      anchor_text: d.anchor_text || d.anchorText || '',
+      evidence_required: !!(d.evidence_required || d.evidenceRequired),
       _highlightKeys: [d.raisedTurnKey, d.closedTurnKey].filter(Boolean),
       _highlightVariant: 'd',
     };
@@ -6504,6 +6631,12 @@ function _normalizeToThread(item, run, phaseId) {
     return {
       id: issue.id, kind: 'issue', status: isOpen ? 'open' : 'resolved',
       raisedBy: issue.raisedBy, raisedRound: issue.roundFirstSeen, phase: issue.phase, turns, footer: null,
+      // Spec 0144 §6.2.b — see question branch above.
+      evidence: issue.evidence || [],
+      transitions: issue.transitions || [],
+      anchor_type: issue.anchor_type || issue.anchorType || 'none',
+      anchor_text: issue.anchor_text || issue.anchorText || '',
+      evidence_required: !!(issue.evidence_required || issue.evidenceRequired),
       _highlightKeys: issue.raisedTurnKey ? [issue.raisedTurnKey] : [],
       _highlightVariant: 'd',
     };
@@ -6523,6 +6656,12 @@ function _normalizeToThread(item, run, phaseId) {
     return {
       id: comment.id, kind: 'comment', status: 'resolved',
       raisedBy: comment.raisedBy, raisedRound: comment.raisedRound, phase: comment.phase, turns, footer: null,
+      // Spec 0144 §6.2.b — see question branch above.
+      evidence: comment.evidence || [],
+      transitions: comment.transitions || [],
+      anchor_type: comment.anchor_type || comment.anchorType || 'none',
+      anchor_text: comment.anchor_text || comment.anchorText || '',
+      evidence_required: !!(comment.evidence_required || comment.evidenceRequired),
       _highlightKeys: comment.raisedTurnKey ? [comment.raisedTurnKey] : [],
       _highlightVariant: 'd',
     };

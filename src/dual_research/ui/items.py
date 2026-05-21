@@ -20,15 +20,38 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 from dual_research.ui.models import (
     CategoryCounters,
+    ConsultedSource,
     EvidenceRecord,
     Item,
     ItemTransition,
     PhaseCategoryStats,
     TurnCategoryStats,
 )
+
+
+# Audit lookup signature: given a logical turn_key, return the persisted
+# ``TurnSearchAudit`` dict (or None if no audit exists for that turn).
+AuditLookup = Callable[[str], dict | None]
+
+
+def _derive_turn_key_for_transition(*, phase: int, round: int, actor: str) -> str:
+    """Mirror of ``orchestrator/_call._derive_turn_key`` for items.
+
+    The ItemTransitioned event doesn't carry ``turn_key`` directly, but
+    the (phase, round, actor) triple is enough to reconstruct it under
+    the round-keyed convention spec 0142 established for phases 0 / 2 / 4.
+    Phases 1 / 3 collapse to ``phase{N}_{agent}`` (no per-round audits).
+    """
+    if not actor or actor in {"mutual", "orchestrator"}:
+        return ""
+    ui_ag = "gpt" if actor == "openai" else actor
+    if phase in (0, 2, 4):
+        return f"phase{phase}_round{round}_{ui_ag}"
+    return f"phase{phase}_{ui_ag}"
 
 
 # ─── Constants ────────────────────────────────────────────────────────
@@ -140,6 +163,72 @@ def _find_item(bundle: AggregatedItems, item_id: str) -> Item | None:
     return None
 
 
+_SEARCH_N_PATTERN = "search_"
+
+
+def _resolve_consulted_sources(
+    *,
+    evidence_event_id: str,
+    audit: dict | None,
+) -> list[ConsultedSource]:
+    """Spec 0144 §6.1.d / §9.5 — resolve an evidence_event_id against the
+    persisted ``TurnSearchAudit`` and project a slim consulted_sources list.
+
+    The model emits logical handles (``search_1``, ``search_2``, …)
+    rather than the provider's opaque physical event_id
+    (``srvtoolu_…`` for Anthropic, ``ws_…`` for OpenAI). Both
+    providers persist their ``tool_events`` list in turn-order, so
+    ``search_N`` resolves to ``tool_events[N-1]``. We also fall back to
+    matching by physical ``event_id`` when the model happens to emit
+    the real handle.
+
+    Returns an empty list when the audit is missing, the event_id is
+    empty, no match is found, or the matched ToolEvent has no
+    consulted sources. ``encrypted_content`` is intentionally NOT
+    projected (multi-KB per source; UI never renders it).
+    """
+    if not evidence_event_id or not audit:
+        return []
+    tool_events = audit.get("tool_events") or []
+    if not isinstance(tool_events, list) or not tool_events:
+        return []
+
+    matched: dict | None = None
+    if evidence_event_id.startswith(_SEARCH_N_PATTERN):
+        idx_str = evidence_event_id[len(_SEARCH_N_PATTERN):]
+        try:
+            idx = int(idx_str) - 1
+        except (TypeError, ValueError):
+            idx = -1
+        if 0 <= idx < len(tool_events) and isinstance(tool_events[idx], dict):
+            matched = tool_events[idx]
+    if matched is None:
+        for ev in tool_events:
+            if isinstance(ev, dict) and ev.get("event_id") == evidence_event_id:
+                matched = ev
+                break
+    if matched is None:
+        return []
+
+    queries = [
+        str(q) for q in (matched.get("queries") or []) if isinstance(q, (str, int))
+    ]
+    out: list[ConsultedSource] = []
+    for src in matched.get("consulted_sources") or []:
+        if not isinstance(src, dict):
+            continue
+        url = str(src.get("url") or "")
+        if not url:
+            continue
+        out.append(ConsultedSource(
+            url=url,
+            title=str(src.get("title") or ""),
+            page_age=str(src.get("page_age") or ""),
+            queries=list(queries),
+        ))
+    return out
+
+
 def _apply_transition(
     bundle: AggregatedItems,
     *,
@@ -152,6 +241,9 @@ def _apply_transition(
     reason: str,
     via: str | None,
     evidence_records: list[dict],
+    turn_key: str = "",
+    attached_at: str = "",
+    audit_lookup: AuditLookup | None = None,
 ) -> None:
     item = _find_item(bundle, item_id)
     if item is None:
@@ -167,10 +259,12 @@ def _apply_transition(
     ))
     item.current_state = to_state
 
+    audit = audit_lookup(turn_key) if (audit_lookup and turn_key) else None
+
     for rec in evidence_records or []:
         if not isinstance(rec, dict):
             continue
-        item.evidence.append(EvidenceRecord(
+        record = EvidenceRecord(
             item_id=item_id,
             url=str(rec.get("url", "")),
             title=str(rec.get("title", "")),
@@ -178,7 +272,19 @@ def _apply_transition(
             fetched_at=str(rec.get("fetched_at", "")),
             evidence_event_id=str(rec.get("evidence_event_id", "")),
             content_excerpt=str(rec.get("content_excerpt", "")),
-        ))
+            unverified=bool(rec.get("unverified", False)),
+            unverified_reason=str(rec.get("unverified_reason", "")),
+            raised_in_round=int(item.raised_round or 0),
+            answered_in_round=int(round),
+            requested_by=None,
+            provided_by=str(actor or ""),
+            attached_at=str(attached_at or ""),
+            consulted_sources=_resolve_consulted_sources(
+                evidence_event_id=str(rec.get("evidence_event_id", "")),
+                audit=audit,
+            ),
+        )
+        item.evidence.append(record)
 
     kind = item.kind
     raiser = item.raiser
@@ -208,7 +314,11 @@ def _apply_transition(
             _counter_for(phase_stats, kind).capped += 1
 
 
-def aggregate_items(events: list[dict]) -> AggregatedItems:
+def aggregate_items(
+    events: list[dict],
+    *,
+    audit_lookup: AuditLookup | None = None,
+) -> AggregatedItems:
     """Build the aggregated bundle from a list of event dicts.
 
     ``events`` is the raw JSON-decoded event stream from
@@ -220,10 +330,25 @@ def aggregate_items(events: list[dict]) -> AggregatedItems:
     is then called to convert standing-deltas into absolute running
     standing totals per (phase, raiser) sequence so the timeline JSX
     can read absolute values directly.
+
+    Spec 0144 — when ``audit_lookup`` is supplied, every transition's
+    evidence record is densified with the slim ``consulted_sources``
+    projection drawn from the per-turn ``TurnSearchAudit`` (resolved
+    by ``search_N`` enumeration). ``audit_lookup`` is keyed by the
+    logical turn_key (``phase{N}_round{R}_{agent}`` or
+    ``phase{N}_{agent}``); callers building from a session dir
+    typically wrap ``_read_search_audit(session_dir, turn_key)``.
     """
     bundle = AggregatedItems()
     for event in events:
-        kind = event.get("kind") or event.get("event_type")
+        # Transcript writes ``event``; orchestrator dicts use ``kind`` /
+        # ``event_type``. Accept all three so the same aggregator works
+        # against the live transcript path AND the replay event list.
+        kind = (
+            event.get("kind")
+            or event.get("event_type")
+            or event.get("event")
+        )
         if kind == "item_raised":
             _apply_raise(
                 bundle,
@@ -238,17 +363,26 @@ def aggregate_items(events: list[dict]) -> AggregatedItems:
                 evidence_required=bool(event.get("evidence_required", False)),
             )
         elif kind == "item_transitioned":
+            phase_i = int(event.get("phase", 0))
+            round_i = int(event.get("round", 0))
+            actor_s = str(event.get("actor", ""))
+            turn_key = str(event.get("turn_key") or "") or _derive_turn_key_for_transition(
+                phase=phase_i, round=round_i, actor=actor_s,
+            )
             _apply_transition(
                 bundle,
                 item_id=str(event.get("id", "")),
                 from_state=str(event.get("from_state", "")),
                 to_state=str(event.get("to_state", "")),
-                actor=str(event.get("actor", "")),
-                phase=int(event.get("phase", 0)),
-                round=int(event.get("round", 0)),
+                actor=actor_s,
+                phase=phase_i,
+                round=round_i,
                 reason=str(event.get("reason", "")),
                 via=event.get("via"),
                 evidence_records=event.get("evidence_records") or [],
+                turn_key=turn_key,
+                attached_at=str(event.get("ts", "")),
+                audit_lookup=audit_lookup,
             )
     _finalise_running_totals(bundle)
     return bundle
@@ -290,8 +424,18 @@ def _finalise_running_totals(bundle: AggregatedItems) -> None:
     pass
 
 
-def aggregate_items_from_transcript(transcript_path: Path) -> AggregatedItems:
-    """Convenience wrapper: read ``transcript.jsonl`` and aggregate."""
+def aggregate_items_from_transcript(
+    transcript_path: Path,
+    *,
+    audit_lookup: AuditLookup | None = None,
+) -> AggregatedItems:
+    """Convenience wrapper: read ``transcript.jsonl`` and aggregate.
+
+    Spec 0144 — pass ``audit_lookup`` through to ``aggregate_items`` so
+    callers with a session directory in scope can densify evidence
+    records with ``consulted_sources`` resolved against
+    ``session_dir/searches/<turn-key>.json``.
+    """
     if not transcript_path.exists():
         return AggregatedItems()
     events: list[dict] = []
@@ -302,4 +446,33 @@ def aggregate_items_from_transcript(transcript_path: Path) -> AggregatedItems:
             events.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    return aggregate_items(events)
+    return aggregate_items(events, audit_lookup=audit_lookup)
+
+
+def build_session_audit_lookup(session_dir: Path) -> AuditLookup:
+    """Spec 0144 §6.1.d — build a turn_key → TurnSearchAudit dict lookup.
+
+    Reads ``session_dir/searches/<turn-key>.json`` lazily (per turn_key)
+    and caches the result. Returns ``None`` when the file is missing or
+    unreadable so the caller can fall back to the un-densified path.
+    """
+    searches_dir = session_dir / "searches"
+    cache: dict[str, dict | None] = {}
+
+    def _lookup(turn_key: str) -> dict | None:
+        if not turn_key:
+            return None
+        if turn_key in cache:
+            return cache[turn_key]
+        path = searches_dir / f"{turn_key}.json"
+        if not path.is_file():
+            cache[turn_key] = None
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            cache[turn_key] = data if isinstance(data, dict) else None
+        except (OSError, json.JSONDecodeError):
+            cache[turn_key] = None
+        return cache[turn_key]
+
+    return _lookup

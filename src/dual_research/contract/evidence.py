@@ -32,6 +32,13 @@ class EvidenceRecord:
     ``content_excerpt`` is the verbatim slice of the consulted page body
     the agent excerpted; it must match the source content after the
     normalization in ``_normalize_for_match``.
+
+    Spec 0144 added denormalised round + actor fields so downstream
+    surfaces (the per-card SOURCES segment) can render "raised in r1,
+    answered in r2, attached by claude" without re-walking the event
+    stream. Fields default to safe zero/empty values so callers
+    constructing records from the protocol parser (which has neither
+    round nor actor in scope) don't break.
     """
 
     item_id: str
@@ -41,6 +48,11 @@ class EvidenceRecord:
     fetched_at: str
     evidence_event_id: str
     content_excerpt: str
+    raised_in_round: int = 0
+    answered_in_round: int = 0
+    requested_by: str | None = None
+    provided_by: str = ""
+    attached_at: str = ""
 
 
 @dataclass(frozen=True)
