@@ -265,11 +265,23 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
   // confirmation surface is the chip's `title` tooltip; on success it
   // swaps to "copied!" for ~1.4 s and reverts. The spec considered a
   // full M3 snackbar (§7) but defers to keep the affordance simple.
+  // Spec 0143 §3.2.2 — payload now carries total cost + total tokens
+  // alongside the id so a single click yields a paste-ready
+  // "<id> · $X · Yt" line. Same fmt.cost / fmt.tokens helpers the
+  // CostBadge uses, so the copied numbers always match the on-screen
+  // pill verbatim.
   const [copiedRunId, setCopiedRunId] = React.useState(false);
+  const totalCost = (run?.agents?.claude?.cost || 0) + (run?.agents?.gpt?.cost || 0);
+  const totalTokens =
+    (run?.agents?.claude?.tokens?.in || 0) + (run?.agents?.claude?.tokens?.out || 0) +
+    (run?.agents?.gpt?.tokens?.in || 0)    + (run?.agents?.gpt?.tokens?.out || 0);
+  const copyPayload = run?.id
+    ? `${run.id} · ${fmt.cost(totalCost)} · ${fmt.tokens(totalTokens)}t`
+    : '';
   const copyRunId = React.useCallback((e) => {
     e.stopPropagation();
     if (!run?.id || !navigator.clipboard) return;
-    navigator.clipboard.writeText(run.id).then(
+    navigator.clipboard.writeText(copyPayload).then(
       () => {
         setCopiedRunId(true);
         setTimeout(() => setCopiedRunId(false), 1400);
@@ -280,7 +292,7 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
         // still triple-click the chip text and Cmd+C manually.
       },
     );
-  }, [run?.id]);
+  }, [run?.id, copyPayload]);
 
   return (
     <div style={{
@@ -305,7 +317,9 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
         <RunIDChip
           id={run.id}
           onClick={copyRunId}
-          title={copiedRunId ? 'copied!' : `${run.id} — click to copy`}
+          title={copiedRunId
+            ? 'copied — id · cost · tokens'
+            : `${copyPayload} — click to copy`}
         />
       )}
       <span className="mono" style={{
@@ -614,12 +628,16 @@ function CostBadge({ cost, tokens, searchCost }) {
   // Spec 0039: ``cost`` is now the full invoice (tokens + web search).
   // When ``searchCost`` is non-zero, tooltip surfaces the breakdown so
   // the user can see how much of the headline was tool spend.
+  // Spec 0143 §3.2.1 — prefix the pill with a small "total" label so
+  // the number can't be misread as per-phase / per-model (the Timeline
+  // agent pills next to it show per-agent figures — the visual
+  // proximity is the failure mode). Tooltip also leads with "Total:".
   const sc = Number(searchCost) || 0;
   const tokenCost = Math.max(0, cost - sc);
-  let tip = `${cost.toFixed(4)} USD · ${tokens.toLocaleString()} tokens`;
+  let tip = `Total: ${cost.toFixed(4)} USD · ${tokens.toLocaleString()} tokens`;
   if (sc > 0) {
     tip = (
-      `${cost.toFixed(4)} USD (tokens ${tokenCost.toFixed(4)} · `
+      `Total: ${cost.toFixed(4)} USD (tokens ${tokenCost.toFixed(4)} · `
       + `web search ${sc.toFixed(4)}) · ${tokens.toLocaleString()} tokens`
     );
   }
@@ -633,6 +651,7 @@ function CostBadge({ cost, tokens, searchCost }) {
             fontSize: 11, color: 'var(--md-on-surface-variant)', flexShrink: 0,
             whiteSpace: 'nowrap',
           }}>
+      <span style={{ color: 'var(--md-on-surface-faint)', fontSize: 10 }}>total</span>
       <span className="num">{fmt.cost(cost)}</span>
       <span style={{ color: 'var(--md-on-surface-faint)' }}>·</span>
       <span className="num" style={{ color: 'var(--md-on-surface-muted)' }}>{fmt.tokens(tokens)}t</span>

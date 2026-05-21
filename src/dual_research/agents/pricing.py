@@ -23,7 +23,7 @@ CACHE_READ_MULTIPLIER = 0.1
 # (``tests/agents/test_pricing_version.py::test_version_tracks_table``)
 # snapshots the ``PRICING`` dict alongside this version string so a rate
 # change can't ship without bumping the date.
-PRICING_VERSION = "2026-05-17"
+PRICING_VERSION = "2026-05-21"
 
 
 @dataclass(frozen=True)
@@ -73,11 +73,15 @@ PRICING: dict[str, ModelPricing] = {
         notes="Haiku 4.5 standard tier.",
     ),
     "gpt-5.5": ModelPricing(
-        input_per_mtok=1.25,
-        output_per_mtok=10.00,
-        cache_read_per_mtok=0.125,
-        web_search_per_request=0.025,                   # ~$25 / 1k for GPT-5 family Responses API
-        notes="GPT-5.5 standard tier (estimated).",
+        # Spec 0143 — published rates from developers.openai.com/api/docs/pricing
+        # (verified 2026-05-21). The prior table had this model at $1.25/$10/$0.125,
+        # 4× too low across every token category; the 2026-05-21 reconcile job
+        # caught it as a 72% local-vs-invoice under-count on the anchor run.
+        input_per_mtok=5.00,
+        output_per_mtok=30.00,
+        cache_read_per_mtok=0.50,
+        web_search_per_request=0.010,                   # $10 / 1k calls (matches Anthropic + verified invoice)
+        notes="GPT-5.5 standard tier — verified 2026-05-21 against developers.openai.com/api/docs/pricing.",
     ),
     "gpt-5-mini": ModelPricing(
         input_per_mtok=0.25,

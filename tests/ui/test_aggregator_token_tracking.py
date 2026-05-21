@@ -381,8 +381,10 @@ class TestSpec0031Fields:
         assert usage.search_cost == 0.0
 
     def test_search_cost_uses_model_id_pricing(self, tmp_path: Path) -> None:
-        """OpenAI's per-search rate ($0.025) differs from Claude's
-        ($0.010); search_cost must reflect the turn's model_id."""
+        """search_cost must reflect the turn's model_id. Spec 0143 bumped
+        the OpenAI rate from $0.025 to $0.010 (matching Anthropic + the
+        published Responses-API tool rate); the test still exercises the
+        per-model lookup, just at the corrected rate."""
         run = _empty_run()
         apply_event(
             run,
@@ -406,8 +408,8 @@ class TestSpec0031Fields:
         )
         usage = run.phase_token_usage["phase2_round1_gpt"]
         assert usage.searches == 4
-        # 4 × $0.025 = $0.10
-        assert usage.search_cost == pytest.approx(0.100)
+        # 4 × $0.010 = $0.04 (was $0.025 → $0.10 pre-0143).
+        assert usage.search_cost == pytest.approx(0.040)
 
 
 class TestAccumulationPreserved:

@@ -48,7 +48,10 @@ class TestWebSearchPricing:
         [
             ("claude-sonnet-4-6", 0.010),
             ("claude-haiku-4-5", 0.010),
-            ("gpt-5.5", 0.025),
+            # Spec 0143 — GPT-5.5 search rate bumped from $0.025 to $0.010
+            # to match OpenAI's published $10/1k and the anchor-run invoice
+            # ratio (19 × $0.010 = $0.19 vs invoice $0.17, within rounding).
+            ("gpt-5.5", 0.010),
             ("gpt-5-mini", 0.025),
         ],
     )
@@ -62,8 +65,8 @@ class TestWebSearchPricing:
     def test_compute_search_cost_basic(self) -> None:
         # 5 searches × $0.010 = $0.05
         assert compute_search_cost("claude-sonnet-4-6", 5) == pytest.approx(0.050)
-        # 4 searches × $0.025 = $0.10
-        assert compute_search_cost("gpt-5.5", 4) == pytest.approx(0.100)
+        # Spec 0143 — 4 searches × $0.010 = $0.04 (was $0.025 → $0.10).
+        assert compute_search_cost("gpt-5.5", 4) == pytest.approx(0.040)
 
     def test_compute_search_cost_zero_for_unknown_model(self) -> None:
         assert compute_search_cost("not-a-real-model", 10) == 0.0

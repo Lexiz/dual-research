@@ -36,6 +36,11 @@ class CallRecord:
     # was derived from.
     searches: int = 0
     search_cost: float = 0.0
+    # Spec 0143 §3.1 Step 2 — informational breakdown of how many output
+    # tokens were reasoning (subset of ``output_tokens``, NOT a separate
+    # bill). Zero on Anthropic and on non-reasoning OpenAI models. Spec
+    # 0146's Consumption-card rework reads this for "of which reasoning".
+    reasoning_tokens: int = 0
 
 
 @dataclass
@@ -69,6 +74,7 @@ class Metrics:
                 duration_ms=result.duration_ms,
                 searches=searches,
                 search_cost=search_cost,
+                reasoning_tokens=u.reasoning_tokens,
             )
         )
 

@@ -26,6 +26,18 @@ def cache_enabled() -> bool:
     return os.environ.get("DUAL_RESEARCH_NO_CACHE", "").strip().lower() not in ("1", "true", "yes")
 
 
+def debug_usage_enabled() -> bool:
+    """Spec 0143 §3.1 Step 3 — gate raw-usage-payload dumping behind an env flag.
+
+    When ``DUAL_RESEARCH_DEBUG_USAGE=1`` is set, both agents append the raw
+    ``usage`` object their SDK returned to ``<session>/usage-debug.jsonl``
+    so a future run that hits the cost-attribution skew has a diagnosable
+    artifact on disk. Off by default — adds one small file write per call
+    when on, no behaviour change.
+    """
+    return os.environ.get("DUAL_RESEARCH_DEBUG_USAGE", "").strip().lower() in ("1", "true", "yes")
+
+
 def _is_rate_limit(exc: Exception) -> bool:
     try:
         import anthropic
@@ -189,6 +201,13 @@ class TokenUsage:
     ``cache_write_tokens == cache_write_5m_tokens + cache_write_1h_tokens``;
     when only the aggregate is available (older response shapes), it is
     credited entirely to the 5m bucket (the pre-beta default).
+
+    Spec 0143 §3.1 Step 2 added ``reasoning_tokens`` — captured from
+    OpenAI's ``usage.output_tokens_details.reasoning_tokens`` for
+    visibility (Consumption-card "of which reasoning" breakdown in
+    spec 0146). **Informational only** — already a subset of
+    ``output_tokens`` for the Responses API, so do NOT fold into pricing.
+    Defaults to 0 for non-reasoning models and pre-0143 transcripts.
     """
     input_tokens: int = 0
     output_tokens: int = 0
@@ -196,6 +215,7 @@ class TokenUsage:
     cache_write_tokens: int = 0
     cache_write_5m_tokens: int = 0
     cache_write_1h_tokens: int = 0
+    reasoning_tokens: int = 0
 
     @property
     def total(self) -> int:
@@ -209,7 +229,59 @@ class TokenUsage:
             cache_write_tokens=self.cache_write_tokens + other.cache_write_tokens,
             cache_write_5m_tokens=self.cache_write_5m_tokens + other.cache_write_5m_tokens,
             cache_write_1h_tokens=self.cache_write_1h_tokens + other.cache_write_1h_tokens,
+            reasoning_tokens=self.reasoning_tokens + other.reasoning_tokens,
         )
+
+
+def append_usage_debug(
+    *,
+    session_dir: str | None,
+    provider: str,
+    model_id: str,
+    label: str,
+    usage_payload: Any,
+    extra: dict[str, Any] | None = None,
+) -> None:
+    """Spec 0143 §3.1 Step 3 — append one raw-usage row per call.
+
+    Best-effort: any I/O or serialisation failure is swallowed so a debug
+    capture can never break the run. ``session_dir`` is resolved from the
+    caller's ``audit_context`` (set by the orchestrator on every LLM
+    call); when absent, the helper silently no-ops.
+
+    The row payload is intentionally loose — whatever the SDK returned —
+    so a future diagnosis has the full provider shape, not a normalised
+    subset. ``extra`` is a small kwargs bag for caller-specific context
+    (the Anthropic warning predicate, the kwargs hash, etc.).
+    """
+    if not debug_usage_enabled() or not session_dir:
+        return
+    try:
+        import json
+        from pathlib import Path
+        path = Path(session_dir) / "usage-debug.jsonl"
+        # Normalise the usage object — SDK types are pydantic-ish; fall
+        # back to repr() if model_dump isn't available. Never raises.
+        if hasattr(usage_payload, "model_dump"):
+            usage_dict = usage_payload.model_dump(mode="json")
+        elif hasattr(usage_payload, "to_dict"):
+            usage_dict = usage_payload.to_dict()
+        elif hasattr(usage_payload, "__dict__"):
+            usage_dict = {k: v for k, v in vars(usage_payload).items() if not k.startswith("_")}
+        else:
+            usage_dict = {"repr": repr(usage_payload)}
+        row = {
+            "provider": provider,
+            "model_id": model_id,
+            "label": label,
+            "usage": usage_dict,
+        }
+        if extra:
+            row.update(extra)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, default=str) + "\n")
+    except Exception:
+        pass
 
 
 @dataclass(frozen=True)

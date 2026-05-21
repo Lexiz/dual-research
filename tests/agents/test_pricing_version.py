@@ -38,6 +38,9 @@ def test_version_tracks_table():
     # rate-table edit must touch BOTH lines so reviewers can see the link.
     expected_versions_to_snapshots = {
         "2026-05-17": "438dde2011bb7f46a2781aad04249f81a114ca01d424475337dc5ce760ba4ffb",
+        # Spec 0143 — bumped GPT-5.5 to verified OpenAI rates
+        # ($5/$30/$0.50 input/output/cache, $0.010/call web_search).
+        "2026-05-21": "9bfe60cd0febe31e75358669e424cd41a9dde1cc3e8591a24061e7f212aa519c",
     }
 
     assert PRICING_VERSION in expected_versions_to_snapshots, (

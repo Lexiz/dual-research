@@ -10,6 +10,7 @@ from dual_research.agents.base import (
     AgentError,
     AgentResult,
     TokenUsage,
+    append_usage_debug,
     web_search_enabled,
     with_rate_limit_retry,
 )
@@ -140,6 +141,18 @@ class GptAgent:
         details = getattr(final_usage, "input_tokens_details", None)
         if details is not None:
             cached = getattr(details, "cached_tokens", 0) or 0
+        # Spec 0143 §3.1 Step 2 — capture reasoning_tokens as an
+        # informational breakdown. The Responses API already includes
+        # reasoning tokens inside ``output_tokens`` (verified against the
+        # anchor run's invoice — re-pricing the captured tokens at
+        # OpenAI's published rates reconciles to invoice exactly, which
+        # would not be possible if reasoning were missing). The field
+        # exists for the spec 0146 Consumption-card "of which reasoning"
+        # breakdown — DO NOT fold into pricing or it will double-bill.
+        reasoning = 0
+        out_details = getattr(final_usage, "output_tokens_details", None)
+        if out_details is not None:
+            reasoning = getattr(out_details, "reasoning_tokens", 0) or 0
 
         usage = TokenUsage(
             input_tokens=max(0, input_tokens_total - cached),
@@ -148,6 +161,7 @@ class GptAgent:
             cache_write_tokens=0,
             cache_write_5m_tokens=0,
             cache_write_1h_tokens=0,
+            reasoning_tokens=reasoning,
         )
         text = "".join(text_parts)
         cost = compute_full_cost(self._spec.model_id, usage, searches)
@@ -175,6 +189,20 @@ class GptAgent:
         extras: dict = {"searches": searches}
         if search_audit is not None:
             extras["search_audit"] = search_audit
+
+        # Spec 0143 §3.1 Step 3 — best-effort raw-usage capture (off by
+        # default; gated by DUAL_RESEARCH_DEBUG_USAGE). Symmetric with
+        # the Anthropic path so a future cost regression has both
+        # providers' wire shapes recorded.
+        if audit_context is not None:
+            append_usage_debug(
+                session_dir=audit_context.get("session_dir"),
+                provider=self.provider,
+                model_id=self._spec.model_id,
+                label=str(audit_context.get("label", "")),
+                usage_payload=final_usage,
+                extra={"searches": searches},
+            )
 
         return AgentResult(
             text=text,
