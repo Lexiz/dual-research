@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>dual-research · Active-agent badge pulse — variant study</title>
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Material 3 tokens — copied from src/dual_research/ui/static/tokens.css
+   so the demo reads exactly like the live UI.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --agent-a:            #d4a574;           /* Claude — warm sable */
+  --agent-a-dim:        #8a6d4e;
+  --agent-a-bg:         rgba(212,165,116,0.08);
+  --agent-a-bg-strong:  rgba(212,165,116,0.16);
+  --agent-a-border:     rgba(212,165,116,0.22);
+  --agent-a-rgb:        212, 165, 116;
+
+  --agent-b:            #7cc4b8;           /* GPT — cool sage */
+  --agent-b-dim:        #4f8079;
+  --agent-b-bg:         rgba(124,196,184,0.08);
+  --agent-b-bg-strong:  rgba(124,196,184,0.16);
+  --agent-b-border:     rgba(124,196,184,0.22);
+  --agent-b-rgb:        124, 196, 184;
+
+  --md-surface:                     #0d0f12;
+  --md-surface-container-low:       #111317;
+  --md-surface-container:           #14171c;
+  --md-surface-container-high:      #191c21;
+
+  --md-on-surface:           #ffffff;
+  --md-on-surface-variant:   #b4bac4;
+  --md-on-surface-muted:     #9aa0ac;
+  --md-on-surface-faint:     #7d8290;
+
+  --md-outline:              #343941;
+  --md-outline-hair:         #1c1f24;
+
+  --md-shape-md:  12px;
+  --md-shape-full: 9999px;
+
+  --md-font-plain:  "Roboto Flex","Roboto",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --md-font-data:   "Roboto Flex","Roboto",ui-monospace,monospace;
+  --md-label-s-size: 11px;
+  --md-w-medium: 500;
+
+  --md-elev-1: 0 1px 2px 0 rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
+  --md-elev-2: 0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.15);
+  --md-elev-3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px 0 rgba(0,0,0,.30);
+
+  --md-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+}
+
+body.light {
+  --agent-a-bg:         rgba(212,165,116,0.14);
+  --agent-a-bg-strong:  rgba(212,165,116,0.26);
+  --agent-a-border:     rgba(212,165,116,0.42);
+
+  --agent-b-bg:         rgba(124,196,184,0.14);
+  --agent-b-bg-strong:  rgba(124,196,184,0.26);
+  --agent-b-border:     rgba(124,196,184,0.42);
+
+  --md-surface:                     #f4ecdf;
+  --md-surface-container-low:       #ede4d3;
+  --md-surface-container:           #e8dec9;
+  --md-surface-container-high:      #e0d4bc;
+
+  --md-on-surface:           #14110a;
+  --md-on-surface-variant:   #3b3527;
+  --md-on-surface-muted:     #5a5240;
+  --md-on-surface-faint:     #7d735c;
+
+  --md-outline:              #b9ad94;
+  --md-outline-hair:         #d4c8af;
+
+  --md-elev-1: 0 1px 2px 0 rgba(20,17,10,.10), 0 1px 3px 1px rgba(20,17,10,.06);
+  --md-elev-2: 0 1px 2px 0 rgba(20,17,10,.10), 0 2px 6px 2px rgba(20,17,10,.06);
+  --md-elev-3: 0 4px 8px 3px rgba(20,17,10,.06), 0 1px 3px 0 rgba(20,17,10,.10);
+}
+
+/* ───────────── Page chrome ───────────── */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--md-font-plain);
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  padding: 32px 28px 96px;
+  min-height: 100vh;
+}
+h1 {
+  font-size: 22px; font-weight: 500; letter-spacing: 0.1px;
+  margin: 0 0 6px;
+}
+.lede {
+  color: var(--md-on-surface-muted);
+  max-width: 760px;
+  font-size: 13px; line-height: 1.55;
+  margin: 0 0 24px;
+}
+.toolbar {
+  display: flex; gap: 8px; align-items: center;
+  padding: 6px; margin-bottom: 28px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  width: max-content;
+}
+.toolbar button {
+  height: 32px; padding: 0 14px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: 500 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.toolbar button.is-active {
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  box-shadow: var(--md-elev-1);
+}
+.variant {
+  margin-bottom: 36px;
+}
+.variant-hd {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 10px;
+}
+.variant-hd .num {
+  font: 500 11px/1 var(--md-font-data);
+  letter-spacing: 0.5px;
+  color: var(--md-on-surface-faint);
+  text-transform: uppercase;
+}
+.variant-hd .name {
+  font: 500 14px/1 var(--md-font-plain);
+  color: var(--md-on-surface);
+}
+.variant-hd .note {
+  font: 400 12px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-muted);
+}
+
+/* ───────────── Timeline frame (mimics .tl__head / .tl__tabs) ───────────── */
+.tl-frame {
+  display: flex; flex-direction: column;
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.tl-head, .tl-tabs {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--md-outline-hair);
+  flex-shrink: 0;
+}
+.tl-head { background: var(--md-surface-container-high); min-height: 53px; }
+.tl-tabs { background: var(--md-surface-container);      min-height: 55px; border-bottom: 0; }
+.tl-head .ttl { font: 500 16px/1 var(--md-font-plain); white-space: nowrap; }
+.tl-head .ct  { font: 12px/1 var(--md-font-data); color: var(--md-on-surface-faint); }
+.tl-tabs-inner {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+}
+.tl-tab {
+  height: 26px; padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: 0; cursor: pointer;
+  border-radius: var(--md-shape-full);
+  font: 500 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.tl-tab.is-active {
+  background: var(--md-surface); color: var(--md-on-surface);
+  box-shadow: var(--md-elev-1);
+}
+
+/* ───────────── AgentStrip (.as.in-header) ─────────────
+   Copied/adapted from components.css so this demo matches production.
+   ───────────── */
+.as {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px;
+  min-width: 600px;
+  padding: 4px 24px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  font-size: 13px;
+  margin-left: auto;
+  position: relative;            /* needed for ::after halo overlays */
+  isolation: isolate;
+}
+.as.is-a { border-left: 2px solid var(--agent-a); }
+.as.is-b { border-left: 2px solid var(--agent-b); }
+.as-left  { display: inline-flex; align-items: center; gap: 16px; }
+.as-right { display: inline-flex; align-items: center; gap: 16px; color: var(--md-on-surface-muted); min-width: 0; }
+.as-right .num { color: var(--md-on-surface-variant); font-family: var(--md-font-data); }
+.as .as-model { font-family: var(--md-font-data); font-size: var(--md-label-s-size); color: var(--md-on-surface-muted); white-space: nowrap; }
+.as .as-activity {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; white-space: nowrap;
+  color: var(--md-on-surface-faint);
+}
+.as.is-live .as-activity { color: var(--md-on-surface-variant); }
+
+.ai {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+  color: #14110a;
+  flex: 0 0 auto;
+}
+.ai.ai-a { background: var(--agent-a); }
+.ai.ai-b { background: var(--agent-b); }
+.ai svg { width: 12px; height: 12px; }
+
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--md-outline);
+  flex: 0 0 auto;
+}
+.is-live.is-a .dot { background: var(--agent-a); }
+.is-live.is-b .dot { background: var(--agent-b); }
+
+/* ───────────── Variant A — soft halo pulse (full badge) ─────────────
+   Same recipe as the existing .pulse-a / .pulse-b dot halos, scaled
+   up to ring the entire pill. Lowest contrast — won't compete with
+   in-pane phase chips. */
+@keyframes badge-halo-a {
+  0%, 100% { box-shadow: 0 0 0 0    rgba(var(--agent-a-rgb), 0.42); }
+  50%      { box-shadow: 0 0 0 10px rgba(var(--agent-a-rgb), 0.00); }
+}
+@keyframes badge-halo-b {
+  0%, 100% { box-shadow: 0 0 0 0    rgba(var(--agent-b-rgb), 0.42); }
+  50%      { box-shadow: 0 0 0 10px rgba(var(--agent-b-rgb), 0.00); }
+}
+.as.v-halo.is-live.is-a { animation: badge-halo-a 2.4s ease-out infinite; }
+.as.v-halo.is-live.is-b { animation: badge-halo-b 2.4s ease-out infinite; }
+
+/* ───────────── Variant B — agent-tinted background gradient breathing
+   Background gently sweeps an agent-tinted gradient overlay across the
+   pill. No layout shift; works in both themes. */
+.as.v-gradient { overflow: hidden; }
+.as.v-gradient::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(var(--agent-rgb,255,255,255), 0.18) 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 200ms ease;
+}
+.as.v-gradient.is-a { --agent-rgb: var(--agent-a-rgb); }
+.as.v-gradient.is-b { --agent-rgb: var(--agent-b-rgb); }
+.as.v-gradient.is-live::before {
+  opacity: 1;
+  animation: gradient-sweep 3.2s ease-in-out infinite;
+}
+@keyframes gradient-sweep {
+  0%   { background-position: 100% 0; }
+  50%  { background-position: 0%   0; }
+  100% { background-position: 100% 0; }
+}
+
+/* ───────────── Variant C — elevation breathing
+   The surface tier feels like it lifts off the row when active. Pure
+   M3 vocabulary — uses --md-elev-* without inventing new shadows. */
+.as.v-elev {
+  transition: box-shadow 280ms var(--md-easing-emphasized),
+              background-color 280ms var(--md-easing-emphasized),
+              transform 280ms var(--md-easing-emphasized);
+}
+@keyframes elev-breathe {
+  0%, 100% {
+    box-shadow: var(--md-elev-1);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: var(--md-elev-3);
+    transform: translateY(-1px);
+  }
+}
+.as.v-elev.is-live {
+  background: var(--md-surface-container-high);
+  animation: elev-breathe 2.6s ease-in-out infinite;
+}
+
+/* ───────────── Variant D — border tint glow
+   Border colour cycles between hairline and agent-tinted. Quiet on
+   screen, draws the eye without movement (best for reduced-motion). */
+.as.v-border {
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+@keyframes border-glow-a {
+  0%, 100% { border-color: var(--md-outline-hair); }
+  50%      { border-color: rgba(var(--agent-a-rgb), 0.70); }
+}
+@keyframes border-glow-b {
+  0%, 100% { border-color: var(--md-outline-hair); }
+  50%      { border-color: rgba(var(--agent-b-rgb), 0.70); }
+}
+.as.v-border.is-live.is-a { animation: border-glow-a 2.4s ease-in-out infinite; }
+.as.v-border.is-live.is-b { animation: border-glow-b 2.4s ease-in-out infinite; }
+.as.v-border.is-live      { background: var(--md-surface-container-high); }
+
+/* ───────────── Variant E — combined (recommended)
+   Subtle elevation lift + a much gentler agent-tinted halo. The
+   movement reads as "the model is breathing" without ever creating
+   a contrast jolt or competing with the activity dot inside the pill. */
+.as.v-combo {
+  transition: box-shadow 280ms var(--md-easing-emphasized),
+              background-color 280ms var(--md-easing-emphasized);
+}
+@keyframes combo-a {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(var(--agent-a-rgb), 0.22),
+      var(--md-elev-1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(var(--agent-a-rgb), 0.00),
+      var(--md-elev-3);
+  }
+}
+@keyframes combo-b {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(var(--agent-b-rgb), 0.22),
+      var(--md-elev-1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(var(--agent-b-rgb), 0.00),
+      var(--md-elev-3);
+  }
+}
+.as.v-combo.is-live { background: var(--md-surface-container-high); }
+.as.v-combo.is-live.is-a { animation: combo-a 2.8s ease-in-out infinite; }
+.as.v-combo.is-live.is-b { animation: combo-b 2.8s ease-in-out infinite; }
+
+/* ───────────── Reduced motion ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  .as.v-halo.is-live,
+  .as.v-gradient.is-live::before,
+  .as.v-elev.is-live,
+  .as.v-border.is-live,
+  .as.v-combo.is-live {
+    animation: none !important;
+  }
+  /* Static accent so liveness is still legible */
+  .as.is-live { background: var(--md-surface-container-high); }
+}
+</style>
+</head>
+<body>
+
+<h1>Active-agent badge pulse — variant study</h1>
+<p class="lede">
+  Each block shows one candidate animation for the
+  <code>.as.in-header</code> AgentStrip used in the Timeline pane header
+  (<code>.tl__head</code> · Claude) and the Conversation / Consumption row
+  (<code>.tl__tabs</code> · GPT). In each block the Claude badge is
+  <em>active</em> and the GPT badge is <em>idle</em>, then both are active
+  to show how they coexist. Toggle the theme to see how it reads on cream.
+</p>
+
+<div class="toolbar" role="tablist" aria-label="Theme">
+  <button id="t-dark" class="is-active" type="button">Dark</button>
+  <button id="t-light" type="button">Light</button>
+  <span style="width:8px"></span>
+  <button id="t-motion" type="button">Toggle reduced-motion preview</button>
+</div>
+
+<!-- Variant A -->
+<section class="variant">
+  <div class="variant-hd">
+    <span class="num">Variant A</span>
+    <span class="name">Soft halo pulse</span>
+    <span class="note">Existing dot-halo recipe scaled to the whole badge. Lowest contrast, easiest sell.</span>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Timeline</span>
+      <span class="ct">· 14 artifacts</span>
+      <div class="as is-a is-live v-halo">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.7144 15.9555l4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>negotiating · round 03</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b v-halo">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>idle · awaiting peer</span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Both active</span>
+      <span class="ct">· same recipe, both pulsing</span>
+      <div class="as is-a is-live v-halo">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.7144 15.9555l4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429Z"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting parallel plan</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b is-live v-halo">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729Z"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span>
+          <span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting converged doc</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Variant B -->
+<section class="variant">
+  <div class="variant-hd">
+    <span class="num">Variant B</span>
+    <span class="name">Gradient sweep</span>
+    <span class="note">An agent-tinted gradient slowly sweeps across the pill — a sheen, not a halo.</span>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Timeline</span>
+      <span class="ct">· 14 artifacts</span>
+      <div class="as is-a is-live v-gradient">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.7144 15.9555l4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714Z"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>negotiating · round 03</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b v-gradient">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9Z"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>idle · awaiting peer</span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Both active</span>
+      <span class="ct">· offset gradient phases</span>
+      <div class="as is-a is-live v-gradient">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting parallel plan</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b is-live v-gradient" style="animation-delay: -1.6s">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting converged doc</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Variant C -->
+<section class="variant">
+  <div class="variant-hd">
+    <span class="num">Variant C</span>
+    <span class="name">Elevation breathing</span>
+    <span class="note">M3 elevation cycles between elev-1 and elev-3 with a 1px lift — pure shadow, no colour.</span>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Timeline</span>
+      <span class="ct">· 14 artifacts</span>
+      <div class="as is-a is-live v-elev">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>negotiating · round 03</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b v-elev">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>idle · awaiting peer</span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Both active</span>
+      <span class="ct">· phases offset so the breathing alternates</span>
+      <div class="as is-a is-live v-elev">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting parallel plan</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b is-live v-elev" style="animation-delay: -1.3s">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting converged doc</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Variant D -->
+<section class="variant">
+  <div class="variant-hd">
+    <span class="num">Variant D</span>
+    <span class="name">Border-tint glow</span>
+    <span class="note">No motion — the 1px hairline border cycles to the agent hue. Quietest option.</span>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Timeline</span>
+      <span class="ct">· 14 artifacts</span>
+      <div class="as is-a is-live v-border">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>negotiating · round 03</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b v-border">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>idle · awaiting peer</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Variant E -->
+<section class="variant">
+  <div class="variant-hd">
+    <span class="num">Variant E</span>
+    <span class="name">Elevation + halo (recommended)</span>
+    <span class="note">Subtle 1px elevation lift <em>and</em> a soft agent-tinted halo — the model is breathing without ever shouting.</span>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Timeline</span>
+      <span class="ct">· 14 artifacts</span>
+      <div class="as is-a is-live v-combo">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>negotiating · round 03</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b v-combo">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>idle · awaiting peer</span>
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="tl-frame">
+    <div class="tl-head">
+      <span class="ttl">Both active</span>
+      <span class="ct">· offset phases — sympathetic breathing, not in lockstep</span>
+      <div class="as is-a is-live v-combo">
+        <span class="as-left">
+          <span class="ai ai-a"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">claude-sonnet-4-6</span>
+        </span>
+        <span class="as-right">
+          <span class="num">12.4k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.18</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting parallel plan</span>
+        </span>
+      </div>
+    </div>
+    <div class="tl-tabs">
+      <div class="tl-tabs-inner">
+        <button class="tl-tab is-active" type="button">Conversation</button>
+        <button class="tl-tab" type="button">Consumption</button>
+      </div>
+      <div class="as is-b is-live v-combo" style="animation-delay: -1.4s">
+        <span class="as-left">
+          <span class="ai ai-b"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></span>
+          <span class="as-model">gpt-5.5</span>
+        </span>
+        <span class="as-right">
+          <span class="num">9.1k</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="num">$0.06</span><span style="color:var(--md-on-surface-faint)">·</span>
+          <span class="as-activity"><span class="dot"></span>drafting converged doc</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const dark   = document.getElementById('t-dark');
+  const light  = document.getElementById('t-light');
+  const motion = document.getElementById('t-motion');
+  const setTheme = (mode) => {
+    document.body.classList.toggle('light', mode === 'light');
+    dark.classList.toggle('is-active', mode === 'dark');
+    light.classList.toggle('is-active', mode === 'light');
+  };
+  dark.addEventListener('click',  () => setTheme('dark'));
+  light.addEventListener('click', () => setTheme('light'));
+
+  // Reduced-motion preview (without changing OS setting): toggle a class
+  // that mimics the @media (prefers-reduced-motion) rule.
+  let rm = false;
+  const rmStyle = document.createElement('style');
+  document.head.appendChild(rmStyle);
+  motion.addEventListener('click', () => {
+    rm = !rm;
+    motion.classList.toggle('is-active', rm);
+    rmStyle.textContent = rm ? `
+      .as.v-halo.is-live,
+      .as.v-gradient.is-live::before,
+      .as.v-elev.is-live,
+      .as.v-border.is-live,
+      .as.v-combo.is-live { animation: none !important; }
+      .as.is-live { background: var(--md-surface-container-high); }
+    ` : '';
+  });
+</script>
+</body>
+</html>

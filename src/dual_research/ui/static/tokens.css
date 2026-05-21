@@ -20,6 +20,15 @@
   --agent-b-bg-strong:  rgba(124,196,184,0.16);
   --agent-b-border:     rgba(124,196,184,0.22);
 
+  /* Spec 0138 §5.1 — RGB-triple variants of the agent palette. Needed
+     by the `.as.in-header.is-live::before` gradient-sweep recipe, which
+     uses `rgba(var(--agent-X-rgb), …)` to interpolate alpha at animation
+     keyframes without committing to a static fill colour. Identical
+     triples in light and dark mode — only the surface underneath
+     changes; the gradient overlay reads identically on both. */
+  --agent-a-rgb: 212, 165, 116;
+  --agent-b-rgb: 124, 196, 184;
+
   /* ── Status (the only other hues allowed) ───────── */
   --ok:    #6fb380;         /* resolved · converged · completed · approved */
   --info:  #6b9cf0;         /* running · current phase · live cursor · focus ring */

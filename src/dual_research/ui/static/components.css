@@ -370,12 +370,97 @@ button.chip:focus-visible {
   border-radius: var(--md-shape-full);
   font-size: 13px;
   align-self: center;
+  /* Spec 0138 §5.1 — required so the absolutely-positioned ::before
+     overlay (gradient sweep, below) clips to the pill's rounded edge
+     and so `inset: 0` is positioned against this element. */
+  position: relative;
+  overflow: hidden;
 }
 .as.in-header .as-left  { gap: 16px; }
 .as.in-header .as-right { gap: 16px; font-size: 13px; }
 .as.in-header .as-name  { display: none; }   /* logo carries identity */
 .as.in-header .as-model { font-size: 13px; }
 .as.in-header .num      { font-size: 13px; }
+
+/* Spec 0138 §5.1 — Variant B gradient sweep on active `.as.in-header`.
+   Signals "this agent is currently doing work in the active round" by
+   gently sweeping an agent-tinted soft-light gradient across the badge
+   surface. The sweep is felt before it's seen: the gradient peak is
+   18% alpha against the surface-container background, which on both
+   the dark (#14171c) and light (#e8dec9) variants reads as a subtle
+   warmth rather than as an explicit colour change.
+
+   Why this recipe (vs the existing pulse-a/b halo on the inner dot):
+   - The halo applied to the full badge reads as a hard alarm pulse and
+     competes with the in-pane activity-phrase dot pulse.
+   - A surface sweep avoids the halo's outward-pressure feel — the badge
+     stays the same size at all keyframes; only the surface texture
+     animates.
+   - No new tokens, no new shadows, no translate / scale. Lives entirely
+     in the surface-color space.
+
+   Agent identity comes from `--agent-{a,b}-rgb` (tokens.css, spec 0138
+   token addition). Phase offset is set per-agent via animation-delay so
+   two simultaneously-live agents don't pulse in lockstep. */
+.as.in-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(var(--agent-rgb, 255, 255, 255), 0.18) 50%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  transition: opacity 200ms ease;
+}
+/* The overlay sits behind the badge's content; the immediate children
+   (.as-left / .as-right) need to render above it. `position: relative`
+   + z-index lifts them over the ::before pseudo. */
+.as.in-header > .as-left,
+.as.in-header > .as-right {
+  position: relative;
+  z-index: 1;
+}
+.as.in-header.is-a { --agent-rgb: var(--agent-a-rgb); }
+.as.in-header.is-b { --agent-rgb: var(--agent-b-rgb); }
+.as.in-header.is-live::before {
+  opacity: 1;
+  animation: as-pulse-sweep 3.2s ease-in-out infinite;
+}
+/* When both agents are live simultaneously, offset the GPT animation
+   so the two badges don't sweep in lockstep — sympathetic motion, not
+   synchronised. The negative delay starts the animation mid-cycle on
+   mount. */
+.as.in-header.is-b.is-live::before { animation-delay: -1.6s; }
+
+@keyframes as-pulse-sweep {
+  0%   { background-position: 100% 0; }
+  50%  { background-position: 0%   0; }
+  100% { background-position: 100% 0; }
+}
+
+/* Reduced-motion contract — degrade to a static tint so liveness stays
+   legible without motion. The base.css global @media block already
+   zeros animation-duration on `*`, which would freeze the gradient at
+   its starting position (transparent on the right) and effectively
+   hide the signal entirely. Override here with an explicit
+   non-animated background. */
+@media (prefers-reduced-motion: reduce) {
+  .as.in-header.is-live::before {
+    animation: none;
+    opacity: 0;
+  }
+  .as.in-header.is-live {
+    background: var(--md-surface-container-high);
+  }
+}
 
 /* AgentIcon (.ai) — agent logo tile */
 .ai {
@@ -882,13 +967,9 @@ body.light .tab-group.tabs-solid .tab.is-active,
   padding: 0;
 }
 .crit-card-head__spacer { flex: 1; min-width: 8px; }
-.crit-card-id {
-  font-family: var(--md-font-data);
-  font-size: 10.5px;
-  color: var(--md-on-surface-faint);
-  padding: 2px 0 0;
-  user-select: text;
-}
+/* Spec 0138 §5.2 — `.crit-card-id` rule deleted. The corresponding
+   `<div className="crit-card-id">id: {id}</div>` markup is gone from
+   shared.jsx's QuestionThread; rule had zero remaining callers. */
 
 /* Spec 0119 §8.5 — lifecycle row inside an expanded critique card.
    Each row is a chip cluster (provider + round + verb chip) above

@@ -182,7 +182,15 @@ function TimelineAgentPill({ agent, run, className = 'in-header' }) {
       cost={cost}
       costFormatter={fmt.costShort}
       right={activityRight}
-      className={className}
+      // Spec 0138 §5.1 — append `is-live` when the agent is mid-round so
+      // the `.as.in-header.is-live::before` gradient sweep (added in the
+      // CSS at components.css) animates. The class is keyed off the same
+      // `live` boolean that drives the inner dot pulse, so the two
+      // animations engage / disengage together as one "this model is
+      // breathing" gesture. `_cn` is a top-level helper in shared.jsx
+      // (line 682), reachable from this file by virtue of the
+      // index.html script ordering (shared.jsx loads before run-detail.jsx).
+      className={_cn(className, live && 'is-live')}
     />
   );
 }
@@ -249,7 +257,31 @@ function RunSearchSummary({ onJump }) {
 
 // ─────────────────── Spec 0033 — phase dots row with labels ─────────────────
 // Spec 0056 SUR-07: drafter callout pill replaces inline "drafter: X" text.
+// Spec 0138 §5.3: full run-id RunIDChip with click-to-copy, sitting in
+// the right-side cluster to the left of the started/elapsed/round metadata
+// so the visual hierarchy reads identity first → activity context second.
 function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
+  // Spec 0138 §5.3 — click-to-copy state for the run-id chip. The
+  // confirmation surface is the chip's `title` tooltip; on success it
+  // swaps to "copied!" for ~1.4 s and reverts. The spec considered a
+  // full M3 snackbar (§7) but defers to keep the affordance simple.
+  const [copiedRunId, setCopiedRunId] = React.useState(false);
+  const copyRunId = React.useCallback((e) => {
+    e.stopPropagation();
+    if (!run?.id || !navigator.clipboard) return;
+    navigator.clipboard.writeText(run.id).then(
+      () => {
+        setCopiedRunId(true);
+        setTimeout(() => setCopiedRunId(false), 1400);
+      },
+      () => {
+        // navigator.clipboard.writeText can reject in non-secure
+        // contexts (HTTP non-localhost). Silently no-op — the user can
+        // still triple-click the chip text and Cmd+C manually.
+      },
+    );
+  }, [run?.id]);
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
@@ -264,6 +296,18 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
       {/* Spec 0056 D4: drafter callout pill — agent-tinted Chip with icon. */}
       {run.drafter && <DrafterCalloutPill drafter={run.drafter} />}
       <span style={{ flex: 1 }} />
+      {/* Spec 0138 §5.3 — full run id, copyable. Sits to the LEFT of the
+          existing started/elapsed/round metadata so the visual hierarchy
+          reads identity first → activity context second. The chip uses
+          the existing `.rid` primitive (shared.jsx:844-852); no new
+          design-system surface. */}
+      {run.id && (
+        <RunIDChip
+          id={run.id}
+          onClick={copyRunId}
+          title={copiedRunId ? 'copied!' : `${run.id} — click to copy`}
+        />
+      )}
       <span className="mono" style={{
         fontSize: 10.5, color: 'var(--md-on-surface-faint)',
         whiteSpace: 'nowrap',
