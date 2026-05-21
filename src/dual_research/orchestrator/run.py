@@ -144,6 +144,37 @@ def _install_transcript_bridge(event_bus: EventBus, ctx: SessionContext) -> None
     event_bus.subscribe(on_event)
 
 
+def _persist_initial_brief_bundle(session_root, brief_text: str) -> None:
+    """Spec 0142 — write ``inputs/input.json`` once at session setup.
+
+    Mirrors :func:`dual_research.ui.aggregator.build_phase0_input_bundle`
+    but stamps ``system_source="recorded"`` so the hosted UI's Initial
+    Brief modal does not render the spec-0085 "agent default — not
+    recorded" caveat. The file is then picked up by
+    :func:`dual_research.persistence.remote._iter_file_rows` and pushed
+    to Supabase like every other input bundle. Idempotent: a re-entry
+    on a resumed run leaves the existing file alone.
+    """
+    import json as _json
+
+    from dual_research.protocol.prompts import preflight_input_bundle
+
+    inputs_dir = session_root / "inputs"
+    inputs_dir.mkdir(parents=True, exist_ok=True)
+    path = inputs_dir / "input.json"
+    if path.exists():
+        return
+    payload = {
+        "agent": "shared",
+        "phase": "phase0",
+        "label": "phase0-input",
+        "pieces": preflight_input_bundle(brief=brief_text, agent_name="<both>"),
+        "emitted_at": "",
+        "system_source": "recorded",
+    }
+    write_atomic(path, _json.dumps(payload, indent=2))
+
+
 async def run_session(
     *,
     session_root,
@@ -239,6 +270,11 @@ async def run_session(
     )
 
     brief_content = session.brief_path.read_text(encoding="utf-8")
+    # Spec 0142 — persist the shared Phase-0 "Initial Brief" input bundle
+    # at session setup so the hosted UI's full-view modal (turnKey='input')
+    # hydrates from a real recorded row instead of falling through to the
+    # spec-0085 synthesis path that stamps system_source="agent-default".
+    _persist_initial_brief_bundle(session.root, brief_content)
     run_started = time.perf_counter()
     phase0_outcome: Phase0Outcome | None = None
     phase1_outcome: Phase1Outcome | None = None

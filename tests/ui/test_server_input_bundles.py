@@ -138,6 +138,39 @@ class TestGetBundle:
         assert data["system_source"] == "recorded"
         assert data["pieces"]["system"] == "REAL"
 
+    def test_persisted_input_json_overrides_synth_fallback(
+        self, client: TestClient, tmp_path: Path
+    ) -> None:
+        """Spec 0142 — when ``inputs/input.json`` is present (written at
+        session setup), the server returns it instead of falling through
+        to the spec-0085 synthesis path. The recorded bundle is stamped
+        ``system_source: 'recorded'`` so the frontend skips the
+        'agent default' caveat on the Initial Brief modal."""
+        session = _seed_minimal_session(tmp_path / "runs", "run-rec-input")
+        inputs_dir = session / "inputs"
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        recorded = {
+            "agent": "shared",
+            "phase": "phase0",
+            "label": "phase0-input",
+            "pieces": {
+                "system": "REAL_SYSTEM_PROMPT",
+                "brief": "REAL_BRIEF_TEXT",
+                "d1": "", "d2": "", "plan": "",
+                "hist": "", "draft": "", "histp": "",
+            },
+            "emitted_at": "",
+            "system_source": "recorded",
+        }
+        (inputs_dir / "input.json").write_text(json.dumps(recorded), encoding="utf-8")
+
+        r = client.get("/api/runs/run-rec-input/inputs/input")
+        assert r.status_code == 200
+        data = r.json()
+        assert data["system_source"] == "recorded"
+        assert data["pieces"]["brief"] == "REAL_BRIEF_TEXT"
+        assert data["pieces"]["system"] == "REAL_SYSTEM_PROMPT"
+
     def test_traversal_attempt_rejected(self, client: TestClient, tmp_path: Path) -> None:
         _seed_minimal_session(tmp_path / "runs", "run-5")
         r = client.get("/api/runs/run-5/inputs/..%2Fetc")
