@@ -41,7 +41,11 @@ def _derive_turn_key(*, agent_label: str, phase: str, label: str) -> str:
     ui_ag = "gpt" if agent_label == "openai" else agent_label
     phase_int = _phase_to_int(phase)
     idx = _round_index_from_label(label)
-    if phase_int in (2, 4) and idx > 0:
+    # Spec 0142 — Phase 0 also runs per-round negotiations (label shape
+    # ``phase0-r{N}-{agent}``). Pre-spec it collapsed to ``phase0_<agent>``
+    # so successive rounds clobbered each other's ``inputs/<key>.json``.
+    # Round-key it the same way Phase 2 / Phase 4 already do.
+    if phase_int in (0, 2, 4) and idx > 0:
         key = f"phase{phase_int}_round{idx}_{ui_ag}"
     else:
         key = f"phase{phase_int}_{ui_ag}"

@@ -749,7 +749,10 @@ def _on_turn_inputs(run: Run, event: dict, session_dir: Path) -> None:
     phase_int = phase_to_int(phase_str)
     label = event.get("label") or ""
     idx = _round_index_from_label(label)
-    if phase_int in (2, 4) and idx > 0:
+    # Spec 0142 — Phase 0 round-keying mirrors ``_call.py::_derive_turn_key``;
+    # without this, per-round Phase-0 bundles all write to
+    # ``phase0_<agent>.json`` and the last round overwrites the rest.
+    if phase_int in (0, 2, 4) and idx > 0:
         key = f"phase{phase_int}_round{idx}_{ag}"
     else:
         key = f"phase{phase_int}_{ag}"
@@ -814,7 +817,9 @@ def _on_turn_searches(run: Run, event: dict, session_dir: Path) -> None:
     phase_int = phase_to_int(phase_str)
     label = event.get("label") or ""
     idx = _round_index_from_label(label)
-    if phase_int in (2, 4) and idx > 0:
+    # Spec 0142 — Phase 0 round-keying. See ``_on_turn_inputs`` above and
+    # ``_call.py::_derive_turn_key`` for the matching change.
+    if phase_int in (0, 2, 4) and idx > 0:
         key = f"phase{phase_int}_round{idx}_{ag}"
     else:
         key = f"phase{phase_int}_{ag}"

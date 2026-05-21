@@ -154,6 +154,40 @@ class TestPersistInputBundle:
         assert (tmp_path / "inputs" / "phase2_round3_claude.json").is_file()
         assert (tmp_path / "inputs" / "phase2_round3_claude_repair.json").is_file()
 
+    def test_phase0_round_keyed_inputs_survive_per_round(self, tmp_path: Path) -> None:
+        """Spec 0142 — pre-fix, two Phase-0 round events collapsed onto
+        ``phase0_claude.json`` and round 1's content was overwritten by
+        round 2. Post-fix, both files land on disk independently."""
+        run = _empty_run()
+        apply_event(
+            run,
+            _turn_inputs(
+                agent="claude",
+                phase="phase0",
+                label="phase0-r1-claude",
+                pieces={"system": "S_R1", "brief": "B"},
+            ),
+            tmp_path,
+        )
+        apply_event(
+            run,
+            _turn_inputs(
+                agent="claude",
+                phase="phase0",
+                label="phase0-r2-claude",
+                pieces={"system": "S_R2", "brief": "B"},
+            ),
+            tmp_path,
+        )
+        r1 = tmp_path / "inputs" / "phase0_round1_claude.json"
+        r2 = tmp_path / "inputs" / "phase0_round2_claude.json"
+        assert r1.is_file()
+        assert r2.is_file()
+        assert json.loads(r1.read_text(encoding="utf-8"))["pieces"]["system"] == "S_R1"
+        assert json.loads(r2.read_text(encoding="utf-8"))["pieces"]["system"] == "S_R2"
+        # Pre-fix flat-key path must no longer be written for round-keyed turns.
+        assert not (tmp_path / "inputs" / "phase0_claude.json").exists()
+
 
 class TestPhase0Synthesis:
     def test_returns_none_when_brief_missing(self, tmp_path: Path) -> None:
