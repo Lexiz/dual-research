@@ -10,23 +10,6 @@
 <link rel="stylesheet" href="_shared.css">
 <style>
 
-  /* shared inline defs used across the page so we don't duplicate */
-  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
-  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
-  .ex-frame.bad .ex-head { color: #8b3a25; }
-  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
-  .ex-frame.good .ex-head { color: #275a40; }
-  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
-  .ex-frame svg { display: block; width: 100%; height: auto; }
-  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
-  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
-  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
-  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
-  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
-  .rule .body strong { color:var(--ink-1); }
-
-
-
   .example-pair {
     margin: 18px 0 36px;
   }
@@ -76,43 +59,6 @@
   }
   .demonstrates .cell .val { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
   @media (max-width: 1100px) { .demonstrates { grid-template-columns: 1fr; } .demonstrates .cell { border-right: none; border-bottom: 1px solid var(--rule-soft); } }
-
-
-
-  .icon-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0;
-    background: white;
-    border: 1px solid var(--rule-soft);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06);
-    margin: 14px 0 32px;
-  }
-  @media (max-width: 1100px) { .icon-grid { grid-template-columns: repeat(4, 1fr); } }
-  .icon-cell {
-    padding: 18px 14px 16px;
-    border-right: 1px solid var(--rule-soft);
-    border-bottom: 1px solid var(--rule-soft);
-    text-align: center;
-    background: white;
-  }
-  .icon-cell .light { background: var(--bg-1); border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; }
-  .icon-cell .dark { background: #1a1a18; border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; margin-left: 6px; }
-  .icon-cell .name { font-family: var(--mono); font-size: 11px; color: var(--indigo-2); margin-top: 10px; }
-  .icon-cell .desc { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
-  .cat-head {
-    grid-column: 1 / -1;
-    background: var(--bg-tint);
-    padding: 10px 16px;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.6;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    border-bottom: 1px solid var(--rule);
-  }
 
 
 
@@ -199,6 +145,60 @@
     line-height: 1.55;
   }
   .contract .anti strong { color: #8b3a25; font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; margin-right: 8px; }
+
+
+
+  /* shared inline defs used across the page so we don't duplicate */
+  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
+  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ex-frame.bad .ex-head { color: #8b3a25; }
+  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
+  .ex-frame.good .ex-head { color: #275a40; }
+  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
+  .ex-frame svg { display: block; width: 100%; height: auto; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
+  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
+  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
+  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
+  .rule .body strong { color:var(--ink-1); }
+
+
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    background: white;
+    border: 1px solid var(--rule-soft);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06);
+    margin: 14px 0 32px;
+  }
+  @media (max-width: 1100px) { .icon-grid { grid-template-columns: repeat(4, 1fr); } }
+  .icon-cell {
+    padding: 18px 14px 16px;
+    border-right: 1px solid var(--rule-soft);
+    border-bottom: 1px solid var(--rule-soft);
+    text-align: center;
+    background: white;
+  }
+  .icon-cell .light { background: var(--bg-1); border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; }
+  .icon-cell .dark { background: #1a1a18; border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; margin-left: 6px; }
+  .icon-cell .name { font-family: var(--mono); font-size: 11px; color: var(--indigo-2); margin-top: 10px; }
+  .icon-cell .desc { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+  .cat-head {
+    grid-column: 1 / -1;
+    background: var(--bg-tint);
+    padding: 10px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.6;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--rule);
+  }
 
 
 /* ───── flow.html — unified header + section frames ───── */
@@ -418,14 +418,25 @@ body {
     <h2 class="ds-section-title">Foundations</h2>
     <p class="ds-section-blurb">Locked tokens — canvas, palette, type, spacing, shadows, animation.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 01 · Foundations</p>
-<h1 class="page">Tokens that every component and template references by name.</h1>
-<p class="lede">Each foundation is a registry: a closed list of named values. The generator never invents a hex, a font-size, or a spacing number — it references the token. If a situation needs a value not in the registry, the situation is wrong, not the registry. This is what makes nine different diagram templates feel like one product.</p>
+  <h1 class="page">Tokens that every component and template references by name.</h1>
+  <p class="lede">Each foundation is a registry: a closed list of named values. The generator never invents a hex, a font-size, or a spacing number — it references the token. If a situation needs a value not in the registry, the situation is wrong, not the registry. This is what makes nine different diagram templates feel like one product.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">26</span><span class="lbl">color tokens</span></span>
+    <span class="stat"><span class="n">7</span><span class="lbl">surface gradients</span></span>
+    <span class="stat"><span class="n">14</span><span class="lbl">type roles</span></span>
+    <span class="stat"><span class="n">13</span><span class="lbl">spacing tokens</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">keyframes</span></span>
+    <span class="stat"><span class="n">1660</span><span class="lbl">viewBox · locked</span></span>
+  </div>
+</section>
 
 <!-- =========================================================== -->
 <!--                       THEME MODEL                            -->
 <!-- =========================================================== -->
 
+<section class="ds-section">
 <h2><span class="num">01.0</span>Theme model</h2>
 <p class="section-lede">Every diagram ships in two flavors — <strong>light</strong> (cream canvas, the v1 spec) and <strong>dark</strong> (near-black canvas). The two share <em>everything</em> structural: viewBox, layout, type roles, spacing tokens, animation classes, connector geometry, manifest pins. They differ only in <em>color values</em>. Below is the contract. Every token in the rest of this page has a dark sibling named <code>--&lt;token&gt;-dark</code>.</p>
 
@@ -471,6 +482,9 @@ body {
 <!-- =========================================================== -->
 <!--                          CANVAS                              -->
 <!-- =========================================================== -->
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.1</span>Canvas</h2>
 <p class="section-lede">The diagram's outer geometry is locked. The cream background, the 1660px viewBox width, and Inter as the type family are non-negotiable across all nine templates — they are the load-bearing brand surface.</p>
 
@@ -551,6 +565,9 @@ body {
 <!--                       COLOR PALETTE                          -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.2</span>Color · semantic palette</h2>
 <p class="section-lede">Every color is named by what it means, not by what it looks like. The indigo identity is fixed. Card gradients are categorical: a “Postgres” card uses <code>--surface-sql</code> in every diagram of a set; a worker uses <code>--surface-neutral</code> wherever it appears. The set manifest pins these once.</p>
 
@@ -785,6 +802,9 @@ body {
 <!--                         TYPOGRAPHY                           -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.3</span>Typography · roles</h2>
 <p class="section-lede">Type roles are named, not picked by inspection. Letter-spacing is part of the role and isn't optional — small caps without spacing read as cramped. The annotated screenshot's “floating MCP TOOLS” problem is fundamentally a typography role collision: section labels and connector labels were styled identically. They aren't anymore.</p>
 
@@ -872,6 +892,9 @@ body {
 <!--                          SPACING                             -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.4</span>Spacing · the full token registry</h2>
 <p class="section-lede">The single rule that exists today — “~40px breathing room” — is replaced by 14 tokens. The right value is determined by <em>what's adjacent to what</em>: cards alone, cards with arrows between them, columns, stages, lane gutters, label clearances. Every layout decision references one of these by name.</p>
 
@@ -983,6 +1006,9 @@ body {
 <!--                         SHADOWS                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.5</span>Shadow registry</h2>
 <p class="section-lede">Two shadows. The light-card shadow softens against cream; the dark-card shadow grounds against cream. Never invent a third. The variant suffix <code>-strong</code> exists for one specific case — a dark card on the dark half of the cream gradient — and uses the same shape with higher opacity.</p>
 
@@ -1025,6 +1051,9 @@ body {
 <!--                          ANIMATION                           -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.6</span>Animation registry</h2>
 <p class="section-lede">Animations are constrained on purpose. A polished design document is calm; the more things move, the more it reads like a marketing page. Five keyframes, applied through five named classes. Max <strong>3 animation classes per diagram</strong>. Motion-path dots count as one class.</p>
 
@@ -1065,6 +1094,9 @@ body {
 <!--                CROSS-TEMPLATE CONSISTENCY                    -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.7</span>Cross-template consistency rules</h2>
 <p class="section-lede">A proposal ships 3–6 diagrams. Today the same Postgres can show up as <code>--surface-sql</code> in one and <code>--surface-neutral</code> in another, because each template re-decides. The rules below are enforced by the <a href="../manifest.html">set manifest</a>; this is the list it pins.</p>
 
@@ -1079,6 +1111,8 @@ body {
 </ul>
 
 <div class="callout"><strong>The set manifest enforces these.</strong> A one-page YAML stub authored on the first diagram becomes part of the conversation; subsequent diagrams read it before generating. See <a href="../manifest.html">Set manifest</a> for the schema.</div>
+
+</section>
 </section>
 
 
@@ -1088,16 +1122,28 @@ body {
     <h2 class="ds-section-title">Components</h2>
     <p class="ds-section-blurb">Closed primitive library — cards, chips, shapes, lanes, stages, groups, callouts.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 02 · Component library</p>
-<h1 class="page">Named, slotted, copy-pasteable. Every template builds from these.</h1>
-<p class="lede">A card is not a rectangle the generator draws — it is a slotted component the generator <em>fills</em>. Reserved positions for the icon, the status dot, the footer line. This is the fix for the screenshot's biggest visible failure: icons crashing through titles because no template had a card slot to put them in.</p>
+  <h1 class="page">Named, slotted, copy-pasteable. Every template builds from these.</h1>
+  <p class="lede">A card is not a rectangle the generator draws — it is a slotted component the generator <em>fills</em>. Reserved positions for the icon, the status dot, the footer line. This is the fix for the screenshot's biggest visible failure: icons crashing through titles because no template had a card slot to put them in.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">7</span><span class="lbl">card variants</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">chip forms</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">status states</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">shape primitives</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">stage tokens</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">lane tokens</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">callout variants</span></span>
+  </div>
+</section>
 
-<div class="callout"><strong>How to read these specs.</strong> Each card shows a true-pixel rendering on the left and the slot anatomy on the right. The dimensions, paddings, and slot positions are <em>locked</em> — fill the slots, don't move them. Optional slots stay empty if unused; the card geometry doesn't reflow.</div>
+<div class="callout"><div><strong>How to read these specs.</strong> Each card shows a true-pixel rendering on the left and the slot anatomy on the right. The dimensions, paddings, and slot positions are <em>locked</em> — fill the slots, don't move them. Optional slots stay empty if unused; the card geometry doesn't reflow.</div></div>
 
 <!-- =========================================================== -->
 <!--                       THEME BEHAVIOR                          -->
 <!-- =========================================================== -->
 
+<section class="ds-section">
 <h2><span class="num">02.0</span>Theme behavior across components</h2>
 <p class="section-lede">Every primitive on this page exists in both <strong>light</strong> and <strong>dark</strong> theme. Geometry, slots, paddings, slot positions are <em>identical</em> — only token values swap. The categorical surfaces (<code>--surface-sql</code>, <code>--surface-primary</code>, etc.) keep their <em>id</em> across themes; the gradient stops inside change. The two filter ids (<code>cardShadow</code>, <code>cardShadowDark</code>) stay the same; their bodies rewrite per theme — see <a href="foundations.html#01.5">foundations §01.5</a>.</p>
 
@@ -1179,6 +1225,9 @@ body {
 <!--                            CARDS                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.1</span>Cards · anatomy</h2>
 <p class="section-lede">All cards share the same anatomy: an optional icon slot, a required title row, an optional sub-row, a body, and an optional footer. The fill (light or surface gradient) determines the variant. The slots determine the modifiers.</p>
 
@@ -1256,6 +1305,9 @@ body {
 <!--                          CARD VARIANTS                       -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.2</span>Card · variants</h2>
 <p class="section-lede">Three fills, three modifiers, two states. Total: a closed set of named cards the generator picks from. A “Postgres + status + footer” card is <code>card.primary(--surface-sql) + status + footer</code> — three named choices, no improvisation.</p>
 
@@ -1468,6 +1520,9 @@ body {
 <!--                            CHIPS                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.3</span>Chips &amp; badges</h2>
 <p class="section-lede">Small typographic atoms. Chips appear <em>inside</em> a card (as a metadata badge) or <em>adjacent</em> to a card (as a label / explanation). They never float alone — that's how the “floating MCP TOOLS” problem started.</p>
 
@@ -1581,6 +1636,9 @@ body {
 <!--                          SHAPES                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.4</span>Shape primitives · beyond the card</h2>
 <p class="section-lede">Cards do most of the work, but architecture diagrams reach for other shapes too: a circle for an event, a stadium pill for an async stream, a diamond for a decision, a hexagon for a service mesh node, a star for a highlight, a note tile for a callout body. Each is named, color-paired with the surface gradients, and sized at three locked scales (S 64 / M 96 / L 128). The point of registering them is the same as cards — a downstream generator never invents one.</p>
 
@@ -1691,6 +1749,9 @@ body {
 <!--                            STAGES                            -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.5</span>Stage tokens · numbered &amp; dividers</h2>
 <p class="section-lede">Used in pipeline-flow and freeform sequenced layouts. A numbered token marks the start of a stage; a stage divider separates it visually from the next.</p>
 
@@ -1775,6 +1836,9 @@ body {
 <!--                            LANES                             -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.6</span>Lanes &amp; swimlanes</h2>
 <p class="section-lede">For sequence diagrams. A lane is a labeled vertical lifeline; a card sits at the top, the lifeline drops below, and an activation box marks when the actor is busy.</p>
 
@@ -1855,6 +1919,9 @@ body {
 <!--                         GROUPS                                -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.7</span>Groups &amp; boundaries</h2>
 <p class="section-lede">A group is a dashed soft rectangle around 2+ cards that share a context (a VPC, a trust boundary, a logical region). Always tagged with a top-left label chip; never silent.</p>
 
@@ -1916,6 +1983,9 @@ body {
 <!--                       CALLOUTS / LEGEND                       -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.8</span>Callouts &amp; legend</h2>
 <p class="section-lede">Inline annotations and end-of-diagram legends. Use sparingly — a diagram that needs three callouts is a diagram that should be split.</p>
 
@@ -2011,6 +2081,9 @@ body {
 <!--                  COMPONENT INDEX (cheat sheet)               -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.9</span>Index · what's in the library</h2>
 <p class="section-lede">The closed list. A downstream generator should be able to fill any one of these slots and produce a correct diagram. If a primitive isn't here, it doesn't exist in this version of the system.</p>
 
@@ -2044,6 +2117,8 @@ body {
     <tr><td class="token">legend.chip</td><td class="value">swatch + label row</td><td class="note">Inside a legend card, bottom-right of canvas.</td></tr>
   </tbody>
 </table>
+
+</section>
 </section>
 
 
@@ -2053,9 +2128,19 @@ body {
     <h2 class="ds-section-title">Connectors</h2>
     <p class="ds-section-blurb">Arrow taxonomy, curves, gutters, label zones, density caps.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 04 · Connector geometry</p>
-<h1 class="page">The arrows. Where most of today's visible failures live, made impossible by spec.</h1>
-<p class="lede">Today's <code>design-system.md</code> describes arrow <em>styles</em>. Nothing about <em>positioning</em>. This page fixes that: eight named arrow types, a marker registry, a gutter system for parallel arrows, label zones with a hard <strong>no-rotation</strong> rule, crossing-jog geometry, and density caps that force a diagram to split rather than crowd. If the generator can't honour all of these, the diagram is wrong — split it.</p>
+  <h1 class="page">The arrows. Where most visible failures live, made impossible by spec.</h1>
+  <p class="lede">Eight named arrow types, a marker registry, a gutter system for parallel arrows, label zones with a hard <strong>no-rotation</strong> rule, crossing-jog geometry, and density caps that force a diagram to split rather than crowd. If the generator can't honour all of these, the diagram is wrong — split it.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">8</span><span class="lbl">arrow types</span></span>
+    <span class="stat"><span class="n">7</span><span class="lbl">named markers</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">label zones</span></span>
+    <span class="stat"><span class="n">16</span><span class="lbl">gutter (px)</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">max arrows / card</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">max crossings</span></span>
+  </div>
+</section>
 
 <div class="callout warn"><strong>The four arrow failures from the annotated screenshot:</strong>
 <ol style="margin:8px 0 0 16px; padding:0; font-size:13px; line-height:1.6;">
@@ -2738,9 +2823,18 @@ body {
     <h2 class="ds-section-title">Icons</h2>
     <p class="ds-section-blurb">78 icons across 9 categories + monogram fallback + icon→gradient map.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 03 · Icon library</p>
-<h1 class="page">Seventy-eight icons drawn to one density spec, organized in nine categories, plus a fallback for everything else.</h1>
-<p class="lede">Every icon fits a 32 × 32 bounding box, uses filled silhouettes with consistent radii, and pairs with a canonical surface gradient via the <a href="../manifest.html">set manifest</a>. The library now covers compute (incl. VM, k8s, edge, batch, GPU), data (incl. warehouse, lake, ETL, ML, time-series), network (proxy, mesh, ingress, VPN, NAT), security (RBAC, signing, audit, MFA), observability (health, SLO, error tracker), workflow nodes (start/end, branch, timer, signal, manual), integration (webhook, websocket, GraphQL, gRPC, polling), and domain icons (payment, email, push, calendar, media). The <code>icon.generic-service</code> fallback handles everything else — the system never improvises a new icon shape inline.</p>
+  <h1 class="page">Seventy-eight icons, nine categories, one density spec.</h1>
+  <p class="lede">Every icon fits a 32 × 32 bounding box, uses filled silhouettes with consistent radii, and pairs with a canonical surface gradient via the <a href="../manifest.html">set manifest</a>. The library covers compute (incl. VM, k8s, edge, batch, GPU), data (incl. warehouse, lake, ETL, ML, time-series), network (proxy, mesh, ingress, VPN, NAT), security (RBAC, signing, audit, MFA), observability (health, SLO, error tracker), workflow nodes (start/end, branch, timer, signal, manual), integration (webhook, websocket, GraphQL, gRPC, polling), and domain icons (payment, email, push, calendar, media). The <code>icon.generic-service</code> fallback handles everything else — the system never improvises a new icon shape inline.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">78</span><span class="lbl">icons</span></span>
+    <span class="stat"><span class="n">9</span><span class="lbl">categories</span></span>
+    <span class="stat"><span class="n">32&times;32</span><span class="lbl">bounding box</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">render variants</span></span>
+    <span class="stat"><span class="n">1</span><span class="lbl">fallback rule</span></span>
+  </div>
+</section>
 
 <div class="callout"><strong>Color via <code>fill="currentColor"</code>.</strong> All icons render with <code>currentColor</code> on their root, so one ancestor <code>color</code> attribute drives the whole icon. Use <code>fill="#1a1a18"</code> on light cards, <code>fill="rgba(255,255,255,0.85)"</code> on dark cards. Category-tinted icons (e.g. blue for sql) inherit their category color from the surface gradient.</p></div>
 
@@ -3650,13 +3744,17 @@ body {
     <h2 class="ds-section-title">Templates</h2>
     <p class="ds-section-blurb">Per-template visual contracts (9 templates).</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 05 · Per-template visual contracts</p>
-<h1 class="page">Each of the nine templates gets one page of binding visual rules.</h1>
-<p class="lede">A visual contract is a five-field card per template: which components from the library it uses, which icons it pulls from the set, the spacing and layout rules specific to that diagram type, which arrow types appear, and the anti-patterns to avoid. The semantic-side guidance — “what information to capture” — stays in the existing template Markdown; these contracts replace the visual-side guidance only.</p>
-
-<div class="callout">
-  <strong>Phase status.</strong> Three contracts below are filled in to anchor the format — these correspond to the three canonical SVGs in <a href="examples.html">Examples</a>. The remaining six follow the same shape; their canonical SVGs and full contracts are phase 2.
-</div>
+  <h1 class="page">Each of the nine templates gets one page of binding visual rules.</h1>
+  <p class="lede">A visual contract is a five-field card per template: which components from the library it uses, which icons it pulls from the set, the spacing and layout rules specific to that diagram type, which arrow types appear, and the anti-patterns to avoid. The semantic-side guidance — "what information to capture" — stays in the shared template Markdown at <code>references/templates/&lt;name&gt;.md</code>; these contracts replace the visual-side guidance only.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">templates</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">contract fields each</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">themes per template</span></span>
+    <span class="stat"><span class="n">18</span><span class="lbl">canonical SVGs</span></span>
+  </div>
+</section>
 
 <!-- ============== LAYERED ============== -->
 
@@ -3817,7 +3915,7 @@ body {
 
 <!-- ============== PHASE 2 STUBS ============== -->
 
-<h2><span class="num">05.4</span>System context · phase 2</h2>
+<h2><span class="num">05.4</span>System context</h2>
 
 <div class="contract">
   <div class="ch">
@@ -3825,7 +3923,7 @@ body {
       <div class="name">templates/system-context.md</div>
       <div class="title">C4-level-1 — the system, its users, and what it touches</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -3848,7 +3946,7 @@ body {
   <div class="anti"><strong>Anti-patterns</strong> More than one hero (split into multiple context diagrams). Internal components (those belong in layered/infrastructure). Bare arrows with no verb label.</div>
 </div>
 
-<h2><span class="num">05.5</span>Data schema · phase 2</h2>
+<h2><span class="num">05.5</span>Data schema</h2>
 
 <div class="contract">
   <div class="ch">
@@ -3856,7 +3954,7 @@ body {
       <div class="name">templates/data-schema.md</div>
       <div class="title">ER-style entities with typed fields and relationships</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -3879,7 +3977,7 @@ body {
   <div class="anti"><strong>Anti-patterns</strong> Inheritance arrows (use one card per concrete table). All-table mega-diagrams (split by aggregate root).</div>
 </div>
 
-<h2><span class="num">05.6</span>Infrastructure · phase 2</h2>
+<h2><span class="num">05.6</span>Infrastructure</h2>
 
 <div class="contract">
   <div class="ch">
@@ -3887,7 +3985,7 @@ body {
       <div class="name">templates/infrastructure.md</div>
       <div class="title">Cloud topology — VPC, regions, compute, storage, queues</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -3910,7 +4008,7 @@ body {
   <div class="anti"><strong>Anti-patterns</strong> Drawing every network link (the diagram becomes a hairball). Three-level deep nesting (split). Cloud-provider logos (use the generic icon set + label).</div>
 </div>
 
-<h2><span class="num">05.7</span>Event flow · phase 2</h2>
+<h2><span class="num">05.7</span>Event flow</h2>
 
 <div class="contract">
   <div class="ch">
@@ -3918,7 +4016,7 @@ body {
       <div class="name">templates/event-flow.md</div>
       <div class="title">Producers → topics → consumers</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -3941,7 +4039,7 @@ body {
   <div class="anti"><strong>Anti-patterns</strong> Drawing every event individually when there are &gt;3 from one producer to one topic. Synchronous arrows (use sequence diagram instead). Implicit topic ordering — always label.</div>
 </div>
 
-<h2><span class="num">05.8</span>Connector map · phase 2</h2>
+<h2><span class="num">05.8</span>Connector map</h2>
 
 <div class="contract">
   <div class="ch">
@@ -3949,7 +4047,7 @@ body {
       <div class="name">templates/connector-map.md</div>
       <div class="title">Central hub, spokes to integrations</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -3972,7 +4070,7 @@ body {
   <div class="anti"><strong>Anti-patterns</strong> Radial spoke layout (labels collide). Spokes without a category. Hub with two “hub” cards (collapse to one or split into two maps).</div>
 </div>
 
-<h2><span class="num">05.9</span>Freeform · the catch-all · phase 2</h2>
+<h2><span class="num">05.9</span>Freeform · the catch-all</h2>
 
 <div class="contract">
   <div class="ch">
@@ -3980,7 +4078,7 @@ body {
       <div class="name">templates/freeform.md (NEW)</div>
       <div class="title">For anything that doesn't fit the other eight</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -4016,13 +4114,21 @@ body {
     <h2 class="ds-section-title">Examples</h2>
     <p class="ds-section-blurb">18 canonical SVG examples — 9 templates × light + dark.</p>
   </div>
-  <p class="eyebrow">Deliverable 06 · Worked canonical examples · light + dark</p>
-<h1 class="page">Nine templates, each rendered in both themes. Eighteen files. One canonical layout per template.</h1>
-<p class="lede">Each example below ships as a <strong>pair</strong>: <code>&lt;name&gt;.light.svg</code> + <code>&lt;name&gt;.dark.svg</code>. The two files share layout, components, icons, arrow routes, and labels — only color values, shadow filter bodies, and canvas gradient stops differ. They are the canonical anchors the downstream generator targets: a diagram produced from the same spec should read as a sibling of these.</p>
+  <section class="hero">
+  <p class="eyebrow">Deliverable 06 · Worked canonical examples</p>
+  <h1 class="page">Nine templates, two themes each. The canonical anchors.</h1>
+  <p class="lede">Each example below ships as a <strong>pair</strong>: <code>&lt;name&gt;.pixel.light.svg</code> + <code>&lt;name&gt;.pixel.dark.svg</code>. The two files share layout, components, icons, arrow routes, and labels — only color values, shadow filter bodies, and canvas gradient stops differ. They are the canonical anchors the downstream generator targets: a diagram produced from the same spec should read as a sibling of these.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">templates</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">themes each</span></span>
+    <span class="stat"><span class="n">18</span><span class="lbl">canonical SVGs</span></span>
+    <span class="stat"><span class="n">1660</span><span class="lbl">viewBox</span></span>
+  </div>
+</section>
 
-<div class="callout">
-  <strong>Dual output is the rule, not an option.</strong> The <code>SKILL.md</code> workflow now emits both files for every diagram by default (manifest <code>theme: both</code>). Cream-canvas Notion gets the light variant; dark-mode Notion gets the dark. See <a href="foundations.html#01.0">foundations §01.0</a> for the theme model.
-</div>
+<div class="callout"><div>
+  <strong>Dual output is the rule, not an option.</strong> The <code>SKILL.md</code> workflow emits both files for every diagram by default (manifest <code>theme: both</code>). Cream-canvas Notion gets the light variant; dark-mode Notion gets the dark. See <a href="foundations.html#01.0">foundations §01.0</a> for the theme model.
+</div></div>
 
 <!-- ===================== LIST OF EXAMPLES ===================== -->
 

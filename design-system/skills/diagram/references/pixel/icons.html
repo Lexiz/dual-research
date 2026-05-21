@@ -68,9 +68,18 @@
 
 <main>
 
-<p class="eyebrow">Deliverable 03 · Icon library</p>
-<h1 class="page">Seventy-eight icons drawn to one density spec, organized in nine categories, plus a fallback for everything else.</h1>
-<p class="lede">Every icon fits a 32 × 32 bounding box, uses filled silhouettes with consistent radii, and pairs with a canonical surface gradient via the <a href="../manifest.html">set manifest</a>. The library now covers compute (incl. VM, k8s, edge, batch, GPU), data (incl. warehouse, lake, ETL, ML, time-series), network (proxy, mesh, ingress, VPN, NAT), security (RBAC, signing, audit, MFA), observability (health, SLO, error tracker), workflow nodes (start/end, branch, timer, signal, manual), integration (webhook, websocket, GraphQL, gRPC, polling), and domain icons (payment, email, push, calendar, media). The <code>icon.generic-service</code> fallback handles everything else — the system never improvises a new icon shape inline.</p>
+<section class="hero">
+  <p class="eyebrow">Deliverable 03 · Icon library</p>
+  <h1 class="page">Seventy-eight icons, nine categories, one density spec.</h1>
+  <p class="lede">Every icon fits a 32 × 32 bounding box, uses filled silhouettes with consistent radii, and pairs with a canonical surface gradient via the <a href="../manifest.html">set manifest</a>. The library covers compute (incl. VM, k8s, edge, batch, GPU), data (incl. warehouse, lake, ETL, ML, time-series), network (proxy, mesh, ingress, VPN, NAT), security (RBAC, signing, audit, MFA), observability (health, SLO, error tracker), workflow nodes (start/end, branch, timer, signal, manual), integration (webhook, websocket, GraphQL, gRPC, polling), and domain icons (payment, email, push, calendar, media). The <code>icon.generic-service</code> fallback handles everything else — the system never improvises a new icon shape inline.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">78</span><span class="lbl">icons</span></span>
+    <span class="stat"><span class="n">9</span><span class="lbl">categories</span></span>
+    <span class="stat"><span class="n">32&times;32</span><span class="lbl">bounding box</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">render variants</span></span>
+    <span class="stat"><span class="n">1</span><span class="lbl">fallback rule</span></span>
+  </div>
+</section>
 
 <div class="callout"><strong>Color via <code>fill="currentColor"</code>.</strong> All icons render with <code>currentColor</code> on their root, so one ancestor <code>color</code> attribute drives the whole icon. Use <code>fill="#1a1a18"</code> on light cards, <code>fill="rgba(255,255,255,0.85)"</code> on dark cards. Category-tinted icons (e.g. blue for sql) inherit their category color from the surface gradient.</p></div>
 

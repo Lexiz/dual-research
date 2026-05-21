@@ -32,14 +32,25 @@
 
 <main>
 
-<p class="eyebrow">Deliverable 01 · Foundations</p>
-<h1 class="page">Tokens that every component and template references by name.</h1>
-<p class="lede">Each foundation is a registry: a closed list of named values. The generator never invents a hex, a font-size, or a spacing number — it references the token. If a situation needs a value not in the registry, the situation is wrong, not the registry. This is what makes nine different diagram templates feel like one product.</p>
+<section class="hero">
+  <p class="eyebrow">Deliverable 01 · Foundations</p>
+  <h1 class="page">Tokens that every component and template references by name.</h1>
+  <p class="lede">Each foundation is a registry: a closed list of named values. The generator never invents a hex, a font-size, or a spacing number — it references the token. If a situation needs a value not in the registry, the situation is wrong, not the registry. This is what makes nine different diagram templates feel like one product.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">26</span><span class="lbl">color tokens</span></span>
+    <span class="stat"><span class="n">7</span><span class="lbl">surface gradients</span></span>
+    <span class="stat"><span class="n">14</span><span class="lbl">type roles</span></span>
+    <span class="stat"><span class="n">13</span><span class="lbl">spacing tokens</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">keyframes</span></span>
+    <span class="stat"><span class="n">1660</span><span class="lbl">viewBox · locked</span></span>
+  </div>
+</section>
 
 <!-- =========================================================== -->
 <!--                       THEME MODEL                            -->
 <!-- =========================================================== -->
 
+<section class="ds-section">
 <h2><span class="num">01.0</span>Theme model</h2>
 <p class="section-lede">Every diagram ships in two flavors — <strong>light</strong> (cream canvas, the v1 spec) and <strong>dark</strong> (near-black canvas). The two share <em>everything</em> structural: viewBox, layout, type roles, spacing tokens, animation classes, connector geometry, manifest pins. They differ only in <em>color values</em>. Below is the contract. Every token in the rest of this page has a dark sibling named <code>--&lt;token&gt;-dark</code>.</p>
 
@@ -85,6 +96,9 @@
 <!-- =========================================================== -->
 <!--                          CANVAS                              -->
 <!-- =========================================================== -->
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.1</span>Canvas</h2>
 <p class="section-lede">The diagram's outer geometry is locked. The cream background, the 1660px viewBox width, and Inter as the type family are non-negotiable across all nine templates — they are the load-bearing brand surface.</p>
 
@@ -165,6 +179,9 @@
 <!--                       COLOR PALETTE                          -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.2</span>Color · semantic palette</h2>
 <p class="section-lede">Every color is named by what it means, not by what it looks like. The indigo identity is fixed. Card gradients are categorical: a “Postgres” card uses <code>--surface-sql</code> in every diagram of a set; a worker uses <code>--surface-neutral</code> wherever it appears. The set manifest pins these once.</p>
 
@@ -399,6 +416,9 @@
 <!--                         TYPOGRAPHY                           -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.3</span>Typography · roles</h2>
 <p class="section-lede">Type roles are named, not picked by inspection. Letter-spacing is part of the role and isn't optional — small caps without spacing read as cramped. The annotated screenshot's “floating MCP TOOLS” problem is fundamentally a typography role collision: section labels and connector labels were styled identically. They aren't anymore.</p>
 
@@ -486,6 +506,9 @@
 <!--                          SPACING                             -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.4</span>Spacing · the full token registry</h2>
 <p class="section-lede">The single rule that exists today — “~40px breathing room” — is replaced by 14 tokens. The right value is determined by <em>what's adjacent to what</em>: cards alone, cards with arrows between them, columns, stages, lane gutters, label clearances. Every layout decision references one of these by name.</p>
 
@@ -597,6 +620,9 @@
 <!--                         SHADOWS                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.5</span>Shadow registry</h2>
 <p class="section-lede">Two shadows. The light-card shadow softens against cream; the dark-card shadow grounds against cream. Never invent a third. The variant suffix <code>-strong</code> exists for one specific case — a dark card on the dark half of the cream gradient — and uses the same shape with higher opacity.</p>
 
@@ -639,6 +665,9 @@
 <!--                          ANIMATION                           -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.6</span>Animation registry</h2>
 <p class="section-lede">Animations are constrained on purpose. A polished design document is calm; the more things move, the more it reads like a marketing page. Five keyframes, applied through five named classes. Max <strong>3 animation classes per diagram</strong>. Motion-path dots count as one class.</p>
 
@@ -679,6 +708,9 @@
 <!--                CROSS-TEMPLATE CONSISTENCY                    -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">01.7</span>Cross-template consistency rules</h2>
 <p class="section-lede">A proposal ships 3–6 diagrams. Today the same Postgres can show up as <code>--surface-sql</code> in one and <code>--surface-neutral</code> in another, because each template re-decides. The rules below are enforced by the <a href="../manifest.html">set manifest</a>; this is the list it pins.</p>
 
@@ -693,6 +725,8 @@
 </ul>
 
 <div class="callout"><strong>The set manifest enforces these.</strong> A one-page YAML stub authored on the first diagram becomes part of the conversation; subsequent diagrams read it before generating. See <a href="../manifest.html">Set manifest</a> for the schema.</div>
+
+</section>
 
 </main>
 </div>
