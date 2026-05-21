@@ -798,17 +798,26 @@ class DeepResearchPhase:
                 via_closeout = is_closeout_round
                 break
 
-            # Spec 0137 — substantive-convergence escape valve. Mirrors
-            # the production-path branch in ``dr_run._drive_interaction_phase``.
-            # When both agents emit AGREED with a terminal ledger but
-            # the strict three-gate check_convergence rejected, the
-            # artifact-hash gate is the only remaining blocker; the
-            # agents wrote semantically-equivalent but byte-different
-            # artifact bodies. Accept their self-declared AGREED.
-            if (
-                rr.claude_status == "AGREED"
-                and rr.openai_status == "AGREED"
-                and not items_blocking_convergence(self.state.item_views())
+            # Spec 0137 (widened by 0140) — substantive-convergence
+            # escape valve. Mirrors the production-path branch in
+            # ``dr_run._drive_interaction_phase``. Original 0137 form:
+            # both AGREED + terminal ledger with hash drift. 0140
+            # widening: one agent AGREED + terminal ledger past the
+            # soft cap is also a deadlock shape — the other agent is
+            # blocked on something the protocol cannot surface
+            # (typically a stub draft from a prior-round extractor
+            # truncation).
+            both_agreed = (
+                rr.claude_status == "AGREED" and rr.openai_status == "AGREED"
+            )
+            one_agreed = (
+                (rr.claude_status == "AGREED") ^ (rr.openai_status == "AGREED")
+            )
+            terminal_ledger = not items_blocking_convergence(self.state.item_views())
+
+            if terminal_ledger and (
+                both_agreed
+                or (one_agreed and round_no >= self.caps.soft)
             ):
                 converged = True
                 via_artifact_promotion = True

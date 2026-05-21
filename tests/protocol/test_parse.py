@@ -182,3 +182,138 @@ def test_extract_revised_draft_inclusive_returns_none_when_absent() -> None:
 def test_extract_revised_draft_inclusive_strips_hr_only_body() -> None:
     text = "## Revised draft\n\n----\n\n## Summary\n"
     assert extract_revised_draft_inclusive(text) is None
+
+
+# ─── Spec 0140 — extractor retains ``## N. Section`` body sub-sections ─
+
+
+def test_extract_revised_draft_inclusive_retains_numbered_sub_sections() -> None:
+    """Spec 0140 — anchor-run shape. The drafter opened ``## Revised draft``
+    then wrote the body with ``## 1. Executive Summary``, ``## 2. …`` etc.
+    These are NOT in the protocol allowlist and must be absorbed into the
+    draft body. The body terminates at ``## Phase artifact`` (Spec 0114
+    sentinel, added to the allowlist by 0140)."""
+    text = (
+        "## Revised draft\n\n"
+        "preamble paragraph.\n\n"
+        "## 1. Executive Summary\n\n"
+        "Findings overview.\n\n"
+        "## 2. Version Baseline\n\n"
+        "Baseline body.\n\n"
+        "## 3. Tier 1 Pass/Fail\n\n"
+        "Pass/fail body.\n\n"
+        "## 4. Ranked Candidates\n\n"
+        "Ranked body.\n\n"
+        "## Phase artifact\n\n"
+        "### AGREED_PLAN\nartifact body\n"
+    )
+    body = extract_revised_draft_inclusive(text)
+    assert body is not None
+    # All four numbered sub-sections retained.
+    for heading in (
+        "## 1. Executive Summary",
+        "## 2. Version Baseline",
+        "## 3. Tier 1 Pass/Fail",
+        "## 4. Ranked Candidates",
+    ):
+        assert heading in body, f"missing {heading!r}"
+    # Terminator and trailing artifact NOT included.
+    assert "Phase artifact" not in body
+    assert "AGREED_PLAN" not in body
+
+
+def test_extract_revised_draft_inclusive_terminates_at_spec_0114_sentinel() -> None:
+    """Spec 0140 — when the drafter emits a body sub-section that
+    happens to be named ``## Status`` (a Spec 0114 protocol sentinel),
+    the extractor terminates there. The allowlist must still bite for
+    legitimate sibling protocol sections, not just the v1 set."""
+    text = (
+        "## Revised draft\n\n"
+        "draft body line\n\n"
+        "## Status\n"
+        "STATUS: AGREED\n"
+    )
+    body = extract_revised_draft_inclusive(text)
+    assert body == "draft body line"
+
+
+def test_extract_revised_draft_inclusive_terminates_at_each_0114_sentinel() -> None:
+    """Spec 0140 — every Spec 0114 v2 sentinel added to
+    ``_PROTOCOL_TOP_HEADINGS`` must terminate the draft body."""
+    sentinels = [
+        "Stance",
+        "Addressing items raised against me",
+        "Ratifying my own items",
+        "New items I'm raising",
+        "Phase artifact",
+        "Status",
+        "Closeout constraints",
+    ]
+    for sentinel in sentinels:
+        text = (
+            "## Revised draft\n\n"
+            "draft body line\n\n"
+            f"## {sentinel}\n"
+            "tail body\n"
+        )
+        body = extract_revised_draft_inclusive(text)
+        assert body == "draft body line", (
+            f"sentinel {sentinel!r} did not terminate; got {body!r}"
+        )
+
+
+def test_dr_run_does_not_import_strict_extractor() -> None:
+    """Spec 0140 — the strict ``extract_revised_draft`` extractor must
+    not be referenced from ``dr_run.py``. The Deep Research path now
+    consumes only ``extract_revised_draft_inclusive`` (the strict
+    variant remains for legacy callers and unit tests of itself)."""
+    from pathlib import Path
+
+    import dual_research.orchestrator.dr_run as dr_run_mod
+
+    src = Path(dr_run_mod.__file__).read_text(encoding="utf-8")
+    # Word-boundary match to allow the ``_inclusive`` form.
+    import re as _re
+    bare_calls = _re.findall(r"\bextract_revised_draft\b(?!_)", src)
+    assert bare_calls == [], (
+        f"dr_run.py still references the strict extractor: "
+        f"{len(bare_calls)} occurrence(s)"
+    )
+
+
+def test_extract_revised_draft_inclusive_replays_anchor_run_round07() -> None:
+    """Spec 0140 — replay against the on-disk anchor-run turn.
+
+    Run ``20260521-010637-dvs-backend-language-choice``, phase 4,
+    round-07-claude.md. Pre-fix the strict extractor returned a 76-byte
+    stub (just the brief title). Post-fix the inclusive extractor must
+    return the full draft body, including the ``## 4. Ranked Candidates``
+    sub-section. The turn ends without a trailing protocol sentinel, so
+    the inclusive walker absorbs through end-of-file."""
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    anchor_path = (
+        repo_root
+        / "runs"
+        / "20260521-010637-dvs-backend-language-choice"
+        / "phase4"
+        / "round-07-claude.md"
+    )
+    if not anchor_path.exists():
+        # The anchor-run artifacts live in the working tree but are not
+        # required to be checked in. Skip when absent so CI stays green
+        # on clones that haven't fetched the run directory.
+        import pytest
+        pytest.skip(f"anchor run not present at {anchor_path}")
+
+    text = anchor_path.read_text(encoding="utf-8")
+    body = extract_revised_draft_inclusive(text)
+    assert body is not None
+    # The pre-fix on-disk draft-v7.md was 76 bytes. Post-fix the body
+    # spans rows 47..312 of the turn (the four numbered sub-sections).
+    assert len(body) >= 25_000, (
+        f"expected >= 25k chars, got {len(body)} — extractor still "
+        "truncating the draft body"
+    )
+    assert "## 4. Ranked Candidates" in body

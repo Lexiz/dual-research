@@ -689,29 +689,28 @@ def test_artifact_promotion_does_not_fire_when_ledger_has_open_items():
     assert result.converged is True
 
 
-def test_artifact_promotion_does_not_fire_when_only_one_agreed():
-    """Spec 0137 — the escape valve requires BOTH agents to emit AGREED.
-    One-sided AGREED + terminal ledger continues the loop until the
-    other side also agrees or hard-cap fires."""
-    caps = PhaseCaps(soft=2, hard=3, closeout_budget=2)
+def test_artifact_promotion_does_not_fire_when_only_one_agreed_below_soft_cap():
+    """Spec 0140 — the widened one-agent-AGREED branch is gated on
+    ``round_no >= caps.soft``. Below the soft cap, one-sided AGREED +
+    terminal ledger continues the loop. This protects the early-round
+    case where the other agent has not yet had a chance to surface its
+    objections into the ledger."""
+    # soft=5 keeps every round (1..4) strictly below the soft-cap gate;
+    # hard=4 bounds the test so it exits via hard cap, not the widening.
+    caps = PhaseCaps(soft=5, hard=4, closeout_budget=2)
 
     scripts: dict[tuple[int, str], str] = {}
-    # Round 1: no items raised. Both IN_PROGRESS.
-    scripts[(1, "claude")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
-    scripts[(1, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
-    # Round 2: claude AGREED, openai still IN_PROGRESS. Ledger empty
-    # (no items were raised). Escape valve must not fire.
-    scripts[(2, "claude")] = _wrap_turn(
-        status="AGREED", body_sections={},
-        artifact="### AGREED_PLAN\nclaude version",
-    )
-    scripts[(2, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
-    # Round 3: same one-sided state — hard-cap fires.
-    scripts[(3, "claude")] = _wrap_turn(
-        status="AGREED", body_sections={},
-        artifact="### AGREED_PLAN\nclaude version",
-    )
-    scripts[(3, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    for r in (1, 2, 3, 4):
+        # Claude AGREED with terminal (empty) ledger; openai still
+        # IN_PROGRESS. Widened branch must NOT fire because
+        # round_no (max 4) < caps.soft (5).
+        scripts[(r, "claude")] = _wrap_turn(
+            status="AGREED", body_sections={},
+            artifact="### AGREED_PLAN\nclaude version",
+        )
+        scripts[(r, "openai")] = _wrap_turn(
+            status="IN_PROGRESS", body_sections={},
+        )
 
     phase = DeepResearchPhase(
         phase=2,
@@ -726,6 +725,56 @@ def test_artifact_promotion_does_not_fire_when_only_one_agreed():
     assert result.via_artifact_promotion is False
     # Should hard-cap instead.
     assert result.via_hard_cap is True
+
+
+def test_artifact_promotion_fires_when_one_agreed_terminal_past_soft_cap():
+    """Spec 0140 — at or past the soft cap, one-agent-AGREED + terminal
+    ledger fires the widened escape valve. This catches the anchor-run
+    deadlock shape: one reviewer stuck on protocol semantics (e.g.
+    blocked on a 76-byte stub draft) while the ledger is otherwise
+    quiet."""
+    # soft=2, hard=8 — round 2 is the first round that satisfies the
+    # ``round_no >= caps.soft`` gate. The test asserts the widening
+    # fires exactly there rather than burning to hard cap.
+    caps = PhaseCaps(soft=2, hard=8, closeout_budget=2)
+
+    scripts: dict[tuple[int, str], str] = {}
+    # Round 1: both IN_PROGRESS, ledger empty. Loop continues.
+    scripts[(1, "claude")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    scripts[(1, "openai")] = _wrap_turn(status="IN_PROGRESS", body_sections={})
+    # Round 2: claude AGREED, openai IN_PROGRESS, ledger still empty
+    # (terminal). round_no (2) >= caps.soft (2) — widening fires.
+    scripts[(2, "claude")] = _wrap_turn(
+        status="AGREED", body_sections={},
+        artifact="### AGREED_PLAN\nclaude version",
+    )
+    scripts[(2, "openai")] = _wrap_turn(
+        status="IN_PROGRESS", body_sections={},
+    )
+
+    phase = DeepResearchPhase(
+        phase=2,
+        agent_turn=make_scripted_agent(scripts),
+        artifact_hash_match=_hash_mismatch_match,
+        caps_override=caps,
+    )
+    result, events = phase.run()
+
+    assert result.converged is True
+    assert result.via_artifact_promotion is True
+    assert result.via_hard_cap is False
+    assert result.via_closeout is False
+    assert result.via_ghost_cap is False
+    assert result.final_round == 2
+
+    promoted = [e for e in events if isinstance(e, ArtifactCanonicallyPromoted)]
+    assert len(promoted) == 1
+    assert promoted[0].phase == "phase2"
+    assert promoted[0].round == 2
+
+    converged_events = [e for e in events if isinstance(e, PhaseConverged)]
+    assert len(converged_events) == 1
+    assert converged_events[0].via_artifact_promotion is True
 
 
 def test_organic_convergence_keeps_all_via_flags_false():

@@ -312,7 +312,15 @@ def extract_revised_draft(turn_text: str) -> str | None:
 # and returns just the preamble. The inclusive variant walks forward and
 # absorbs any ``## …`` heading that is NOT in the protocol allowlist.
 
+# Spec 0140 — keep this set in sync with the Spec 0114 section regexes in
+# ``contract/markers.py`` (SECTION_STANCE_RE, SECTION_ADDRESSING_RE,
+# SECTION_RATIFYING_RE, SECTION_NEW_ITEMS_RE, SECTION_PHASE_ARTIFACT_RE,
+# SECTION_STATUS_RE, SECTION_CLOSEOUT_CONSTRAINTS_RE). ``## Revised draft``
+# is deliberately absent — the extractor's start anchor matches it directly
+# via ``_REVISED_DRAFT_HEADING_RE``; including it here would cause a
+# same-section re-match.
 _PROTOCOL_TOP_HEADINGS: frozenset[str] = frozenset({
+    # ── v1 protocol headings (legacy phase2.py) ──
     "summary",
     "status block",
     "disagreement carryover audit",
@@ -323,6 +331,14 @@ _PROTOCOL_TOP_HEADINGS: frozenset[str] = frozenset({
     "comments on the current draft",
     "agreed_plan",
     "issue ledger (delta + currently open)",
+    # ── Spec 0114 v2 protocol headings (Deep Research) ──
+    "stance",
+    "addressing items raised against me",
+    "ratifying my own items",
+    "new items i'm raising",
+    "phase artifact",
+    "status",
+    "closeout constraints",
 })
 
 # Headings that are protocol-known but use a variable suffix (agent name,
