@@ -128,15 +128,19 @@ def test_openai_pre_spec_0143_rates_would_drift() -> None:
 
 
 def test_anchor_run_metrics_pinned_to_old_pricing_version() -> None:
-    """The recorded anchor run was priced under PRICING_VERSION
-    2026-05-17 (the pre-spec-0143 table). The metrics.json carries the
-    pricing_version that priced it — spec 0048's compact for old-vs-new
-    rate-table disambiguation.
+    """The anchor run's metrics.json carries the pricing_version that
+    priced it — spec 0048's compact for old-vs-new rate-table
+    disambiguation.
+
+    Originally pinned to 2026-05-17 (pre-spec-0143). Spec 0143's
+    post-merge `recompute-costs --all --push` backfill re-priced every
+    local run under the new table and rewrote pricing_version to
+    2026-05-21. This pin now tracks that post-backfill reality.
     """
     metrics_path = ANCHOR_RUN_DIR / "metrics.json"
     if not metrics_path.exists():
         pytest.skip(f"anchor run not on disk at {metrics_path}")
     m = json.loads(metrics_path.read_text())
-    assert m.get("pricing_version") == "2026-05-17", (
-        "anchor run should be pinned to the pre-0143 pricing version"
+    assert m.get("pricing_version") == "2026-05-21", (
+        "anchor run should be pinned to the post-0143-backfill pricing version"
     )
