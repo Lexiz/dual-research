@@ -10,6 +10,60 @@
 <link rel="stylesheet" href="_shared.css">
 <style>
 
+  /* shared inline defs used across the page so we don't duplicate */
+  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
+  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+  .ex-frame.bad .ex-head { color: #8b3a25; }
+  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
+  .ex-frame.good .ex-head { color: #275a40; }
+  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
+  .ex-frame svg { display: block; width: 100%; height: auto; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
+  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
+  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
+  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
+  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
+  .rule .body strong { color:var(--ink-1); }
+
+
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    background: white;
+    border: 1px solid var(--rule-soft);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06);
+    margin: 14px 0 32px;
+  }
+  @media (max-width: 1100px) { .icon-grid { grid-template-columns: repeat(4, 1fr); } }
+  .icon-cell {
+    padding: 18px 14px 16px;
+    border-right: 1px solid var(--rule-soft);
+    border-bottom: 1px solid var(--rule-soft);
+    text-align: center;
+    background: white;
+  }
+  .icon-cell .light { background: var(--bg-1); border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; }
+  .icon-cell .dark { background: #1a1a18; border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; margin-left: 6px; }
+  .icon-cell .name { font-family: var(--mono); font-size: 11px; color: var(--indigo-2); margin-top: 10px; }
+  .icon-cell .desc { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+  .cat-head {
+    grid-column: 1 / -1;
+    background: var(--bg-tint);
+    padding: 10px 16px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.6;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--rule);
+  }
+
+
+
   .contract {
     background: white;
     border: 1px solid var(--rule-soft);
@@ -96,23 +150,6 @@
 
 
 
-  /* shared inline defs used across the page so we don't duplicate */
-  .ex-frame { background: linear-gradient(180deg, #f5f1ea, #ece8e0); border: 1px solid var(--rule-soft); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06); margin: 12px 0; }
-  .ex-frame .ex-head { display: flex; justify-content: space-between; padding: 8px 14px; background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--rule-soft); font-size: 10px; letter-spacing: 1.4; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
-  .ex-frame.bad .ex-head { color: #8b3a25; }
-  .ex-frame.bad { border-color: rgba(204, 110, 85, 0.4); }
-  .ex-frame.good .ex-head { color: #275a40; }
-  .ex-frame.good { border-color: rgba(61, 127, 91, 0.4); }
-  .ex-frame svg { display: block; width: 100%; height: auto; }
-  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
-  @media (max-width: 1100px) { .compare { grid-template-columns: 1fr; } }
-  .rule { display:flex; gap:12px; padding:14px 16px; background:white; border:1px solid var(--rule-soft); border-radius:8px; margin-bottom:8px; }
-  .rule .num { font-family:var(--mono); font-size:12px; color:var(--indigo); width:32px; flex-shrink:0; padding-top:1px;}
-  .rule .body { font-size:13px; color:var(--ink-2); line-height:1.5; }
-  .rule .body strong { color:var(--ink-1); }
-
-
-
   .example-pair {
     margin: 18px 0 36px;
   }
@@ -162,43 +199,6 @@
   }
   .demonstrates .cell .val { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
   @media (max-width: 1100px) { .demonstrates { grid-template-columns: 1fr; } .demonstrates .cell { border-right: none; border-bottom: 1px solid var(--rule-soft); } }
-
-
-
-  .icon-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0;
-    background: white;
-    border: 1px solid var(--rule-soft);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(26, 26, 24, 0.06);
-    margin: 14px 0 32px;
-  }
-  @media (max-width: 1100px) { .icon-grid { grid-template-columns: repeat(4, 1fr); } }
-  .icon-cell {
-    padding: 18px 14px 16px;
-    border-right: 1px solid var(--rule-soft);
-    border-bottom: 1px solid var(--rule-soft);
-    text-align: center;
-    background: white;
-  }
-  .icon-cell .light { background: var(--bg-1); border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; }
-  .icon-cell .dark { background: #1a1a18; border-radius: 8px; padding: 14px; display: inline-block; line-height: 0; margin-left: 6px; }
-  .icon-cell .name { font-family: var(--mono); font-size: 11px; color: var(--indigo-2); margin-top: 10px; }
-  .icon-cell .desc { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
-  .cat-head {
-    grid-column: 1 / -1;
-    background: var(--bg-tint);
-    padding: 10px 16px;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 1.6;
-    text-transform: uppercase;
-    color: var(--ink-3);
-    border-bottom: 1px solid var(--rule);
-  }
 
 
 /* ───── flow.html — unified header + section frames ───── */

@@ -33,9 +33,19 @@
 
 <main>
 
-<p class="eyebrow">Deliverable 04 · Connectors</p>
-<h1 class="page">The arrows, the curves, the labels, the gutters — every rule for what connects what.</h1>
-<p class="lede">Connector geometry is identical between Pixel and Material modes — the rules for curve modes (L/Q/C/O), lane gutters, label zones (A/B/C), crossing priority, clearance, and density caps are mode-agnostic. Only the stroke colors and marker fills differ. Material connectors use the theme-portable info-blue accent (<code>--md-tertiary</code> · <code>#6b9cf0</code>) for primary flow, V2 surface-muted ink for secondary, and the V2 status palette (<code>--p-ok</code> / <code>--p-warn</code> / <code>--p-err</code>) for semantic paths.</p>
+<section class="hero">
+  <p class="eyebrow">Deliverable 04 · Connectors</p>
+  <h1 class="page">The arrows, the curves, the labels, the gutters.</h1>
+  <p class="lede">Connector geometry is identical between Pixel and Material modes — the rules for curve modes (L/Q/C/O), lane gutters, label zones (A/B/C), crossing priority, clearance, and density caps are mode-agnostic. Only the stroke colors and marker fills differ. Material connectors use the theme-portable info-blue accent (<code>--md-tertiary</code>) for primary flow, M3 surface-muted ink for secondary, and the status palette (<code>--p-ok</code> / <code>--p-warn</code> / <code>--p-err</code>) for semantic paths.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">8</span><span class="lbl">arrow types</span></span>
+    <span class="stat"><span class="n">7</span><span class="lbl">markers</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">label zones</span></span>
+    <span class="stat"><span class="n">16</span><span class="lbl">gutter (px)</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">max arrows / card</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">max crossings</span></span>
+  </div>
+</section>
 
 <div class="callout"><strong>Highest-value page.</strong> Most diagrams that drift visually do so because the connector contract was applied loosely — wrong curve mode, label rotated, parallel arrows bunched, arrow grazing an unrelated card. Every rule below has a recorded failure mode it prevents.</div>
 

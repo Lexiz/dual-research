@@ -279,9 +279,20 @@ body {
     <h2 class="ds-section-title">Foundations</h2>
     <p class="ds-section-blurb">Locked tokens — canvas, palette, type, spacing, shadows, animation.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 01 · Foundations</p>
-<h1 class="page">The Material design tokens and the diagram-specific extensions on top.</h1>
-<p class="lede">Material mode owns its own design tokens. Every reference page loads <code>_tokens.css</code> first (M3 color roles, surface tiers, type scale, spacing, shape, elevation, motion, plus M3 primitive classes <code>.md-card</code> / <code>.md-chip</code> / <code>.md-status</code> / <code>.md-btn</code> / <code>.md-tabs</code> / <code>.md-seg</code> / <code>.md-list</code>) and then <code>_shared.css</code> (doc-site chrome plus the 8 diagram-specific <code>md-card--service-*</code> extensions). Both files live alongside this page in <code>material/</code>. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
+  <h1 class="page">The Material design tokens and the diagram-specific extensions on top.</h1>
+  <p class="lede">Material mode owns its own design tokens. Every reference page loads <code>_tokens.css</code> first (M3 color roles, surface tiers, type scale, spacing, shape, elevation, motion, plus M3 primitive classes <code>.md-card</code> / <code>.md-chip</code> / <code>.md-status</code> / <code>.md-btn</code> / <code>.md-tabs</code> / <code>.md-seg</code> / <code>.md-list</code>) and then <code>_shared.css</code> (doc-site chrome plus the 8 diagram-specific <code>md-card--service-*</code> extensions). Both files live alongside this page in <code>material/</code>. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">base palette</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">M3 roles</span></span>
+    <span class="stat"><span class="n">8</span><span class="lbl">surface tiers</span></span>
+    <span class="stat"><span class="n">15</span><span class="lbl">type roles</span></span>
+    <span class="stat"><span class="n">13</span><span class="lbl">spacing tokens</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">shape steps</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">elev levels</span></span>
+  </div>
+</section>
 
 <!-- =========================================================== -->
 <!--                       THEME MODEL                            -->
@@ -962,9 +973,20 @@ body {
     <h2 class="ds-section-title">Components</h2>
     <p class="ds-section-blurb">Closed primitive library — cards, chips, shapes, lanes, stages, groups, callouts.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 02 · Components</p>
-<h1 class="page">V2 primitives, the 8 service-card extensions, and the diagram-specific compounds.</h1>
-<p class="lede">The diagram skill composes diagrams from the V2 production primitives (<code>md-card</code> / <code>md-chip</code> / <code>md-status</code> / <code>md-btn</code> / <code>md-tabs</code> / <code>md-seg</code> / <code>md-list</code>) plus 8 service-card extensions (<code>md-card--service-*</code>) and a handful of diagram-specific compounds (stages, lanes, groups, callouts). Every component below is theme-portable: the same SVG markup renders correctly on the cream M3 canvas and the near-black M3 canvas via the class-flip theme swap defined in <a href="foundations.html#01.0">Foundations §01.0</a>.</p>
+  <h1 class="page">M3 primitives, the 8 service-card extensions, and the diagram compounds.</h1>
+  <p class="lede">The diagram skill composes diagrams from the M3 primitives (<code>md-card</code> / <code>md-chip</code> / <code>md-status</code> / <code>md-btn</code> / <code>md-tabs</code> / <code>md-seg</code> / <code>md-list</code>) plus 8 service-card extensions (<code>md-card--service-*</code>) and a handful of diagram-specific compounds (stages, lanes, groups, callouts). Every component below is theme-portable: the same SVG markup renders correctly on the cream M3 canvas and the near-black M3 canvas via the class-flip theme swap defined in <a href="foundations.html#01.0">Foundations §01.0</a>.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">5</span><span class="lbl">M3 base cards</span></span>
+    <span class="stat"><span class="n">8</span><span class="lbl">service extensions</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">chip forms</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">status states</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">shape primitives</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">lane tokens</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">callout variants</span></span>
+  </div>
+</section>
 
 <!-- =========================================================== -->
 <!--                       THEME BEHAVIOR                         -->
@@ -1481,9 +1503,19 @@ body {
     <h2 class="ds-section-title">Connectors</h2>
     <p class="ds-section-blurb">Arrow taxonomy, curves, gutters, label zones, density caps.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 04 · Connectors</p>
-<h1 class="page">The arrows, the curves, the labels, the gutters — every rule for what connects what.</h1>
-<p class="lede">Connector geometry is identical between Pixel and Material modes — the rules for curve modes (L/Q/C/O), lane gutters, label zones (A/B/C), crossing priority, clearance, and density caps are mode-agnostic. Only the stroke colors and marker fills differ. Material connectors use the theme-portable info-blue accent (<code>--md-tertiary</code> · <code>#6b9cf0</code>) for primary flow, V2 surface-muted ink for secondary, and the V2 status palette (<code>--p-ok</code> / <code>--p-warn</code> / <code>--p-err</code>) for semantic paths.</p>
+  <h1 class="page">The arrows, the curves, the labels, the gutters.</h1>
+  <p class="lede">Connector geometry is identical between Pixel and Material modes — the rules for curve modes (L/Q/C/O), lane gutters, label zones (A/B/C), crossing priority, clearance, and density caps are mode-agnostic. Only the stroke colors and marker fills differ. Material connectors use the theme-portable info-blue accent (<code>--md-tertiary</code>) for primary flow, M3 surface-muted ink for secondary, and the status palette (<code>--p-ok</code> / <code>--p-warn</code> / <code>--p-err</code>) for semantic paths.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">8</span><span class="lbl">arrow types</span></span>
+    <span class="stat"><span class="n">7</span><span class="lbl">markers</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">label zones</span></span>
+    <span class="stat"><span class="n">16</span><span class="lbl">gutter (px)</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">max arrows / card</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">max crossings</span></span>
+  </div>
+</section>
 
 <div class="callout"><strong>Highest-value page.</strong> Most diagrams that drift visually do so because the connector contract was applied loosely — wrong curve mode, label rotated, parallel arrows bunched, arrow grazing an unrelated card. Every rule below has a recorded failure mode it prevents.</div>
 
@@ -1863,9 +1895,17 @@ body {
     <h2 class="ds-section-title">Icons</h2>
     <p class="ds-section-blurb">78 icons across 9 categories + monogram fallback + icon→gradient map.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 03 · Icons</p>
-<h1 class="page">Material Symbols Outlined — the canonical M3 icon font.</h1>
-<p class="lede">Material mode adopts Google's <strong>Material Symbols Outlined</strong> — the variable icon font shipped with Material 3. Reference pages load it via the Google Fonts CDN. Canonical emitted SVGs pre-convert each glyph to inline <code>&lt;path&gt;</code> data so the output stays self-contained and renders without a network dependency. The curated set below covers ~80 icons across 9 service categories — the closed list a diagram may pick from.</p>
+  <h1 class="page">Material Symbols Outlined — the canonical M3 icon font.</h1>
+  <p class="lede">Material mode adopts Google's <strong>Material Symbols Outlined</strong> — the variable icon font shipped with Material 3. Reference pages load it via the Google Fonts CDN. Canonical emitted SVGs pre-convert each glyph to inline <code>&lt;path&gt;</code> data so the output stays self-contained and renders without a network dependency. The curated set below covers ~80 icons across 9 service categories — the closed list a diagram may pick from.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">~80</span><span class="lbl">curated glyphs</span></span>
+    <span class="stat"><span class="n">9</span><span class="lbl">categories</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">size variants</span></span>
+    <span class="stat"><span class="n">1</span><span class="lbl">fallback host</span></span>
+  </div>
+</section>
 
 <!-- =========================================================== -->
 <!--                          THEME                               -->
@@ -2134,9 +2174,17 @@ body {
     <h2 class="ds-section-title">Templates</h2>
     <p class="ds-section-blurb">Per-template visual contracts (9 templates).</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 05 · Per-template visual contracts</p>
-<h1 class="page">Each of the nine templates gets one page of binding visual rules — in V2 vocabulary.</h1>
-<p class="lede">A visual contract is a four-field card per template: which V2 primitives + diagram extensions it uses, which Material Symbols it pulls from the set, the spacing and layout rules specific to that diagram type, and which arrow types appear. The semantic-side guidance ("what information to capture") stays in the mode-shared template Markdown at <code>references/templates/&lt;name&gt;.md</code>; these contracts replace the visual-side guidance only and apply when Material mode is the active mode.</p>
+  <h1 class="page">Each of the nine templates gets one page of binding visual rules.</h1>
+  <p class="lede">A visual contract is a four-field card per template: which M3 primitives + diagram extensions it uses, which Material Symbols it pulls from the set, the spacing and layout rules specific to that diagram type, and which arrow types appear. The semantic-side guidance ("what information to capture") stays in the mode-shared template Markdown at <code>references/templates/&lt;name&gt;.md</code>; these contracts replace the visual-side guidance only.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">templates</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">contract fields</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">themes each</span></span>
+    <span class="stat"><span class="n">18</span><span class="lbl">canonical SVGs</span></span>
+  </div>
+</section>
 
 <div class="callout">
   <strong>Mode-shared input contracts.</strong> The <em>data</em> a template asks for is identical between Pixel and Material — both modes consume the same <code>references/templates/&lt;name&gt;.md</code> files. Mode-specific differences live only in this page (visual contract) and in <code>foundations.html</code> / <code>components.html</code> (token + primitive vocabulary).
@@ -2572,9 +2620,17 @@ body {
     <h2 class="ds-section-title">Examples</h2>
     <p class="ds-section-blurb">18 canonical SVG examples — 9 templates × light + dark.</p>
   </div>
+  <section class="hero">
   <p class="eyebrow">Deliverable 06 · Canonical worked examples</p>
-<h1 class="page">Eighteen anchor SVGs — nine templates × two themes — of the same proposal in Material vocabulary.</h1>
-<p class="lede">Each template gets one canonical light + dark pair of the "Partner Vetting" proposal, built only from this mode's foundations, components, icons, and connectors. Compare a Material example side-by-side with its Pixel sibling in <a href="../pixel/examples.html">pixel/examples.html</a> — the structure is identical; the visual language differs.</p>
+  <h1 class="page">Nine templates, two themes each. The Material anchors.</h1>
+  <p class="lede">Each template gets one canonical light + dark pair of the "Partner Vetting" proposal, built only from this mode's foundations, components, icons, and connectors. Compare a Material example side-by-side with its Pixel sibling in <a href="../pixel/examples.html">pixel/examples.html</a> — the structure is identical; the visual language differs.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">templates</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">themes each</span></span>
+    <span class="stat"><span class="n">18</span><span class="lbl">canonical SVGs</span></span>
+    <span class="stat"><span class="n">1660</span><span class="lbl">viewBox</span></span>
+  </div>
+</section>
 
 <div class="callout"><strong>Generation note.</strong> The <code>system-context</code> anchor pair (§06.1) is the canonical V2-native hand-built reference — it uses <code>md-card--service-*</code> + Material Symbols Outlined + V2 vocabulary throughout. The other 16 SVGs (§06.2–06.9) are mechanical transforms from their Pixel counterparts, pending V2 hand-rebuild. A future release rebuilds each in V2 vocabulary using the §06.1 anchor as the pattern.</div>
 
