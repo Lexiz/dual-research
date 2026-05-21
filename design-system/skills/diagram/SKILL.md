@@ -1,6 +1,6 @@
 ---
 name: diagram
-version: 2.0.0
+version: 2.0.1
 description: Produces polished SVG diagrams in two parallel design systems — **Pixel** (cream + indigo, the default) and **Material** (Material 3, sable + sage). Every diagram emits a light + dark SVG pair under the requested mode, self-contained and host-portable to Notion, GitHub, Slack, PDF. Nine templates cover system context, layered architecture, pipeline/flow, sequence, data schema (ER), infrastructure/deployment, event-driven flow, connector/integration map, plus a freeform catch-all. The skill first restates the user's input, classifies the dominant structure, normalises into the canonical template spec, then renders. Use any time the user wants to visualise, diagram, or chart a system — "draw this", "show me X as a diagram", "create a chart for this", "visualise this architecture / data model / flow / topology", or "give me a Material dark version of this". Do NOT use for: prose explanations without a visual deliverable, mermaid-style text diagrams, hand-drawn aesthetic.
 ---
 

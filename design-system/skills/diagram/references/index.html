@@ -27,16 +27,16 @@
     <a href="pixel/examples.html"><span class="n">06</span>Examples</a>
     <a href="manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v2.0.0 · mode-aware · pixel + material · light + dark</div>
+  <div class="foot">v2.0.1 · mode-aware · pixel + material · light + dark</div>
 </aside>
 
 <main>
 
-<p class="eyebrow">Design system · v2.0.0 · two modes · light + dark</p>
+<p class="eyebrow">Design system · v2.0.1 · two modes · light + dark</p>
 <h1 class="page">A locked visual contract for nine kinds of architecture diagram — in two parallel design systems, each shipping light + dark.</h1>
 <p class="lede">The <code>diagram</code> skill ships two design systems side-by-side. <strong>Pixel</strong> (the default) is cream + indigo on a polished doc page — the system this site has documented since v1. <strong>Material</strong> is a Material 3 sibling — sable + sage palette, Roboto Flex + Roboto Serif type, Material Symbols Outlined icons, all design tokens owned by the skill in <code>references/material/_tokens.css</code>. Every diagram emits a pair of self-contained SVGs under the requested mode: <code>&lt;slug&gt;.&lt;mode&gt;.{light,dark}.svg</code>. Diagrams ship in clusters of 3–6 for any given proposal; cross-diagram coherence across both themes <em>and</em> within one mode is the quality bar. Each mode locks its own primitives — cards, icons, connectors, spacing — into a closed, named, copy-pasteable library, and the shared manifest mechanism pins mode, theme, and entity → gradient → icon across a whole set.</p>
 
-<div class="callout"><strong>What's new in v2.0.0.</strong> Mode-aware skill: <code>pixel</code> is the default; <code>material</code> opts into the M3 design system. Mode is part of the filename so both versions of a diagram coexist without collision. Per-set <code>mode:</code> + <code>theme:</code> pin in the manifest — see <a href="manifest.html#07.5">manifest §07.5</a>. Pixel mode is at <a href="pixel/foundations.html">pixel/</a>; Material mode is at <a href="material/foundations.html">material/</a>. Release history in <a href="CHANGELOG.md">CHANGELOG.md</a>.</div>
+<div class="callout"><strong>What's new in v2.0.1.</strong> Material mode rebuilt natively against M3 tokens (no more mechanical transform from Pixel) — the skill folder is now fully self-contained, design tokens owned by <a href="material/_tokens.css"><code>material/_tokens.css</code></a>. Canonical example set (36 SVGs across 9 templates × 2 modes × 2 themes) regenerated with a generic OrderFlow worked example. Mode-aware routing (<code>pixel</code> default; <code>material</code> opts into M3), per-set <code>mode:</code> + <code>theme:</code> pin in the manifest — see <a href="manifest.html#07.5">manifest §07.5</a>. Pixel mode is at <a href="pixel/foundations.html">pixel/</a>; Material mode is at <a href="material/foundations.html">material/</a>. Release history in <a href="CHANGELOG.md">CHANGELOG.md</a>.</div>
 
 <div class="callout"><strong>Two identity panels follow.</strong> The Pixel panel shows the cream + indigo + Inter vocabulary; the Material panel below it shows the same structural primitives expressed in sable + sage + Roboto Flex/Serif. Same diagrams, two visual languages.</div>
 

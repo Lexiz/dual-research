@@ -42,30 +42,32 @@ Grouping (optional):
 
 ### Worked example
 
-> **User input:** "Our order management platform is used by carriers and vendors who submit profile documents, and by Trimble Tenant Admins who configure rulesets. It syncs with Salesforce for CRM data and sends notifications via Slack."
+> **User input:** "Our OrderFlow platform handles multi-region order management. Shoppers browse and place orders, warehouse operators fulfil them, and finance analysts reconcile ledgers and process refunds. It charges customers via Stripe, sends transactional email through SendGrid, authenticates via Auth0 SSO, and reports errors to Sentry."
 
 **Normalized canonical spec:**
 
 ```
 Title: OrderFlow — System Context
-Subtitle: External actors and integrations around the OrderFlow platform
+Subtitle: The platform, the people who use it, and what it touches
 
 System (hub):
-  Name: OrderFlow Platform
+  Name: OrderFlow
   Variant: main
   Capabilities:
-    - Profile + document submission
-    - Ruleset evaluation
-    - Notification delivery
+    - Order intake & validation
+    - Inventory reservation + fulfilment
+    - Payment authorisation + capture
 
 External actors:
-  - Carrier              | type: person | label: SUBMITS    | direction: in
-  - Vendor               | type: person | label: SUBMITS    | direction: in
-  - Trimble Tenant Admin | type: person | label: CONFIGURES | direction: in
-  - Salesforce           | type: system | label: CRM SYNC   | direction: in
-  - Slack                | type: system | label: NOTIFIES   | direction: out
+  - Shopper            | type: person | label: PLACES · TRACKS  | direction: in
+  - Warehouse operator | type: person | label: FULFILS          | direction: in
+  - Finance analyst    | type: person | label: AUDITS · REFUNDS | direction: in
+  - Auth0              | type: system | label: OIDC SSO         | direction: in
+  - Stripe             | type: system | label: CHARGES          | direction: out
+  - SendGrid           | type: system | label: NOTIFIES         | direction: out
+  - Sentry             | type: system | label: TELEMETRY        | direction: out
 
-Grouping: [users (left), data providers (right top), outputs (right bottom)]
+Grouping: [users (left), external systems (right)]
 ```
 
 ## Layout pattern

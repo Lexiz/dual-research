@@ -1,4 +1,4 @@
-# diagram skill · reference bundle · v2.0.0
+# diagram skill · reference bundle · v2.0.1
 
 **What this skill is.** The `diagram` skill produces polished SVG architecture diagrams from prose. It restates the user's intent, classifies the dominant structure (static / time-ordered / data model / topology / integration surface), picks one of nine templates, and renders.
 
