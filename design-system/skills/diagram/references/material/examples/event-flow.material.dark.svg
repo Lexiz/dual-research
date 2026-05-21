@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 720" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
+  <defs>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    </filter>
+    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0f12"></stop><stop offset="100%" stop-color="#08090b"></stop>
+    </linearGradient>
+    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6b9cf0"></stop><stop offset="100%" stop-color="#3a5fa8"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#494e57"></stop><stop offset="100%" stop-color="#2c3138"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceSlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7a7e88"></stop><stop offset="100%" stop-color="#4a4e58"></stop>
+    </linearGradient>
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"></path></marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"></path></marker>
+    <path id="evtPath1" d="M 440 262 L 666 348" fill="none"></path>
+    <path id="evtPath2" d="M 990 348 L 1215 220" fill="none"></path>
+    
+  </defs>
+
+  <rect width="1660" height="720" fill="url(#bgGrad)"></rect>
+
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Partner Vetting · Event Flow</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Asynchronous topology · producers · topics · consumers · Pub/Sub</text>
+
+  <text x="280" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">PRODUCERS</text>
+  <text x="830" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">TOPICS · PUB/SUB</text>
+  <text x="1380" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">CONSUMERS</text>
+
+  <rect x="120" y="200" width="320" height="92" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(154, 246)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line></g>
+  <text x="188" y="240" font-size="16" font-weight="600" fill="white">Vetting API</text>
+  <text x="188" y="258" font-size="11" fill="rgba(255,255,255,0.72)">Cloud Run</text>
+  <text x="188" y="278" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">emits 2 events on every run</text>
+
+  <rect x="120" y="324" width="320" height="92" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(154, 370)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
+  <text x="188" y="364" font-size="16" font-weight="600" fill="white">Document Service</text>
+  <text x="188" y="382" font-size="11" fill="rgba(255,255,255,0.72)">extract + normalize worker</text>
+  <text x="188" y="402" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">emits 1 event per document</text>
+
+  <rect x="670" y="170" width="320" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(700, 208)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
+  <text x="734" y="202" font-size="15" font-weight="600" fill="white" font-family="monospace">vet.submitted</text>
+  <text x="734" y="220" font-size="10" fill="rgba(255,255,255,0.72)">topic · 7d retention · 2 subscribers</text>
+  <rect x="930" y="180" width="50" height="20" rx="10" fill="rgba(0,0,0,0.28)"></rect>
+  <text x="955" y="194" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">TOPIC</text>
+
+  <rect x="670" y="310" width="320" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(700, 348)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
+  <text x="734" y="342" font-size="15" font-weight="600" fill="white" font-family="monospace">vet.completed</text>
+  <text x="734" y="360" font-size="10" fill="rgba(255,255,255,0.72)">topic · 30d retention · 3 subscribers</text>
+  <rect x="930" y="320" width="50" height="20" rx="10" fill="rgba(0,0,0,0.28)"></rect>
+  <text x="955" y="334" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">TOPIC</text>
+
+  <rect x="670" y="450" width="320" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(700, 488)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
+  <text x="734" y="482" font-size="15" font-weight="600" fill="white" font-family="monospace">doc.processed</text>
+  <text x="734" y="500" font-size="10" fill="rgba(255,255,255,0.72)">topic · 14d retention · 1 subscriber</text>
+  <rect x="930" y="460" width="50" height="20" rx="10" fill="rgba(0,0,0,0.28)"></rect>
+  <text x="955" y="474" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">TOPIC</text>
+
+  <rect x="1220" y="170" width="320" height="76" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1250, 208)"><circle cx="0" cy="-8" r="3" fill="rgba(255,255,255,0.85)"></circle><circle cx="-8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle><circle cx="8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle><circle cx="0" cy="8" r="3" fill="rgba(255,255,255,0.85)"></circle><line x1="0" y1="-7" x2="-6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line><line x1="0" y1="-7" x2="6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line><line x1="-6" y1="3" x2="-1" y2="7" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line><line x1="6" y1="3" x2="1" y2="7" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line></g>
+  <text x="1284" y="202" font-size="15" font-weight="600" fill="white">Notification</text>
+  <text x="1284" y="220" font-size="11" fill="rgba(255,255,255,0.72)">slack + email · debounced 5s</text>
+  <text x="1284" y="238" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">subscribes to: vet.submitted, vet.completed</text>
+
+  <rect x="1220" y="310" width="320" height="76" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1250, 348)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><line x1="-7" y1="-5" x2="7" y2="-5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-7" y1="0" x2="3" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-7" y1="5" x2="5" y2="5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
+  <text x="1284" y="342" font-size="15" font-weight="600" fill="white">ARC Integration</text>
+  <text x="1284" y="360" font-size="11" fill="rgba(255,255,255,0.72)">posts verdict back to ARC pool</text>
+  <text x="1284" y="378" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">subscribes to: vet.completed</text>
+
+  <rect x="1220" y="450" width="320" height="76" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
+  <g transform="translate(1250, 488)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
+  <text x="1284" y="482" font-size="15" font-weight="600" fill="white">Audit Logger</text>
+  <text x="1284" y="500" font-size="11" fill="rgba(255,255,255,0.72)">appends to audit_event · all topics</text>
+  <text x="1284" y="518" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">subscribes to: ALL</text>
+
+  <path d="M 440 230 L 666 200" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="552" y="206" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PUBLISHES</text>
+
+  <path d="M 440 262 L 666 348" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="552" y="320" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PUBLISHES</text>
+
+  <path d="M 440 370 L 666 488" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="552" y="438" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PUBLISHES</text>
+
+  <path d="M 990 200 L 1215 200" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="1102" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+
+  <path d="M 990 220 C 1100 220 1100 488 1215 488" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowAccentSm)" opacity="0.65"></path>
+
+  <path d="M 990 340 L 1215 220" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="1100" y="270" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+
+  <path d="M 990 348 L 1215 348" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="1102" y="340" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+
+  <path d="M 990 370 C 1100 370 1100 488 1215 488" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowAccentSm)" opacity="0.65"></path>
+
+  <path d="M 990 488 L 1215 488" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
+  <text x="1102" y="480" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+
+  <circle r="3.5" fill="#6b9cf0" class="dot-evt">
+    
+  </circle>
+  <circle r="3.5" fill="#6b9cf0" class="dot-evt">
+    
+  </circle>
+
+  <line x1="60" y1="568" x2="1600" y2="568" stroke="#3a3a47"></line>
+  <text x="60" y="596" font-size="11" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">DEAD-LETTER · RETRY</text>
+  <text x="60" y="620" font-size="12" fill="#b4bac4">Subscribers retry 5× with exponential backoff. On final failure the message moves to a DLQ topic (<tspan font-family="monospace" fill="#ffffff">vet.dlq</tspan>) and PagerDuty fires.</text>
+  <text x="60" y="640" font-size="12" fill="#b4bac4">Audit Logger never DLQs — it always succeeds because it writes to the same Postgres transaction as the producer.</text>
+  <text x="60" y="668" font-size="11" font-style="italic" fill="#9aa0ac">Read left-to-right · dashed indigo lines are async event flows · the animated dots follow the highest-traffic path (vet.completed fan-out).</text>
+</svg>

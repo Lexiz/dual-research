@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="980" viewBox="0 0 1660 980" preserveAspectRatio="xMidYMid meet" font-family="Inter, system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="980" viewBox="0 0 1660 980" preserveAspectRatio="xMidYMid meet" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
 
   <!-- ================= DEFS (DARK THEME) ================= -->
   <defs>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1a1a1f"/>
-      <stop offset="100%" stop-color="#14141a"/>
+      <stop offset="0%" stop-color="#0d0f12"/>
+      <stop offset="100%" stop-color="#08090b"/>
     </linearGradient>
     <linearGradient id="drafterGrad" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#d4a574"/>
@@ -15,7 +15,7 @@
       <feDropShadow dx="0" dy="2" stdDeviation="8" flood-color="#000000" flood-opacity="0.55"/>
     </filter>
     <marker id="arrowAccent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0,0 L10,5 L0,10 z" fill="#7785d4"/>
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b9cf0"/>
     </marker>
     <marker id="arrowSoft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#7a7770"/>
@@ -33,15 +33,15 @@
       <line x1="3" y1="13" x2="9"  y2="13" stroke="#e8c8a0" stroke-width="1.2"/>
     </g>
     <g id="iconDoc">
-      <rect x="0" y="0" width="32" height="40" rx="3" fill="#252531" stroke="#7785d4" stroke-width="1.6"/>
-      <line x1="6" y1="11" x2="26" y2="11" stroke="#7785d4" stroke-width="1.4"/>
-      <line x1="6" y1="17" x2="26" y2="17" stroke="#7785d4" stroke-width="1.4"/>
-      <line x1="6" y1="23" x2="26" y2="23" stroke="#7785d4" stroke-width="1.4"/>
-      <line x1="6" y1="29" x2="20" y2="29" stroke="#7785d4" stroke-width="1.4"/>
+      <rect x="0" y="0" width="32" height="40" rx="3" fill="#21252b" stroke="#6b9cf0" stroke-width="1.6"/>
+      <line x1="6" y1="11" x2="26" y2="11" stroke="#6b9cf0" stroke-width="1.4"/>
+      <line x1="6" y1="17" x2="26" y2="17" stroke="#6b9cf0" stroke-width="1.4"/>
+      <line x1="6" y1="23" x2="26" y2="23" stroke="#6b9cf0" stroke-width="1.4"/>
+      <line x1="6" y1="29" x2="20" y2="29" stroke="#6b9cf0" stroke-width="1.4"/>
     </g>
     <g id="iconLoop">
-      <path d="M 2 8 a 9 9 0 1 1 4 7" fill="none" stroke="#7785d4" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M 6 11 L 6 16 L 1 16" fill="none" stroke="#7785d4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 2 8 a 9 9 0 1 1 4 7" fill="none" stroke="#6b9cf0" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M 6 11 L 6 16 L 1 16" fill="none" stroke="#6b9cf0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
     </g>
     <g id="iconArrow">
       <line x1="0" y1="9" x2="18" y2="9" stroke="#b0aea6" stroke-width="1.8" stroke-linecap="round"/>
@@ -61,16 +61,16 @@
       </g>
     </g>
     <!-- Category bubbles — lifted to read on dark cards -->
-    <g id="bubQ"><circle r="9" fill="#7785d4"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#1a1a1f">Q</text></g>
-    <g id="bubD"><circle r="9" fill="#e8b766"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#1a1a1f">D</text></g>
-    <g id="bubI"><circle r="9" fill="#e07370"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#1a1a1f">I</text></g>
-    <g id="bubC"><circle r="9" fill="#b0aea6"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#1a1a1f">C</text></g>
+    <g id="bubQ"><circle r="9" fill="#6b9cf0"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#0d0f12">Q</text></g>
+    <g id="bubD"><circle r="9" fill="#e8b766"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#0d0f12">D</text></g>
+    <g id="bubI"><circle r="9" fill="#e07370"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#0d0f12">I</text></g>
+    <g id="bubC"><circle r="9" fill="#b0aea6"/><text y="3" text-anchor="middle" font-size="10" font-weight="700" fill="#0d0f12">C</text></g>
   </defs>
 
   <rect width="1660" height="980" fill="url(#bgGrad)"/>
 
   <!-- ================= TITLE ================= -->
-  <text x="830" y="44" text-anchor="middle" font-size="22" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Dual Research — pipeline</text>
+  <text x="830" y="44" text-anchor="middle" font-size="22" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Dual Research — pipeline</text>
   <text x="830" y="65" text-anchor="middle" font-size="12" fill="#b0aea6">Six phases · two agents · phase mode shown above each column · categories raised shown below</text>
 
   <!-- ================= USER PROMPT RIBBON ================= -->
@@ -92,15 +92,15 @@
 
   <!-- ================= PHASE MODE GLYPHS (above each column) ================= -->
   <g transform="translate(176, 152)"><use href="#iconLoop"/></g>
-  <text x="200" y="166" font-size="9.5" font-weight="600" fill="#7785d4" letter-spacing="0.5">multi-round</text>
+  <text x="200" y="166" font-size="9.5" font-weight="600" fill="#6b9cf0" letter-spacing="0.5">multi-round</text>
   <g transform="translate(420, 152)"><use href="#iconArrow"/></g>
   <text x="446" y="166" font-size="9.5" font-weight="600" fill="#b0aea6" letter-spacing="0.5">one-shot</text>
   <g transform="translate(684, 152)"><use href="#iconLoop"/></g>
-  <text x="708" y="166" font-size="9.5" font-weight="600" fill="#7785d4" letter-spacing="0.5">multi-round</text>
+  <text x="708" y="166" font-size="9.5" font-weight="600" fill="#6b9cf0" letter-spacing="0.5">multi-round</text>
   <g transform="translate(928, 152)"><use href="#iconArrow"/></g>
   <text x="954" y="166" font-size="9.5" font-weight="600" fill="#b0aea6" letter-spacing="0.5">one-shot</text>
   <g transform="translate(1192, 152)"><use href="#iconLoop"/></g>
-  <text x="1216" y="166" font-size="9.5" font-weight="600" fill="#7785d4" letter-spacing="0.5">multi-round</text>
+  <text x="1216" y="166" font-size="9.5" font-weight="600" fill="#6b9cf0" letter-spacing="0.5">multi-round</text>
   <g transform="translate(1446, 152)"><use href="#iconGear"/></g>
   <text x="1470" y="166" font-size="9.5" font-weight="600" fill="#b0aea6" letter-spacing="0.5">programmatic</text>
 
@@ -108,9 +108,9 @@
 
   <!-- ===== P0 — INPUT ===== -->
   <g transform="translate(70, 184)">
-    <rect width="230" height="440" rx="14" fill="#252531" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
-    <rect width="230" height="66" rx="14" fill="#4d5db0"/>
-    <rect y="52" width="230" height="14" fill="#4d5db0"/>
+    <rect width="230" height="440" rx="14" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
+    <rect width="230" height="66" rx="14" fill="#3a5fa8"/>
+    <rect y="52" width="230" height="14" fill="#3a5fa8"/>
     <text x="16" y="28" font-size="11" font-weight="600" fill="#e0e3f3" letter-spacing="2">PHASE 0</text>
     <text x="16" y="48" font-size="14" font-weight="600" fill="white">Input</text>
     <text x="214" y="20" text-anchor="end" font-size="10" font-weight="700" fill="#c5cdf0" font-family="ui-monospace, SF Mono, monospace">P0</text>
@@ -126,7 +126,7 @@
       <text x="16" y="76" font-size="10.5" font-weight="700" fill="#a8e0d4" letter-spacing="0.5">GPT</text>
       <text x="16" y="92" font-size="9.5" fill="#8ad0c2">raise · address · ratify</text>
     </g>
-    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ebebe5" font-weight="600">Negotiate the brief</text>
+    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ffffff" font-weight="600">Negotiate the brief</text>
     <text x="115" y="242" text-anchor="middle" font-size="9.5" fill="#b0aea6">converge on shared interpretation</text>
     <line x1="16" y1="266" x2="214" y2="266" stroke="rgba(255,255,255,0.10)"/>
     <text x="16" y="288" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">CATEGORIES RAISED</text>
@@ -144,7 +144,7 @@
 
   <!-- ===== P1 — RESEARCH PLAN ===== -->
   <g transform="translate(324, 184)">
-    <rect width="230" height="440" rx="14" fill="#252531" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
+    <rect width="230" height="440" rx="14" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
     <rect width="230" height="66" rx="14" fill="#2f3a72"/>
     <rect y="52" width="230" height="14" fill="#2f3a72"/>
     <text x="16" y="28" font-size="11" font-weight="600" fill="#c5cdf0" letter-spacing="2">PHASE 1</text>
@@ -162,7 +162,7 @@
       <text x="16" y="76" font-size="10.5" font-weight="700" fill="#a8e0d4" letter-spacing="0.5">GPT</text>
       <text x="16" y="92" font-size="9.5" fill="#8ad0c2">independent · 1 plan</text>
     </g>
-    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ebebe5" font-weight="600">Independent research plan</text>
+    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ffffff" font-weight="600">Independent research plan</text>
     <text x="115" y="242" text-anchor="middle" font-size="9.5" fill="#b0aea6">no interaction · agents blind</text>
     <line x1="16" y1="266" x2="214" y2="266" stroke="rgba(255,255,255,0.10)"/>
     <text x="16" y="288" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">CATEGORIES RAISED</text>
@@ -181,9 +181,9 @@
 
   <!-- ===== P2 — NEGOTIATE PLAN ===== -->
   <g transform="translate(578, 184)">
-    <rect width="230" height="440" rx="14" fill="#252531" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
-    <rect width="230" height="66" rx="14" fill="#4d5db0"/>
-    <rect y="52" width="230" height="14" fill="#4d5db0"/>
+    <rect width="230" height="440" rx="14" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
+    <rect width="230" height="66" rx="14" fill="#3a5fa8"/>
+    <rect y="52" width="230" height="14" fill="#3a5fa8"/>
     <text x="16" y="28" font-size="11" font-weight="600" fill="#e0e3f3" letter-spacing="2">PHASE 2</text>
     <text x="16" y="48" font-size="14" font-weight="600" fill="white">Negotiate plan</text>
     <text x="214" y="20" text-anchor="end" font-size="10" font-weight="700" fill="#c5cdf0" font-family="ui-monospace, SF Mono, monospace">P2</text>
@@ -199,7 +199,7 @@
       <text x="16" y="76" font-size="10.5" font-weight="700" fill="#a8e0d4" letter-spacing="0.5">GPT</text>
       <text x="16" y="92" font-size="9.5" fill="#8ad0c2">address · ratify · raise</text>
     </g>
-    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ebebe5" font-weight="600">Converge on plan + drafter</text>
+    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ffffff" font-weight="600">Converge on plan + drafter</text>
     <text x="115" y="242" text-anchor="middle" font-size="9.5" fill="#b0aea6">both plans visible to both agents</text>
     <line x1="16" y1="266" x2="214" y2="266" stroke="rgba(255,255,255,0.10)"/>
     <text x="16" y="288" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">CATEGORIES RAISED</text>
@@ -217,7 +217,7 @@
 
   <!-- ===== P3 — DRAFT ===== -->
   <g transform="translate(832, 184)">
-    <rect width="230" height="440" rx="14" fill="#252531" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
+    <rect width="230" height="440" rx="14" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
     <rect width="230" height="66" rx="14" fill="#1a1a18"/>
     <rect y="52" width="230" height="14" fill="#1a1a18"/>
     <text x="16" y="28" font-size="11" font-weight="600" fill="#c5cdf0" letter-spacing="2">PHASE 3</text>
@@ -228,7 +228,7 @@
     <g transform="translate(16, 98)">
       <rect width="198" height="102" rx="8" fill="url(#drafterGrad)" opacity="0.20"/>
       <rect width="198" height="102" rx="8" fill="none" stroke="#9b8e7b" stroke-width="1.2" stroke-dasharray="5,3"/>
-      <text x="99" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#ebebe5" letter-spacing="0.5">DRAFTER</text>
+      <text x="99" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff" letter-spacing="0.5">DRAFTER</text>
       <text x="99" y="50" text-anchor="middle" font-size="9.5" fill="#d0cec7">chosen in P2</text>
       <g transform="translate(48, 64)">
         <rect width="44" height="22" rx="11" fill="#3a2e1f" stroke="#d4a574"/>
@@ -240,7 +240,7 @@
         <text x="22" y="15" text-anchor="middle" font-size="10" font-weight="700" fill="#a8e0d4">GPT</text>
       </g>
     </g>
-    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ebebe5" font-weight="600">Drafter writes v1</text>
+    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ffffff" font-weight="600">Drafter writes v1</text>
     <text x="115" y="242" text-anchor="middle" font-size="9.5" fill="#b0aea6">other agent silent · 1 turn</text>
     <line x1="16" y1="266" x2="214" y2="266" stroke="rgba(255,255,255,0.10)"/>
     <text x="16" y="288" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">CATEGORIES RAISED</text>
@@ -255,9 +255,9 @@
 
   <!-- ===== P4 — REVIEW DRAFT ===== -->
   <g transform="translate(1086, 184)">
-    <rect width="230" height="440" rx="14" fill="#252531" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
-    <rect width="230" height="66" rx="14" fill="#4d5db0"/>
-    <rect y="52" width="230" height="14" fill="#4d5db0"/>
+    <rect width="230" height="440" rx="14" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
+    <rect width="230" height="66" rx="14" fill="#3a5fa8"/>
+    <rect y="52" width="230" height="14" fill="#3a5fa8"/>
     <text x="16" y="28" font-size="11" font-weight="600" fill="#e0e3f3" letter-spacing="2">PHASE 4</text>
     <text x="16" y="48" font-size="14" font-weight="600" fill="white">Review draft</text>
     <text x="214" y="20" text-anchor="end" font-size="10" font-weight="700" fill="#c5cdf0" font-family="ui-monospace, SF Mono, monospace">P4</text>
@@ -273,7 +273,7 @@
       <text x="16" y="76" font-size="10.5" font-weight="700" fill="#a8e0d4" letter-spacing="0.5">GPT</text>
       <text x="16" y="92" font-size="9.5" fill="#8ad0c2">review · revise · raise</text>
     </g>
-    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ebebe5" font-weight="600">Review the draft</text>
+    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ffffff" font-weight="600">Review the draft</text>
     <text x="115" y="242" text-anchor="middle" font-size="9.5" fill="#b0aea6">drafter may revise mid-phase</text>
     <line x1="16" y1="266" x2="214" y2="266" stroke="rgba(255,255,255,0.10)"/>
     <text x="16" y="288" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">CATEGORIES RAISED</text>
@@ -293,7 +293,7 @@
 
   <!-- ===== FINALIZE ===== -->
   <g transform="translate(1340, 184)">
-    <rect width="230" height="440" rx="14" fill="#252531" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
+    <rect width="230" height="440" rx="14" fill="#21252b" stroke="rgba(255,255,255,0.10)" filter="url(#cardShadow)"/>
     <rect width="230" height="66" rx="14" fill="#3a4252"/>
     <rect y="52" width="230" height="14" fill="#3a4252"/>
     <text x="16" y="28" font-size="11" font-weight="600" fill="#cfd5e0" letter-spacing="2">FINALIZE</text>
@@ -308,7 +308,7 @@
       <text x="99" y="80" text-anchor="middle" font-size="9.5" fill="#b0aea6">collate body + appendix</text>
       <text x="99" y="94" text-anchor="middle" font-size="9.5" fill="#b0aea6">no agent invoked</text>
     </g>
-    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ebebe5" font-weight="600">Assemble final document</text>
+    <text x="115" y="226" text-anchor="middle" font-size="10.5" fill="#ffffff" font-weight="600">Assemble final document</text>
     <text x="115" y="242" text-anchor="middle" font-size="9.5" fill="#b0aea6">body + unresolved-items appendix</text>
     <line x1="16" y1="266" x2="214" y2="266" stroke="rgba(255,255,255,0.10)"/>
     <text x="16" y="288" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">CATEGORIES RAISED</text>
@@ -316,8 +316,8 @@
     <text x="115" y="334" text-anchor="middle" font-size="9.5" fill="#8a877f" font-style="italic">no agent step</text>
     <text x="16" y="364" font-size="9" font-weight="600" fill="#8a877f" letter-spacing="1.5">EMITS</text>
     <g transform="translate(16, 374)">
-      <rect width="198" height="22" rx="11" fill="#7785d4" stroke="#a8b3e0"/>
-      <text x="99" y="15" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a1a1f">final.document</text>
+      <rect width="198" height="22" rx="11" fill="#6b9cf0" stroke="#a8b3e0"/>
+      <text x="99" y="15" text-anchor="middle" font-size="10.5" font-weight="600" fill="#0d0f12">final.document</text>
     </g>
   </g>
 
@@ -325,7 +325,7 @@
 
   <!-- P0 → P1 -->
   <g>
-    <line x1="300" y1="660" x2="324" y2="660" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+    <line x1="300" y1="660" x2="324" y2="660" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
     <rect x="248" y="672" width="128" height="22" rx="11" fill="#1f3a2c" stroke="#5fa882"/>
     <text x="312" y="687" text-anchor="middle" font-size="10" font-weight="600" fill="#a8e0c2">agreed interpretation</text>
   </g>
@@ -339,80 +339,80 @@
 
   <!-- P2 → P3 -->
   <g>
-    <line x1="808" y1="660" x2="832" y2="660" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+    <line x1="808" y1="660" x2="832" y2="660" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
     <rect x="752" y="672" width="136" height="22" rx="11" fill="#1f3a2c" stroke="#5fa882"/>
     <text x="820" y="687" text-anchor="middle" font-size="10" font-weight="600" fill="#a8e0c2">agreed plan + drafter</text>
   </g>
 
   <!-- P3 → P4 -->
   <g>
-    <line x1="1062" y1="660" x2="1086" y2="660" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+    <line x1="1062" y1="660" x2="1086" y2="660" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
     <rect x="1024" y="672" width="100" height="22" rx="11" fill="#3a2940" stroke="#a884c0"/>
     <text x="1074" y="687" text-anchor="middle" font-size="10" font-weight="600" fill="#d8c0e8">draft v1</text>
   </g>
 
   <!-- P4 → Finalize -->
   <g>
-    <line x1="1316" y1="660" x2="1340" y2="660" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+    <line x1="1316" y1="660" x2="1340" y2="660" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
     <rect x="1248" y="672" width="160" height="22" rx="11" fill="#1f3a2c" stroke="#5fa882"/>
     <text x="1328" y="687" text-anchor="middle" font-size="10" font-weight="600" fill="#a8e0c2">agreed acceptance + final draft</text>
   </g>
 
   <!-- Finalize → output -->
   <g>
-    <line x1="1570" y1="404" x2="1598" y2="404" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+    <line x1="1570" y1="404" x2="1598" y2="404" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
     <g transform="translate(1608, 384)"><use href="#iconDoc"/></g>
-    <text x="1624" y="446" text-anchor="middle" font-size="9.5" font-weight="600" fill="#7785d4" font-family="ui-monospace, SF Mono, monospace">final.document</text>
+    <text x="1624" y="446" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6b9cf0" font-family="ui-monospace, SF Mono, monospace">final.document</text>
   </g>
 
   <!-- ================= BOTTOM LEGEND ================= -->
   <g transform="translate(70, 760)">
-    <rect x="-12" y="-22" width="1544" height="64" rx="10" fill="#252531" stroke="rgba(255,255,255,0.10)"/>
+    <rect x="-12" y="-22" width="1544" height="64" rx="10" fill="#21252b" stroke="rgba(255,255,255,0.10)"/>
     <text x="0" y="-6" font-size="10" font-weight="600" fill="#8a877f" letter-spacing="2">LEGEND</text>
 
     <g transform="translate(0, 18)"><use href="#bubQ"/></g>
-    <text x="14" y="22" font-size="10.5" fill="#ebebe5">question</text>
+    <text x="14" y="22" font-size="10.5" fill="#ffffff">question</text>
     <g transform="translate(96, 18)"><use href="#bubD"/></g>
-    <text x="110" y="22" font-size="10.5" fill="#ebebe5">disagreement</text>
+    <text x="110" y="22" font-size="10.5" fill="#ffffff">disagreement</text>
     <g transform="translate(220, 18)"><use href="#bubI"/></g>
-    <text x="234" y="22" font-size="10.5" fill="#ebebe5">insight</text>
+    <text x="234" y="22" font-size="10.5" fill="#ffffff">insight</text>
     <g transform="translate(304, 18)"><use href="#bubC"/></g>
-    <text x="318" y="22" font-size="10.5" fill="#ebebe5">concern</text>
+    <text x="318" y="22" font-size="10.5" fill="#ffffff">concern</text>
 
     <g transform="translate(404, 8)">
       <rect width="60" height="22" rx="11" fill="#3a2e1f" stroke="#d4a574"/>
       <text x="30" y="15" text-anchor="middle" font-size="10" font-weight="700" fill="#e8c8a0">Claude</text>
     </g>
-    <text x="468" y="22" font-size="10.5" fill="#ebebe5">sable agent</text>
+    <text x="468" y="22" font-size="10.5" fill="#ffffff">sable agent</text>
 
     <g transform="translate(560, 8)">
       <rect width="48" height="22" rx="11" fill="#1f3934" stroke="#7cc4b8"/>
       <text x="24" y="15" text-anchor="middle" font-size="10" font-weight="700" fill="#a8e0d4">GPT</text>
     </g>
-    <text x="612" y="22" font-size="10.5" fill="#ebebe5">sage agent</text>
+    <text x="612" y="22" font-size="10.5" fill="#ffffff">sage agent</text>
 
     <g transform="translate(710, 18)">
-      <line x1="0" y1="0" x2="22" y2="0" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
+      <line x1="0" y1="0" x2="22" y2="0" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowAccent)"/>
     </g>
-    <text x="738" y="22" font-size="10.5" fill="#ebebe5">artifact handoff</text>
+    <text x="738" y="22" font-size="10.5" fill="#ffffff">artifact handoff</text>
 
     <g transform="translate(854, 12)"><use href="#iconLoop"/></g>
-    <text x="876" y="22" font-size="10.5" fill="#ebebe5">multi-round (negotiating)</text>
+    <text x="876" y="22" font-size="10.5" fill="#ffffff">multi-round (negotiating)</text>
 
     <g transform="translate(1054, 12)"><use href="#iconArrow"/></g>
-    <text x="1078" y="22" font-size="10.5" fill="#ebebe5">one-shot (production)</text>
+    <text x="1078" y="22" font-size="10.5" fill="#ffffff">one-shot (production)</text>
 
     <g transform="translate(1240, 12)"><use href="#iconGear"/></g>
-    <text x="1262" y="22" font-size="10.5" fill="#ebebe5">programmatic (no LLM)</text>
+    <text x="1262" y="22" font-size="10.5" fill="#ffffff">programmatic (no LLM)</text>
   </g>
 
   <!-- ================= FOOTER ================= -->
   <text x="70" y="884" font-size="11" fill="#b0aea6">
-    <tspan font-weight="600" fill="#ebebe5">Read left → right.</tspan>
+    <tspan font-weight="600" fill="#ffffff">Read left → right.</tspan>
     <tspan> Every phase consumes the user prompt. Multi-round phases negotiate to an explicit agreement (the green pill). One-shot phases produce in a single turn. Finalize is mechanical assembly.</tspan>
   </text>
   <text x="70" y="908" font-size="10.5" fill="#8a877f">
-    Round caps: <tspan font-weight="600" fill="#ebebe5">soft</tspan> nudges the agents to close · <tspan font-weight="600" fill="#ebebe5">hard</tspan> forces termination. P3's drafter is chosen during P2 and may be either agent.
+    Round caps: <tspan font-weight="600" fill="#ffffff">soft</tspan> nudges the agents to close · <tspan font-weight="600" fill="#ffffff">hard</tspan> forces termination. P3's drafter is chosen during P2 and may be either agent.
   </text>
 
 </svg>

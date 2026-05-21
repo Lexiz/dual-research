@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Templates · Material design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Roboto+Serif:opsz,wght@8..144,400..700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body class="light">
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>diagram skill</div>
+  <h1>Material design system</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html" class="active"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">material mode · v2.0.0 · template visual contracts</div>
+</aside>
+
+<main>
+
+<section class="hero">
+  <p class="eyebrow">Deliverable 05 · Per-template visual contracts</p>
+  <h1 class="page">Each of the nine templates gets one page of binding visual rules.</h1>
+  <p class="lede">A visual contract is a four-field card per template: which M3 primitives + diagram extensions it uses, which Material Symbols it pulls from the set, the spacing and layout rules specific to that diagram type, and which arrow types appear. The semantic-side guidance ("what information to capture") stays in the mode-shared template Markdown at <code>references/templates/&lt;name&gt;.md</code>; these contracts replace the visual-side guidance only.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">templates</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">contract fields</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">themes each</span></span>
+    <span class="stat"><span class="n">18</span><span class="lbl">canonical SVGs</span></span>
+  </div>
+</section>
+
+<div class="callout">
+  <strong>Mode-shared input contracts.</strong> The <em>data</em> a template asks for is identical between Pixel and Material — both modes consume the same <code>references/templates/&lt;name&gt;.md</code> files. Mode-specific differences live only in this page (visual contract) and in <code>foundations.html</code> / <code>components.html</code> (token + primitive vocabulary).
+</div>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">05.0</span>Theme behavior across templates</h2>
+<p class="section-lede">Every template's visual contract is theme-agnostic. The primitives composed, icons pulled, spacing and layout rules, arrow types, and anti-patterns are identical between light and dark renders. The only thing that differs per template is the M3 token <em>values</em> referenced by the V2 classes — and those swap mechanically per foundations §01.0.</p>
+
+<table class="tokens">
+  <thead><tr><th>Template</th><th>Dark behavior</th></tr></thead>
+  <tbody>
+    <tr><td class="token">layered-architecture</td><td class="note">Identical layout. M3 surface tokens flip via <code>body.light</code> rule. Layer dividers use <code>--md-outline-variant</code>.</td></tr>
+    <tr><td class="token">pipeline-flow</td><td class="note">Identical layout. Stage tokens use the theme-portable info-blue (<code>--md-tertiary</code>) circle fill in both themes.</td></tr>
+    <tr><td class="token">sequence</td><td class="note">Identical layout. Lane lifelines use <code>--md-outline-variant</code>. Activation boxes stay <code>--md-tertiary</code> at 0.4 opacity (theme-portable).</td></tr>
+    <tr><td class="token">system-context</td><td class="note">Identical layout. External integration tiles use the same <code>md-card--service-*</code> variants. Trust boundary stroke uses <code>--md-tertiary</code>.</td></tr>
+    <tr><td class="token">data-schema</td><td class="note">Identical layout. Entity card chrome lifts via M3 surface-container tier; PK/FK chips use <code>--md-tertiary-container</code>; relationship lines use <code>--md-on-surface-faint</code>.</td></tr>
+    <tr><td class="token">infrastructure</td><td class="note">Identical layout. Region/VPC boundaries use <code>--md-outline-variant</code> dashed; provider icons follow Material Symbols mapping (§03.4).</td></tr>
+    <tr><td class="token">event-flow</td><td class="note">Identical layout. Topic/queue cards use <code>md-card--service-slate</code>; consumer fan-out arrows use <code>--md-tertiary</code>.</td></tr>
+    <tr><td class="token">connector-map</td><td class="note">Identical hub-and-spokes geometry. Spoke monograms follow §03.4 mapping in both themes.</td></tr>
+    <tr><td class="token">freeform</td><td class="note">Identical layout. All component primitives follow their own theme behaviors from <a href="components.html#02.0">components §02.0</a>.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout"><strong>Rule:</strong> a template that needs theme-specific <em>layout</em> decisions does not exist in this system. If you find yourself wanting to move a card or reflow a region in the dark variant, the problem is in foundations, not in the template — fix the tokens and regenerate both.</div>
+
+<!-- ============== LAYERED ============== -->
+
+<h2><span class="num">05.1</span>Layered architecture</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/layered-architecture.md</div>
+      <div class="title">Horizontal layers with handoff arrows downward</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>md-card--outlined</code> for outer-edge layers (surfaces, third-parties)<br>
+        <code>md-card--service-*</code> in the appropriate hue for each active layer<br>
+        Layer header in <code>.t-label-m</code> (uppercase, +0.5px tracking) centered — no boundary box needed
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">By layer role: surfaces → <code>web / smartphone / terminal</code>; API → <code>api</code> or <code>hub</code>; services → <code>smart_toy / dns / function</code>; data → <code>database / cloud / bolt</code></div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto (typically 800–880)<br>
+        Layer rows: 4 layers max, <code>--ds-gap-section</code> (72) between layer baselines<br>
+        Cards in a row use <code>--ds-gap-card-arrow</code> (96)
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>solid-primary</code> downward between adjacent layers<br>
+        <code>mirror-secondary</code> for read-replica / lookup<br>
+        Lane gutter applies when ≥2 arrows land on the same lower-layer card
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Upward arrows (data layer should not arrow back to API). Five or more layers (split into two diagrams). A "mixed" layer combining services and data (use separate layers).</div>
+</div>
+
+<!-- ============== PIPELINE ============== -->
+
+<h2><span class="num">05.2</span>Pipeline flow</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/pipeline-flow.md</div>
+      <div class="title">Left-to-right numbered stages with typed outputs</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>stage.numbered-token</code> for each stage (36 dia, <code>--md-tertiary</code> fill)<br>
+        <code>md-card--service-*</code> hero per stage (240 × 120 fixed, hue by stage role)<br>
+        <code>md-card--service-neutral</code> optional sub-row showing typed output<br>
+        <code>stage.divider</code> only when an async boundary exists between two stages
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">By stage role — usually one Material Symbol per hero card. <code>schedule</code> for cron stages; <code>function</code> for transform stages; <code>biotech</code> for research stages.</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto (typically 620–700)<br>
+        5 stages fit comfortably at <code>--ds-gap-stage</code> (120)<br>
+        7+ stages → split. Never wrap to a second row.
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>solid-primary</code> between stages, single straight line<br>
+        Optional <code>md-chip--sm</code> on each arrow with the typed output ("validated bytes", "classified records")<br>
+        <code>.anim-motion-dot</code> on the main path for "running" feel — counts as 1 animation class
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Vertical pipeline. Skipping a stage number. Stages of unequal width (visual rhythm breaks). Adding a "loop back" arrow — internal loops belong inside the stage card, not as cross-stage back-arrows (see SKILL.md "Current state, not history").</div>
+</div>
+
+<!-- ============== SEQUENCE ============== -->
+
+<h2><span class="num">05.3</span>Sequence</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/sequence.md</div>
+      <div class="title">Vertical lifelines with horizontal messages</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>lane.header</code> per actor (240 wide × 56 tall, <code>md-card--filled</code>)<br>
+        <code>lane.vertical</code> dashed lifeline per actor (<code>--md-outline-variant</code>)<br>
+        <code>lane.activation-box</code> when actor is processing (<code>--md-tertiary</code> at 0.4)<br>
+        <code>note</code> primitive for sequence-level annotations (use sparingly)
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">Inside <code>lane.header</code> — one Material Symbol per actor at top-left. Pick from §03 categories matching the actor type (<code>web</code>, <code>smart_toy</code>, <code>api</code>, <code>database</code>).</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto (height = header + N × 56 + footer)<br>
+        4–6 lanes ideal; 8 max before density caps trigger<br>
+        Messages flow time-down — y position = message order
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>sync-call</code> for request/response pairs (shows wait)<br>
+        <code>async-event</code> for fire-and-forget<br>
+        <code>return</code> dashed-thinner for explicit return values<br>
+        Labels in zone A above the line; subtitle in zone B for payload notes
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Lanes wider than 240 (rhythm breaks). Diagonal arrows (always horizontal). Self-loops on a single lane (use an activation-box extension instead). More than one note per page-fold (notes are interrupts).</div>
+</div>
+
+<!-- ============== SYSTEM CONTEXT ============== -->
+
+<h2><span class="num">05.4</span>System context</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/system-context.md</div>
+      <div class="title">Hub-and-stakeholders · what's the system and what touches it</div>
+    </div>
+    <span class="tag">anchor SVG</span>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>md-card--outlined</code> for users / actors (left column)<br>
+        <code>md-card--service-primary</code> for the system hub (center, 600 wide)<br>
+        <code>md-card--filled</code> + service-* tint for external integrations (right column, 240×140)<br>
+        <code>group.boundary.trust</code> wrapping the hub<br>
+        Optional <code>AgentStrip</code> inside the hub when an agent identity is the system
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">User actors: <code>person / admin_panel_settings / badge</code><br>Hub gets a single hero Material Symbol (<code>hub / smart_toy / api</code> depending on system kind)<br>External integrations: monogram tiles (2-letter initials) over <code>extension</code> host glyph on service-card tint backgrounds</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × 720 standard<br>
+        3 columns: users (left, 280), platform (center, 600), externals (right, 280)<br>
+        Trust boundary wraps platform with 32 px inset
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>solid-primary</code> (<code>--md-tertiary</code>) for user-initiated flows (left → hub)<br>
+        <code>dashed-handoff</code> (<code>--md-on-surface-muted</code>) for system-scheduled flows (hub → externals)<br>
+        Trust-boundary crossings get a small <code>lock</code> glyph at the boundary
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Putting the hub on one side (always center). More than 5 user cards or 6 externals (split or use connector-map). Inter-external arrows (those belong in infrastructure or connector-map, not here).</div>
+</div>
+
+<!-- ============== DATA SCHEMA ============== -->
+
+<h2><span class="num">05.5</span>Data schema</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/data-schema.md</div>
+      <div class="title">Entity-relationship · tables, fields, types, foreign keys</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>md-card--filled</code> for each entity table<br>
+        <code>md-chip--sm</code> for PK / FK / UNIQUE / INDEX markers<br>
+        <code>md-card--service-neutral</code> for enum / lookup tables (visually subordinate)
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val"><code>database</code> in card header for primary entities (optional — most schemas don't need icons; the row structure tells the story).</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto<br>
+        Entities arranged so foreign-key chains read left-to-right<br>
+        Cards 240 wide; rows inside each card are field name + type + key chip
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        Relationship lines, not arrows — thin <code>--md-on-surface-faint</code> rules between FK field and target PK<br>
+        "1:N" / "N:M" cardinality in zone-C pill at the midpoint<br>
+        No arrowheads on relationship lines (they aren't directional flows)
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Putting field types in a different color than field names (use weight, not hue). Drawing FK crows-feet (use simple lines + pills). More than 8 entities (split into bounded contexts).</div>
+</div>
+
+<!-- ============== INFRASTRUCTURE ============== -->
+
+<h2><span class="num">05.6</span>Infrastructure</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/infrastructure.md</div>
+      <div class="title">Cloud topology · regions, VPCs, compute, storage</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>group.boundary.neutral</code> for regions / VPCs (dashed, <code>--md-outline-variant</code>)<br>
+        <code>md-card--service-*</code> with the right hue for each compute/storage kind<br>
+        <code>hexagon</code> primitive for cluster members / mesh nodes
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">Heavy icon usage — every card has a category Material Symbol. Compute (<code>dns / deployed_code / function</code>), data (<code>database / cloud / bolt</code>), network (<code>traffic / public / api</code>). Cloud-provider monograms (AWS, GCP, Azure) when the diagram crosses providers.</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto (often 800+)<br>
+        Regions stacked vertically or arranged side-by-side<br>
+        VPCs nested inside regions with second-level <code>group.boundary.neutral</code>
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>solid-primary</code> for synchronous traffic<br>
+        <code>async-event</code> for cross-region replication<br>
+        <code>mirror-secondary</code> for read-replicas / backup paths
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Drawing every IAM role (those go in a separate auth diagram). Showing more than 2 levels of nested boundaries (region → VPC is enough; subnet detail goes in a focused sub-diagram). Mixing logical and physical topology (pick one).</div>
+</div>
+
+<!-- ============== EVENT FLOW ============== -->
+
+<h2><span class="num">05.7</span>Event flow</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/event-flow.md</div>
+      <div class="title">Producer → topic → consumers · async-first topology</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>md-card--service-slate</code> for topics / queues<br>
+        <code>md-card--filled</code> for producers and consumers<br>
+        <code>circle</code> primitive (small, <code>--md-on-surface-faint</code> stroke) for partition / shard markers
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">Producers: <code>dns / schedule</code>. Topics: <code>sync_alt / water</code>. Consumers: <code>function</code> or service-specific Material Symbol.</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto<br>
+        Topics in center column; producers on left, consumers on right<br>
+        Fan-in (multiple producers → 1 topic) compressed via trunk + count rule (§04.4)
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>async-event</code> from producer → topic (the canonical pub/sub arrow, <code>--p-ok</code>)<br>
+        <code>solid-primary</code> from topic → consumer (consumption is sync from the consumer's view)<br>
+        <code>error-path</code> dashed-red to a DLQ card (if shown)
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Bidirectional arrows on event flows (events are one-way). Skipping the topic and arrowing producer directly to consumer (defeats the purpose). Showing offsets / commit details (those belong in a focused operations diagram).</div>
+</div>
+
+<!-- ============== CONNECTOR MAP ============== -->
+
+<h2><span class="num">05.8</span>Connector map</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/connector-map.md</div>
+      <div class="title">Hub-and-spoke · what integrates with what</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        <code>md-card--service-primary</code> as hub (center)<br>
+        <code>md-card--filled</code> as spokes (radial, 180 × 80)<br>
+        Monogram tiles inside each spoke for third-party identity (using the <code>extension</code> fallback host pattern)
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">Hub: one hero Material Symbol (<code>hub / api / cloud</code>). Spokes: monograms for third-parties (2-letter initials over <code>extension</code>); known categories use category icons from §03.</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto<br>
+        Hub centered; spokes evenly distributed in 2–3 concentric rings<br>
+        12 spokes max before density caps trigger
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        <code>solid-primary</code> or <code>bidirectional</code> from hub to each spoke<br>
+        Inter-spoke arrows are forbidden (the whole point is the hub)<br>
+        Label on each arrow: protocol (REST, gRPC, webhook)
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Inter-spoke arrows (use infrastructure template instead). Listing every endpoint (collapse into one arrow per integration). Spokes of inconsistent size (lock to <code>md-card--filled</code> 180 × 80).</div>
+</div>
+
+<!-- ============== FREEFORM ============== -->
+
+<h2><span class="num">05.9</span>Freeform · the catch-all</h2>
+
+<div class="contract">
+  <div class="ch">
+    <div>
+      <div class="name">templates/freeform.md</div>
+      <div class="title">When no other template fits — decompose into nouns/verbs/groupings/ordering</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="lbl">Components</div>
+      <div class="val">
+        Any from the library — but every element is still a named primitive<br>
+        Common: <code>md-card--service-primary</code> for hero, <code>md-card--outlined</code> for actors, <code>group.boundary.*</code> for regions, <code>note</code> primitive for asides
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Icons</div>
+      <div class="val">As needed from §03 (Material Symbols) — never invented inline. Fall back to <code>extension</code>-with-monogram for things that don't match.</div>
+    </div>
+    <div class="field">
+      <div class="lbl">Layout</div>
+      <div class="val">
+        viewBox 1660 × auto, or <code>--canvas-width-wide</code> 2200 for landscape three-column overviews<br>
+        Decompose: nouns → cards, verbs → arrows, groupings → boundaries, ordering → stages or lanes<br>
+        If you can't decompose, the input is too unstructured — ask the user to clarify
+      </div>
+    </div>
+    <div class="field">
+      <div class="lbl">Arrows</div>
+      <div class="val">
+        Any from §04 taxonomy — pick by semantic, respect the connector contract<br>
+        Density caps still apply (max 6 per card, max 18 cards, max 3 crossings, etc.)
+      </div>
+    </div>
+  </div>
+  <div class="anti"><strong>Anti-patterns</strong> Using freeform as an excuse to skip the connector contract or invent new primitives. Mixing more than 5 categorical surfaces. Drawing without a manifest in a multi-diagram set. Going wide (2200) when content actually fits 1660.</div>
+</div>
+
+</main>
+</div>
+</body>
+</html>

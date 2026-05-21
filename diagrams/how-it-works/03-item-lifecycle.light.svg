@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="760" viewBox="0 0 1660 760" preserveAspectRatio="xMidYMid meet" font-family="Inter, system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="760" viewBox="0 0 1660 760" preserveAspectRatio="xMidYMid meet" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
 
   <!-- ================= DEFS ================= -->
   <defs>
     <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#1a1a18" flood-opacity="0.12"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#04060a" flood-opacity="0.12"/>
     </filter>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f5f1ea"/><stop offset="100%" stop-color="#ece8e0"/>
+      <stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/>
     </linearGradient>
 
     <!-- Node surface gradients -->
@@ -51,50 +51,50 @@
   <rect width="1660" height="760" fill="url(#bgGrad)"/>
 
   <!-- ================= TITLE ================= -->
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Item lifecycle · state machine</text>
-  <text x="830" y="80" text-anchor="middle" font-size="12.5" fill="#706e67">A question / disagreement / issue / comment moves through these seven states across a Dual Research run.</text>
-  <text x="830" y="100" text-anchor="middle" font-size="11.5" fill="#9e9b95" font-style="italic">States <tspan font-weight="600" fill="#706e67" font-style="normal">open</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">addressed</tspan> are non-terminal. States <tspan font-weight="600" fill="#706e67" font-style="normal">resolved</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">acknowledged</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">withdrawn</tspan> · <tspan font-weight="600" fill="#706e67" font-style="normal">capped</tspan> are terminal. The orchestrator (not the agents) sets <tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#c25555" font-style="normal">capped</tspan>.</text>
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#04060a" letter-spacing="-0.3">Item lifecycle · state machine</text>
+  <text x="830" y="80" text-anchor="middle" font-size="12.5" fill="#4d5159">A question / disagreement / issue / comment moves through these seven states across a Dual Research run.</text>
+  <text x="830" y="100" text-anchor="middle" font-size="11.5" fill="#6f7480" font-style="italic">States <tspan font-weight="600" fill="#4d5159" font-style="normal">open</tspan> · <tspan font-weight="600" fill="#4d5159" font-style="normal">addressed</tspan> are non-terminal. States <tspan font-weight="600" fill="#4d5159" font-style="normal">resolved</tspan> · <tspan font-weight="600" fill="#4d5159" font-style="normal">acknowledged</tspan> · <tspan font-weight="600" fill="#4d5159" font-style="normal">withdrawn</tspan> · <tspan font-weight="600" fill="#4d5159" font-style="normal">capped</tspan> are terminal. The orchestrator (not the agents) sets <tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#c25555" font-style="normal">capped</tspan>.</text>
 
   <!-- ================= LEGEND (tones) ================= -->
   <g transform="translate(56, 130)">
-    <text x="0" y="0" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.8">TONE LEGEND</text>
+    <text x="0" y="0" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.8">TONE LEGEND</text>
     <g transform="translate(0, 14)">
       <rect x="0"   y="0" width="10" height="10" rx="2" fill="url(#surfInfoOpen)"/>
-      <text x="16"  y="9" font-size="10.5" fill="#4a4845">info</text>
+      <text x="16"  y="9" font-size="10.5" fill="#3a3f47">info</text>
       <rect x="62"  y="0" width="10" height="10" rx="2" fill="url(#surfWarn)"/>
-      <text x="78"  y="9" font-size="10.5" fill="#4a4845">warn</text>
+      <text x="78"  y="9" font-size="10.5" fill="#3a3f47">warn</text>
       <rect x="128" y="0" width="10" height="10" rx="2" fill="url(#surfOk)"/>
-      <text x="144" y="9" font-size="10.5" fill="#4a4845">ok</text>
+      <text x="144" y="9" font-size="10.5" fill="#3a3f47">ok</text>
       <rect x="180" y="0" width="10" height="10" rx="2" fill="url(#surfIdle)"/>
-      <text x="196" y="9" font-size="10.5" fill="#4a4845">idle</text>
+      <text x="196" y="9" font-size="10.5" fill="#3a3f47">idle</text>
       <rect x="242" y="0" width="10" height="10" rx="2" fill="url(#surfErr)"/>
-      <text x="258" y="9" font-size="10.5" fill="#4a4845">err</text>
+      <text x="258" y="9" font-size="10.5" fill="#3a3f47">err</text>
     </g>
   </g>
 
   <!-- legend: dashed = non-terminal proposal -->
   <g transform="translate(1340, 130)">
-    <text x="0" y="0" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.8">OUTLINE LEGEND</text>
+    <text x="0" y="0" font-size="10" font-weight="600" fill="#6f7480" letter-spacing="1.8">OUTLINE LEGEND</text>
     <g transform="translate(0, 14)">
       <rect x="0" y="0" width="22" height="10" rx="2" fill="none" stroke="#b07e2c" stroke-width="1.4" stroke-dasharray="3,3"/>
-      <text x="30" y="9" font-size="10.5" fill="#4a4845">dashed = proposal (not yet terminal)</text>
+      <text x="30" y="9" font-size="10.5" fill="#3a3f47">dashed = proposal (not yet terminal)</text>
     </g>
     <g transform="translate(0, 30)">
       <rect x="0" y="0" width="22" height="10" rx="2" fill="none" stroke="#3d8a5c" stroke-width="1.4"/>
-      <text x="30" y="9" font-size="10.5" fill="#4a4845">solid = terminal</text>
+      <text x="30" y="9" font-size="10.5" fill="#3a3f47">solid = terminal</text>
     </g>
   </g>
 
   <!-- ================= ENTRY ARROW ((new) → open) ================= -->
   <g>
-    <text x="50" y="370" font-size="10" font-style="italic" fill="#9e9b95">(new item)</text>
+    <text x="50" y="370" font-size="10" font-style="italic" fill="#6f7480">(new item)</text>
     <line x1="50" y1="380" x2="118" y2="380" stroke="#3e6cbf" stroke-width="2" marker-end="url(#arrInfo)"/>
     <!-- chip: raised -->
     <g transform="translate(58, 340)">
       <rect x="0" y="0" width="58" height="20" rx="10" fill="#e7eef8" stroke="#a9c2e8"/>
       <text x="29" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2e5599">raised</text>
     </g>
-    <text x="87" y="402" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+    <text x="87" y="402" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">raiser</text>
   </g>
 
   <!-- ================= NODES (rounded rect cards) ================= -->
@@ -177,7 +177,7 @@
       <rect x="0" y="0" width="68" height="20" rx="10" fill="#e7eef8" stroke="#a9c2e8"/>
       <text x="34" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2e5599">addressed</text>
     </g>
-    <text x="348" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">addressee</text>
+    <text x="348" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">addressee</text>
   </g>
 
   <!-- addressed → open (back-edge, curved above through y≈300) -->
@@ -187,7 +187,7 @@
       <rect x="0" y="0" width="78" height="20" rx="10" fill="#e7eef8" stroke="#a9c2e8"/>
       <text x="39" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2e5599">raised again</text>
     </g>
-    <text x="350" y="266" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+    <text x="350" y="266" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">raiser</text>
   </g>
 
   <!-- addressed → resolved (curved up-right) -->
@@ -197,7 +197,7 @@
       <rect x="0" y="0" width="62" height="20" rx="10" fill="#e0efe5" stroke="#9ec9b0"/>
       <text x="31" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#2a6a47">resolved</text>
     </g>
-    <text x="638" y="304" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+    <text x="638" y="304" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">raiser</text>
   </g>
 
   <!-- addressed → acknowledged_proposed (straight) -->
@@ -207,7 +207,7 @@
       <rect x="0" y="0" width="78" height="20" rx="10" fill="#f6ecd6" stroke="#d6b773"/>
       <text x="39" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7e5a14">acknowledged</text>
     </g>
-    <text x="647" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+    <text x="647" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">raiser</text>
   </g>
 
   <!-- acknowledged_proposed → acknowledged (warn + → terminal) -->
@@ -218,7 +218,7 @@
       <text x="14" y="14" font-size="10.5" font-weight="700" fill="#7e5a14">+</text>
       <text x="22" y="14" font-size="10.5" font-weight="600" fill="#7e5a14">both ACK</text>
     </g>
-    <text x="978" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">both</text>
+    <text x="978" y="396" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">both</text>
   </g>
 
   <!-- addressed → withdrawn (curved down-right) -->
@@ -228,7 +228,7 @@
       <rect x="0" y="0" width="66" height="20" rx="10" fill="#ebecee" stroke="#b6bbc1"/>
       <text x="33" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4d535a">withdrawn</text>
     </g>
-    <text x="628" y="510" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+    <text x="628" y="510" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">raiser</text>
   </g>
 
   <!-- open → withdrawn (curved down-right, longer arc; below the addressed→withdrawn arc to avoid collision) -->
@@ -238,7 +238,7 @@
       <rect x="0" y="0" width="66" height="20" rx="10" fill="#ebecee" stroke="#b6bbc1"/>
       <text x="33" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#4d535a">withdrawn</text>
     </g>
-    <text x="403" y="635" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">raiser</text>
+    <text x="403" y="635" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">raiser</text>
   </g>
 
   <!-- open → capped (curved over top, dashed) -->
@@ -248,7 +248,7 @@
       <rect x="0" y="0" width="80" height="20" rx="10" fill="#f7e3e3" stroke="#dca5a5"/>
       <text x="40" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#8e3535">capped</text>
     </g>
-    <text x="818" y="184" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">orchestrator</text>
+    <text x="818" y="184" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">orchestrator</text>
   </g>
 
   <!-- addressed → capped (curved below, dashed) -->
@@ -258,15 +258,15 @@
       <rect x="0" y="0" width="80" height="20" rx="10" fill="#f7e3e3" stroke="#dca5a5"/>
       <text x="40" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#8e3535">capped</text>
     </g>
-    <text x="945" y="687" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#9e9b95">orchestrator</text>
+    <text x="945" y="687" text-anchor="middle" font-size="9" font-family="ui-monospace, Menlo, monospace" fill="#6f7480">orchestrator</text>
   </g>
 
   <!-- ================= MUTUAL HANDSHAKE CALLOUT ================= -->
   <g transform="translate(750, 445)">
     <rect x="0" y="0" width="460" height="58" rx="12" fill="#fbf4e0" stroke="#d6b773" stroke-width="1"/>
     <text x="14" y="20" font-size="10" font-weight="700" fill="#7e5a14" letter-spacing="1.4">MUTUAL HANDSHAKE</text>
-    <text x="14" y="38" font-size="11" fill="#4a4845"><tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#7e5a14">acknowledged_proposed</tspan> becomes terminal <tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#7e5a14">acknowledged</tspan></text>
-    <text x="14" y="52" font-size="11" fill="#4a4845">only when both parties have ACK'd the same item in the same or next round.</text>
+    <text x="14" y="38" font-size="11" fill="#3a3f47"><tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#7e5a14">acknowledged_proposed</tspan> becomes terminal <tspan font-family="ui-monospace, Menlo, monospace" font-weight="600" fill="#7e5a14">acknowledged</tspan></text>
+    <text x="14" y="52" font-size="11" fill="#3a3f47">only when both parties have ACK'd the same item in the same or next round.</text>
   </g>
 
 </svg>

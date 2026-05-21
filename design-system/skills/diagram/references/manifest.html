@@ -2,32 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Set manifest · architecture-diagram design system</title>
+<title>Set manifest · Pixel design system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="_shared.css">
+<link rel="stylesheet" href="pixel/_shared.css">
 </head>
 <body>
 <div class="shell">
 
 <aside class="sidebar">
-  <div class="brand"><span class="dot"></span>design system</div>
-  <h1>architecture-diagram</h1>
+  <div class="brand"><span class="dot"></span>diagram skill</div>
+  <h1>Pixel design system</h1>
   <nav>
     <div class="group">Read me first</div>
     <a href="index.html"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
-    <a href="foundations.html"><span class="n">01</span>Foundations</a>
-    <a href="components.html"><span class="n">02</span>Components</a>
-    <a href="icons.html"><span class="n">03</span>Icons</a>
-    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <a href="pixel/foundations.html"><span class="n">01</span>Foundations</a>
+    <a href="pixel/components.html"><span class="n">02</span>Components</a>
+    <a href="pixel/icons.html"><span class="n">03</span>Icons</a>
+    <a href="pixel/connectors.html"><span class="n">04</span>Connectors</a>
     <div class="group">Application</div>
-    <a href="templates.html"><span class="n">05</span>Templates</a>
-    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="pixel/templates.html"><span class="n">05</span>Templates</a>
+    <a href="pixel/examples.html"><span class="n">06</span>Examples</a>
     <a href="manifest.html" class="active"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">v2.0.0 · mode-aware · pixel + material · light + dark</div>
 </aside>
 
 <main>
@@ -49,6 +49,7 @@
     <tr><td class="note"><strong>Service → icon</strong></td><td class="note">Same icon shape — cylinder for Postgres, cloud for the CDN, gateway for the API.</td></tr>
     <tr><td class="note"><strong>Group → color</strong></td><td class="note">A trust boundary or VPC region named in two diagrams uses the same boundary stroke color.</td></tr>
     <tr><td class="note"><strong>Title typography</strong></td><td class="note">Inherited; identical position, size, weight, spacing.</td></tr>
+    <tr><td class="note"><strong>Mode</strong></td><td class="note">Pinned per set — <code>pixel</code> (default) or <code>material</code>. Authoritative; per-diagram override is a hard error. A proposal renders in one design system end-to-end.</td></tr>
     <tr><td class="note"><strong>Theme</strong></td><td class="note">Pinned per set — <code>light</code>, <code>dark</code>, or <code>both</code>. Authoritative; per-diagram override is a hard error.</td></tr>
     <tr><td class="note"><strong>Animation budget already spent</strong></td><td class="note">If figure 1 used <code>anim-pulse</code> + <code>anim-ring</code>, figure 2 may use at most one more new class before hitting the cap.</td></tr>
   </tbody>
@@ -64,6 +65,7 @@
   <span class="a">name</span><span class="k">:</span> <span class="s">"Partner Vetting"</span>
   <span class="a">version</span><span class="k">:</span> <span class="s">"v1.0"</span>
   <span class="a">canvas_width</span><span class="k">:</span> 1660
+  <span class="a">mode</span><span class="k">:</span> <span class="s">pixel</span>          <span class="c"># pixel | material (default: pixel)</span>
   <span class="a">theme</span><span class="k">:</span> <span class="s">both</span>           <span class="c"># light | dark | both (default for proposals)</span>
   <span class="a">canvas_bg</span><span class="k">:</span>
     <span class="a">light</span><span class="k">:</span> <span class="s">"#f5f1ea -> #ece8e0"</span>
@@ -154,14 +156,14 @@
 <table class="tokens">
   <thead><tr><th><code>theme:</code> value</th><th>Output behavior</th></tr></thead>
   <tbody>
-    <tr><td class="token">both</td><td class="note"><strong>Default</strong>. Emit <code>&lt;slug&gt;.light.svg</code> and <code>&lt;slug&gt;.dark.svg</code> for every diagram. A 5-diagram proposal ships 10 files. Identity pins apply to both — the gradient <em>name</em> pins; the gradient <em>value</em> varies by theme.</td></tr>
-    <tr><td class="token">light</td><td class="note">Emit only <code>&lt;slug&gt;.light.svg</code>. Backward-compatible.</td></tr>
-    <tr><td class="token">dark</td><td class="note">Emit only <code>&lt;slug&gt;.dark.svg</code>. For known-dark hosts.</td></tr>
+    <tr><td class="token">both</td><td class="note"><strong>Default</strong>. Emit <code>&lt;slug&gt;.pixel.light.svg</code> and <code>&lt;slug&gt;.pixel.dark.svg</code> for every diagram. A 5-diagram proposal ships 10 files. Identity pins apply to both — the gradient <em>name</em> pins; the gradient <em>value</em> varies by theme.</td></tr>
+    <tr><td class="token">light</td><td class="note">Emit only <code>&lt;slug&gt;.pixel.light.svg</code>. Backward-compatible.</td></tr>
+    <tr><td class="token">dark</td><td class="note">Emit only <code>&lt;slug&gt;.pixel.dark.svg</code>. For known-dark hosts.</td></tr>
   </tbody>
 </table>
 
 <h3>What stays unchanged across themes</h3>
-<p>Identity rules — the cross-theme pins — are theme-agnostic. The same service maps to the same gradient <em>id</em> in both themes. The gradient body (stop values) differs per theme via <code>foundations.html</code> §01.2, but the assignment doesn't.</p>
+<p>Identity rules — the cross-theme pins — are theme-agnostic. The same service maps to the same gradient <em>id</em> in both themes. The gradient body (stop values) differs per theme via the mode's <code>foundations.html</code> §01.2, but the assignment doesn't.</p>
 
 <pre><code><span class="c"># cross-theme identity rule</span>
 <span class="a">services</span><span class="k">:</span>
@@ -180,16 +182,16 @@
 <p>A five-diagram proposal under one manifest with <code>theme: both</code> ships ten files:</p>
 
 <pre><code>diagrams/
-  partner-vetting-context.light.svg
-  partner-vetting-context.dark.svg
-  partner-vetting-architecture.light.svg
-  partner-vetting-architecture.dark.svg
-  partner-vetting-pipeline.light.svg
-  partner-vetting-pipeline.dark.svg
-  partner-vetting-sequence.light.svg
-  partner-vetting-sequence.dark.svg
-  partner-vetting-schema.light.svg
-  partner-vetting-schema.dark.svg
+  partner-vetting-context.pixel.light.svg
+  partner-vetting-context.pixel.dark.svg
+  partner-vetting-architecture.pixel.light.svg
+  partner-vetting-architecture.pixel.dark.svg
+  partner-vetting-pipeline.pixel.light.svg
+  partner-vetting-pipeline.pixel.dark.svg
+  partner-vetting-sequence.pixel.light.svg
+  partner-vetting-sequence.pixel.dark.svg
+  partner-vetting-schema.pixel.light.svg
+  partner-vetting-schema.pixel.dark.svg
   diagram-set-manifest.yaml</code></pre>
 
 <p>Every pair shares the same layout. Every <em>set</em> uses the same service-to-gradient mappings. Per-pair, the values inside <code>&lt;defs&gt;</code> differ; the structure is byte-for-byte the same.</p>
@@ -198,7 +200,37 @@
 
 <!-- =========================================================== -->
 
-<h2><span class="num">07.5</span>Where the manifest lives</h2>
+<h2><span class="num">07.5</span>Mode pinning</h2>
+<p class="section-lede">Mode is set-level, exactly like theme. A proposal renders in <em>one</em> design system end-to-end — Pixel for one proposal, Material for another, never mixed. The two systems use different palettes, type families, and shadow recipes; intermixing them within a single proposal produces a visually incoherent reader experience.</p>
+
+<table class="tokens">
+  <thead><tr><th><code>mode:</code> value</th><th>Output behavior</th></tr></thead>
+  <tbody>
+    <tr><td class="token">pixel</td><td class="note"><strong>Default</strong>. Cream + indigo on a polished doc page. Inter type. 78-icon custom library. Files emit as <code>&lt;slug&gt;.pixel.{light,dark}.svg</code>. Use for general-purpose architecture diagrams and subject-agnostic systems.</td></tr>
+    <tr><td class="token">material</td><td class="note">Material 3 design system — sable + sage palette. Roboto Flex + Roboto Serif. Material Symbols Outlined icons. Files emit as <code>&lt;slug&gt;.material.{light,dark}.svg</code>. Use when the diagram should share visual DNA with an M3 product surface.</td></tr>
+  </tbody>
+</table>
+
+<h3>What stays unchanged across modes</h3>
+<p>The <em>structural</em> pins — services, labels, icons, groups, animation budget — are mode-agnostic by intent. A given service maps to the same surface-token <em>name</em> (e.g. <code>--surface-sql</code>) in both modes; the token's <em>value</em> is what differs. The diagram structure, the layout rules, the input contract — all identical. Mode swaps the rendering, not the meaning.</p>
+
+<pre><code><span class="c"># cross-mode identity rule</span>
+<span class="a">services</span><span class="k">:</span>
+  <span class="a">postgres</span><span class="k">:</span>
+    <span class="a">label</span><span class="k">:</span> <span class="s">"Postgres"</span>
+    <span class="a">surface</span><span class="k">:</span> <span class="s">--surface-sql</span>      <span class="c"># same token name, both modes</span>
+    <span class="a">icon</span><span class="k">:</span> <span class="s">icon.sql</span>           <span class="c"># same icon name, both modes</span>
+
+<span class="c"># mode-pass interpretation:</span>
+<span class="c"># pixel render -> surfaceSql stops via pixel/foundations.html §01.2</span>
+<span class="c"># material render -> surfaceSql stops via material/foundations.html §01.2</span>
+<span class="c"># icon.sql geometry: pixel custom library / material M3-style sibling</span></code></pre>
+
+<div class="callout warn"><strong>Hard error — per-diagram mode override.</strong> The skill rejects an attempt to set <code>mode:</code> on a single diagram within a set. A proposal renders in one design system end-to-end; if you want both versions of the same diagram, generate them under two separate manifests (or two separate runs without a manifest).</div>
+
+<!-- =========================================================== -->
+
+<h2><span class="num">07.6</span>Where the manifest lives</h2>
 <p class="section-lede">Two options, depending on workflow.</p>
 
 <ul class="checks">
@@ -210,7 +242,7 @@
 
 <!-- =========================================================== -->
 
-<h2><span class="num">07.6</span>Failure modes the manifest prevents</h2>
+<h2><span class="num">07.7</span>Failure modes the manifest prevents</h2>
 
 <table class="tokens">
   <thead><tr><th>Failure</th><th>How the manifest prevents it</th></tr></thead>
@@ -219,6 +251,7 @@
     <tr><td class="note">Postgres labeled “Postgres” in one figure and “Cloud SQL” in another</td><td class="value">Labels pinned at <code>services.{id}.label</code></td></tr>
     <tr><td class="note">Cylinder icon for SQL in figure 1, generic box in figure 4</td><td class="value">Icon pinned at <code>services.{id}.icon</code></td></tr>
     <tr><td class="note">A proposal ships figure 2 in light theme and figure 3 in dark by accident</td><td class="value">Theme is set-level; per-diagram override is a hard error — see §07.4</td></tr>
+    <tr><td class="note">A proposal ships some figures in Pixel and others in Material by accident</td><td class="value">Mode is set-level; per-diagram override is a hard error — see §07.5</td></tr>
     <tr><td class="note">A dark Notion reader gets a cream-rectangle–flashed diagram</td><td class="value"><code>theme: both</code> is the default; both files ship; reader picks</td></tr>
     <tr><td class="note">Animation cap silently exceeded by figure 3</td><td class="value"><code>animations_used</code> is a running tally; new classes append</td></tr>
     <tr><td class="note">Third-party “Stripe” gets a new improvised tile each diagram</td><td class="value">Monogram + tile color pinned at <code>third_parties.{id}</code></td></tr>

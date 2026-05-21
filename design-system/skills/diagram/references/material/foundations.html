@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Foundations · Material design system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300..700&family=Roboto+Serif:opsz,wght@8..144,400..700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<!-- load V2 production CSS first (canonical tokens + primitives), then doc chrome -->
+<link rel="stylesheet" href="_tokens.css">
+<link rel="stylesheet" href="_shared.css">
+</head>
+<body class="light">
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span>diagram skill</div>
+  <h1>Material design system</h1>
+  <nav>
+    <div class="group">Read me first</div>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
+    <div class="group">Specification</div>
+    <a href="foundations.html" class="active"><span class="n">01</span>Foundations</a>
+    <a href="components.html"><span class="n">02</span>Components</a>
+    <a href="icons.html"><span class="n">03</span>Icons</a>
+    <a href="connectors.html"><span class="n">04</span>Connectors</a>
+    <div class="group">Application</div>
+    <a href="templates.html"><span class="n">05</span>Templates</a>
+    <a href="examples.html"><span class="n">06</span>Examples</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
+  </nav>
+  <div class="foot">material mode · v2.0.0 · M3 sable/sage · light + dark · viewBox 1660</div>
+</aside>
+
+<main>
+
+<section class="hero">
+  <p class="eyebrow">Deliverable 01 · Foundations</p>
+  <h1 class="page">The Material design tokens and the diagram-specific extensions on top.</h1>
+  <p class="lede">Material mode owns its own design tokens. Every reference page loads <code>_tokens.css</code> first (M3 color roles, surface tiers, type scale, spacing, shape, elevation, motion, plus M3 primitive classes <code>.md-card</code> / <code>.md-chip</code> / <code>.md-status</code> / <code>.md-btn</code> / <code>.md-tabs</code> / <code>.md-seg</code> / <code>.md-list</code>) and then <code>_shared.css</code> (doc-site chrome plus the 8 diagram-specific <code>md-card--service-*</code> extensions). Both files live alongside this page in <code>material/</code>. The closed list below names every token the generator may reference and every M3 primitive class the generator may compose.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">base palette</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">M3 roles</span></span>
+    <span class="stat"><span class="n">8</span><span class="lbl">surface tiers</span></span>
+    <span class="stat"><span class="n">15</span><span class="lbl">type roles</span></span>
+    <span class="stat"><span class="n">13</span><span class="lbl">spacing tokens</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">shape steps</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">elev levels</span></span>
+  </div>
+</section>
+
+<!-- =========================================================== -->
+<!--                       THEME MODEL                            -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.0</span>Theme model</h2>
+<p class="section-lede">Every diagram ships in two flavors — <strong>light</strong> (M3 warm cream canvas) and <strong>dark</strong> (M3 near-black canvas). The two share <em>everything</em> structural: viewBox, layout, type roles, spacing, shape, motion, animation classes, connector geometry, manifest pins. They differ only in <em>color values</em>. The contract is identical to the Pixel mode — only the token namespace and the font pair differ.</p>
+
+<div class="theme-banner">
+  <div class="lt">
+    <span class="badge">Light · default · M3</span>
+    <h3>Cream canvas, sable identity, info-blue accent.</h3>
+    <p>Vertical gradient <code>#faf9f6 → #ece8de</code> (V2 <code>--md-surface → --md-surface-dim</code>). Cards layer up the M3 surface-container stack with M3 elevation shadows. Sable (<code>#d4a574</code>) is the primary identity for Claude lead. Sage (<code>#7cc4b8</code>) is the secondary identity for GPT. Info (<code>#6b9cf0</code>) is the tertiary accent — arrows, active states, focus rings. Ink runs <code>#04060a → #6f7480</code> across 5 levels.</p>
+    <p>Files emit as <code>&lt;slug&gt;.material.light.svg</code>.</p>
+  </div>
+  <div class="dk">
+    <span class="badge">Dark · same diagram</span>
+    <h3>Near-black canvas with elevated surface tiers.</h3>
+    <p>Vertical gradient <code>#0d0f12 → #08090b</code> (V2 <code>--md-surface → --md-surface-dim</code> in dark). The 8-tier surface stack (<code>container-lowest</code> → <code>container-highest</code>) lifts neutrally on dark; categorical service-card tints stay the same hue family but read on a deeper baseline. Tonal-overlay surfaces 1–5 mix the surface-tint over surface at 5/8/11/12/14% opacity — same formula, different surface and tint values. Indigo (tertiary) shifts to <code>#a4c1ff</code>-tinted container.</p>
+    <p>Files emit as <code>&lt;slug&gt;.material.dark.svg</code>.</p>
+  </div>
+</div>
+
+<h3>Naming convention</h3>
+<p>Every theme-dependent token uses the same name across themes — the value is rewritten by the <code>body.light</code> rule block (see <code>v2-m3.css</code>). Theme-agnostic tokens (spacing, type sizes, shape, motion durations, viewBox) are defined once at <code>:root</code>. The Material mode is theme-portable by construction: a diagram authored against <code>--md-*</code> renders correctly in either theme without any token swap at the SVG level.</p>
+
+<table class="tokens">
+  <thead><tr><th>Theme-dependent (value flips at <code>body.light</code>)</th><th>Theme-agnostic (single value at <code>:root</code>)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="note"><code>--md-surface</code>, <code>--md-surface-dim</code>, <code>--md-surface-bright</code><br>All 5 <code>--md-surface-container-*</code> tiers<br>All 5 <code>--md-on-surface-*</code> ink levels<br><code>--md-outline</code>, <code>--md-outline-variant</code>, <code>--md-outline-hair</code><br>All 6 <code>--md-elev-*</code> shadows<br>All 4 <code>--md-on-primary-container</code> / on-secondary / on-tertiary / on-error-container colors<br>The 5 tonal-overlay <code>--md-surface-N</code> values<br>The 4 *-container tints (primary, secondary, tertiary, error)</td>
+      <td class="note">The 9 base palette colors (<code>--p-sable</code>, …, <code>--p-idle</code>) — identity is identity<br>The 4 M3 role accents (<code>--md-primary</code>, <code>--md-secondary</code>, <code>--md-tertiary</code>, <code>--md-error</code>)<br>All 15 M3 type-scale roles (size + line-height + letter-spacing)<br>All 13 spacing tokens (<code>--md-sp-0..20</code>)<br>All 6 shape tokens (<code>--md-shape-xs..full</code>)<br>All 6 M3 motion easings + 8 durations<br>The diagram-specific gap extensions (<code>--ds-gap-*</code>)<br>The 5 diagram animation keyframes / 7 classes</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>SVG portability</h3>
+<p>Inside an emitted SVG, all fills and strokes reference V2 token names via inline <code>style="fill: var(--md-tertiary)"</code> attributes, plus a self-contained <code>&lt;style&gt;</code> block at the top declaring both light- and dark-theme token values keyed off a root-element class. Theme swap is a class flip on the SVG root, not a redraw. Filter ids (<code>cardShadow</code>, <code>cardShadowDark</code>) stay stable across themes; their interior <code>feDropShadow</code> values flip with the theme class.</p>
+
+<h3>Dual-output workflow</h3>
+<p>The skill emits two SVG files per diagram. Step 5 generates one layout; the theme pass applies each token block to produce the two files. Step 6 renders both PNGs and runs the self-review checks against each independently — see <a href="../../SKILL.md">SKILL.md</a> §5–7. A multi-diagram set pinned by <code>theme: both</code> in its manifest ships <code>2 × N</code> SVGs.</p>
+
+<div class="callout"><strong>Decisions locked.</strong> Two-file output (no <code>prefers-color-scheme</code>); theme-suffix naming includes the mode (<code>.material.light.svg</code>); single-tree color tokens with class-flip theme swap; mode is pinned per-set in the manifest (a proposal is entirely Pixel or entirely Material — never mixed).</div>
+
+<!-- =========================================================== -->
+<!--                          CANVAS                              -->
+<!-- =========================================================== -->
+<h2><span class="num">01.1</span>Canvas</h2>
+<p class="section-lede">The diagram's outer geometry is locked. The 1660px viewBox width, the M3 surface gradient as the canvas, and the Roboto Flex / Roboto Serif type pair are non-negotiable across all nine templates — they are the load-bearing brand surface.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--canvas-width</td><td class="value">1660</td><td class="note">Locked viewBox width. Use <code>--canvas-width-wide = 2200</code> only for explicit landscape three-column overviews — see <a href="templates.html">Templates → freeform</a>.</td></tr>
+    <tr><td class="token">--canvas-bg</td><td class="value">url(#bgGrad)</td><td class="note">Light: vertical <code>#faf9f6 → #ece8de</code> (<code>--md-surface → --md-surface-dim</code>). Dark: <code>#0d0f12 → #08090b</code>. Always full-canvas <code>&lt;rect&gt;</code> at index 0.</td></tr>
+    <tr><td class="token">--canvas-margin</td><td class="value">56</td><td class="note">Inset from each viewBox edge before any content. M3 8dp grid × 7. Title baseline at <code>56</code>, first card at <code>112</code>.</td></tr>
+    <tr><td class="token">--canvas-margin-tight</td><td class="value">40</td><td class="note">Only on dense templates (sequence, data-schema) where every pixel of width matters.</td></tr>
+    <tr><td class="token">--md-font-plain</td><td class="value">Roboto Flex</td><td class="note">Full stack: <code>"Roboto Flex", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif</code>. Used for body, labels, monogram, tabular numbers. Variable axis: weight 300–700.</td></tr>
+    <tr><td class="token">--md-font-brand</td><td class="value">Roboto Serif</td><td class="note">Full stack: <code>"Roboto Serif", ui-serif, Charter, Georgia, serif</code>. Used exclusively for M3 display + headline roles (titles, hero headings, page headings).</td></tr>
+    <tr><td class="token">--md-font-data</td><td class="value">Roboto Flex (tnum)</td><td class="note">Tabular-numerals variant for token names, metrics, IDs, code. The <code>.t-data</code> class applies <code>font-variant-numeric: tabular-nums</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>canvas anatomy</span><span class="meta">--canvas-margin · 56 · M3 8dp grid × 7</span></div>
+  <svg viewBox="0 0 1660 280" font-family="'Roboto Flex', system-ui, sans-serif">
+    <defs>
+      <linearGradient id="canvBgM" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/>
+      </linearGradient>
+    </defs>
+    <rect width="1660" height="280" fill="url(#canvBgM)"/>
+    <rect x="56" y="56" width="1548" height="168" fill="none" stroke="#6b9cf0" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+    <line x1="0"  y1="56" x2="56" y2="56" stroke="#6b9cf0" stroke-width="1"/>
+    <line x1="56" y1="0"  x2="56" y2="56" stroke="#6b9cf0" stroke-width="1"/>
+    <text x="28" y="42" text-anchor="middle" font-size="10" fill="#6b9cf0" font-variant-numeric="tabular-nums">56</text>
+    <text x="830" y="92" text-anchor="middle" font-size="22" font-weight="500" fill="#04060a" letter-spacing="-0.3" font-family="'Roboto Serif', ui-serif, Georgia, serif">Diagram title here</text>
+    <text x="830" y="114" text-anchor="middle" font-size="13" fill="#4d5159">Subtitle in surface-muted ink</text>
+    <line x1="56" y1="160" x2="1604" y2="160" stroke="#a8aab0" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.6"/>
+    <text x="56" y="180" font-size="10" fill="#6f7480" letter-spacing="1.2" font-weight="600">SECTION LABEL</text>
+    <text x="56" y="200" font-size="13" font-weight="500" fill="#04060a">Section heading</text>
+    <text x="1604" y="180" text-anchor="end" font-size="10" fill="#6f7480" font-variant-numeric="tabular-nums">viewBox 1660 × auto</text>
+  </svg>
+</div>
+
+<h3>Theme pair</h3>
+<div class="pair">
+  <div class="frame">
+    <div class="frame-head"><span class="theme">Light</span><span class="meta">#faf9f6 → #ece8de</span></div>
+    <svg viewBox="0 0 1660 180" font-family="'Roboto Flex', system-ui, sans-serif">
+      <defs><linearGradient id="cMAL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient></defs>
+      <rect width="1660" height="180" fill="url(#cMAL)"/>
+      <text x="830" y="78" text-anchor="middle" font-size="28" font-weight="500" fill="#04060a" letter-spacing="-0.3" font-family="'Roboto Serif', ui-serif, Georgia, serif">Diagram title · light</text>
+      <text x="830" y="106" text-anchor="middle" font-size="13" fill="#4d5159">subtitle · on-surface-muted on cream</text>
+      <text x="830" y="142" text-anchor="middle" font-size="11" fill="#6f7480" letter-spacing="0.5" font-weight="500">SECTION LABEL</text>
+    </svg>
+  </div>
+  <div class="frame dark">
+    <div class="frame-head"><span class="theme">Dark</span><span class="meta">#0d0f12 → #08090b</span></div>
+    <svg viewBox="0 0 1660 180" font-family="'Roboto Flex', system-ui, sans-serif">
+      <defs><linearGradient id="cMAD" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0f12"/><stop offset="100%" stop-color="#08090b"/></linearGradient></defs>
+      <rect width="1660" height="180" fill="url(#cMAD)"/>
+      <text x="830" y="78" text-anchor="middle" font-size="28" font-weight="500" fill="#ffffff" letter-spacing="-0.3" font-family="'Roboto Serif', ui-serif, Georgia, serif">Diagram title · dark</text>
+      <text x="830" y="106" text-anchor="middle" font-size="13" fill="#9aa0ac">subtitle · on-surface-muted on near-black</text>
+      <text x="830" y="142" text-anchor="middle" font-size="11" fill="#7d8290" letter-spacing="0.5" font-weight="500">SECTION LABEL</text>
+    </svg>
+  </div>
+</div>
+
+<!-- =========================================================== -->
+<!--                       COLOR PALETTE                          -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.2</span>Color · semantic palette</h2>
+<p class="section-lede">Every color is named by its M3 role, not its hex. The 9 base palette colors are theme-agnostic identity tokens — sable means Claude in either theme. The 8 surface-container tiers and 5 ink levels flip per theme. Card identity is communicated by <strong>subtle categorical tints</strong> (the 8 <code>md-card--service-*</code> extensions defined in <code>_shared.css</code>), each derived from a base palette color mixed into the surface-container at low opacity — the calm-dense observability pattern that distinguishes V2 from Pixel.</p>
+
+<h3>Base palette · 9 identity colors</h3>
+<p>These cross every M3 role and every theme. Sable (warm tan) is Claude. Sage (cool teal) is GPT. Info (cool blue) is the tertiary accent — arrows, active states, focus rings. Status colors live alongside.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--p-sable</td><td class="value">#d4a574</td><td class="note">Claude identity. M3 primary. Warm tan with brown undertone.</td></tr>
+    <tr><td class="token">--p-sable-dim</td><td class="value">#8a6d4e</td><td class="note">Dimmed sable for muted-Claude states (deferred, idle).</td></tr>
+    <tr><td class="token">--p-sage</td><td class="value">#7cc4b8</td><td class="note">GPT identity. M3 secondary. Cool teal.</td></tr>
+    <tr><td class="token">--p-sage-dim</td><td class="value">#4f8079</td><td class="note">Dimmed sage for muted-GPT states.</td></tr>
+    <tr><td class="token">--p-info</td><td class="value">#6b9cf0</td><td class="note">M3 tertiary. Default arrow + focus ring + active accent. Cool blue.</td></tr>
+    <tr><td class="token">--p-ok</td><td class="value">#6fb380</td><td class="note">Healthy / converged / success.</td></tr>
+    <tr><td class="token">--p-warn</td><td class="value">#d4a056</td><td class="note">Drift / warning.</td></tr>
+    <tr><td class="token">--p-err</td><td class="value">#d96a6a</td><td class="note">Errored / failed. M3 error.</td></tr>
+    <tr><td class="token">--p-idle</td><td class="value">#5e636d</td><td class="note">Idle / queued / muted-status.</td></tr>
+  </tbody>
+</table>
+
+<div class="grid cols-4">
+  <div class="swatch" style="background:#d4a574"><span class="hex">#d4a574 · sable</span></div>
+  <div class="swatch" style="background:#7cc4b8"><span class="hex">#7cc4b8 · sage</span></div>
+  <div class="swatch" style="background:#6b9cf0"><span class="hex">#6b9cf0 · info</span></div>
+  <div class="swatch" style="background:#6fb380"><span class="hex">#6fb380 · ok</span></div>
+  <div class="swatch" style="background:#d4a056"><span class="hex">#d4a056 · warn</span></div>
+  <div class="swatch" style="background:#d96a6a"><span class="hex">#d96a6a · err</span></div>
+  <div class="swatch" style="background:#5e636d"><span class="hex">#5e636d · idle</span></div>
+  <div class="swatch" style="background:#8a6d4e"><span class="hex">#8a6d4e · sable-dim</span></div>
+</div>
+
+<h3>M3 color roles</h3>
+<p>M3 roles map base palette colors to semantic roles (primary, secondary, tertiary, error). Each role has 4 supporting tokens (<code>--md-{role}</code>, <code>--md-on-{role}</code>, <code>--md-{role}-container</code>, <code>--md-on-{role}-container</code>). The role is what the generator references — never the base palette directly.</p>
+
+<table class="tokens">
+  <thead><tr><th>Role token</th><th>Light value</th><th>Dark value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-primary</td><td class="value">#d4a574</td><td class="value">#d4a574</td><td class="note">Same as <code>--p-sable</code> across themes. The Claude accent.</td></tr>
+    <tr><td class="token">--md-on-primary</td><td class="value">#1f1407</td><td class="value">#1f1407</td><td class="note">Ink on a sable surface — dark brown for AA contrast.</td></tr>
+    <tr><td class="token">--md-primary-container</td><td class="value">rgba(212,165,116,0.26)</td><td class="value">rgba(212,165,116,0.18)</td><td class="note">Tinted background for primary chips, tonal cards.</td></tr>
+    <tr><td class="token">--md-on-primary-container</td><td class="value">#3b2810</td><td class="value">#f3deca</td><td class="note">Ink on the primary container.</td></tr>
+    <tr><td class="token">--md-secondary</td><td class="value">#7cc4b8</td><td class="value">#7cc4b8</td><td class="note">Same as <code>--p-sage</code>. The GPT accent.</td></tr>
+    <tr><td class="token">--md-secondary-container</td><td class="value">rgba(124,196,184,0.26)</td><td class="value">rgba(124,196,184,0.18)</td><td class="note">Tinted background for secondary chips, tonal cards.</td></tr>
+    <tr><td class="token">--md-tertiary</td><td class="value">#6b9cf0</td><td class="value">#6b9cf0</td><td class="note">Same as <code>--p-info</code>. The arrow / focus / active accent.</td></tr>
+    <tr><td class="token">--md-tertiary-container</td><td class="value">rgba(107,156,240,0.20)</td><td class="value">rgba(107,156,240,0.18)</td><td class="note">Tinted background for info chips, note callouts.</td></tr>
+    <tr><td class="token">--md-on-tertiary-container</td><td class="value">#0a1d44</td><td class="value">#d6e3ff</td><td class="note">Ink on info container.</td></tr>
+    <tr><td class="token">--md-error</td><td class="value">#d96a6a</td><td class="value">#d96a6a</td><td class="note">Same as <code>--p-err</code>.</td></tr>
+    <tr><td class="token">--md-warning</td><td class="value">#d4a056</td><td class="value">#d4a056</td><td class="note">Same as <code>--p-warn</code>.</td></tr>
+    <tr><td class="token">--md-success</td><td class="value">#6fb380</td><td class="value">#6fb380</td><td class="note">Same as <code>--p-ok</code>.</td></tr>
+  </tbody>
+</table>
+
+<h3>Surface tiers · the M3 8-step stack</h3>
+<p>M3 layers surfaces in eight discrete tiers. Each tier is a step deeper in the visual hierarchy. Cards pick their tier by importance: filled cards sit on <code>surface-container-high</code>, outlined cards sit on <code>surface</code>, the canvas itself is the <code>surface → surface-dim</code> gradient.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-surface-dim</td><td class="value">#ece8de</td><td class="value">#08090b</td><td class="note">Deepest tier. Bottom stop of the canvas gradient.</td></tr>
+    <tr><td class="token">--md-surface</td><td class="value">#faf9f6</td><td class="value">#0d0f12</td><td class="note">The canvas base. Top stop of the canvas gradient.</td></tr>
+    <tr><td class="token">--md-surface-bright</td><td class="value">#ffffff</td><td class="value">#21242a</td><td class="note">Hero surfaces, the very top of the stack.</td></tr>
+    <tr><td class="token">--md-surface-container-lowest</td><td class="value">#ffffff</td><td class="value">#0a0c0f</td><td class="note">Code blocks, deepest container.</td></tr>
+    <tr><td class="token">--md-surface-container-low</td><td class="value">#f5f3ec</td><td class="value">#111317</td><td class="note">Doc-card backgrounds.</td></tr>
+    <tr><td class="token">--md-surface-container</td><td class="value">#f0ede4</td><td class="value">#14171c</td><td class="note">App-bar / rail / default container. The base for service-card tints.</td></tr>
+    <tr><td class="token">--md-surface-container-high</td><td class="value">#e9e5d9</td><td class="value">#191c21</td><td class="note"><code>md-card--filled</code> background.</td></tr>
+    <tr><td class="token">--md-surface-container-highest</td><td class="value">#e3decf</td><td class="value">#21252b</td><td class="note">Topmost container tier; <code>md-card--service-neutral</code> background.</td></tr>
+  </tbody>
+</table>
+
+<div class="pair">
+  <div class="frame">
+    <div class="frame-head"><span class="theme">Light · 8 tiers</span></div>
+    <svg viewBox="0 0 1660 120">
+      <rect x="0"    y="0" width="207" height="120" fill="#ece8de"/>
+      <rect x="207"  y="0" width="207" height="120" fill="#faf9f6"/>
+      <rect x="414"  y="0" width="207" height="120" fill="#ffffff"/>
+      <rect x="621"  y="0" width="207" height="120" fill="#ffffff"/>
+      <rect x="828"  y="0" width="207" height="120" fill="#f5f3ec"/>
+      <rect x="1035" y="0" width="207" height="120" fill="#f0ede4"/>
+      <rect x="1242" y="0" width="207" height="120" fill="#e9e5d9"/>
+      <rect x="1449" y="0" width="211" height="120" fill="#e3decf"/>
+      <g font-family="'Roboto Flex', system-ui, sans-serif" font-size="10" fill="#4d5159" font-variant-numeric="tabular-nums">
+        <text x="14"   y="104">dim</text>
+        <text x="221"  y="104">surface</text>
+        <text x="428"  y="104">bright</text>
+        <text x="635"  y="104">c-lowest</text>
+        <text x="842"  y="104">c-low</text>
+        <text x="1049" y="104">container</text>
+        <text x="1256" y="104">c-high</text>
+        <text x="1463" y="104">c-highest</text>
+      </g>
+    </svg>
+  </div>
+  <div class="frame dark">
+    <div class="frame-head"><span class="theme">Dark · 8 tiers</span></div>
+    <svg viewBox="0 0 1660 120">
+      <rect x="0"    y="0" width="207" height="120" fill="#08090b"/>
+      <rect x="207"  y="0" width="207" height="120" fill="#0d0f12"/>
+      <rect x="414"  y="0" width="207" height="120" fill="#21242a"/>
+      <rect x="621"  y="0" width="207" height="120" fill="#0a0c0f"/>
+      <rect x="828"  y="0" width="207" height="120" fill="#111317"/>
+      <rect x="1035" y="0" width="207" height="120" fill="#14171c"/>
+      <rect x="1242" y="0" width="207" height="120" fill="#191c21"/>
+      <rect x="1449" y="0" width="211" height="120" fill="#21252b"/>
+      <g font-family="'Roboto Flex', system-ui, sans-serif" font-size="10" fill="#9aa0ac" font-variant-numeric="tabular-nums">
+        <text x="14"   y="104">dim</text>
+        <text x="221"  y="104">surface</text>
+        <text x="428"  y="104">bright</text>
+        <text x="635"  y="104">c-lowest</text>
+        <text x="842"  y="104">c-low</text>
+        <text x="1049" y="104">container</text>
+        <text x="1256" y="104">c-high</text>
+        <text x="1463" y="104">c-highest</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<h3>Tonal-overlay surfaces · 5 levels</h3>
+<p>M3 adds a second axis of elevation by mixing the surface-tint (primary by default, secondary in <code>body.tint-secondary</code>) into the surface at 5/8/11/12/14% opacity. Use these when a card needs to feel “primary-flavored” without committing to the saturated <code>md-card--tonal-a</code> treatment. The formula is identical in light and dark — only the surface and tint values flip.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Formula</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-surface-1</td><td class="note">color-mix(surface-tint 5%, surface)</td><td class="note">Lightest overlay. Elevated button backgrounds.</td></tr>
+    <tr><td class="token">--md-surface-2</td><td class="note">color-mix(surface-tint 8%, surface)</td><td class="note">Second overlay.</td></tr>
+    <tr><td class="token">--md-surface-3</td><td class="note">color-mix(surface-tint 11%, surface)</td><td class="note">Dialog backgrounds.</td></tr>
+    <tr><td class="token">--md-surface-4</td><td class="note">color-mix(surface-tint 12%, surface)</td><td class="note">Top-app-bar scrolled state.</td></tr>
+    <tr><td class="token">--md-surface-5</td><td class="note">color-mix(surface-tint 14%, surface)</td><td class="note">Deepest overlay. Modal scrim layer.</td></tr>
+  </tbody>
+</table>
+
+<h3>On-surface ink ladder · 5 levels</h3>
+<p>Five named ink levels in increasing muteness, plus a decorative tier. The generator picks ink by role: titles use <code>--md-on-surface</code>, body uses <code>--md-on-surface-variant</code>, captions use <code>--md-on-surface-muted</code>, italic legends use <code>--md-on-surface-faint</code>, decorative tick-marks use <code>--md-on-surface-decor</code>.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-on-surface</td><td class="value">#04060a</td><td class="value">#ffffff</td><td class="note">Titles, primary text.</td></tr>
+    <tr><td class="token">--md-on-surface-variant</td><td class="value">#3a3f47</td><td class="value">#b4bac4</td><td class="note">Body text.</td></tr>
+    <tr><td class="token">--md-on-surface-muted</td><td class="value">#4d5159</td><td class="value">#9aa0ac</td><td class="note">Captions, secondary, section labels.</td></tr>
+    <tr><td class="token">--md-on-surface-faint</td><td class="value">#6f7480</td><td class="value">#7d8290</td><td class="note">Italic legends, tertiary.</td></tr>
+    <tr><td class="token">--md-on-surface-decor</td><td class="value">#a8aab0</td><td class="value">#50545d</td><td class="note">Decorative strokes, hairline rules.</td></tr>
+  </tbody>
+</table>
+
+<h3>Outlines · 3 weights</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-outline</td><td class="value">#aaa599</td><td class="value">#343941</td><td class="note">Outlined buttons, chips, default M3 outline.</td></tr>
+    <tr><td class="token">--md-outline-variant</td><td class="value">#d2cdc0</td><td class="value">#262a31</td><td class="note">Section dividers, group boundaries.</td></tr>
+    <tr><td class="token">--md-outline-hair</td><td class="value">#e7e3d9</td><td class="value">#1c1f24</td><td class="note">Hairline (1px) card borders, doc-card edges.</td></tr>
+  </tbody>
+</table>
+
+<h3>Status colors · 6 states</h3>
+<p>Reserved for the <code>md-status</code> pill, 5px filled status dots, and the rare semantic line. Never apply status colors to card fills; use the <code>md-card--service-*</code> tints below. The status pill applies <code>color-mix</code> at 16% opacity for the pill background plus full saturation for the text and leading dot.</p>
+
+<div class="grid cols-3" style="gap:14px;margin-top:16px;">
+  <span class="md-status md-status--running">running</span>
+  <span class="md-status md-status--converged">converged</span>
+  <span class="md-status md-status--drift">drift</span>
+  <span class="md-status md-status--errored">errored</span>
+  <span class="md-status md-status--idle">idle</span>
+  <span class="md-status md-status--queued">queued</span>
+</div>
+
+<table class="tokens" style="margin-top:18px;">
+  <thead><tr><th>Class</th><th>Color</th><th>Background</th><th>State</th></tr></thead>
+  <tbody>
+    <tr><td class="token">.md-status--running</td><td class="value">#6b9cf0</td><td class="note">color-mix(info 16%, transparent)</td><td class="note">Active / running.</td></tr>
+    <tr><td class="token">.md-status--converged</td><td class="value">#6fb380</td><td class="note">color-mix(ok 16%, transparent)</td><td class="note">Healthy / done.</td></tr>
+    <tr><td class="token">.md-status--drift</td><td class="value">#d4a056</td><td class="note">color-mix(warn 16%, transparent)</td><td class="note">Warning / drift.</td></tr>
+    <tr><td class="token">.md-status--errored</td><td class="value">#d96a6a</td><td class="note">color-mix(err 16%, transparent)</td><td class="note">Errored / failed.</td></tr>
+    <tr><td class="token">.md-status--idle</td><td class="value">#5e636d</td><td class="note">color-mix(idle 24%, transparent)</td><td class="note">Idle.</td></tr>
+    <tr><td class="token">.md-status--queued</td><td class="value">--md-on-surface-faint</td><td class="note">--md-surface-container-high</td><td class="note">Queued / pending.</td></tr>
+  </tbody>
+</table>
+
+<h3>Diagram-specific extensions · md-card--service-*</h3>
+<p>V2 ships five card variants (<code>elevated</code> / <code>filled</code> / <code>outlined</code> / <code>tonal-a</code> / <code>tonal-b</code>). Diagrams need a richer categorical vocabulary — eight service surfaces that each carry an identity by hue. These are defined in <code>_shared.css</code> as extensions to V2: each is structurally an <code>md-card--filled</code> with a <code>color-mix</code> tint at 18–22% opacity. The tint is subtle on purpose — V2's pattern is "calm dense observability," so categorical identity is communicated through hue at low saturation, not through dark saturated dark surfaces (which is the Pixel approach).</p>
+
+<div class="frame">
+  <div class="frame-head"><span>8 service-card variants on light canvas</span><span class="meta">md-card--service-{primary,secondary,sql,secure,store,cache,slate,neutral}</span></div>
+  <div style="background:linear-gradient(180deg,#faf9f6,#ece8de);padding:32px;">
+    <div class="grid cols-4" style="gap:14px;">
+      <div class="md-card md-card--service-primary" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">primary</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">Claude lead</div></div>
+      <div class="md-card md-card--service-secondary" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">secondary</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">GPT lead</div></div>
+      <div class="md-card md-card--service-sql" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">sql</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">Postgres</div></div>
+      <div class="md-card md-card--service-secure" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">secure</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">Auth0</div></div>
+      <div class="md-card md-card--service-store" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">store</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">S3</div></div>
+      <div class="md-card md-card--service-cache" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">cache</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">Redis</div></div>
+      <div class="md-card md-card--service-slate" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">slate</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">Pub/Sub</div></div>
+      <div class="md-card md-card--service-neutral" style="padding:20px;"><div style="font:600 11px/1 'Roboto Flex';letter-spacing:0.5px;text-transform:uppercase;opacity:0.7;">neutral</div><div style="margin-top:8px;font:500 16px/1.2 'Roboto Serif',serif;">Worker</div></div>
+    </div>
+  </div>
+</div>
+
+<table class="tokens">
+  <thead><tr><th>Variant</th><th>Background formula</th><th>Text color</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">.md-card--service-primary</td><td class="note">color-mix(primary 22%, surface-container)</td><td class="note">on-primary-container</td><td class="note">Active agent, primary API, hero element. The "your service" card.</td></tr>
+    <tr><td class="token">.md-card--service-secondary</td><td class="note">color-mix(secondary 22%, surface-container)</td><td class="note">on-secondary-container</td><td class="note">Secondary agent (GPT counterpart), companion service.</td></tr>
+    <tr><td class="token">.md-card--service-sql</td><td class="note">color-mix(tertiary 22%, surface-container)</td><td class="note">on-tertiary-container</td><td class="note">SQL databases (Postgres, MySQL, Cloud SQL). Always paired with the cylinder icon.</td></tr>
+    <tr><td class="token">.md-card--service-secure</td><td class="note">color-mix(ok 20%, surface-container)</td><td class="note">color-mix(ok 60%, on-surface)</td><td class="note">Auth providers, secret stores, gates, harnesses — anything "passing / healthy / secure".</td></tr>
+    <tr><td class="token">.md-card--service-store</td><td class="note">color-mix(sable 20%, surface-container)</td><td class="note">color-mix(sable-dim 60%, on-surface)</td><td class="note">Blob storage (S3, GCS, Azure Blob), file systems, artifact catalogs.</td></tr>
+    <tr><td class="token">.md-card--service-cache</td><td class="note">color-mix(warn 18%, surface-container)</td><td class="note">color-mix(warn 60%, on-surface)</td><td class="note">Cache, in-memory store, Redis. Distinct from queue (slate) to avoid ambiguity.</td></tr>
+    <tr><td class="token">.md-card--service-slate</td><td class="note">color-mix(idle 18%, surface-container)</td><td class="note">color-mix(idle 70%, on-surface)</td><td class="note">Research, analytics, queue / Pub/Sub, anything stream-like.</td></tr>
+    <tr><td class="token">.md-card--service-neutral</td><td class="note">--md-surface-container-highest</td><td class="note">--md-on-surface</td><td class="note">Workers, secondary services, default for unknown-category services.</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<!--                         TYPOGRAPHY                           -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.3</span>Typography · M3 type scale</h2>
+<p class="section-lede">M3 ships a 15-role type scale (5 categories × 3 sizes). The diagram skill consumes the full scale, but the canonical mapping is narrow: <strong>display</strong> for hero stage headlines, <strong>headline</strong> for diagram titles, <strong>title</strong> for card titles, <strong>body</strong> for descriptions, <strong>label</strong> for chips, status pills, section labels. Roboto Serif renders display + headline; Roboto Flex renders everything else.</p>
+
+<table class="tokens">
+  <thead><tr><th>Role</th><th>Size / line-height</th><th>Letter-spacing</th><th>Font · weight</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">.t-display-l</td><td class="value">57 / 64</td><td class="value">-0.25px</td><td class="note">Serif · 400</td><td class="note">Hero stage headlines (rare; freeform only).</td></tr>
+    <tr><td class="token">.t-display-m</td><td class="value">45 / 52</td><td class="value">0</td><td class="note">Serif · 400</td><td class="note">Headlines on large-format diagrams.</td></tr>
+    <tr><td class="token">.t-display-s</td><td class="value">36 / 44</td><td class="value">0</td><td class="note">Serif · 400</td><td class="note">Page hero (doc only).</td></tr>
+    <tr><td class="token">.t-headline-l</td><td class="value">32 / 40</td><td class="value">0</td><td class="note">Serif · 500</td><td class="note">Diagram titles (top-of-canvas, 56px from top).</td></tr>
+    <tr><td class="token">.t-headline-m</td><td class="value">28 / 36</td><td class="value">0</td><td class="note">Serif · 500</td><td class="note">Section headlines.</td></tr>
+    <tr><td class="token">.t-headline-s</td><td class="value">24 / 32</td><td class="value">0</td><td class="note">Serif · 500</td><td class="note">Stage subhead.</td></tr>
+    <tr><td class="token">.t-title-l</td><td class="value">22 / 28</td><td class="value">0</td><td class="note">Flex · 500</td><td class="note">Card titles (primary).</td></tr>
+    <tr><td class="token">.t-title-m</td><td class="value">16 / 24</td><td class="value">+0.15px</td><td class="note">Flex · 500</td><td class="note">Card titles (compact).</td></tr>
+    <tr><td class="token">.t-title-s</td><td class="value">14 / 20</td><td class="value">+0.1px</td><td class="note">Flex · 500</td><td class="note">Sub-card titles.</td></tr>
+    <tr><td class="token">.t-body-l</td><td class="value">16 / 24</td><td class="value">0</td><td class="note">Flex · 400</td><td class="note">Card body (large).</td></tr>
+    <tr><td class="token">.t-body-m</td><td class="value">14 / 20</td><td class="value">0</td><td class="note">Flex · 400</td><td class="note">Card body, default. The diagram-level body.</td></tr>
+    <tr><td class="token">.t-body-s</td><td class="value">12 / 16</td><td class="value">0</td><td class="note">Flex · 400</td><td class="note">Captions, italic legends, footnotes.</td></tr>
+    <tr><td class="token">.t-label-l</td><td class="value">14 / 20</td><td class="value">+0.1px</td><td class="note">Flex · 500</td><td class="note">Chips, button labels.</td></tr>
+    <tr><td class="token">.t-label-m</td><td class="value">12 / 16</td><td class="value">+0.5px / UC</td><td class="note">Flex · 500</td><td class="note">Section labels (uppercase). The "USERS" / "PLATFORM" type ribbons.</td></tr>
+    <tr><td class="token">.t-label-s</td><td class="value">11 / 16</td><td class="value">+0.5px / UC</td><td class="note">Flex · 500</td><td class="note">Status pills, footnote labels (uppercase).</td></tr>
+  </tbody>
+</table>
+
+<h3>Specimens</h3>
+<div class="doc-card">
+  <div class="t-display-s" style="margin-bottom:6px;">Display small · 36 / 44</div>
+  <div class="t-headline-l" style="margin-bottom:6px;">Headline large · 32 / 40 · titles</div>
+  <div class="t-headline-s" style="margin-bottom:10px;">Headline small · 24 / 32</div>
+  <div class="t-title-l" style="margin-bottom:6px;">Title large · 22 / 28 · card titles</div>
+  <div class="t-title-m" style="margin-bottom:6px;">Title medium · 16 / 24 · compact titles</div>
+  <div class="t-body-l" style="margin-bottom:6px;">Body large · 16 / 24 — descriptive copy in a card.</div>
+  <div class="t-body-m" style="margin-bottom:6px;">Body medium · 14 / 20 — the diagram default for prose.</div>
+  <div class="t-body-s" style="margin-bottom:10px;color:var(--md-on-surface-faint);font-style:italic;">Body small · 12 / 16 — italic legend in surface-faint.</div>
+  <span class="t-label-m" style="color:var(--md-on-surface-muted);">SECTION LABEL · LABEL MEDIUM · UPPERCASE</span><br>
+  <span class="t-label-s" style="color:var(--md-on-surface-muted);margin-top:6px;display:inline-block;">STATUS · LABEL SMALL</span>
+</div>
+
+<h3>Tabular numerals · the <code>.t-data</code> alias</h3>
+<p>Metric values, IDs, token names, and code use Roboto Flex with <code>font-variant-numeric: tabular-nums</code>. The <code>.t-data</code> class applies this. In SVG, set <code>font-family="'Roboto Flex', system-ui, monospace"</code> plus <code>font-variant-numeric="tabular-nums"</code> directly on the <code>&lt;text&gt;</code> element.</p>
+
+<div class="doc-card t-data" style="font-size:14px;">
+  123,456 · v2.0.0 · 0.04s p99 · 8 cores · <code>config.toml</code> · <strong style="color:var(--md-on-surface);">SHA b1f8a3c</strong>
+</div>
+
+<h3>Weights</h3>
+<p>Roboto Flex is a variable font; M3 uses four discrete weights. Roboto Serif uses the same axis.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Weight</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-w-regular</td><td class="value">400</td><td class="note">Body, captions, displays.</td></tr>
+    <tr><td class="token">--md-w-medium</td><td class="value">500</td><td class="note">Titles, headlines, labels. The M3 default emphasis weight.</td></tr>
+    <tr><td class="token">--md-w-semi</td><td class="value">600</td><td class="note">Section labels, status pills.</td></tr>
+    <tr><td class="token">--md-w-bold</td><td class="value">700</td><td class="note">Reserved — used only for emphasis inside body prose, never for UI roles.</td></tr>
+  </tbody>
+</table>
+
+<!-- =========================================================== -->
+<!--                          SPACING                             -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.4</span>Spacing · M3 8/4dp grid + diagram extensions</h2>
+<p class="section-lede">M3 layouts are measured on an 8dp grid with a 4dp half-step. The 13 V2 spacing tokens cover everything from icon padding to dialog gutters. Diagrams ride on the same grid but need three larger gap tokens for the wider canvas — declared as <code>--ds-gap-*</code> extensions below.</p>
+
+<h3>Base scale · 13 M3 tokens</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-sp-0</td><td class="value">0</td><td class="note">Zero / reset.</td></tr>
+    <tr><td class="token">--md-sp-1</td><td class="value">4px</td><td class="note">Icon-to-text micro-gap. M3 half-step.</td></tr>
+    <tr><td class="token">--md-sp-2</td><td class="value">8px</td><td class="note">Inline gap between chip and label.</td></tr>
+    <tr><td class="token">--md-sp-3</td><td class="value">12px</td><td class="note">Card-internal stacking gap.</td></tr>
+    <tr><td class="token">--md-sp-4</td><td class="value">16px</td><td class="note">Default chip-to-chip gap, card title to body.</td></tr>
+    <tr><td class="token">--md-sp-5</td><td class="value">20px</td><td class="note">Card padding-y.</td></tr>
+    <tr><td class="token">--md-sp-6</td><td class="value">24px</td><td class="note">Card padding-x. Default <code>--md-pad-card</code>.</td></tr>
+    <tr><td class="token">--md-sp-8</td><td class="value">32px</td><td class="note">Cluster-to-cluster row gap.</td></tr>
+    <tr><td class="token">--md-sp-10</td><td class="value">40px</td><td class="note">Page padding-y (main column).</td></tr>
+    <tr><td class="token">--md-sp-12</td><td class="value">48px</td><td class="note">Page padding-x (main column).</td></tr>
+    <tr><td class="token">--md-sp-14</td><td class="value">56px</td><td class="note">Hero-top spacing. Title-to-content gap.</td></tr>
+    <tr><td class="token">--md-sp-16</td><td class="value">64px</td><td class="note">Section-to-section gap. Major stage gap.</td></tr>
+    <tr><td class="token">--md-sp-20</td><td class="value">80px</td><td class="note">Page-bottom padding.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>8/4 dp rulers</span><span class="meta">sp-1 (4) · sp-2 (8) · sp-4 (16) · sp-6 (24) · sp-8 (32) · sp-12 (48) · sp-16 (64)</span></div>
+  <svg viewBox="0 0 1660 110">
+    <defs><linearGradient id="spBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient></defs>
+    <rect width="1660" height="110" fill="url(#spBg)"/>
+    <g fill="#6b9cf0">
+      <rect x="40"  y="40" width="4"  height="36"/>
+      <rect x="100" y="40" width="8"  height="36"/>
+      <rect x="180" y="40" width="16" height="36"/>
+      <rect x="280" y="40" width="24" height="36"/>
+      <rect x="400" y="40" width="32" height="36"/>
+      <rect x="540" y="40" width="48" height="36"/>
+      <rect x="700" y="40" width="64" height="36"/>
+    </g>
+    <g font-family="'Roboto Flex', system-ui, sans-serif" font-size="11" fill="#3a3f47" font-variant-numeric="tabular-nums">
+      <text x="42"  y="90">4 · sp-1</text>
+      <text x="104" y="90">8 · sp-2</text>
+      <text x="188" y="90">16 · sp-4</text>
+      <text x="292" y="90">24 · sp-6</text>
+      <text x="416" y="90">32 · sp-8</text>
+      <text x="564" y="90">48 · sp-12</text>
+      <text x="732" y="90">64 · sp-16</text>
+    </g>
+  </svg>
+</div>
+
+<h3>Diagram-specific gap extensions</h3>
+<p>The diagram canvas is far wider than typical M3 UI (1660 vs ~1200). Components that hop a card-to-arrow-to-card chain need looser rhythm than UI components. These three tokens are diagram-only — V2 itself doesn't use them. They're declared in this foundations document as values diagram authors reference when laying out a stage.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--ds-gap-card-arrow</td><td class="value">96px</td><td class="note">Horizontal gap between a card edge and the arrow shaft start. Replaces M3's 24–32px coupling, which reads cramped at 1660 wide.</td></tr>
+    <tr><td class="token">--ds-gap-stage</td><td class="value">120px</td><td class="note">Vertical gap between two stages in a numbered-step layout. Wider than <code>--md-sp-16</code> (64) to keep the numbered tokens visually distinct.</td></tr>
+    <tr><td class="token">--ds-gap-section</td><td class="value">72px</td><td class="note">Gap between two unrelated sections of a single diagram (e.g. a context block and its trust-boundary box).</td></tr>
+  </tbody>
+</table>
+
+<h3>Density modes</h3>
+<p>V2 supports <code>body.compact</code> (M3 compact density) which tightens padding, gap, and row-height tokens. Diagrams ignore this — every diagram authoritatively renders in M3 comfortable density. The doc reference pages may use compact for screenshot composition, but emitted SVGs do not.</p>
+
+<!-- =========================================================== -->
+<!--                          SHAPE                               -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.5</span>Shape scale · 6 steps</h2>
+<p class="section-lede">M3 ships six discrete shape values plus a pill (<code>--md-shape-full</code>). The diagram skill uses every step:</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-shape-xs</td><td class="value">4px</td><td class="note">Inline code chips, focus rings on text.</td></tr>
+    <tr><td class="token">--md-shape-sm</td><td class="value">8px</td><td class="note">Outlined chip, group-label chip.</td></tr>
+    <tr><td class="token">--md-shape-md</td><td class="value">12px</td><td class="note"><strong>Default card radius.</strong> Every <code>md-card</code> and <code>md-card--service-*</code> uses this.</td></tr>
+    <tr><td class="token">--md-shape-lg</td><td class="value">16px</td><td class="note">Frames, FAB, large containers, doc-card outer.</td></tr>
+    <tr><td class="token">--md-shape-xl</td><td class="value">28px</td><td class="note">M3 dialog, hero sheet.</td></tr>
+    <tr><td class="token">--md-shape-full</td><td class="value">9999px</td><td class="note">Pills: chips, status, buttons, segmented control.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>shape scale specimens</span><span class="meta">xs · sm · md (default) · lg · xl · full</span></div>
+  <svg viewBox="0 0 1660 200">
+    <defs><linearGradient id="shpBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#faf9f6"/><stop offset="100%" stop-color="#ece8de"/></linearGradient></defs>
+    <rect width="1660" height="200" fill="url(#shpBg)"/>
+    <g>
+      <rect x="60"   y="50" width="180" height="100" rx="4"    fill="#f0ede4" stroke="#d2cdc0"/>
+      <rect x="320"  y="50" width="180" height="100" rx="8"    fill="#f0ede4" stroke="#d2cdc0"/>
+      <rect x="580"  y="50" width="180" height="100" rx="12"   fill="#f0ede4" stroke="#d2cdc0"/>
+      <rect x="840"  y="50" width="180" height="100" rx="16"   fill="#f0ede4" stroke="#d2cdc0"/>
+      <rect x="1100" y="50" width="180" height="100" rx="28"   fill="#f0ede4" stroke="#d2cdc0"/>
+      <rect x="1360" y="50" width="200" height="100" rx="50"   fill="#f0ede4" stroke="#d2cdc0"/>
+    </g>
+    <g font-family="'Roboto Flex', system-ui, sans-serif" font-size="11" fill="#3a3f47" font-variant-numeric="tabular-nums" text-anchor="middle">
+      <text x="150"  y="180">xs · 4</text>
+      <text x="410"  y="180">sm · 8</text>
+      <text x="670"  y="180">md · 12 (default)</text>
+      <text x="930"  y="180">lg · 16</text>
+      <text x="1190" y="180">xl · 28</text>
+      <text x="1460" y="180">full · pill</text>
+    </g>
+  </svg>
+</div>
+
+<!-- =========================================================== -->
+<!--                ELEVATION + STATE LAYERS                      -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.6</span>Elevation + state layers</h2>
+<p class="section-lede">M3 elevation runs 0–5. Diagrams use 0–3 in practice: outlined cards sit at 0, filled cards at 1, hero cards at 2, modals at 3. Levels 4–5 are present in the token registry for full M3 coverage (interactive UI surfaces — top-app-bar scrolled state, dialog) but no diagram should reference them. State layers are M3's interaction mechanism — a <code>currentColor</code> overlay sandwiched into <code>::before</code>, opacity scaled by interaction state (hover 8%, focus 10%, pressed 12%). In emitted SVG, state layers are not rendered (the SVG is static); they exist here for completeness because the doc-site itself uses them.</p>
+
+<h3>Elevation · 6 levels</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Light shadow</th><th>Dark shadow</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-elev-0</td><td class="value">none</td><td class="value">none</td><td class="note">Outlined cards, no shadow.</td></tr>
+    <tr><td class="token">--md-elev-1</td><td class="note">0 1px 2 / 0 1px 3+1</td><td class="note">0 1px 2 / 0 1px 3+1 (deeper alpha)</td><td class="note">Filled card resting state.</td></tr>
+    <tr><td class="token">--md-elev-2</td><td class="note">0 1px 2 / 0 2px 6+2</td><td class="note">0 1px 2 / 0 2px 6+2</td><td class="note">Hovered card, default frame.</td></tr>
+    <tr><td class="token">--md-elev-3</td><td class="note">0 4px 8+3 / 0 1px 3</td><td class="note">0 4px 8+3 / 0 1px 3</td><td class="note">Hero card (service-primary), FAB.</td></tr>
+    <tr><td class="token">--md-elev-4</td><td class="note">0 6px 10+4 / 0 2px 3</td><td class="note">0 6px 10+4 / 0 2px 3</td><td class="note">V2 dialog. Diagrams do not use.</td></tr>
+    <tr><td class="token">--md-elev-5</td><td class="note">0 8px 12+6 / 0 4px 4</td><td class="note">0 8px 12+6 / 0 4px 4</td><td class="note">V2 modal scrim layer. Diagrams do not use.</td></tr>
+  </tbody>
+</table>
+
+<div class="frame">
+  <div class="frame-head"><span>elevation 0–3 in context</span><span class="meta">filled cards on the cream canvas</span></div>
+  <div style="background:linear-gradient(180deg,#faf9f6,#ece8de);padding:48px;">
+    <div class="grid cols-4" style="gap:24px;">
+      <div style="background:#e9e5d9;padding:20px;border-radius:12px;box-shadow:none;border:1px solid #d2cdc0;">
+        <div class="t-label-s" style="color:#6f7480;">elev-0</div>
+        <div class="t-title-m" style="margin-top:6px;">outlined card</div>
+      </div>
+      <div style="background:#e9e5d9;padding:20px;border-radius:12px;box-shadow:0 1px 2px 0 rgba(20,23,28,.10), 0 1px 3px 1px rgba(20,23,28,.06);">
+        <div class="t-label-s" style="color:#6f7480;">elev-1</div>
+        <div class="t-title-m" style="margin-top:6px;">filled resting</div>
+      </div>
+      <div style="background:#e9e5d9;padding:20px;border-radius:12px;box-shadow:0 1px 2px 0 rgba(20,23,28,.10), 0 2px 6px 2px rgba(20,23,28,.06);">
+        <div class="t-label-s" style="color:#6f7480;">elev-2</div>
+        <div class="t-title-m" style="margin-top:6px;">hovered / frame</div>
+      </div>
+      <div style="background:#e9e5d9;padding:20px;border-radius:12px;box-shadow:0 4px 8px 3px rgba(20,23,28,.08), 0 1px 3px 0 rgba(20,23,28,.10);">
+        <div class="t-label-s" style="color:#6f7480;">elev-3</div>
+        <div class="t-title-m" style="margin-top:6px;">hero card</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>State layer opacities</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-state-hover</td><td class="value">0.08</td><td class="note">Pointer hover overlay opacity.</td></tr>
+    <tr><td class="token">--md-state-focus</td><td class="value">0.10</td><td class="note">Keyboard focus overlay opacity (paired with focus ring).</td></tr>
+    <tr><td class="token">--md-state-pressed</td><td class="value">0.12</td><td class="note">Active press overlay opacity.</td></tr>
+    <tr><td class="token">--md-state-dragged</td><td class="value">0.16</td><td class="note">Drag overlay opacity.</td></tr>
+  </tbody>
+</table>
+
+<p>State layers are implemented as a <code>::before</code> pseudo-element on the interactive element: <code>position: absolute; inset: 0; background: currentColor; opacity: 0</code>, ramping to the state-token value on the corresponding pseudo-class. SVG outputs are static and do not render state layers — they're for the doc site only.</p>
+
+<pre><code><span class="c">/* M3 state-layer pattern */</span>
+.thing<span class="k">::before</span> {
+  <span class="a">content</span>: <span class="s">""</span>;
+  <span class="a">position</span>: <span class="s">absolute</span>; <span class="a">inset</span>: <span class="s">0</span>;
+  <span class="a">background</span>: <span class="s">currentColor</span>;
+  <span class="a">opacity</span>: <span class="s">0</span>;
+  <span class="a">border-radius</span>: <span class="s">inherit</span>;
+  <span class="a">transition</span>: <span class="s">opacity var(--md-dur-short-3) var(--md-easing-standard)</span>;
+}
+.thing<span class="k">:hover::before</span>   { <span class="a">opacity</span>: <span class="s">var(--md-state-hover)</span>; }
+.thing<span class="k">:focus-visible::before</span> { <span class="a">opacity</span>: <span class="s">var(--md-state-focus)</span>; }
+.thing<span class="k">:active::before</span>  { <span class="a">opacity</span>: <span class="s">var(--md-state-pressed)</span>; }</code></pre>
+
+<!-- =========================================================== -->
+<!--               MOTION + FOCUS RING + ANIMATION               -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.7</span>Motion · easings, durations, focus ring, animation registry</h2>
+<p class="section-lede">M3 motion has two dimensions: <strong>easing</strong> (6 named curves) and <strong>duration</strong> (8 named scales, 50ms → 500ms). These govern <em>interaction transitions</em> — hover fades, button presses, transitions between states. The diagram skill consumes them for the doc site, but emitted SVGs need a separate vocabulary for <em>content animations</em> (the calm 1–6s loops a running-system diagram uses to convey "running"). Both vocabularies are below.</p>
+
+<h3>Easings · 6 M3 curves</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Curve</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-easing-emphasized</td><td class="value">cubic-bezier(0.2, 0, 0, 1)</td><td class="note">M3 default — emphasized transitions (modals, large state changes).</td></tr>
+    <tr><td class="token">--md-easing-emphasized-decel</td><td class="value">cubic-bezier(0.05, 0.7, 0.1, 1)</td><td class="note">Element entering the screen.</td></tr>
+    <tr><td class="token">--md-easing-emphasized-accel</td><td class="value">cubic-bezier(0.3, 0, 0.8, 0.15)</td><td class="note">Element leaving the screen.</td></tr>
+    <tr><td class="token">--md-easing-standard</td><td class="value">cubic-bezier(0.2, 0, 0, 1)</td><td class="note">Standard — small in-place changes (chips, buttons).</td></tr>
+    <tr><td class="token">--md-easing-standard-decel</td><td class="value">cubic-bezier(0, 0, 0, 1)</td><td class="note">Standard decelerating.</td></tr>
+    <tr><td class="token">--md-easing-standard-accel</td><td class="value">cubic-bezier(0.3, 0, 1, 1)</td><td class="note">Standard accelerating.</td></tr>
+  </tbody>
+</table>
+
+<h3>Durations · 8 M3 scales</h3>
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-dur-short-1</td><td class="value">50ms</td><td class="note">Selection highlight, focus ring fade.</td></tr>
+    <tr><td class="token">--md-dur-short-2</td><td class="value">100ms</td><td class="note">Small state changes.</td></tr>
+    <tr><td class="token">--md-dur-short-3</td><td class="value">150ms</td><td class="note">Hover fade — the doc-site default.</td></tr>
+    <tr><td class="token">--md-dur-short-4</td><td class="value">200ms</td><td class="note">Chip selection.</td></tr>
+    <tr><td class="token">--md-dur-medium-1</td><td class="value">250ms</td><td class="note">Card-to-card transitions.</td></tr>
+    <tr><td class="token">--md-dur-medium-2</td><td class="value">300ms</td><td class="note">Dialog open.</td></tr>
+    <tr><td class="token">--md-dur-medium-4</td><td class="value">400ms</td><td class="note">Modal scrim fade.</td></tr>
+    <tr><td class="token">--md-dur-long-2</td><td class="value">500ms</td><td class="note">Large-area transitions.</td></tr>
+  </tbody>
+</table>
+
+<h3>Focus ring</h3>
+<p>M3 focus is a 3px solid ring in <code>color-mix(tertiary 80%, transparent)</code>, offset by 2px from the element edge. The diagram skill consumes this for the doc site (the rule is in <code>v2-m3.css</code>). Emitted SVGs are static and have no focus state.</p>
+
+<table class="tokens">
+  <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td class="token">--md-focus-ring</td><td class="value">3px solid color-mix(tertiary 80%)</td><td class="note">The :focus-visible outline.</td></tr>
+    <tr><td class="token">--md-focus-offset</td><td class="value">2px</td><td class="note">Inset from the focused element's border.</td></tr>
+  </tbody>
+</table>
+
+<h3>Diagram-specific animation registry · 5 keyframes / 7 classes</h3>
+<p>Diagram animations are <em>content</em> animations (loop visibility, 1–6s timing), not <em>interaction</em> transitions (M3 motion, 50–500ms). The two vocabularies serve different purposes; merging them would force calm loops into 500ms, wrong for the use case. The keyframe with literal colors (<code>tick</code>) uses V2 palette tokens (<code>--p-ok</code> and its lifted sibling).</p>
+
+<table class="tokens">
+  <thead><tr><th>Class</th><th>Keyframe</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td class="token">.anim-ring</td><td class="note">rotateDash · 4s linear infinite</td><td class="note">Rotating dashed ring around an active processor card. Conveys "running."</td></tr>
+    <tr><td class="token">.anim-ring-slow</td><td class="note">rotateDash · 6s linear infinite</td><td class="note">Slower variant for secondary processors.</td></tr>
+    <tr><td class="token">.anim-pulse</td><td class="note">pulse · 1.8s ease-in-out infinite</td><td class="note">Live status dot, "online" indicator. Opacity 0.7 → 1.</td></tr>
+    <tr><td class="token">.anim-tick</td><td class="note">tick · 2s ease-in-out infinite</td><td class="note">Color shift on a status dot to signal periodic check. Interpolates between V2 ok-green tones.</td></tr>
+    <tr><td class="token">.anim-caret</td><td class="note">caret · 1s steps(2) infinite</td><td class="note">Terminal-style blinking caret. Use only inside a mono card.</td></tr>
+    <tr><td class="token">.anim-loop</td><td class="note">loopPulse · 3.2s ease-in-out infinite</td><td class="note">Soft opacity pulse on a feedback-loop arc. Subtle.</td></tr>
+    <tr><td class="token">.anim-motion-dot</td><td class="note">animateMotion · stagger via begin=</td><td class="note">Flowing dots along a defined motion path. Counts as one class regardless of dot count.</td></tr>
+  </tbody>
+</table>
+
+<pre><code><span class="k">&lt;style&gt;</span>
+@keyframes rotateDash { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -60; } }
+@keyframes pulse      { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+@keyframes tick       { 0%,100% { fill: #6fb380; } 50% { fill: #8ac99c; } }   <span class="c">/* --p-ok → lifted sibling */</span>
+@keyframes caret      { 0%,100% { opacity: 0.85; } 50% { opacity: 0; } }
+@keyframes loopPulse  { 0%,100% { opacity: 0.45; } 50% { opacity: 0.85; } }
+
+.anim-ring       { animation: rotateDash 4s linear infinite; }
+.anim-ring-slow  { animation: rotateDash 6s linear infinite; }
+.anim-pulse      { animation: pulse 1.8s ease-in-out infinite; }
+.anim-tick       { animation: tick 2s ease-in-out infinite; }
+.anim-caret      { animation: caret 1s steps(2) infinite; }
+.anim-loop       { animation: loopPulse 3.2s ease-in-out infinite; }
+<span class="k">&lt;/style&gt;</span></code></pre>
+
+<div class="callout warn"><strong>Hard cap: 3 distinct animation classes per diagram.</strong> If a diagram needs a fourth, either drop a less-essential one or split the diagram. The pattern of "every card pulsing" is a content failure dressed as a style choice. <strong>Honor <code>prefers-reduced-motion</code></strong> — V2 mandates it, and Material-mode diagrams inherit the rule. The V2 production CSS already has the <code>@media (prefers-reduced-motion: reduce)</code> block that disables every transition + animation site-wide.</div>
+
+<h3>Theme portability</h3>
+<p>All animation keyframes are theme-agnostic — the timing, easing, and shape of every animation is identical across light and dark renders. The <code>tick</code> keyframe's two greens (<code>#6fb380</code> and <code>#8ac99c</code>) both clear AA contrast against both canvases. No dark-variant keyframe needed.</p>
+
+<!-- =========================================================== -->
+<!--                  SET-LEVEL CONSISTENCY (closing)             -->
+<!-- =========================================================== -->
+
+<h2><span class="num">01.8</span>Cross-template consistency rules</h2>
+<p class="section-lede">A proposal ships 3–6 diagrams. The same Postgres must show up as <code>md-card--service-sql</code> in every one. The rules below are the closed list of things the manifest pins. Cross-mode swaps (Pixel ↔ Material) are forbidden within one proposal — see <a href="../manifest.html#07.5">manifest §07.5</a>.</p>
+
+<ul class="checks">
+  <li><strong>Service → card variant is pinned per-set.</strong> First diagram in the set declares the mapping (e.g. "Postgres uses <code>md-card--service-sql</code>"); every subsequent diagram in the same proposal consults it.</li>
+  <li><strong>Service → icon is pinned per-set.</strong> Same logical service uses the same Material Symbols glyph wherever it appears.</li>
+  <li><strong>Label string is pinned per-set.</strong> "Postgres" is "Postgres" everywhere — not "Cloud SQL" in one diagram and "the DB" in the next.</li>
+  <li><strong>Title typography is identical.</strong> Same <code>.t-headline-l</code> across the whole set.</li>
+  <li><strong>Letter-spacing comes from M3 type-scale tokens.</strong> Never tighten or loosen for one diagram.</li>
+  <li><strong>Margin and gap tokens are identical.</strong> A "wide" diagram doesn't get to compress <code>--ds-gap-card-arrow</code> — it uses <code>--canvas-width-wide</code> instead.</li>
+  <li><strong>Theme is pinned per-set.</strong> Within one proposal, all diagrams render <em>at minimum</em> all-light or all-dark; default <code>theme: both</code> ships both flavors of every figure.</li>
+  <li><strong>Mode is pinned per-set.</strong> A proposal is either entirely Pixel or entirely Material. Per-diagram mode override is a hard error — see <a href="../manifest.html#07.5">manifest §07.5</a>.</li>
+</ul>
+
+<div class="callout"><strong>The set manifest enforces these.</strong> A one-page YAML stub authored on the first diagram becomes part of the conversation; subsequent diagrams read it before generating. See <a href="../manifest.html">Set manifest</a> for the schema.</div>
+
+</main>
+</div>
+</body>
+</html>

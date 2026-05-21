@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Components · architecture-diagram design system</title>
+<title>Components · Pixel design system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -12,11 +12,11 @@
 <div class="shell">
 
 <aside class="sidebar">
-  <div class="brand"><span class="dot"></span>design system</div>
-  <h1>architecture-diagram</h1>
+  <div class="brand"><span class="dot"></span>diagram skill</div>
+  <h1>Pixel design system</h1>
   <nav>
     <div class="group">Read me first</div>
-    <a href="index.html"><span class="n">00</span>Overview</a>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
     <a href="foundations.html"><span class="n">01</span>Foundations</a>
     <a href="components.html" class="active"><span class="n">02</span>Components</a>
@@ -25,23 +25,35 @@
     <div class="group">Application</div>
     <a href="templates.html"><span class="n">05</span>Templates</a>
     <a href="examples.html"><span class="n">06</span>Examples</a>
-    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">pixel mode · v2.0.0 · cream &amp; indigo · light + dark · viewBox 1660</div>
 </aside>
 
 <main>
 
-<p class="eyebrow">Deliverable 02 · Component library</p>
-<h1 class="page">Named, slotted, copy-pasteable. Every template builds from these.</h1>
-<p class="lede">A card is not a rectangle the generator draws — it is a slotted component the generator <em>fills</em>. Reserved positions for the icon, the status dot, the footer line. This is the fix for the screenshot's biggest visible failure: icons crashing through titles because no template had a card slot to put them in.</p>
+<section class="hero">
+  <p class="eyebrow">Deliverable 02 · Component library</p>
+  <h1 class="page">Named, slotted, copy-pasteable. Every template builds from these.</h1>
+  <p class="lede">A card is not a rectangle the generator draws — it is a slotted component the generator <em>fills</em>. Reserved positions for the icon, the status dot, the footer line. This is the fix for the screenshot's biggest visible failure: icons crashing through titles because no template had a card slot to put them in.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">7</span><span class="lbl">card variants</span></span>
+    <span class="stat"><span class="n">4</span><span class="lbl">chip forms</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">status states</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">shape primitives</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">stage tokens</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">lane tokens</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">callout variants</span></span>
+  </div>
+</section>
 
-<div class="callout"><strong>How to read these specs.</strong> Each card shows a true-pixel rendering on the left and the slot anatomy on the right. The dimensions, paddings, and slot positions are <em>locked</em> — fill the slots, don't move them. Optional slots stay empty if unused; the card geometry doesn't reflow.</div>
+<div class="callout"><div><strong>How to read these specs.</strong> Each card shows a true-pixel rendering on the left and the slot anatomy on the right. The dimensions, paddings, and slot positions are <em>locked</em> — fill the slots, don't move them. Optional slots stay empty if unused; the card geometry doesn't reflow.</div></div>
 
 <!-- =========================================================== -->
 <!--                       THEME BEHAVIOR                          -->
 <!-- =========================================================== -->
 
+<section class="ds-section">
 <h2><span class="num">02.0</span>Theme behavior across components</h2>
 <p class="section-lede">Every primitive on this page exists in both <strong>light</strong> and <strong>dark</strong> theme. Geometry, slots, paddings, slot positions are <em>identical</em> — only token values swap. The categorical surfaces (<code>--surface-sql</code>, <code>--surface-primary</code>, etc.) keep their <em>id</em> across themes; the gradient stops inside change. The two filter ids (<code>cardShadow</code>, <code>cardShadowDark</code>) stay the same; their bodies rewrite per theme — see <a href="foundations.html#01.5">foundations §01.5</a>.</p>
 
@@ -123,6 +135,9 @@
 <!--                            CARDS                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.1</span>Cards · anatomy</h2>
 <p class="section-lede">All cards share the same anatomy: an optional icon slot, a required title row, an optional sub-row, a body, and an optional footer. The fill (light or surface gradient) determines the variant. The slots determine the modifiers.</p>
 
@@ -200,6 +215,9 @@
 <!--                          CARD VARIANTS                       -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.2</span>Card · variants</h2>
 <p class="section-lede">Three fills, three modifiers, two states. Total: a closed set of named cards the generator picks from. A “Postgres + status + footer” card is <code>card.primary(--surface-sql) + status + footer</code> — three named choices, no improvisation.</p>
 
@@ -412,6 +430,9 @@
 <!--                            CHIPS                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.3</span>Chips &amp; badges</h2>
 <p class="section-lede">Small typographic atoms. Chips appear <em>inside</em> a card (as a metadata badge) or <em>adjacent</em> to a card (as a label / explanation). They never float alone — that's how the “floating MCP TOOLS” problem started.</p>
 
@@ -525,6 +546,9 @@
 <!--                          SHAPES                              -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.4</span>Shape primitives · beyond the card</h2>
 <p class="section-lede">Cards do most of the work, but architecture diagrams reach for other shapes too: a circle for an event, a stadium pill for an async stream, a diamond for a decision, a hexagon for a service mesh node, a star for a highlight, a note tile for a callout body. Each is named, color-paired with the surface gradients, and sized at three locked scales (S 64 / M 96 / L 128). The point of registering them is the same as cards — a downstream generator never invents one.</p>
 
@@ -635,6 +659,9 @@
 <!--                            STAGES                            -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.5</span>Stage tokens · numbered &amp; dividers</h2>
 <p class="section-lede">Used in pipeline-flow and freeform sequenced layouts. A numbered token marks the start of a stage; a stage divider separates it visually from the next.</p>
 
@@ -719,6 +746,9 @@
 <!--                            LANES                             -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.6</span>Lanes &amp; swimlanes</h2>
 <p class="section-lede">For sequence diagrams. A lane is a labeled vertical lifeline; a card sits at the top, the lifeline drops below, and an activation box marks when the actor is busy.</p>
 
@@ -799,6 +829,9 @@
 <!--                         GROUPS                                -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.7</span>Groups &amp; boundaries</h2>
 <p class="section-lede">A group is a dashed soft rectangle around 2+ cards that share a context (a VPC, a trust boundary, a logical region). Always tagged with a top-left label chip; never silent.</p>
 
@@ -860,6 +893,9 @@
 <!--                       CALLOUTS / LEGEND                       -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.8</span>Callouts &amp; legend</h2>
 <p class="section-lede">Inline annotations and end-of-diagram legends. Use sparingly — a diagram that needs three callouts is a diagram that should be split.</p>
 
@@ -955,6 +991,9 @@
 <!--                  COMPONENT INDEX (cheat sheet)               -->
 <!-- =========================================================== -->
 
+</section>
+
+<section class="ds-section">
 <h2><span class="num">02.9</span>Index · what's in the library</h2>
 <p class="section-lede">The closed list. A downstream generator should be able to fill any one of these slots and produce a correct diagram. If a primitive isn't here, it doesn't exist in this version of the system.</p>
 
@@ -988,6 +1027,8 @@
     <tr><td class="token">legend.chip</td><td class="value">swatch + label row</td><td class="note">Inside a legend card, bottom-right of canvas.</td></tr>
   </tbody>
 </table>
+
+</section>
 
 </main>
 </div>

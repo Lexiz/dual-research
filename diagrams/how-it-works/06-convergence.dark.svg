@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1660 1280" font-family="Inter, system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1660 1280" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
 
   <!-- ================= DEFS ================= -->
   <defs>
@@ -13,13 +13,13 @@
 
     <!-- canvas + surfaces (dark stops) -->
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1a1a1f"/><stop offset="100%" stop-color="#14141a"/>
+      <stop offset="0%" stop-color="#0d0f12"/><stop offset="100%" stop-color="#08090b"/>
     </linearGradient>
     <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3a3a40"/><stop offset="100%" stop-color="#28282d"/>
+      <stop offset="0%" stop-color="#494e57"/><stop offset="100%" stop-color="#2c3138"/>
     </linearGradient>
     <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7785d4"/><stop offset="100%" stop-color="#4d5db0"/>
+      <stop offset="0%" stop-color="#6b9cf0"/><stop offset="100%" stop-color="#3a5fa8"/>
     </linearGradient>
 
     <!-- terminal-state surfaces (lifted for dark) -->
@@ -43,7 +43,7 @@
 
     <!-- arrow markers (dark inks + lifted accents) -->
     <marker id="arrowInk" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
-      <path d="M0,0 L0,7 L9,3.5 z" fill="#c4c2bc"/>
+      <path d="M0,0 L0,7 L9,3.5 z" fill="#b4bac4"/>
     </marker>
     <marker id="arrowOk" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
       <path d="M0,0 L0,7 L9,3.5 z" fill="#7fcf7e"/>
@@ -58,7 +58,7 @@
       <path d="M0,0 L0,7 L9,3.5 z" fill="#6cb6e0"/>
     </marker>
     <marker id="arrowIndigo" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L8,3 z" fill="#7785d4"/>
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
     </marker>
 
     <!-- motion-dots path (same geometry as light) -->
@@ -69,28 +69,28 @@
   <rect width="1660" height="1280" fill="url(#bgGrad)"/>
 
   <!-- ================= TITLE ================= -->
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Convergence — How a Phase Ends</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9a988f">Two-agent negotiation · four terminal states · mutual-ACK handshake</text>
+  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Convergence — How a Phase Ends</text>
+  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Two-agent negotiation · four terminal states · mutual-ACK handshake</text>
 
   <!-- ================= MAIN COLUMN SECTION LABEL ================= -->
-  <text x="60" y="116" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="2">ORCHESTRATOR · END-OF-ROUND DECISION TREE</text>
+  <text x="60" y="116" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="2">ORCHESTRATOR · END-OF-ROUND DECISION TREE</text>
 
   <!-- soft column boundary -->
-  <rect x="60" y="125" width="1060" height="970" rx="20" fill="rgba(255,255,255,0.02)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.45"/>
+  <rect x="60" y="125" width="1060" height="970" rx="20" fill="rgba(255,255,255,0.02)" stroke="#7d8290" stroke-dasharray="6,5" opacity="0.45"/>
 
   <!-- ================= TOP NODE ================= -->
   <rect id="topNode" x="440" y="142" width="400" height="64" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"/>
-  <text x="640" y="170" text-anchor="middle" font-size="14" font-weight="600" fill="#ebebe5">End of round N</text>
-  <text x="640" y="190" text-anchor="middle" font-size="11" fill="#c4c2bc">orchestrator update step · evaluate convergence</text>
+  <text x="640" y="170" text-anchor="middle" font-size="14" font-weight="600" fill="#ffffff">End of round N</text>
+  <text x="640" y="190" text-anchor="middle" font-size="11" fill="#b4bac4">orchestrator update step · evaluate convergence</text>
 
   <!-- arrow top → D1 -->
-  <line x1="640" y1="206" x2="640" y2="219" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <line x1="640" y1="206" x2="640" y2="219" stroke="#b4bac4" stroke-width="1.5" marker-end="url(#arrowInk)"/>
 
   <!-- ================= DECISION D1 ================= -->
   <polygon points="640,225 870,280 640,335 410,280" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
-  <text x="640" y="270" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 1</text>
-  <text x="640" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">Both agents emitted</text>
-  <text x="640" y="307" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">STATUS: AGREED this round?</text>
+  <text x="640" y="270" text-anchor="middle" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">DECISION 1</text>
+  <text x="640" y="290" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Both agents emitted</text>
+  <text x="640" y="307" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">STATUS: AGREED this round?</text>
 
   <!-- D1 "No" branch → left to oval -->
   <path d="M 410 280 L 320 280" fill="none" stroke="#6cb6e0" stroke-width="1.6" marker-end="url(#arrowInfo)"/>
@@ -106,15 +106,15 @@
   <text x="288" y="158" text-anchor="middle" font-size="10" font-weight="600" fill="#6cb6e0" letter-spacing="1.2">NEXT ROUND</text>
 
   <!-- D1 "Yes" branch → D2 -->
-  <line x1="640" y1="335" x2="640" y2="395" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
-  <rect x="616" y="345" width="48" height="18" rx="4" fill="#1a1a1f" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
-  <text x="640" y="358" text-anchor="middle" font-size="10" font-weight="600" fill="#c4c2bc" letter-spacing="1.2">YES</text>
+  <line x1="640" y1="335" x2="640" y2="395" stroke="#b4bac4" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <rect x="616" y="345" width="48" height="18" rx="4" fill="#0d0f12" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+  <text x="640" y="358" text-anchor="middle" font-size="10" font-weight="600" fill="#b4bac4" letter-spacing="1.2">YES</text>
 
   <!-- ================= DECISION D2 ================= -->
   <polygon points="640,400 880,460 640,520 400,460" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
-  <text x="640" y="448" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 2</text>
-  <text x="640" y="468" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">All raised items in this phase</text>
-  <text x="640" y="485" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">are terminal?</text>
+  <text x="640" y="448" text-anchor="middle" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">DECISION 2</text>
+  <text x="640" y="468" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">All raised items in this phase</text>
+  <text x="640" y="485" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">are terminal?</text>
 
   <!-- D2 "Yes" → right to Organic -->
   <line x1="880" y1="460" x2="930" y2="460" stroke="#7fcf7e" stroke-width="2" marker-end="url(#arrowOk)"/>
@@ -130,7 +130,7 @@
   <text x="1020" y="510" text-anchor="middle" font-size="10" fill="rgba(15,40,15,0.88)" font-style="italic">Agreement artifact emitted.</text>
 
   <!-- motion-dot on happy-path -->
-  <circle r="4" fill="#7785d4" opacity="0">
+  <circle r="4" fill="#6b9cf0" opacity="0">
     <animateMotion dur="4.2s" repeatCount="indefinite" rotate="auto">
       <mpath xlink:href="#happyPath"/>
     </animateMotion>
@@ -138,15 +138,15 @@
   </circle>
 
   <!-- D2 "No" → D3 -->
-  <line x1="640" y1="520" x2="640" y2="555" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
-  <rect x="616" y="528" width="48" height="18" rx="4" fill="#1a1a1f" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
-  <text x="640" y="541" text-anchor="middle" font-size="10" font-weight="600" fill="#c4c2bc" letter-spacing="1.2">NO</text>
+  <line x1="640" y1="520" x2="640" y2="555" stroke="#b4bac4" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <rect x="616" y="528" width="48" height="18" rx="4" fill="#0d0f12" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+  <text x="640" y="541" text-anchor="middle" font-size="10" font-weight="600" fill="#b4bac4" letter-spacing="1.2">NO</text>
 
   <!-- ================= DECISION D3 ================= -->
   <polygon points="640,560 880,620 640,680 400,620" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
-  <text x="640" y="608" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 3</text>
-  <text x="640" y="628" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">Either agent's closeout</text>
-  <text x="640" y="645" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">budget &gt; 0?</text>
+  <text x="640" y="608" text-anchor="middle" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">DECISION 3</text>
+  <text x="640" y="628" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Either agent's closeout</text>
+  <text x="640" y="645" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">budget &gt; 0?</text>
 
   <!-- D3 "Yes" → right to Closeout -->
   <line x1="880" y1="620" x2="930" y2="620" stroke="#e5b97a" stroke-width="2" marker-end="url(#arrowWarn)"/>
@@ -166,18 +166,18 @@
   <path d="M 1020 548 C 1020 380, 1020 240, 840 174" fill="none" stroke="#e5b97a" stroke-width="1.6" stroke-dasharray="6,4" marker-end="url(#arrowWarn)"/>
   <text x="1110" y="370" font-size="10" font-weight="600" fill="#e5b97a" letter-spacing="1.0">RE-EVALUATE</text>
   <text x="1110" y="384" font-size="10" font-weight="600" fill="#e5b97a" letter-spacing="1.0">CONVERGENCE</text>
-  <text x="1110" y="400" font-size="9.5" fill="#9a988f" font-style="italic">(next round, back to D1)</text>
+  <text x="1110" y="400" font-size="9.5" fill="#9aa0ac" font-style="italic">(next round, back to D1)</text>
 
   <!-- D3 "No" → D4 -->
-  <line x1="640" y1="680" x2="640" y2="725" stroke="#c4c2bc" stroke-width="1.5" marker-end="url(#arrowInk)"/>
-  <rect x="616" y="691" width="48" height="18" rx="4" fill="#1a1a1f" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
-  <text x="640" y="704" text-anchor="middle" font-size="10" font-weight="600" fill="#c4c2bc" letter-spacing="1.2">NO</text>
+  <line x1="640" y1="680" x2="640" y2="725" stroke="#b4bac4" stroke-width="1.5" marker-end="url(#arrowInk)"/>
+  <rect x="616" y="691" width="48" height="18" rx="4" fill="#0d0f12" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+  <text x="640" y="704" text-anchor="middle" font-size="10" font-weight="600" fill="#b4bac4" letter-spacing="1.2">NO</text>
 
   <!-- ================= DECISION D4 ================= -->
   <polygon points="640,730 870,790 640,850 410,790" fill="url(#diamondFill)" stroke="rgba(255,255,255,0.18)" stroke-width="1.2" filter="url(#cardShadow)"/>
-  <text x="640" y="778" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.6">DECISION 4</text>
-  <text x="640" y="798" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">Round number</text>
-  <text x="640" y="815" text-anchor="middle" font-size="13" font-weight="600" fill="#ebebe5">&lt; hard cap?</text>
+  <text x="640" y="778" text-anchor="middle" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">DECISION 4</text>
+  <text x="640" y="798" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Round number</text>
+  <text x="640" y="815" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">&lt; hard cap?</text>
 
   <!-- D4 Yes → down-left to Ghost cap -->
   <path d="M 530 820 L 460 820 L 380 870" fill="none" stroke="#e88787" stroke-width="1.8" stroke-dasharray="6,4" marker-end="url(#arrowErr)"/>
@@ -211,48 +211,48 @@
   <text x="800" y="1036" text-anchor="middle" font-size="10" fill="rgba(50,15,15,0.85)">Caps: P0=4 · P2=8 · P4=8</text>
 
   <!-- ================= SIDEBAR · MUTUAL-ACK HANDSHAKE ================= -->
-  <path d="M 1100 620 L 1150 620 L 1150 175 L 1190 175" fill="none" stroke="#7a7873" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+  <path d="M 1100 620 L 1150 620 L 1150 175 L 1190 175" fill="none" stroke="#7d8290" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
 
-  <text x="1180" y="116" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="2">SIDEBAR · ITEM-LEVEL DETAIL</text>
+  <text x="1180" y="116" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="2">SIDEBAR · ITEM-LEVEL DETAIL</text>
 
-  <rect x="1180" y="125" width="440" height="970" rx="20" fill="rgba(255,255,255,0.02)" stroke="#7a7873" stroke-dasharray="6,5" opacity="0.55"/>
+  <rect x="1180" y="125" width="440" height="970" rx="20" fill="rgba(255,255,255,0.02)" stroke="#7d8290" stroke-dasharray="6,5" opacity="0.55"/>
 
-  <text x="1400" y="160" text-anchor="middle" font-size="15" font-weight="600" fill="#ebebe5">Mutual-ACK handshake</text>
-  <text x="1400" y="178" text-anchor="middle" font-size="11" fill="#9a988f" font-style="italic">how an item reaches the terminal <tspan font-family="monospace" font-style="normal">acknowledged</tspan> state</text>
+  <text x="1400" y="160" text-anchor="middle" font-size="15" font-weight="600" fill="#ffffff">Mutual-ACK handshake</text>
+  <text x="1400" y="178" text-anchor="middle" font-size="11" fill="#9aa0ac" font-style="italic">how an item reaches the terminal <tspan font-family="monospace" font-style="normal">acknowledged</tspan> state</text>
 
   <!-- agent lifelines -->
-  <text x="1260" y="216" text-anchor="middle" font-size="11" font-weight="600" fill="#ebebe5">Raiser</text>
-  <text x="1260" y="230" text-anchor="middle" font-size="9" fill="#9a988f">(opened the item)</text>
-  <text x="1540" y="216" text-anchor="middle" font-size="11" font-weight="600" fill="#ebebe5">Counterpart</text>
-  <text x="1540" y="230" text-anchor="middle" font-size="9" fill="#9a988f">(must echo ACK)</text>
+  <text x="1260" y="216" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">Raiser</text>
+  <text x="1260" y="230" text-anchor="middle" font-size="9" fill="#9aa0ac">(opened the item)</text>
+  <text x="1540" y="216" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">Counterpart</text>
+  <text x="1540" y="230" text-anchor="middle" font-size="9" fill="#9aa0ac">(must echo ACK)</text>
 
-  <line x1="1260" y1="245" x2="1260" y2="780" stroke="#7a7873" stroke-width="1" stroke-dasharray="3,4" opacity="0.45"/>
-  <line x1="1540" y1="245" x2="1540" y2="780" stroke="#7a7873" stroke-width="1" stroke-dasharray="3,4" opacity="0.45"/>
+  <line x1="1260" y1="245" x2="1260" y2="780" stroke="#7d8290" stroke-width="1" stroke-dasharray="3,4" opacity="0.45"/>
+  <line x1="1540" y1="245" x2="1540" y2="780" stroke="#7d8290" stroke-width="1" stroke-dasharray="3,4" opacity="0.45"/>
 
   <!-- Round N marker -->
   <rect x="1200" y="258" width="400" height="22" rx="6" fill="rgba(119,133,212,0.15)" stroke="rgba(119,133,212,0.45)" stroke-width="0.8"/>
   <text x="1400" y="273" text-anchor="middle" font-size="10" font-weight="600" fill="#c5cdf0" letter-spacing="1.2">ROUND N</text>
 
   <!-- Round N: ACK arrow → -->
-  <line x1="1260" y1="310" x2="1540" y2="310" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowIndigo)"/>
-  <text x="1400" y="302" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7785d4" font-family="monospace">ACKNOWLEDGE &lt;id&gt;</text>
-  <text x="1400" y="326" text-anchor="middle" font-size="9.5" fill="#9a988f" font-style="italic">raiser emits the ACK</text>
+  <line x1="1260" y1="310" x2="1540" y2="310" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowIndigo)"/>
+  <text x="1400" y="302" text-anchor="middle" font-size="10.5" font-weight="600" fill="#6b9cf0" font-family="monospace">ACKNOWLEDGE &lt;id&gt;</text>
+  <text x="1400" y="326" text-anchor="middle" font-size="9.5" fill="#9aa0ac" font-style="italic">raiser emits the ACK</text>
 
   <!-- state chip -->
-  <rect x="1240" y="350" width="320" height="36" rx="8" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
-  <text x="1400" y="364" text-anchor="middle" font-size="10" fill="#9a988f">item state →</text>
-  <text x="1400" y="380" text-anchor="middle" font-size="11" fill="#ebebe5" font-family="monospace" font-weight="600">acknowledged_proposed</text>
+  <rect x="1240" y="350" width="320" height="36" rx="8" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <text x="1400" y="364" text-anchor="middle" font-size="10" fill="#9aa0ac">item state →</text>
+  <text x="1400" y="380" text-anchor="middle" font-size="11" fill="#ffffff" font-family="monospace" font-weight="600">acknowledged_proposed</text>
 
-  <text x="1400" y="412" text-anchor="middle" font-size="9.5" fill="#7a7873" font-style="italic">…orchestrator advances rounds…</text>
+  <text x="1400" y="412" text-anchor="middle" font-size="9.5" fill="#7d8290" font-style="italic">…orchestrator advances rounds…</text>
 
   <!-- Round N+1 marker -->
   <rect x="1200" y="430" width="400" height="22" rx="6" fill="rgba(119,133,212,0.15)" stroke="rgba(119,133,212,0.45)" stroke-width="0.8"/>
   <text x="1400" y="445" text-anchor="middle" font-size="10" font-weight="600" fill="#c5cdf0" letter-spacing="1.2">ROUND N+1</text>
 
   <!-- ACK back arrow -->
-  <line x1="1540" y1="490" x2="1260" y2="490" stroke="#7785d4" stroke-width="1.6" marker-end="url(#arrowIndigo)"/>
-  <text x="1400" y="482" text-anchor="middle" font-size="10.5" font-weight="600" fill="#7785d4" font-family="monospace">ACKNOWLEDGE &lt;id&gt;</text>
-  <text x="1400" y="506" text-anchor="middle" font-size="9.5" fill="#9a988f" font-style="italic">counterpart echoes the ACK</text>
+  <line x1="1540" y1="490" x2="1260" y2="490" stroke="#6b9cf0" stroke-width="1.6" marker-end="url(#arrowIndigo)"/>
+  <text x="1400" y="482" text-anchor="middle" font-size="10.5" font-weight="600" fill="#6b9cf0" font-family="monospace">ACKNOWLEDGE &lt;id&gt;</text>
+  <text x="1400" y="506" text-anchor="middle" font-size="9.5" fill="#9aa0ac" font-style="italic">counterpart echoes the ACK</text>
 
   <!-- terminal chip (ok) -->
   <rect x="1240" y="530" width="320" height="40" rx="8" fill="url(#surfaceOk)" filter="url(#cardShadowDark)"/>
@@ -260,20 +260,20 @@
   <text x="1400" y="562" text-anchor="middle" font-size="11.5" fill="#0f2810" font-family="monospace" font-weight="600">acknowledged · TERMINAL</text>
 
   <!-- caption card -->
-  <rect x="1200" y="598" width="400" height="92" rx="10" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
-  <text x="1220" y="620" font-size="10.5" font-style="italic" fill="#c4c2bc">Without the counterpart's ACK, the item</text>
-  <text x="1220" y="636" font-size="10.5" font-style="italic" fill="#c4c2bc">stays in <tspan font-family="monospace" font-style="normal" fill="#ebebe5">acknowledged_proposed</tspan></text>
-  <text x="1220" y="652" font-size="10.5" font-style="italic" fill="#c4c2bc">and re-appears as non-terminal in the</text>
-  <text x="1220" y="668" font-size="10.5" font-style="italic" fill="#c4c2bc">next convergence check (Decision 2).</text>
-  <text x="1220" y="684" font-size="9.5" fill="#9a988f">This is the mechanism that keeps closeout rounds honest.</text>
+  <rect x="1200" y="598" width="400" height="92" rx="10" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <text x="1220" y="620" font-size="10.5" font-style="italic" fill="#b4bac4">Without the counterpart's ACK, the item</text>
+  <text x="1220" y="636" font-size="10.5" font-style="italic" fill="#b4bac4">stays in <tspan font-family="monospace" font-style="normal" fill="#ffffff">acknowledged_proposed</tspan></text>
+  <text x="1220" y="652" font-size="10.5" font-style="italic" fill="#b4bac4">and re-appears as non-terminal in the</text>
+  <text x="1220" y="668" font-size="10.5" font-style="italic" fill="#b4bac4">next convergence check (Decision 2).</text>
+  <text x="1220" y="684" font-size="9.5" fill="#9aa0ac">This is the mechanism that keeps closeout rounds honest.</text>
 
   <!-- unilateral terminals footer -->
-  <text x="1200" y="720" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="1.4">UNILATERAL TERMINALS</text>
-  <text x="1200" y="740" font-size="10.5" fill="#c4c2bc"><tspan font-family="monospace" fill="#ebebe5">RESOLVE</tspan> · <tspan font-family="monospace" fill="#ebebe5">WITHDRAW</tspan> · <tspan font-family="monospace" fill="#ebebe5">capped</tspan> are terminal on</text>
-  <text x="1200" y="756" font-size="10.5" fill="#c4c2bc">a single agent's emission; <tspan font-family="monospace" fill="#ebebe5">acknowledged</tspan> needs both.</text>
+  <text x="1200" y="720" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="1.4">UNILATERAL TERMINALS</text>
+  <text x="1200" y="740" font-size="10.5" fill="#b4bac4"><tspan font-family="monospace" fill="#ffffff">RESOLVE</tspan> · <tspan font-family="monospace" fill="#ffffff">WITHDRAW</tspan> · <tspan font-family="monospace" fill="#ffffff">capped</tspan> are terminal on</text>
+  <text x="1200" y="756" font-size="10.5" fill="#b4bac4">a single agent's emission; <tspan font-family="monospace" fill="#ffffff">acknowledged</tspan> needs both.</text>
 
   <!-- ================= LEGEND ================= -->
-  <text x="60" y="1130" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="2">LEGEND · FOUR TERMINAL PHASE-END STATES</text>
+  <text x="60" y="1130" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="2">LEGEND · FOUR TERMINAL PHASE-END STATES</text>
 
   <!-- organic pill -->
   <rect x="60" y="1146" width="270" height="56" rx="28" fill="url(#surfaceOk)" filter="url(#cardShadowDark)"/>
@@ -303,11 +303,11 @@
   <text x="1046" y="1170" font-size="13" font-weight="600" fill="#321010" font-family="monospace">via_hard_cap</text>
   <text x="1046" y="1188" font-size="10" fill="rgba(50,15,15,0.85)">round cap hit · solid</text>
 
-  <text x="1620" y="1170" text-anchor="end" font-size="10.5" font-style="italic" fill="#9a988f">Every phase ends in exactly one of these four states.</text>
-  <text x="1620" y="1186" text-anchor="end" font-size="10" fill="#7a7873">The terminal flag is stamped on the phase artifact.</text>
+  <text x="1620" y="1170" text-anchor="end" font-size="10.5" font-style="italic" fill="#9aa0ac">Every phase ends in exactly one of these four states.</text>
+  <text x="1620" y="1186" text-anchor="end" font-size="10" fill="#7d8290">The terminal flag is stamped on the phase artifact.</text>
 
   <!-- ================= FOOTER ================= -->
-  <text x="60" y="1232" font-size="10" fill="#7a7873" font-style="italic">Dual Research · convergence protocol · v1 — diamonds are orchestrator-side checks; agents see only their next prompt.</text>
-  <text x="1620" y="1232" text-anchor="end" font-size="10" font-family="monospace" fill="#7a7873">06 / how-it-works</text>
+  <text x="60" y="1232" font-size="10" fill="#7d8290" font-style="italic">Dual Research · convergence protocol · v1 — diamonds are orchestrator-side checks; agents see only their next prompt.</text>
+  <text x="1620" y="1232" text-anchor="end" font-size="10" font-family="monospace" fill="#7d8290">06 / how-it-works</text>
 
 </svg>

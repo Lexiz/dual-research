@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Connectors · architecture-diagram design system</title>
+<title>Connectors · Pixel design system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -28,11 +28,11 @@
 <div class="shell">
 
 <aside class="sidebar">
-  <div class="brand"><span class="dot"></span>design system</div>
-  <h1>architecture-diagram</h1>
+  <div class="brand"><span class="dot"></span>diagram skill</div>
+  <h1>Pixel design system</h1>
   <nav>
     <div class="group">Read me first</div>
-    <a href="index.html"><span class="n">00</span>Overview</a>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
     <a href="foundations.html"><span class="n">01</span>Foundations</a>
     <a href="components.html"><span class="n">02</span>Components</a>
@@ -41,16 +41,26 @@
     <div class="group">Application</div>
     <a href="templates.html"><span class="n">05</span>Templates</a>
     <a href="examples.html"><span class="n">06</span>Examples</a>
-    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">pixel mode · v2.0.0 · cream &amp; indigo · light + dark · viewBox 1660</div>
 </aside>
 
 <main>
 
-<p class="eyebrow">Deliverable 04 · Connector geometry</p>
-<h1 class="page">The arrows. Where most of today's visible failures live, made impossible by spec.</h1>
-<p class="lede">Today's <code>design-system.md</code> describes arrow <em>styles</em>. Nothing about <em>positioning</em>. This page fixes that: eight named arrow types, a marker registry, a gutter system for parallel arrows, label zones with a hard <strong>no-rotation</strong> rule, crossing-jog geometry, and density caps that force a diagram to split rather than crowd. If the generator can't honour all of these, the diagram is wrong — split it.</p>
+<section class="hero">
+  <p class="eyebrow">Deliverable 04 · Connector geometry</p>
+  <h1 class="page">The arrows. Where most visible failures live, made impossible by spec.</h1>
+  <p class="lede">Eight named arrow types, a marker registry, a gutter system for parallel arrows, label zones with a hard <strong>no-rotation</strong> rule, crossing-jog geometry, and density caps that force a diagram to split rather than crowd. If the generator can't honour all of these, the diagram is wrong — split it.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">8</span><span class="lbl">arrow types</span></span>
+    <span class="stat"><span class="n">7</span><span class="lbl">named markers</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">label zones</span></span>
+    <span class="stat"><span class="n">16</span><span class="lbl">gutter (px)</span></span>
+    <span class="stat"><span class="n">6</span><span class="lbl">max arrows / card</span></span>
+    <span class="stat"><span class="n">3</span><span class="lbl">max crossings</span></span>
+  </div>
+</section>
 
 <div class="callout warn"><strong>The four arrow failures from the annotated screenshot:</strong>
 <ol style="margin:8px 0 0 16px; padding:0; font-size:13px; line-height:1.6;">

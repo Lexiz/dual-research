@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Templates · architecture-diagram design system</title>
+<title>Templates · Pixel design system</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -97,11 +97,11 @@
 <div class="shell">
 
 <aside class="sidebar">
-  <div class="brand"><span class="dot"></span>design system</div>
-  <h1>architecture-diagram</h1>
+  <div class="brand"><span class="dot"></span>diagram skill</div>
+  <h1>Pixel design system</h1>
   <nav>
     <div class="group">Read me first</div>
-    <a href="index.html"><span class="n">00</span>Overview</a>
+    <a href="../index.html"><span class="n">00</span>Overview</a>
     <div class="group">Specification</div>
     <a href="foundations.html"><span class="n">01</span>Foundations</a>
     <a href="components.html"><span class="n">02</span>Components</a>
@@ -110,20 +110,24 @@
     <div class="group">Application</div>
     <a href="templates.html" class="active"><span class="n">05</span>Templates</a>
     <a href="examples.html"><span class="n">06</span>Examples</a>
-    <a href="manifest.html"><span class="n">07</span>Set manifest</a>
+    <a href="../manifest.html"><span class="n">07</span>Set manifest</a>
   </nav>
-  <div class="foot">v1.1 · locked spec · cream &amp; indigo + dark · viewBox 1660 · dual output</div>
+  <div class="foot">pixel mode · v2.0.0 · cream &amp; indigo · light + dark · viewBox 1660</div>
 </aside>
 
 <main>
 
-<p class="eyebrow">Deliverable 05 · Per-template visual contracts</p>
-<h1 class="page">Each of the nine templates gets one page of binding visual rules.</h1>
-<p class="lede">A visual contract is a five-field card per template: which components from the library it uses, which icons it pulls from the set, the spacing and layout rules specific to that diagram type, which arrow types appear, and the anti-patterns to avoid. The semantic-side guidance — “what information to capture” — stays in the existing template Markdown; these contracts replace the visual-side guidance only.</p>
-
-<div class="callout">
-  <strong>Phase status.</strong> Three contracts below are filled in to anchor the format — these correspond to the three canonical SVGs in <a href="examples.html">Examples</a>. The remaining six follow the same shape; their canonical SVGs and full contracts are phase 2.
-</div>
+<section class="hero">
+  <p class="eyebrow">Deliverable 05 · Per-template visual contracts</p>
+  <h1 class="page">Each of the nine templates gets one page of binding visual rules.</h1>
+  <p class="lede">A visual contract is a five-field card per template: which components from the library it uses, which icons it pulls from the set, the spacing and layout rules specific to that diagram type, which arrow types appear, and the anti-patterns to avoid. The semantic-side guidance — "what information to capture" — stays in the shared template Markdown at <code>references/templates/&lt;name&gt;.md</code>; these contracts replace the visual-side guidance only.</p>
+  <div class="hero-stats">
+    <span class="stat"><span class="n">9</span><span class="lbl">templates</span></span>
+    <span class="stat"><span class="n">5</span><span class="lbl">contract fields each</span></span>
+    <span class="stat"><span class="n">2</span><span class="lbl">themes per template</span></span>
+    <span class="stat"><span class="n">18</span><span class="lbl">canonical SVGs</span></span>
+  </div>
+</section>
 
 <!-- ============== LAYERED ============== -->
 
@@ -284,7 +288,7 @@
 
 <!-- ============== PHASE 2 STUBS ============== -->
 
-<h2><span class="num">05.4</span>System context · phase 2</h2>
+<h2><span class="num">05.4</span>System context</h2>
 
 <div class="contract">
   <div class="ch">
@@ -292,7 +296,7 @@
       <div class="name">templates/system-context.md</div>
       <div class="title">C4-level-1 — the system, its users, and what it touches</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -315,7 +319,7 @@
   <div class="anti"><strong>Anti-patterns</strong> More than one hero (split into multiple context diagrams). Internal components (those belong in layered/infrastructure). Bare arrows with no verb label.</div>
 </div>
 
-<h2><span class="num">05.5</span>Data schema · phase 2</h2>
+<h2><span class="num">05.5</span>Data schema</h2>
 
 <div class="contract">
   <div class="ch">
@@ -323,7 +327,7 @@
       <div class="name">templates/data-schema.md</div>
       <div class="title">ER-style entities with typed fields and relationships</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -346,7 +350,7 @@
   <div class="anti"><strong>Anti-patterns</strong> Inheritance arrows (use one card per concrete table). All-table mega-diagrams (split by aggregate root).</div>
 </div>
 
-<h2><span class="num">05.6</span>Infrastructure · phase 2</h2>
+<h2><span class="num">05.6</span>Infrastructure</h2>
 
 <div class="contract">
   <div class="ch">
@@ -354,7 +358,7 @@
       <div class="name">templates/infrastructure.md</div>
       <div class="title">Cloud topology — VPC, regions, compute, storage, queues</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -377,7 +381,7 @@
   <div class="anti"><strong>Anti-patterns</strong> Drawing every network link (the diagram becomes a hairball). Three-level deep nesting (split). Cloud-provider logos (use the generic icon set + label).</div>
 </div>
 
-<h2><span class="num">05.7</span>Event flow · phase 2</h2>
+<h2><span class="num">05.7</span>Event flow</h2>
 
 <div class="contract">
   <div class="ch">
@@ -385,7 +389,7 @@
       <div class="name">templates/event-flow.md</div>
       <div class="title">Producers → topics → consumers</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -408,7 +412,7 @@
   <div class="anti"><strong>Anti-patterns</strong> Drawing every event individually when there are &gt;3 from one producer to one topic. Synchronous arrows (use sequence diagram instead). Implicit topic ordering — always label.</div>
 </div>
 
-<h2><span class="num">05.8</span>Connector map · phase 2</h2>
+<h2><span class="num">05.8</span>Connector map</h2>
 
 <div class="contract">
   <div class="ch">
@@ -416,7 +420,7 @@
       <div class="name">templates/connector-map.md</div>
       <div class="title">Central hub, spokes to integrations</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
@@ -439,7 +443,7 @@
   <div class="anti"><strong>Anti-patterns</strong> Radial spoke layout (labels collide). Spokes without a category. Hub with two “hub” cards (collapse to one or split into two maps).</div>
 </div>
 
-<h2><span class="num">05.9</span>Freeform · the catch-all · phase 2</h2>
+<h2><span class="num">05.9</span>Freeform · the catch-all</h2>
 
 <div class="contract">
   <div class="ch">
@@ -447,7 +451,7 @@
       <div class="name">templates/freeform.md (NEW)</div>
       <div class="title">For anything that doesn't fit the other eight</div>
     </div>
-    <span class="badge next">phase 2</span>
+    
   </div>
   <div class="body">
     <div class="field">
