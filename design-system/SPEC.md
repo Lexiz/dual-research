@@ -370,11 +370,13 @@ The thread component lives inside the expanded state of a question / disagreemen
 
 ### 4.3 — Consumption row
 
-Three forms (spec 0100, polished by specs 0116, 0118):
+Three forms (spec 0100, polished by specs 0116, 0118, 0146):
 
-**Collapsed:** header (provider icon + name + total tokens + total cost + % of context window) → total input bar → total output bar. Three numeric values right-align to the bar's left edge.
+**Collapsed:** header (provider icon + name + bracketed `(X.X% of 1M)` percentage, right-aligned to the bar end) → single `Total tokens` bar with `Xkt · $X.X` at the right. The percentage's closing `)` lands at the same x-coordinate as the right edge of the bar fill below it; the chevron lives at the card's right edge. Tokens and cost are not duplicated in the header — they're on the bar.
 
-**Unfolded:** all of the collapsed view + breakdown sub-rows under total-in (system prompt, conversation history with `×N reuse` mark, round context, tool definitions `cached`, web sources `Nq`) and under total-out (reasoning, response, tool calls). Each sub-row has a label · thin bar (same horizontal scale as the total) · count, with a **diagonal-stripe overlay** on segments where cache reuse happened. Each total block has lines: tokens billed → input cost → web search cost (if applicable) → cache savings (if applicable) → grand total (bold rule above).
+**Unfolded:** collapsed view + per-phase canonical input sub-rows (spec 0118 vocabulary) including the User-prompt row, whose per-attachment sub-rows (`Chat message` + one `Attachment · {title}` per attachment from spec 0145) auto-render as indented child rows when the card is in its unfolded state — no second click required. Under the input rows: single `Output` row. Below the rows: a `.ccx-totals` block with label-left / value-right lines: `input tokens · billed`, `input cost`, `web search · N queries` (when N > 0), `total input` (bold rule above, larger value). All card-internal cost displays use one-decimal precision (`fmtCost1` — `$0.2`, `$13.5`); the run-detail footer aggregate keeps 4-decimal precision (`$13.5110`) as the audit number.
+
+**Capital-T section labels.** Bar-row section headers (`Total tokens`, `Output`) are title case. The `.ccx-totals` block uses lowercase labels (`input cost`, `total input`) — title case is reserved for bar-row section headers.
 
 **Uniform across phases:** all cards share the same horizontal width across phases. Round label sits **above** the card as a small uppercase chip, not inside the header trio.
 

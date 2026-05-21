@@ -12,6 +12,17 @@ Format:
 
 ---
 
+## 2026-05-21 — Consumption card visual rework (spec 0146)
+- **§14 Consumption row rewritten.** Header is a 3-column grid (icon + name · bracketed `(X.X% of 1M)` right-aligned to the bar end · chevron) instead of the prior `tokens · cost · % of 1M` trio. Tokens and cost live on the bar (collapsed) or inside the totals block (unfolded), not in the header.
+- **Per-attachment sub-rows auto-show** when the card is unfolded — the User-prompt row's `Chat message` + one `Attachment · {title}` per attachment from spec 0145 render without a second click.
+- **`.ccx-totals` child order swapped** to label-left / value-right (was value-left / label-right in the v2 reference). Mirrors the bar-row grid above it.
+- **Capital-T bar-row section labels** (`Total tokens`, `Output`); totals-block lines stay lowercase (`input cost`, `total input`).
+- **One-decimal cost displays** inside the consumption card (via the JS `fmtCost1` helper); the run-detail footer aggregate keeps 4-decimal precision as the audit number.
+- **`composed-components.css` mirror updated** with the new `.ccx-header` grid + `.hd-id` wrapper.
+- **Design System v2 reference HTML §14** updated — every `.ccx-header` block wraps the icon + name in `<span class="hd-id">` and the `.stats` span carries only the bracketed percentage; all `.ccx-totals .line` children re-ordered `.l` then `.v`.
+
+---
+
 ## 2026-05-20 — v2 canonicalization (spec 0127)
 - **V2 (Material 3) design system promoted to canonical.** `SPEC.md` rewritten end-to-end to describe the Material 3 design system as the single current design system. No more "v1" / "v2" framing in active text — the previous design system is archived.
 - **V1 SPEC.md archived** at [`_archive/v1/SPEC.md`](_archive/v1/SPEC.md), with a brief `_archive/v1/README.md` pointing readers at the current SPEC.

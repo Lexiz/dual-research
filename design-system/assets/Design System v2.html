@@ -1090,7 +1090,7 @@
           <span class="ds-section__index">§14 · components · REWORKED</span>
         </div>
         <p class="ds-section__lede">
-          One card per agent. <b>Collapsed</b> shows header trio (tokens · cost · % of 1M) and total in/out bars. <b>Unfolded</b> adds the breakdown rows (system prompt, history with cache reuse marker, round context, tool definitions, web sources) and a totals block with cache savings. Cards share one width across phases; the round label sits ABOVE the card.
+          One card per agent. <b>Collapsed</b> shows a 3-column header (icon + name · bracketed <code>(X.X% of 1M)</code> right-aligned to the bar end · chevron) plus a single <code>Total tokens</code> bar. <b>Unfolded</b> adds per-phase canonical input sub-rows (incl. auto-shown per-attachment <code>Attachment · {title}</code> rows from spec 0145), an <code>Output</code> row, and a <code>.ccx-totals</code> block with labels left, values right (<code>input tokens · billed</code> · <code>input cost</code> · <code>web search · N queries</code> · <code>total input</code>). Card-internal cost displays use one-decimal precision (<code>$0.2</code>); the run-detail footer aggregate keeps 4-decimal precision as the audit number. Cards share one width across phases; the round label sits ABOVE the card.
         </p>
 
         <!-- Collapsed -->
@@ -1099,15 +1099,13 @@
           <div class="cards-2up">
             <div class="ccx">
               <div class="ccx-header">
+              <span class="hd-id">
                 <span class="ccx-icon a">C</span>
                 <span class="nm">Claude</span>
-                <span class="stats">
-                  <span>72.2kt total</span><span class="sep">·</span>
-                  <span>$0.2846</span><span class="sep">·</span>
-                  <span class="pct">7.2% of 1M</span>
-                </span>
-                <span class="chev"><span class="ms ms-20">expand_more</span></span>
-              </div>
+              </span>
+              <span class="stats">(7.2% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
               <div class="ccx-bar-row is-total">
                 <span class="lbl">total in</span>
                 <div class="ccx-bar"><div class="fl in" style="width:71%;"></div></div>
@@ -1121,15 +1119,13 @@
             </div>
             <div class="ccx">
               <div class="ccx-header">
+              <span class="hd-id">
                 <span class="ccx-icon b">G</span>
                 <span class="nm">GPT</span>
-                <span class="stats">
-                  <span>64.9kt total</span><span class="sep">·</span>
-                  <span>$0.0865</span><span class="sep">·</span>
-                  <span class="pct">6.5% of 1M</span>
-                </span>
-                <span class="chev"><span class="ms ms-20">expand_more</span></span>
-              </div>
+              </span>
+              <span class="stats">(6.5% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
               <div class="ccx-bar-row is-total">
                 <span class="lbl">total in</span>
                 <div class="ccx-bar"><div class="fl in-b" style="width:64%;"></div></div>
@@ -1149,13 +1145,11 @@
           <div class="t-label-m subtle" style="margin-bottom:10px;">Unfolded · total in / total out are the section headers</div>
           <div class="ccx" style="max-width:780px;">
             <div class="ccx-header">
-              <span class="ccx-icon a">C</span>
-              <span class="nm">Claude</span>
-              <span class="stats">
-                <span>419.1kt total</span><span class="sep">·</span>
-                <span>$0.7743</span><span class="sep">·</span>
-                <span class="pct">41.9% of 1M</span>
+              <span class="hd-id">
+                <span class="ccx-icon a">C</span>
+                <span class="nm">Claude</span>
               </span>
+              <span class="stats">(41.9% of 1M)</span>
               <span class="chev"><span class="ms ms-20">expand_less</span></span>
             </div>
 
@@ -1193,11 +1187,11 @@
             </div>
 
             <div class="ccx-totals">
-              <div class="line"><span class="v">411,902</span><span class="l">input tokens · billed</span></div>
-              <div class="line"><span class="v">$0.6059</span><span class="l">input cost</span></div>
-              <div class="line"><span class="v">$0.0600</span><span class="l">web search · 6 queries</span></div>
-              <div class="line is-savings"><span class="v">−$0.4187</span><span class="l">cache savings · ×5.9 reuse on 345.0k</span></div>
-              <div class="line is-grand"><span class="v">$0.6659</span><span class="l">total input</span></div>
+              <div class="line"><span class="l">input tokens · billed</span><span class="v">411,902</span></div>
+              <div class="line"><span class="l">input cost</span><span class="v">$0.6059</span></div>
+              <div class="line"><span class="l">web search · 6 queries</span><span class="v">$0.0600</span></div>
+              <div class="line is-savings"><span class="l">cache savings · ×5.9 reuse on 345.0k</span><span class="v">−$0.4187</span></div>
+              <div class="line is-grand"><span class="l">total input</span><span class="v">$0.6659</span></div>
             </div>
 
             <div class="ccx-section-spacer"></div>
@@ -1213,9 +1207,9 @@
             <div class="ccx-sub-row"><span class="lbl">tool calls</span><div class="ccx-bar thin"><div class="fl toolc" style="width:0.9%;"></div></div><span class="num">0.9k</span></div>
 
             <div class="ccx-totals">
-              <div class="line"><span class="v">7,183</span><span class="l">output tokens</span></div>
-              <div class="line"><span class="v">$0.1084</span><span class="l">output cost</span></div>
-              <div class="line is-grand"><span class="v">$0.1084</span><span class="l">total output</span></div>
+              <div class="line"><span class="l">output tokens</span><span class="v">7,183</span></div>
+              <div class="line"><span class="l">output cost</span><span class="v">$0.1084</span></div>
+              <div class="line is-grand"><span class="l">total output</span><span class="v">$0.1084</span></div>
             </div>
           </div>
         </div>
@@ -1229,7 +1223,14 @@
             <div>
               <div class="round-label"><span class="pcode">P0</span><span>·</span><span>single turn</span></div>
               <div class="ccx">
-                <div class="ccx-header"><span class="ccx-icon a">C</span><span class="nm">Claude</span><span class="stats"><span>72.2kt total</span><span class="sep">·</span><span>$0.2846</span><span class="sep">·</span><span class="pct">7.2% of 1M</span></span><span class="chev"><span class="ms ms-20">expand_more</span></span></div>
+                <div class="ccx-header">
+              <span class="hd-id">
+                <span class="ccx-icon a">C</span>
+                <span class="nm">Claude</span>
+              </span>
+              <span class="stats">(7.2% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total in</span><div class="ccx-bar"><div class="fl in" style="width:71%;"></div></div><span class="num">71.0kt</span></div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total out</span><div class="ccx-bar"><div class="fl out" style="width:1.2%;"></div></div><span class="num">1.2kt</span></div>
               </div>
@@ -1237,7 +1238,14 @@
             <div>
               <div class="round-label"><span class="pcode">P0</span><span>·</span><span>single turn</span></div>
               <div class="ccx">
-                <div class="ccx-header"><span class="ccx-icon b">G</span><span class="nm">GPT</span><span class="stats"><span>64.9kt total</span><span class="sep">·</span><span>$0.0865</span><span class="sep">·</span><span class="pct">6.5% of 1M</span></span><span class="chev"><span class="ms ms-20">expand_more</span></span></div>
+                <div class="ccx-header">
+              <span class="hd-id">
+                <span class="ccx-icon b">G</span>
+                <span class="nm">GPT</span>
+              </span>
+              <span class="stats">(6.5% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total in</span><div class="ccx-bar"><div class="fl in-b" style="width:64%;"></div></div><span class="num">63.8kt</span></div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total out</span><div class="ccx-bar"><div class="fl out-b" style="width:1.1%;"></div></div><span class="num">1.1kt</span></div>
               </div>
@@ -1249,7 +1257,14 @@
             <div>
               <div class="round-label"><span class="pcode">P2</span><span>·</span><span>round 1 of 6 soft</span></div>
               <div class="ccx">
-                <div class="ccx-header"><span class="ccx-icon a">C</span><span class="nm">Claude</span><span class="stats"><span>338.3kt total</span><span class="sep">·</span><span>$0.7183</span><span class="sep">·</span><span class="pct">33.8% of 1M</span></span><span class="chev"><span class="ms ms-20">expand_more</span></span></div>
+                <div class="ccx-header">
+              <span class="hd-id">
+                <span class="ccx-icon a">C</span>
+                <span class="nm">Claude</span>
+              </span>
+              <span class="stats">(33.8% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total in</span><div class="ccx-bar"><div class="fl in" style="width:66%;"></div><div class="reuse" style="left:0;width:56%;"></div></div><span class="num">330.5kt</span></div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total out</span><div class="ccx-bar"><div class="fl out" style="width:7.8%;"></div></div><span class="num">7.8kt</span></div>
               </div>
@@ -1257,7 +1272,14 @@
             <div>
               <div class="round-label"><span class="pcode">P2</span><span>·</span><span>round 1 of 6 soft</span></div>
               <div class="ccx">
-                <div class="ccx-header"><span class="ccx-icon b">G</span><span class="nm">GPT</span><span class="stats"><span>112.8kt total</span><span class="sep">·</span><span>$0.3375</span><span class="sep">·</span><span class="pct">11.3% of 1M</span></span><span class="chev"><span class="ms ms-20">expand_more</span></span></div>
+                <div class="ccx-header">
+              <span class="hd-id">
+                <span class="ccx-icon b">G</span>
+                <span class="nm">GPT</span>
+              </span>
+              <span class="stats">(11.3% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total in</span><div class="ccx-bar"><div class="fl in-b" style="width:21%;"></div></div><span class="num">106.9kt</span></div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total out</span><div class="ccx-bar"><div class="fl out-b" style="width:5.9%;"></div></div><span class="num">5.9kt</span></div>
               </div>
@@ -1265,7 +1287,14 @@
             <div>
               <div class="round-label"><span class="pcode">P2</span><span>·</span><span>round 2 of 6 soft</span></div>
               <div class="ccx">
-                <div class="ccx-header"><span class="ccx-icon a">C</span><span class="nm">Claude</span><span class="stats"><span>231.0kt total</span><span class="sep">·</span><span>$0.6583</span><span class="sep">·</span><span class="pct">23.1% of 1M</span></span><span class="chev"><span class="ms ms-20">expand_more</span></span></div>
+                <div class="ccx-header">
+              <span class="hd-id">
+                <span class="ccx-icon a">C</span>
+                <span class="nm">Claude</span>
+              </span>
+              <span class="stats">(23.1% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total in</span><div class="ccx-bar"><div class="fl in" style="width:45%;"></div><div class="reuse" style="left:0;width:32%;"></div></div><span class="num">224.3kt</span></div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total out</span><div class="ccx-bar"><div class="fl out" style="width:6.7%;"></div></div><span class="num">6.7kt</span></div>
               </div>
@@ -1273,7 +1302,14 @@
             <div>
               <div class="round-label"><span class="pcode">P2</span><span>·</span><span>round 2 of 6 soft</span></div>
               <div class="ccx">
-                <div class="ccx-header"><span class="ccx-icon b">G</span><span class="nm">GPT</span><span class="stats"><span>121.1kt total</span><span class="sep">·</span><span>$0.3074</span><span class="sep">·</span><span class="pct">12.1% of 1M</span></span><span class="chev"><span class="ms ms-20">expand_more</span></span></div>
+                <div class="ccx-header">
+              <span class="hd-id">
+                <span class="ccx-icon b">G</span>
+                <span class="nm">GPT</span>
+              </span>
+              <span class="stats">(12.1% of 1M)</span>
+              <span class="chev"><span class="ms ms-20">expand_more</span></span>
+            </div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total in</span><div class="ccx-bar"><div class="fl in-b" style="width:23%;"></div></div><span class="num">114.1kt</span></div>
                 <div class="ccx-bar-row is-total"><span class="lbl">total out</span><div class="ccx-bar"><div class="fl out-b" style="width:7.0%;"></div></div><span class="num">7.0kt</span></div>
               </div>

@@ -2506,7 +2506,20 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 8px;
 }
-.ccx-header { display: flex; align-items: center; gap: 10px; padding-bottom: 4px; }
+/* Spec 0146 — 3-column grid mirrors .ccx-bar-row so the percentage
+   at column 2 lands above the right edge of the bar fill and the
+   chevron at column 3 lands at the card's right edge. */
+.ccx-header {
+  display: grid;
+  grid-template-columns: minmax(140px, 28%) 1fr minmax(110px, max-content);
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+.ccx-header .hd-id {
+  display: inline-flex; align-items: center; gap: 10px;
+  min-width: 0; overflow: hidden;
+}
 .ccx-icon {
   width: 22px; height: 22px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -2517,15 +2530,17 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 .ccx-icon.b { background: var(--md-secondary); color: var(--md-on-secondary); }
 .ccx-header .nm { font: var(--md-w-medium) var(--md-title-s-size)/1 var(--md-font-plain); }
 .ccx-header .stats {
-  margin-left: auto;
+  justify-self: end;
+  white-space: nowrap;
   display: inline-flex; gap: 8px; align-items: baseline;
-  font: var(--md-w-regular) 13px/1 var(--md-font-data);
-  color: var(--md-on-surface-variant);
+  font: var(--md-w-regular) var(--md-body-s-size)/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
   font-variant-numeric: tabular-nums;
 }
 .ccx-header .stats .sep { color: var(--md-on-surface-faint); }
 .ccx-header .stats .pct { color: var(--md-on-surface-faint); font-style: normal; }
 .ccx-header .chev {
+  justify-self: end;
   width: 24px; height: 24px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--md-on-surface-variant); cursor: pointer;

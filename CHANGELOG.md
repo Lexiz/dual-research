@@ -10,6 +10,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.12.0] — 2026-05-21
+
+### Added
+
+- **Spec 0146 — Consumption card visual rework (v1.12.0)** ([spec 0146](specs/0146-consumption-card-visual-rework.md)). Third MINOR bump of the 0140–0147 batch; pure UI rework on top of correct cost/token data (0143) and per-attachment tracking (0145).
+  - **Header polish.** `.ccx-header` is now a 3-column grid that mirrors the bar-row grid below it (`minmax(140px, 28%) 1fr minmax(110px, max-content)`). Icon + name live inside a new `.hd-id` wrapper at column 1; the bracketed `(X.X% of 1M)` percentage sits at column 2 with `justify-self: end` so its closing `)` lands above the right edge of the bar fill; the chevron sits at column 3 at the card's right edge. Tokens and cost are removed from the header — they live at the right end of the Total-tokens bar (collapsed) or inside the totals block (unfolded).
+  - **Per-attachment sub-rows auto-show on card unfold.** Spec 0145's default-collapsed chevron + `userPromptExpanded` state are retired. When the card is unfolded and the User-prompt row has an `attachmentBreakdown`, the `Chat message` + per-attachment sub-rows render automatically; no second click required.
+  - **`.ccx-totals` block on the unfolded view.** Replaces the free-text web-search mono line with a structured 3- or 4-line block (`input tokens · billed` · `input cost` · `web search · N queries` when N > 0 · `total input` with a bold rule above). Labels left, values right (mirrors the bar-row grid).
+  - **`fmtCost1` helper scoped to the Consumption card.** New one-decimal cost formatter applied to every cost display inside `CcxCard` (Total-tokens bar right text, `renderInputRow`, `SubInputRow`, Output row, every totals-block `.v`). The global `fmt.cost` keeps 4-decimal precision for the run-detail footer aggregate, reconcile delta, status chips, and tooltips.
+  - **Server fix: `_to_camel` skips dotted keys.** [`ui/server.py::_to_camel`](src/dual_research/ui/server.py) now passes dotted keys (canonical artifact IDs such as `user_prompt.message`, `prior_turns.phase0`, `system.task.research_plan`) through verbatim instead of camelCasing them. Fixes a pre-existing wire-shape bug acknowledged in the 0145 handover — without the fix, the Consumption card's per-piece sub-rows render `0t` because the snake_case canonical IDs miss against the camelCased wire payload.
+  - **Cache-buster** bumped `?v=0145a → ?v=0146a` across all 25 static-asset imports in `index.html`.
+  - **Design-system back-port.** `design-system/SPEC.md` §4.3 rewritten to describe the new anatomy. `design-system/assets/styles/composed-components.css` mirrors the `.ccx-header` grid + `.hd-id` wrapper. `design-system/assets/Design System v2.html` §14 lede + every `.ccx-header` in the showcase updated; `.ccx-totals .line` children re-ordered from value-left / label-right to label-left / value-right.
+  - **Open-question resolutions.** Q1 sub-cent display → keep `$0.0` (totals block + footer carry audit truth). Q2 footer scope → keep 4-decimal in the footer. Q3 capital-T direction → bar-row section headers only; totals lines stay lowercase. Q4 §5.3 spec-preview path → dropped (0145 shipped real data). Q5 preview reconciliation → moot. Plus: camelCase wire bug → server-side 1-line fix. Per-attachment visibility → auto-show on card unfold.
+  - **Files touched.** `src/dual_research/ui/static/run-detail.jsx`, `src/dual_research/ui/static/components.css`, `src/dual_research/ui/static/index.html`, `src/dual_research/ui/server.py`, `tests/ui/test_to_camel.py` (new), `design-system/SPEC.md`, `design-system/assets/styles/composed-components.css`, `design-system/assets/Design System v2.html`, `design-system/CHANGELOG.md`. Plus `pyproject.toml`, `src/dual_research/__init__.py`, `uv.lock`, `CHANGELOG.md` — `1.11.0 → 1.12.0`.
+
 ## [1.11.0] — 2026-05-21
 
 ### Added

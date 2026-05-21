@@ -1882,12 +1882,20 @@ def _to_camel(obj: Any) -> Any:
     Non-string keys (e.g. the ``int`` keys in ``phase_timings``) are coerced
     to ``str`` so the result is JSON-serializable directly. List order and
     primitive values are preserved.
+
+    Spec 0146 — dotted keys are canonical artifact IDs (the Python registry
+    is the source of truth) and pass through verbatim. Without this guard
+    ``user_prompt.message`` arrives at JS as ``userPrompt.message`` and the
+    Consumption-card per-piece lookups silently miss.
     """
     if isinstance(obj, dict):
         out: dict[str, Any] = {}
         for k, v in obj.items():
             if isinstance(k, str):
-                out[_snake_to_camel(k)] = _to_camel(v)
+                if "." in k:
+                    out[k] = _to_camel(v)
+                else:
+                    out[_snake_to_camel(k)] = _to_camel(v)
             else:
                 out[str(k)] = _to_camel(v)
         return out
