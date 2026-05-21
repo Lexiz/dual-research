@@ -41,9 +41,11 @@ from dual_research.contract.validator import validate_parsed
 from dual_research.events import (
     CloseoutUrged,
     CloseoutViolation,
+    EmptyTurnDetected,
     ItemRaised,
     ItemTransitioned,
     PhaseConverged,
+    ProtocolViolation,
 )
 # Spec 0115 — legacy_shim removed; the snapshot helper below is no
 # longer used by production code but is retained for ad-hoc callers
@@ -133,10 +135,14 @@ class RoundResult:
     openai_status: str | None
     raised_events: tuple[ItemRaised, ...]
     transition_events: tuple[ItemTransitioned, ...]
-    violation_events: tuple[CloseoutViolation, ...]
+    violation_events: tuple[CloseoutViolation | ProtocolViolation, ...]
     closeout_event: CloseoutUrged | None
     converged: bool
     is_closeout_round: bool
+    # Spec 0141 — empty-turn signal for phases 0/2/4. Empty in phases
+    # 1/3 by design and in any negotiate round that produced at least
+    # one ledger-affecting block.
+    empty_turn_events: tuple[EmptyTurnDetected, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -293,12 +299,28 @@ class DeepResearchPhase:
         agent: str,
         round: int,
         is_closeout_round: bool,
-    ) -> tuple[list[ItemRaised], list[ItemTransitioned], list[CloseoutViolation]]:
+        finish_reason: str | None = None,
+        output_tokens: int = 0,
+    ) -> tuple[
+        list[ItemRaised],
+        list[ItemTransitioned],
+        list[CloseoutViolation | ProtocolViolation],
+        list[EmptyTurnDetected],
+    ]:
         """Apply a parsed turn to the ledger. Returns the events the
-        orchestrator should publish."""
+        orchestrator should publish.
+
+        Spec 0141 additions: ``finish_reason`` / ``output_tokens`` are
+        threaded from the upstream ``turn_ended`` payload so an empty
+        negotiate / review turn can be attributed to ``max_tokens``
+        versus a genuinely empty model output. Both default to safe
+        values so the replay path (which reconstructs from on-disk turn
+        bodies) can omit them.
+        """
         raised_events: list[ItemRaised] = []
         transition_events: list[ItemTransitioned] = []
-        violations: list[CloseoutViolation] = []
+        violations: list[CloseoutViolation | ProtocolViolation] = []
+        empty_turn_events: list[EmptyTurnDetected] = []
 
         other = "openai" if agent == "claude" else "claude"
         raiser_tok = raiser_letter(agent)
@@ -350,6 +372,25 @@ class DeepResearchPhase:
                     continue
                 if ent.raiser == agent:
                     # An agent cannot ADDRESS their own item; ignore.
+                    continue
+                if is_terminal(ent.current_state):
+                    # Spec 0141 — terminal states are absorbing. A late-
+                    # arriving ADDRESS must not re-open a resolved /
+                    # acknowledged / withdrawn / capped item. Without
+                    # this guard the anchor-run pattern leaks: r2.2
+                    # openai RESOLVED → r2.3 claude ADDRESSED (the
+                    # resolved item) → r2.3 openai RESOLVED a second
+                    # time, producing the closed > raised invariant
+                    # violation (B02).
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="terminal_state_re_address",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                    ))
                     continue
                 # Anti-hallucination validation when evidence is required.
                 if ent.evidence_required:
@@ -491,7 +532,30 @@ class DeepResearchPhase:
                     # but do not transition.
                     ent.ack_proposed_by = agent
 
-        return raised_events, transition_events, violations
+        # Spec 0141 — empty-turn signal. After processing every block,
+        # if zero ledger-affecting blocks were observed AND the phase
+        # expects item movement, emit ``EmptyTurnDetected``. Phase 1
+        # (parallel drafts) and Phase 3 (single-agent drafting) skip
+        # this check by design — those phases emit no item events.
+        if self.phase in (0, 2, 4):
+            ledger_block_count = sum(
+                1 for blk in parsed.blocks
+                if isinstance(blk, (
+                    RaiseBlock, AddressBlock, ResolveBlock,
+                    WithdrawBlock, AcknowledgeBlock,
+                ))
+            )
+            if ledger_block_count == 0:
+                empty_turn_events.append(EmptyTurnDetected(
+                    phase=self.phase,
+                    round=round,
+                    agent=agent,
+                    parser_block_count=0,
+                    finish_reason=finish_reason,
+                    output_tokens=output_tokens,
+                ))
+
+        return raised_events, transition_events, violations, empty_turn_events
 
     # ── Round driver ─────────────────────────────────────────────
 
@@ -504,7 +568,8 @@ class DeepResearchPhase:
         is_closeout_round: bool,
         raised_events: list[ItemRaised],
         transition_events: list[ItemTransitioned],
-        violation_events: list[CloseoutViolation],
+        violation_events: list[CloseoutViolation | ProtocolViolation],
+        empty_turn_events: list[EmptyTurnDetected] | None = None,
     ) -> RoundResult:
         """End-of-round processing: convergence check + closeout urge decision.
 
@@ -555,6 +620,7 @@ class DeepResearchPhase:
             closeout_event=closeout_evt,
             converged=conv.converged,
             is_closeout_round=is_closeout_round,
+            empty_turn_events=tuple(empty_turn_events or ()),
         )
 
     def spend_failed_closeout_budget(self) -> bool:
@@ -607,7 +673,8 @@ class DeepResearchPhase:
         """Drive a single round: both agents' turns + lifecycle updates."""
         raised: list[ItemRaised] = []
         transitions: list[ItemTransitioned] = []
-        violations: list[CloseoutViolation] = []
+        violations: list[CloseoutViolation | ProtocolViolation] = []
+        empties: list[EmptyTurnDetected] = []
 
         parsed_claude: ParsedTurnV2 | None = None
         parsed_openai: ParsedTurnV2 | None = None
@@ -641,7 +708,7 @@ class DeepResearchPhase:
                 parsed_claude = parsed
             else:
                 parsed_openai = parsed
-            r, t, v = self.apply_turn(
+            r, t, v, e = self.apply_turn(
                 text=text,
                 parsed=parsed,
                 agent=agent,
@@ -651,6 +718,7 @@ class DeepResearchPhase:
             raised.extend(r)
             transitions.extend(t)
             violations.extend(v)
+            empties.extend(e)
 
         # Convergence cross-check
         artifact_match = False
@@ -696,6 +764,7 @@ class DeepResearchPhase:
             closeout_event=closeout_evt,
             converged=conv.converged,
             is_closeout_round=is_closeout_round,
+            empty_turn_events=tuple(empties),
         )
 
     # ── Cap / ghost-cap helpers ──────────────────────────────────

@@ -13,10 +13,12 @@ from dual_research.events import (
     CloseoutUrged,
     CloseoutViolation,
     CostUpdate,
+    EmptyTurnDetected,
     EventBus,
     ItemRaised,
     ItemTransitioned,
     PhaseConverged,
+    ProtocolViolation,
     RunCompleted,
     RunFailed,
     RunStarted,
@@ -113,6 +115,11 @@ _TRANSCRIPT_MIRRORED_EVENTS = (
     CloseoutUrged,
     CloseoutViolation,
     PhaseConverged,
+    # Spec 0141 — protocol-invariant violations + empty-turn signals
+    # land on the bus from `apply_turn`; mirror them to the transcript
+    # for the audit trail (no UI surface in this spec).
+    ProtocolViolation,
+    EmptyTurnDetected,
 )
 
 
