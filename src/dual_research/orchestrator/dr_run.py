@@ -82,7 +82,7 @@ from dual_research.protocol import (
     extract_agreed_interpretation_body,
     extract_agreed_plan_body,
     extract_drafter_from_agreed_plan,
-    extract_revised_draft,
+    extract_revised_draft_inclusive,
     parse_turn_v2,
 )
 from dual_research.protocol.prompts import (
@@ -262,7 +262,11 @@ async def _drive_interaction_phase(
             # the revised draft is written to disk before convergence
             # check considers it.
             if on_revised_draft is not None and agent_name == ctx.state.drafter:
-                revised = extract_revised_draft(result.text)
+                # Spec 0140 — use the inclusive extractor so the
+                # draft body retains its own ``## N. Section`` headings.
+                # The strict extractor truncated at the first sub-heading,
+                # producing 76-byte stub drafts on the anchor run.
+                revised = extract_revised_draft_inclusive(result.text)
                 if revised:
                     await on_revised_draft(
                         ctx=ctx,
@@ -323,26 +327,35 @@ async def _drive_interaction_phase(
             via_closeout = is_closeout_round
             break
 
-        # ── Spec 0137 — substantive-convergence escape valve ───────────
-        # When both agents emit AGREED and the ledger holds zero
-        # non-terminal items but ``check_convergence`` still rejected,
-        # the artifact-hash gate is the only remaining blocker. The
-        # agents wrote semantically-equivalent but byte-different
-        # artifact bodies (a known LLM failure mode of the parallel-
-        # emission "Adoption procedure"). Trust the agents' self-
-        # declared AGREED — promote the canonical artifact from the
-        # designated agent's turn (claude for phase 0; the drafter for
-        # phase 2 / 4) and exit. No repair turn: the downstream
-        # consumer (run_dr_phase{0,2,4} post-loop) reads from one
-        # specific agent's emission anyway, so the other agent's
-        # drift is not load-bearing.
-        if (
-            rr.claude_status == "AGREED"
-            and rr.openai_status == "AGREED"
-            and not items_blocking_convergence(phase.state.item_views())
+        # ── Spec 0137 (widened by 0140) — substantive-convergence escape ──
+        # Original 0137 form: both AGREED + terminal ledger but the
+        # artifact hashes drifted (agents wrote semantically-equivalent
+        # but byte-different artifact bodies). Trust the agents'
+        # self-declared AGREED — promote the canonical artifact from the
+        # designated agent's turn and exit.
+        #
+        # 0140 widening: one agent AGREED + terminal ledger past the
+        # soft cap is also a deadlock shape — on the anchor run the
+        # drafter's revised-draft section truncated to a 76-byte stub,
+        # which left the reviewer agent unable to honestly emit AGREED
+        # even though the ledger was otherwise terminal. The soft-cap
+        # gate (``round_no >= caps.soft``) ensures the agents had a
+        # full round budget to surface items before the branch arms.
+        both_agreed = (
+            rr.claude_status == "AGREED" and rr.openai_status == "AGREED"
+        )
+        one_agreed = (
+            (rr.claude_status == "AGREED") ^ (rr.openai_status == "AGREED")
+        )
+        terminal_ledger = not items_blocking_convergence(phase.state.item_views())
+
+        if terminal_ledger and (
+            both_agreed
+            or (one_agreed and round_no >= caps.soft)
         ):
             converged = True
             via_artifact_promotion = True
+            trigger = "both_agreed" if both_agreed else "one_agreed_terminal"
             await event_bus.publish(
                 ArtifactCanonicallyPromoted(phase=phase_label, round=round_no)
             )
@@ -350,14 +363,24 @@ async def _drive_interaction_phase(
                 "artifact_canonically_promoted",
                 phase=phase_label,
                 round=round_no,
+                trigger=trigger,
             )
-            print(
-                f"\n[{phase_label}] AGREED (artifact promotion). Both agents "
-                f"emitted STATUS: AGREED with a terminal ledger at round "
-                f"{round_no}, but their artifact bodies hash-drifted. "
-                f"Accepting their self-declared agreement.",
-                flush=True,
-            )
+            if both_agreed:
+                print(
+                    f"\n[{phase_label}] AGREED (artifact promotion). Both agents "
+                    f"emitted STATUS: AGREED with a terminal ledger at round "
+                    f"{round_no}, but their artifact bodies hash-drifted. "
+                    f"Accepting their self-declared agreement.",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"\n[{phase_label}] AGREED (artifact promotion, one-agent path). "
+                    f"Round {round_no} past soft cap with one agent AGREED and a "
+                    f"terminal ledger — the other agent is stuck on something the "
+                    f"protocol cannot surface. Accepting the AGREED side.",
+                    flush=True,
+                )
             break
 
         if rr.closeout_event is not None:
