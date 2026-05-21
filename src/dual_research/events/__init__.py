@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dual_research.events.bus import EventBus, Subscriber
 from dual_research.events.types import (
+    ArtifactCanonicallyPromoted,
     CanonicalFsdSynthesized,
     CloseoutUrged,
     CloseoutViolation,
@@ -38,6 +39,7 @@ from dual_research.events.types import (
 )
 
 __all__ = [
+    "ArtifactCanonicallyPromoted",
     "CanonicalFsdSynthesized",
     "CloseoutUrged",
     "CloseoutViolation",
