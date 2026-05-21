@@ -1,126 +1,201 @@
-<?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 720" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 720" font-family="'Roboto Flex', 'Roboto', system-ui, -apple-system, sans-serif">
+  <title>event-flow · material · dark</title>
+  <desc>OrderFlow worked example (Material, dark). ViewBox 1660x720. Producer order-svc publishes order.* events to the orders topic (md-card service-slate, 4 partitions); four consumers (inventory-svc, payment-svc, notification-svc, analytics) fan out. One error-path dashed-red arrow runs to a small DLQ card. Producer→topic arrows use --p-ok; topic→consumer arrows use --md-tertiary.</desc>
+
   <defs>
-    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0f12"/>
+      <stop offset="100%" stop-color="#08090b"/>
+    </linearGradient>
+    <filter id="elev1" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.30"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
     </filter>
-    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    <filter id="elev3" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#000000" flood-opacity="0.30"/>
     </filter>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0d0f12"></stop><stop offset="100%" stop-color="#08090b"></stop>
-    </linearGradient>
-    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6b9cf0"></stop><stop offset="100%" stop-color="#3a5fa8"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#494e57"></stop><stop offset="100%" stop-color="#2c3138"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceSlate" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7a7e88"></stop><stop offset="100%" stop-color="#4a4e58"></stop>
-    </linearGradient>
-    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"></path></marker>
-    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"></path></marker>
-    <path id="evtPath1" d="M 440 262 L 666 348" fill="none"></path>
-    <path id="evtPath2" d="M 990 348 L 1215 220" fill="none"></path>
-    
+    <marker id="arrowTertiary" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
+    </marker>
+    <marker id="arrowOk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6fb380"/>
+    </marker>
+    <marker id="arrowErr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#d96a6a"/>
+    </marker>
   </defs>
 
-  <rect width="1660" height="720" fill="url(#bgGrad)"></rect>
+  <rect width="1660" height="720" fill="url(#canvas)"/>
 
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Partner Vetting · Event Flow</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Asynchronous topology · producers · topics · consumers · Pub/Sub</text>
+  <g font-size="11" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">
+    <text x="230"  y="76" text-anchor="middle">PRODUCER</text>
+    <text x="740"  y="76" text-anchor="middle">TOPIC · 4 PARTITIONS</text>
+    <text x="1340" y="76" text-anchor="middle">CONSUMERS</text>
+  </g>
 
-  <text x="280" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">PRODUCERS</text>
-  <text x="830" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">TOPICS · PUB/SUB</text>
-  <text x="1380" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">CONSUMERS</text>
+  <text x="56" y="76" font-size="11" font-weight="600" letter-spacing="0.5" fill="#ffffff">
+    OrderFlow · Event Flow
+  </text>
 
-  <rect x="120" y="200" width="320" height="92" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(154, 246)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line></g>
-  <text x="188" y="240" font-size="16" font-weight="600" fill="white">Vetting API</text>
-  <text x="188" y="258" font-size="11" fill="rgba(255,255,255,0.72)">Cloud Run</text>
-  <text x="188" y="278" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">emits 2 events on every run</text>
+  <!-- PRODUCER · order-svc · md-card filled -->
+  <g transform="translate(72, 100)">
+    <rect width="316" height="260" rx="12" ry="12" fill="#21252b" filter="url(#elev1)"/>
+    <g transform="translate(24, 64) scale(0.0375)" fill="#b4bac4">
+      <path d="M160-120v-200h640v200H160Zm80-80h60v-40h-60v40Zm480 0h60v-40h-60v40ZM160-440v-200h640v200H160Zm80-80h60v-40h-60v40Zm480 0h60v-40h-60v40ZM160-760v-80h640v80H160Z"/>
+    </g>
+    <text x="76" y="56" font-size="20" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">order-svc</text>
+    <text x="76" y="80" font-size="12" fill="#b4bac4">Order Service · lifecycle orchestrator</text>
 
-  <rect x="120" y="324" width="320" height="92" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(154, 370)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
-  <text x="188" y="364" font-size="16" font-weight="600" fill="white">Document Service</text>
-  <text x="188" y="382" font-size="11" fill="rgba(255,255,255,0.72)">extract + normalize worker</text>
-  <text x="188" y="402" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">emits 1 event per document</text>
+    <line x1="24" y1="108" x2="292" y2="108" stroke="#343941" stroke-width="1"/>
+    <text x="24" y="130" font-size="10" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">PUBLISHES</text>
 
-  <rect x="670" y="170" width="320" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(700, 208)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
-  <text x="734" y="202" font-size="15" font-weight="600" fill="white" font-family="monospace">vet.submitted</text>
-  <text x="734" y="220" font-size="10" fill="rgba(255,255,255,0.72)">topic · 7d retention · 2 subscribers</text>
-  <rect x="930" y="180" width="50" height="20" rx="10" fill="rgba(0,0,0,0.28)"></rect>
-  <text x="955" y="194" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">TOPIC</text>
+    <rect x="24" y="142" width="268" height="26" rx="6" ry="6" fill="#14171c" stroke="#343941" stroke-width="1"/>
+    <text x="34" y="159" font-size="12" font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#ffffff">order.created</text>
+    <text x="282" y="159" text-anchor="end" font-size="10" font-style="italic" fill="#7d8290">~120k/day</text>
 
-  <rect x="670" y="310" width="320" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(700, 348)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
-  <text x="734" y="342" font-size="15" font-weight="600" fill="white" font-family="monospace">vet.completed</text>
-  <text x="734" y="360" font-size="10" fill="rgba(255,255,255,0.72)">topic · 30d retention · 3 subscribers</text>
-  <rect x="930" y="320" width="50" height="20" rx="10" fill="rgba(0,0,0,0.28)"></rect>
-  <text x="955" y="334" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">TOPIC</text>
+    <rect x="24" y="172" width="268" height="26" rx="6" ry="6" fill="#14171c" stroke="#343941" stroke-width="1"/>
+    <text x="34" y="189" font-size="12" font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#ffffff">order.paid</text>
+    <text x="282" y="189" text-anchor="end" font-size="10" font-style="italic" fill="#7d8290">on capture</text>
 
-  <rect x="670" y="450" width="320" height="76" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(700, 488)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
-  <text x="734" y="482" font-size="15" font-weight="600" fill="white" font-family="monospace">doc.processed</text>
-  <text x="734" y="500" font-size="10" fill="rgba(255,255,255,0.72)">topic · 14d retention · 1 subscriber</text>
-  <rect x="930" y="460" width="50" height="20" rx="10" fill="rgba(0,0,0,0.28)"></rect>
-  <text x="955" y="474" text-anchor="middle" font-size="9" font-weight="600" fill="white" letter-spacing="1">TOPIC</text>
+    <rect x="24" y="202" width="268" height="26" rx="6" ry="6" fill="#14171c" stroke="#343941" stroke-width="1"/>
+    <text x="34" y="219" font-size="12" font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#ffffff">order.shipped</text>
+    <text x="282" y="219" text-anchor="end" font-size="10" font-style="italic" fill="#7d8290">on dispatch</text>
 
-  <rect x="1220" y="170" width="320" height="76" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1250, 208)"><circle cx="0" cy="-8" r="3" fill="rgba(255,255,255,0.85)"></circle><circle cx="-8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle><circle cx="8" cy="2" r="3" fill="rgba(255,255,255,0.85)"></circle><circle cx="0" cy="8" r="3" fill="rgba(255,255,255,0.85)"></circle><line x1="0" y1="-7" x2="-6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line><line x1="0" y1="-7" x2="6" y2="1" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line><line x1="-6" y1="3" x2="-1" y2="7" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line><line x1="6" y1="3" x2="1" y2="7" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"></line></g>
-  <text x="1284" y="202" font-size="15" font-weight="600" fill="white">Notification</text>
-  <text x="1284" y="220" font-size="11" fill="rgba(255,255,255,0.72)">slack + email · debounced 5s</text>
-  <text x="1284" y="238" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">subscribes to: vet.submitted, vet.completed</text>
+    <rect x="24" y="232" width="268" height="26" rx="6" ry="6" fill="#14171c" stroke="#343941" stroke-width="1"/>
+    <text x="34" y="249" font-size="12" font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#ffffff">order.cancelled</text>
+    <text x="282" y="249" text-anchor="end" font-size="10" font-style="italic" fill="#7d8290">on void</text>
+  </g>
 
-  <rect x="1220" y="310" width="320" height="76" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1250, 348)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><line x1="-7" y1="-5" x2="7" y2="-5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-7" y1="0" x2="3" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-7" y1="5" x2="5" y2="5" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
-  <text x="1284" y="342" font-size="15" font-weight="600" fill="white">ARC Integration</text>
-  <text x="1284" y="360" font-size="11" fill="rgba(255,255,255,0.72)">posts verdict back to ARC pool</text>
-  <text x="1284" y="378" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">subscribes to: vet.completed</text>
+  <!-- TOPIC · orders · md-card service-slate · 4 partitions -->
+  <g transform="translate(560, 156)">
+    <rect width="360" height="180" rx="12" ry="12" fill="#1e242e" filter="url(#elev3)"/>
+    <g transform="translate(24, 64) scale(0.0375)" fill="#a8b1c4">
+      <path d="M280-160 80-360l200-200 56 58-102 102h486v80H234l102 102-56 58Zm400-240-56-58 102-102H240v-80h486L624-742l56-58 200 200-200 200Z"/>
+    </g>
+    <text x="76" y="56" font-size="22" font-weight="500" fill="#cdd4e0"
+          font-family="ui-monospace, 'JetBrains Mono', monospace" letter-spacing="-0.2">orders</text>
+    <text x="76" y="80" font-size="12" fill="#a8b1c4">Kafka topic · 7d retention · at-least-once</text>
 
-  <rect x="1220" y="450" width="320" height="76" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1250, 488)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
-  <text x="1284" y="482" font-size="15" font-weight="600" fill="white">Audit Logger</text>
-  <text x="1284" y="500" font-size="11" fill="rgba(255,255,255,0.72)">appends to audit_event · all topics</text>
-  <text x="1284" y="518" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">subscribes to: ALL</text>
+    <g transform="translate(300, 16)">
+      <rect width="44" height="22" rx="11" ry="11" fill="rgba(168,177,196,0.18)"/>
+      <text x="22" y="15" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.5" fill="#cdd4e0">TOPIC</text>
+    </g>
 
-  <path d="M 440 230 L 666 200" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="552" y="206" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PUBLISHES</text>
+    <line x1="24" y1="108" x2="336" y2="108" stroke="#343941" stroke-width="1"/>
+    <text x="24" y="130" font-size="10" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">PARTITIONS</text>
 
-  <path d="M 440 262 L 666 348" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="552" y="320" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PUBLISHES</text>
+    <g transform="translate(44, 154)">
+      <circle r="14" fill="#0d0f12" stroke="#7d8290" stroke-width="1"/>
+      <text y="4" text-anchor="middle" font-size="10" font-weight="600" fill="#cdd4e0" font-variant-numeric="tabular-nums">p0</text>
+    </g>
+    <g transform="translate(112, 154)">
+      <circle r="14" fill="#0d0f12" stroke="#7d8290" stroke-width="1"/>
+      <text y="4" text-anchor="middle" font-size="10" font-weight="600" fill="#cdd4e0" font-variant-numeric="tabular-nums">p1</text>
+    </g>
+    <g transform="translate(180, 154)">
+      <circle r="14" fill="#0d0f12" stroke="#7d8290" stroke-width="1"/>
+      <text y="4" text-anchor="middle" font-size="10" font-weight="600" fill="#cdd4e0" font-variant-numeric="tabular-nums">p2</text>
+    </g>
+    <g transform="translate(248, 154)">
+      <circle r="14" fill="#0d0f12" stroke="#7d8290" stroke-width="1"/>
+      <text y="4" text-anchor="middle" font-size="10" font-weight="600" fill="#cdd4e0" font-variant-numeric="tabular-nums">p3</text>
+    </g>
+    <text x="336" y="158" text-anchor="end" font-size="10" font-style="italic" fill="#9aa0ac"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">hash(order_id)</text>
+  </g>
 
-  <path d="M 440 370 L 666 488" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="552" y="438" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PUBLISHES</text>
+  <!-- CONSUMERS · md-card outlined, right column -->
+  <g transform="translate(1100, 102)">
+    <rect width="480" height="84" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 50) scale(0.0375)" fill="#b4bac4">
+      <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm80-80h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Z"/>
+    </g>
+    <text x="76" y="32" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">inventory-svc</text>
+    <text x="76" y="52" font-size="12" fill="#b4bac4">decrements stock units · creates reservations</text>
+    <text x="76" y="70" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">subscribes: <tspan font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#b4bac4">order.paid</tspan></text>
+  </g>
 
-  <path d="M 990 200 L 1215 200" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="1102" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+  <g transform="translate(1100, 200)">
+    <rect width="480" height="84" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 50) scale(0.0375)" fill="#b4bac4">
+      <path d="M560-440q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35ZM280-320q-33 0-56.5-23.5T200-400v-320q0-33 23.5-56.5T280-800h560q33 0 56.5 23.5T920-720v320q0 33-23.5 56.5T840-320H280Zm80-80h400q0-33 23.5-56.5T840-480v-160q-33 0-56.5-23.5T760-720H360q0 33-23.5 56.5T280-640v160q33 0 56.5 23.5T360-400Zm440 240H120q-33 0-56.5-23.5T40-240v-440h80v440h680v80ZM280-400v-320 320Z"/>
+    </g>
+    <text x="76" y="32" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">payment-svc</text>
+    <text x="76" y="52" font-size="12" fill="#b4bac4">refunds via Stripe · releases payment authorisations</text>
+    <text x="76" y="70" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">subscribes: <tspan font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#b4bac4">order.cancelled</tspan></text>
+  </g>
 
-  <path d="M 990 220 C 1100 220 1100 488 1215 488" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowAccentSm)" opacity="0.65"></path>
+  <g transform="translate(1100, 298)">
+    <rect width="480" height="84" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 50) scale(0.0375)" fill="#b4bac4">
+      <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm320-280 320-210v-90L480-520 160-730v90l320 210Z"/>
+    </g>
+    <text x="76" y="32" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">notification-svc</text>
+    <text x="76" y="52" font-size="12" fill="#b4bac4">emails + SMS via SendGrid + Twilio · debounced 5 s</text>
+    <text x="76" y="70" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">subscribes: <tspan font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#b4bac4">ALL order.*</tspan></text>
+  </g>
 
-  <path d="M 990 340 L 1215 220" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="1100" y="270" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+  <g transform="translate(1100, 396)">
+    <rect width="480" height="84" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 50) scale(0.0375)" fill="#b4bac4">
+      <path d="M120-120v-80h720v80H120Zm60-120v-280h120v280H180Zm180 0v-440h120v440H360Zm180 0v-200h120v200H540Zm180 0v-360h120v360H720Z"/>
+    </g>
+    <text x="76" y="32" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">analytics</text>
+    <text x="76" y="52" font-size="12" fill="#b4bac4">streams all events to Snowflake via Snowpipe</text>
+    <text x="76" y="70" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">subscribes: <tspan font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#b4bac4">ALL order.*</tspan></text>
+  </g>
 
-  <path d="M 990 348 L 1215 348" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="1102" y="340" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+  <!-- DLQ -->
+  <g transform="translate(1280, 510)">
+    <rect width="300" height="52" rx="10" ry="10" fill="rgba(217,106,106,0.14)" stroke="#d96a6a" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="14" y="22" font-size="11" font-weight="600" letter-spacing="0.6" fill="#e89490">DLQ · RETRY EXCEEDED</text>
+    <text x="14" y="40" font-size="10" font-family="ui-monospace, 'JetBrains Mono', monospace" fill="#d9a8a6">orders.dlq · PagerDuty alert</text>
+  </g>
 
-  <path d="M 990 370 C 1100 370 1100 488 1215 488" stroke="#6b9cf0" stroke-width="1.4" stroke-dasharray="4,4" fill="none" marker-end="url(#arrowAccentSm)" opacity="0.65"></path>
+  <!-- arrows: producer → topic -->
+  <path d="M 392 200 C 470 200 480 220 558 220" stroke="#6fb380" stroke-width="1.8" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOk)"/>
+  <path d="M 392 232 L 558 240" stroke="#6fb380" stroke-width="1.8" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOk)"/>
+  <path d="M 392 262 L 558 260" stroke="#6fb380" stroke-width="1.8" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOk)"/>
+  <path d="M 392 292 C 470 292 480 280 558 280" stroke="#6fb380" stroke-width="1.8" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowOk)"/>
+  <text x="475" y="194" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.6" fill="#9bd4ad">PUBLISH · async-event</text>
 
-  <path d="M 990 488 L 1215 488" stroke="#6b9cf0" stroke-width="1.6" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccentSm)"></path>
-  <text x="1102" y="480" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELIVERS</text>
+  <!-- arrows: topic → consumers -->
+  <path d="M 920 210 C 1010 210 1010 144 1098 144" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowTertiary)"/>
+  <text x="1010" y="166" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.4" fill="#a4c1ff" font-family="ui-monospace, 'JetBrains Mono', monospace">order.paid</text>
 
-  <circle r="3.5" fill="#6b9cf0" class="dot-evt">
-    
-  </circle>
-  <circle r="3.5" fill="#6b9cf0" class="dot-evt">
-    
-  </circle>
+  <path d="M 920 232 L 1098 242" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowTertiary)"/>
+  <text x="1010" y="226" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.4" fill="#a4c1ff" font-family="ui-monospace, 'JetBrains Mono', monospace">order.cancelled</text>
 
-  <line x1="60" y1="568" x2="1600" y2="568" stroke="#3a3a47"></line>
-  <text x="60" y="596" font-size="11" font-weight="600" fill="#9aa0ac" letter-spacing="1.6">DEAD-LETTER · RETRY</text>
-  <text x="60" y="620" font-size="12" fill="#b4bac4">Subscribers retry 5× with exponential backoff. On final failure the message moves to a DLQ topic (<tspan font-family="monospace" fill="#ffffff">vet.dlq</tspan>) and PagerDuty fires.</text>
-  <text x="60" y="640" font-size="12" fill="#b4bac4">Audit Logger never DLQs — it always succeeds because it writes to the same Postgres transaction as the producer.</text>
-  <text x="60" y="668" font-size="11" font-style="italic" fill="#9aa0ac">Read left-to-right · dashed indigo lines are async event flows · the animated dots follow the highest-traffic path (vet.completed fan-out).</text>
+  <path d="M 920 264 C 1010 264 1010 340 1098 340" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowTertiary)"/>
+  <text x="1010" y="304" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.4" fill="#a4c1ff" font-family="ui-monospace, 'JetBrains Mono', monospace">ALL order.*</text>
+
+  <path d="M 920 290 C 1010 290 1010 438 1098 438" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowTertiary)"/>
+  <text x="1010" y="394" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.4" fill="#a4c1ff" font-family="ui-monospace, 'JetBrains Mono', monospace">ALL order.*</text>
+
+  <!-- error-path · payment-svc → DLQ -->
+  <path d="M 1340 284 C 1340 400 1408 400 1408 508" stroke="#d96a6a" stroke-width="1.6" stroke-dasharray="6,4" fill="none" marker-end="url(#arrowErr)"/>
+  <text x="1352" y="378" font-size="10" font-weight="600" letter-spacing="0.4" fill="#e89490">retry &gt; 5 ✕ exp backoff</text>
+  <text x="1352" y="394" font-size="10" font-style="italic" fill="#d9a8a6"
+        font-family="'Roboto Serif', ui-serif, Georgia, serif">→ DLQ + PagerDuty</text>
+
+  <!-- legend -->
+  <line x1="56" y1="600" x2="1604" y2="600" stroke="#262a31" stroke-width="1"/>
+  <text x="56" y="628" font-size="12" fill="#b4bac4">
+    green-dashed = async-event (publish)   ·   info-blue solid = topic → consumer fan-out   ·   red-dashed = error-path to DLQ
+  </text>
+  <text x="56" y="650" font-size="11" font-style="italic" fill="#9aa0ac"
+        font-family="'Roboto Serif', ui-serif, Georgia, serif">Read left → right · partitioning is on hash(order_id) so events for one order land on the same partition (ordered per-order).</text>
+  <text x="1604" y="688" text-anchor="end" font-size="11" fill="#50545d" font-variant-numeric="tabular-nums">
+    OrderFlow · event-flow · diagram skill v2.0.1 · 2026-05
+  </text>
 </svg>

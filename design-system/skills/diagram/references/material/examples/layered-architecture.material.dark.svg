@@ -1,194 +1,272 @@
-<?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 820" font-family="Roboto Flex, Roboto, system-ui, -apple-system, sans-serif">
-  
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 880" font-family="'Roboto Flex', 'Roboto', system-ui, -apple-system, sans-serif">
+  <title>layered-architecture · material · dark</title>
+  <desc>OrderFlow worked example (dark theme). ViewBox 1660x880. Four layers — surfaces, API gateway, services, data — composed from md-card--outlined, md-card--service-primary/secure, md-card--service-{sql,store,cache,slate}, and inlined Material Symbols.</desc>
+
   <defs>
-    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+    <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0d0f12"/>
+      <stop offset="100%" stop-color="#08090b"/>
+    </linearGradient>
+    <filter id="elev1" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.30"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
     </filter>
-    <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+    <filter id="elev3" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#000000" flood-opacity="0.30"/>
     </filter>
-
-    
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0d0f12"></stop>
-      <stop offset="100%" stop-color="#08090b"></stop>
-    </linearGradient>
-    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6b9cf0"></stop><stop offset="100%" stop-color="#3a5fa8"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#494e57"></stop><stop offset="100%" stop-color="#2c3138"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2d5fa8"></stop><stop offset="100%" stop-color="#1d4480"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#5aaa7d"></stop><stop offset="100%" stop-color="#36805a"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceStore" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#b48758"></stop><stop offset="100%" stop-color="#8a6d4e"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceCache" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7a629c"></stop><stop offset="100%" stop-color="#5d4a7a"></stop>
-    </linearGradient>
-
-    
-    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"></path></marker>
-    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#6b9cf0"></path></marker>
-    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7d8290"></path></marker>
-
-    
-    
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#6b9cf0"/>
+    </marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#9aa0ac"/>
+    </marker>
   </defs>
 
-  <rect width="1660" height="820" fill="url(#bgGrad)"></rect>
+  <rect width="1660" height="880" fill="url(#canvas)"/>
 
-  
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ffffff" letter-spacing="-0.3">Partner Vetting · Layered Architecture</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9aa0ac">Four layers from surfaces through to persistence · v1.0</text>
+  <text x="830" y="48" text-anchor="middle" font-size="22" font-weight="500" fill="#ffffff"
+        font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.3">OrderFlow · Layered Architecture</text>
+  <text x="830" y="72" text-anchor="middle" font-size="13" fill="#9aa0ac">Four layers from shopper surfaces through to persistence · multi-region · ~120k orders/day</text>
 
-  
-  <text x="830" y="130" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">SURFACES</text>
+  <!-- ============ LAYER 1 · SURFACES ============ -->
+  <text x="830" y="116" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">SURFACES</text>
 
-  
-  <rect x="370" y="146" width="280" height="92" rx="12" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(390, 184)"><rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#ffffff"></rect><rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect><circle cx="-10" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><circle cx="-7" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><circle cx="-4" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect><rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect></g>
-  <text x="430" y="180" font-size="14" font-weight="600" fill="#ffffff">Vetting Dashboard</text>
-  <text x="430" y="198" font-size="11" fill="#b4bac4">React SPA · TypeScript</text>
-  <text x="430" y="222" font-size="10" font-style="italic" fill="#9aa0ac">embedded into ARC via iframe</text>
+  <g transform="translate(270, 134)">
+    <rect width="320" height="100" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 52) scale(0.0375)" fill="#b4bac4">
+      <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H160v400Zm0-480h640v-80H160v80Z"/>
+    </g>
+    <text x="76" y="44" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Web app</text>
+    <text x="76" y="66" font-size="12" fill="#b4bac4">Next.js · React · TypeScript</text>
+    <text x="76" y="86" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">~2.4M MAU · public storefront</text>
+  </g>
 
-  
-  <rect x="690" y="146" width="280" height="92" rx="12" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(710, 184)"><rect x="-7" y="-13" width="14" height="26" rx="3" fill="#ffffff"></rect><rect x="-5" y="-10" width="10" height="17" rx="1" fill="rgba(255,255,255,0.18)"></rect><circle cx="0" cy="10" r="1.4" fill="rgba(255,255,255,0.5)"></circle></g>
-  <text x="730" y="180" font-size="14" font-weight="600" fill="#ffffff">Mobile companion</text>
-  <text x="730" y="198" font-size="11" fill="#b4bac4">React Native · approve flows</text>
-  <text x="730" y="222" font-size="10" font-style="italic" fill="#9aa0ac">read-only ops dashboard</text>
+  <g transform="translate(670, 134)">
+    <rect width="320" height="100" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 52) scale(0.0375)" fill="#b4bac4">
+      <path d="M280-40q-33 0-56.5-23.5T200-120v-720q0-33 23.5-56.5T280-920h400q33 0 56.5 23.5T760-840v720q0 33-23.5 56.5T680-40H280Zm0-200v120h400v-120H280Zm200 100q17 0 28.5-11.5T520-180q0-17-11.5-28.5T480-220q-17 0-28.5 11.5T440-180q0 17 11.5 28.5T480-140Zm-200-180h400v-440H280v440Zm0-520h400v-40H280v40Z"/>
+    </g>
+    <text x="76" y="44" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">iOS app</text>
+    <text x="76" y="66" font-size="12" fill="#b4bac4">Swift · native · App Store</text>
+    <text x="76" y="86" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">tracks orders · push notifications</text>
+  </g>
 
-  
-  <rect x="1010" y="146" width="280" height="92" rx="12" fill="#21252b" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(1030, 184)"><rect x="-12" y="-10" width="24" height="20" rx="2" fill="#ffffff"></rect><path d="M-7,-3 L-3,0 L-7,3" stroke="rgba(255,255,255,0.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><line x1="-2" y1="3" x2="6" y2="3" stroke="rgba(255,255,255,0.65)" stroke-width="1.4" stroke-linecap="round"></line></g>
-  <text x="1050" y="180" font-size="14" font-weight="600" fill="#ffffff">arc-cli</text>
-  <text x="1050" y="198" font-size="11" fill="#b4bac4">batch ops · admins only</text>
-  <text x="1050" y="222" font-size="10" font-style="italic" fill="#9aa0ac">authenticated via session token</text>
+  <g transform="translate(1070, 134)">
+    <rect width="320" height="100" rx="12" ry="12" fill="#0d0f12" stroke="#262a31" stroke-width="1"/>
+    <g transform="translate(24, 52) scale(0.0375)" fill="#b4bac4">
+      <path d="M120-120v-80h720v80H120Zm0-160v-80h720v80H120Zm80-160v-80h560v80H200ZM120-600v-80h720v80H120Zm0-160v-80h720v80H120Z"/>
+    </g>
+    <text x="76" y="44" font-size="17" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Partner API portal</text>
+    <text x="76" y="66" font-size="12" fill="#b4bac4">B2B integrations · OAuth2 clients</text>
+    <text x="76" y="86" font-size="11" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">developer docs · key management</text>
+  </g>
 
-  
-  <text x="830" y="298" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">API LAYER</text>
+  <!-- ============ LAYER 2 · API GATEWAY ============ -->
+  <text x="830" y="288" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">API GATEWAY</text>
 
-  <rect x="590" y="314" width="480" height="92" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  
-  <g transform="translate(620, 352)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line></g>
-  <text x="654" y="348" font-size="16" font-weight="600" fill="white">Vetting API</text>
-  <text x="654" y="366" font-size="11" fill="rgba(255,255,255,0.7)">Cloud Run · Express + ts-rest</text>
-  <line x1="610" y1="378" x2="1050" y2="378" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="610" y="396" font-size="11" fill="rgba(255,255,255,0.92)">Single ingress · session-scoped · request/response is a typed contract</text>
-  
-  <circle cx="1052" cy="332" r="5" fill="#6fb380" class="anim-pulse"></circle>
+  <!-- Order API · service-primary (sable + earthy) -->
+  <g transform="translate(350, 306)">
+    <rect width="440" height="100" rx="12" ry="12" fill="#3e362f" filter="url(#elev3)"/>
+    <g transform="translate(24, 52) scale(0.0375)" fill="#f3deca">
+      <path d="M80-160v-160q0-50 35-85t85-35h80v80h-80q-17 0-28.5 11.5T160-320v80h720v-80q0-17-11.5-28.5T840-360h-80v-80h80q50 0 85 35t35 85v160H80Zm200-280q-50 0-85-35t-35-85v-160q0-50 35-85t85-35h400q50 0 85 35t35 85v160q0 50-35 85t-85 35H280Zm0-80h400q17 0 28.5-11.5T720-560v-160q0-17-11.5-28.5T680-760H280q-17 0-28.5 11.5T240-720v160q0 17 11.5 28.5T280-520Zm200-120Z"/>
+    </g>
+    <text x="76" y="40" font-size="18" font-weight="500" fill="#f3deca"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Order API</text>
+    <text x="76" y="62" font-size="12" fill="#d0b896">REST gateway · public ingress · ALB-fronted</text>
+    <text x="76" y="86" font-size="11" font-style="italic" fill="#d0b896"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">schema validation · idempotency-key dedup · rate-limit</text>
+    <g transform="translate(346, 14)">
+      <rect width="78" height="22" rx="11" ry="11" fill="rgba(107,156,240,0.20)"/>
+      <circle cx="14" cy="11" r="3" fill="#6b9cf0"/>
+      <text x="24" y="15" font-size="11" font-weight="600" letter-spacing="0.4" fill="#a4c1ff">LIVE</text>
+    </g>
+  </g>
 
-  
-  <text x="830" y="466" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">SERVICE LAYER</text>
+  <!-- Auth Gateway · service-secure -->
+  <g transform="translate(870, 306)">
+    <rect width="440" height="100" rx="12" ry="12" fill="#263630" filter="url(#elev3)"/>
+    <g transform="translate(24, 52) scale(0.0375)" fill="#a9d2b3">
+      <path d="M480-80q-139-35-229.5-159.5T160-516v-244l320-120 320 120v244q0 152-90.5 276.5T480-80Zm0-84q104-33 172-132t68-220v-189l-240-90-240 90v189q0 121 68 220t172 132Zm0-316Z"/>
+    </g>
+    <text x="76" y="40" font-size="18" font-weight="500" fill="#a9d2b3"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Auth Gateway</text>
+    <text x="76" y="62" font-size="12" fill="#90b69b">OIDC SSO via Auth0 · JWT 30m · 5 roles</text>
+    <text x="76" y="86" font-size="11" font-style="italic" fill="#789a82"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">shopper · warehouse · finance · sre · support</text>
+  </g>
 
-  
-  <rect x="200" y="482" width="320" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(230, 524)"><rect x="-10" y="-8" width="20" height="16" rx="4" fill="rgba(255,255,255,0.18)"></rect><rect x="-2" y="-12" width="4" height="4" rx="1" fill="rgba(255,255,255,0.18)"></rect><line x1="0" y1="-12" x2="0" y2="-8" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"></line><circle cx="-4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle><circle cx="4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle><path d="M-3,4 L3,4" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"></path></g>
-  <text x="264" y="520" font-size="16" font-weight="600" fill="white">Vetting Agent</text>
-  <text x="264" y="538" font-size="11" fill="rgba(255,255,255,0.7)">4-phase orchestrator · Sonnet</text>
-  <line x1="220" y1="552" x2="500" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="220" y="570" font-size="11" fill="rgba(255,255,255,0.92)">brief → research → score → emit</text>
-  <text x="220" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">repair turn on critique fail</text>
+  <!-- ============ LAYER 3 · SERVICES ============ -->
+  <text x="830" y="458" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">SERVICES</text>
 
-  
-  <rect x="560" y="482" width="280" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(590, 524)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
-  <text x="624" y="520" font-size="16" font-weight="600" fill="white">Document Service</text>
-  <text x="624" y="538" font-size="11" fill="rgba(255,255,255,0.7)">Cloud Run · ingest + extract</text>
-  <line x1="580" y1="552" x2="820" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="580" y="570" font-size="11" fill="rgba(255,255,255,0.92)">PDF · DOCX · web archive</text>
-  <text x="580" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">deduped on sha256 of bytes</text>
+  <g transform="translate(110, 476)">
+    <rect width="256" height="124" rx="12" ry="12" fill="#3e362f" filter="url(#elev1)"/>
+    <g transform="translate(20, 48) scale(0.0375)" fill="#f3deca">
+      <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm80-80h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Zm-80-160v560-560Z"/>
+    </g>
+    <text x="64" y="40" font-size="16" font-weight="500" fill="#f3deca"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Order Service</text>
+    <text x="64" y="60" font-size="12" fill="#d0b896">lifecycle orchestrator</text>
+    <line x1="20" y1="76" x2="236" y2="76" stroke="#7a5728" stroke-width="0.8" opacity="0.6"/>
+    <text x="20" y="94" font-size="11" fill="#f3deca">creates · validates · publishes</text>
+    <text x="20" y="110" font-size="10" font-style="italic" fill="#d0b896"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">emits order.* events to Kinesis</text>
+  </g>
 
-  
-  <rect x="880" y="482" width="280" height="120" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(910, 524)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path><path d="M-4,0 L-1,4 L5,-3" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></g>
-  <text x="944" y="520" font-size="16" font-weight="600" fill="white">Auth Service</text>
-  <text x="944" y="538" font-size="11" fill="rgba(255,255,255,0.7)">Auth0 · RS256 · 4 roles</text>
-  <line x1="900" y1="552" x2="1140" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="900" y="570" font-size="11" fill="rgba(255,255,255,0.92)">analyst · partner · admin · arc</text>
-  <text x="900" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">JWT 30m · refresh on the API</text>
+  <g transform="translate(406, 476)">
+    <rect width="256" height="124" rx="12" ry="12" fill="#2c3138" filter="url(#elev1)"/>
+    <g transform="translate(20, 48) scale(0.0375)" fill="#b4bac4">
+      <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h280v-280H200v280Zm360 0h200v-280H560v280ZM200-560h560v-200H200v200Z"/>
+    </g>
+    <text x="64" y="40" font-size="16" font-weight="500" fill="#ffffff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Inventory Service</text>
+    <text x="64" y="60" font-size="12" fill="#b4bac4">reservations &amp; stock counts</text>
+    <line x1="20" y1="76" x2="236" y2="76" stroke="#4d5159" stroke-width="0.8" opacity="0.6"/>
+    <text x="20" y="94" font-size="11" fill="#b4bac4">holds · decrements on paid</text>
+    <text x="20" y="110" font-size="10" font-style="italic" fill="#7d8290"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">SKU-level locks · 15-min TTL</text>
+  </g>
 
-  
-  <rect x="1200" y="482" width="280" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1230, 524)"><circle cx="0" cy="-8" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="-9" cy="2" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="9" cy="2" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="-4" cy="10" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="4" cy="10" r="3.5" fill="rgba(255,255,255,0.85)"></circle><line x1="0" y1="-7" x2="-7" y2="1" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="0" y1="-7" x2="7" y2="1" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="-7" y1="3" x2="-3" y2="9" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="7" y1="3" x2="3" y2="9" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="-3" y1="10" x2="3" y2="10" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line></g>
-  <text x="1264" y="520" font-size="16" font-weight="600" fill="white">Scoring Engine</text>
-  <text x="1264" y="538" font-size="11" fill="rgba(255,255,255,0.7)">deterministic · 12 rules</text>
-  <line x1="1220" y1="552" x2="1460" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="1220" y="570" font-size="11" fill="rgba(255,255,255,0.92)">weighted ruleset · YAML configs</text>
-  <text x="1220" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">tx-replay any score in 1.2s</text>
+  <g transform="translate(702, 476)">
+    <rect width="256" height="124" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
+    <g transform="translate(20, 48) scale(0.0375)" fill="#d6e3ff">
+      <path d="M120-160v-640l80 80 80-80 80 80 80-80 80 80 80-80 80 80 80-80 80 80 80-80v640l-80-80-80 80-80-80-80 80-80-80-80 80-80-80-80 80-80-80-80 80Zm120-200h480v-80H240v80Zm0-160h480v-80H240v80Zm0-160h480v-80H240v80Zm-40-120v520-520Z"/>
+    </g>
+    <text x="64" y="40" font-size="16" font-weight="500" fill="#d6e3ff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Payment Service</text>
+    <text x="64" y="60" font-size="12" fill="#b1c0e2">auth · capture · refund</text>
+    <line x1="20" y1="76" x2="236" y2="76" stroke="#3a5895" stroke-width="0.8" opacity="0.6"/>
+    <text x="20" y="94" font-size="11" fill="#d6e3ff">Stripe · PayPal · 3DS2</text>
+    <text x="20" y="110" font-size="10" font-style="italic" fill="#92a3c8"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">idempotent on order_id</text>
+  </g>
 
-  
-  <text x="830" y="660" text-anchor="middle" font-size="11" font-weight="600" fill="#7d8290" letter-spacing="2">DATA LAYER</text>
+  <g transform="translate(998, 476)">
+    <rect width="256" height="124" rx="12" ry="12" fill="#3a332e" filter="url(#elev1)"/>
+    <g transform="translate(20, 48) scale(0.0375)" fill="#b9a895">
+      <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm320-280 320-210v-90L480-520 160-730v90l320 210Z"/>
+    </g>
+    <text x="64" y="40" font-size="16" font-weight="500" fill="#b9a895"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Notification Svc</text>
+    <text x="64" y="60" font-size="12" fill="#9c8b78">email · SMS · push</text>
+    <line x1="20" y1="76" x2="236" y2="76" stroke="#7e6f5c" stroke-width="0.8" opacity="0.6"/>
+    <text x="20" y="94" font-size="11" fill="#b9a895">SendGrid · Twilio · APNs</text>
+    <text x="20" y="110" font-size="10" font-style="italic" fill="#7e6f5c"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">async · receipts &amp; shipping</text>
+  </g>
 
-  
-  <rect x="370" y="676" width="280" height="92" rx="12" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(400, 722)"><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-9" width="22" height="18" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse></g>
-  <text x="430" y="710" font-size="15" font-weight="600" fill="white">Postgres</text>
-  <text x="430" y="728" font-size="11" fill="rgba(255,255,255,0.7)">Cloud SQL · primary store</text>
-  <text x="430" y="748" font-size="10" font-family="monospace" fill="#c5cdf0">spec_runs · audit_events</text>
+  <g transform="translate(1294, 476)">
+    <rect width="256" height="124" rx="12" ry="12" fill="#373026" filter="url(#elev1)"/>
+    <g transform="translate(20, 48) scale(0.0375)" fill="#e6c69a">
+      <path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/>
+    </g>
+    <text x="64" y="40" font-size="16" font-weight="500" fill="#e6c69a"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Catalog Service</text>
+    <text x="64" y="60" font-size="12" fill="#c4a781">products · pricing · SKUs</text>
+    <line x1="20" y1="76" x2="236" y2="76" stroke="#a48d6a" stroke-width="0.8" opacity="0.6"/>
+    <text x="20" y="94" font-size="11" fill="#e6c69a">authoritative pricing source</text>
+    <text x="20" y="110" font-size="10" font-style="italic" fill="#a48d6a"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif">read-heavy · cache-fronted</text>
+  </g>
 
-  
-  <rect x="690" y="676" width="280" height="92" rx="12" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(720, 722)"><path d="M-11,-3 L-9,10 L9,10 L11,-3 Z" fill="rgba(255,255,255,0.85)"></path><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse><path d="M-5,-5 Q0,-13 5,-5" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" fill="none"></path></g>
-  <text x="750" y="710" font-size="15" font-weight="600" fill="white">GCS</text>
-  <text x="750" y="728" font-size="11" fill="rgba(255,255,255,0.7)">blob archive · cold tier</text>
-  <text x="750" y="748" font-size="10" font-family="monospace" fill="#e8c5a0">/partners/{id}/docs/*</text>
+  <!-- ============ LAYER 4 · DATA ============ -->
+  <text x="830" y="654" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.5" fill="#9aa0ac">DATA</text>
 
-  
-  <rect x="1010" y="676" width="280" height="92" rx="12" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1040, 722)"><ellipse cx="0" cy="-8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-8" width="22" height="16" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-1" width="22" height="3" fill="rgba(26,26,24,0.25)"></rect></g>
-  <text x="1070" y="710" font-size="15" font-weight="600" fill="white">Redis</text>
-  <text x="1070" y="728" font-size="11" fill="rgba(255,255,255,0.7)">cache · session + score</text>
-  <text x="1070" y="748" font-size="10" font-family="monospace" fill="#d2c5e8">ttl 5m on score:*</text>
+  <g transform="translate(170, 672)">
+    <rect width="300" height="96" rx="12" ry="12" fill="#27344b" filter="url(#elev1)"/>
+    <g transform="translate(20, 40) scale(0.0375)" fill="#d6e3ff">
+      <path d="M480-120q-151 0-255.5-46.5T120-280v-400q0-66 105.5-113T480-840q149 0 254.5 47T840-680v400q0 67-104.5 113.5T480-120Zm0-560q121 0 215-34.5T802-794q-13-23-107-44.5T480-860q-128 0-219 21.5T156-793q15 24 107.5 48.5T480-720Zm0 220q26 0 50.5-1t47.5-3.5q23-2.5 45-6t43-7.5q21-4 41-9.5t39-11.5v-129q-19 6-39 11t-41 9q-21 4-43 7t-45 5.5q-23 2.5-47.5 3.5t-50.5 1q-26 0-51-1t-47.5-3.5q-22.5-2.5-44-6t-41-7.5q-19.5-4-37-9t-32-12v130q12 6 31 11.5t40.5 9.5q21.5 4 43.5 7t45.5 5.5q23.5 2.5 48.5 3.5t50 1Zm0 220q31 0 64-2.5t63.5-7q30.5-4.5 57-10.5t43.5-13v-129q-19 6-39 11t-41 9q-21 4-43 7t-45 5.5q-23 2.5-47.5 3.5t-50.5 1q-26 0-51-1t-47.5-3.5q-22.5-2.5-44-6t-41-7.5q-19.5-4-37-9t-32-12v130q14 6 35 12.5T277-216q26 5.5 56.5 9.5T398-201q34 4.5 73.5 6T557-194Z"/>
+    </g>
+    <text x="76" y="38" font-size="16" font-weight="500" fill="#d6e3ff"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Postgres (orders)</text>
+    <text x="76" y="58" font-size="11" fill="#b1c0e2">RDS · primary store · row-level lock</text>
+    <text x="76" y="82" font-size="10" font-family="ui-monospace, 'JetBrains Mono', Menlo, monospace" fill="#92a3c8">orders · payments · shipments</text>
+  </g>
 
-  
+  <g transform="translate(510, 672)">
+    <rect width="300" height="96" rx="12" ry="12" fill="#373026" filter="url(#elev1)"/>
+    <g transform="translate(20, 40) scale(0.0375)" fill="#e6c69a">
+      <path d="M280-200q-117 0-198.5-81.5T0-480q0-117 81.5-198.5T280-760h400q117 0 198.5 81.5T960-480q0 117-81.5 198.5T680-200H280Zm0-80h400q83 0 141.5-58.5T880-480q0-83-58.5-141.5T680-680H280q-83 0-141.5 58.5T80-480q0 83 58.5 141.5T280-280Zm0-40q66 0 113-47t47-113q0-66-47-113t-113-47q-66 0-113 47t-47 113q0 66 47 113t113 47Zm200-160Z"/>
+    </g>
+    <text x="76" y="38" font-size="16" font-weight="500" fill="#e6c69a"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">Redis (cache)</text>
+    <text x="76" y="58" font-size="11" fill="#c4a781">ElastiCache · session + catalog</text>
+    <text x="76" y="82" font-size="10" font-family="ui-monospace, 'JetBrains Mono', Menlo, monospace" fill="#a48d6a">ttl 5m · LFU eviction</text>
+  </g>
 
-  
-  <path d="M 510 238 C 510 270 700 270 720 314" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <path d="M 830 238 L 830 314" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <path d="M 1150 238 C 1150 270 960 270 940 314" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <g transform="translate(850, 672)">
+    <rect width="300" height="96" rx="12" ry="12" fill="#3a332e" filter="url(#elev1)"/>
+    <g transform="translate(20, 40) scale(0.0375)" fill="#b9a895">
+      <path d="M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Zm0-80h480q42 0 71-29t29-71q0-42-29-71t-71-29h-60v-80q0-83-58.5-141.5T480-720q-83 0-141.5 58.5T280-520h-20q-58 0-99 41t-41 99q0 58 41 99t99 41Zm220-240Z"/>
+    </g>
+    <text x="76" y="38" font-size="16" font-weight="500" fill="#b9a895"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">S3 (artifacts)</text>
+    <text x="76" y="58" font-size="11" fill="#9c8b78">invoices · receipts · static blobs</text>
+    <text x="76" y="82" font-size="10" font-family="ui-monospace, 'JetBrains Mono', Menlo, monospace" fill="#7e6f5c">/orders/{id}/invoice.pdf</text>
+  </g>
 
-  
-  <text x="830" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1.2">HTTPS · BEARER TOKEN</text>
+  <g transform="translate(1190, 672)">
+    <rect width="300" height="96" rx="12" ry="12" fill="#1f2630" filter="url(#elev1)"/>
+    <g transform="translate(20, 40) scale(0.0375)" fill="#9fb3c8">
+      <path d="M796-121 533-384q-30 26-69.96 40.5Q423.08-329 378-329q-108.16 0-183.08-75Q120-479 120-585t75-181q75-75 181.5-75t181 75Q632-691 632-585q0 43.66-14 81.83-14 38.17-42 75.17l264 264-44 43Zm-418-288q74.46 0 126.23-52T556-585q0-74-51.77-126t-126.23-52q-74.46 0-126.73 52T199-585q0 73 52.27 125T378-409Z"/>
+    </g>
+    <text x="76" y="38" font-size="16" font-weight="500" fill="#9fb3c8"
+          font-family="'Roboto Serif', ui-serif, Georgia, serif" letter-spacing="-0.2">OpenSearch</text>
+    <text x="76" y="58" font-size="11" fill="#7e95ac">product index · autocomplete</text>
+    <text x="76" y="82" font-size="10" font-family="ui-monospace, 'JetBrains Mono', Menlo, monospace" fill="#67788c">~1.4M docs · 6 shards</text>
+  </g>
 
-  
-  <path d="M 720 406 L 360 482" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="498" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">DELEGATES RUN</text>
+  <!-- ============ ARROWS ============ -->
 
-  <path d="M 800 406 L 700 482" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <path d="M 860 406 L 1020 482" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="930" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">VERIFIES SESSION</text>
+  <path d="M 430 234 C 430 270 510 285 510 306" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 830 234 L 670 306" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 1230 234 C 1230 270 730 285 720 306" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 1230 234 C 1230 268 1180 285 1170 306" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="830" y="278" text-anchor="middle" font-size="10" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">HTTPS · BEARER TOKEN</text>
 
-  <path d="M 940 406 L 1340 482" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1170" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">SCORES</text>
+  <path d="M 480 406 L 220 476" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 540 406 L 510 476" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 620 406 L 800 476" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 700 406 L 1090 476" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 760 406 L 1390 476" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="510" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">ROUTES &amp; ORCHESTRATES</text>
 
-  
-  
-  <path d="M 360 602 C 360 640 480 660 510 676" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="430" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">PERSISTS</text>
+  <path d="M 990 406 L 880 476" stroke="#9aa0ac" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"/>
+  <g transform="translate(880, 432)">
+    <rect width="120" height="22" rx="11" ry="11" fill="#0d0f12" stroke="#9aa0ac" stroke-width="1"/>
+    <text x="60" y="15" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.5" fill="#b4bac4">VERIFIES JWT</text>
+  </g>
 
-  
-  <path d="M 700 602 C 700 640 830 660 830 676" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="780" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">STORES BYTES</text>
+  <path d="M 200 600 L 270 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="218" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">WRITES</text>
+  <path d="M 500 600 L 360 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 560 600 L 600 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="588" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">RESERVES</text>
+  <path d="M 770 600 L 410 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 850 600 L 940 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="908" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">RECEIPTS</text>
+  <path d="M 1100 600 L 1040 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 1380 600 L 740 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="1180" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#a4c1ff" letter-spacing="0.6">CACHES PRICING</text>
+  <path d="M 1450 600 L 1340 672" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
 
-  
-  <path d="M 1020 602 C 1020 640 620 660 590 676" stroke="#7d8290" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-  <g transform="translate(710, 638)"><rect width="96" height="22" rx="11" fill="#21252b" stroke="#7d8290"></rect><text x="48" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#9aa0ac" letter-spacing="0.8">USER LOOKUP</text></g>
+  <path d="M 320 768 C 320 802 1480 802 1480 600" stroke="#9aa0ac" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"/>
+  <g transform="translate(740, 790)">
+    <rect width="180" height="22" rx="11" ry="11" fill="#0d0f12" stroke="#9aa0ac" stroke-width="1"/>
+    <text x="90" y="15" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="0.5" fill="#b4bac4">READ REPLICA · PRICING JOIN</text>
+  </g>
 
-  
-  <path d="M 1340 602 L 1150 676" stroke="#6b9cf0" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1252" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#6b9cf0" letter-spacing="1">CACHES SCORE</text>
-
-  
-  <path d="M 1340 602 C 1340 640 620 660 590 676" stroke="#7d8290" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-
-  
-  <text x="830" y="800" text-anchor="middle" font-size="11" fill="#9aa0ac" font-style="italic">Read top-to-bottom · indigo arrows are primary flow · grey-dashed arrows are mirror reads · all data writes are append-only into the SQL primary.</text>
+  <line x1="56" y1="828" x2="1604" y2="828" stroke="#262a31" stroke-width="1"/>
+  <text x="56" y="852" font-size="12" fill="#9aa0ac">
+    solid arrow (info-blue) = synchronous handoff   ·   dashed arrow (muted) = JWT verify + read-replica join   ·   read top-to-bottom
+  </text>
+  <text x="1604" y="852" text-anchor="end" font-size="11" fill="#50545d" font-variant-numeric="tabular-nums">
+    OrderFlow · layered-architecture · diagram skill v2.0.1 · 2026-05
+  </text>
 </svg>

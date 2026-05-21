@@ -221,7 +221,7 @@ The entries below are specific to running two design systems side-by-side. They 
 
 ### A multi-diagram proposal accidentally mixed Pixel and Material
 
-**Symptom:** Three diagrams in a proposal look like siblings; the fourth looks like a stranger — different font, different palette, different surface gradients — even though it's the same Partner Vetting set.
+**Symptom:** Three diagrams in a proposal look like siblings; the fourth looks like a stranger — different font, different palette, different surface gradients — even though it's the same OrderFlow set.
 
 **Cause:** The manifest's `mode:` pin wasn't honored. Either (a) the first diagram was authored without a manifest and the second one's invocation specified a different mode, or (b) the manifest exists but `mode:` was omitted and the skill defaulted to Pixel mid-set.
 

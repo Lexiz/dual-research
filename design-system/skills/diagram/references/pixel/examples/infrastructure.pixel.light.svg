@@ -7,152 +7,329 @@
     <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
       <feDropShadow dx="0" dy="3" stdDeviation="8" flood-color="#1a1a18" flood-opacity="0.22"></feDropShadow>
     </filter>
+
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#f5f1ea"></stop><stop offset="100%" stop-color="#ece8e0"></stop>
     </linearGradient>
-    <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6573c9"></stop><stop offset="100%" stop-color="#3a4a8a"></stop>
-    </linearGradient>
     <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#252521"></stop><stop offset="100%" stop-color="#1a1a18"></stop>
+      <stop offset="0%" stop-color="#4a4845"></stop><stop offset="100%" stop-color="#2e2c29"></stop>
     </linearGradient>
     <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1e3f52"></stop><stop offset="100%" stop-color="#162e3e"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2a5e40"></stop><stop offset="100%" stop-color="#1e4530"></stop>
-    </linearGradient>
-    <linearGradient id="surfaceStore" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#5e3f1c"></stop><stop offset="100%" stop-color="#3f2810"></stop>
+      <stop offset="0%" stop-color="#2a5a8a"></stop><stop offset="100%" stop-color="#1d3f60"></stop>
     </linearGradient>
     <linearGradient id="surfaceCache" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#6b4d8a"></stop><stop offset="100%" stop-color="#4a3565"></stop>
+      <stop offset="0%" stop-color="#a23a3a"></stop><stop offset="100%" stop-color="#7a2828"></stop>
+    </linearGradient>
+    <linearGradient id="surfaceStore" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5e3f1c"></stop><stop offset="100%" stop-color="#3e2912"></stop>
     </linearGradient>
     <linearGradient id="surfaceSlate" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#4a5568"></stop><stop offset="100%" stop-color="#2d3748"></stop>
+      <stop offset="0%" stop-color="#3b6079"></stop><stop offset="100%" stop-color="#274154"></stop>
     </linearGradient>
+
     <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4f5fb8"></path></marker>
     <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#9e9b95"></path></marker>
-    
+    <marker id="arrowSlate" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#3b6079"></path></marker>
   </defs>
 
   <rect width="1660" height="880" fill="url(#bgGrad)"></rect>
 
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">Partner Vetting · Infrastructure</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#706e67">GCP · us-central1 · single-region · Cloud Run + managed services</text>
+  <text x="830" y="50" text-anchor="middle" font-size="24" font-weight="600" fill="#1a1a18" letter-spacing="-0.3">OrderFlow · Infrastructure</text>
+  <text x="830" y="74" text-anchor="middle" font-size="13" fill="#706e67">Cloud topology · 3 regions · per-region VPC with ALB &#x2192; ECS &#x2192; managed data tier</text>
 
-  <rect x="80" y="120" width="240" height="68" rx="12" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
-  <g transform="translate(108, 156)"><circle cx="0" cy="-6" r="6" fill="#1a1a18"></circle><path d="M-11,12 Q-11,3 0,3 Q11,3 11,12 Z" fill="#1a1a18"></path></g>
-  <text x="146" y="148" font-size="13" font-weight="600" fill="#1a1a18">External users</text>
-  <text x="146" y="166" font-size="10" fill="#4a4845">analysts · partners · admins</text>
-  <text x="146" y="180" font-size="9" font-style="italic" fill="#706e67">via browser or arc-cli</text>
+  <!-- ===================== REGION 1: us-east-1 ===================== -->
+  <g>
+    <rect x="40" y="110" width="510" height="530" rx="14" fill="none" stroke="#9e9b95" stroke-dasharray="8,5" opacity="0.55"></rect>
+    <rect x="58" y="98" width="186" height="24" rx="6" fill="#f5f1ea" stroke="#9e9b95"></rect>
+    <circle cx="74" cy="110" r="3.5" fill="#5aad80"></circle>
+    <text x="86" y="114" font-size="11" font-weight="600" fill="#1a1a18" letter-spacing="0.6">us-east-1 &#xb7; VIRGINIA</text>
+    <text x="540" y="114" text-anchor="end" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.4">PRIMARY</text>
 
-  <rect x="380" y="120" width="1140" height="600" rx="20" fill="none" stroke="#9e9b95" stroke-dasharray="8,5" opacity="0.5"></rect>
-  <text x="400" y="112" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1.6">GCP · GOOGLE CLOUD</text>
+    <rect x="62" y="138" width="466" height="64" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+    <rect x="78" y="154" width="32" height="32" rx="6" fill="url(#surfaceNeutral)"></rect>
+    <path d="M86,176 L94,166 L102,176 M94,166 L94,182" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"></path>
+    <text x="124" y="166" font-size="13" font-weight="600" fill="#1a1a18">Application Load Balancer</text>
+    <text x="124" y="184" font-size="11" fill="#4a4845">orderflow-us-east-1.elb &#xb7; TLS 1.3 &#xb7; ACM cert &#xb7; WAF v2</text>
+    <text x="512" y="166" text-anchor="end" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1">PUBLIC</text>
+    <text x="512" y="184" text-anchor="end" font-size="9" font-style="italic" fill="#9e9b95">a/b/c AZs</text>
 
-  <rect x="420" y="160" width="1060" height="520" rx="16" fill="rgba(79,95,184,0.04)" stroke="#9e9b95" stroke-dasharray="6,5" opacity="0.85"></rect>
-  <text x="440" y="152" font-size="9" font-weight="600" fill="#706e67" letter-spacing="1.6">REGION · US-CENTRAL1</text>
+    <rect x="62" y="216" width="466" height="186" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+    <rect x="62" y="216" width="466" height="32" rx="10" fill="#1a1a18"></rect>
+    <rect x="62" y="240" width="466" height="8" fill="#1a1a18"></rect>
+    <text x="78" y="238" font-size="11" font-weight="600" fill="white" letter-spacing="1">ECS FARGATE CLUSTER &#xb7; orderflow-us-east-1</text>
+    <text x="512" y="238" text-anchor="end" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.8">12 tasks &#xb7; 6 vCPU</text>
 
-  <rect x="460" y="190" width="280" height="100" rx="12" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(494, 240)"><circle cx="0" cy="0" r="14" fill="rgba(255,255,255,0.18)"></circle><line x1="0" y1="-14" x2="0" y2="14" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line><line x1="-14" y1="0" x2="14" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line></g>
-  <text x="528" y="226" font-size="15" font-weight="600" fill="white">Cloud Load Balancer</text>
-  <text x="528" y="244" font-size="11" fill="rgba(255,255,255,0.72)">Global HTTPS LB · mTLS</text>
-  <text x="528" y="270" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">terminates TLS · forwards to backend</text>
-  <circle cx="722" cy="206" r="5" fill="#5aad80" class="anim-pulse"></circle>
+    <rect x="80" y="262" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="98" cy="280" r="6" fill="#4f5fb8"></circle>
+    <text x="114" y="284" font-size="12" font-weight="600" fill="#1a1a18">order-svc</text>
+    <text x="490" y="284" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">4 tasks &#xb7; 1.5 vCPU</text>
 
-  <text x="950" y="180" text-anchor="middle" font-size="9" font-weight="600" fill="#706e67" letter-spacing="1.6">COMPUTE</text>
+    <rect x="80" y="306" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="98" cy="324" r="6" fill="#4f5fb8"></circle>
+    <text x="114" y="328" font-size="12" font-weight="600" fill="#1a1a18">payment-svc</text>
+    <text x="490" y="328" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">4 tasks &#xb7; 1.5 vCPU</text>
 
-  <rect x="780" y="190" width="280" height="100" rx="12" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(814, 240)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line></g>
-  <text x="848" y="226" font-size="15" font-weight="600" fill="white">Vetting API</text>
-  <text x="848" y="244" font-size="11" fill="rgba(255,255,255,0.72)">Cloud Run · min=2 max=20</text>
-  <text x="848" y="270" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">2 vCPU · 1Gi · 120s timeout</text>
+    <rect x="80" y="350" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="98" cy="368" r="6" fill="#4f5fb8"></circle>
+    <text x="114" y="372" font-size="12" font-weight="600" fill="#1a1a18">inventory-svc</text>
+    <text x="490" y="372" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">4 tasks &#xb7; 1.5 vCPU</text>
 
-  <rect x="1100" y="190" width="280" height="100" rx="12" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1134, 240)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
-  <text x="1168" y="226" font-size="15" font-weight="600" fill="white">Document Service</text>
-  <text x="1168" y="244" font-size="11" fill="rgba(255,255,255,0.72)">Cloud Run · min=1 max=10</text>
-  <text x="1168" y="270" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">extract + normalize · pre-emptible</text>
+    <path d="M 295 202 L 295 216" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
 
-  <text x="950" y="370" text-anchor="middle" font-size="9" font-weight="600" fill="#706e67" letter-spacing="1.6">DATA</text>
+    <text x="62" y="430" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.6">DATA TIER</text>
 
-  <rect x="460" y="386" width="240" height="116" rx="12" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(490, 440)"><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-9" width="22" height="18" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse></g>
-  <text x="524" y="424" font-size="15" font-weight="600" fill="white">Cloud SQL Postgres</text>
-  <text x="524" y="442" font-size="11" fill="rgba(255,255,255,0.72)">db-custom-2-7680 · PG15</text>
-  <text x="524" y="466" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">primary + 1 read replica</text>
-  <text x="524" y="484" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">HA · 7d backup retention</text>
+    <rect x="62" y="442" width="146" height="178" rx="10" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(80, 462)">
+      <ellipse cx="14" cy="3" rx="14" ry="4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></ellipse>
+      <path d="M0,3 L0,18 Q0,22 14,22 Q28,22 28,18 L28,3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></path>
+      <path d="M0,10 Q14,14 28,10" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"></path>
+    </g>
+    <text x="80" y="510" font-size="12" font-weight="600" fill="white">RDS Postgres</text>
+    <text x="80" y="528" font-size="10" fill="rgba(255,255,255,0.75)">orders &#xb7; multi-AZ</text>
+    <line x1="78" y1="544" x2="192" y2="544" stroke="rgba(255,255,255,0.18)"></line>
+    <text x="80" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="0.6">PRIMARY</text>
+    <text x="80" y="580" font-size="9" fill="rgba(255,255,255,0.78)">db.r6g.2xl &#xb7; 1 TB gp3</text>
+    <text x="80" y="596" font-size="9" fill="rgba(255,255,255,0.78)">PITR &#xb7; 14-day retention</text>
+    <text x="80" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.55)">&#x2192; replica eu-west-1</text>
 
-  <rect x="720" y="386" width="240" height="116" rx="12" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(750, 440)"><path d="M-11,-3 L-9,10 L9,10 L11,-3 Z" fill="rgba(255,255,255,0.85)"></path><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><path d="M-5,-5 Q0,-13 5,-5" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" fill="none"></path></g>
-  <text x="784" y="424" font-size="15" font-weight="600" fill="white">GCS</text>
-  <text x="784" y="442" font-size="11" fill="rgba(255,255,255,0.72)">Standard · CMEK encrypted</text>
-  <text x="784" y="466" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">/partners/{id}/docs/*</text>
-  <text x="784" y="484" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">retention 7y · cold tier</text>
+    <rect x="222" y="442" width="146" height="178" rx="10" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(240, 462)">
+      <rect x="0" y="0" width="28" height="20" rx="3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></rect>
+      <line x1="4" y1="6" x2="24" y2="6" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+      <line x1="4" y1="11" x2="24" y2="11" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+      <line x1="4" y1="16" x2="24" y2="16" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+    </g>
+    <text x="240" y="510" font-size="12" font-weight="600" fill="white">ElastiCache</text>
+    <text x="240" y="528" font-size="10" fill="rgba(255,255,255,0.78)">Redis &#xb7; session + idem</text>
+    <line x1="238" y1="544" x2="352" y2="544" stroke="rgba(255,255,255,0.20)"></line>
+    <text x="240" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.65)" letter-spacing="0.6">CLUSTER</text>
+    <text x="240" y="580" font-size="9" fill="rgba(255,255,255,0.85)">cache.r7g.large &#xb7; 3 nodes</text>
+    <text x="240" y="596" font-size="9" fill="rgba(255,255,255,0.85)">TTL 24h &#xb7; auth tokens</text>
+    <text x="240" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.65)">in-memory &#xb7; region-local</text>
 
-  <rect x="980" y="386" width="240" height="116" rx="12" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1010, 440)"><ellipse cx="0" cy="-8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-8" width="22" height="16" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-1" width="22" height="3" fill="rgba(26,26,24,0.25)"></rect></g>
-  <text x="1044" y="424" font-size="15" font-weight="600" fill="white">Memorystore Redis</text>
-  <text x="1044" y="442" font-size="11" fill="rgba(255,255,255,0.72)">5GB · session + score cache</text>
-  <text x="1044" y="466" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">ttl 5m · evict LRU</text>
-  <text x="1044" y="484" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">single zone · failover OK</text>
+    <rect x="382" y="442" width="146" height="178" rx="10" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(400, 462)">
+      <path d="M0,4 L14,0 L28,4 L28,16 L14,20 L0,16 Z" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></path>
+      <path d="M0,4 L14,8 L28,4 M14,8 L14,20" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></path>
+    </g>
+    <text x="400" y="510" font-size="12" font-weight="600" fill="white">S3 Bucket</text>
+    <text x="400" y="528" font-size="10" fill="rgba(255,255,255,0.78)">artifacts &#xb7; invoices</text>
+    <line x1="398" y1="544" x2="512" y2="544" stroke="rgba(255,255,255,0.20)"></line>
+    <text x="400" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.65)" letter-spacing="0.6">STANDARD</text>
+    <text x="400" y="580" font-size="9" fill="rgba(255,255,255,0.85)">SSE-KMS &#xb7; versioning on</text>
+    <text x="400" y="596" font-size="9" fill="rgba(255,255,255,0.85)">lifecycle &#x2192; Glacier 90d</text>
+    <text x="400" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.65)">cross-region replica</text>
 
-  <rect x="1240" y="386" width="220" height="116" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1270, 440)"><rect x="-14" y="-9" width="28" height="18" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-14" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><rect x="8" y="-9" width="6" height="18" rx="3" fill="rgba(0,0,0,0.22)"></rect><line x1="-5" y1="-3" x2="5" y2="-3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="0" x2="5" y2="0" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line><line x1="-5" y1="3" x2="5" y2="3" stroke="rgba(255,255,255,0.85)" stroke-width="1.2"></line></g>
-  <text x="1304" y="424" font-size="15" font-weight="600" fill="white">Pub/Sub</text>
-  <text x="1304" y="442" font-size="11" fill="rgba(255,255,255,0.72)">3 topics · DLQ on each</text>
-  <text x="1304" y="466" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">vet.submitted/completed</text>
-  <text x="1304" y="484" font-size="10" font-family="monospace" fill="rgba(255,255,255,0.6)">doc.processed</text>
+    <path d="M 135 402 L 135 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+    <path d="M 295 402 L 295 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+    <path d="M 455 402 L 455 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+  </g>
 
-  <text x="950" y="540" text-anchor="middle" font-size="9" font-weight="600" fill="#706e67" letter-spacing="1.6">AUX</text>
+  <!-- ===================== REGION 2: eu-west-1 ===================== -->
+  <g>
+    <rect x="575" y="110" width="510" height="530" rx="14" fill="none" stroke="#9e9b95" stroke-dasharray="8,5" opacity="0.55"></rect>
+    <rect x="593" y="98" width="186" height="24" rx="6" fill="#f5f1ea" stroke="#9e9b95"></rect>
+    <circle cx="609" cy="110" r="3.5" fill="#5aad80"></circle>
+    <text x="621" y="114" font-size="11" font-weight="600" fill="#1a1a18" letter-spacing="0.6">eu-west-1 &#xb7; IRELAND</text>
+    <text x="1075" y="114" text-anchor="end" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.4">GDPR &#xb7; REPLICA</text>
 
-  <rect x="600" y="556" width="280" height="76" rx="12" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(630, 594)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path><path d="M-4,0 L-1,4 L5,-3" stroke="#1a1a18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></g>
-  <text x="664" y="588" font-size="14" font-weight="600" fill="white">Auth0 (Identity)</text>
-  <text x="664" y="606" font-size="11" fill="rgba(255,255,255,0.72)">tenant: ttc-vetting · RS256</text>
-  <text x="664" y="622" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">external SaaS · single sign-on</text>
+    <rect x="597" y="138" width="466" height="64" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+    <rect x="613" y="154" width="32" height="32" rx="6" fill="url(#surfaceNeutral)"></rect>
+    <path d="M621,176 L629,166 L637,176 M629,166 L629,182" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"></path>
+    <text x="659" y="166" font-size="13" font-weight="600" fill="#1a1a18">Application Load Balancer</text>
+    <text x="659" y="184" font-size="11" fill="#4a4845">orderflow-eu-west-1.elb &#xb7; TLS 1.3 &#xb7; ACM cert &#xb7; WAF v2</text>
+    <text x="1047" y="166" text-anchor="end" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1">PUBLIC</text>
+    <text x="1047" y="184" text-anchor="end" font-size="9" font-style="italic" fill="#9e9b95">a/b/c AZs</text>
 
-  <rect x="920" y="556" width="280" height="76" rx="12" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(950, 594)"><rect x="-10" y="-8" width="20" height="16" rx="2" fill="rgba(255,255,255,0.85)"></rect><circle cx="0" cy="0" r="3" fill="#1a1a18"></circle></g>
-  <text x="984" y="588" font-size="14" font-weight="600" fill="white">Secret Manager</text>
-  <text x="984" y="606" font-size="11" fill="rgba(255,255,255,0.72)">GCP-managed · KMS-wrapped</text>
-  <text x="984" y="622" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">DB creds · API keys · signing keys</text>
+    <rect x="597" y="216" width="466" height="186" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+    <rect x="597" y="216" width="466" height="32" rx="10" fill="#1a1a18"></rect>
+    <rect x="597" y="240" width="466" height="8" fill="#1a1a18"></rect>
+    <text x="613" y="238" font-size="11" font-weight="600" fill="white" letter-spacing="1">ECS FARGATE CLUSTER &#xb7; orderflow-eu-west-1</text>
+    <text x="1047" y="238" text-anchor="end" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.8">9 tasks &#xb7; 4.5 vCPU</text>
 
-  <path d="M 325 156 C 380 156 410 230 455 232" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="384" y="200" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">HTTPS</text>
-  <text x="384" y="216" text-anchor="middle" font-size="9" font-style="italic" fill="#9e9b95">443 · TLS 1.3</text>
+    <rect x="615" y="262" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="633" cy="280" r="6" fill="#4f5fb8"></circle>
+    <text x="649" y="284" font-size="12" font-weight="600" fill="#1a1a18">order-svc</text>
+    <text x="1025" y="284" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">3 tasks &#xb7; 1.5 vCPU</text>
 
-  <path d="M 740 240 L 775 240" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="757" y="232" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">FWD</text>
+    <rect x="615" y="306" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="633" cy="324" r="6" fill="#4f5fb8"></circle>
+    <text x="649" y="328" font-size="12" font-weight="600" fill="#1a1a18">payment-svc</text>
+    <text x="1025" y="328" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">3 tasks &#xb7; 1.5 vCPU</text>
 
-  <path d="M 1060 240 L 1095 240" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-  <text x="1077" y="232" text-anchor="middle" font-size="9" font-weight="600" fill="#706e67" letter-spacing="0.8">gRPC</text>
+    <rect x="615" y="350" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="633" cy="368" r="6" fill="#4f5fb8"></circle>
+    <text x="649" y="372" font-size="12" font-weight="600" fill="#1a1a18">inventory-svc</text>
+    <text x="1025" y="372" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">3 tasks &#xb7; 1.5 vCPU</text>
 
-  <path d="M 848 290 L 580 384" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="688" y="332" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">TCP 5432</text>
-  <text x="688" y="350" text-anchor="middle" font-size="9" font-style="italic" fill="#9e9b95">private VPC peering</text>
+    <path d="M 830 202 L 830 216" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
 
-  <path d="M 920 290 L 840 384" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="908" y="344" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">HTTPS · SigV4</text>
+    <text x="597" y="430" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.6">DATA TIER</text>
 
-  <path d="M 1000 290 L 1080 384" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1064" y="344" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">TCP 6379</text>
+    <rect x="597" y="442" width="146" height="178" rx="10" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(615, 462)">
+      <ellipse cx="14" cy="3" rx="14" ry="4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></ellipse>
+      <path d="M0,3 L0,18 Q0,22 14,22 Q28,22 28,18 L28,3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></path>
+      <path d="M0,10 Q14,14 28,10" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"></path>
+    </g>
+    <text x="615" y="510" font-size="12" font-weight="600" fill="white">RDS Postgres</text>
+    <text x="615" y="528" font-size="10" fill="rgba(255,255,255,0.75)">orders &#xb7; read replica</text>
+    <line x1="613" y1="544" x2="727" y2="544" stroke="rgba(255,255,255,0.18)"></line>
+    <text x="615" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="0.6">REPLICA</text>
+    <text x="615" y="580" font-size="9" fill="rgba(255,255,255,0.78)">db.r6g.xl &#xb7; 1 TB gp3</text>
+    <text x="615" y="596" font-size="9" fill="rgba(255,255,255,0.78)">async &#xb7; &lt; 4 s lag</text>
+    <text x="615" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.55)">EU residency &#xb7; read-only</text>
 
-  <path d="M 1060 270 C 1180 290 1260 340 1280 384" stroke="#4f5fb8" stroke-width="1.8" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1220" y="332" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">PUBLISH</text>
+    <rect x="757" y="442" width="146" height="178" rx="10" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(775, 462)">
+      <rect x="0" y="0" width="28" height="20" rx="3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></rect>
+      <line x1="4" y1="6" x2="24" y2="6" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+      <line x1="4" y1="11" x2="24" y2="11" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+      <line x1="4" y1="16" x2="24" y2="16" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+    </g>
+    <text x="775" y="510" font-size="12" font-weight="600" fill="white">ElastiCache</text>
+    <text x="775" y="528" font-size="10" fill="rgba(255,255,255,0.78)">Redis &#xb7; session + idem</text>
+    <line x1="773" y1="544" x2="887" y2="544" stroke="rgba(255,255,255,0.20)"></line>
+    <text x="775" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.65)" letter-spacing="0.6">CLUSTER</text>
+    <text x="775" y="580" font-size="9" fill="rgba(255,255,255,0.85)">cache.r7g.large &#xb7; 3 nodes</text>
+    <text x="775" y="596" font-size="9" fill="rgba(255,255,255,0.85)">TTL 24h &#xb7; auth tokens</text>
+    <text x="775" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.65)">in-memory &#xb7; region-local</text>
 
-  <path d="M 870 290 C 870 400 700 510 720 555" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-  <text x="804" y="510" text-anchor="middle" font-size="9" font-weight="600" fill="#706e67" letter-spacing="0.8">VERIFY JWT</text>
+    <rect x="917" y="442" width="146" height="178" rx="10" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(935, 462)">
+      <path d="M0,4 L14,0 L28,4 L28,16 L14,20 L0,16 Z" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></path>
+      <path d="M0,4 L14,8 L28,4 M14,8 L14,20" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></path>
+    </g>
+    <text x="935" y="510" font-size="12" font-weight="600" fill="white">S3 Bucket</text>
+    <text x="935" y="528" font-size="10" fill="rgba(255,255,255,0.78)">artifacts &#xb7; invoices</text>
+    <line x1="933" y1="544" x2="1047" y2="544" stroke="rgba(255,255,255,0.20)"></line>
+    <text x="935" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.65)" letter-spacing="0.6">STANDARD</text>
+    <text x="935" y="580" font-size="9" fill="rgba(255,255,255,0.85)">SSE-KMS &#xb7; versioning on</text>
+    <text x="935" y="596" font-size="9" fill="rgba(255,255,255,0.85)">EU data residency</text>
+    <text x="935" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.65)">CRR target bucket</text>
 
-  <path d="M 920 290 C 1040 400 1040 510 1040 555" stroke="#9e9b95" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-  <text x="1024" y="510" text-anchor="middle" font-size="9" font-weight="600" fill="#706e67" letter-spacing="0.8">FETCH CREDS</text>
+    <path d="M 670 402 L 670 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+    <path d="M 830 402 L 830 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+    <path d="M 990 402 L 990 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+  </g>
 
-  <path d="M 1168 290 C 1100 320 920 364 880 384" stroke="#4f5fb8" stroke-width="1.6" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1010" y="354" text-anchor="middle" font-size="10" font-weight="600" fill="#4f5fb8" letter-spacing="1">READ DOCS</text>
+  <!-- ===================== REGION 3: ap-south-1 ===================== -->
+  <g>
+    <rect x="1110" y="110" width="510" height="530" rx="14" fill="none" stroke="#9e9b95" stroke-dasharray="8,5" opacity="0.55"></rect>
+    <rect x="1128" y="98" width="200" height="24" rx="6" fill="#f5f1ea" stroke="#9e9b95"></rect>
+    <circle cx="1144" cy="110" r="3.5" fill="#5aad80"></circle>
+    <text x="1156" y="114" font-size="11" font-weight="600" fill="#1a1a18" letter-spacing="0.6">ap-south-1 &#xb7; MUMBAI</text>
+    <text x="1610" y="114" text-anchor="end" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.4">APAC</text>
 
-  <line x1="60" y1="744" x2="1600" y2="744" stroke="#ddd5c6"></line>
-  <text x="60" y="772" font-size="11" font-weight="600" fill="#706e67" letter-spacing="1.6">INFRASTRUCTURE NOTES</text>
-  <text x="60" y="796" font-size="12" fill="#4a4845">Solid indigo arrows are runtime traffic with protocol labels · grey-dashed arrows are auxiliary calls (auth verify, secret fetch).</text>
-  <text x="60" y="816" font-size="12" fill="#4a4845">Postgres has a hot read replica for non-write paths · GCS is the cold archive · Redis is the only ephemeral component.</text>
-  <text x="60" y="846" font-size="11" font-style="italic" fill="#706e67">Read top-to-bottom · public ingress at the top, compute in the middle, persistence at the bottom · Auth0 is external SaaS but inside the trust boundary by policy.</text>
+    <rect x="1132" y="138" width="466" height="64" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+    <rect x="1148" y="154" width="32" height="32" rx="6" fill="url(#surfaceNeutral)"></rect>
+    <path d="M1156,176 L1164,166 L1172,176 M1164,166 L1164,182" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"></path>
+    <text x="1194" y="166" font-size="13" font-weight="600" fill="#1a1a18">Application Load Balancer</text>
+    <text x="1194" y="184" font-size="11" fill="#4a4845">orderflow-ap-south-1.elb &#xb7; TLS 1.3 &#xb7; ACM cert &#xb7; WAF v2</text>
+    <text x="1582" y="166" text-anchor="end" font-size="10" font-weight="600" fill="#706e67" letter-spacing="1">PUBLIC</text>
+    <text x="1582" y="184" text-anchor="end" font-size="9" font-style="italic" fill="#9e9b95">a/b/c AZs</text>
+
+    <rect x="1132" y="216" width="466" height="186" rx="10" fill="white" stroke="#e8e2d8" filter="url(#cardShadow)"></rect>
+    <rect x="1132" y="216" width="466" height="32" rx="10" fill="#1a1a18"></rect>
+    <rect x="1132" y="240" width="466" height="8" fill="#1a1a18"></rect>
+    <text x="1148" y="238" font-size="11" font-weight="600" fill="white" letter-spacing="1">ECS FARGATE CLUSTER &#xb7; orderflow-ap-south-1</text>
+    <text x="1582" y="238" text-anchor="end" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.8">6 tasks &#xb7; 3 vCPU</text>
+
+    <rect x="1150" y="262" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="1168" cy="280" r="6" fill="#4f5fb8"></circle>
+    <text x="1184" y="284" font-size="12" font-weight="600" fill="#1a1a18">order-svc</text>
+    <text x="1560" y="284" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">2 tasks &#xb7; 1.5 vCPU</text>
+
+    <rect x="1150" y="306" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="1168" cy="324" r="6" fill="#4f5fb8"></circle>
+    <text x="1184" y="328" font-size="12" font-weight="600" fill="#1a1a18">payment-svc</text>
+    <text x="1560" y="328" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">2 tasks &#xb7; 1.5 vCPU</text>
+
+    <rect x="1150" y="350" width="430" height="36" rx="6" fill="#f5f1ea" stroke="#ddd5c6"></rect>
+    <circle cx="1168" cy="368" r="6" fill="#4f5fb8"></circle>
+    <text x="1184" y="372" font-size="12" font-weight="600" fill="#1a1a18">inventory-svc</text>
+    <text x="1560" y="372" text-anchor="end" font-size="10" font-style="italic" fill="#706e67">2 tasks &#xb7; 1.5 vCPU</text>
+
+    <path d="M 1365 202 L 1365 216" stroke="#4f5fb8" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+
+    <text x="1132" y="430" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.6">DATA TIER</text>
+
+    <rect x="1132" y="442" width="146" height="178" rx="10" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(1150, 462)">
+      <ellipse cx="14" cy="3" rx="14" ry="4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></ellipse>
+      <path d="M0,3 L0,18 Q0,22 14,22 Q28,22 28,18 L28,3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></path>
+      <path d="M0,10 Q14,14 28,10" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"></path>
+    </g>
+    <text x="1150" y="510" font-size="12" font-weight="600" fill="white">RDS Postgres</text>
+    <text x="1150" y="528" font-size="10" fill="rgba(255,255,255,0.75)">orders &#xb7; regional</text>
+    <line x1="1148" y1="544" x2="1262" y2="544" stroke="rgba(255,255,255,0.18)"></line>
+    <text x="1150" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.55)" letter-spacing="0.6">REGIONAL</text>
+    <text x="1150" y="580" font-size="9" fill="rgba(255,255,255,0.78)">db.r6g.large &#xb7; 500 GB</text>
+    <text x="1150" y="596" font-size="9" fill="rgba(255,255,255,0.78)">PITR &#xb7; 7-day retention</text>
+    <text x="1150" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.55)">single-region &#xb7; APAC only</text>
+
+    <rect x="1292" y="442" width="146" height="178" rx="10" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(1310, 462)">
+      <rect x="0" y="0" width="28" height="20" rx="3" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></rect>
+      <line x1="4" y1="6" x2="24" y2="6" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+      <line x1="4" y1="11" x2="24" y2="11" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+      <line x1="4" y1="16" x2="24" y2="16" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></line>
+    </g>
+    <text x="1310" y="510" font-size="12" font-weight="600" fill="white">ElastiCache</text>
+    <text x="1310" y="528" font-size="10" fill="rgba(255,255,255,0.78)">Redis &#xb7; session + idem</text>
+    <line x1="1308" y1="544" x2="1422" y2="544" stroke="rgba(255,255,255,0.20)"></line>
+    <text x="1310" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.65)" letter-spacing="0.6">CLUSTER</text>
+    <text x="1310" y="580" font-size="9" fill="rgba(255,255,255,0.85)">cache.r7g.large &#xb7; 2 nodes</text>
+    <text x="1310" y="596" font-size="9" fill="rgba(255,255,255,0.85)">TTL 24h &#xb7; auth tokens</text>
+    <text x="1310" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.65)">in-memory &#xb7; region-local</text>
+
+    <rect x="1452" y="442" width="146" height="178" rx="10" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(1470, 462)">
+      <path d="M0,4 L14,0 L28,4 L28,16 L14,20 L0,16 Z" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.6"></path>
+      <path d="M0,4 L14,8 L28,4 M14,8 L14,20" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.4"></path>
+    </g>
+    <text x="1470" y="510" font-size="12" font-weight="600" fill="white">S3 Bucket</text>
+    <text x="1470" y="528" font-size="10" fill="rgba(255,255,255,0.78)">artifacts &#xb7; invoices</text>
+    <line x1="1468" y1="544" x2="1582" y2="544" stroke="rgba(255,255,255,0.20)"></line>
+    <text x="1470" y="562" font-size="10" font-weight="600" fill="rgba(255,255,255,0.65)" letter-spacing="0.6">STANDARD</text>
+    <text x="1470" y="580" font-size="9" fill="rgba(255,255,255,0.85)">SSE-KMS &#xb7; versioning on</text>
+    <text x="1470" y="596" font-size="9" fill="rgba(255,255,255,0.85)">lifecycle &#x2192; Glacier 90d</text>
+    <text x="1470" y="612" font-size="9" font-style="italic" fill="rgba(255,255,255,0.65)">regional only</text>
+
+    <path d="M 1205 402 L 1205 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+    <path d="M 1365 402 L 1365 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+    <path d="M 1525 402 L 1525 442" stroke="#4f5fb8" stroke-width="1.5" fill="none" marker-end="url(#arrowAccent)"></path>
+  </g>
+
+  <!-- ===================== CROSS-REGION RDS REPLICATION ===================== -->
+  <path d="M 208 528 C 360 502, 440 502, 597 528" stroke="#9e9b95" stroke-width="1.6" stroke-dasharray="6,4" fill="none" marker-end="url(#arrowGrey)"></path>
+  <rect x="320" y="484" width="166" height="22" rx="11" fill="#f5f1ea" stroke="#9e9b95"></rect>
+  <text x="403" y="499" text-anchor="middle" font-size="10" font-weight="600" fill="#4a4845" letter-spacing="0.5">async &#xb7; RDS CRR &#xb7; &lt; 4 s</text>
+
+  <!-- ===================== SNOWFLAKE GLOBAL ===================== -->
+  <g>
+    <text x="830" y="688" text-anchor="middle" font-size="10" font-weight="600" fill="#9e9b95" letter-spacing="1.8">GLOBAL ANALYTICS</text>
+    <rect x="540" y="702" width="580" height="100" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"></rect>
+    <g transform="translate(572, 736)">
+      <path d="M0,0 L12,-10 L24,0 L36,-10 L48,0 M0,12 L12,2 L24,12 L36,2 L48,12" stroke="rgba(255,255,255,0.85)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+    </g>
+    <text x="638" y="736" font-size="16" font-weight="600" fill="white">Snowflake &#xb7; global warehouse</text>
+    <text x="638" y="756" font-size="11" fill="rgba(255,255,255,0.78)">analytics + BI &#xb7; merged from all 3 regions via Snowpipe</text>
+    <text x="638" y="776" font-size="10" font-style="italic" fill="rgba(255,255,255,0.62)">us-east-2 host &#xb7; 1 hr ingest cadence &#xb7; queryable by ~24 analysts</text>
+    <rect x="980" y="722" width="124" height="22" rx="11" fill="rgba(0,0,0,0.32)"></rect>
+    <text x="1042" y="737" text-anchor="middle" font-size="10" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="0.6">SNOWPIPE &#xb7; MERGE</text>
+    <rect x="980" y="750" width="124" height="22" rx="11" fill="rgba(0,0,0,0.32)"></rect>
+    <text x="1042" y="765" text-anchor="middle" font-size="10" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="0.6">~$8M GMV / day</text>
+  </g>
+
+  <path d="M 135 620 C 200 680, 380 700, 540 740" stroke="#3b6079" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowSlate)"></path>
+  <path d="M 830 620 L 830 702" stroke="#3b6079" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowSlate)"></path>
+  <path d="M 1525 620 C 1460 680, 1280 700, 1120 740" stroke="#3b6079" stroke-width="1.4" stroke-dasharray="5,4" fill="none" marker-end="url(#arrowSlate)"></path>
+  <text x="305" y="678" font-size="9" font-style="italic" fill="#3b6079">snowpipe &#xb7; 1 hr</text>
+  <text x="1355" y="678" font-size="9" font-style="italic" fill="#3b6079">snowpipe &#xb7; 1 hr</text>
+
+  <line x1="60" y1="822" x2="1600" y2="822" stroke="#ddd5c6"></line>
+  <text x="60" y="846" font-size="12" fill="#4a4845">Three independent VPCs &#xb7; ALB &#x2192; ECS Fargate &#x2192; managed data tier &#xb7; us-east-1 is primary, eu-west-1 carries the read replica + GDPR-resident copy.</text>
+  <text x="60" y="866" font-size="11" font-style="italic" fill="#706e67">Solid indigo = intra-region traffic &#xb7; grey-dashed = cross-region async replication &#xb7; slate-dashed = analytics fan-out to Snowflake.</text>
+  <text x="1600" y="866" text-anchor="end" font-size="11" fill="#9e9b95" font-style="italic">OrderFlow &#xb7; infrastructure &#xb7; diagram skill v2.0.1 &#xb7; 2026-05</text>
 </svg>

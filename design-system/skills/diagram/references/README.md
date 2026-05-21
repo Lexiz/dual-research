@@ -177,7 +177,7 @@ A visual contract per template — five fields: components used, icons used, lay
 The `freeform` template is the catch-all — when no other template fits, decompose the request into nouns → cards, verbs → arrows, groupings → boundaries, ordering → stages or lanes.
 
 ### D6 · Worked canonical examples (`<mode>/examples.html`)
-**Eighteen** end-to-end SVGs per mode — nine templates × two themes — of the same proposal ("Partner Vetting") built only from that mode's system:
+**Eighteen** end-to-end SVGs per mode — nine templates × two themes — of the same proposal ("OrderFlow") built only from that mode's system:
 
 - `<mode>/examples/<name>.<mode>.light.svg` × 9
 - `<mode>/examples/<name>.<mode>.dark.svg`  × 9
@@ -193,7 +193,7 @@ A small YAML file authored on the first diagram of a proposal that pins:
 - animations used (running tally vs the 3-class cap)
 - third-party long tail (monogram + tile color per integration)
 
-Every later diagram in the set reads this manifest before generating. The example for the Partner Vetting set is on `manifest.html` §07.2.
+Every later diagram in the set reads this manifest before generating. The example for the OrderFlow set is on `manifest.html` §07.2.
 
 ---
 

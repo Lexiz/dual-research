@@ -42,16 +42,16 @@ Grouping (optional):
 
 ### Worked example
 
-> **User input:** "Our partner vetting platform is used by carriers and vendors who submit profile documents, and by Trimble Tenant Admins who configure rulesets. It syncs with Salesforce for CRM data and sends notifications via Slack."
+> **User input:** "Our order management platform is used by carriers and vendors who submit profile documents, and by Trimble Tenant Admins who configure rulesets. It syncs with Salesforce for CRM data and sends notifications via Slack."
 
 **Normalized canonical spec:**
 
 ```
-Title: Partner Vetting — System Context
-Subtitle: External actors and integrations around the vetting platform
+Title: OrderFlow — System Context
+Subtitle: External actors and integrations around the OrderFlow platform
 
 System (hub):
-  Name: Partner Vetting Platform
+  Name: OrderFlow Platform
   Variant: main
   Capabilities:
     - Profile + document submission

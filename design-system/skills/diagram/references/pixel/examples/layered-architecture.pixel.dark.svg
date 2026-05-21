@@ -1,194 +1,199 @@
 <?xml version="1.0"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 820" font-family="Inter, system-ui, -apple-system, sans-serif">
-  
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 880" font-family="Inter, system-ui, -apple-system, sans-serif">
   <defs>
     <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"></feDropShadow>
+      <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#ffffff" flood-opacity="0.08"/>
     </filter>
     <filter id="cardShadowDark" x="-4%" y="-4%" width="108%" height="116%">
-      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"></feDropShadow>
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000000" flood-opacity="0.55"/>
     </filter>
 
-    
     <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1a1a1f"></stop>
-      <stop offset="100%" stop-color="#14141a"></stop>
+      <stop offset="0%" stop-color="#1a1a1f"/><stop offset="100%" stop-color="#14141a"/>
     </linearGradient>
     <linearGradient id="surfacePrimary" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7785d4"></stop><stop offset="100%" stop-color="#4d5db0"></stop>
+      <stop offset="0%" stop-color="#7785d4"/><stop offset="100%" stop-color="#4d5db0"/>
     </linearGradient>
     <linearGradient id="surfaceNeutral" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3a3a40"></stop><stop offset="100%" stop-color="#28282d"></stop>
+      <stop offset="0%" stop-color="#3a3a40"/><stop offset="100%" stop-color="#28282d"/>
     </linearGradient>
     <linearGradient id="surfaceSql" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2a5e7a"></stop><stop offset="100%" stop-color="#1c4a64"></stop>
+      <stop offset="0%" stop-color="#2a5e7a"/><stop offset="100%" stop-color="#1c4a64"/>
     </linearGradient>
     <linearGradient id="surfaceSecure" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3d8058"></stop><stop offset="100%" stop-color="#2a6042"></stop>
+      <stop offset="0%" stop-color="#3d8058"/><stop offset="100%" stop-color="#2a6042"/>
     </linearGradient>
     <linearGradient id="surfaceStore" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#825a30"></stop><stop offset="100%" stop-color="#5c3c1a"></stop>
+      <stop offset="0%" stop-color="#825a30"/><stop offset="100%" stop-color="#5c3c1a"/>
     </linearGradient>
     <linearGradient id="surfaceCache" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#8666a8"></stop><stop offset="100%" stop-color="#5d4577"></stop>
+      <stop offset="0%" stop-color="#8666a8"/><stop offset="100%" stop-color="#5d4577"/>
+    </linearGradient>
+    <linearGradient id="surfaceSlate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#566876"/><stop offset="100%" stop-color="#384650"/>
     </linearGradient>
 
-    
-    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"></path></marker>
-    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7785d4"></path></marker>
-    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"></path></marker>
-
-    
-    
+    <marker id="arrowAccent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7785d4"/></marker>
+    <marker id="arrowAccentSm" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#7785d4"/></marker>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a7873"/></marker>
   </defs>
 
-  <rect width="1660" height="820" fill="url(#bgGrad)"></rect>
+  <rect width="1660" height="880" fill="url(#bgGrad)"/>
 
-  
-  <text x="830" y="56" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">Partner Vetting · Layered Architecture</text>
-  <text x="830" y="80" text-anchor="middle" font-size="13" fill="#9a988f">Four layers from surfaces through to persistence · v1.0</text>
+  <!-- title -->
+  <text x="830" y="48" text-anchor="middle" font-size="24" font-weight="600" fill="#ebebe5" letter-spacing="-0.3">OrderFlow · Layered Architecture</text>
+  <text x="830" y="72" text-anchor="middle" font-size="13" fill="#9a988f">Four layers from shopper surfaces through to persistence · multi-region · ~120k orders/day</text>
 
-  
-  <text x="830" y="130" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">SURFACES</text>
+  <!-- ================= LAYER 1 · SURFACES ================= -->
+  <text x="830" y="116" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">SURFACES</text>
 
-  
-  <rect x="370" y="146" width="280" height="92" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(390, 184)"><rect x="-13" y="-10" width="26" height="20" rx="2.5" fill="#ebebe5"></rect><rect x="-13" y="-10" width="26" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"></rect><circle cx="-10" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><circle cx="-7" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><circle cx="-4" cy="-7" r="0.9" fill="rgba(255,255,255,0.4)"></circle><rect x="-9" y="-1" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect><rect x="-9" y="3" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"></rect></g>
-  <text x="430" y="180" font-size="14" font-weight="600" fill="#ebebe5">Vetting Dashboard</text>
-  <text x="430" y="198" font-size="11" fill="#c4c2bc">React SPA · TypeScript</text>
-  <text x="430" y="222" font-size="10" font-style="italic" fill="#9a988f">embedded into ARC via iframe</text>
+  <rect x="270" y="134" width="320" height="100" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <g transform="translate(294, 184)"><rect x="-14" y="-12" width="28" height="22" rx="2.5" fill="#ebebe5"/><rect x="-14" y="-12" width="28" height="6" rx="2.5" fill="rgba(0,0,0,0.35)"/><circle cx="-10" cy="-9" r="0.9" fill="rgba(255,255,255,0.4)"/><circle cx="-7" cy="-9" r="0.9" fill="rgba(255,255,255,0.4)"/><circle cx="-4" cy="-9" r="0.9" fill="rgba(255,255,255,0.4)"/><rect x="-10" y="-2" width="20" height="2" rx="1" fill="rgba(255,255,255,0.45)"/><rect x="-10" y="2" width="14" height="2" rx="1" fill="rgba(255,255,255,0.45)"/></g>
+  <text x="332" y="172" font-size="15" font-weight="600" fill="#ebebe5">Web app</text>
+  <text x="332" y="192" font-size="11" fill="#c4c2bc">Next.js · React · TypeScript</text>
+  <text x="332" y="216" font-size="10" font-style="italic" fill="#9a988f">~2.4M MAU · public storefront</text>
 
-  
-  <rect x="690" y="146" width="280" height="92" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(710, 184)"><rect x="-7" y="-13" width="14" height="26" rx="3" fill="#ebebe5"></rect><rect x="-5" y="-10" width="10" height="17" rx="1" fill="rgba(255,255,255,0.18)"></rect><circle cx="0" cy="10" r="1.4" fill="rgba(255,255,255,0.5)"></circle></g>
-  <text x="730" y="180" font-size="14" font-weight="600" fill="#ebebe5">Mobile companion</text>
-  <text x="730" y="198" font-size="11" fill="#c4c2bc">React Native · approve flows</text>
-  <text x="730" y="222" font-size="10" font-style="italic" fill="#9a988f">read-only ops dashboard</text>
+  <rect x="670" y="134" width="320" height="100" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <g transform="translate(694, 184)"><rect x="-8" y="-14" width="16" height="28" rx="3" fill="#ebebe5"/><rect x="-6" y="-11" width="12" height="19" rx="1" fill="rgba(255,255,255,0.18)"/><circle cx="0" cy="11" r="1.5" fill="rgba(255,255,255,0.5)"/></g>
+  <text x="732" y="172" font-size="15" font-weight="600" fill="#ebebe5">iOS app</text>
+  <text x="732" y="192" font-size="11" fill="#c4c2bc">Swift · native · App Store</text>
+  <text x="732" y="216" font-size="10" font-style="italic" fill="#9a988f">tracks orders · push notifications</text>
 
-  
-  <rect x="1010" y="146" width="280" height="92" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"></rect>
-  <g transform="translate(1030, 184)"><rect x="-12" y="-10" width="24" height="20" rx="2" fill="#ebebe5"></rect><path d="M-7,-3 L-3,0 L-7,3" stroke="rgba(255,255,255,0.9)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><line x1="-2" y1="3" x2="6" y2="3" stroke="rgba(255,255,255,0.65)" stroke-width="1.4" stroke-linecap="round"></line></g>
-  <text x="1050" y="180" font-size="14" font-weight="600" fill="#ebebe5">arc-cli</text>
-  <text x="1050" y="198" font-size="11" fill="#c4c2bc">batch ops · admins only</text>
-  <text x="1050" y="222" font-size="10" font-style="italic" fill="#9a988f">authenticated via session token</text>
+  <rect x="1070" y="134" width="320" height="100" rx="12" fill="#252531" stroke="#2e2e3a" filter="url(#cardShadow)"/>
+  <g transform="translate(1094, 184)"><rect x="-13" y="-11" width="26" height="22" rx="2" fill="#ebebe5"/><path d="M-7,-3 L-3,0 L-7,3" stroke="rgba(0,0,0,0.7)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="-2" y1="3" x2="7" y2="3" stroke="rgba(0,0,0,0.5)" stroke-width="1.4" stroke-linecap="round"/></g>
+  <text x="1132" y="172" font-size="15" font-weight="600" fill="#ebebe5">Partner API portal</text>
+  <text x="1132" y="192" font-size="11" fill="#c4c2bc">B2B integrations · OAuth2 clients</text>
+  <text x="1132" y="216" font-size="10" font-style="italic" fill="#9a988f">developer docs · key management</text>
 
-  
-  <text x="830" y="298" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">API LAYER</text>
+  <!-- ================= LAYER 2 · API GATEWAY ================= -->
+  <text x="830" y="288" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">API GATEWAY</text>
 
-  <rect x="590" y="314" width="480" height="92" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  
-  <g transform="translate(620, 352)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"></path><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"></line></g>
-  <text x="654" y="348" font-size="16" font-weight="600" fill="white">Vetting API</text>
-  <text x="654" y="366" font-size="11" fill="rgba(255,255,255,0.7)">Cloud Run · Express + ts-rest</text>
-  <line x1="610" y1="378" x2="1050" y2="378" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="610" y="396" font-size="11" fill="rgba(255,255,255,0.92)">Single ingress · session-scoped · request/response is a typed contract</text>
-  
-  <circle cx="1052" cy="332" r="5" fill="#5aad80" class="anim-pulse"></circle>
+  <rect x="350" y="306" width="440" height="100" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(380, 356)"><path d="M-12,8 L-12,-2 Q-12,-10 0,-12 Q12,-10 12,-2 L12,8 Z" fill="rgba(255,255,255,0.18)"/><line x1="0" y1="-8" x2="0" y2="8" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/><line x1="-12" y1="0" x2="12" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/></g>
+  <text x="414" y="344" font-size="16" font-weight="600" fill="white">Order API</text>
+  <text x="414" y="362" font-size="11" fill="rgba(255,255,255,0.72)">REST gateway · public ingress · ALB-fronted</text>
+  <line x1="370" y1="376" x2="770" y2="376" stroke="rgba(255,255,255,0.20)"/>
+  <text x="370" y="394" font-size="11" fill="rgba(255,255,255,0.92)">schema validation · idempotency-key dedup · rate-limit</text>
+  <circle cx="772" cy="324" r="5" fill="#5aad80"/>
 
-  
-  <text x="830" y="466" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">SERVICE LAYER</text>
+  <rect x="870" y="306" width="440" height="100" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(900, 356)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.92)"/><path d="M-4,0 L-1,4 L5,-3" stroke="#1a2818" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <text x="934" y="344" font-size="16" font-weight="600" fill="white">Auth Gateway</text>
+  <text x="934" y="362" font-size="11" fill="rgba(255,255,255,0.78)">OIDC SSO via Auth0 · JWT 30m · 5 roles</text>
+  <line x1="890" y1="376" x2="1290" y2="376" stroke="rgba(255,255,255,0.20)"/>
+  <text x="890" y="394" font-size="11" fill="rgba(255,255,255,0.92)">shopper · warehouse · finance · sre · support</text>
 
-  
-  <rect x="200" y="482" width="320" height="120" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(230, 524)"><rect x="-10" y="-8" width="20" height="16" rx="4" fill="rgba(255,255,255,0.18)"></rect><rect x="-2" y="-12" width="4" height="4" rx="1" fill="rgba(255,255,255,0.18)"></rect><line x1="0" y1="-12" x2="0" y2="-8" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"></line><circle cx="-4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle><circle cx="4" cy="-1" r="2" fill="rgba(255,255,255,0.95)"></circle><path d="M-3,4 L3,4" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" stroke-linecap="round"></path></g>
-  <text x="264" y="520" font-size="16" font-weight="600" fill="white">Vetting Agent</text>
-  <text x="264" y="538" font-size="11" fill="rgba(255,255,255,0.7)">4-phase orchestrator · Sonnet</text>
-  <line x1="220" y1="552" x2="500" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="220" y="570" font-size="11" fill="rgba(255,255,255,0.92)">brief → research → score → emit</text>
-  <text x="220" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">repair turn on critique fail</text>
+  <!-- ================= LAYER 3 · SERVICES ================= -->
+  <text x="830" y="458" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">SERVICES</text>
 
-  
-  <rect x="560" y="482" width="280" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(590, 524)"><rect x="-12" y="-11" width="24" height="22" rx="3" fill="rgba(255,255,255,0.18)"></rect><rect x="-7" y="-6" width="14" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="-1" width="9" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect><rect x="-7" y="4" width="12" height="2" rx="1" fill="rgba(255,255,255,0.85)"></rect></g>
-  <text x="624" y="520" font-size="16" font-weight="600" fill="white">Document Service</text>
-  <text x="624" y="538" font-size="11" fill="rgba(255,255,255,0.7)">Cloud Run · ingest + extract</text>
-  <line x1="580" y1="552" x2="820" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="580" y="570" font-size="11" fill="rgba(255,255,255,0.92)">PDF · DOCX · web archive</text>
-  <text x="580" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">deduped on sha256 of bytes</text>
+  <rect x="110" y="476" width="256" height="124" rx="14" fill="url(#surfacePrimary)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(136, 524)"><rect x="-11" y="-10" width="22" height="20" rx="3" fill="rgba(255,255,255,0.18)"/><line x1="-7" y1="-5" x2="7" y2="-5" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-linecap="round"/><line x1="-7" y1="0" x2="3" y2="0" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-linecap="round"/><line x1="-7" y1="5" x2="5" y2="5" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-linecap="round"/></g>
+  <text x="166" y="512" font-size="15" font-weight="600" fill="white">Order Service</text>
+  <text x="166" y="530" font-size="11" fill="rgba(255,255,255,0.78)">lifecycle orchestrator</text>
+  <line x1="126" y1="544" x2="350" y2="544" stroke="rgba(255,255,255,0.20)"/>
+  <text x="126" y="562" font-size="11" fill="rgba(255,255,255,0.92)">creates · validates · publishes</text>
+  <text x="126" y="580" font-size="10" font-style="italic" fill="rgba(255,255,255,0.65)">emits order.* events to Kinesis</text>
 
-  
-  <rect x="880" y="482" width="280" height="120" rx="14" fill="url(#surfaceSecure)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(910, 524)"><path d="M0,-12 L11,-7 L11,3 Q11,10 0,13 Q-11,10 -11,3 L-11,-7 Z" fill="rgba(255,255,255,0.85)"></path><path d="M-4,0 L-1,4 L5,-3" stroke="#ebebe5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></g>
-  <text x="944" y="520" font-size="16" font-weight="600" fill="white">Auth Service</text>
-  <text x="944" y="538" font-size="11" fill="rgba(255,255,255,0.7)">Auth0 · RS256 · 4 roles</text>
-  <line x1="900" y1="552" x2="1140" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="900" y="570" font-size="11" fill="rgba(255,255,255,0.92)">analyst · partner · admin · arc</text>
-  <text x="900" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">JWT 30m · refresh on the API</text>
+  <rect x="406" y="476" width="256" height="124" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(432, 524)"><rect x="-11" y="-11" width="22" height="22" rx="3" fill="rgba(255,255,255,0.18)"/><line x1="-11" y1="-3" x2="11" y2="-3" stroke="rgba(255,255,255,0.9)" stroke-width="1.3"/><line x1="0" y1="-11" x2="0" y2="11" stroke="rgba(255,255,255,0.9)" stroke-width="1.3"/></g>
+  <text x="462" y="512" font-size="15" font-weight="600" fill="white">Inventory Service</text>
+  <text x="462" y="530" font-size="11" fill="rgba(255,255,255,0.78)">reservations &amp; stock counts</text>
+  <line x1="422" y1="544" x2="646" y2="544" stroke="rgba(255,255,255,0.20)"/>
+  <text x="422" y="562" font-size="11" fill="rgba(255,255,255,0.92)">holds · decrements on paid</text>
+  <text x="422" y="580" font-size="10" font-style="italic" fill="rgba(255,255,255,0.65)">SKU-level locks · 15-min TTL</text>
 
-  
-  <rect x="1200" y="482" width="280" height="120" rx="14" fill="url(#surfaceNeutral)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1230, 524)"><circle cx="0" cy="-8" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="-9" cy="2" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="9" cy="2" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="-4" cy="10" r="3.5" fill="rgba(255,255,255,0.85)"></circle><circle cx="4" cy="10" r="3.5" fill="rgba(255,255,255,0.85)"></circle><line x1="0" y1="-7" x2="-7" y2="1" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="0" y1="-7" x2="7" y2="1" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="-7" y1="3" x2="-3" y2="9" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="7" y1="3" x2="3" y2="9" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line><line x1="-3" y1="10" x2="3" y2="10" stroke="rgba(255,255,255,0.7)" stroke-width="1.4"></line></g>
-  <text x="1264" y="520" font-size="16" font-weight="600" fill="white">Scoring Engine</text>
-  <text x="1264" y="538" font-size="11" fill="rgba(255,255,255,0.7)">deterministic · 12 rules</text>
-  <line x1="1220" y1="552" x2="1460" y2="552" stroke="rgba(255,255,255,0.18)"></line>
-  <text x="1220" y="570" font-size="11" fill="rgba(255,255,255,0.92)">weighted ruleset · YAML configs</text>
-  <text x="1220" y="586" font-size="10" font-style="italic" fill="rgba(255,255,255,0.55)">tx-replay any score in 1.2s</text>
+  <rect x="702" y="476" width="256" height="124" rx="14" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(728, 524)"><rect x="-12" y="-8" width="24" height="16" rx="2" fill="rgba(255,255,255,0.85)"/><line x1="-12" y1="-3" x2="12" y2="-3" stroke="#1c4a64" stroke-width="2"/><rect x="-10" y="3" width="4" height="3" fill="#1c4a64"/></g>
+  <text x="758" y="512" font-size="15" font-weight="600" fill="white">Payment Service</text>
+  <text x="758" y="530" font-size="11" fill="rgba(255,255,255,0.78)">auth · capture · refund</text>
+  <line x1="718" y1="544" x2="942" y2="544" stroke="rgba(255,255,255,0.20)"/>
+  <text x="718" y="562" font-size="11" fill="rgba(255,255,255,0.92)">Stripe · PayPal · 3DS2</text>
+  <text x="718" y="580" font-size="10" font-style="italic" fill="rgba(255,255,255,0.65)">idempotent on order_id</text>
 
-  
-  <text x="830" y="660" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">DATA LAYER</text>
+  <rect x="998" y="476" width="256" height="124" rx="14" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(1024, 524)"><rect x="-12" y="-8" width="24" height="16" rx="2" fill="rgba(255,255,255,0.85)"/><path d="M-12,-8 L0,2 L12,-8" fill="none" stroke="#5c3c1a" stroke-width="1.6"/></g>
+  <text x="1054" y="512" font-size="15" font-weight="600" fill="white">Notification Svc</text>
+  <text x="1054" y="530" font-size="11" fill="rgba(255,255,255,0.78)">email · SMS · push</text>
+  <line x1="1014" y1="544" x2="1238" y2="544" stroke="rgba(255,255,255,0.20)"/>
+  <text x="1014" y="562" font-size="11" fill="rgba(255,255,255,0.92)">SendGrid · Twilio · APNs</text>
+  <text x="1014" y="580" font-size="10" font-style="italic" fill="rgba(255,255,255,0.65)">async · receipts &amp; shipping</text>
 
-  
-  <rect x="370" y="676" width="280" height="92" rx="12" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(400, 722)"><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-9" width="22" height="18" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse></g>
-  <text x="430" y="710" font-size="15" font-weight="600" fill="white">Postgres</text>
-  <text x="430" y="728" font-size="11" fill="rgba(255,255,255,0.7)">Cloud SQL · primary store</text>
-  <text x="430" y="748" font-size="10" font-family="monospace" fill="#c5cdf0">spec_runs · audit_events</text>
+  <rect x="1294" y="476" width="256" height="124" rx="14" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(1320, 524)"><circle cx="0" cy="0" r="11" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.6"/><circle cx="0" cy="0" r="2.4" fill="rgba(255,255,255,0.9)"/><line x1="0" y1="-11" x2="0" y2="-7" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/><line x1="0" y1="11" x2="0" y2="7" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/><line x1="-11" y1="0" x2="-7" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/><line x1="11" y1="0" x2="7" y2="0" stroke="rgba(255,255,255,0.9)" stroke-width="1.4"/></g>
+  <text x="1350" y="512" font-size="15" font-weight="600" fill="white">Catalog Service</text>
+  <text x="1350" y="530" font-size="11" fill="rgba(255,255,255,0.78)">products · pricing · SKUs</text>
+  <line x1="1310" y1="544" x2="1534" y2="544" stroke="rgba(255,255,255,0.20)"/>
+  <text x="1310" y="562" font-size="11" fill="rgba(255,255,255,0.92)">authoritative pricing source</text>
+  <text x="1310" y="580" font-size="10" font-style="italic" fill="rgba(255,255,255,0.65)">read-heavy · cache-fronted</text>
 
-  
-  <rect x="690" y="676" width="280" height="92" rx="12" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(720, 722)"><path d="M-11,-3 L-9,10 L9,10 L11,-3 Z" fill="rgba(255,255,255,0.85)"></path><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"></ellipse><path d="M-5,-5 Q0,-13 5,-5" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" fill="none"></path></g>
-  <text x="750" y="710" font-size="15" font-weight="600" fill="white">GCS</text>
-  <text x="750" y="728" font-size="11" fill="rgba(255,255,255,0.7)">blob archive · cold tier</text>
-  <text x="750" y="748" font-size="10" font-family="monospace" fill="#e8c5a0">/partners/{id}/docs/*</text>
+  <!-- ================= LAYER 4 · DATA ================= -->
+  <text x="830" y="654" text-anchor="middle" font-size="11" font-weight="600" fill="#7a7873" letter-spacing="2">DATA</text>
 
-  
-  <rect x="1010" y="676" width="280" height="92" rx="12" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"></rect>
-  <g transform="translate(1040, 722)"><ellipse cx="0" cy="-8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-8" width="22" height="16" fill="rgba(255,255,255,0.85)"></rect><ellipse cx="0" cy="8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"></ellipse><rect x="-11" y="-1" width="22" height="3" fill="rgba(26,26,24,0.25)"></rect></g>
-  <text x="1070" y="710" font-size="15" font-weight="600" fill="white">Redis</text>
-  <text x="1070" y="728" font-size="11" fill="rgba(255,255,255,0.7)">cache · session + score</text>
-  <text x="1070" y="748" font-size="10" font-family="monospace" fill="#d2c5e8">ttl 5m on score:*</text>
+  <rect x="170" y="672" width="300" height="96" rx="12" fill="url(#surfaceSql)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(200, 720)"><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"/><rect x="-11" y="-9" width="22" height="18" fill="rgba(255,255,255,0.85)"/><ellipse cx="0" cy="9" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"/><ellipse cx="0" cy="-9" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"/></g>
+  <text x="232" y="706" font-size="15" font-weight="600" fill="white">Postgres (orders)</text>
+  <text x="232" y="724" font-size="11" fill="rgba(255,255,255,0.78)">RDS · primary store · row-level lock</text>
+  <text x="232" y="746" font-size="10" font-family="monospace" fill="#c5cdf0">orders · payments · shipments</text>
 
-  
+  <rect x="510" y="672" width="300" height="96" rx="12" fill="url(#surfaceCache)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(540, 720)"><ellipse cx="0" cy="-8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"/><rect x="-11" y="-8" width="22" height="16" fill="rgba(255,255,255,0.85)"/><ellipse cx="0" cy="8" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"/><rect x="-11" y="-1" width="22" height="3" fill="rgba(26,26,24,0.25)"/></g>
+  <text x="572" y="706" font-size="15" font-weight="600" fill="white">Redis (cache)</text>
+  <text x="572" y="724" font-size="11" fill="rgba(255,255,255,0.78)">ElastiCache · session + catalog</text>
+  <text x="572" y="746" font-size="10" font-family="monospace" fill="#d2c5e8">ttl 5m · LFU eviction</text>
 
-  
-  <path d="M 510 238 C 510 270 700 270 720 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <path d="M 830 238 L 830 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <path d="M 1150 238 C 1150 270 960 270 940 314" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
+  <rect x="850" y="672" width="300" height="96" rx="12" fill="url(#surfaceStore)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(880, 720)"><path d="M-11,-3 L-9,10 L9,10 L11,-3 Z" fill="rgba(255,255,255,0.85)"/><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="rgba(255,255,255,0.85)"/><ellipse cx="0" cy="-3" rx="11" ry="3.5" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1"/><path d="M-5,-5 Q0,-13 5,-5" stroke="rgba(255,255,255,0.85)" stroke-width="2.2" fill="none"/></g>
+  <text x="912" y="706" font-size="15" font-weight="600" fill="white">S3 (artifacts)</text>
+  <text x="912" y="724" font-size="11" fill="rgba(255,255,255,0.78)">invoices · receipts · static blobs</text>
+  <text x="912" y="746" font-size="10" font-family="monospace" fill="#e8c5a0">/orders/{id}/invoice.pdf</text>
 
-  
-  <text x="830" y="282" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1.2">HTTPS · BEARER TOKEN</text>
+  <rect x="1190" y="672" width="300" height="96" rx="12" fill="url(#surfaceSlate)" filter="url(#cardShadowDark)"/>
+  <g transform="translate(1220, 720)"><circle cx="-2" cy="-3" r="8" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="2"/><line x1="4" y1="3" x2="11" y2="10" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round"/></g>
+  <text x="1252" y="706" font-size="15" font-weight="600" fill="white">OpenSearch</text>
+  <text x="1252" y="724" font-size="11" fill="rgba(255,255,255,0.78)">product index · autocomplete</text>
+  <text x="1252" y="746" font-size="10" font-family="monospace" fill="#b8c3d4">~1.4M docs · 6 shards</text>
 
-  
-  <path d="M 720 406 L 360 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="498" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">DELEGATES RUN</text>
+  <!-- ================= ARROWS ================= -->
 
-  <path d="M 800 406 L 700 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <path d="M 860 406 L 1020 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="930" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">VERIFIES SESSION</text>
+  <!-- Surfaces → API Gateway -->
+  <path d="M 430 234 C 430 270 510 285 510 306" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 830 234 L 670 306" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 1230 234 C 1230 270 730 285 720 306" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 1230 234 C 1230 268 1180 285 1170 306" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="830" y="278" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1.2">HTTPS · BEARER TOKEN</text>
 
-  <path d="M 940 406 L 1340 482" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1170" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">SCORES</text>
+  <!-- API Gateway → Services -->
+  <path d="M 480 406 L 220 476" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 540 406 L 510 476" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 620 406 L 800 476" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 700 406 L 1090 476" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 760 406 L 1390 476" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="510" y="442" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">ROUTES &amp; ORCHESTRATES</text>
 
-  
-  
-  <path d="M 360 602 C 360 640 480 660 510 676" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="430" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">PERSISTS</text>
+  <!-- Auth Gateway → Order API (session) -->
+  <path d="M 990 406 L 880 476" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"/>
+  <g transform="translate(880, 432)"><rect width="120" height="22" rx="11" fill="#252531" stroke="#7a7873"/><text x="60" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">VERIFIES JWT</text></g>
 
-  
-  <path d="M 700 602 C 700 640 830 660 830 676" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="780" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">STORES BYTES</text>
+  <!-- Services → Data -->
+  <path d="M 200 600 L 270 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="218" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">WRITES</text>
+  <path d="M 500 600 L 360 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 560 600 L 600 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="588" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">RESERVES</text>
+  <path d="M 770 600 L 410 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 850 600 L 940 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="908" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">RECEIPTS</text>
+  <path d="M 1100 600 L 1040 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <path d="M 1380 600 L 740 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
+  <text x="1180" y="640" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">CACHES PRICING</text>
+  <path d="M 1450 600 L 1340 672" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"/>
 
-  
-  <path d="M 1020 602 C 1020 640 620 660 590 676" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-  <g transform="translate(710, 638)"><rect width="96" height="22" rx="11" fill="#252531" stroke="#7a7873"></rect><text x="48" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">USER LOOKUP</text></g>
+  <!-- Mirror-secondary: read-replica -->
+  <path d="M 320 768 C 320 802 1480 802 1480 600" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"/>
+  <g transform="translate(740, 790)"><rect width="180" height="22" rx="11" fill="#252531" stroke="#7a7873"/><text x="90" y="15" text-anchor="middle" font-size="10" font-weight="600" fill="#9a988f" letter-spacing="0.8">READ REPLICA · PRICING JOIN</text></g>
 
-  
-  <path d="M 1340 602 L 1150 676" stroke="#7785d4" stroke-width="1.8" fill="none" marker-end="url(#arrowAccent)"></path>
-  <text x="1252" y="650" text-anchor="middle" font-size="10" font-weight="600" fill="#7785d4" letter-spacing="1">CACHES SCORE</text>
-
-  
-  <path d="M 1340 602 C 1340 640 620 660 590 676" stroke="#7a7873" stroke-width="1.3" stroke-dasharray="4,3" fill="none" marker-end="url(#arrowGrey)"></path>
-
-  
-  <text x="830" y="800" text-anchor="middle" font-size="11" fill="#9a988f" font-style="italic">Read top-to-bottom · indigo arrows are primary flow · grey-dashed arrows are mirror reads · all data writes are append-only into the SQL primary.</text>
+  <!-- ================= LEGEND ================= -->
+  <line x1="60" y1="828" x2="1600" y2="828" stroke="rgba(255,255,255,0.10)"/>
+  <text x="60" y="852" font-size="11" fill="#9a988f" font-style="italic">Read top-to-bottom · indigo arrows are primary handoffs · grey-dashed shows read-replica access and the Auth Gateway session check.</text>
+  <text x="1600" y="852" text-anchor="end" font-size="11" fill="#7a7873" font-variant-numeric="tabular-nums">OrderFlow · layered-architecture · diagram skill v2.0.1 · 2026-05</text>
 </svg>

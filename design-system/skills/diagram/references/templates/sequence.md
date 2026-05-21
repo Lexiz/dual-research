@@ -21,7 +21,7 @@ Use when the deliverable shows **time-ordered message exchanges between actors o
 ## Input contract
 
 ```
-Title: <Scenario name, e.g. "Partner Vetting Run - Sequence">
+Title: <Scenario name, e.g. "OrderFlow Run - Sequence">
 Subtitle: <one-line description of the scenario>
 
 Actors (left to right, in order of first appearance):
@@ -32,7 +32,7 @@ Actors (left to right, in order of first appearance):
 Messages (top to bottom):
   - From: <actor name>
     To: <actor name>
-    Label: <short message name, e.g. "POST /partners/vet">
+    Label: <short message name, e.g. "POST /orders/charge">
     Type: sync | async | return | event
     Note: <optional 1-line detail, shown italic below the arrow>
 ```
