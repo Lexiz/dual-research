@@ -87,6 +87,7 @@ from dual_research.protocol import (
     extract_revised_draft_inclusive,
     parse_turn_v2,
 )
+from dual_research.protocol.prompt_pieces import Attachment
 from dual_research.protocol.prompts import (
     closeout_request_section,
     drafting_prompt_v2,
@@ -614,6 +615,7 @@ async def run_dr_phase0(
     openai_agent: AgentCall,
     event_bus: EventBus,
     brief_content: str,
+    attachments: "list[Attachment] | tuple[Attachment, ...]" = (),
 ) -> Phase0Outcome:
     """Phase 0 (input): multi-round brief critique under the new protocol.
 
@@ -672,13 +674,16 @@ async def run_dr_phase0(
             )
         pieces = pieces_for_preflight(
             system_task=system_task,
-            user_prompt=brief_content,
+            user_prompt_message=brief_content,
+            attachments=attachments,
             prior_turns=prior,
             ledger=(standing_items or None),
             closeout_request=(closeout_request if is_closeout_round else None),
         )
         bundle = preflight_input_bundle(
-            brief=brief_content, agent_name=agent_name,
+            brief=brief_content,
+            attachments=attachments,
+            agent_name=agent_name,
         )
         return prompt, bundle, pieces
 
@@ -781,6 +786,7 @@ async def run_dr_phase1(
     openai_agent: AgentCall,
     event_bus: EventBus,
     brief_content: str,
+    attachments: "list[Attachment] | tuple[Attachment, ...]" = (),
 ) -> Phase1Outcome:
     """Phase 1 (research-plan): single-shot parallel plan + thesis using
     the new prompt with the agreed interpretation inlined."""
@@ -815,16 +821,22 @@ async def run_dr_phase1(
     )
     claude_pieces = pieces_for_research_plan(
         system_task=claude_system_task,
-        user_prompt=brief_content,
+        user_prompt_message=brief_content,
+        attachments=attachments,
         agreed_interpretation=agreed,
     )
     openai_pieces = pieces_for_research_plan(
         system_task=openai_system_task,
-        user_prompt=brief_content,
+        user_prompt_message=brief_content,
+        attachments=attachments,
         agreed_interpretation=agreed,
     )
-    claude_bundle = research_input_bundle(brief=brief_content, agent_name="claude")
-    openai_bundle = research_input_bundle(brief=brief_content, agent_name="openai")
+    claude_bundle = research_input_bundle(
+        brief=brief_content, attachments=attachments, agent_name="claude",
+    )
+    openai_bundle = research_input_bundle(
+        brief=brief_content, attachments=attachments, agent_name="openai",
+    )
 
     print(
         "\n[phase 1] independent research plans — both agents in parallel\n",
@@ -903,6 +915,7 @@ async def run_dr_phase2(
     brief_content: str,
     soft_cap: int,
     hard_cap: int,
+    attachments: "list[Attachment] | tuple[Attachment, ...]" = (),
 ) -> Phase2Outcome:
     """Phase 2 (negotiate-plan): multi-round plan negotiation under the
     new protocol with closeout mechanism (no escape valves)."""
@@ -945,6 +958,7 @@ async def run_dr_phase2(
                 brief=brief_content,
                 claude_draft=own_plan_claude,
                 openai_draft=own_plan_openai,
+                attachments=attachments,
                 agent_name=agent_name,
             )
         else:
@@ -986,12 +1000,14 @@ async def run_dr_phase2(
                 claude_draft=own_plan_claude,
                 openai_draft=own_plan_openai,
                 prior_turns=prior,
+                attachments=attachments,
                 agent_name=agent_name,
                 other_name=other_name,
             )
         pieces = pieces_for_plan_negotiation(
             system_task=system_task,
-            user_prompt=brief_content,
+            user_prompt_message=brief_content,
+            attachments=attachments,
             agreed_interpretation=agreed_interp,
             phase1_claude=own_plan_claude,
             phase1_openai=own_plan_openai,
@@ -1129,6 +1145,7 @@ async def run_dr_phase3(
     openai_agent: AgentCall,
     event_bus: EventBus,
     brief_content: str,
+    attachments: "list[Attachment] | tuple[Attachment, ...]" = (),
 ) -> Phase3Outcome:
     """Phase 3 (draft): single-shot drafter run with structured carry-forward."""
     from dual_research.protocol.prompt_pieces import pieces_for_drafting
@@ -1202,7 +1219,8 @@ async def run_dr_phase3(
 
     pieces = pieces_for_drafting(
         system_task=system_task,
-        user_prompt=brief_content,
+        user_prompt_message=brief_content,
+        attachments=attachments,
         agreed_interpretation=agreed_interp,
         phase1_claude=own_plan if drafter == "claude" else other_plan,
         phase1_openai=own_plan if drafter == "openai" else other_plan,
@@ -1216,6 +1234,7 @@ async def run_dr_phase3(
         openai_draft=openai_draft,
         plan=ctx.state.agreed_plan,
         prior_turns=prior_turns,
+        attachments=attachments,
         agent_name=drafter,
         other_name=other,
     )
@@ -1272,6 +1291,7 @@ async def run_dr_phase4(
     brief_content: str,
     soft_cap: int,
     hard_cap: int,
+    attachments: "list[Attachment] | tuple[Attachment, ...]" = (),
 ) -> Phase4Outcome:
     """Phase 4 (review-draft): multi-round review under the new protocol."""
     from dual_research.protocol.prompt_pieces import pieces_for_review
@@ -1351,7 +1371,8 @@ async def run_dr_phase4(
             )
         pieces = pieces_for_review(
             system_task=system_task,
-            user_prompt=brief_content,
+            user_prompt_message=brief_content,
+            attachments=attachments,
             current_draft=draft_content,
             prior_turns=(prior_turns or None),
             ledger=(standing_items or None),
@@ -1361,6 +1382,7 @@ async def run_dr_phase4(
             brief=brief_content,
             draft=draft_content,
             prior_turns=prior_turns,
+            attachments=attachments,
             agent_name=agent_name,
             other_name=other_name,
         )

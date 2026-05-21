@@ -94,10 +94,10 @@ class TestGetBundle:
         assert r.status_code == 200
         data = r.json()
         assert data["system_source"] == "agent-default"
-        # System prompt reconstructed from current source.
-        assert data["pieces"]["system"]
-        # Brief carried through from the seeded brief.md.
-        assert "# Test" in data["pieces"]["brief"]
+        # Spec 0145 — phase-2 fallback emits the canonical system key.
+        assert data["pieces"]["system.task.plan_negotiation"]
+        # Brief carried through under the canonical user-prompt key.
+        assert "# Test" in data["pieces"]["user_prompt.message"]
 
     def test_unparseable_key_returns_404(
         self, client: TestClient, tmp_path: Path
@@ -117,9 +117,9 @@ class TestGetBundle:
         assert r.status_code == 200
         data = r.json()
         assert data["phase"] == "phase0"
-        # Synthesised from brief.md content.
-        assert "# Test" in data["pieces"]["brief"]
-        assert "epistemic" in data["pieces"]["system"]
+        # Spec 0145 — synthesised bundle exposes canonical keys.
+        assert "# Test" in data["pieces"]["user_prompt.message"]
+        assert "epistemic" in data["pieces"]["system.task.input"]
         # Spec 0085 — Phase 0 synthesis also stamps system_source.
         assert data["system_source"] == "agent-default"
 

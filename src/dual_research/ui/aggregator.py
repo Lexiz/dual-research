@@ -470,6 +470,14 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     # Spec 0030: per-piece sizes and the real context-window cap travel with
     # each turn. The frontend renormalises piece widths against `input_tokens`
     # (the provider's count) for honest segment proportions.
+    #
+    # Spec 0145 — this passthrough is load-bearing for the canonical-ID
+    # contract. Only `str(k)`/`int(v)` coercion happens here; key
+    # normalisation must NEVER be added at this layer, because both
+    # canonical-ID runs (post-0145) and legacy-key historical runs flow
+    # through the same path and rely on the read-shim in
+    # `artifact-display.js` for translation. Any future normalisation
+    # belongs at the consumer side (the JS shim), not here.
     pieces_raw = event.get("prompt_pieces") or {}
     prompt_pieces: dict[str, int] = {
         str(k): int(v) for k, v in pieces_raw.items() if v is not None

@@ -1672,12 +1672,14 @@ function reuseInfo(usage) {
 //                               accumulated review history of later P4
 //                               rounds; P5 finalisation reads it).
 function outputSlotFor(phase, agent) {
+  // Spec 0145 — return canonical artifact IDs (replaces legacy
+  // d1/d2/hist/draft/histp short keys).
   const p = Number(phase);
   if (p === 0) return null;
-  if (p === 1) return agent === 'gpt' ? 'd2' : 'd1';
-  if (p === 2) return 'hist';
-  if (p === 3) return 'draft';
-  if (p === 4) return 'histp';
+  if (p === 1) return agent === 'gpt' ? 'phase1.openai' : 'phase1.claude';
+  if (p === 2) return 'prior_turns.phase2';
+  if (p === 3) return 'current_draft';
+  if (p === 4) return 'prior_turns.phase4';
   return null;
 }
 
@@ -1686,7 +1688,9 @@ function outputSlotFor(phase, agent) {
 function outputBarLabel(phase, agent) {
   const slot = outputSlotFor(phase, agent);
   if (slot == null) return 'feeds preflight critique';
-  const slotLabel = INPUT_PIECE_LABEL[slot] || slot;
+  const slotLabel = (window.DrArtifacts && window.DrArtifacts.displayName)
+    ? window.DrArtifacts.displayName(slot)
+    : slot;
   return `feeds ${slotLabel}`;
 }
 
@@ -2117,6 +2121,33 @@ const PHASE_SEPARATE_KEYS = {
   4: ['current_draft', 'prior_turns.phase4'],
 };
 
+// Spec 0145 — gather per-attachment piece keys + the message piece into
+// a single "User prompt" row breakdown. When the producer emitted the
+// new vocab (`user_prompt.message` + zero-or-more
+// `user_prompt.attachment.<id>`), the breakdown is the sum of those.
+// When a legacy run still carries the aggregate `user_prompt` key
+// (pre-0145 canonical-vocab era), the legacy value flows through.
+function userPromptRowBreakdown(piecesRaw) {
+  const message = Number(piecesRaw?.['user_prompt.message']) || 0;
+  const attachments = [];
+  for (const [k, v] of Object.entries(piecesRaw || {})) {
+    if (k.startsWith('user_prompt.attachment.')) {
+      const tokens = Number(v) || 0;
+      attachments.push({ id: k, attId: k.slice('user_prompt.attachment.'.length), tokens });
+    }
+  }
+  const legacyAggregate = Number(piecesRaw?.['user_prompt']) || 0;
+  const newVocabTotal = message + attachments.reduce((s, a) => s + a.tokens, 0);
+  const total = newVocabTotal > 0 ? newVocabTotal : legacyAggregate;
+  return {
+    total,
+    message,
+    attachments,
+    hasAttachments: attachments.length > 0,
+    hasMessage: message > 0,
+  };
+}
+
 // Group a piecesRaw dict (canonical-key vocab) into the per-phase row
 // structure described in the spec 0118 master table.
 //
@@ -2124,6 +2155,10 @@ const PHASE_SEPARATE_KEYS = {
 // are in display order: user_prompt → phase-specific separates →
 // System prompt aggregate. (Output is rendered separately.) The System
 // prompt entry has a `breakdown: [{ id, tokens }, ...]` for the tooltip.
+//
+// Spec 0145 — the user_prompt row carries an `attachmentBreakdown`
+// when the producer emitted per-attachment keys; the card renders an
+// expand affordance over those sub-rows.
 function groupPiecesForPhase(piecesRaw, phase) {
   const get = (k) => Number(piecesRaw?.[k]) || 0;
   const p = Number(phase);
@@ -2132,7 +2167,12 @@ function groupPiecesForPhase(piecesRaw, phase) {
 
   const rows = [];
   // user_prompt always first (per spec § "Always-separate rows").
-  rows.push({ id: 'user_prompt', tokens: get('user_prompt') });
+  const up = userPromptRowBreakdown(piecesRaw);
+  rows.push({
+    id: 'user_prompt',
+    tokens: up.total,
+    attachmentBreakdown: up.hasAttachments ? up : null,
+  });
 
   // Phase-specific separate rows.
   for (const k of sepKeys) {
@@ -2192,6 +2232,37 @@ function consumptionLabel(artifactId) {
   return artifactId;
 }
 
+// Spec 0145 §5.4 — indented sub-row for the User-prompt expansion. Reuses
+// the existing 3-column ccx-bar-row grid; the `--sub` modifier indents
+// the label and dims the bar color so the nesting reads clearly.
+function SubInputRow({ id, label, tokens, totalDenom, billedIn, inputCost, fillIn }) {
+  const piecePct = totalDenom > 0 ? Math.min(100, (tokens / totalDenom) * 100) : 0;
+  const propCost = piecePropCost(tokens, billedIn, inputCost);
+  return (
+    <div className="ccx-bar-row ccx-bar-row--sub" key={id} style={{
+      display: 'grid',
+      gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+      alignItems: 'center', gap: 10,
+      padding: '2px 0 2px 20px',
+      opacity: 0.85,
+    }}>
+      <span className="lbl" style={{
+        fontSize: 10.5, color: 'var(--md-on-surface-faint)',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>{label}</span>
+      <div className="ccx-bar" style={{ height: 5 }}>
+        <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%`, opacity: 0.7 }} />
+      </div>
+      <span className="num" style={{
+        fontSize: 10.5, color: 'var(--md-on-surface-faint)', whiteSpace: 'nowrap',
+        textAlign: 'right',
+      }}>
+        {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
+      </span>
+    </div>
+  );
+}
+
 // Multiline tooltip text for the System prompt aggregate row. Each line:
 // "<display name>  <tokens>t". The "(proportional)" annotation on the
 // header line signals the cost-share heuristic.
@@ -2218,6 +2289,10 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const iconClass = agent === 'claude' ? 'a' : 'b';
   const fillIn = agent === 'claude' ? 'in' : 'in-b';
   const fillOut = agent === 'claude' ? 'out' : 'out-b';
+  // Spec 0145 — per-attachment expansion lives on the User-prompt row.
+  // Default-collapsed so the consumption card stays compact on runs
+  // with many attachments; user clicks to reveal the breakdown.
+  const [userPromptExpanded, setUserPromptExpanded] = React.useState(false);
 
   if (!usage) {
     return (
@@ -2283,27 +2358,94 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
     const tip = isSystem && row.breakdown
       ? systemPromptTooltip(row.breakdown, tokens, propCost)
       : undefined;
+    // Spec 0145 — User-prompt row with per-attachment breakdown gets an
+    // expand chevron. On expand, sub-rows render user_prompt.message
+    // followed by one row per user_prompt.attachment.<id>.
+    const isUserPromptExpandable = row.id === 'user_prompt' && row.attachmentBreakdown;
     return (
-      <div key={row.id} className="ccx-bar-row" title={tip} style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-        alignItems: 'center', gap: 10,
-        padding: '2px 0',
-      }}>
-        <span className="lbl" style={{
-          fontSize: 11, color: 'var(--md-on-surface-muted)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{label}</span>
-        <div className="ccx-bar" style={{ height: 6 }}>
-          <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%` }} />
-        </div>
-        <span className="num" style={{
-          fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
-          textAlign: 'right',
+      <React.Fragment key={row.id}>
+        <div className="ccx-bar-row" title={tip} style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+          alignItems: 'center', gap: 10,
+          padding: '2px 0',
         }}>
-          {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
-        </span>
-      </div>
+          <span className="lbl" style={{
+            fontSize: 11, color: 'var(--md-on-surface-muted)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            {isUserPromptExpandable && (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-expanded={userPromptExpanded}
+                aria-label={userPromptExpanded ? 'Collapse user-prompt breakdown' : 'Expand user-prompt breakdown'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUserPromptExpanded((v) => !v);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setUserPromptExpanded((v) => !v);
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  width: 12,
+                  cursor: 'pointer',
+                  transform: userPromptExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 120ms ease',
+                  color: 'var(--md-on-surface-faint)',
+                }}
+              >
+                &#9654;
+              </span>
+            )}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {label}
+            </span>
+          </span>
+          <div className="ccx-bar" style={{ height: 6 }}>
+            <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%` }} />
+          </div>
+          <span className="num" style={{
+            fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
+            textAlign: 'right',
+          }}>
+            {fmt.tokens(tokens)}t &middot; {fmt.cost(propCost)}
+          </span>
+        </div>
+        {isUserPromptExpandable && userPromptExpanded && (
+          <React.Fragment>
+            {row.attachmentBreakdown.hasMessage && (
+              <SubInputRow
+                id="user_prompt.message"
+                label={consumptionLabel('user_prompt.message')}
+                tokens={row.attachmentBreakdown.message}
+                totalDenom={totalDenom}
+                billedIn={billedIn}
+                inputCost={inputCost}
+                fillIn={fillIn}
+              />
+            )}
+            {row.attachmentBreakdown.attachments.map((att) => (
+              <SubInputRow
+                key={att.id}
+                id={att.id}
+                label={consumptionLabel(att.id)}
+                tokens={att.tokens}
+                totalDenom={totalDenom}
+                billedIn={billedIn}
+                inputCost={inputCost}
+                fillIn={fillIn}
+              />
+            ))}
+          </React.Fragment>
+        )}
+      </React.Fragment>
     );
   };
 
@@ -5138,18 +5280,26 @@ function AgentInputPane({ slot, turnKey, run }) {
         {turnKey && loading && 'Loading…'}
         {turnKey && error && `Error: ${error}`}
         {turnKey && bundle && (() => {
-          const pieces = bundle.pieces || {};
-          const keys = INPUT_PIECE_ORDER
-            .filter(k => k in pieces && pieces[k])
-            .concat(Object.keys(pieces).filter(k => !INPUT_PIECE_ORDER.includes(k) && pieces[k]));
-          if (keys.length === 0) return 'Empty input bundle.';
+          // Spec 0145 — canonicalise then order via per-phase arrival.
+          const phaseNum = phaseNumFromTurnKey(turnKey);
+          const rawPieces = bundle.pieces || {};
+          const pieces = (window.DrArtifacts && window.DrArtifacts.canonicalisePieces)
+            ? window.DrArtifacts.canonicalisePieces(rawPieces, { phaseNum })
+            : rawPieces;
+          const populated = Object.keys(pieces).filter((k) => pieces[k]);
+          if (populated.length === 0) return 'Empty input bundle.';
+          const keys = orderPiecesForPhase(
+            Object.fromEntries(populated.map((k) => [k, pieces[k]])),
+            phaseNum,
+          );
+          const systemSource = bundle.system_source || 'recorded';
           return keys.map(k => (
             <InputSection
               key={k}
               piece={k}
               text={pieces[k] || ''}
-              defaultCollapsed={INPUT_PIECE_DEFAULT_COLLAPSED.has(k)}
-              isAgentDefault={k === 'system' && (bundle.system_source || 'recorded') === 'agent-default'}
+              defaultCollapsed={isDefaultCollapsed(k)}
+              isAgentDefault={isSystemPiece(k) && systemSource === 'agent-default'}
             />
           ));
         })()}
@@ -5158,34 +5308,73 @@ function AgentInputPane({ slot, turnKey, run }) {
   );
 }
 
-// ─────────────────── Spec 0033 — Input tab + bundle rendering ───────────────
+// ─────────────────── Spec 0145 — Input tab + bundle rendering ───────────────
 //
-// Friendly labels per Tk-vocab key. Stays in sync with KIND_COLORS.label
-// from the Consumption tab.
-//
-// Spec 0045 D4 — the brief IS the user-supplied research prompt for the
-// run (today's CLI has no separate ``--prompt`` argument). Labelled
-// "User prompt: Brief" to make that role legible; if a future spec
-// adds a distinct prompt field, this label re-points to it.
-const INPUT_PIECE_LABEL = {
-  system: 'System prompt',
-  brief:  'User prompt: Brief',
-  d1:     "Claude's Phase 1 draft",
-  d2:     "GPT's Phase 1 draft",
-  plan:   'Agreed plan',
-  hist:   'Prior Phase 2 turns',
-  draft:  'Current draft',
-  histp:  'Prior Phase 4 review turns',
-};
+// Display names resolve via `window.DrArtifacts.displayName(id, {titleForId})`
+// against the canonical artifact registry. Historical bundles carrying the
+// legacy 8-key short vocab are translated through
+// `window.DrArtifacts.canonicalisePieces(pieces, {phaseNum})` on the read
+// path; producers from spec 0145 onward emit canonical IDs directly.
 
-// Spec 0074 D3 — System prompt first (collapsed), user prompt second
-// (expanded), then the rest in canonical content order. This matches the
-// briefing's "what was fed to the agent" top-to-bottom ordering.
-const INPUT_PIECE_ORDER = ['system', 'brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp'];
+// A piece is collapsed-by-default when it's bulk methodology text the
+// reader rarely cares about. Today: system templates and prior-turn
+// transcripts. Heuristic — `key.startsWith('system.')` covers all task
+// instructions; `key.startsWith('prior_turns.')` covers the historical
+// negotiation / preflight / review threads.
+function isDefaultCollapsed(canonicalKey) {
+  if (typeof canonicalKey !== 'string') return false;
+  return canonicalKey.startsWith('system.') || canonicalKey.startsWith('prior_turns.');
+}
 
-// Spec 0074 D4 — system prompt collapsed by default (long boilerplate);
-// brief (user prompt) expanded; everything else expanded.
-const INPUT_PIECE_DEFAULT_COLLAPSED = new Set(['system']);
+function isSystemPiece(canonicalKey) {
+  return typeof canonicalKey === 'string' && canonicalKey.startsWith('system.');
+}
+
+function isUserPromptPiece(canonicalKey) {
+  return canonicalKey === 'user_prompt.message'
+    || (typeof canonicalKey === 'string' && canonicalKey.startsWith('user_prompt.attachment.'));
+}
+
+// Extract a phase integer 0..4 from a turn-key like 'phase2_round1_claude'
+// or 'phase0_gpt'. Returns null for the special 'input' sentinel (which
+// maps to phase 0 conceptually but doesn't carry the literal prefix).
+function phaseNumFromTurnKey(turnKey) {
+  if (typeof turnKey !== 'string') return null;
+  if (turnKey === 'input') return 0;
+  const m = /^phase(\d+)/.exec(turnKey);
+  return m ? Number(m[1]) : null;
+}
+
+// Spec 0145 — order the (possibly canonicalised) piece keys by the
+// per-phase canonical arrival order, with any extras appended at the
+// end. `user_prompt.attachment.*` in the phase order expands into one
+// row per attachment in their `pieces`-dict insertion order.
+function orderPiecesForPhase(pieces, phaseNum) {
+  const keys = Object.keys(pieces);
+  if (phaseNum === null || phaseNum === undefined) return keys;
+  const order = (window.DrArtifacts && window.DrArtifacts.phaseOrderFor)
+    ? window.DrArtifacts.phaseOrderFor(phaseNum)
+    : [];
+  const seen = new Set();
+  const out = [];
+  for (const slot of order) {
+    if (slot === 'user_prompt.attachment.*') {
+      for (const k of keys) {
+        if (k.startsWith('user_prompt.attachment.') && !seen.has(k)) {
+          out.push(k);
+          seen.add(k);
+        }
+      }
+    } else if (keys.includes(slot) && !seen.has(slot)) {
+      out.push(slot);
+      seen.add(slot);
+    }
+  }
+  for (const k of keys) {
+    if (!seen.has(k)) out.push(k);
+  }
+  return out;
+}
 
 // Spec 0085 — 3-tier Agent Input panel:
 //   1. System Prompt (always first, collapsed by default; rendered
@@ -5199,7 +5388,20 @@ const INPUT_PIECE_DEFAULT_COLLAPSED = new Set(['system']);
 // retired — the backend always returns at least a synthesised System
 // Prompt (per spec 0085 sections A+B), so the panel is never empty for
 // a real turn.
-function InputTabContent({ turnKey }) {
+// Spec 0145 — three-section bucket assignment for the canonical-key
+// piece rows. System.* lives under "System prompt"; user_prompt.* under
+// "User prompt"; everything else under "Derived inputs". The buckets
+// match the spec §5.4 section names; default-collapsed state mirrors
+// the previous per-row heuristic so visual density is unchanged.
+function sectionFor(canonicalKey) {
+  if (typeof canonicalKey !== 'string') return 'derived';
+  if (canonicalKey.startsWith('system.')) return 'system';
+  if (canonicalKey === 'user_prompt.message') return 'user_prompt';
+  if (canonicalKey.startsWith('user_prompt.attachment.')) return 'user_prompt';
+  return 'derived';
+}
+
+function InputTabContent({ turnKey, attachmentTitles }) {
   const { bundle, loading, error } = window.useInputBundle(turnKey);
 
   if (!turnKey) {
@@ -5214,28 +5416,114 @@ function InputTabContent({ turnKey }) {
   if (!bundle) {
     return <InputEmptyState label="No agent input bundle available for this turn." />;
   }
-  const pieces = bundle.pieces || {};
+  const phaseNum = phaseNumFromTurnKey(turnKey);
+  // Spec 0145 — historical bundles carry the legacy short-key vocab
+  // (system/brief/d1/...). Run them through the read-shim before
+  // rendering; canonical-key bundles pass through unchanged.
+  const rawPieces = bundle.pieces || {};
+  const pieces = (window.DrArtifacts && window.DrArtifacts.canonicalisePieces)
+    ? window.DrArtifacts.canonicalisePieces(rawPieces, { phaseNum })
+    : rawPieces;
   const systemSource = bundle.system_source || 'recorded';
-  const renderKeys = INPUT_PIECE_ORDER
-    .filter((k) => k in pieces && pieces[k])
-    .concat(Object.keys(pieces).filter((k) => !INPUT_PIECE_ORDER.includes(k) && pieces[k]));
+  const populated = Object.keys(pieces).filter((k) => pieces[k]);
+  const renderKeys = orderPiecesForPhase(
+    Object.fromEntries(populated.map((k) => [k, pieces[k]])),
+    phaseNum,
+  );
 
   if (renderKeys.length === 0) {
     return <InputEmptyState label="This turn's agent input bundle is empty." />;
   }
 
+  // Spec 0145 §5.4 — bucket per-piece rows into three named sections:
+  // System prompt · User prompt · Derived inputs. Each section has a
+  // visible header; section bodies preserve the canonical arrival order
+  // computed by `orderPiecesForPhase`.
+  const grouped = { system: [], user_prompt: [], derived: [] };
+  for (const key of renderKeys) {
+    grouped[sectionFor(key)].push(key);
+  }
+
+  const sections = [
+    {
+      id: 'system',
+      label: 'System prompt',
+      keys: grouped.system,
+      defaultOpen: false,
+    },
+    {
+      id: 'user_prompt',
+      label: 'User prompt',
+      keys: grouped.user_prompt,
+      defaultOpen: true,
+    },
+    {
+      id: 'derived',
+      label: 'Derived inputs',
+      keys: grouped.derived,
+      defaultOpen: false,
+    },
+  ].filter((s) => s.keys.length > 0);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {renderKeys.map(key => (
-        <InputSection
-          key={key}
-          piece={key}
-          text={pieces[key] || ''}
-          defaultCollapsed={INPUT_PIECE_DEFAULT_COLLAPSED.has(key)}
-          isAgentDefault={key === 'system' && systemSource === 'agent-default'}
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {sections.map((section) => (
+        <InputSectionGroup
+          key={section.id}
+          label={section.label}
+          defaultOpen={section.defaultOpen}
+          itemCount={section.keys.length}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {section.keys.map((key) => (
+              <InputSection
+                key={key}
+                piece={key}
+                text={pieces[key] || ''}
+                defaultCollapsed={isDefaultCollapsed(key)}
+                isAgentDefault={isSystemPiece(key) && systemSource === 'agent-default'}
+                attachmentTitles={attachmentTitles}
+              />
+            ))}
+          </div>
+        </InputSectionGroup>
       ))}
     </div>
+  );
+}
+
+// Spec 0145 §5.4 — section header above a per-piece-row group inside
+// the User-prompt tab. Reuses the existing CollapsibleSection visual
+// shape with a slightly heavier label so the section nesting is legible.
+function InputSectionGroup({ label, defaultOpen, itemCount, children }) {
+  return (
+    <CollapsibleSection
+      defaultOpen={defaultOpen}
+      renderTitle={({ open }) => (
+        <>
+          <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+          <span
+            className="cs-title"
+            style={{
+              fontWeight: 'var(--md-w-medium)',
+              fontSize: 12.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {label}
+          </span>
+          <span style={{ flex: 1 }} />
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>
+            {itemCount} {itemCount === 1 ? 'piece' : 'pieces'}
+          </span>
+        </>
+      )}
+    >
+      <div style={{ paddingLeft: 8, borderLeft: '1px solid var(--md-outline-variant)', marginTop: 6 }}>
+        {children}
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -5245,8 +5533,14 @@ function InputTabContent({ turnKey }) {
 // per-run recorded prompt), prepend a small italic caveat inside the
 // body so the user knows the displayed text may differ from what the
 // historical run actually used.
-function InputSection({ piece, text, defaultCollapsed, isAgentDefault }) {
-  const label = INPUT_PIECE_LABEL[piece] || piece;
+function InputSection({ piece, text, defaultCollapsed, isAgentDefault, attachmentTitles }) {
+  // Spec 0145 — resolve the row label via the canonical-ID registry.
+  // Attachment IDs need a `titleForId` map so the template
+  // `Attachment · {title}` substitutes the human-readable name from
+  // attachments.json (passed in via the modal-level `attachmentTitles`).
+  const label = (window.DrArtifacts && window.DrArtifacts.displayName)
+    ? window.DrArtifacts.displayName(piece, { titleForId: attachmentTitles || {} })
+    : piece;
   const chars = text ? text.length : 0;
   const approxTokens = text ? Math.max(1, Math.round(text.length / 3.5)) : 0;
   const stats = `${chars.toLocaleString()} chars · ~${approxTokens.toLocaleString()}t`;
@@ -5732,40 +6026,49 @@ function SearchEmptyState({ kind, provider, detail }) {
 //   the Phase 0 brief modal — deliberately repeated, because every output
 //   modal in spec 0033 also shows that output's input.
 
+// Spec 0145 — build the `titleForId` map the canonical-ID display
+// templates need to resolve `user_prompt.attachment.<id>` rows to
+// `Attachment · {title}`. Keyed by the same `_attachment_id` the
+// orchestrator emits (sha256[:8] fallback to slugified basename).
+function buildAttachmentTitleMap(attachments) {
+  const out = {};
+  if (!Array.isArray(attachments)) return out;
+  for (const a of attachments) {
+    if (!a) continue;
+    const sha = (a.sha256 || '').slice(0, 8);
+    const id = sha
+      || ((a.rel_path || a.source || '').split('/').pop() || '').replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')
+      || 'attachment';
+    out[id] = a.title || (a.rel_path || a.source || '').split('/').pop() || 'attachment';
+  }
+  return out;
+}
+
 function InputBriefModal({ item, run, onClose, accent }) {
-  const { attachments, loading } = window.useAttachments(run.id);
+  // Spec 0145 §5.4 — collapsed to a single "User prompt" tab containing
+  // the three-section InputTabContent restructure. The legacy four-tab
+  // layout (Content / Agent Input / Sources / Files) is replaced; the
+  // brief markdown surfaces as the `user_prompt.message` row, and any
+  // attachments surface as `user_prompt.attachment.<id>` rows in
+  // attachment-list order. Empty Sources/Files surfaces simply disappear.
+  const { attachments } = window.useAttachments(run.id);
+  const attachmentTitles = React.useMemo(
+    () => buildAttachmentTitleMap(attachments),
+    [attachments],
+  );
 
-  // Split attachments into Sources (links) vs Files (image/pdf/file).
-  // Spec 0045 D7 — canonicalised on the same `sources`/`files` ids
-  // every full-view modal uses; D2 hides whichever bucket is empty.
-  const fileKinds = new Set(['image', 'pdf', 'file']);
-  const sources = (attachments || []).filter((a) => a.kind === 'link');
-  const files = (attachments || []).filter((a) => fileKinds.has(a.kind));
-
-  // Spec 0045 D1+D2+D8 — canonical order, hide empties, drop counts
-  // from tab labels (the body header carries the count instead).
-  const tabs = sortByCanon([
+  const tabs = [
     {
-      id: 'content',
-      label: 'Content',
-      content: <PreflightContentTab item={item} />,
+      id: 'user_prompt',
+      label: 'User prompt',
+      content: (
+        <InputTabContent
+          turnKey={item.turnKey || 'input'}
+          attachmentTitles={attachmentTitles}
+        />
+      ),
     },
-    {
-      id: 'input',
-      label: 'Agent Input',
-      content: <InputTabContent turnKey={item.turnKey || 'input'} />,
-    },
-    sources.length > 0 && {
-      id: 'sources',
-      label: 'Sources',
-      content: <PreflightSourcesTab sources={sources} loading={loading} />,
-    },
-    files.length > 0 && {
-      id: 'files',
-      label: 'Files',
-      content: <PreflightFilesTab files={files} loading={loading} runId={run.id} />,
-    },
-  ].filter(Boolean));
+  ];
 
   return (
     <Modal
@@ -5781,8 +6084,15 @@ function InputBriefModal({ item, run, onClose, accent }) {
 function PreflightResponseModal({ item, run, onClose, accent }) {
   const meta = AGENT_META[item.agent];
   const turnKey = item.turnKey || `phase0_${item.agent}`;
-  // Spec 0045 D1+D2 — canonical tab order; hide Web Search when the
-  // critique didn't actually search.
+  // Spec 0145 — Web Search stays; the Agent Input tab is restructured
+  // (renamed to "User prompt" + three-section grouping) but the agent's
+  // response markdown is kept under the Content tab because it isn't
+  // covered by the user-prompt grouping.
+  const { attachments } = window.useAttachments(run.id);
+  const attachmentTitles = React.useMemo(
+    () => buildAttachmentTitleMap(attachments),
+    [attachments],
+  );
   const webSearch = useWebSearchTab(turnKey);
   const tabs = sortByCanon([
     {
@@ -5792,8 +6102,13 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
     },
     {
       id: 'input',
-      label: 'Agent Input',
-      content: <InputTabContent turnKey={turnKey} />,
+      label: 'User prompt',
+      content: (
+        <InputTabContent
+          turnKey={turnKey}
+          attachmentTitles={attachmentTitles}
+        />
+      ),
     },
     webSearch,
   ].filter(Boolean));

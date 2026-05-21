@@ -46,8 +46,114 @@ from dual_research.persistence import (
     SessionDirectory,
 )
 from dual_research.persistence.state import SessionState, write_atomic
+from dual_research.protocol.prompt_pieces import Attachment
 
 logger = logging.getLogger(__name__)
+
+
+# Text-mime-type prefixes whose attachment content is read off disk and
+# threaded through the protocol layer as `Attachment.content`. Binary
+# attachments (images, PDFs) get empty content + a zero-token row on
+# the consumption card — their actual prompt-encoded cost lands in the
+# provider-reported input_tokens, which the renormaliser proportionally
+# distributes across the populated piece rows.
+_TEXT_ATTACHMENT_EXTS = frozenset({
+    ".md", ".markdown", ".txt", ".text", ".log", ".json", ".yaml", ".yml",
+    ".toml", ".rst", ".csv", ".tsv", ".html", ".htm", ".xml", ".sql",
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".css", ".sh", ".bash",
+})
+
+
+def _slug(value: str) -> str:
+    """Conservative slugifier — alphanumerics + dashes only."""
+    return "".join(c if c.isalnum() else "-" for c in (value or "")).strip("-")
+
+
+def _attachment_id(ing) -> str:
+    """Spec 0145 §5.1 — stable canonical ID for `user_prompt.attachment.<id>`.
+
+    Prefers the first 8 chars of the content sha256 (set for local-file
+    attachments). Falls back to a slugified basename for URL attachments
+    that don't carry a hash. The ID must match the registry's `<id>`
+    placeholder regex (``[^.]+(?:\\..+)?``) — both branches satisfy it.
+    """
+    from pathlib import Path as _Path
+
+    if getattr(ing, "sha256", None):
+        return ing.sha256[:8]
+    base = (
+        getattr(ing, "rel_path", None)
+        or getattr(ing, "source", None)
+        or ""
+    )
+    if base:
+        slug = _slug(_Path(base).stem)
+        if slug:
+            return slug
+    return "attachment"
+
+
+def _read_attachment_text(session_root, ing) -> str:
+    """Read a text attachment's content from disk, or return ''.
+
+    `rel_path` is the in-session path written by the materialiser
+    (e.g. ``attachments/a3f4b9c2-foo.md``). Only files whose extension
+    is in ``_TEXT_ATTACHMENT_EXTS`` are read — binary attachments get
+    empty content and contribute a zero-width row to the consumption
+    card.
+    """
+    from pathlib import Path as _Path
+
+    rel = getattr(ing, "rel_path", None)
+    if not rel:
+        return ""
+    path = _Path(session_root) / rel
+    if not path.exists() or not path.is_file():
+        return ""
+    if path.suffix.lower() not in _TEXT_ATTACHMENT_EXTS:
+        return ""
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def _resolve_run_attachments(session_root) -> list[Attachment]:
+    """Spec 0145 §5.1 — convert `attachments.json` → `prompt_pieces.Attachment` list.
+
+    Loaded once at session setup and threaded through every
+    `pieces_for_*()` / `*_input_bundle()` call for the run. Returns an
+    empty list if `attachments.json` is missing or empty.
+    """
+    import json as _json
+
+    from dual_research.ingest import AttachmentBundle
+
+    path = session_root / "attachments.json"
+    if not path.exists():
+        return []
+    try:
+        data = _json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, _json.JSONDecodeError):
+        return []
+    bundle = AttachmentBundle.from_dict(data)
+    out: list[Attachment] = []
+    from pathlib import Path as _Path
+
+    for ing in bundle.attachments:
+        title = (
+            ing.title
+            or _Path(ing.rel_path or ing.source or "").name
+            or "attachment"
+        )
+        out.append(
+            Attachment(
+                id=_attachment_id(ing),
+                title=title,
+                content=_read_attachment_text(session_root, ing),
+            )
+        )
+    return out
 
 EXIT_OK = 0
 EXIT_RUNTIME = 2
@@ -144,7 +250,11 @@ def _install_transcript_bridge(event_bus: EventBus, ctx: SessionContext) -> None
     event_bus.subscribe(on_event)
 
 
-def _persist_initial_brief_bundle(session_root, brief_text: str) -> None:
+def _persist_initial_brief_bundle(
+    session_root,
+    brief_text: str,
+    attachments: "list[Attachment] | tuple[Attachment, ...]" = (),
+) -> None:
     """Spec 0142 — write ``inputs/input.json`` once at session setup.
 
     Mirrors :func:`dual_research.ui.aggregator.build_phase0_input_bundle`
@@ -154,6 +264,10 @@ def _persist_initial_brief_bundle(session_root, brief_text: str) -> None:
     :func:`dual_research.persistence.remote._iter_file_rows` and pushed
     to Supabase like every other input bundle. Idempotent: a re-entry
     on a resumed run leaves the existing file alone.
+
+    Spec 0145 — ``attachments`` threads the run's resolved attachment
+    list into the persisted bundle so the Initial-Brief modal can
+    render per-attachment rows on canonical-ID hydration.
     """
     import json as _json
 
@@ -168,7 +282,11 @@ def _persist_initial_brief_bundle(session_root, brief_text: str) -> None:
         "agent": "shared",
         "phase": "phase0",
         "label": "phase0-input",
-        "pieces": preflight_input_bundle(brief=brief_text, agent_name="<both>"),
+        "pieces": preflight_input_bundle(
+            brief=brief_text,
+            attachments=attachments,
+            agent_name="<both>",
+        ),
         "emitted_at": "",
         "system_source": "recorded",
     }
@@ -270,11 +388,15 @@ async def run_session(
     )
 
     brief_content = session.brief_path.read_text(encoding="utf-8")
+    # Spec 0145 — resolve `attachments.json` once and thread the list
+    # through every phase runner so per-attachment token attribution
+    # and per-attachment piece-text rows land uniformly.
+    run_attachments = _resolve_run_attachments(session.root)
     # Spec 0142 — persist the shared Phase-0 "Initial Brief" input bundle
     # at session setup so the hosted UI's full-view modal (turnKey='input')
     # hydrates from a real recorded row instead of falling through to the
     # spec-0085 synthesis path that stamps system_source="agent-default".
-    _persist_initial_brief_bundle(session.root, brief_content)
+    _persist_initial_brief_bundle(session.root, brief_content, run_attachments)
     run_started = time.perf_counter()
     phase0_outcome: Phase0Outcome | None = None
     phase1_outcome: Phase1Outcome | None = None
@@ -293,6 +415,7 @@ async def run_session(
                 openai_agent=gpt,
                 event_bus=bus,
                 brief_content=brief_content,
+                attachments=run_attachments,
             )
             state.phase = "phase1"
             session.save_state(state)
@@ -307,6 +430,7 @@ async def run_session(
                 openai_agent=gpt,
                 event_bus=bus,
                 brief_content=brief_content,
+                attachments=run_attachments,
             )
             state.phase = "phase2"
             session.save_state(state)
@@ -323,6 +447,7 @@ async def run_session(
                 brief_content=brief_content,
                 soft_cap=soft_cap,
                 hard_cap=hard_cap,
+                attachments=run_attachments,
             )
             if phase2_outcome.parse_failure:
                 exit_code = EXIT_PROTOCOL_PARSE_FAILURE
@@ -341,6 +466,7 @@ async def run_session(
                 openai_agent=gpt,
                 event_bus=bus,
                 brief_content=brief_content,
+                attachments=run_attachments,
             )
             phase_reached = "phase4"
 
@@ -353,6 +479,7 @@ async def run_session(
                 brief_content=brief_content,
                 soft_cap=soft_cap,
                 hard_cap=hard_cap,
+                attachments=run_attachments,
             )
             if phase4_outcome.parse_failure:
                 exit_code = EXIT_PROTOCOL_PARSE_FAILURE
