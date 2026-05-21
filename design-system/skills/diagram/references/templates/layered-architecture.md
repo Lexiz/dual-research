@@ -1,6 +1,6 @@
 # Template: Layered architecture
 
-Use when the system is naturally described as 2–4 horizontal **layers** stacked top-to-bottom, with components in each layer and handoff arrows between layers. The canonical example is `examples/layered-architecture.svg` (Arc 2.0 — user/UI layer → agent layer → execution & publish layer).
+Use when the system is naturally described as 2–4 horizontal **layers** stacked top-to-bottom, with components in each layer and handoff arrows between layers. The canonical example is `examples/layered-architecture.<mode>.{light,dark}.svg` (OrderFlow — surface layer → service layer → data layer).
 
 ## When this fits
 
@@ -94,7 +94,7 @@ Animations: live-dot on FastAPI only
   - Secondary actor / research / support: dark card with `researchGrad` (slate).
   - Light cards (white fill) for: user, UI surfaces, panels, lists, anything informational.
   - Specialized: `sandboxGrad` for execution/env, `harnessGrad` for gates/health, `artifactGrad` for catalogs/storage.
-- **Middleware / capability rings:** wrap a dark agent card with a rotating dashed ring (`class="mw-ring"`) and place chips above the card for middleware/capability names. See the Arc main-agent layout for the canon.
+- **Middleware / capability rings:** wrap a dark service card with a rotating dashed ring (`class="mw-ring"`) and place chips above the card for middleware/capability names. See the canonical layered-architecture example for the layout.
 
 ## Connections inside this pattern
 
@@ -116,4 +116,4 @@ Pick at most 3:
 
 - Too many handoff arrows crossing each other. If a layer has 4+ cards with handoffs to multiple cards in the next layer, consider grouping cards or splitting into two diagrams.
 - Layer labels missing — without `AGENT LAYER` / `EXECUTION LAYER` style markers, the eye doesn't know to scan in tiers.
-- Cards crammed edge-to-edge. The Arc canon has ~28–40px from canvas edge to first card.
+- Cards crammed edge-to-edge. The canonical layered-architecture example has ~28–40px from canvas edge to first card.

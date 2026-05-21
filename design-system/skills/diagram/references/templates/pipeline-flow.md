@@ -1,6 +1,6 @@
 # Template: Pipeline / flow
 
-Use when the system is naturally described as **numbered stages left-to-right**, often with inputs funnelling into the leftmost stage and outputs emerging on the right. The canonical example is `examples/pipeline-flow.svg` (Arc knowledge layer — Inputs → Provenance gate → Storage → Recall → Cited next answer).
+Use when the system is naturally described as **numbered stages left-to-right**, often with inputs funnelling into the leftmost stage and outputs emerging on the right. The canonical example is `examples/pipeline-flow.<mode>.{light,dark}.svg` (OrderFlow order pipeline — Intake → Enrich → Vet → Score → Emit).
 
 ## When this fits
 
@@ -104,7 +104,7 @@ Animations: one motion-dots class along the 1→4 path
 
 ## Animations to consider
 
-For pipelines, restraint is the point. The Arc knowledge diagram uses exactly **one animation class** (`loop-arc` pulse) and it works because the diagram's meaning is "this loop compounds slowly over time". Match that mood.
+For pipelines, restraint is the point. The canonical pipeline-flow example uses exactly **one animation class** (`loop-arc` pulse) and it works because the diagram's meaning is "this loop compounds slowly over time". Match that mood.
 
 If the pipeline is high-traffic (request flow, streaming), add motion-path dots flowing through Stage 1 → Stage 2. Don't animate every transition — pick the most semantically meaningful one.
 

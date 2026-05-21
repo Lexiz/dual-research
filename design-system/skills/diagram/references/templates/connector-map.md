@@ -19,11 +19,11 @@ Use when the deliverable is showing **what a system talks to** — a central sys
 ## Input contract
 
 ```
-Title: <e.g. "Arc 2.0 · Integration Surface">
+Title: <e.g. "OrderFlow · Integration Surface">
 Subtitle: <one-line summary>
 
 Hub:
-  Name: <e.g. "Arc Platform">
+  Name: <e.g. "OrderFlow Platform">
   Variant: main | builder | research (which dark gradient)
   Sub-items: <1–3 capabilities or version info>
 

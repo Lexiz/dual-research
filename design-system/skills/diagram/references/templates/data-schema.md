@@ -19,7 +19,7 @@ Use when the deliverable is a **data model** — entities with typed fields and 
 ## Input contract
 
 ```
-Title: <e.g. "Knowledge Layer · Data Model">
+Title: <e.g. "OrderFlow · Data Model">
 Subtitle: <one-line summary>
 
 Entities:

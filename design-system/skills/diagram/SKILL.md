@@ -228,7 +228,7 @@ The Notion user pastes the file matching their host theme (or both, with the hos
 
 Mention BOTH filenames in the response so the user knows what to pick up. Example:
 
-> Generated `diagrams/partner-vetting-context.pixel.light.svg` and `diagrams/partner-vetting-context.pixel.dark.svg`. Paste the one matching your Notion theme — or both for hosts that respect viewer preference.
+> Generated `diagrams/orderflow-context.pixel.light.svg` and `diagrams/orderflow-context.pixel.dark.svg`. Paste the one matching your Notion theme — or both for hosts that respect viewer preference.
 
 If this diagram is part of a multi-diagram set and you wrote or updated the manifest in Step 3, mention that briefly after the SVG (one line: "Manifest updated with [new entity → gradient assignments]").
 
@@ -240,7 +240,7 @@ When generating 2+ diagrams for the same proposal, use a manifest to lock cross-
 
 - **`mode:`** the design system for the whole set — `pixel` (default) or `material`. Pinned per-set; a per-diagram override is a hard error. A proposal is a coherent reader experience and mixing design systems within one set is a design failure.
 - **`theme:`** the theme(s) for the whole set — `light` / `dark` / `both` (default `both`). Same per-set pin rule.
-- Each named entity → its surface gradient (e.g. `Vetting API → surfacePrimary`)
+- Each named entity → its surface gradient (e.g. `OrderFlow API → surfacePrimary`)
 - Each named entity → its icon (e.g. `Postgres → icon.sql`)
 - The exact label spelling for each entity (`Postgres`, not `Postgres DB` or `PG`)
 - The viewBox width if the wide variant (2200) is in use
