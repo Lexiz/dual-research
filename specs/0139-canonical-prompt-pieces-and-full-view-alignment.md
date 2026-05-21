@@ -15,11 +15,12 @@ pr: ""
 
 Specs 0114 (Deep Research protocol), 0117 (artifact registry + display names), and 0118 (Consumption tab + per-piece token tracking) established a single canonical vocabulary for the inputs and outputs of every phase. The diagram `diagrams/deep-research-pipeline.light.svg` is the human-readable contract for that vocabulary: every phase, every round, every named piece a model sees on input or persists on output.
 
-In practice three drifts have accumulated between the diagram, the registry, and what the UI actually shows:
+In practice four drifts have accumulated between the diagram, the registry, the UI, and the documentation:
 
 1. **The `user_prompt` composite is collapsed in the emitter.** [`prompt_pieces.py`](../src/dual_research/protocol/prompt_pieces.py) emits a single `user_prompt` key per phase, even though the registry already templates `user_prompt.message` and `user_prompt.attachment.<id>` ([artifacts.py:167-170](../src/dual_research/contract/artifacts.py:167)). Attachments therefore get no individual token share in Consumption and no individual row in any full-view modal.
 2. **Two registry entries are dead.** `system.preamble` ([artifacts.py:151](../src/dual_research/contract/artifacts.py:151)) and `system.task.closeout` ([artifacts.py:163](../src/dual_research/contract/artifacts.py:163)) are defined but never emitted as pieces. The diagram does not mention either; the UI cannot render either; the Consumption tab never receives either.
 3. **`run-detail.jsx` carries a legacy piece vocabulary parallel to the registry.** `INPUT_PIECE_ORDER = ['system', 'brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp']` ([run-detail.jsx:5085](../src/dual_research/ui/static/run-detail.jsx:5085)) drives every full-view input panel and every per-phase grouping. These short keys are not the canonical IDs the aggregator emits — they're a pre-0117 mapping that the input-bundle layer translates into. The result is that the Consumption tab (canonical IDs) and the full-view modals (legacy keys) are speaking two languages about the same pieces.
+4. **The user-facing documentation no longer matches the protocol.** `diagrams/deep-research-pipeline.{light,dark}.svg` — the diagram with informal but accurate labels for every per-phase input/output — is unreferenced ([how-it-works.jsx:56](../src/dual_research/ui/static/how-it-works.jsx:56)). How It Works embeds `02-phase-inputs.{light,dark}.svg` in the per-phase slot instead, but its labels aren't keyed to the registry either, and it only shows inputs (not outputs or agreements). Users reading the docs cannot tell which named pieces the system actually tracks and tags.
 
 The user-visible consequence is that the **briefing full view** currently shows the original chat message under "User prompt" + a system block under "System prompt", but does not surface attachments under that User-prompt section, does not surface a methodology preamble (if one exists), and does not align its labels with the Consumption tab's piece names. The **side-by-side modals** (NegotiateReviewModal / DraftReviewModal) read input bundles via the legacy vocabulary, so the left "contested input" pane and the input sub-pane are not labelled by canonical artifact ID.
 
@@ -111,9 +112,52 @@ The existing `Sources` and `Files` tabs on `InputBriefModal` ([line 5659-5667](.
 - [`src/dual_research/ui/models.py`](../src/dual_research/ui/models.py): if there is a typed schema for the piece dict, widen it to `dict[str, int]` keyed by canonical IDs (the registry's `is_known()` predicate is the validator).
 - Persistence: per-turn `inputs/<turnKey>.json` keys change to canonical IDs in the same migration. **Backfill is out of scope** — historical runs render with whatever keys they recorded; the UI reads either vocabulary during a transition window via the legacy-key shim, which is deleted in the next minor release.
 
-### 7. Diagram update
+### 7. Regenerate the canonical pipeline diagram and embed it in How It Works
 
-`diagrams/deep-research-pipeline.{light,dark}.svg` adds the User-prompt composite to the persistent-input strip more explicitly, replacing the indicative "Attachment 1 / Attachment 2 / Attachment 3 / … per attached source" with a single row labelled `user_prompt.message` plus N rows labelled `user_prompt.attachment.<id>`. The bundled UI copies under `src/dual_research/ui/static/diagrams/` are regenerated.
+The `deep-research-pipeline.{light,dark}.svg` pair is the one human-readable contract for what every phase consumes and produces. Today it carries the right structure but informal labels ("Preflight instructions", "Attachment 1", "Carry-forward items"). After this spec lands, the labels must be **byte-identical to what `display_name(id)` returns** for the canonical registry IDs the code actually emits — otherwise the docs and the code drift again the next time someone adds a piece.
+
+**Visual + structural baseline.** Same layout, palette, typography, viewBox, chip legend, and section ordering as today's `diagrams/deep-research-pipeline.light.svg` and `.dark.svg`. The Pixel design language (cream + indigo light / sable dark, per the diagram skill v2) stays. Inputs numbered in arrival order; per-phase columns horizontal; per-phase pieces vertical; round-conditional pieces dashed; agreements emitted on convergence shown with the ✓ chip — all unchanged.
+
+**What changes — labels only, against the canonical registry:**
+
+| Region | Current label | New label (resolved via `display_name()`) |
+|---|---|---|
+| Persistent input strip | "Chat message" | `user_prompt.message` → "Chat message" *(unchanged, but now keyed to a real registry ID)* |
+| Persistent input strip | "Attachment 1 / Attachment 2 / Attachment 3 / … per attached source" | One row per `user_prompt.attachment.<id>` resolved to its display template `Attachment · {title}`. The diagram renders three illustrative rows with placeholder titles plus a continuation row (`…`), matching today's visual density but keyed to the registry. |
+| P0/P2/P4 round-conditional rows | "Prior preflight turns / Prior negotiation turns / Prior review turns" | `prior_turns.phase0` → "Prior preflight turns", etc. *(unchanged strings, now keyed to registry)* |
+| P0/P2/P4 conditional rows | "Ledger (standing items)" / "Closeout request" | `ledger.standing_items` → "Ledger (standing items)" / `closeout.request` → "Closeout request" |
+| P1 outputs | "Claude's research plan / GPT's research plan" | `phase1.claude` → "Claude's research plan" / `phase1.openai` → "GPT's research plan" |
+| P0/P2/P4 outputs | "Preflight turn (per round) / Negotiation turn (per round) / Review turn (per round)" | `phase0.<agent>.r<N>` → "Preflight turn · {agent} · round {n}", etc. The diagram renders the template form (`r<N>`) since it's a generic per-round diagram. |
+| P3 outputs | "Initial unified draft (v1)" | `phase3.draft.v1` → "Initial unified draft (v1)" |
+| P4 outputs | "Revised draft (v2..vN)" | `phase4.draft.v<N>` → "Revised draft v{n}" *(diagram shows the `v<N>` template form)* |
+| Agreements | "Agreed interpretation / Agreed plan / Drafter selection / Agreed draft acceptance" | `phase0.agreement.interpretation` / `phase2.agreement.plan` / `phase2.agreement.drafter` / `phase4.agreement.draft_acceptance` |
+| FINALIZE inputs | "Latest draft version / All carry-forward items" | `current_draft` (or last `phase4.draft.v<N>`) → "Current draft (latest version)" / `all_carry_forward` → "All carry-forward items" |
+| FINALIZE output | "Final document" | `final.document` → "Final document" |
+
+**Additions or removals driven by §1 and §2:**
+- The persistent input strip's "User prompt composite" badge expands to show `user_prompt.message` + the attachment rows explicitly, replacing the informal "Attachment 1 / Attachment 2 / Attachment 3" sketch with named placeholders that match the registry template.
+- If §2's investigation wires `system.preamble`, every phase column gains a top row labelled "Methodology preamble" above the `system.task.<phase>` row. If §2 deletes the registry entry, no diagram change.
+- If §2 finds `system.task.closeout` is real, it appears in the system row stack for the closeout round of P0/P2/P4. If it's deleted, no diagram change.
+
+**Authoring location + bundled copies.** The light + dark pair lives at:
+- `diagrams/deep-research-pipeline.light.svg` + `.dark.svg` — authoring source
+- `src/dual_research/ui/static/diagrams/deep-research-pipeline.light.svg` + `.dark.svg` — bundled UI copy (regenerated alongside the source)
+
+Both sets are regenerated together in this spec's PR. The `diagram` skill (Pixel design language, pipeline-flow template) produces them.
+
+### 8. Wire the regenerated diagram into How It Works
+
+[`src/dual_research/ui/static/how-it-works.jsx`](../src/dual_research/ui/static/how-it-works.jsx) currently embeds `02-phase-inputs.{light,dark}.svg` in three places ([how-it-works.jsx:748, 770, 799](../src/dual_research/ui/static/how-it-works.jsx:748)) as the per-phase-inputs visualisation. The legacy `deep-research-pipeline` pair is unreferenced ([how-it-works.jsx:56](../src/dual_research/ui/static/how-it-works.jsx:56)).
+
+**Change:** swap the per-phase-inputs slot to use the regenerated `deep-research-pipeline.{light,dark}.svg`. The deep-research-pipeline diagram is more thorough than the 02-phase-inputs diagram (carries outputs and agreements in addition to inputs, and includes the FINALIZE step), so it subsumes the slot rather than coexisting.
+
+Concretely:
+- The three `HiwDiagram` references with `diagramName: '02-phase-inputs'` change to `diagramName: 'deep-research-pipeline'`. Alt-text updates to "Dual Research pipeline — every named input and output per phase, keyed to the canonical artifact registry".
+- The cache-bust query suffix in `HiwDiagram`'s `src` template ([how-it-works.jsx:519](../src/dual_research/ui/static/how-it-works.jsx:519)) bumps from `v=0133a` → `v=0139a` so existing clients refetch.
+- `02-phase-inputs.{light,dark}.svg` is left in `diagrams/how-it-works/` for one release as a deprecation grace period; a follow-up spec deletes it once we've confirmed no other UI surface references it. This avoids a hard-delete that breaks any in-flight branches.
+- The how-it-works changelog entry (`how-it-works.jsx`'s changelog section near line 30-60) gains a new release note that points to spec 0139 and explains the diagram is now keyed to registry IDs.
+
+**Why not coexist.** Keeping two diagrams claiming to be "the per-phase inputs view" is the original sin this spec is fixing. One canonical source — the pipeline diagram, fed by the registry — is the entire point.
 
 ## Out of scope
 
@@ -136,6 +180,10 @@ The existing `Sources` and `Files` tabs on `InputBriefModal` ([line 5659-5667](.
 - [ ] Manual: open a P0/P2/P4 round modal. Verify the left pane shows the document labelled by its canonical artifact ID; the Input sub-tab matches the canonical-piece layout; the right pane shows the expected Q/D (and Q/D/I/C for P4) cards.
 - [ ] Manual: open the Consumption tab. Verify the User-prompt group has an expand affordance that reveals per-attachment rows; collapsed view sums to the same total as today's `user_prompt` segment.
 - [ ] Visual regression: snapshot the InputBriefModal and one card from each phase × round combination before/after the refactor; the only intended deltas are (a) attachments now in-section, (b) labels via `displayNameOf()` rather than legacy short keys.
+- [ ] Diagram parity (programmatic): a test extracts every text label from `diagrams/deep-research-pipeline.{light,dark}.svg` and asserts that every label which represents a piece (i.e. inside an INPUTS/OUTPUTS group, identified by group `id` or class) resolves through `display_name(<some-registry-id>)` to that exact string. Pure structural labels ("PHASE 0", "INPUTS · in order", numeric markers, the chip legend) are whitelisted. The test fails CI if a diagram label has no canonical-ID origin.
+- [ ] Diagram parity (light vs dark): identical text labels in both variants; differences allowed only in palette tokens, not in piece names.
+- [ ] Manual: open the How It Works page. Verify each of the three `HiwDiagram` slots that used `02-phase-inputs` now renders `deep-research-pipeline`, theme switching still swaps light ↔ dark, the cache-bust query string forces a refetch, and the diagram's labels match the same display strings the run-detail modals show for the same pieces.
+- [ ] Manual: scroll the How It Works page through every section and confirm no broken or stale references remain to `02-phase-inputs` or to the legacy short-key vocabulary in prose.
 
 ## Risks
 
@@ -144,6 +192,8 @@ The existing `Sources` and `Files` tabs on `InputBriefModal` ([line 5659-5667](.
 - **Aggregator key normalisation regressions.** If the aggregator previously normalised piece keys, removing that normalisation can corrupt per-phase totals. Mitigation: a regression test that loads a recorded fixture run and asserts piece totals per phase pre/post-refactor.
 - **`system.preamble` investigation finds an actual preamble.** Wiring it through every emitter is small but touches every phase's call site. Mitigation: the investigation lands first in the spec's implementation order so the rest of the work absorbs the signature change in one pass.
 - **Visual regressions in the side-by-side modals' left-pane labels.** Labels like "Other's prior turn" → `phase0.<agent>.r<N-1>` shown via display name will read differently. Mitigation: confirm the display-name resolution renders human-friendly strings before merge; the snapshot test catches structural breakage.
+- **Diagram-vs-registry drift returning.** The whole reason for this spec is that the diagram and the code drifted. Without an enforcement mechanism the drift comes back the next time someone adds a piece. Mitigation: the diagram-parity test in the test plan runs in CI on every PR; it fails closed if a diagram label has no canonical-ID origin or if a newly added registry piece is missing from the diagram. The list of intentionally-omitted registry IDs (e.g. `system.preamble` if §2 deletes it) is encoded as an allowlist in the test, forcing the spec author to declare omissions explicitly.
+- **`02-phase-inputs.svg` orphan during deprecation.** Leaving the file on disk for one release means any out-of-tree reference (a doc, a Notion embed, a screenshot caption) keeps working but also keeps pointing at the now-stale diagram. Mitigation: the deprecation follow-up spec is filed at merge time, not "later"; the file's deletion is tied to the next minor release, not left open-ended.
 
 ## Open questions
 
