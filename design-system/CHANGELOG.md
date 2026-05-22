@@ -12,6 +12,16 @@ Format:
 
 ---
 
+## 2026-05-22 — Critique card · ItemCard + SOURCES segment visual reference (spec 0144)
+- **New §13 in `Design System v2.html`: "Critique card · ItemCard + Sources".** Rendered visual reference for the canonical per-card primitive that all four kinds (Question · Disagreement · Issue · Comment) share. Anatomy block lists the six-step stacking order; three example cards demonstrate resolved-with-sources, capped-with-unverified-source, and open-with-evidence-needed-but-no-sources. A SourceRow detail block shows collapsed vs expanded states.
+- **Legacy QuestionThread section relabelled.** The prior §13 "QuestionThread" is now §13b "QuestionThread (legacy)" with a `history` note clarifying the routing rule: `Array.isArray(item.transitions)` → `<ItemCard>`; else → `<QuestionThread>`. Pre-0114 archived runs keep the legacy renderer.
+- **New rail entry.** `#itemcard · Critique card · Sources` slotted between Critique header and the legacy QuestionThread.
+- **Principle 11 added** to §1 Principles cards: *One card primitive per surface* — closes B08 (Phase 4 cards missing Issue/Comment patches) and B14 (per-card sources) on the same primitive. Mirrors the canonical text already in `SPEC.md §1`.
+- **`composed-components.css` (mirrored to `v2-m3-page.css` via symlink) gains the v2.4 block** — `.crit-card{,.is-*}`, `.crit-card-head`, `.crit-card-body{,em.evidence-needed}`, `.crit-card-id`, `.crit-section-title`, `.lc-row{,-chips,-body}`, `.lc-footer` (ok / warn / err / idle variants), `.item-card__sources{,-hd}`, `.source-row{,.is-unverified,__head,__chev,__title,__host,__body,__field,__label,__url,__excerpt}`, `.chip-unverified`. All rules read from the M3 `--md-*` token vocabulary; no hex codes.
+- **No `SPEC.md` change** — the canonical text contract for SourceRow (§3 Primitives), Sources segment (§4.7), Critique card composition (§4.8), and Principle 11 was already merged in the spec 0151 PR. This PR ships only the §6.3.e visual reference + the supporting CSS.
+
+---
+
 ## 2026-05-21 — Consumption card visual rework (spec 0146)
 - **§14 Consumption row rewritten.** Header is a 3-column grid (icon + name · bracketed `(X.X% of 1M)` right-aligned to the bar end · chevron) instead of the prior `tokens · cost · % of 1M` trio. Tokens and cost live on the bar (collapsed) or inside the totals block (unfolded), not in the header.
 - **Per-attachment sub-rows auto-show** when the card is unfolded — the User-prompt row's `Chat message` + one `Attachment · {title}` per attachment from spec 0145 render without a second click.

@@ -77,7 +77,8 @@
         <a href="#cards"><span class="num">10</span><span class="label-text">Cards · AgentStrip</span></a>
         <a href="#tabs"><span class="num">11</span><span class="label-text">Tabs · Switch</span></a>
         <a href="#critique"><span class="num">12</span><span class="label-text">Critique header</span></a>
-        <a href="#thread"><span class="num">13</span><span class="label-text">QuestionThread</span></a>
+        <a href="#itemcard"><span class="num">13</span><span class="label-text">Critique card · Sources</span></a>
+        <a href="#thread"><span class="num">13b</span><span class="label-text">QuestionThread (legacy)</span></a>
         <a href="#consumption"><span class="num">14</span><span class="label-text">Consumption</span></a>
         <a href="#input"><span class="num">15</span><span class="label-text">Agent input</span></a>
         <a href="#timeline"><span class="num">16</span><span class="label-text">Timeline pane</span></a>
@@ -163,6 +164,10 @@
           <div class="md-card md-card--elevated">
             <div class="md-card__hd"><span class="ms ms-24" style="color:var(--md-primary)">accessibility_new</span><div class="md-card__title">Accessibility first</div></div>
             <div class="md-card__support">M3 focus rings (3px tertiary outline) on every interactive primitive. AA contrast on all text + status; semantic landmarks.</div>
+          </div>
+          <div class="md-card md-card--elevated">
+            <div class="md-card__hd"><span class="ms ms-24" style="color:var(--md-primary)">style</span><div class="md-card__title">One card primitive per surface</div></div>
+            <div class="md-card__support">All four critique-item kinds — Question, Disagreement, Issue, Comment — render with the same <span class="code">ItemCard</span> layout. Only the category chip varies. Spec 0144 — the rule that closes B08 (Phase 4 cards missing I/C patches) and B14 (per-card sources) on the same primitive.</div>
           </div>
         </div>
 
@@ -992,11 +997,325 @@
       </section>
 
 
-      <!-- ─────────────── §13 · QuestionThread ─────────────── -->
+      <!-- ─────────────── §13 · Critique card · ItemCard + SOURCES ─────────────── -->
+      <section id="itemcard" class="ds-section">
+        <div class="ds-section__head">
+          <h3 class="ds-section__title">Critique card · ItemCard + Sources</h3>
+          <span class="ds-section__index">§13 · components · NEW · spec 0144</span>
+        </div>
+        <p class="ds-section__lede">
+          The canonical per-card primitive for every critique item. All four kinds — <b>Question</b>, <b>Disagreement</b>, <b>Issue</b>, <b>Comment</b> — render with the same layout; only the category chip varies. Each card carries header chips, the item text, an optional <em>Evidence needed</em> helper, a vertical <b>Lifecycle</b> timeline of transitions, a terminal-state footer, and (when N&gt;0) a <b>SOURCES (N)</b> segment that itemises each consulted source the agent cited when addressing the item.
+        </p>
+
+        <!-- ── Anatomy diagram (numbered stacking order) ── -->
+        <div class="md-card md-card--outlined" style="margin: 16px 0 24px;">
+          <div class="md-card__hd" style="margin-bottom: 14px;">
+            <span class="ms ms-24" style="color:var(--md-primary)" aria-hidden="true">view_agenda</span>
+            <div class="md-card__title">Stacking order (top → bottom)</div>
+          </div>
+          <ol style="margin:0; padding-left:22px; color:var(--md-on-surface-variant); line-height: 1.7;">
+            <li><b>Header chip row.</b> <span class="code">{id}</span> (mono inline, not a chip) · <b>agent</b> · <b>kind</b> · <span class="code">raised in rN</span> · <span class="code">Sources N</span> (when N&gt;0) · right-aligned <b>status</b> chip.</li>
+            <li><b>Body.</b> Item text. When <span class="code">anchor_type !== 'none'</span>, a tinted blockquote follows.</li>
+            <li><b>Evidence-needed helper.</b> Italic line, rendered only when <span class="code">evidence_required === true</span>: <em>"Evidence needed — addresses must cite consulted sources."</em></li>
+            <li><b>Lifecycle timeline.</b> Vertical list of transitions; each row is <span class="code">round N · agent · verb</span> with the reason in muted serif italic underneath.</li>
+            <li><b>Footer.</b> Single tinted line (ok-toned by default): <span class="code">✓ {terminalState} at round N · M turns to converge</span>. Rendered in any terminal state; never on open / addressed items.</li>
+            <li><b>SOURCES (N).</b> Vertical stack of <code>&lt;SourceRow&gt;</code> instances after a dashed top border. Hidden entirely when N === 0.</li>
+          </ol>
+        </div>
+
+        <!-- ── Two example cards: resolved + capped ── -->
+        <div class="cards-2up">
+
+          <!-- (1) Resolved Question · with sources -->
+          <article class="crit-card is-resolved" aria-labelledby="ic-1">
+            <div class="crit-card-head">
+              <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+              <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">Question</span>
+              <span class="md-chip md-chip--sm">raised in r1</span>
+              <span class="md-chip md-chip--sm">Sources&nbsp;<span style="color:var(--md-on-surface)">2</span></span>
+              <span class="spacer"></span>
+              <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);"><span style="font-weight:800">✓</span>&nbsp;resolved</span>
+            </div>
+
+            <div class="crit-card-body" id="ic-1">
+              Does <code>pgx/v5</code> with <code>SET LOCAL</code> RLS session context behave correctly against Azure Postgres Flexible Server's built-in PgBouncer?
+              <em class="evidence-needed">Evidence needed — addresses must cite consulted sources.</em>
+            </div>
+            <div class="crit-card-id">id: Q-plan-c-02</div>
+
+            <div class="crit-section-title">Lifecycle</div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                <span class="md-chip md-chip--sm">round 1</span>
+                <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">raised</span>
+              </div>
+              <div class="lc-row-body">
+                "Need verification — pgx pooling on Flexible Server documents <code>SET LOCAL</code> as transaction-scoped, not session-scoped. Flag as decision check 2."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+                <span class="md-chip md-chip--sm">round 2</span>
+                <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">addressed</span>
+              </div>
+              <div class="lc-row-body">
+                "Reframing: <code>SET LOCAL</code> is transaction-scoped per pg docs. PgBouncer documents plain <code>SET/RESET</code> as unsupported in transaction pooling. Protocol-level prepared plans can work if <code>max_prepared_plans</code> is non-zero."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                <span class="md-chip md-chip--sm">round 2</span>
+                <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);">resolved</span>
+              </div>
+              <div class="lc-row-body">
+                "Accepted. Plan now specifies <code>max_prepared_plans</code> and explicit <code>SET LOCAL ... INSIDE TX</code> guarded by pgx middleware."
+              </div>
+            </div>
+
+            <div class="lc-footer">
+              <span style="font-weight:800">✓</span>
+              <span>resolved at round 2</span>
+              <span class="sep">·</span>
+              <span class="meta">2 turns to converge</span>
+            </div>
+
+            <div class="item-card__sources">
+              <div class="item-card__sources-hd">Sources <span class="count">(2)</span></div>
+
+              <div class="source-row" data-open="true">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">PostgreSQL — SET</span>
+                  <span class="source-row__host">postgresql.org</span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://www.postgresql.org/docs/current/sql-set.html</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>pgx SET LOCAL transaction scope PgBouncer Flexible Server</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 01:09 UTC</div>
+                  <div class="source-row__excerpt">"The effects of SET LOCAL last only till the end of the current transaction, whether committed or not. A special case is SET followed by SET LOCAL within a single transaction: the SET LOCAL value will be seen until the end of the transaction, but afterwards (if the transaction is committed) the SET value will take effect."</div>
+                </div>
+              </div>
+
+              <div class="source-row" data-open="false">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">PgBouncer — config / pooling notes</span>
+                  <span class="source-row__host">pgbouncer.org</span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://www.pgbouncer.org/config.html</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>PgBouncer transaction pooling max_prepared_plans</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 01:09 UTC</div>
+                  <div class="source-row__excerpt">"In transaction pooling mode, SET, RESET, LISTEN, and a number of other session-state-changing commands are not supported. Protocol-level prepared statements work when max_prepared_statements is non-zero (server-side; the equivalent setting also exists for clients)."</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- (2) Capped Issue · with one unverified source -->
+          <article class="crit-card is-capped" aria-labelledby="ic-2">
+            <div class="crit-card-head">
+              <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+              <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">Issue</span>
+              <span class="md-chip md-chip--sm">raised in r3</span>
+              <span class="md-chip md-chip--sm">via ghost cap</span>
+              <span class="md-chip md-chip--sm">Sources&nbsp;<span style="color:var(--md-on-surface)">1</span></span>
+              <span class="spacer"></span>
+              <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">capped</span>
+            </div>
+
+            <div class="crit-card-body" id="ic-2">
+              Logical-replication slot configuration on Azure Postgres Flex does not survive a failover — the proposed CDC strategy assumes slot persistence that the platform doesn't guarantee.
+            </div>
+            <div class="crit-card-id">id: I-cdc-g-04</div>
+
+            <div class="crit-section-title">Lifecycle</div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+                <span class="md-chip md-chip--sm">round 3</span>
+                <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">raised</span>
+              </div>
+              <div class="lc-row-body">
+                "Flex Server's primary-failover docs do not list logical-replication slots among preserved objects. Need a backup CDC strategy or this is a P0 risk."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                <span class="md-chip md-chip--sm">round 4</span>
+                <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">addressed</span>
+              </div>
+              <div class="lc-row-body">
+                "Acknowledge the risk; propose Debezium fallback. Need to verify behaviour on a planned-failover dry-run before promoting the plan."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--sm">round 5</span>
+                <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">capped</span>
+                <span class="md-chip md-chip--sm">via ghost cap</span>
+              </div>
+              <div class="lc-row-body">
+                "Closeout budget exhausted before mutual ack. Issue recorded; downstream owner notified."
+              </div>
+            </div>
+
+            <div class="lc-footer">
+              <span style="font-weight:800">⊘</span>
+              <span>capped at round 5</span>
+              <span class="sep">·</span>
+              <span class="meta">closeout exhausted · 2 turns to converge</span>
+            </div>
+
+            <div class="item-card__sources">
+              <div class="item-card__sources-hd">Sources <span class="count">(1)</span></div>
+
+              <div class="source-row is-unverified" data-open="true">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">Azure Postgres Flex — failover behaviour</span>
+                  <span class="source-row__host">learn.microsoft.com</span>
+                  <span class="right">
+                    <span class="chip-unverified" title="evidence_event_id did not match any tool event in this turn's audit">⚠ unverified</span>
+                  </span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-high-availability</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>Azure Postgres Flexible Server failover replication slot persistence</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 02:14 UTC</div>
+                  <div class="source-row__field"><span class="source-row__label">unverified reason</span><span style="color: var(--p-warn)">evidence_event_id_fabricated</span> — the cited handle <span class="code">search_4</span> did not match any tool event in this turn's audit.</div>
+                  <div class="source-row__excerpt">"During a failover event, server-side state including replication slots may not survive without explicit configuration. Customers using logical decoding for change data capture should review the high-availability and disaster-recovery guidance for their workload."</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- ── Open card · full width · with Evidence-needed but no sources yet ── -->
+        <article class="crit-card is-open" aria-labelledby="ic-3" style="margin-top:16px;">
+          <div class="crit-card-head">
+            <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+            <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">Disagreement</span>
+            <span class="md-chip md-chip--sm">raised in r2</span>
+            <span class="spacer"></span>
+            <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">open · awaiting Claude</span>
+          </div>
+
+          <div class="crit-card-body" id="ic-3">
+            The proposed CDC outbox-poll interval (5 s) is too high for the agreed P95-latency target of 3 s end-to-end. Either tighten the poll or reframe the target.
+            <em class="evidence-needed">Evidence needed — addresses must cite consulted sources.</em>
+          </div>
+          <div class="crit-card-id">id: D-cdc-g-01</div>
+
+          <div class="crit-section-title">Lifecycle</div>
+
+          <div class="lc-row">
+            <div class="lc-row-chips">
+              <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+              <span class="md-chip md-chip--sm">round 2</span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">raised</span>
+            </div>
+            <div class="lc-row-body">
+              "5 s poll · 3 s P95 target → arithmetic doesn't close. Sources needed to back the 5 s number — current plan cites none."
+            </div>
+          </div>
+        </article>
+
+        <!-- ── SourceRow detail · collapsed vs expanded ── -->
+        <div style="margin-top: 32px;">
+          <h4 class="t-title-m" style="margin: 0 0 12px;">SourceRow — anatomy</h4>
+          <p class="ds-section__lede" style="margin-bottom: 14px;">
+            One row per evidence record. Collapsed by default; click the chevron or the title to expand. The collapsed form carries title + host (and an <span class="chip-unverified" style="vertical-align: middle">⚠ unverified</span> chip when the validator flagged the record). The expanded form adds the URL, the search query, the fetched-at timestamp, the content excerpt (bounded scroll above 800 chars), and any unverified reason.
+          </p>
+
+          <div class="cols-2" style="gap: 16px;">
+            <div class="md-card md-card--outlined">
+              <div class="md-card__hd" style="margin-bottom: 10px;"><div class="md-card__title">Collapsed</div></div>
+              <div class="source-row" data-open="false">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">PostgreSQL — SET</span>
+                  <span class="source-row__host">postgresql.org</span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://www.postgresql.org/docs/current/sql-set.html</a></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="md-card md-card--outlined">
+              <div class="md-card__hd" style="margin-bottom: 10px;"><div class="md-card__title">Expanded · unverified</div></div>
+              <div class="source-row is-unverified" data-open="true">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">Azure Postgres Flex — failover behaviour</span>
+                  <span class="source-row__host">learn.microsoft.com</span>
+                  <span class="right">
+                    <span class="chip-unverified">⚠ unverified</span>
+                  </span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://learn.microsoft.com/azure/postgresql/…</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>Azure Postgres Flex failover replication slot</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 02:14 UTC</div>
+                  <div class="source-row__field"><span class="source-row__label">unverified reason</span><span style="color: var(--p-warn)">evidence_event_id_fabricated</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Governance notes ── -->
+        <div class="cols-2" style="gap: 16px; margin-top: 24px;">
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">rule</span>
+            <div>
+              <b>The kind-agnostic invariant.</b> All four kinds — Question, Disagreement, Issue, Comment — render with this exact stacking order. No kind-specific variant exists. A reviewer who sees an Issue or a Comment card that diverges from this anatomy is looking at a bug, not a variant.
+            </div>
+          </div>
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">visibility_off</span>
+            <div>
+              <b>Empty SOURCES segment is hidden.</b> When the item has <span class="code">N === 0</span> evidence records, the entire SOURCES segment — label, border, and list — is removed from the DOM. A segment showing <span class="code">(0)</span> on an item that never had source data would be misleading; the segment's presence is itself the signal.
+            </div>
+          </div>
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">warning</span>
+            <div>
+              <b>Unverified chip placement.</b> The <span class="chip-unverified" style="vertical-align: middle">⚠ unverified</span> chip lives on the <i>offending source row</i>, never on the card header. A card with three sources where only one is flagged would mislead reviewers with a card-level chip — only the row in question is annotated.
+            </div>
+          </div>
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">link</span>
+            <div>
+              <b>Visual source-of-truth.</b> <a href="audits/2026-05-19-badge-governance-iter3/mockup.html" style="color:var(--md-primary)">audits/2026-05-19-badge-governance-iter3/mockup.html</a> — the recovered iter-3 ideation mockup. Spec contract: <span class="code">SPEC.md</span> §3 (SourceRow primitive) · §4.7 (Sources segment) · §4.8 (Critique card composition). Live implementation: <span class="code">src/dual_research/ui/static/run-detail.jsx</span> — search for <code>function ItemCard</code> and <code>function SourceRow</code>.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────────── §13b · QuestionThread (legacy) ─────────────── -->
       <section id="thread" class="ds-section">
         <div class="ds-section__head">
-          <h3 class="ds-section__title">QuestionThread</h3>
-          <span class="ds-section__index">§13 · components · REWORKED</span>
+          <h3 class="ds-section__title">QuestionThread (legacy)</h3>
+          <span class="ds-section__index">§13b · components · LEGACY · pre-0114 fallback</span>
+        </div>
+        <div class="note" style="margin-bottom:16px;">
+          <span class="ms ms-20" aria-hidden="true">history</span>
+          <div>
+            <b>Legacy fallback.</b> The canonical critique-card primitive is now <a href="#itemcard" style="color:var(--md-primary)">Critique card · ItemCard</a> (§13) — it handles all four kinds (Q · D · I · C) and surfaces evidence sources per the spec 0144 contract. The thread component below is retained for pre-0114 archived runs whose items have no <span class="code">transitions[]</span> array. Routing logic: <span class="code">Array.isArray(item.transitions)</span> → <span class="code">&lt;ItemCard&gt;</span>; else → <span class="code">&lt;QuestionThread&gt;</span>.
+          </div>
         </div>
         <p class="ds-section__lede">
           Turn-by-turn conversation for a single critique item. Border-left tinted by status: <b style="color:var(--p-warn)">open</b> warn, <b style="color:var(--p-ok)">resolved</b> ok, <b style="color:var(--p-err)">drift</b> err. Each row carries an agent pill (initial + name + round + verdict) and the agent's quote in serif italic. The header carries the <span class="code">qref</span> badge — Q · 03 · [agent] · r1 — plus the resolution chip.

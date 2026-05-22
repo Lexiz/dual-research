@@ -1798,3 +1798,203 @@ body.light .ccx-bar .reuse {
 }
 .rdvc__footer .right { margin-left: auto; }
 .rdvc__footer .v { color: var(--md-on-surface); font-weight: var(--md-w-medium); }
+
+
+/* =============================================================
+   v2.4 — Critique card · ItemCard + SOURCES segment (spec 0144)
+   Canonical per-card primitive. Replaces the legacy QuestionThread
+   for new-protocol items (those with a `transitions[]` array).
+   Layout is kind-agnostic — only the category chip varies between
+   Q · D · I · C. Closes B08 (Phase 4 cards missing I/C patches) and
+   B14 (per-card sources) on the same primitive.
+   Visual source-of-truth:
+   design-system/audits/2026-05-19-badge-governance-iter3/mockup.html
+   ============================================================= */
+
+/* ── Critique card frame ──────────────────────────── */
+.crit-card {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-left: 3px solid var(--md-outline);
+  border-radius: var(--md-shape-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  color: var(--md-on-surface);
+}
+.crit-card.is-open         { border-left-color: var(--p-info); }
+.crit-card.is-addressed    { border-left-color: var(--p-info); }
+.crit-card.is-resolved     { border-left-color: var(--p-ok); }
+.crit-card.is-acknowledged { border-left-color: var(--p-warn); }
+.crit-card.is-withdrawn    { border-left-color: var(--p-idle); }
+.crit-card.is-capped       { border-left-color: var(--p-err); }
+.crit-card.is-drift        { border-left-color: var(--p-err); }
+
+.crit-card-head {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin-bottom: 10px;
+}
+.crit-card-head .spacer { flex: 1; min-width: 8px; }
+
+.crit-card-body {
+  font: var(--md-w-regular) 13.5px/1.55 var(--md-font-plain);
+  color: var(--md-on-surface);
+  margin-bottom: 8px;
+}
+.crit-card-body code {
+  font-family: var(--md-font-data); font-size: 12px;
+  padding: 1px 5px; border-radius: var(--md-shape-xs);
+  background: var(--md-surface-container-high); color: var(--md-on-surface);
+}
+.crit-card-body em.evidence-needed {
+  display: block; margin-top: 8px;
+  font: italic var(--md-w-regular) 13px/1.5 var(--md-font-brand);
+  color: var(--md-on-surface-variant);
+}
+
+.crit-card-id {
+  font: var(--md-w-regular) 10.5px/1.2 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  margin-bottom: 10px;
+}
+
+/* ── In-card section title (Lifecycle, Sources) ──── */
+.crit-section-title {
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin: 14px 0 8px;
+}
+.crit-section-title .count {
+  text-transform: none; letter-spacing: 0;
+  color: var(--md-on-surface-faint);
+  font-weight: var(--md-w-regular);
+  margin-left: 4px;
+}
+
+/* ── Lifecycle rows ───────────────────────────────── */
+.lc-row { padding: 8px 0; border-top: 1px dashed var(--md-outline-hair); }
+.lc-row:first-of-type { border-top: 0; padding-top: 0; }
+.lc-row-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 6px;
+}
+.lc-row-body {
+  font: italic var(--md-w-regular) 12.5px/1.55 var(--md-font-brand);
+  color: var(--md-on-surface-variant);
+  padding-left: 10px;
+  margin-left: 4px;
+  border-left: 2px solid var(--md-outline-variant);
+}
+.lc-row-body code {
+  font-family: var(--md-font-data); font-style: normal; font-size: 12px;
+  padding: 1px 5px; border-radius: var(--md-shape-xs);
+  background: var(--md-surface-container-high); color: var(--md-on-surface);
+}
+
+.lc-footer {
+  margin-top: 10px; padding: 8px 12px;
+  background: color-mix(in srgb, var(--p-ok) 12%, var(--md-surface-container-high));
+  border-radius: var(--md-shape-sm);
+  color: var(--p-ok);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  display: inline-flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+}
+.lc-footer .sep  { color: var(--md-on-surface-faint); }
+.lc-footer .meta { color: var(--md-on-surface-variant); }
+.crit-card.is-capped       .lc-footer { background: color-mix(in srgb, var(--p-err)  14%, var(--md-surface-container-high)); color: var(--p-err); }
+.crit-card.is-acknowledged .lc-footer { background: color-mix(in srgb, var(--p-warn) 14%, var(--md-surface-container-high)); color: var(--p-warn); }
+.crit-card.is-withdrawn    .lc-footer { background: color-mix(in srgb, var(--p-idle) 16%, var(--md-surface-container-high)); color: var(--md-on-surface-variant); }
+.crit-card.is-drift        .lc-footer { background: color-mix(in srgb, var(--p-err)  14%, var(--md-surface-container-high)); color: var(--p-err); }
+
+/* ── SOURCES segment (per-card) ───────────────────── */
+.item-card__sources {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--md-outline-hair);
+}
+.item-card__sources-hd {
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin-bottom: 8px;
+}
+.item-card__sources-hd .count {
+  text-transform: none; letter-spacing: 0;
+  color: var(--md-on-surface-faint);
+  font-weight: var(--md-w-regular);
+  margin-left: 4px;
+}
+
+/* ── SourceRow primitive ──────────────────────────── */
+.source-row {
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-xs);
+  padding: 8px 10px;
+  margin: 6px 0;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard);
+}
+.source-row__head {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; user-select: none;
+}
+.source-row__chev {
+  color: var(--md-on-surface-variant);
+  font: var(--md-w-regular) 10px/1 var(--md-font-data);
+  transition: transform var(--md-dur-short-3) var(--md-easing-emphasized);
+}
+.source-row[data-open="true"] .source-row__chev { transform: rotate(90deg); }
+.source-row__title {
+  color: var(--md-on-surface);
+  font: var(--md-w-medium) 12.5px/1.3 var(--md-font-plain);
+}
+.source-row__host {
+  color: var(--md-on-surface-faint);
+  font: var(--md-w-regular) 11px/1 var(--md-font-plain);
+}
+.source-row__head .right { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+
+.source-row__body {
+  padding-top: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.source-row[data-open="false"] .source-row__body { display: none; }
+.source-row__field {
+  font: var(--md-w-regular) 12px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.source-row__label {
+  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  margin-right: 6px;
+}
+.source-row__url {
+  font-family: var(--md-font-data); font-size: 11.5px;
+  color: var(--p-info); word-break: break-all;
+}
+.source-row__excerpt {
+  font: italic var(--md-w-regular) 11.5px/1.5 var(--md-font-brand);
+  color: var(--md-on-surface-variant);
+  padding: 8px 10px;
+  background: var(--md-surface);
+  border-radius: var(--md-shape-xs);
+  max-height: 160px; overflow-y: auto;
+  margin-top: 2px;
+}
+
+/* Unverified state — warn-tinted border + small chip on the row. */
+.source-row.is-unverified {
+  border-color: color-mix(in srgb, var(--p-warn) 50%, var(--md-outline-hair));
+  background: color-mix(in srgb, var(--p-warn) 5%, var(--md-surface-container-low));
+}
+.chip-unverified {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 18px; padding: 0 7px;
+  border-radius: var(--md-shape-xs);
+  font: var(--md-w-semi) 10px/1 var(--md-font-plain);
+  letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--p-warn) 18%, transparent);
+  color: var(--p-warn);
+}
