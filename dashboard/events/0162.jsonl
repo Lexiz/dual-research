@@ -5,3 +5,6 @@
 {"ts":"2026-05-22T15:32:29Z","step":"spec_read","data":{"path":"specs/0162-post-deploy-blue-sweep.md","lines":154,"type":"bug"}}
 {"ts":"2026-05-22T15:32:34Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-22T15:32:45Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T15:32:47Z","step":"branched","data":{"branch":"spec/0162-post-deploy-blue-sweep","from":"main@aac47c4"}}
+{"ts":"2026-05-22T15:44:21Z","step":"implement_complete","data":{"files_changed":7,"commits":1}}
+{"ts":"2026-05-22T15:44:54Z","step":"tests_green","data":{"passed":1519,"failed":0}}
