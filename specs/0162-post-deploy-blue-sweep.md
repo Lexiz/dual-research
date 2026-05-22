@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.23.2
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22"
 started_at: "2026-05-22T15:32:34Z"
 merged_at: "2026-05-22T15:47:09Z"
-deployed_at: ""
+deployed_at: "2026-05-22T15:50:02Z"
 pr: "https://github.com/Lexiz/dual-research/pull/185"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0162-post-deploy-blue-sweep.md"
 failure_step: ""
 source_session: dbc5aed3-25f2-4ed3-a7b1-4dc61161a4c0
 promoted_from_draft: "005"
