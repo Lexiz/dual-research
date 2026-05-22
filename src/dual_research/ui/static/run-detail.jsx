@@ -159,12 +159,14 @@ function TimelineAgentPill({ agent, run, className = 'in-header' }) {
   const modelId = ag.modelId || ag.model_id || meta?.name || agent;
   const { live, phrase } = composeAgentActivity(agent, run);
   const slot = agent === 'claude' ? 'a' : 'b';
-  const dotColor = live ? meta.color : 'var(--md-outline)';
   const phraseColor = live ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-faint)';
 
   const activityRight = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-      <Dot color={dotColor} pulse={live ? 'pulse-a' : null} size={6} />
+      {/* Spec 0173 §2.1 — dot's colour + pulse are owned by components.css
+          via `.as.in-header[.is-live] .activity-dot`. Not-live = grey;
+          live = info-blue + pulse-info halo. */}
+      <i className="activity-dot" aria-hidden="true" />
       {/* Spec 0112 — sizing/overflow lives in .as-activity (components.css).
           Only the dynamic phraseColor remains inline. */}
       <span className="as-activity" style={{ color: phraseColor }}>
@@ -1364,8 +1366,12 @@ function _hostnameOf(url) {
   try { return new URL(url).hostname; } catch { return url || ''; }
 }
 
-function SourceRow({ record }) {
-  const [open, setOpen] = React.useState(false);
+// Spec 0173 §2.10 / §2.11 — SourceRow extended with `provider` + `round`
+// for the per-source attribution chip (between title and host badge),
+// and `defaultExpanded` for the spec 0168 §3.J first-source-pre-expanded
+// rule (lands together with the per-card collapse affordance).
+function SourceRow({ record, provider, round, defaultExpanded = false }) {
+  const [open, setOpen] = React.useState(!!defaultExpanded);
   const toggle = () => setOpen((v) => !v);
   const onKey = (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -1381,6 +1387,35 @@ function SourceRow({ record }) {
   const excerptStyle = excerpt.length > 800
     ? { maxHeight: 200, overflowY: 'auto' }
     : null;
+
+  // Spec 0173 §2.10 — attribution chip. Read from the explicit props
+  // first, then fall back to the EvidenceRecord shape (camelCased from
+  // models.py — `providedBy` + `answeredInRound`) so existing call
+  // sites (which pass record only) still surface attribution.
+  const attrProvider = provider
+    || record.provider || record.providerAgent
+    || record.providedBy || record.provided_by
+    || null;
+  const attrRound = round != null
+    ? round
+    : (record.round != null ? record.round
+       : record.answeredInRound != null ? record.answeredInRound
+       : record.answered_in_round != null ? record.answered_in_round
+       : record.raisedInRound != null ? record.raisedInRound
+       : record.raised_in_round != null ? record.raised_in_round
+       : null);
+  const attrAgent = _resolveAgent(attrProvider);
+  const attributionChip = (attrAgent && attrRound != null) ? (
+    <Chip
+      tone={attrAgent === 'gpt' ? 'gpt' : 'claude'}
+      size="sm"
+      leadingIcon={<AgentIcon agent={attrAgent} size={10} />}
+      label={`r${attrRound}`}
+    />
+  ) : (attrProvider === 'auto' || attrProvider === 'orchestrator' || attrProvider === 'system') && attrRound != null ? (
+    <Chip tone="neutral" noDot size="sm" label={`auto · r${attrRound}`} />
+  ) : null;
+
   return (
     <div className={`source-row ${open ? 'is-open' : ''} ${isUnverified ? 'is-unverified' : ''}`}>
       <div
@@ -1393,6 +1428,9 @@ function SourceRow({ record }) {
       >
         <span className="source-row__chev" aria-hidden="true">{open ? '▼' : '▶'}</span>
         <span className="source-row__title">{title}</span>
+        {attributionChip && (
+          <span className="source-row__attribution">{attributionChip}</span>
+        )}
         <span className="source-row__host">{hostname}</span>
         {isUnverified && (
           <span
@@ -1445,6 +1483,99 @@ function SourceRow({ record }) {
 const _ITEM_CARD_TERMINAL_STATES = new Set([
   'resolved', 'acknowledged', 'withdrawn', 'capped',
 ]);
+
+// Spec 0173 §2.5 — kind chip vocabulary + tone for the rebuilt
+// item-card head. Q → info, D → warn, I → err, C → muted. Mirrors the
+// canonical kind cluster on bar 2 (Q · D · I · C).
+const _ITEM_KIND_LABEL = {
+  question: 'Question', disagreement: 'Disagreement',
+  issue: 'Issue', comment: 'Comment',
+};
+const _ITEM_KIND_TONE = {
+  question: 'info', disagreement: 'warn', issue: 'err', comment: 'muted',
+};
+const _ITEM_KIND_LETTER = {
+  question: 'Q', disagreement: 'D', issue: 'I', comment: 'C',
+};
+
+// Spec 0173 §2.6 + §2.8 — lifecycle chip helpers. The composite chip
+// carries the raise → resolve arc with provenance (round + resolver).
+// `_resolveAgent` normalises `openai` → `gpt` for the AgentIcon prop
+// while preserving the agent identity for tone selection.
+function _resolveAgent(actor) {
+  if (actor === 'openai') return 'gpt';
+  if (actor === 'claude' || actor === 'gpt') return actor;
+  return null;
+}
+
+// Spec 0173 §2.9 — ItemCardThreadView. Renders the raise → respond →
+// resolve arc as tonal-tinted message bubbles, mirroring the
+// QuestionThread anatomy from design-system/SPEC.md §4.2 (canonical
+// `.qthread` `.lc-row` chip-cluster + indented quote body). The first
+// bubble is always the "raised" turn (with item.body as the quote);
+// subsequent bubbles come from `item.transitions` in chronological
+// order. Verdict tone follows the existing `_verbTone` mapping.
+function ItemCardThreadView({ item }) {
+  const transitions = item.transitions || [];
+  const raisedAgent = _resolveAgent(item.raisedBy || item.raiser);
+  const raisedRound = item.raisedRound || item.raised_round || item.roundFirstSeen || item.openedRound || null;
+  const raisedQuote = item.body || '';
+  const turns = [];
+  if (raisedAgent || raisedRound != null || raisedQuote) {
+    turns.push({
+      agent: raisedAgent,
+      round: raisedRound,
+      verb: 'raised',
+      tone: 'muted',
+      text: raisedQuote,
+    });
+  }
+  for (const t of transitions) {
+    const verb = _transitionVerb(t);
+    turns.push({
+      agent: _resolveAgent(t.actor),
+      round: t.round,
+      verb,
+      tone: _verbTone(verb),
+      text: t.reason || '',
+    });
+  }
+  if (turns.length === 0) return null;
+  return (
+    <ol className="item-card__qt-rows" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {turns.map((t, i) => {
+        const agentName = t.agent === 'gpt' ? 'GPT' : t.agent === 'claude' ? 'Claude' : 'System';
+        return (
+          <li key={i} className={`item-card__qt-row item-card__qt-row--${t.agent || 'system'}`}>
+            <div className="item-card__qt-chips">
+              {t.agent ? (
+                <Chip
+                  tone={t.agent === 'gpt' ? 'gpt' : 'claude'}
+                  size="sm"
+                  leadingIcon={<AgentIcon agent={t.agent} size={10} />}
+                  label={agentName}
+                />
+              ) : (
+                <SystemChip />
+              )}
+              {t.round != null && (
+                <Chip mono size="sm" tone="neutral" label={`round ${t.round}`} />
+              )}
+              {t.verb && (
+                <Chip size="sm" tone={t.tone === 'error' ? 'err' : t.tone} label={t.verb} />
+              )}
+            </div>
+            {t.text && (
+              <blockquote className="item-card__qt-quote">
+                {typeof t.text === 'string' ? <Markdown text={t.text} /> : t.text}
+              </blockquote>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 // Spec 0151 §3.4.3 — per-kind verb labels for the footer strip.
 // Disagreement and Question have agent-specific terminal phrasing
@@ -1539,8 +1670,6 @@ function ItemCardDQBody({ item, transitions, stateLabel, stateTone, isTerminal }
   return (
     <div className="item-card__body item-card__body--turns">
       <div className="item-card__bmeta">
-        <code className="item-card__sid">{item.id}</code>
-        <Chip tone={stateTone} size="sm">{stateLabel}</Chip>
         <span style={{ flex: 1 }} />
         <span className="item-card__turn-count">{turnsCount} turn{turnsCount === 1 ? '' : 's'}</span>
       </div>
@@ -1551,28 +1680,12 @@ function ItemCardDQBody({ item, transitions, stateLabel, stateTone, isTerminal }
           <span className="item-card__verdict-text">{resolutionText}</span>
         </div>
       )}
-      <div className="item-card__turns">
-        <ItemCardTurnRow
-          actor={item.raiser}
-          round={item.raisedRound || item.raised_round}
-          verb="raised"
-          tone="muted"
-          text={item.body}
-        />
-        {transitions.map((t, i) => {
-          const verb = _transitionVerb(t);
-          return (
-            <ItemCardTurnRow
-              key={i}
-              actor={t.actor}
-              round={t.round}
-              verb={verb}
-              tone={_verbTone(verb)}
-              text={t.reason}
-            />
-          );
-        })}
-      </div>
+      {/* Spec 0173 §2.9 — flat ItemCardTurnRow stack replaced by the
+          QuestionThread-anatomy bubble timeline. The new view carries
+          the same data (agent identity, round, verb, quote) but renders
+          each transition as a tonal-tinted message bubble keyed off
+          provider, mirroring `.lc-row` from shared.jsx::QuestionThread. */}
+      <ItemCardThreadView item={item} />
     </div>
   );
 }
@@ -1667,14 +1780,11 @@ function ItemCardCommentBody({ item, anchorType, anchorText }) {
 // strip whose verb is kind-aware (`both aligned` / `answered` /
 // `resolved` / `noted`). Hover elevation per design-system/notion-
 // issues/ISSUES.md Issue 3 via the shared `data-hoverable` token.
-function ItemCard({ item, onHighlight }) {
+function ItemCard({ item, onHighlight, isDrift = false }) {
   const cardRef = React.useRef(null);
-  const kindLabel = ({
-    question: 'Question',
-    disagreement: 'Disagreement',
-    issue: 'Issue',
-    comment: 'Comment',
-  })[item.kind] || item.kind;
+  const kindLabel = _ITEM_KIND_LABEL[item.kind] || item.kind;
+  const kindTone = _ITEM_KIND_TONE[item.kind] || 'info';
+  const kindLetter = _ITEM_KIND_LETTER[item.kind] || (item.kind || '?')[0].toUpperCase();
   const stateLabel = item.currentState || item.current_state || 'open';
   const stateTone = ({
     resolved: 'ok',
@@ -1690,6 +1800,18 @@ function ItemCard({ item, onHighlight }) {
   const anchorType = item.anchorType || item.anchor_type;
   const anchorText = item.anchorText || item.anchor_text;
   const isTerminal = _ITEM_CARD_TERMINAL_STATES.has(stateLabel);
+
+  // Spec 0173 §2.6 + §2.8 — derive lifecycle data once, reuse across
+  // the head chip and the (future) expanded-view scaffolding.
+  const raisedByAgent = _resolveAgent(item.raisedBy);
+  const raisedRound = item.raisedRound || item.raised_round || item.roundFirstSeen || item.openedRound || null;
+  const lastTerminalT = isTerminal
+    ? [...transitions].reverse().find((t) => _ITEM_CARD_TERMINAL_STATES.has(t.toState || t.to_state || ''))
+    : null;
+  const resolvedRound = lastTerminalT ? lastTerminalT.round : null;
+  const resolvedActor = lastTerminalT ? lastTerminalT.actor : null;
+  const resolvedByAgent = _resolveAgent(resolvedActor);
+  const isAutoResolve = isTerminal && !resolvedByAgent;
 
   // Lifecycle footer (Spec 0151 §3.4.3): kind-aware verb, green strip.
   let lifecycleFooter = null;
@@ -1776,40 +1898,128 @@ function ItemCard({ item, onHighlight }) {
     );
   }
 
+  // Spec 0173 §2.5 + §2.6 + §2.7 + §2.8 — rebuilt head composition.
+  // `[provider chip] [kind chip] [evidence-needed modifier?] [lifecycle chip — right-aligned]`.
+  // The ID chip and the standalone sources chip are dropped (per §2.5
+  // and the deferred 0168 §2.3 covered by spec 0172). The state chip
+  // is subsumed by the lifecycle chip per §2.8.
+  const providerChip = raisedByAgent ? (
+    <Chip
+      tone={raisedByAgent === 'gpt' ? 'gpt' : 'claude'}
+      size="sm"
+      leadingIcon={<AgentIcon agent={raisedByAgent} size={10} />}
+      label={raisedByAgent === 'gpt' ? 'GPT' : 'Claude'}
+    />
+  ) : <SystemChip />;
+
+  const kindChip = (
+    <Chip tone={kindTone} size="sm" categoryBubble={kindLetter} label={kindLabel} />
+  );
+
+  const evidenceModifierChip = evidenceRequired ? (
+    <Chip
+      tone="warn"
+      size="sm"
+      leadingIcon={<Mdi name="alert" size={12} />}
+      label="evidence needed"
+    />
+  ) : null;
+
+  // Lifecycle chip — composite arc. Drift: err tone, raised + drift
+  // narrative. Resolved: ok-toned cluster of two micro-chips (raised
+  // by · resolved by). Open: kind-toned single chip with raised
+  // provenance. Auto-resolve uses SystemChip leading icon per §2.8.
+  let lifecycleChip;
+  if (isDrift) {
+    lifecycleChip = (
+      <Chip
+        tone="err"
+        size="sm"
+        leadingIcon={raisedByAgent ? <AgentIcon agent={raisedByAgent} size={10} /> : null}
+        label={`raised r${raisedRound || '?'} · drift`}
+      />
+    );
+  } else if (isTerminal) {
+    lifecycleChip = (
+      <span className="item-card__lifecycle">
+        <Chip
+          tone="muted"
+          size="sm"
+          leadingIcon={raisedByAgent ? <AgentIcon agent={raisedByAgent} size={10} /> : null}
+          label={`raised r${raisedRound || '?'}`}
+        />
+        <span className="item-card__lifecycle-sep" aria-hidden="true">·</span>
+        <Chip
+          tone="ok"
+          size="sm"
+          leadingIcon={isAutoResolve
+            ? <Mdi name="cog-outline" size={10} />
+            : <AgentIcon agent={resolvedByAgent} size={10} />}
+          label={`resolved r${resolvedRound || '?'}${isAutoResolve ? ' · auto' : ''}`}
+        />
+      </span>
+    );
+  } else {
+    const agentSuffix = raisedByAgent === 'gpt' ? ' · GPT' : raisedByAgent === 'claude' ? ' · Claude' : '';
+    lifecycleChip = (
+      <Chip
+        tone={kindTone}
+        size="sm"
+        leadingIcon={raisedByAgent ? <AgentIcon agent={raisedByAgent} size={10} /> : null}
+        label={`raised · r${raisedRound || '?'}${agentSuffix}`}
+      />
+    );
+  }
+
+  // Spec 0173 §2.11 — per-card collapse affordance. Default collapsed
+  // (head only); clicking the head (or Enter / Space on the focused
+  // head, role=button) toggles. The body, timeline, and sources blocks
+  // hide via CSS scoped to `data-expanded="false"`. The original
+  // `onClick={onHighlight}` is preserved on the article so phase-level
+  // highlight wiring still fires — the head's onClick stops propagation
+  // for the toggle path so the two handlers don't fight.
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const toggleExpanded = (e) => {
+    e.stopPropagation();
+    setIsExpanded((v) => !v);
+  };
+  const onHeadKey = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsExpanded((v) => !v);
+    }
+  };
+
   return (
     <article
       ref={cardRef}
       className={`item-card item-card--${item.kind} item-card--${stateLabel}`}
       data-hoverable="true"
+      data-expanded={isExpanded ? 'true' : 'false'}
       onClick={onHighlight}
     >
-      <header className="item-card__head">
-        <span className="md-chip md-chip--sm"><code>{item.id}</code></span>
-        <span className="md-chip md-chip--sm">{kindLabel}</span>
-        <Chip tone={stateTone}>{stateLabel}</Chip>
-        {evidence.length > 0 && (
-          <button
-            type="button"
-            className="md-chip md-chip--sm item-card__sources-chip"
-            onClick={handleSourcesChipClick}
-            title="Jump to sources"
-          >
-            Sources {evidence.length}
-          </button>
-        )}
+      <header
+        className="item-card__head"
+        role="button"
+        tabIndex={0}
+        aria-expanded={isExpanded}
+        onClick={toggleExpanded}
+        onKeyDown={onHeadKey}
+      >
+        {providerChip}
+        {kindChip}
+        {evidenceModifierChip}
+        <span className="item-card__head-spacer" aria-hidden="true" />
+        {lifecycleChip}
       </header>
       {body}
-      {evidenceRequired && (
-        <div className="item-card__evidence-needed">
-          Evidence needed — addresses must cite consulted sources.
-        </div>
-      )}
       {lifecycleFooter}
       {evidence.length > 0 && (
         <div className="item-card__sources">
           <div className="item-card__sources-hd">Sources ({evidence.length})</div>
           {evidence.map((rec, i) => (
-            <SourceRow key={i} record={rec} />
+            <SourceRow key={i} record={rec} defaultExpanded={i === 0} />
           ))}
         </div>
       )}
@@ -7004,6 +7214,28 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     disagreements: filteredAll.filter(it => it._critiqueKind === 'd').length,
   };
 
+  // Spec 0173 §2.4 — per-segment counts on agent + status filter
+  // buttons. Computed over the unfiltered active-phase item list so
+  // each button shows a stable "what's available here" count regardless
+  // of the other filters' current state. Drift uses the same `isDrift`
+  // predicate as Bar 1's `runWideDrift`. Comments are bucketed under
+  // "resolved" (non-blocking commentary, matching `pushItem`'s
+  // `isResolved = isComment || ...` branch). `All` and `Drift` counts
+  // must always render even at 0 (chip-stability rule from spec 0167
+  // §2.2).
+  const agentCounts = {
+    all: allPhaseItems.length,
+    claude: allPhaseItems.filter(it => it.raisedBy === 'claude').length,
+    gpt: allPhaseItems.filter(it => it.raisedBy === 'gpt').length,
+  };
+  const _commentIds = new Set(phaseComments.map(c => c.id));
+  const statusCounts = {
+    all: allPhaseItems.length,
+    open: allPhaseItems.filter(it => !_commentIds.has(it.id) && _isOpenStatus(it.status) && !isDrift(it)).length,
+    resolved: allPhaseItems.filter(it => _commentIds.has(it.id) || _isResolvedStatus(it.status)).length,
+    drift: allPhaseItems.filter(it => isDrift(it)).length,
+  };
+
   const handleHighlight = React.useCallback((keys, variant) => {
     if (onHighlightTurns) onHighlightTurns(keys, variant);
   }, [onHighlightTurns]);
@@ -7173,13 +7405,17 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 
       {/* BAR 2 — Spec 0151 §3.4.1 — design-system parity. Layout per
           design-system/notion-issues/screenshots/02-critique-target.png:
-          [kind-tabs row]  [agent fgroup] [state fgroup]
+          [kind-tabs row]  [agent .tab-group-solid] [state .tab-group-solid]
           The kind-tab row uses .kind-tabs / .kind-tab CSS already
           present in components.css; the agent and state filters use
-          the canonical .fgroup segmented control. Pre-0151 this row
-          used <Chip> for everything with label-embedded count strings
-          (`Issues (3)`) — superseded so counts render as separate
-          tokens per the target. */}
+          the canonical .tab-group-solid segmented control (renamed
+          from .fgroup by spec 0173 §2.3, with `[data-active="true"]`
+          attribute state replacing `.is-active` class). Pre-0151 this
+          row used <Chip> for everything with label-embedded count
+          strings (`Issues (3)`) — superseded so counts render as
+          separate tokens per the target. Spec 0173 §2.4 adds
+          per-segment counts on every button (incl. All and Drift at 0,
+          chip-stability rule from spec 0167 §2.2). */}
       {!isSummary && (
         <header className="bar2 crit-filter-row">
           {/* Spec 0167 §2.5 / §2.6 — kind-cluster order locked to
@@ -7218,61 +7454,85 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 
           <span className="crit-filter-spacer" aria-hidden="true" />
 
-          {/* Agent fgroup — [All] [• Claude] [• GPT] */}
-          <div className="fgroup" role="group" aria-label="Filter by raising agent">
+          {/* Agent segment — [All N] [• Claude N] [• GPT N] */}
+          <div className="tab-group-solid" role="group" aria-label="Filter by raising agent">
             <button
               type="button"
-              className={`ft${agentFilter === 'all' ? ' is-active' : ''}`}
+              className="tab-solid"
+              data-active={agentFilter === 'all' ? 'true' : 'false'}
               onClick={() => setAgentFilter('all')}
               title="Show items raised by any agent"
-            >All</button>
+            >
+              All
+              <span className="chip-value">{agentCounts.all}</span>
+            </button>
             <button
               type="button"
-              className={`ft${agentFilter === 'claude' ? ' is-active' : ''}`}
+              className="tab-solid"
+              data-active={agentFilter === 'claude' ? 'true' : 'false'}
               onClick={() => setAgentFilter('claude')}
               title="Show only items raised by Claude"
             >
               <i className="dot" style={{ background: 'var(--claude)' }} />
               Claude
+              <span className="chip-value">{agentCounts.claude}</span>
             </button>
             <button
               type="button"
-              className={`ft${agentFilter === 'gpt' ? ' is-active' : ''}`}
+              className="tab-solid"
+              data-active={agentFilter === 'gpt' ? 'true' : 'false'}
               onClick={() => setAgentFilter('gpt')}
               title="Show only items raised by GPT"
             >
               <i className="dot" style={{ background: 'var(--gpt)' }} />
               GPT
+              <span className="chip-value">{agentCounts.gpt}</span>
             </button>
           </div>
 
-          {/* State fgroup — [All] [Open] [Resolved] [Drift?] */}
-          <div className="fgroup" role="group" aria-label="Filter by item state">
+          {/* State segment — [All N] [Open N] [Resolved N] [Drift N?] */}
+          <div className="tab-group-solid" role="group" aria-label="Filter by item state">
             <button
               type="button"
-              className={`ft${statusFilter === 'all' ? ' is-active' : ''}`}
+              className="tab-solid"
+              data-active={statusFilter === 'all' ? 'true' : 'false'}
               onClick={() => setStatusFilter('all')}
               title="Show items in any state"
-            >All</button>
+            >
+              All
+              <span className="chip-value">{statusCounts.all}</span>
+            </button>
             <button
               type="button"
-              className={`ft${statusFilter === 'open' ? ' is-active' : ''}`}
+              className="tab-solid"
+              data-active={statusFilter === 'open' ? 'true' : 'false'}
               onClick={() => setStatusFilter('open')}
               title="Show only open items"
-            >Open</button>
+            >
+              Open
+              <span className="chip-value">{statusCounts.open}</span>
+            </button>
             <button
               type="button"
-              className={`ft${statusFilter === 'resolved' ? ' is-active' : ''}`}
+              className="tab-solid"
+              data-active={statusFilter === 'resolved' ? 'true' : 'false'}
               onClick={() => setStatusFilter('resolved')}
               title="Show only resolved items"
-            >Resolved</button>
+            >
+              Resolved
+              <span className="chip-value">{statusCounts.resolved}</span>
+            </button>
             {kindFilter !== 'questions' && (
               <button
                 type="button"
-                className={`ft${statusFilter === 'drift' ? ' is-active' : ''}`}
+                className="tab-solid"
+                data-active={statusFilter === 'drift' ? 'true' : 'false'}
                 onClick={() => setStatusFilter('drift')}
                 title="Show only items with ledger drift"
-              >Drift</button>
+              >
+                Drift
+                <span className="chip-value">{statusCounts.drift}</span>
+              </button>
             )}
           </div>
         </header>

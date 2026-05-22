@@ -7,16 +7,16 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: TBD
-status: in_progress
+status: merged
 queue_position: 1
 depends_on: ["0166", "0167", "0168"]
 complexity: L
 created: 2026-05-22
 queued_at: "2026-05-22T21:05:00Z"
 started_at: "2026-05-23T00:00:00Z"
-merged_at: ""
+merged_at: "2026-05-23T00:00:00Z"
 deployed_at: ""
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/195"
 handover: ""
 failure_step: ""
 source_session: queue-drain-cleanup-2026-05-22

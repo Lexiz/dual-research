@@ -789,8 +789,33 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
   font: var(--md-w-medium) 11px/1 var(--md-font-plain);
   color: var(--md-on-surface-variant);
 }
-.tab-solid.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+/* Spec 0173 §2.3 — `[data-active="true"]` attribute selector replaces
+   the prior `.is-active` class modifier on bar-2 segmented controls.
+   Both selectors are accepted so the timeline TimelineTabs (which uses
+   the same `.tab-solid` primitive via TabGroup variant="solid") keeps
+   working until it migrates. */
+.tab-solid.is-active,
+.tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* Spec 0173 §2.4 — per-segment count token. The bare number sits
+   inside `.chip-value`; parens are produced via ::before/::after
+   pseudo-elements so the JS render can stay text-only. At narrow
+   viewports (≤ 1799 px) the count spans collapse to keep the bar
+   compact — labels stay, the parens hide. */
+.tab-solid .chip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  margin-left: 2px;
+}
+.tab-solid[data-active="true"] .chip-value { color: var(--md-on-surface); }
+.tab-solid .chip-value::before { content: "("; margin-right: 1px; }
+.tab-solid .chip-value::after  { content: ")"; margin-left: 1px; }
+@media (max-width: 1799px) {
+  .tab-solid .chip-value { display: none; }
+}
 
 /* Critique item card · short form (for header demos) */
 .sc {
@@ -1738,6 +1763,34 @@ body.light .ccx-bar .reuse {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   .activity-dot — the dot inside `.as.in-header`'s right-cluster
+   activity phrase. Default (not-live): outline grey, no animation.
+   When the strip carries `.is-live`, the dot flips to info-blue
+   and animates with the canonical pulse-info halo (spec 0173 §2.1
+   completing spec 0166 §2.5). Brand-identity is carried by the
+   strip's tint + 2 px left border; the dot's job is purely
+   "this model is doing work."
+   ───────────────────────────────────────────────────────────── */
+.as.in-header .activity-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--md-outline);
+  flex-shrink: 0;
+}
+.as.in-header.is-live .activity-dot {
+  background: var(--p-info);
+  animation: pulse-info 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .as.in-header.is-live .activity-dot {
+    animation: none;
+    box-shadow: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Timeline chip polish (spec 0165 §2.2 / §2.3)
 
    Scoped to `.tl-card-head` only — the global `.chip.tone-*` rules
@@ -1873,23 +1926,11 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   padding: 12px 20px;
   flex-wrap: wrap;
 }
-.fgroup {
-  display: inline-flex;
-  background: var(--md-surface-container);
-  border-radius: var(--md-shape-full);
-  padding: 3px;
-  gap: 2px;
-}
-.fgroup .ft {
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 26px; padding: 0 10px;
-  background: transparent; border: 0; cursor: pointer;
-  border-radius: var(--md-shape-full);
-  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
-  color: var(--md-on-surface-variant);
-}
-.fgroup .ft.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
-.fgroup .ft .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Spec 0173 §2.3 — the legacy `.fgroup` / `.fgroup .ft` filter group
+   block lived here until v1.32.0. Bar-2 critique-pane filters now use
+   the canonical `.tab-group-solid` + `.tab-solid` primitives above
+   (line ~777) with `[data-active="true"]` attribute state. No fallback
+   retained — no in-tree JSX, HTML, or example still references `.fgroup`. */
 
 .crv__body { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 12px; }
 
@@ -2092,10 +2133,70 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   padding: 1px 5px; border-radius: var(--md-shape-xs);
   background: var(--md-surface-container-high); color: var(--md-on-surface);
 }
-.crit-card-body em.evidence-needed {
-  display: block; margin-top: 8px;
-  font: italic var(--md-w-regular) 13px/1.5 var(--md-font-brand);
-  color: var(--md-on-surface-variant);
+/* Spec 0173 §2.7 — `em.evidence-needed` body row replaced by an inline
+   `.chip.tone-warn` modifier in `.crit-card-head` / `.item-card__head`.
+   Rule retained as a no-op fallback so older mockups don't break;
+   `display: none` removes the body row when an older example carries
+   the legacy markup. */
+.crit-card-body em.evidence-needed { display: none; }
+
+/* Spec 0173 §2.11 — per-card collapse affordance. Default state is
+   `data-expanded="false"` (head only); the head toggles via click /
+   Enter / Space (role=button on the head element). Body, timeline,
+   sources, and lifecycle footer all collapse so the default-collapsed
+   phase view scans vertically with one row per card. */
+.crit-card[data-expanded="false"] .crit-card-body,
+.crit-card[data-expanded="false"] .item-card__body,
+.crit-card[data-expanded="false"] .item-card__timeline,
+.crit-card[data-expanded="false"] .item-card__sources,
+.crit-card[data-expanded="false"] .item-card__footer,
+.crit-card[data-expanded="false"] .item-card__lifecycle-footer,
+.item-card[data-expanded="false"] .item-card__body,
+.item-card[data-expanded="false"] .item-card__timeline,
+.item-card[data-expanded="false"] .item-card__sources,
+.item-card[data-expanded="false"] .item-card__footer,
+.item-card[data-expanded="false"] .item-card__lifecycle-footer {
+  display: none;
+}
+.crit-card[data-expanded="false"] .crit-card-head,
+.item-card[data-expanded="false"] .item-card__head { cursor: pointer; }
+.crit-card .crit-card-head:focus-visible,
+.item-card .item-card__head:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+  border-radius: var(--md-shape-xs);
+}
+
+/* Spec 0173 §2.9 — expanded-view thread bubbles (QuestionThread anatomy
+   reused for ItemCard). Each transition (raised, pushback, conceded,
+   resolved) renders as a tonal-tinted message bubble carrying agent
+   identity, round, verdict pill, quote. */
+.item-card__qt-rows {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 8px 0 0; padding: 0;
+}
+.item-card__qt-row {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-low);
+  border-left: 2px solid var(--md-outline-hair);
+}
+.item-card__qt-row--claude {
+  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container-low));
+  border-left-color: var(--p-sable);
+}
+.item-card__qt-row--gpt {
+  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container-low));
+  border-left-color: var(--p-sage);
+}
+.item-card__qt-chips {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+}
+.item-card__qt-quote {
+  margin: 0; padding: 0;
+  color: var(--md-on-surface);
+  font: italic var(--md-w-regular) 13px/1.55 var(--md-font-brand, var(--md-font-plain));
 }
 
 .crit-card-id {

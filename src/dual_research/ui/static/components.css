@@ -651,6 +651,26 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-info)  0%, transparent); }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   .activity-dot — see design-system/assets/styles/composed-components.css
+   for the canonical block. Spec 0173 §2.1 wires the dot to the
+   `.as.in-header.is-live` state with info-blue + pulse-info halo.
+   The not-live default is outline grey, no animation. JSX exposes
+   only the `.activity-dot` class — colour is purely CSS-driven.
+   ───────────────────────────────────────────────────────────── */
+.as.in-header .activity-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--md-outline);
+  flex-shrink: 0;
+}
+.as.in-header.is-live .activity-dot {
+  background: var(--p-info);
+  animation: pulse-info 2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sb-running > .dot,
   .as.in-header.is-live .activity-dot {
@@ -2122,7 +2142,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 /* =============================================================
    SPEC-0095 — M3 Tabs, top app bar, chrome compaction
    Primary tabs, top app bar, segmented-pill tab variants,
-   phase/kind tabs, fgroup filters, vertical divider.
+   phase/kind tabs, .tab-group-solid filters, vertical divider.
    ============================================================= */
 
 /* ── M3 Top app bar ──────────────────────────────────────── */
@@ -2183,8 +2203,33 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   font: var(--md-w-medium) 11px/1 var(--md-font-plain);
   color: var(--md-on-surface-variant);
 }
-.tab-solid.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
+/* Spec 0173 §2.3 — `[data-active="true"]` attribute selector replaces
+   the prior `.is-active` class modifier on bar-2 segmented controls.
+   `.is-active` retained so other call sites (the timeline TimelineTabs
+   uses the same .tab-solid primitive via TabGroup variant="solid") keep
+   working until they migrate. */
+.tab-solid.is-active,
+.tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* Spec 0173 §2.4 — per-segment count token. The bare number sits
+   inside `.chip-value`; parens are produced via ::before/::after
+   pseudo-elements so the JS render can stay text-only. At narrow
+   viewports (≤ 1799 px) the count spans collapse to keep the bar
+   compact — labels stay, the parens hide. */
+.tab-solid .chip-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--md-on-surface-variant);
+  margin-left: 2px;
+}
+.tab-solid[data-active="true"] .chip-value { color: var(--md-on-surface); }
+.tab-solid .chip-value::before { content: "("; margin-right: 1px; }
+.tab-solid .chip-value::after  { content: ")"; margin-left: 1px; }
+@media (max-width: 1799px) {
+  .tab-solid .chip-value { display: none; }
+}
 
 /* ── Phase tabs (.phase-tab) ─────────────────────────────── */
 .phase-tabs { display: inline-flex; gap: 4px; }
@@ -2256,24 +2301,11 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   outline-offset: 2px;
 }
 
-/* ── Filter group (.fgroup) ──────────────────────────────── */
-.fgroup {
-  display: inline-flex;
-  background: var(--md-surface-container);
-  border-radius: var(--md-shape-full);
-  padding: 3px;
-  gap: 2px;
-}
-.fgroup .ft {
-  display: inline-flex; align-items: center; gap: 5px;
-  height: 26px; padding: 0 10px;
-  background: transparent; border: 0; cursor: pointer;
-  border-radius: var(--md-shape-full);
-  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
-  color: var(--md-on-surface-variant);
-}
-.fgroup .ft.is-active { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
-.fgroup .ft .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Spec 0173 §2.3 — the legacy `.fgroup` / `.fgroup .ft` filter group
+   block lived here until v1.32.0. Bar-2 critique-pane filters now use
+   the canonical `.tab-group-solid` + `.tab-solid` primitives above
+   with `[data-active="true"]` attribute state. No fallback retained —
+   no in-tree JSX or HTML still references `.fgroup`. */
 
 /* ── Vertical divider (.vbar) ────────────────────────────── */
 .vbar { width: 1px; height: 20px; background: var(--md-outline-hair); flex-shrink: 0; }
@@ -2290,8 +2322,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 
 /* ── Focus ring for tab variants ─────────────────────────── */
 .tab-solid:focus-visible,
-.tab-group-solid:focus-visible,
-.fgroup .ft:focus-visible {
+.tab-group-solid:focus-visible {
   outline: 2px solid var(--md-primary);
   outline-offset: 2px;
 }
@@ -4491,6 +4522,24 @@ body.light .tour-spotlight__dim {
   align-items: center;
   gap: 6px;
 }
+/* Spec 0173 §2.5 — spacer pushes the lifecycle chip (and any trailing
+   chips) to the right edge of the head. Replaces the prior
+   `margin-left: auto` on the sources chip (which was dropped). */
+.item-card__head-spacer { flex: 1; min-width: 0; }
+
+/* Spec 0173 §2.6 + §2.8 — lifecycle chip cluster (resolved variant
+   uses a `raised · resolved` two-chip composition; open / drift use a
+   single chip and skip the cluster wrapper). */
+.item-card__lifecycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.item-card__lifecycle-sep {
+  color: var(--md-on-surface-variant);
+  font-size: 11px;
+  user-select: none;
+}
 .item-card__body {
   color: var(--md-on-surface);
   font-size: 13px;
@@ -4506,11 +4555,57 @@ body.light .tour-spotlight__dim {
   font-size: 12px;
   border-radius: 2px;
 }
-.item-card__evidence-needed {
+/* Spec 0173 §2.7 — the evidence-needed marker is now an inline
+   `.chip.tone-warn` modifier rendered in `.item-card__head` (see
+   ItemCard JSX). The legacy `.item-card__evidence-needed` body row
+   was dropped. Rule retained as a no-op safety net; can be removed
+   once nothing in the tree references the class. */
+.item-card__evidence-needed { display: none; }
+
+/* Spec 0173 §2.9 — expanded-view thread bubbles. Each transition
+   (raised, pushback, conceded, resolved) renders as a tonal-tinted
+   message bubble carrying the agent identity, round, verdict pill,
+   and the quote inside. Mirrors QuestionThread `.lc-row` anatomy
+   from shared.jsx, scoped under `.item-card` so the rules don't
+   collide with the Critique pane's primary bubble timeline. */
+.item-card__qt-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.item-card__qt-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container-low);
+  border-left: 2px solid var(--md-outline-hair);
+}
+.item-card__qt-row--claude {
+  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container-low));
+  border-left-color: var(--p-sable);
+}
+.item-card__qt-row--gpt {
+  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container-low));
+  border-left-color: var(--p-sage);
+}
+.item-card__qt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.item-card__qt-quote {
+  margin: 0;
+  padding: 0;
+  color: var(--md-on-surface);
+  font-family: var(--md-font-brand, var(--md-font-plain));
   font-style: italic;
-  font-size: 12px;
-  color: var(--md-on-surface-variant);
-  padding: 4px 0;
+  font-size: 13px;
+  line-height: 1.55;
 }
 .item-card__timeline {
   display: flex;
@@ -4577,6 +4672,26 @@ body.light .tour-spotlight__dim {
 }
 .item-card[data-hoverable="true"]:hover {
   box-shadow: var(--md-elev-2);
+}
+
+/* Spec 0173 §2.11 — per-card collapse affordance. Default state is
+   `data-expanded="false"` (head only); the head toggles via click /
+   Enter / Space (role=button on the head element). The body,
+   timeline, sources, and lifecycle footer all collapse to keep the
+   default-collapsed phase view scannable. */
+.item-card[data-expanded="false"] .item-card__body,
+.item-card[data-expanded="false"] .item-card__timeline,
+.item-card[data-expanded="false"] .item-card__sources,
+.item-card[data-expanded="false"] .item-card__footer,
+.item-card[data-expanded="false"] .item-card__lifecycle-footer {
+  display: none;
+}
+.item-card[data-expanded="false"] .item-card__head { cursor: pointer; }
+.item-card[data-expanded="true"]  .item-card__head { cursor: default; }
+.item-card .item-card__head:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+  border-radius: var(--md-shape-xs);
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -4781,6 +4896,14 @@ body.light .tour-spotlight__dim {
 .source-row__host {
   color: var(--md-on-surface-variant);
   font-size: 11px;
+}
+/* Spec 0173 §2.10 — attribution chip slot. Sits between the title
+   (flex: 1) and the host badge so the chip is right-adjacent to the
+   collapse target. */
+.source-row__attribution {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 .source-row__body {
   padding-top: 8px;
