@@ -917,8 +917,15 @@ function buildLiveTimeline(run) {
 
   if (st === 'errored' && run.error) items.push({ id: 'error', kind: 'error', error: run.error });
   if (st === 'deadlocked') {
+    // Spec 0173 §2.2 — `run.round` is the structured object
+    // `{ current, total }` (see line 551's `run.round?.current` reader);
+    // passing it as a scalar `round` field handed `TlTurnRow` an object
+    // which then stringified as `turn [object Object]` until spec 0166
+    // §2.4's defensive guard caught the symptom. Unwrap to the numeric
+    // round here so downstream `typeof item.round === 'number'` checks
+    // pass. The guard at run-detail.jsx:~1167 stays as a safety net.
     items.push({
-      id: 'deadlock', kind: 'deadlock', round: run.round,
+      id: 'deadlock', kind: 'deadlock', round: (run.round && typeof run.round === 'object') ? (run.round.current ?? null) : (run.round ?? null),
       open: (run.disagreements || []).filter(d => d.status === 'open').length,
     });
   }

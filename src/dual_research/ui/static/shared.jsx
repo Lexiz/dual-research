@@ -1031,10 +1031,13 @@ function OpenAIMonogram() {
 // ─── SPEC-0053 / SPEC-0095 — Tab + TabGroup ───────────────────
 // TabGroup variant: undefined (bordered pill), 'line', 'solid',
 //   'md-tabs' (M3 primary tabs), 'tab-group-solid' (M3 segmented pill),
-//   'phase-tabs', 'kind-tabs', 'fgroup'.
+//   'phase-tabs', 'kind-tabs'.
 // Tab variant (SPEC-0095): undefined (v1 bordered pill), 'primary' (M3
 //   md-tab), 'solid' (tab-solid), 'kind' (kind-tab), 'phase' (phase-tab),
 //   'chrome' (md-btn--text for app-bar use).
+// Spec 0173 §2.3 — the legacy 'fgroup' variant was dropped; the bar-2
+// critique-pane filters now render as inline `.tab-group-solid` with
+// `.tab-solid[data-active]` buttons directly in run-detail.jsx.
 function TabGroup({ children, className, variant }) {
   const variantClass = variant === 'line' ? 'tabs-line'
     : variant === 'solid' ? 'tabs-solid'
@@ -1042,13 +1045,11 @@ function TabGroup({ children, className, variant }) {
     : variant === 'tab-group-solid' ? null
     : variant === 'phase-tabs' ? null
     : variant === 'kind-tabs' ? null
-    : variant === 'fgroup' ? null
     : null;
   const baseClass = variant === 'md-tabs' ? 'md-tabs'
     : variant === 'tab-group-solid' ? 'tab-group-solid'
     : variant === 'phase-tabs' ? 'phase-tabs'
     : variant === 'kind-tabs' ? 'kind-tabs'
-    : variant === 'fgroup' ? 'fgroup'
     : 'tab-group';
   return (
     <div className={_cn(baseClass, variantClass, className)} role="tablist">
