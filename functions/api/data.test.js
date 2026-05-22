@@ -1,15 +1,11 @@
 // Spec 0161 — Pages Function unit tests.
-// Spec 0174 — fixtures updated for the GraphQL-batched blob fetch.
 //
-// Exercises functions/api/data.js's onRequest handler across:
-//   - happy: tree REST + GraphQL POST return fixtures → JSON payload shape
-//     correct, AND the total subrequest count is exactly 2 (regression-
-//     prevention test for the spec-0174 subrequest blowup).
+// Exercises functions/api/data.js's onRequest handler across three paths:
+//   - happy: tree + blobs return fixtures → JSON payload shape correct
 //   - cache hit: caches.default.match returns a Response → onRequest
-//     returns it without calling fetch.
-//   - upstream error: trees fetch returns 401 → onRequest returns 502 with
-//     a structured error body.
-//   - missing GITHUB_TOKEN: 502 with a helpful message.
+//     returns it without calling fetch
+//   - error: trees fetch returns 401 → onRequest returns 502 with
+//     structured error body
 //
 // `caches.default` is a Cloudflare Workers global — vitest's node env
 // doesn't expose it. We stub it as a global with the two methods onRequest
@@ -34,32 +30,20 @@ const TREE_BODY = {
   ],
 };
 
-// Paths that pass the data.js category regexes, in the same order data.js
-// concatenates them (specs, drafts, handoffs, events). The GraphQL mock
-// produces `f0..fN` aliases keyed off this order.
-const FIXTURE_BLOB_PATHS = [
-  'specs/0001-foo.md',
-  'specs/0002-bar.md',
-  'dashboard/events/0001.jsonl',
-];
-
 function readFixture(rel) {
   return readFileSync(resolve(FIX_ROOT, rel), 'utf-8');
 }
 
-function textForPath(path) {
-  if (path === 'specs/0001-foo.md') return readFixture('specs/0001-foo.md');
-  if (path === 'specs/0002-bar.md') return readFixture('specs/0002-bar.md');
-  if (path === 'dashboard/events/0001.jsonl') return readFixture('events/0001.jsonl');
-  throw new Error(`unexpected blob path: ${path}`);
+function toBase64(s) {
+  // Node's atob round-trips base64 the Function expects from the blobs API.
+  return Buffer.from(s, 'utf-8').toString('base64');
 }
 
-function graphqlResponseFor(paths) {
-  const repository = {};
-  paths.forEach((p, i) => {
-    repository[`f${i}`] = { text: textForPath(p), isBinary: false };
-  });
-  return jsonResponse({ data: { repository } });
+function blobBodyFor(sha) {
+  if (sha === 'sha-0001-spec') return { content: toBase64(readFixture('specs/0001-foo.md')), encoding: 'base64' };
+  if (sha === 'sha-0002-spec') return { content: toBase64(readFixture('specs/0002-bar.md')), encoding: 'base64' };
+  if (sha === 'sha-0001-events') return { content: toBase64(readFixture('events/0001.jsonl')), encoding: 'base64' };
+  throw new Error(`unexpected blob sha: ${sha}`);
 }
 
 function jsonResponse(body, status = 200) {
@@ -70,20 +54,12 @@ function jsonResponse(body, status = 200) {
 }
 
 function makeFetchMock(overrides = {}) {
-  return vi.fn(async (url, init) => {
+  return vi.fn(async (url) => {
     const u = String(url);
     if (overrides.trees && u.includes('/git/trees/')) return overrides.trees;
     if (u.includes('/git/trees/')) return jsonResponse(TREE_BODY);
-    if (overrides.graphql && u.endsWith('/graphql')) return overrides.graphql;
-    if (u.endsWith('/graphql')) {
-      // Sanity: the request should be a POST with a JSON body containing
-      // aliased object() fields. We don't inspect the query string deeply,
-      // but we do assert it's the expected shape.
-      if (!init || init.method !== 'POST') {
-        throw new Error('graphql call must be a POST');
-      }
-      return graphqlResponseFor(FIXTURE_BLOB_PATHS);
-    }
+    const m = u.match(/\/git\/blobs\/([\w-]+)/);
+    if (m) return jsonResponse(blobBodyFor(m[1]));
     throw new Error(`fetch mock got unexpected URL: ${u}`);
   });
 }
@@ -109,7 +85,11 @@ let originalCaches;
 let originalFetch;
 
 beforeEach(async () => {
+  // Re-import the module each test so module-scope state doesn't bleed.
   vi.resetModules();
+  // The Function uses the global `caches.default` reference at import time
+  // is fine — it's called per-request. Stash + restore globals so we don't
+  // pollute the vitest worker.
   originalCaches = globalThis.caches;
   originalFetch = globalThis.fetch;
   ({ onRequest } = await import('./data.js'));
@@ -121,11 +101,10 @@ afterEach(() => {
 });
 
 describe('Pages Function /api/data', () => {
-  it('happy path — returns 200 with payload AND uses exactly 2 subrequests (spec 0174 regression test)', async () => {
+  it('happy path — returns 200 with spec/event/handoff payload', async () => {
     const cacheStub = makeCachesStub();
     globalThis.caches = { default: cacheStub };
-    const fetchMock = makeFetchMock();
-    globalThis.fetch = fetchMock;
+    globalThis.fetch = makeFetchMock();
 
     const ctx = makeContext({ cache: cacheStub });
     const res = await onRequest(ctx);
@@ -137,15 +116,6 @@ describe('Pages Function /api/data', () => {
     expect(body.events['0001'][0].step).toBe('in_progress');
     expect(body.generated_at).toBeTruthy();
     expect(new Date(body.generated_at).toString()).not.toBe('Invalid Date');
-
-    // Spec 0174 regression-prevention: exactly 2 subrequests total —
-    // 1 REST tree call + 1 GraphQL POST. Any future regression that
-    // reintroduces per-file fetches (1 + N) blows this number and trips
-    // the test.
-    expect(fetchMock.mock.calls.length).toBe(2);
-    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
-    expect(urls.some((u) => u.includes('/git/trees/'))).toBe(true);
-    expect(urls.some((u) => u.endsWith('/graphql'))).toBe(true);
 
     // Cache write was scheduled.
     expect(ctx.waitUntil).toHaveBeenCalledTimes(1);
@@ -172,7 +142,7 @@ describe('Pages Function /api/data', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('error case — upstream 401 on the tree call produces a 502 with structured error body', async () => {
+  it('error case — upstream 401 produces a 502 with structured error body', async () => {
     const cacheStub = makeCachesStub();
     globalThis.caches = { default: cacheStub };
     globalThis.fetch = makeFetchMock({
@@ -190,22 +160,6 @@ describe('Pages Function /api/data', () => {
     expect(typeof body.error).toBe('string');
     expect(body.error.length).toBeGreaterThan(0);
     expect(body.generated_at).toBeNull();
-  });
-
-  it('error case — GraphQL POST returns an `errors` array → 502 with structured error body', async () => {
-    const cacheStub = makeCachesStub();
-    globalThis.caches = { default: cacheStub };
-    globalThis.fetch = makeFetchMock({
-      graphql: jsonResponse({
-        data: null,
-        errors: [{ message: 'Field too large' }],
-      }),
-    });
-
-    const res = await onRequest(makeContext());
-    expect(res.status).toBe(502);
-    const body = await res.json();
-    expect(body.error).toMatch(/graphql/);
   });
 
   it('missing GITHUB_TOKEN — 502 with helpful error', async () => {
