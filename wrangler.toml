@@ -1,0 +1,19 @@
+# wrangler.toml — Cloudflare Pages / Functions local-dev config.
+# Spec 0160 — supports `npx wrangler pages dev dist` for local testing of
+# the /api/data Pages Function. Production deploys are still driven by
+# Cloudflare's auto-build from `main`; this file just gives local-dev a
+# place to find the Function and inject the GITHUB_TOKEN secret.
+
+name = "dr-dashboard"
+pages_build_output_dir = "dist"
+
+# Secret injection for local-dev only. Put GITHUB_TOKEN in a gitignored
+# `.dev.vars` file at repo root (key=value, one per line) — wrangler picks
+# it up automatically when you run `npx wrangler pages dev dist`.
+# Production reads the same name from Pages → Settings → Environment
+# variables (Encrypted). Never commit the actual token value.
+[vars]
+# (Production values live in Pages env; nothing to set here.)
+
+# Functions auto-discovery: any file under `functions/` is served as an
+# edge function at the matching URL path. functions/api/data.js → /api/data.

@@ -128,12 +128,14 @@ def test_assets_copied(tmp_path: Path) -> None:
     assert "--md-surface-dim" in (out / "tokens.css").read_text(encoding="utf-8")
 
 
-def test_meta_refresh_present_in_index(tmp_path: Path) -> None:
-    """Spec 0156 §2.2 — every dashboard page auto-refreshes every 60s."""
+def test_meta_refresh_retired_per_spec_0160(tmp_path: Path) -> None:
+    """Spec 0160 retired the 60s meta-refresh (introduced in spec 0156 §2.2).
+    The bootstrap script's 15s /api/data poll now handles freshness without
+    page reloads, so mid-scroll users don't get bounced."""
     root = _bootstrap_repo(tmp_path)
     specs, drafts = collect(root)
     html = render_index(specs, drafts)
-    assert '<meta http-equiv="refresh" content="60">' in html
+    assert 'http-equiv="refresh"' not in html
 
 
 def test_dashboard_live_js_script_referenced(tmp_path: Path) -> None:
