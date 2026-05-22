@@ -10,6 +10,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-05-22
+
+### Added
+
+- **Spec 0149 — Post-batch cleanup + Anthropic cache engagement + protocol follow-ups (v1.14.0)** ([spec 0149](specs/0149-post-batch-cleanup-and-anthropic-cache-engagement.md)). The long-tail spec — closes twelve rows from the post-batch cleanup audit. After this lands, only D15 (legacy-shim sunset, owned by Spec 0150) + D05 (input.json backfill, consolidated into 0150) + D18 (validator over-flagging measurement, blocked on fresh smoke data) + D09/D24 (operational) remain.
+  - **D02 — Anthropic cache engagement (hypothesis-driven fix).** `_build_content` at `agents/anthropic_agent.py` now supports multiple `CACHE_BREAKPOINT` markers in a single prompt (Anthropic accepts up to four `cache_control` breakpoints and matches the longest stable prefix). Phase 2 / 3 / 4 prompts emit a second breakpoint *after the Brief and before the drafts* — so even when the draft-bearing section mutates between rounds (Phase 4 review revisions, growing prior-turn history), cache_read still engages on the brief-only prefix. Diagnosis was hypothesis-only (no fresh smoke data this round); validation will arrive in the deferred D09 smoke.
+  - **D04 — Empty-turn prompt tightening.** New `## Empty-turn invariant (spec 0149 §5.4 — D04)` block added to `negotiation_round1_prompt`, `negotiation_turn_prompt`, and `review_turn_prompt`. Language pinned: "Every turn in this phase MUST contain at least one ledger operation block … OR a top-level `STATUS: AGREED / APPROVED` line." Phase 2 round 1 carries the round-1-cannot-agree variant.
+  - **D08 — `RequestEvidence` op.** New `### REQUEST_EVIDENCE <item-id>` block — first-class mid-run channel for requesting evidence on a previously-stated item, distinct from raise-time `evidence_required: bool`. New `RequestEvidenceBlock` dataclass + `OP_REQUEST_EVIDENCE_RE` parser regex + addressing-section dispatch arm + validator branch + prompt-fragment in the canonical `_OPERATION_BLOCK_REFERENCE`. Counted as a ledger-affecting block by the empty-turn check at `orchestrator/deep_research.py:557`.
+  - **D17 — `search_N` resolution tightening (address-side, hypothesis-driven).** New `## Citation contract (spec 0149 §5.5 — D17)` section in `COMMON_PREAMBLE`: "Only emit an inline `[N]` citation when N references a source you actually consulted via web search (or another tool) during this turn AND N appears as a numbered row under your `## Sources` heading with a real URL." Audit-side fix deferred pending fresh-run dominant-FP-type data.
+  - **D19 — Per-attachment rich previews.** New `AttachmentPreview` + `AttachmentTextPreview` components in `run-detail.jsx`. `SubInputRow` gains optional `runId` + `attachmentId` props — when set, a per-row chevron toggles a preview rendered by `AttachmentPreview` routing by `kind` / file extension / MIME: `link` → external anchor; `.md` / `.txt` / `text/*` → lazy-fetched `<pre>` with 80-line truncation; `.pdf` / `application/pdf` → `<iframe>`; `.png` / `.jpg` / etc. → `<img>`; fallback → download link. ID match mirrors `buildAttachmentTitleMap` (sha256[:8] → slugified basename fallback).
+  - **D06 — `gpt-5-mini` pricing audit.** Audit attempted 2026-05-22; live verification against `platform.openai.com/docs/pricing` and `openai.com/api/pricing` returned 403 in this turn. Rates unchanged ($0.25 / $2.00 / $0.025); `notes` field updated to record the audit attempt + open verification path.
+  - **D07 — Anchor-run draft salvage.** New `scripts/salvage_anchor_run_draft.py` one-shot. Lifts lines 47-312 of `runs/20260521-010637-dvs-backend-language-choice/phase4/round-07-claude.md` into a clean `final.md` (266 lines).
+  - **D20 — Six dead `Preflight*Tab` components removed.** `PreflightContentTab`, `PreflightSourcesTab`, `PreflightFilesTab`, `AttachmentsEmpty`, `SourceRowAttachment`, `FileCard` deleted from `run-detail.jsx` along with the `formatBytes` helper used only by `FileCard`. All six lost their last external caller when spec 0145 collapsed the preflight modal to a single "User prompt" tab.
+  - **D21 — `deep-research-pipeline` rewire + annotation.** `how-it-works.jsx` three sites rewired from `diagramName: '02-phase-inputs'` to `diagramName: 'deep-research-pipeline'`. SVGs copied into `src/dual_research/ui/static/diagrams/how-it-works/` so the `HiwDiagram` path resolves; annotation footer added noting the post-spec-0148 artifacts `system.web_sources` + `system.tool_definitions` live inside the system-prompt aggregate. `02-phase-inputs.svg` retained — still referenced by the design-system audit mockup.
+  - **D22 — Orphaned `.ccx-header .stats .sep` / `.pct` CSS rules removed.**
+  - **D23 — `p0StatsRoundCount` renamed → `p0StatsCount`** in `live-data.jsx` (parallel naming with `p2StatsCount` / `p4StatsCount`). Orphaned `PhaseContent` function deleted from `run-detail.jsx`.
+  - **Cache-buster** bumped `?v=0148a → ?v=0149a` across all 25 static-asset imports in `index.html`.
+  - **Tests.** New `tests/protocol/test_empty_turn_invariant_spec_0149.py` (3 cases) · `tests/protocol/test_citation_contract_spec_0149.py` (3 cases) · `tests/contract/test_request_evidence_spec_0149.py` (7 cases) · `tests/agents/test_cache_wiring.py` extended with two new multi-breakpoint cases · `tests/protocol/test_prompts_cache_marker.py` updated to assert the new two-breakpoint shape on Phase 2 / 3 / 4 prompts.
+
+### Deferred from this spec
+
+- **D09 — fresh-run smoke.** Deferred per user direction; the smoke will fire after spec 0150 ships and will validate D02 (cache_read > 0 + non-zero cache savings line on Claude turns), D04 (zero net-new `EmptyTurnDetected` events on a previously drift-prone brief), D17 (search_N resolution rate), and D19 (rich-preview rendering on attachment-bearing input).
+- **D18 — validator over-flagging measurement.** Purely observational — requires the D09 smoke output. Stays as an open audit row.
+- **D24 — fly.io support ticket.** Deferred (8th-consecutive `machines.dev` mid-rolling-deploy timeout still un-escalated).
+
 ## [1.13.0] — 2026-05-22
 
 ### Added

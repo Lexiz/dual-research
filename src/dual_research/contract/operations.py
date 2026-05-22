@@ -102,9 +102,38 @@ class WithdrawBlock:
     raw_text: str = ""
 
 
+@dataclass(frozen=True)
+class RequestEvidenceBlock:
+    """Spec 0149 §5.5 (D08) — a ``### REQUEST_EVIDENCE <item-id>`` block.
+
+    Mid-run channel for requesting evidence on a previously stated claim.
+    Distinct from raise-time ``evidence_required: bool`` (which a raiser
+    sets when emitting a RAISE): REQUEST_EVIDENCE is a *response* op
+    that an agent emits against another agent's already-on-record item
+    (typically a RAISE of kind ``disagreement`` or ``issue``) when that
+    item's original author did not include evidence and the requester
+    wants the next ADDRESS to carry sources.
+
+    The validator enforces:
+    - ``item_id`` must reference an existing item on the ledger,
+    - the requester must NOT be the original author of that item
+      (you cannot REQUEST_EVIDENCE on your own RAISE),
+    - ``reason`` must be non-empty after strip.
+    """
+
+    item_id: str
+    reason: str
+    raw_text: str = ""
+
+
 # Convenience alias — any operation block type.
 OperationBlock = (
-    RaiseBlock | AddressBlock | ResolveBlock | AcknowledgeBlock | WithdrawBlock
+    RaiseBlock
+    | AddressBlock
+    | ResolveBlock
+    | AcknowledgeBlock
+    | WithdrawBlock
+    | RequestEvidenceBlock
 )
 
 

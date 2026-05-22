@@ -55,5 +55,7 @@ def test_pricing_version_pin_unchanged() -> None:
     # If a rate edit changes the savings, the version must bump too.
     # This test isn't strict (any string is allowed) but documents the
     # cross-test dependency: if test_gpt_5_5_rate_delta starts failing,
-    # check that PRICING_VERSION moved.
-    assert PRICING_VERSION == "2026-05-21"
+    # check that PRICING_VERSION moved. Spec 0149 D06 bumped to
+    # 2026-05-22 (documentation-only — `notes` field on gpt-5-mini
+    # updated to record the audit attempt; no rate changes).
+    assert PRICING_VERSION == "2026-05-22"

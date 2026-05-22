@@ -290,20 +290,26 @@ def _concat_web_search_results(message) -> str:
 
 
 def _build_content(prompt: str) -> Any:
-    """Split a prompt on CACHE_BREAKPOINT and apply cache_control.
+    """Split a prompt on CACHE_BREAKPOINT markers and apply cache_control.
 
-    When the marker is absent OR cache is disabled, return the plain string
+    Spec 0149 §5.3 (D02) — supports multiple CACHE_BREAKPOINT markers in a
+    single prompt. Anthropic accepts up to four cache_control breakpoints
+    and matches the longest stable prefix. Phase 2 / 3 / 4 prompts emit two
+    markers (one after the brief, one after the drafts) so cache_read still
+    engages when later-positioned content (e.g. the current draft in Phase 4)
+    changes between rounds but the brief stays stable.
+
+    When no marker is present OR cache is disabled, return the plain string
     (Anthropic accepts either str or a list of content blocks).
     """
     if not cache_enabled() or CACHE_BREAKPOINT not in prompt:
         return prompt.replace(CACHE_BREAKPOINT, "")
 
-    prefix, suffix = prompt.split(CACHE_BREAKPOINT, 1)
-    return [
-        {
-            "type": "text",
-            "text": prefix,
-            "cache_control": {"type": "ephemeral", "ttl": "1h"},
-        },
-        {"type": "text", "text": suffix},
-    ]
+    chunks = prompt.split(CACHE_BREAKPOINT)
+    blocks: list[dict] = []
+    for i, chunk in enumerate(chunks):
+        block: dict = {"type": "text", "text": chunk}
+        if i < len(chunks) - 1:
+            block["cache_control"] = {"type": "ephemeral", "ttl": "1h"}
+        blocks.append(block)
+    return blocks

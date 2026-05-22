@@ -2330,34 +2330,261 @@ function consumptionLabel(artifactId) {
   return artifactId;
 }
 
+// Spec 0149 §5.7 (D19) — per-attachment rich preview. Routes by attachment
+// kind + file extension / MIME. Markdown / txt → <pre>; PDF → <iframe>;
+// image → <img>; link → external anchor; else → download link. The
+// matching from `attachmentId` (the `<id>` part of `user_prompt.attachment.<id>`)
+// to an entry in `attachments.json` mirrors `buildAttachmentTitleMap`
+// — sha256[:8] first, then slugified basename of rel_path / source.
+function _deriveAttachmentSlug(a) {
+  if (!a) return '';
+  const sha = (a.sha256 || '').slice(0, 8);
+  if (sha) return sha;
+  const base = ((a.rel_path || a.source || '').split('/').pop() || '');
+  return base
+    .replace(/\.[^.]+$/, '')
+    .replace(/[^a-z0-9]+/gi, '-')
+    .replace(/^-|-$/g, '')
+    || 'attachment';
+}
+
+function AttachmentPreview({ runId, attachmentId, displayTitle }) {
+  const { attachments, loading } = window.useAttachments(runId);
+  const att = React.useMemo(() => {
+    if (!Array.isArray(attachments)) return null;
+    for (const a of attachments) {
+      if (_deriveAttachmentSlug(a) === attachmentId) return a;
+    }
+    return null;
+  }, [attachments, attachmentId]);
+
+  if (loading) {
+    return (
+      <div className="attachment-preview attachment-preview--loading" style={{
+        fontSize: 11, color: 'var(--md-on-surface-faint)', padding: '4px 0 4px 36px',
+      }}>
+        Loading attachment…
+      </div>
+    );
+  }
+  if (!att) {
+    return (
+      <div className="attachment-preview attachment-preview--missing" style={{
+        fontSize: 11, color: 'var(--md-on-surface-faint)', padding: '4px 0 4px 36px',
+        fontStyle: 'italic',
+      }}>
+        No matching attachment for &nbsp;<code>{attachmentId}</code> &nbsp;in this run.
+      </div>
+    );
+  }
+
+  // Link-kind attachments (e.g. Notion pages) — render an external anchor.
+  if (att.kind === 'link' || (!att.rel_path && att.url)) {
+    return (
+      <div className="attachment-preview attachment-preview--link" style={{
+        fontSize: 11.5, padding: '4px 0 4px 36px',
+      }}>
+        <a href={att.url} target="_blank" rel="noopener noreferrer"
+           style={{ color: 'var(--md-sys-color-primary)' }}>
+          {att.title || displayTitle || att.url}
+        </a>
+        {att.source && (
+          <span style={{ marginLeft: 8, color: 'var(--md-on-surface-faint)' }}>
+            &middot; {att.source}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // File-kind attachments — branch on extension / MIME.
+  const relPath = att.rel_path || '';
+  const blobUrl = window.attachmentBlobUrl(runId, relPath);
+  const lower = relPath.toLowerCase();
+  const mime = (att.mime || '').toLowerCase();
+  const isText = lower.endsWith('.md') || lower.endsWith('.txt')
+    || mime.startsWith('text/');
+  const isPdf = lower.endsWith('.pdf') || mime === 'application/pdf';
+  const isImage = lower.endsWith('.png') || lower.endsWith('.jpg')
+    || lower.endsWith('.jpeg') || lower.endsWith('.gif') || lower.endsWith('.webp')
+    || mime.startsWith('image/');
+
+  if (isText && blobUrl) {
+    return <AttachmentTextPreview blobUrl={blobUrl} title={att.title || displayTitle} />;
+  }
+  if (isPdf && blobUrl) {
+    return (
+      <div className="attachment-preview attachment-preview--pdf" style={{
+        padding: '4px 0 4px 36px',
+      }}>
+        <iframe
+          src={blobUrl}
+          title={att.title || displayTitle || relPath}
+          style={{
+            width: '100%', height: 420, border: '1px solid var(--md-outline-hair)',
+            borderRadius: 4, background: 'var(--md-surface)',
+          }}
+        />
+      </div>
+    );
+  }
+  if (isImage && blobUrl) {
+    return (
+      <div className="attachment-preview attachment-preview--image" style={{
+        padding: '4px 0 4px 36px',
+      }}>
+        <img
+          src={blobUrl}
+          alt={att.title || displayTitle || relPath}
+          style={{
+            maxWidth: '100%', maxHeight: 320,
+            border: '1px solid var(--md-outline-hair)', borderRadius: 4,
+          }}
+        />
+      </div>
+    );
+  }
+  // Fallback — download link.
+  return (
+    <div className="attachment-preview attachment-preview--download" style={{
+      fontSize: 11.5, padding: '4px 0 4px 36px',
+    }}>
+      {blobUrl ? (
+        <a href={blobUrl} download={relPath.split('/').pop() || 'attachment'}
+           style={{ color: 'var(--md-sys-color-primary)' }}>
+          Download {att.title || displayTitle || relPath}
+        </a>
+      ) : (
+        <span style={{ color: 'var(--md-on-surface-faint)', fontStyle: 'italic' }}>
+          No previewable content
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Lazy-fetch + truncated-render of a text / markdown attachment body.
+// Capped at 80 lines with a "show more" affordance so the consumption
+// card stays scannable.
+function AttachmentTextPreview({ blobUrl, title }) {
+  const [body, setBody] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
+  const [expanded, setExpanded] = React.useState(false);
+  const MAX_LINES = 80;
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(blobUrl)
+      .then((r) => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then((t) => { if (!cancelled) { setBody(t); setLoading(false); } })
+      .catch(() => { if (!cancelled) { setBody(''); setLoading(false); } });
+    return () => { cancelled = true; };
+  }, [blobUrl]);
+  if (loading) {
+    return (
+      <div className="attachment-preview attachment-preview--text-loading" style={{
+        fontSize: 11, color: 'var(--md-on-surface-faint)', padding: '4px 0 4px 36px',
+      }}>
+        Loading {title || 'attachment'}…
+      </div>
+    );
+  }
+  const lines = body.split('\n');
+  const truncated = !expanded && lines.length > MAX_LINES;
+  const shown = truncated ? lines.slice(0, MAX_LINES).join('\n') : body;
+  return (
+    <div className="attachment-preview attachment-preview--text" style={{
+      padding: '4px 0 4px 36px',
+    }}>
+      <pre style={{
+        background: 'var(--md-surface-container-low)',
+        border: '1px solid var(--md-outline-hair)',
+        borderRadius: 4,
+        padding: '8px 10px',
+        margin: 0,
+        fontSize: 11,
+        fontFamily: 'var(--md-font-data)',
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        maxHeight: expanded ? 'none' : 280,
+        overflowY: 'auto',
+      }}>{shown || '(empty)'}</pre>
+      {truncated && (
+        <button type="button" onClick={() => setExpanded(true)} style={{
+          marginTop: 4, fontSize: 11, color: 'var(--md-sys-color-primary)',
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+        }}>
+          Show all {lines.length} lines
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Spec 0145 §5.4 — indented sub-row for the User-prompt expansion. Reuses
 // the existing 3-column ccx-bar-row grid; the `--sub` modifier indents
 // the label and dims the bar color so the nesting reads clearly.
-function SubInputRow({ id, label, tokens, totalDenom, billedIn, inputCost, fillIn }) {
+//
+// Spec 0149 §5.7 (D19) — when `attachmentId` + `runId` are both set, a
+// per-row chevron toggles a rich preview rendered by `AttachmentPreview`.
+function SubInputRow({
+  id, label, tokens, totalDenom, billedIn, inputCost, fillIn,
+  runId, attachmentId,
+}) {
   const piecePct = totalDenom > 0 ? Math.min(100, (tokens / totalDenom) * 100) : 0;
   const propCost = piecePropCost(tokens, billedIn, inputCost);
+  const previewable = !!(runId && attachmentId);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   return (
-    <div className="ccx-bar-row ccx-bar-row--sub" key={id} style={{
-      display: 'grid',
-      gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-      alignItems: 'center', gap: 10,
-      padding: '2px 0 2px 20px',
-      opacity: 0.85,
-    }}>
-      <span className="lbl" style={{
-        fontSize: 10.5, color: 'var(--md-on-surface-faint)',
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-      }}>{label}</span>
-      <div className="ccx-bar" style={{ height: 5 }}>
-        <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%`, opacity: 0.7 }} />
-      </div>
-      <span className="num" style={{
-        fontSize: 10.5, color: 'var(--md-on-surface-faint)', whiteSpace: 'nowrap',
-        textAlign: 'right',
+    <React.Fragment>
+      <div className="ccx-bar-row ccx-bar-row--sub" key={id} style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
+        alignItems: 'center', gap: 10,
+        padding: '2px 0 2px 20px',
+        opacity: 0.85,
       }}>
-        {fmt.tokens(tokens)}t &middot; {fmtCost1(propCost)}
-      </span>
-    </div>
+        <span className="lbl" style={{
+          fontSize: 10.5, color: 'var(--md-on-surface-faint)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+        }}>
+          {previewable && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setPreviewOpen((v) => !v); }}
+              aria-expanded={previewOpen}
+              aria-label={previewOpen ? 'Hide preview' : 'Show preview'}
+              style={{
+                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                color: 'var(--md-on-surface-faint)', lineHeight: 1,
+                transform: previewOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.15s',
+              }}
+            >
+              <span className="ms ms-16">chevron_right</span>
+            </button>
+          )}
+          {label}
+        </span>
+        <div className="ccx-bar" style={{ height: 5 }}>
+          <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%`, opacity: 0.7 }} />
+        </div>
+        <span className="num" style={{
+          fontSize: 10.5, color: 'var(--md-on-surface-faint)', whiteSpace: 'nowrap',
+          textAlign: 'right',
+        }}>
+          {fmt.tokens(tokens)}t &middot; {fmtCost1(propCost)}
+        </span>
+      </div>
+      {previewable && previewOpen && (
+        <AttachmentPreview
+          runId={runId}
+          attachmentId={attachmentId}
+          displayTitle={label}
+        />
+      )}
+    </React.Fragment>
   );
 }
 
@@ -6265,188 +6492,13 @@ function PreflightResponseModal({ item, run, onClose, accent }) {
   );
 }
 
-function PreflightContentTab({ item }) {
-  return <LazyMarkdownBody filePath={item.filePath} />;
-}
-
-function PreflightSourcesTab({ sources, loading }) {
-  if (loading) {
-    return <div className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>loading…</div>;
-  }
-  if (sources.length === 0) {
-    return <AttachmentsEmpty label="No external links were extracted from this brief." />;
-  }
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {sources.map((s, i) => (
-        <SourceRowAttachment key={i} attachment={s} />
-      ))}
-    </div>
-  );
-}
-
-function PreflightFilesTab({ files, loading, runId }) {
-  if (loading) {
-    return <div className="mono" style={{ color: 'var(--md-on-surface-faint)', fontSize: 12 }}>loading…</div>;
-  }
-  if (files.length === 0) {
-    return <AttachmentsEmpty label="No images, PDFs, or files were attached to this brief." />;
-  }
-  return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-      gap: 14,
-    }}>
-      {files.map((f, i) => (
-        <FileCard key={i} attachment={f} runId={runId} />
-      ))}
-    </div>
-  );
-}
-
-function AttachmentsEmpty({ label }) {
-  return (
-    <div style={{
-      padding: '32px 16px',
-      textAlign: 'center',
-      color: 'var(--md-on-surface-faint)',
-      fontSize: 12.5,
-      lineHeight: 1.6,
-      border: '1px dashed var(--md-outline-variant)',
-      borderRadius: 'var(--md-shape-sm)',
-      background: 'var(--md-surface-container)',
-    }}>
-      {label}
-    </div>
-  );
-}
-
-// Hotfix — renamed from `SourceRow` to `SourceRowAttachment` to disambiguate
-// from the spec 0115 `SourceRow({ record })` at ~`:1074`. Both names appearing
-// at module scope caused Babel to throw "Identifier 'SourceRow' has already
-// been declared", which crashed the whole run-detail page (RunDetail not
-// defined). The two components have different prop shapes — keeping both is
-// correct; only the name collision needed fixing.
-function SourceRowAttachment({ attachment }) {
-  const { title, url, caption, source } = attachment;
-  let host = '';
-  try { host = url ? new URL(url).host : ''; } catch (_) { host = ''; }
-  const displayTitle = title && title.trim() ? title : (url || source);
-  return (
-    <a
-      href={url || '#'}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        display: 'block',
-        padding: '10px 12px',
-        background: 'var(--md-surface-container-low)',
-        border: '1px solid var(--md-outline-hair)',
-        borderRadius: 'var(--md-shape-sm)',
-        textDecoration: 'none',
-        color: 'var(--md-on-surface)',
-      }}>
-      <div style={{
-        fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>{displayTitle}</div>
-      <div className="mono" style={{
-        fontSize: 11, color: 'var(--md-on-surface-faint)', marginTop: 3,
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
-        {host || url || '—'}
-      </div>
-      {caption && (
-        <div style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', marginTop: 6, lineHeight: 1.55 }}>
-          {caption}
-        </div>
-      )}
-    </a>
-  );
-}
-
-function FileCard({ attachment, runId }) {
-  const { kind, title, caption, url, rel_path, size_bytes, mime } = attachment;
-  // Prefer the served blob URL when we have one; fall back to the
-  // external `url`. The blob endpoint is path-traversal-guarded server-
-  // side and works for both fs and supabase backends.
-  const localBlobUrl = rel_path ? window.attachmentBlobUrl(runId, rel_path) : null;
-  const renderUrl = localBlobUrl || url || null;
-
-  return (
-    <div style={{
-      background: 'var(--md-surface-container-low)',
-      border: '1px solid var(--md-outline-hair)',
-      borderRadius: 'var(--md-shape-md)',
-      overflow: 'hidden',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <div style={{
-        flex: 1, minHeight: 140,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--md-surface)',
-        overflow: 'hidden',
-      }}>
-        {kind === 'image' && renderUrl ? (
-          <a href={renderUrl} target="_blank" rel="noopener noreferrer"
-             style={{ display: 'block', width: '100%', height: '100%' }}>
-            <img src={renderUrl} alt={title || ''}
-                 style={{ display: 'block', width: '100%', height: '100%',
-                          objectFit: 'cover', maxHeight: 220 }}
-                 onError={(e) => { e.target.style.display = 'none'; }} />
-          </a>
-        ) : (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-            color: 'var(--md-on-surface-faint)', padding: 12, textAlign: 'center',
-          }}>
-            <Mdi name="file-document" size={28} />
-            <span className="mono" style={{
-              fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase',
-            }}>{kind}</span>
-          </div>
-        )}
-      </div>
-      <div style={{ padding: '10px 12px' }}>
-        <div title={title || ''} style={{
-          fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{title || '(unnamed)'}</div>
-        <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--md-on-surface-faint)', marginTop: 4,
-        }}>
-          {[mime, size_bytes ? formatBytes(size_bytes) : null].filter(Boolean).join(' · ') || '—'}
-        </div>
-        {caption && (
-          <div style={{ fontSize: 12, color: 'var(--md-on-surface-muted)', marginTop: 6, lineHeight: 1.5 }}>
-            {caption}
-          </div>
-        )}
-        {renderUrl && (
-          <a href={renderUrl} target="_blank" rel="noopener noreferrer"
-             style={{
-               display: 'inline-flex', alignItems: 'center', gap: 5,
-               marginTop: 8,
-               fontSize: 11.5, color: COLORS.info,
-               textDecoration: 'none',
-             }}>
-            {localBlobUrl ? 'Download' : 'Open'}
-            <Icon.Arrow style={{ width: 10, height: 10 }} />
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function formatBytes(n) {
-  if (n == null) return '';
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
-  return `${(n / 1024 / 1024 / 1024).toFixed(1)} GB`;
-}
+// Spec 0149 §5.10 (D20) — six dead preflight components removed
+// (PreflightContentTab, PreflightSourcesTab, PreflightFilesTab,
+// AttachmentsEmpty, SourceRowAttachment, FileCard) along with the
+// formatBytes helper that was used only by FileCard. All six lost their
+// last external caller when spec 0145 collapsed the preflight modal
+// down to a single "User prompt" tab; they were retained then for
+// minimal blast radius and are removed here.
 
 function FinalDocPreview() {
   return (
@@ -7669,73 +7721,9 @@ function SmallStat({ label, value, color }) {
   );
 }
 
-function PhaseContent({ run, phaseId, open, resolved, introduced }) {
-  const pending = run.phase < phaseId || (phaseId === 4 && run.phase < 3);
-  if (pending) {
-    return (
-      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--md-on-surface-faint)', background: 'var(--md-surface)' }}>
-        <div style={{ textAlign: 'center', maxWidth: 280, lineHeight: 1.6, fontSize: 12.5 }}>
-          {phaseId === 2 ? (
-            <>
-              <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <AgentIcon agent="claude" size={16} />
-                <span className="mono" style={{ color: 'var(--md-on-surface-decor)' }}>↔</span>
-                <AgentIcon agent="gpt" size={16} />
-              </div>
-              Negotiation hasn't started yet. Both agents are still drafting independent plans.
-            </>
-          ) : (
-            <>Cross-review begins after Phase 3 produces a converged draft.</>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (introduced === 0) {
-    const suspectedMiss = run.disagreementsParseSuspectedMiss && phaseId === 2;
-    return (
-      <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: 'var(--md-on-surface-faint)', background: 'var(--md-surface)' }}>
-        <div style={{ textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
-          <div className="mono" style={{ fontSize: 12 }}>no disagreements in this phase</div>
-          {suspectedMiss && (
-            <div className="mono" style={{ fontSize: 11, marginTop: 10, color: COLORS.warn, opacity: 0.85, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-              <Mdi name="alert" size={11} />
-              <span>couldn't reconstruct disagreements from this run — open the round files directly</span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--md-surface)' }}>
-      {/* Spec 0116 — flex column + gap: 8 so card spacing comes from the
-          parent (parallel to the inline-margin removal on .qthread in
-          shared.jsx:1117). "Resolved" GroupHeader's compensating
-          marginTop drops 20 → 12 because the parent gap contributes 8. */}
-      <div style={{
-        padding: '6px 24px 28px',
-        display: 'flex', flexDirection: 'column', gap: 8,
-      }}>
-        {open.length > 0 && <GroupHeader label="Open" color={COLORS.warn} count={open.length} />}
-        {open.map(d => {
-          const props = _normalizeToThread({ ...d, _critiqueKind: 'd' }, run, phaseId);
-          return props ? <QuestionThread key={d.id} {...props} /> : null;
-        })}
-        {resolved.length > 0 && (
-          <GroupHeader label="Resolved" color={COLORS.ok} count={resolved.length}
-                       style={{ marginTop: open.length ? 12 : 0 }} />
-        )}
-        {resolved.map(d => {
-          const props = _normalizeToThread({ ...d, _critiqueKind: 'd' }, run, phaseId);
-          return props ? <QuestionThread key={d.id} {...props} /> : null;
-        })}
-      </div>
-    </div>
-  );
-}
+// Spec 0149 §5.12 (D23) — `PhaseContent` function removed (was at line
+// ~7672 pre-edit). Zero external callers as of post-0148; the live
+// critique surface is rendered by `CritiquePhaseContent` instead.
 
 function StatusPill({ color, label }) {
   return (

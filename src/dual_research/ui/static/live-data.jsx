@@ -545,7 +545,7 @@ function buildLiveTimeline(run) {
 
   if (hasNewPhase0) {
     const cur = run.round?.current ?? 0;
-    const p0StatsRoundCount = phase0Keys.filter((k) => /^\d+$/.test(k)).length;
+    const p0StatsCount = phase0Keys.filter((k) => /^\d+$/.test(k)).length;
     // Spec 0147 — `cur - 1` floor is racy when `run.round.current` has
     // already advanced past a round whose `phaseStats[phase0][round]`
     // slot is fully populated. Use a phaseStats-derived floor: rounds
@@ -554,20 +554,20 @@ function buildLiveTimeline(run) {
     const p0RunningFloor = Math.max(
       0,
       cur - 1,
-      p0StatsRoundCount - (_roundHasInFlight(phase0Stats, cur) ? 1 : 0)
+      p0StatsCount - (_roundHasInFlight(phase0Stats, cur) ? 1 : 0)
     );
     // Materialised-rounds count — includes `cur` only when the run is
     // running and at least one live/completed card will surface for it.
     const p0Rounds = ph === 0
-      ? (st === 'running' ? Math.max(p0RunningFloor, cur) : Math.max(cur, p0StatsRoundCount))
-      : p0StatsRoundCount;
+      ? (st === 'running' ? Math.max(p0RunningFloor, cur) : Math.max(cur, p0StatsCount))
+      : p0StatsCount;
     // Update the phase-divider's `extra` label to mirror Phase 2/4 style.
     items[items.length - 2].extra = `${p0Rounds} round${p0Rounds === 1 ? '' : 's'}`;
 
     if (ph === 0 && (st === 'running' || st === 'deadlocked' || st === 'errored')) {
       const completedThrough = st === 'running'
         ? p0RunningFloor
-        : Math.max(cur, p0StatsRoundCount);
+        : Math.max(cur, p0StatsCount);
       for (let r = 1; r <= completedThrough; r++) {
         items.push({ id: `p0-r${r}-claude`, kind: 'turn', agent: 'claude', round: r, index: r,
                      statsPhase: 0,

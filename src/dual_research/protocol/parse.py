@@ -24,6 +24,7 @@ from dual_research.contract.markers import (
     OP_ADDRESS_RE,
     OP_EVIDENCE_RE,
     OP_RAISE_RE,
+    OP_REQUEST_EVIDENCE_RE,
     OP_RESOLVE_RE,
     OP_WITHDRAW_RE,
     OPEN_COMMENTS_RE,
@@ -52,6 +53,7 @@ from dual_research.contract.operations import (
     AddressBlock,
     OperationBlock,
     RaiseBlock,
+    RequestEvidenceBlock,
     ResolveBlock,
     WithdrawBlock,
 )
@@ -1188,6 +1190,30 @@ def _parse_withdraw_block(raw: str, *, item_id: str | None) -> WithdrawBlock | N
     return WithdrawBlock(item_id=item_id, reason=reason.strip(), raw_text=raw)
 
 
+def _parse_request_evidence_block(
+    raw: str,
+    *,
+    item_id: str | None,
+) -> RequestEvidenceBlock | None:
+    """Spec 0149 §5.5 (D08) — parse a ``### REQUEST_EVIDENCE <item-id>`` block.
+
+    The block carries a single ``reason:`` field (block-scalar). An empty
+    or whitespace-only reason is rejected (returns None); the validator
+    additionally enforces that the requester ≠ original author and that
+    ``item_id`` references an existing item.
+    """
+    if not item_id:
+        return None
+    reason = _parse_field_block_scalar(raw, "reason")
+    if not reason or not reason.strip():
+        return None
+    return RequestEvidenceBlock(
+        item_id=item_id,
+        reason=reason.strip(),
+        raw_text=raw,
+    )
+
+
 # ─── Action-array + counter parsing ───────────────────────────────────
 
 
@@ -1241,10 +1267,13 @@ def parse_turn_v2(text: str) -> ParsedTurnV2:
         if rb is not None:
             blocks.append(rb)
 
-    # ADDRESS / ACKNOWLEDGE blocks live in `## Addressing items raised against me`.
+    # ADDRESS / ACKNOWLEDGE / REQUEST_EVIDENCE blocks live in `## Addressing
+    # items raised against me`. REQUEST_EVIDENCE (spec 0149 §5.5, D08) is
+    # a mid-run response op — instead of immediately ADDRESSing an item,
+    # the responder asks the original author to supply evidence first.
     for raw, opener_m in _split_blocks(
         addressing_body,
-        [OP_ADDRESS_RE, OP_ACKNOWLEDGE_RE, OP_EVIDENCE_RE],
+        [OP_ADDRESS_RE, OP_ACKNOWLEDGE_RE, OP_REQUEST_EVIDENCE_RE, OP_EVIDENCE_RE],
     ):
         if OP_ADDRESS_RE.match(opener_m.group(0)):
             ab = _parse_address_block(
@@ -1253,6 +1282,13 @@ def parse_turn_v2(text: str) -> ParsedTurnV2:
             )
             if ab is not None:
                 blocks.append(ab)
+        elif OP_REQUEST_EVIDENCE_RE.match(opener_m.group(0)):
+            reb = _parse_request_evidence_block(
+                raw,
+                item_id=opener_m.group("id") if opener_m.groupdict().get("id") else None,
+            )
+            if reb is not None:
+                blocks.append(reb)
         elif OP_ACKNOWLEDGE_RE.match(opener_m.group(0)):
             ack = _parse_acknowledge_block(
                 raw,
