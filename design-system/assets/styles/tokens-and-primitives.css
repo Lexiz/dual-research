@@ -16,6 +16,21 @@
   --p-err:             #d96a6a;
   --p-idle:            #5e636d;
 
+  /* ── Chart palette (spec 0177 §2.5) ───────────
+     Soft pastel hues used ONLY inside the Metrics tab on the spec
+     dashboard. Status chips and live-state elements still read from the
+     bold `--p-*` tokens above; pastels apply to chart fills only.
+     Light variants live in `body.light`. */
+  --chart-blue:    #7fa8d8;
+  --chart-purple:  #b89edc;
+  --chart-green:   #94c8a4;
+  --chart-yellow:  #e0c890;
+  --chart-pink:    #e0a4ac;
+  --chart-peach:   #e0b498;
+  --chart-mint:    #94c4bc;
+  --chart-grey:    #6a7480;
+  --chart-track:   #232b35;
+
   /* ── M3 color roles — DARK (default) ─────────── */
   /* Primary = sable (Claude lead), Secondary = sage (GPT) */
   --md-primary:                var(--p-sable);
@@ -199,6 +214,18 @@ body.compact {
 
 /* ── Light theme ──────────────────────────────────── */
 body.light {
+  /* Chart palette — light variants (spec 0177 §2.5). Softer, less saturated
+     than the dark variants so they read against the cream surfaces. */
+  --chart-blue:    #a8c8e8;
+  --chart-purple:  #c8b5e8;
+  --chart-green:   #b8dcc0;
+  --chart-yellow:  #f0deaa;
+  --chart-pink:    #f0bcc0;
+  --chart-peach:   #f4ccb0;
+  --chart-mint:    #b8dcd4;
+  --chart-grey:    #d8dde3;
+  --chart-track:   #ecf0f4;
+
   --md-on-primary:             #1f1407;
   --md-primary-container:      rgba(212,165,116,0.26);
   --md-on-primary-container:   #3b2810;

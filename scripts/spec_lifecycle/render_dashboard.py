@@ -168,6 +168,13 @@ def read_live_version(repo_root: Path) -> str:
 
 
 def _humanize_seconds(seconds: int | None) -> str:
+    """Render a duration in the largest natural unit pair (s / m s / h m
+    / d h / w d). Used in feed, hero elapsed, history Lifetime + Cycle.
+
+    Spec 0177 §2.3 extended the upper end to weeks so lifetimes that
+    straddle multi-week gaps (drafts parked, queued specs sitting through
+    a weekend) read naturally instead of as "23d" / "31d" lumps.
+    """
     if seconds is None or seconds < 0:
         return "—"
     if seconds < 60:
@@ -179,9 +186,10 @@ def _humanize_seconds(seconds: int | None) -> str:
     if hours < 24:
         return f"{hours}h" if minutes == 0 else f"{hours}h {minutes}m"
     days, hours = divmod(hours, 24)
-    if hours == 0:
-        return f"{days}d"
-    return f"{days}d {hours}h"
+    if days < 7:
+        return f"{days}d" if hours == 0 else f"{days}d {hours}h"
+    weeks, days = divmod(days, 7)
+    return f"{weeks}w" if days == 0 else f"{weeks}w {days}d"
 
 
 def _ago(then: dt.datetime | None, now: dt.datetime) -> str:
@@ -352,7 +360,7 @@ def _html_head(title: str) -> str:
     # bootstrap script handles everything else.
     return (
         "<!DOCTYPE html>\n"
-        "<html lang=\"en\" data-theme=\"auto\"><head>"
+        "<html lang=\"en\" data-theme=\"light\"><head>"
         "<meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{_escape(title)}</title>"
@@ -404,31 +412,26 @@ def _render_hero_idle(specs: list[SpecRow], queued: list[SpecRow], drafts: list[
     )
 
 
-def _render_stage_row(stage: StageState) -> str:
-    mark_inner = ""
-    if stage.status == "done":
-        mark_inner = '<span class="material-symbols-outlined" style="font-size:14px">check</span>'
-    elif stage.status == "fail":
-        mark_inner = '<span class="material-symbols-outlined" style="font-size:14px">close</span>'
+def _render_stage_node(stage: StageState) -> str:
+    """Spec 0177 §2.2 — one node in the horizontal stage timeline.
+
+    The status-derived class (`tl__step--done` / `--curr` / `--queued` /
+    `--fail`) drives the node colour and glyph from CSS; this function
+    only emits structure. The `data-stage-started-at` attribute that
+    powers the live ticker (spec 0156 §2.3) now sits on the current
+    node's `.tl__dur` cell — dashboard-live.js's query selector is
+    unchanged so the per-second tick still finds it.
+    """
     dur = _humanize_seconds(stage.duration_seconds) if stage.duration_seconds is not None else "—"
-    note = stage.note or {
-        "queued": "queued",
-        "curr": "in progress",
-        "fail": "failed",
-    }.get(stage.status, "")
-    # Live ticker (spec 0156 §2.3): the current stage's duration cell carries
-    # a data-stage-started-at attribute so dashboard-live.js can rewrite the
-    # text every second without a page reload.
     dur_attrs = ""
     if stage.status == "curr" and stage.started_at is not None:
         dur_attrs = f' data-stage-started-at="{_escape(stage.started_at.isoformat())}"'
     return (
-        f'<li class="stage stage--{stage.status}">'
-        f'<span class="stage__mark">{mark_inner}</span>'
-        f'<span class="stage__name">{_escape(stage.name)}</span>'
-        f'<span class="stage__note">{_escape(note)}</span>'
-        f'<span class="stage__dur"{dur_attrs}>{_escape(dur)}</span>'
-        f'</li>'
+        f'<div class="tl__step tl__step--{stage.status}">'
+        f'<div class="tl__node"></div>'
+        f'<div class="tl__lbl">{_escape(stage.name)}</div>'
+        f'<div class="tl__dur"{dur_attrs}>{_escape(dur)}</div>'
+        f'</div>'
     )
 
 
@@ -508,7 +511,22 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
             f'</span>'
         )
 
-    stage_rows = "\n".join(_render_stage_row(s) for s in states)
+    # Spec 0177 §2.2 — horizontal timeline replaces the vertical
+    # `<ol class="stages">`. Two rails sit behind the nodes; the
+    # ok-coloured `tl__rail-done` overlay's width is (done_count / total)
+    # of the row minus the 28px node padding so the rail visually ends
+    # under the last completed node.
+    total = len(states) or 1
+    done_count = sum(1 for s in states if s.status == "done")
+    rail_done_pct = max(0.0, min(100.0, (done_count / total) * 100.0))
+    rail_done_style = (
+        f'style="width: calc(({done_count}/{total}) * (100% - 28px));"'
+        if done_count
+        else 'style="width: 0;"'
+    )
+    stage_nodes = "".join(_render_stage_node(s) for s in states)
+    rail_done = f'<div class="tl__rail-done" {rail_done_style}></div>' if done_count else ''
+    _ = rail_done_pct  # currently unused; kept for future inline label hover
 
     return (
         f'<section class="hero hero--inflight" aria-label="Queue in flight" data-current-step="{_escape(latest_step)}">'
@@ -527,7 +545,11 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         '</div>'
         '</div>'
         '<div class="hero__divider"></div>'
-        f'<ol class="stages" aria-label="Cycle stages">{stage_rows}</ol>'
+        '<div class="tl" aria-label="Cycle stages">'
+        '<div class="tl__rail"></div>'
+        f'{rail_done}'
+        f'<div class="tl__steps">{stage_nodes}</div>'
+        '</div>'
         '</section>'
     )
 
@@ -601,7 +623,67 @@ def _render_pipeline(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datet
 # ── Metrics row ────────────────────────────────────────────────────────────
 
 
+# Spec 0177 §2.4.3 — stage groups for the stacked-bar mean-durations
+# chart. We collapse the 11 raw stages into 7 buckets so the bar reads
+# at a glance. The order matches the chart legend in the mockup.
+_STAGE_GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    # (legend label, chart-token, list of "from_step → to_step" pairs that map into this bucket)
+    ("Pre-flight", "chart-grey",   ("cycle_started→preflight_ok",)),
+    ("Read & plan", "chart-mint",  ("preflight_ok→handoff_read", "handoff_read→spec_read", "spec_read→planning_started")),
+    ("Reconcile",   "chart-yellow",("planning_started→reconcile_complete", "spec_read→reconcile_complete")),
+    ("Implement",   "chart-blue",  ("reconcile_complete→implement_complete", "branched→implement_complete", "in_progress→implement_complete")),
+    ("Tests",       "chart-green", ("implement_complete→tests_green", "tests_started→tests_green")),
+    ("PR + merge",  "chart-purple",("tests_green→pr_opened", "pr_opened→merged")),
+    ("Deploy",      "chart-peach", ("merged→deployed", "deploy_started→deployed", "deployed→deploy_health_check_ok")),
+)
+
+
+def _compute_stage_durations(events: list[dict[str, Any]]) -> dict[str, int]:
+    """For a single spec's event log, compute seconds spent in each named
+    stage bucket from STAGE_GROUPS. Stages that didn't fire return 0.
+
+    The algorithm walks each ``from_step → to_step`` pair in the bucket
+    and uses the first matching pair where both events are present. If a
+    spec took different shortcuts through the pipeline (e.g. a refactor
+    that skipped Tests via xfail), the bucket is 0 for that spec — the
+    mean across many specs averages this out.
+    """
+    by_step: dict[str, dt.datetime] = {}
+    for ev in events:
+        step = ev.get("step", "")
+        ts = _parse_ts(ev.get("ts"))
+        if step and ts and step not in by_step:
+            by_step[step] = ts
+    out: dict[str, int] = {label: 0 for label, _t, _p in _STAGE_GROUPS}
+    for label, _token, pairs in _STAGE_GROUPS:
+        for pair in pairs:
+            frm, to = pair.split("→")
+            if frm in by_step and to in by_step:
+                delta = int((by_step[to] - by_step[frm]).total_seconds())
+                if delta > 0:
+                    out[label] = delta
+                    break
+    return out
+
+
+def _iso_week_key(d: dt.datetime) -> tuple[int, int]:
+    """ISO year + ISO week, used to bucket deployed specs into weekly bars."""
+    iso = d.isocalendar()
+    return (iso[0], iso[1])
+
+
 def _render_metrics(specs: list[SpecRow], now: dt.datetime) -> str:
+    """Spec 0177 §2.4 — populate the Metrics tab.
+
+    Seven sub-sections, all inline SVG (no chart libraries):
+      §2.4.1 — three top callouts (WoW cycle delta, dominant stage, reconcile drift)
+      §2.4.2 — cycle-time line chart over the last 22 deployed cycles
+      §2.4.3 — stage-breakdown stacked bar (mean across last 10 cycles)
+      §2.4.4 — throughput per ISO week (last 8 weeks)
+      §2.4.5 — by-type horizontal bars (last 30 days)
+      §2.4.6 — success-rate donut (last 30 days)
+      §2.4.7 — authoring funnel (drafts → queued → in-flight → deployed)
+    """
     deployed = sorted(
         [s for s in specs if s.status == "deployed"],
         key=lambda s: s.fm.get("deployed_at") or "",
@@ -609,34 +691,84 @@ def _render_metrics(specs: list[SpecRow], now: dt.datetime) -> str:
     )
     cycle_times = [s.cycle_seconds for s in deployed if s.cycle_seconds]
 
-    last10 = cycle_times[:10]
-    prior10 = cycle_times[10:20]
-    avg_str = _humanize_seconds(int(statistics.mean(last10))) if last10 else "—"
-    delta_html = ""
-    if last10 and prior10:
-        d = int(statistics.mean(prior10) - statistics.mean(last10))
-        if d > 0:
-            delta_html = (
-                f'<span class="delta-up">↓ {_escape(_humanize_seconds(d))}</span>'
-            )
-        elif d < 0:
-            delta_html = (
-                f'<span class="delta-down">↑ {_escape(_humanize_seconds(-d))}</span>'
-            )
-        else:
-            delta_html = "flat"
-        delta_html = f" · {delta_html} vs prior 10"
-    avg_sub = f"rolling {len(last10)}{delta_html}"
-
-    day_ago = now - dt.timedelta(days=1)
+    # ─── §2.4.1: callouts ────────────────────────────────────────────
     week_ago = now - dt.timedelta(days=7)
-    per_day = sum(1 for s in deployed if (d := _parse_ts(s.fm.get("deployed_at"))) and d >= day_ago)
-    per_week = sum(1 for s in deployed if (d := _parse_ts(s.fm.get("deployed_at"))) and d >= week_ago)
+    fortnight_ago = now - dt.timedelta(days=14)
+    month_ago = now - dt.timedelta(days=30)
 
-    # Reconcile patches: % of last-10 deployed cycles that needed >0 mechanical patches.
+    def _deployed_between(start: dt.datetime, end: dt.datetime) -> list[SpecRow]:
+        out = []
+        for s in deployed:
+            t = _parse_ts(s.fm.get("deployed_at"))
+            if t and start <= t < end and s.cycle_seconds:
+                out.append(s)
+        return out
+
+    last_week = _deployed_between(week_ago, now)
+    prior_week = _deployed_between(fortnight_ago, week_ago)
+
+    if last_week and prior_week:
+        mean_last = statistics.mean([s.cycle_seconds for s in last_week])
+        mean_prior = statistics.mean([s.cycle_seconds for s in prior_week])
+        delta_pct = (mean_last - mean_prior) / mean_prior * 100 if mean_prior else 0
+        if delta_pct <= 0:
+            wow_label = "Cycle time improving"
+            wow_val = f"{delta_pct:+.0f}% week-over-week"
+            wow_sub = (
+                f"Last 7d: avg {_humanize_seconds(int(mean_last))}, vs "
+                f"{_humanize_seconds(int(mean_prior))} the week prior."
+            )
+            wow_tone = "callout--ok"
+            wow_icon = "↓"
+        else:
+            wow_label = "Cycle time slowing"
+            wow_val = f"+{delta_pct:.0f}% week-over-week"
+            wow_sub = (
+                f"Last 7d: avg {_humanize_seconds(int(mean_last))}, vs "
+                f"{_humanize_seconds(int(mean_prior))} the week prior."
+            )
+            wow_tone = "callout--warn"
+            wow_icon = "↑"
+    else:
+        wow_label = "Cycle time WoW"
+        wow_val = "—"
+        wow_sub = "Needs ≥ 1 deployed cycle in each of the last two ISO weeks."
+        wow_tone = ""
+        wow_icon = "⏱"
+
+    # "Where time goes" — largest mean stage across last 10 deployed cycles.
+    last10 = deployed[:10]
+    mean_per_group: dict[str, float] = {label: 0.0 for label, _t, _p in _STAGE_GROUPS}
+    if last10:
+        for s in last10:
+            for label, dur in _compute_stage_durations(s.events).items():
+                mean_per_group[label] += dur
+        for label in mean_per_group:
+            mean_per_group[label] = mean_per_group[label] / len(last10)
+    total_stage_mean = sum(mean_per_group.values())
+    if total_stage_mean:
+        top_label, top_secs = max(mean_per_group.items(), key=lambda kv: kv[1])
+        share_pct = int(round(top_secs / total_stage_mean * 100))
+        where_val = f'{share_pct}% in <em>{_escape(top_label.lower())}</em>'
+        # Pick the next two biggest groups for the sub-line.
+        ranked = sorted(mean_per_group.items(), key=lambda kv: kv[1], reverse=True)
+        rest_bits = [
+            f"{label} {_humanize_seconds(int(secs))}"
+            for label, secs in ranked[1:3]
+            if secs > 0
+        ]
+        where_sub = (
+            f"Mean {top_label.lower()} = {_humanize_seconds(int(top_secs))}. "
+            + ("Next: " + ", ".join(rest_bits) + "." if rest_bits else "")
+        )
+    else:
+        where_val = "—"
+        where_sub = "Needs ≥ 1 deployed cycle with full timings."
+
+    # Reconcile drift over last 10 deployed cycles.
     reconciled = 0
     needed_fix = 0
-    for s in deployed[:10]:
+    for s in last10:
         rec = next((e for e in s.events if e.get("step") == "reconcile_complete"), None)
         if rec:
             reconciled += 1
@@ -645,37 +777,611 @@ def _render_metrics(specs: list[SpecRow], now: dt.datetime) -> str:
     if reconciled:
         rec_val = f"{needed_fix} of {reconciled}"
         rec_pct = int(round(needed_fix / reconciled * 100))
-        rec_sub = f"{rec_pct}% needed handoff drift fix"
+        rec_sub = f"{rec_pct}% needed mechanical patches before code landed."
+        rec_tone = "callout--warn" if rec_pct >= 30 else ""
     else:
         rec_val = "—"
-        rec_sub = "no reconcile data yet"
+        rec_sub = "No reconcile events on the last 10 cycles."
+        rec_tone = ""
 
+    def _co_classes(extra: str) -> str:
+        return f"callout {extra}".strip()
+
+    callout_html = (
+        '<div class="callouts">'
+        f'<div class="{_co_classes(wow_tone)}">'
+        f'<div class="callout__icon">{_escape(wow_icon)}</div>'
+        '<div class="callout__body">'
+        f'<div class="callout__lbl">{_escape(wow_label)}</div>'
+        f'<div class="callout__val">{_escape(wow_val)}</div>'
+        f'<div class="callout__sub">{_escape(wow_sub)}</div>'
+        '</div></div>'
+        '<div class="callout">'
+        '<div class="callout__icon">⏱</div>'
+        '<div class="callout__body">'
+        '<div class="callout__lbl">Where time goes</div>'
+        f'<div class="callout__val">{where_val}</div>'
+        f'<div class="callout__sub">{_escape(where_sub)}</div>'
+        '</div></div>'
+        f'<div class="{_co_classes(rec_tone)}">'
+        '<div class="callout__icon">!</div>'
+        '<div class="callout__body">'
+        '<div class="callout__lbl">Reconcile drift</div>'
+        f'<div class="callout__val">{_escape(rec_val)}</div>'
+        f'<div class="callout__sub">{_escape(rec_sub)}</div>'
+        '</div></div>'
+        '</div>'
+    )
+
+    # ─── §2.4.2: cycle-time line chart + §2.4.3: stage breakdown ─────
+    line_html = _render_cycle_time_chart(deployed)
+    stage_html = _render_stage_breakdown_chart(mean_per_group, total_stage_mean)
+
+    # ─── §2.4.4 throughput + §2.4.5 by-type + §2.4.6 donut ──────────
+    throughput_html = _render_throughput_chart(deployed, now)
+    bytype_html = _render_by_type_chart(specs, now)
+    donut_html = _render_success_donut(specs, now)
+
+    # ─── §2.4.7: authoring funnel ────────────────────────────────────
+    funnel_html = _render_authoring_funnel(specs, now)
+
+    insufficient = ""
+    if not cycle_times:
+        insufficient = (
+            '<div class="metrics-empty"><em>No deployed cycles yet.</em> '
+            'Run <code>/dev-next</code> on a queued spec to populate this tab.</div>'
+        )
+
+    return (
+        f'{insufficient}'
+        f'{callout_html}'
+        '<div class="charts-grid">'
+        f'{line_html}'
+        f'{stage_html}'
+        '</div>'
+        '<div class="charts-grid charts-grid--3">'
+        f'{throughput_html}'
+        f'{bytype_html}'
+        f'{donut_html}'
+        '</div>'
+        '<div class="sh"><div class="sh__name">Spec authoring funnel</div>'
+        '<div class="sh__hint">how ideas reach deploy</div><div class="sh__rule"></div></div>'
+        f'{funnel_html}'
+    )
+
+
+def _render_cycle_time_chart(deployed: list[SpecRow]) -> str:
+    """Spec 0177 §2.4.2 — last 22 deployed cycles. Two polylines: actual
+    cycle time (chart-blue, with dot markers) and rolling-10 mean overlay
+    (chart-purple, dashed). Y-axis clipped at 60 minutes; specs > 1h are
+    plotted at the top of the chart and annotated in the caption.
+    """
+    # Oldest-on-the-left for natural reading order.
+    series = list(reversed(deployed[:22]))
+    cycle_secs = [s.cycle_seconds for s in series if s.cycle_seconds]
+    if len(cycle_secs) < 2:
+        return (
+            '<div class="chart-card">'
+            '<div class="chart-card__title">Cycle time over last 22 cycles</div>'
+            '<div class="chart-card__sub">Each point is one deployed spec.</div>'
+            '<div class="metrics-empty">Needs at least 2 deployed cycles.</div>'
+            '</div>'
+        )
+
+    cap = 60 * 60  # 60 minutes; outliers render at the cap and are annotated.
+    outlier_count = sum(1 for v in cycle_secs if v > cap)
+    plotted = [min(v, cap) for v in cycle_secs]
+    # Map secs ∈ [0, cap] → y ∈ [180, 20] (inverted, top-padded for x-axis).
+    width = 600
+    height = 220
+    pad_l, pad_r, pad_t, pad_b = 40, 10, 20, 40
+    inner_w = width - pad_l - pad_r
+    inner_h = height - pad_t - pad_b
+    step_x = inner_w / max(1, len(plotted) - 1) if len(plotted) > 1 else inner_w
+    def _y(secs: int) -> float:
+        return pad_t + inner_h * (1 - (secs / cap))
+
+    actual_pts = " ".join(
+        f"{round(pad_l + i * step_x, 1)},{round(_y(v), 1)}"
+        for i, v in enumerate(plotted)
+    )
+
+    # Rolling-10 mean overlay.
+    rolling: list[float] = []
+    for i, _v in enumerate(plotted):
+        window = plotted[max(0, i - 9) : i + 1]
+        rolling.append(statistics.mean(window))
+    rolling_pts = " ".join(
+        f"{round(pad_l + i * step_x, 1)},{round(_y(int(v)), 1)}"
+        for i, v in enumerate(rolling)
+    )
+
+    dot_markers = "".join(
+        f'<circle cx="{round(pad_l + i * step_x, 1)}" cy="{round(_y(v), 1)}" r="3" />'
+        for i, v in enumerate(plotted)
+    )
+
+    # X-axis: label every 5th spec id.
+    x_labels = []
+    for i, s in enumerate(series):
+        if i % 5 == 0 or i == len(series) - 1:
+            x_labels.append(
+                f'<text x="{round(pad_l + i * step_x, 1)}" y="{height - 10}" '
+                'text-anchor="middle">'
+                f'{_escape(s.number)}</text>'
+            )
+
+    outlier_note = ""
+    if outlier_count:
+        outlier_note = (
+            f" Outliers > 1h ({outlier_count}) clipped to the top."
+        )
+
+    return (
+        '<div class="chart-card">'
+        '<div class="chart-card__title">Cycle time over last 22 cycles</div>'
+        '<div class="chart-card__sub">'
+        f'Each point is one deployed spec. Dashed = rolling-10 mean.{_escape(outlier_note)}'
+        '</div>'
+        f'<svg class="chart" viewBox="0 0 {width} {height}" preserveAspectRatio="none" '
+        'role="img" aria-label="Cycle time line chart">'
+        '<g stroke="var(--md-outline-hair)" stroke-width="1">'
+        f'<line x1="{pad_l}" y1="{pad_t}" x2="{width - pad_r}" y2="{pad_t}" stroke-dasharray="2,3"/>'
+        f'<line x1="{pad_l}" y1="{pad_t + inner_h * 0.25}" x2="{width - pad_r}" y2="{pad_t + inner_h * 0.25}" stroke-dasharray="2,3"/>'
+        f'<line x1="{pad_l}" y1="{pad_t + inner_h * 0.5}" x2="{width - pad_r}" y2="{pad_t + inner_h * 0.5}" stroke-dasharray="2,3"/>'
+        f'<line x1="{pad_l}" y1="{pad_t + inner_h * 0.75}" x2="{width - pad_r}" y2="{pad_t + inner_h * 0.75}" stroke-dasharray="2,3"/>'
+        f'<line x1="{pad_l}" y1="{pad_t + inner_h}" x2="{width - pad_r}" y2="{pad_t + inner_h}" />'
+        '</g>'
+        '<g fill="var(--md-on-surface-faint)" font-family="var(--md-font-data)" '
+        'font-size="10" text-anchor="end">'
+        f'<text x="{pad_l - 6}" y="{pad_t + 4}">60m</text>'
+        f'<text x="{pad_l - 6}" y="{pad_t + inner_h * 0.25 + 4}">45m</text>'
+        f'<text x="{pad_l - 6}" y="{pad_t + inner_h * 0.5 + 4}">30m</text>'
+        f'<text x="{pad_l - 6}" y="{pad_t + inner_h * 0.75 + 4}">15m</text>'
+        f'<text x="{pad_l - 6}" y="{pad_t + inner_h + 4}">0</text>'
+        '</g>'
+        f'<polyline fill="none" stroke="var(--chart-purple)" stroke-width="1.5" '
+        f'stroke-dasharray="4,4" points="{rolling_pts}" />'
+        f'<polyline fill="none" stroke="var(--chart-blue)" stroke-width="2" '
+        f'stroke-linejoin="round" points="{actual_pts}" />'
+        f'<g fill="var(--chart-blue)">{dot_markers}</g>'
+        '<g fill="var(--md-on-surface-faint)" font-family="var(--md-font-data)" '
+        'font-size="9" text-anchor="middle">'
+        + "".join(x_labels)
+        + '</g>'
+        '</svg>'
+        '<div class="chart-card__legend">'
+        '<span><span class="lg__sw" style="background: var(--chart-blue);"></span>Cycle time</span>'
+        '<span><span class="lg__sw" style="background: var(--chart-purple);"></span>Rolling-10 mean</span>'
+        '</div>'
+        '</div>'
+    )
+
+
+def _render_stage_breakdown_chart(
+    mean_per_group: dict[str, float], total_stage_mean: float
+) -> str:
+    """Spec 0177 §2.4.3 — single horizontal stacked bar, mean of last 10
+    deployed cycles. Each segment widths proportional to that bucket's
+    share of total mean time; legend below names the colours.
+    """
+    if total_stage_mean <= 0:
+        return (
+            '<div class="chart-card">'
+            '<div class="chart-card__title">Where time goes (mean stage durations)</div>'
+            '<div class="chart-card__sub">Stacked, last 10 deployed cycles.</div>'
+            '<div class="metrics-empty">Needs ≥ 1 deployed cycle with full timings.</div>'
+            '</div>'
+        )
+    width = 320
+    bar_y = 80
+    bar_h = 40
+    cursor = 0.0
+    segments: list[str] = []
+    legend_items: list[str] = []
+    label_lines: list[str] = []
+    for i, (label, token, _pairs) in enumerate(_STAGE_GROUPS):
+        secs = mean_per_group.get(label, 0.0)
+        if secs <= 0:
+            continue
+        w = (secs / total_stage_mean) * width
+        segments.append(
+            f'<rect x="{round(cursor, 1)}" y="{bar_y}" width="{round(w, 1)}" '
+            f'height="{bar_h}" fill="var(--{token})" />'
+        )
+        cursor += w
+        x_label = 0 if i < 4 else 160
+        y_label = 140 + (i % 4) * 16
+        label_lines.append(
+            f'<text x="{x_label}" y="{y_label}">'
+            f'{_escape(label)} · {_escape(_humanize_seconds(int(secs)))}</text>'
+        )
+        legend_items.append(
+            f'<span><span class="lg__sw" style="background: var(--{token});"></span>{_escape(label)}</span>'
+        )
+    total_label = _humanize_seconds(int(total_stage_mean))
+    return (
+        '<div class="chart-card">'
+        '<div class="chart-card__title">Where time goes (mean stage durations)</div>'
+        f'<div class="chart-card__sub">Stacked, last 10 deployed cycles · total mean = {_escape(total_label)}</div>'
+        f'<svg class="chart" viewBox="0 0 {width} 220" preserveAspectRatio="none" '
+        'role="img" aria-label="Stage breakdown chart">'
+        + "".join(segments)
+        + '<g font-family="var(--md-font-plain)" font-size="10" fill="var(--md-on-surface-variant)">'
+        + "".join(label_lines)
+        + '</g>'
+        '</svg>'
+        '<div class="chart-card__legend">'
+        + "".join(legend_items)
+        + '</div>'
+        '</div>'
+    )
+
+
+def _render_throughput_chart(deployed: list[SpecRow], now: dt.datetime) -> str:
+    """Spec 0177 §2.4.4 — last 8 ISO weeks, count deployed per week.
+    Current week shaded with --chart-purple, prior weeks with --chart-blue
+    at graduated opacity (0.55 → 0.90).
+    """
+    # Build week-key list: 7 prior weeks + current.
+    weeks: list[tuple[int, int]] = []
+    base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    for back in range(7, -1, -1):
+        weeks.append(_iso_week_key(base - dt.timedelta(weeks=back)))
+    counts: dict[tuple[int, int], int] = {w: 0 for w in weeks}
+    for s in deployed:
+        t = _parse_ts(s.fm.get("deployed_at"))
+        if t is None:
+            continue
+        key = _iso_week_key(t)
+        if key in counts:
+            counts[key] += 1
+    series = [counts[w] for w in weeks]
+    if not any(series):
+        return (
+            '<div class="chart-card">'
+            '<div class="chart-card__title">Throughput · specs deployed per week</div>'
+            '<div class="chart-card__sub">last 8 ISO weeks</div>'
+            '<div class="metrics-empty">No deployments in the last 8 weeks.</div>'
+            '</div>'
+        )
+    max_count = max(series) or 1
+    width = 320
+    height = 160
+    bar_w = 30
+    gap = 10
+    left_pad = 10
+    bars: list[str] = []
+    val_labels: list[str] = []
+    week_labels: list[str] = []
+    for i, c in enumerate(series):
+        x = left_pad + i * (bar_w + gap)
+        bar_h = int((c / max_count) * (height - 50)) if c else 0
+        y = height - 16 - bar_h
+        if i == len(series) - 1:
+            # Current week — solid chart-purple.
+            fill = 'fill="var(--chart-purple)"'
+        else:
+            opacity = 0.55 + (i / max(1, len(series) - 1)) * 0.35
+            fill = f'fill="var(--chart-blue)" fill-opacity="{opacity:.2f}"'
+        bars.append(
+            f'<rect x="{x}" y="{y}" width="{bar_w}" height="{bar_h}" {fill} />'
+        )
+        val_labels.append(
+            f'<text x="{x + bar_w / 2}" y="{y - 4 if c else height - 20}">{c}</text>'
+        )
+        wk_label = "now" if i == len(series) - 1 else f"w-{len(series) - 1 - i}"
+        week_labels.append(
+            f'<text x="{x + bar_w / 2}" y="{height - 4}">{_escape(wk_label)}</text>'
+        )
+    return (
+        '<div class="chart-card">'
+        '<div class="chart-card__title">Throughput · specs deployed per week</div>'
+        '<div class="chart-card__sub">last 8 ISO weeks · current week in purple</div>'
+        f'<svg class="chart" viewBox="0 0 {width} {height}" preserveAspectRatio="none" '
+        'role="img" aria-label="Throughput bars">'
+        + "".join(bars)
+        + '<g fill="var(--md-on-surface)" font-family="var(--md-font-data)" '
+        'font-size="10" text-anchor="middle">'
+        + "".join(val_labels)
+        + '</g>'
+        '<g fill="var(--md-on-surface-faint)" font-family="var(--md-font-data)" '
+        'font-size="9" text-anchor="middle">'
+        + "".join(week_labels)
+        + '</g>'
+        '</svg>'
+        '</div>'
+    )
+
+
+_BY_TYPE_COLOURS = {
+    "new-feature": "chart-blue",
+    "bug": "chart-pink",
+    "refactoring": "chart-yellow",
+    "test": "chart-mint",
+    "breaking": "chart-peach",
+    "unclassified": "chart-grey",
+}
+
+
+def _render_by_type_chart(specs: list[SpecRow], now: dt.datetime) -> str:
+    """Spec 0177 §2.4.5 — last 30 days, deployed-spec count grouped by
+    type. Right-aligned label = "<count> · <mean_cycle>".
+    """
     month_ago = now - dt.timedelta(days=30)
-    failed_count = sum(
+    by_type: dict[str, list[int]] = {}
+    type_counts: dict[str, int] = {}
+    for s in specs:
+        if s.status != "deployed":
+            continue
+        t = _parse_ts(s.fm.get("deployed_at"))
+        if t is None or t < month_ago:
+            continue
+        type_ = s.type or "unclassified"
+        type_counts[type_] = type_counts.get(type_, 0) + 1
+        if s.cycle_seconds:
+            by_type.setdefault(type_, []).append(s.cycle_seconds)
+    if not type_counts:
+        return (
+            '<div class="chart-card">'
+            '<div class="chart-card__title">By type · last 30 days</div>'
+            '<div class="chart-card__sub">mean cycle by category</div>'
+            '<div class="metrics-empty">No deployed specs in the last 30 days.</div>'
+            '</div>'
+        )
+    max_count = max(type_counts.values()) or 1
+    total = sum(type_counts.values())
+    rows: list[str] = []
+    for type_ in sorted(type_counts.keys(), key=lambda k: type_counts[k], reverse=True):
+        c = type_counts[type_]
+        mean_cycle = (
+            _humanize_seconds(int(statistics.mean(by_type[type_])))
+            if by_type.get(type_)
+            else "—"
+        )
+        width_pct = int((c / max_count) * 100)
+        token = _BY_TYPE_COLOURS.get(type_, "chart-grey")
+        rows.append(
+            '<div class="bar-row">'
+            f'<div class="bar-row__lbl">{_escape(type_)}</div>'
+            '<div class="bar-row__track">'
+            f'<div class="bar-row__fill" style="width: {width_pct}%; background: var(--{token});"></div>'
+            '</div>'
+            f'<div class="bar-row__val">{c} · {_escape(mean_cycle)}</div>'
+            '</div>'
+        )
+    return (
+        '<div class="chart-card">'
+        '<div class="chart-card__title">By type · last 30 days</div>'
+        f'<div class="chart-card__sub">{total} specs total · mean cycle by category</div>'
+        f'<div class="bar-list" style="margin-top: 6px;">{"".join(rows)}</div>'
+        '</div>'
+    )
+
+
+def _render_success_donut(specs: list[SpecRow], now: dt.datetime) -> str:
+    """Spec 0177 §2.4.6 — last 30 days. SVG donut: deployed / (deployed +
+    failed). Centre = percentage. Legend below.
+    """
+    month_ago = now - dt.timedelta(days=30)
+    deployed_recent = sum(
+        1
+        for s in specs
+        if s.status == "deployed"
+        and (t := _parse_ts(s.fm.get("deployed_at"))) is not None
+        and t >= month_ago
+    )
+    failed_recent = sum(
         1
         for s in specs
         if s.status == "failed"
         and (t := _parse_ts(s.fm.get("started_at"))) is not None
         and t >= month_ago
     )
-
-    def tile(label: str, value: str, sub: str) -> str:
+    total = deployed_recent + failed_recent
+    if total == 0:
         return (
-            '<div class="metric">'
-            f'<div class="metric__lbl">{_escape(label)}</div>'
-            f'<div class="metric__val">{_escape(value)}</div>'
-            f'<div class="metric__sub">{sub}</div>'
+            '<div class="chart-card">'
+            '<div class="chart-card__title">Success rate · last 30 days</div>'
+            '<div class="chart-card__sub">deployed vs failed cycles</div>'
+            '<div class="metrics-empty">No completed cycles in the last 30 days.</div>'
             '</div>'
         )
-
+    success_pct = deployed_recent / total
+    radius = 56
+    circumference = 2 * 3.14159265 * radius  # ≈ 351.86
+    deployed_arc = success_pct * circumference
+    rest = circumference - deployed_arc
+    pct_label = int(round(success_pct * 100))
     return (
-        '<div class="sh"><div class="sh__name">Throughput &amp; cycle time</div><div class="sh__rule"></div></div>'
-        '<section class="metrics">'
-        + tile("Avg cycle time", avg_str, avg_sub)
-        + tile("Throughput", f"{per_day} / day", f"last 24h · {per_week} / week trend")
-        + tile("Reconcile patches", rec_val, rec_sub)
-        + tile("Failed cycles", str(failed_count), "last 30 days")
-        + '</section>'
+        '<div class="chart-card">'
+        '<div class="chart-card__title">Success rate · last 30 days</div>'
+        '<div class="chart-card__sub">deployed vs failed cycles</div>'
+        '<svg class="chart" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" '
+        'role="img" aria-label="Success rate donut">'
+        '<g transform="translate(100,80)">'
+        f'<circle r="{radius}" fill="none" stroke="var(--chart-pink)" stroke-width="20" />'
+        f'<circle r="{radius}" fill="none" stroke="var(--chart-green)" stroke-width="20" '
+        f'stroke-dasharray="{deployed_arc:.2f} {rest:.2f}" stroke-dashoffset="{circumference / 4:.2f}" '
+        'transform="rotate(-90)" />'
+        f'<text y="-4" text-anchor="middle" font-family="var(--md-font-data)" '
+        f'font-size="22" font-weight="600" fill="var(--md-on-surface)">{pct_label}%</text>'
+        f'<text y="18" text-anchor="middle" font-family="var(--md-font-plain)" '
+        f'font-size="10" fill="var(--md-on-surface-faint)">{deployed_recent} of {total}</text>'
+        '</g>'
+        '</svg>'
+        '<div class="chart-card__legend" style="justify-content: center;">'
+        f'<span><span class="lg__sw" style="background: var(--chart-green);"></span>Deployed · {deployed_recent}</span>'
+        f'<span><span class="lg__sw" style="background: var(--chart-pink);"></span>Failed · {failed_recent}</span>'
+        '</div>'
+        '</div>'
+    )
+
+
+def _render_authoring_funnel(specs: list[SpecRow], now: dt.datetime) -> str:
+    """Spec 0177 §2.4.7 — drafts → queued → in-flight → deployed counts
+    over the last 30 days. Visually a funnel: each stage's rectangle
+    shrinks toward the right.
+    """
+    month_ago = now - dt.timedelta(days=30)
+    # Drafts: current draft count + drafts promoted in last 30 days.
+    # We only have specs frontmatter here; use `promoted_from_draft` to
+    # count promotions (each promoted spec corresponds to one draft idea).
+    promoted_recent = sum(
+        1
+        for s in specs
+        if s.fm.get("promoted_from_draft")
+        and (t := _parse_ts(s.fm.get("queued_at"))) is not None
+        and t >= month_ago
+    )
+    # Queued: count of specs queued in last 30d (including those that already shipped).
+    queued_recent = sum(
+        1
+        for s in specs
+        if (t := _parse_ts(s.fm.get("queued_at"))) is not None and t >= month_ago
+    )
+    inflight_recent = sum(
+        1
+        for s in specs
+        if s.status in ("in_progress", "deployed", "failed", "merged")
+        and (t := _parse_ts(s.fm.get("started_at"))) is not None
+        and t >= month_ago
+    )
+    deployed_recent = sum(
+        1
+        for s in specs
+        if s.status == "deployed"
+        and (t := _parse_ts(s.fm.get("deployed_at"))) is not None
+        and t >= month_ago
+    )
+    drafts_count = promoted_recent  # Drafts that produced queued specs.
+    stages_data = [
+        ("DRAFTS", drafts_count, "chart-grey"),
+        ("QUEUED", queued_recent, "chart-mint"),
+        ("IN FLIGHT", inflight_recent, "chart-blue"),
+        ("DEPLOYED", deployed_recent, "chart-green"),
+    ]
+    if not any(c for _l, c, _t in stages_data):
+        return (
+            '<div class="chart-card">'
+            '<div class="metrics-empty">No spec authoring activity in the last 30 days.</div>'
+            '</div>'
+        )
+    # Compute funnel rect geometries: each stage is narrower than the last.
+    total_w = 800
+    stage_w = 180
+    gap = 50
+    cursor_x = 0
+    rects: list[str] = []
+    labels: list[str] = []
+    heights = (60, 40, 30, 24)
+    ys = (20, 30, 35, 38)
+    for i, ((label, count, token), h, y) in enumerate(zip(stages_data, heights, ys)):
+        rects.append(
+            f'<rect x="{cursor_x}" y="{y}" width="{stage_w}" height="{h}" '
+            f'fill="var(--{token})" />'
+        )
+        labels.append(
+            f'<text x="{cursor_x + stage_w / 2}" y="{y + h / 2 - 4}" '
+            'text-anchor="middle" font-size="11" fill="var(--md-on-surface-faint)">'
+            f'{_escape(label)}</text>'
+            f'<text x="{cursor_x + stage_w / 2}" y="{y + h / 2 + 14}" '
+            'text-anchor="middle" font-size="18" font-weight="600" '
+            'fill="var(--md-on-surface)">'
+            f'{count}</text>'
+        )
+        # Tapering polygon between stages.
+        if i < len(stages_data) - 1:
+            next_h = heights[i + 1]
+            next_y = ys[i + 1]
+            rects.append(
+                f'<polygon points="'
+                f'{cursor_x + stage_w},{y} '
+                f'{cursor_x + stage_w + gap},{next_y} '
+                f'{cursor_x + stage_w + gap},{next_y + next_h} '
+                f'{cursor_x + stage_w},{y + h}'
+                '" fill="var(--md-surface-container-high)" />'
+            )
+        cursor_x += stage_w + gap
+
+    promo_pct = int(round((queued_recent / drafts_count) * 100)) if drafts_count else 0
+    ship_pct = int(round((deployed_recent / queued_recent) * 100)) if queued_recent else 0
+    funnel_sub = (
+        f"Last 30 days · {drafts_count} drafts promoted · {promo_pct}% reached queue · "
+        f"{ship_pct}% of queued shipped"
+        if drafts_count
+        else f"Last 30 days · {queued_recent} queued · {deployed_recent} shipped"
+    )
+    return (
+        '<section class="chart-card">'
+        f'<svg class="chart" viewBox="0 0 {total_w} 100" preserveAspectRatio="none" '
+        'role="img" aria-label="Authoring funnel">'
+        '<g font-family="var(--md-font-plain)">'
+        + "".join(rects)
+        + "".join(labels)
+        + '</g></svg>'
+        f'<div class="chart-card__sub" style="text-align: center; margin-top: 8px;">'
+        f'{_escape(funnel_sub)}</div>'
+        '</section>'
+    )
+
+
+# ── Pagination (spec 0177 §2.6) ────────────────────────────────────────────
+
+
+PAGER_PAGE_SIZE = 10
+
+
+def _render_pager(total_rows: int, label: str) -> str:
+    """Emit the `.pager` strip for a paginated list section.
+
+    Behaviour mirrors the mockup: ``Showing X–Y of N`` on the left,
+    ``← N ⋯ N →`` button row on the right. Disabled prev on page 1,
+    disabled next on the last page. Mid-pages collapse into an ellipsis
+    once total > 5 pages, matching the queue mockup's pager.
+
+    First-page state: server-rendered. JS (DASHBOARD_LIVE_JS) wires the
+    button clicks to toggle ``[hidden]`` on ``[data-pager-page]`` rows in
+    the parent section, and updates the count + active-button state on
+    each click. The page state does NOT persist across reloads; the
+    bootstrap client's 5s refresh recomputes it (capturing the active
+    page in a closure so the live refresh doesn't bounce the user back
+    to page 1 — spec 0177 §2.6 risks).
+    """
+    if total_rows <= 0:
+        return ""
+    total_pages = max(1, (total_rows + PAGER_PAGE_SIZE - 1) // PAGER_PAGE_SIZE)
+    end = min(PAGER_PAGE_SIZE, total_rows)
+    page_buttons: list[str] = []
+    if total_pages <= 5:
+        for p in range(1, total_pages + 1):
+            attrs = ' aria-current="page"' if p == 1 else ''
+            page_buttons.append(
+                f'<button class="pager__btn" type="button" data-pager-go="{p}"{attrs}>{p}</button>'
+            )
+    else:
+        # 1 · 2 · 3 ⋯ N (active page is always 1 on first render)
+        for p in (1, 2, 3):
+            attrs = ' aria-current="page"' if p == 1 else ''
+            page_buttons.append(
+                f'<button class="pager__btn" type="button" data-pager-go="{p}"{attrs}>{p}</button>'
+            )
+        page_buttons.append('<span class="pager__ellipsis">…</span>')
+        page_buttons.append(
+            f'<button class="pager__btn" type="button" data-pager-go="{total_pages}">{total_pages}</button>'
+        )
+    prev_disabled = ' disabled' if total_pages == 1 else ' disabled'  # page 1 → prev disabled
+    next_disabled = ' disabled' if total_pages == 1 else ''
+    return (
+        f'<div class="pager" data-pager-total="{total_rows}" data-pager-pages="{total_pages}" '
+        f'aria-label="{_escape(label)} pagination">'
+        f'<div class="pager__count" data-pager-count>Showing 1–{end} of {total_rows}</div>'
+        '<div class="pager__nav">'
+        f'<button class="pager__btn" type="button" data-pager-prev aria-label="Previous page"{prev_disabled}>←</button>'
+        + "".join(page_buttons)
+        + f'<button class="pager__btn" type="button" data-pager-next aria-label="Next page"{next_disabled}>→</button>'
+        '</div>'
+        '</div>'
     )
 
 
@@ -702,11 +1408,13 @@ def _render_queue(queued: list[SpecRow], now: dt.datetime) -> str:
         '<div>#</div><div>Spec</div><div>Title</div><div>Type</div>'
         '<div style="text-align:right">Waiting</div></div>'
     ]
-    for s in queued:
+    for idx, s in enumerate(queued):
+        page = (idx // PAGER_PAGE_SIZE) + 1
+        hidden = ' hidden' if page > 1 else ''
         queued_ts = _parse_ts(s.fm.get("queued_at"))
         waiting = _ago(queued_ts, now) if queued_ts else "—"
         rows.append(
-            '<div class="qrow">'
+            f'<div class="qrow" data-pager-page="{page}"{hidden}>'
             f'<div class="qrow__pos">{_escape(s.fm.get("queue_position", "—"))}</div>'
             f'<div class="qrow__id">{_link_spec(s.number, s.number)}</div>'
             f'<div class="qrow__title">{_escape(s.title)}</div>'
@@ -714,7 +1422,9 @@ def _render_queue(queued: list[SpecRow], now: dt.datetime) -> str:
             f'<div class="qrow__age">{_escape(waiting.replace(" ago", ""))}</div>'
             '</div>'
         )
-    return header + f'<section class="qtable" aria-label="Queue">{"".join(rows)}</section>'
+    table = f'<section class="qtable" aria-label="Queue" data-pager-target>{"".join(rows)}</section>'
+    pager = _render_pager(len(queued), "Queue") if len(queued) > PAGER_PAGE_SIZE else ""
+    return header + table + pager
 
 
 # ── Activity feed ──────────────────────────────────────────────────────────
@@ -747,14 +1457,17 @@ def _render_feed(specs: list[SpecRow], now: dt.datetime) -> str:
             '<div class="feed__dur">—</div></div></section>'
         )
 
+    capped = flat[:40]
     rows: list[str] = []
-    for ts, step, data, spec in flat[:40]:
+    for idx, (ts, step, data, spec) in enumerate(capped):
+        page = (idx // PAGER_PAGE_SIZE) + 1
+        hidden = ' hidden' if page > 1 else ''
         icon, tone = _FEED_STEP_ICON.get(step, ("circle", "neutral"))
         kicker = _FEED_KICKER.get(step, step.replace("_", " "))
         detail = _feed_detail(spec, step, data)
         ts_str = ts.strftime("%H:%M:%S UTC")
         rows.append(
-            '<div class="feed__row">'
+            f'<div class="feed__row" data-pager-page="{page}"{hidden}>'
             f'<div class="feed__ts">{_escape(ts_str)}</div>'
             f'<div class="feed__step feed__step--{tone}">'
             f'<span class="material-symbols-outlined">{_escape(icon)}</span></div>'
@@ -762,7 +1475,11 @@ def _render_feed(specs: list[SpecRow], now: dt.datetime) -> str:
             '<div class="feed__dur">—</div>'
             '</div>'
         )
-    return header + f'<section class="feed" aria-label="Recent activity">{"".join(rows)}</section>'
+    section = (
+        f'<section class="feed" aria-label="Recent activity" data-pager-target>{"".join(rows)}</section>'
+    )
+    pager = _render_pager(len(capped), "Recent activity") if len(capped) > PAGER_PAGE_SIZE else ""
+    return header + section + pager
 
 
 # ── Drafts ─────────────────────────────────────────────────────────────────
@@ -800,13 +1517,44 @@ def _render_drafts(drafts: list[DraftRow], now: dt.datetime) -> str:
 # ── All specs table ────────────────────────────────────────────────────────
 
 
+def _spec_lifetime_seconds(s: SpecRow) -> int | None:
+    """Wall-clock seconds from spec creation to deployment.
+
+    Spec 0177 §2.3 — the History table's Lifetime column is "how long did
+    this idea sit before it shipped" (created/queued → deployed), in
+    contrast to Cycle (started → deployed, the agent-time on /dev-next).
+    Falls back to ``queued_at`` when ``created`` is absent.
+    """
+    deployed = _parse_ts(s.fm.get("deployed_at"))
+    if deployed is None:
+        return None
+    raw_created = s.fm.get("created") or s.fm.get("queued_at")
+    if not raw_created:
+        return None
+    # `created` is often a bare YYYY-MM-DD; promote to a timezone-aware
+    # midnight-UTC so the subtraction works.
+    created_str = str(raw_created)
+    if len(created_str) == 10 and created_str.count("-") == 2:
+        created_str = created_str + "T00:00:00Z"
+    created = _parse_ts(created_str)
+    if created is None:
+        return None
+    return max(0, int((deployed - created).total_seconds()))
+
+
 def _render_all_specs(specs: list[SpecRow]) -> str:
+    """Spec 0177 §2.3 — drop the Version column; add Lifetime (created →
+    deployed) and Cycle (started → deployed). The new 6-column grid:
+    ``70px 1fr 110px 100px 90px 90px``. Queued / in-flight / failed rows
+    render Lifetime + Cycle as ``—`` since the deployment timestamp
+    they're computed from doesn't exist yet.
+    """
     rows: list[str] = []
-    grid_style = "grid-template-columns: 76px 1fr 130px 100px 100px;"
     rows.append(
-        f'<div class="qrow qrow--header" style="{grid_style}">'
+        '<div class="qrow qrow--history qrow--history-header">'
         '<div>Spec</div><div>Title</div><div>Type</div><div>Status</div>'
-        '<div style="text-align:right">Version</div></div>'
+        '<div style="text-align:right">Lifetime</div>'
+        '<div style="text-align:right">Cycle</div></div>'
     )
     sorted_specs = sorted(
         [s for s in specs if (s.fm.get("kind") or "dev") == "dev"],
@@ -814,13 +1562,16 @@ def _render_all_specs(specs: list[SpecRow]) -> str:
         reverse=True,
     )
     for s in sorted_specs:
+        lifetime = _humanize_seconds(_spec_lifetime_seconds(s))
+        cycle = _humanize_seconds(s.cycle_seconds)
         rows.append(
-            f'<div class="qrow" style="{grid_style}">'
+            '<div class="qrow qrow--history">'
             f'<div class="qrow__id">{_link_spec(s.number, s.number)}</div>'
             f'<div class="qrow__title">{_escape(s.title)}</div>'
             f'<div>{_type_chip(s.type)}</div>'
             f'<div>{_status_chip(s.status)}</div>'
-            f'<div class="qrow__age">{_escape(s.target_version or "—")}</div>'
+            f'<div class="qrow__age">{_escape(lifetime)}</div>'
+            f'<div class="qrow__age">{_escape(cycle)}</div>'
             '</div>'
         )
     counts_deployed = sum(1 for s in specs if s.status == "deployed")
@@ -900,21 +1651,66 @@ def _render_footer() -> str:
 # ─────────────────────────────────────────────────────────────
 
 
+def _build_sparkline_polyline(values: list[int]) -> str:
+    """Map an integer series onto a 0–120 × 4–20 SVG polyline path string.
+
+    Used by the avg-cycle counter's inline sparkline (spec 0177 §2.1) and
+    the deferred drafts-funnel chart (§2.4.7). Returns the `points=...`
+    inner content; the caller wraps it in <polyline>. Empty / single-point
+    series collapse to a flat baseline so the chart still occupies space.
+    """
+    if not values:
+        return "0,12 120,12"
+    if len(values) == 1:
+        return "0,12 120,12"
+    lo, hi = min(values), max(values)
+    rng = (hi - lo) or 1
+    step = 120.0 / (len(values) - 1)
+    pts = []
+    for i, v in enumerate(values):
+        x = round(i * step, 2)
+        # invert: smaller cycle times = lower y (visually higher on the chart)
+        y = round(20.0 - 16.0 * (v - lo) / rng, 2)
+        pts.append(f"{x},{y}")
+    return " ".join(pts)
+
+
 def _render_counter_cluster(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datetime) -> str:
-    """Spec 0169 §2.1 — 4-counter card (Drafts / Queued / In flight / Shipped).
-    Replaces the 5-column .pipe strip. 'Merged today' folds into the activity
-    feed instead (per spec)."""
+    """Spec 0177 §2.1 — full-width 5-counter row. The avg-cycle card from
+    spec 0169 folds in as the accented 5th counter, carrying the rolling-10
+    mean + delta vs prior 10 + an inline sparkline of the last 12 deployed
+    cycle times. The other four counters (Drafts / Queued / In flight /
+    Shipped) keep their plain shape.
+    """
+    queued = [s for s in specs if s.status == "queued"]
+    inflight = [s for s in specs if s.status == "in_progress"]
+    shipped = [s for s in specs if s.status == "deployed"]
     counts = {
         "drafts": len(drafts),
-        "queued": sum(1 for s in specs if s.status == "queued"),
-        "inflight": sum(1 for s in specs if s.status == "in_progress"),
-        "shipped": sum(1 for s in specs if s.status == "deployed"),
+        "queued": len(queued),
+        "inflight": len(inflight),
+        "shipped": len(shipped),
     }
+
+    # Sub-line copy for the four plain counters.
+    next_q = sorted(queued, key=lambda s: int(s.fm.get("queue_position") or 999))
+    next_label = f"next is {next_q[0].number}" if next_q else "queue empty"
+    inflight_label = (
+        f"running · {len(inflight)} active" if inflight else "idle"
+    )
+
+    deployed_with_timing = sum(1 for s in shipped if s.cycle_seconds)
+    shipped_sub = (
+        f"all-time · {deployed_with_timing} with full timings"
+        if deployed_with_timing
+        else "all-time"
+    )
+
     subs = {
         "drafts": "ideation",
-        "queued": "pending",
-        "inflight": "running",
-        "shipped": "all-time",
+        "queued": "pending · " + next_label,
+        "inflight": inflight_label,
+        "shipped": shipped_sub,
     }
     labels = {
         "drafts": "Drafts",
@@ -922,47 +1718,75 @@ def _render_counter_cluster(specs: list[SpecRow], drafts: list[DraftRow], now: d
         "inflight": "In flight",
         "shipped": "Shipped",
     }
-    cells = []
+
+    cells: list[str] = []
     for key in ("drafts", "queued", "inflight", "shipped"):
+        num_cls = "counter__num is-zero" if counts[key] == 0 else "counter__num"
         cells.append(
             '<div class="counter">'
             f'<div class="counter__lbl">{labels[key]}</div>'
-            f'<div class="counter__num">{counts[key]}</div>'
-            f'<div class="counter__sub">{subs[key]}</div>'
+            f'<div class="{num_cls}">{counts[key]}</div>'
+            f'<div class="counter__sub">{_escape(subs[key])}</div>'
             '</div>'
         )
-    return '<section class="counters" aria-label="Pipeline counters">' + "".join(cells) + '</section>'
 
-
-def _render_avg_cycle_card(specs: list[SpecRow], now: dt.datetime) -> str:
-    """Spec 0169 §2.1 — rolling-10 mean as the at-a-glance KPI. Same math as
-    `_render_metrics` (which now lives inside the Metrics tab)."""
-    deployed = sorted(
-        [s for s in specs if s.status == "deployed"],
+    # The 5th, accented counter — avg cycle (last 10) with delta + sparkline.
+    deployed_sorted = sorted(
+        shipped,
         key=lambda s: s.fm.get("deployed_at") or "",
         reverse=True,
     )
-    cycle_times = [s.cycle_seconds for s in deployed if s.cycle_seconds]
+    cycle_times = [s.cycle_seconds for s in deployed_sorted if s.cycle_seconds]
     last10 = cycle_times[:10]
     prior10 = cycle_times[10:20]
     avg_str = _humanize_seconds(int(statistics.mean(last10))) if last10 else "—"
+
     delta_html = ""
     if last10 and prior10:
         d = int(statistics.mean(prior10) - statistics.mean(last10))
         if d > 0:
-            delta_html = f'<span class="delta-up">↓ {_escape(_humanize_seconds(d))}</span> vs prior 10'
+            delta_html = (
+                f'<span class="delta-up">↓ {_escape(_humanize_seconds(d))}</span> vs prior 10'
+            )
         elif d < 0:
-            delta_html = f'<span class="delta-down">↑ {_escape(_humanize_seconds(-d))}</span> vs prior 10'
+            delta_html = (
+                f'<span class="delta-down">↑ {_escape(_humanize_seconds(-d))}</span> vs prior 10'
+            )
         else:
-            delta_html = 'flat vs prior 10'
+            delta_html = "flat vs prior 10"
     elif last10:
-        delta_html = f'rolling {len(last10)}'
+        delta_html = f"rolling {len(last10)}"
+    else:
+        delta_html = "no deploys yet"
+
+    # Sparkline — last 12 cycle times in chronological order (oldest → newest)
+    # so the line reads left-to-right.
+    spark_series = list(reversed(cycle_times[:12]))
+    spark_svg = ""
+    if len(spark_series) >= 2:
+        pts = _build_sparkline_polyline(spark_series)
+        spark_svg = (
+            '<svg class="counter__spark" viewBox="0 0 120 24" '
+            'preserveAspectRatio="none" aria-hidden="true">'
+            '<polyline fill="none" stroke="currentColor" stroke-width="1.5" '
+            'stroke-linejoin="round" stroke-linecap="round" '
+            f'points="{pts}" />'
+            '</svg>'
+        )
+
+    cells.append(
+        '<div class="counter counter--accent" aria-label="Average cycle time">'
+        '<div class="counter__lbl">Avg cycle (last 10)</div>'
+        f'<div class="counter__num">{_escape(avg_str)}</div>'
+        f'<div class="counter__sub">{delta_html}</div>'
+        f'{spark_svg}'
+        '</div>'
+    )
+
     return (
-        '<section class="avg-cycle" aria-label="Average cycle time">'
-        '<div class="avg-cycle__lbl">Avg cycle (last 10)</div>'
-        f'<div class="avg-cycle__num">{_escape(avg_str)}</div>'
-        f'<div class="avg-cycle__delta">{delta_html}</div>'
-        '</section>'
+        '<section class="counters" aria-label="Pipeline counters">'
+        + "".join(cells)
+        + '</section>'
     )
 
 
@@ -1065,16 +1889,23 @@ def _render_tabs(*, now_count: int, spec_count: int, history_count: int) -> str:
 def _render_theme_init_script() -> str:
     """Spec 0169 §2.7 — inline script in <head> that reads localStorage and
     sets data-theme on <html> before the body paints. Prevents the theme
-    flash on first paint."""
+    flash on first paint.
+
+    Spec 0177 §2.7 — default for first-visit users flipped from 'auto' to
+    'light'. Returning users with a stored preference keep it; the
+    light→dark→auto toggle cycle still works. New visitors land on the
+    light surface, which is the mockup baseline and reads better on the
+    typical product-owner workstation.
+    """
     return (
         '<script>'
         '(function(){'
         'try{'
-        "var t=localStorage.getItem('dr-dashboard-theme')||'auto';"
-        "if(t!=='light'&&t!=='dark'&&t!=='auto')t='auto';"
+        "var t=localStorage.getItem('dr-dashboard-theme')||'light';"
+        "if(t!=='light'&&t!=='dark'&&t!=='auto')t='light';"
         "document.documentElement.setAttribute('data-theme',t);"
         '}catch(e){'
-        "document.documentElement.setAttribute('data-theme','auto');"
+        "document.documentElement.setAttribute('data-theme','light');"
         '}'
         '})();'
         '</script>'
@@ -1123,14 +1954,15 @@ def render_index(
     parts.append('<body><main class="page">')
     parts.append(_render_header(live_version, now, shell_only=shell_only))
 
-    # ─── Callout strip (spec 0169 §2.1) ──────────────────────────────
-    # Replaces hero + pipeline + metrics stack. Single row, three cards:
-    # hero (~60%) + counter cluster (~25%) + avg cycle (~15%).
+    # ─── Hero + counter row (spec 0177 §2.1) ──────────────────────────
+    # Replaces spec 0169's 3-column callout strip. Hero spans the full
+    # container width (with a horizontal stage timeline beneath when in
+    # flight); counter row below holds 5 cards — the avg-cycle card from
+    # spec 0169 folded in as the accented 5th counter.
     parts.append('<section class="strip" aria-label="Status callouts">')
     if shell_only:
         parts.append(_skeleton_hero())
         parts.append(_skeleton_section("counters", "Counters"))
-        parts.append(_skeleton_section("avg", "Avg cycle"))
     else:
         if in_flight:
             for spec in in_flight:
@@ -1138,7 +1970,6 @@ def render_index(
         else:
             parts.append(_wrap_region("hero", _render_hero_idle(specs, queued, drafts, now)))
         parts.append(_wrap_region("counters", _render_counter_cluster(specs, drafts, now)))
-        parts.append(_wrap_region("avg", _render_avg_cycle_card(specs, now)))
     parts.append('</section>')
 
     # ─── Tab bar (spec 0169 §2.2) ────────────────────────────────────
@@ -1447,72 +2278,80 @@ body {
   margin: 22px -24px 18px;
 }
 
-/* Stage timeline */
-.stages { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
-.stage {
-  display: grid;
-  grid-template-columns: 24px 150px 1fr 80px;
-  gap: 14px;
-  align-items: center;
-  padding: 9px 0;
-  position: relative;
+/* Horizontal timeline (spec 0177 §2.2) — replaces the prior vertical
+   `.stages` list. Each stage is a `.tl__step` that sits in an equal-width
+   grid column under the in-flight hero. Two rails behind the nodes: the
+   grey base rail spans the full width, the ok-coloured `.tl__rail-done`
+   overlay is sized at render time to (done_count / total) of the row. */
+.tl { position: relative; padding: 4px 0 8px; }
+.tl__rail {
+  position: absolute; left: 14px; right: 14px; top: 18px;
+  height: 3px; background: var(--md-outline-hair); border-radius: 2px;
+  z-index: 0;
 }
-.stage + .stage::before {
-  content: ""; position: absolute; left: 11px; top: -1px; bottom: 50%;
-  width: 2px; background: var(--md-outline-hair);
+.tl__rail-done {
+  position: absolute; left: 14px; top: 18px; height: 3px;
+  background: color-mix(in srgb, var(--p-ok) 70%, var(--md-outline-hair));
+  border-radius: 2px;
+  z-index: 1;
 }
-.stage--done + .stage--done::before { background: color-mix(in srgb, var(--p-ok) 60%, var(--md-outline-hair)); }
-.stage--done + .stage--curr::before { background: color-mix(in srgb, var(--p-ok) 60%, var(--md-outline-hair)); }
-.stage::after {
-  content: ""; position: absolute; left: 11px; top: 50%; bottom: 0;
-  width: 2px; background: var(--md-outline-hair);
+.tl__steps {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  position: relative; z-index: 2;
 }
-.stage:last-child::after { display: none; }
-.stage--done::after { background: color-mix(in srgb, var(--p-ok) 60%, var(--md-outline-hair)); }
-
-.stage__mark {
-  width: 24px; height: 24px; border-radius: 50%;
+.tl__step {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 0 4px; text-align: center; min-width: 0;
+}
+.tl__node {
+  width: 28px; height: 28px; border-radius: 50%;
   display: grid; place-items: center;
-  font-family: var(--md-font-plain);
-  font-size: 13px; font-weight: 500;
   background: var(--md-surface-container-high);
   color: var(--md-on-surface-faint);
-  z-index: 1;
+  font: 600 13px/1 var(--md-font-plain);
+  border: 2px solid var(--md-surface-dim);
   position: relative;
 }
-.stage--done .stage__mark {
-  background: color-mix(in srgb, var(--p-ok) 24%, var(--md-surface-container-high));
+.tl__step--done .tl__node {
+  background: color-mix(in srgb, var(--p-ok) 28%, var(--md-surface-container-high));
   color: var(--p-ok);
 }
-.stage--curr .stage__mark {
-  background: color-mix(in srgb, var(--p-info) 26%, var(--md-surface-container-high));
+.tl__step--done .tl__node::after { content: "\\2713"; }
+.tl__step--curr .tl__node {
+  background: color-mix(in srgb, var(--p-info) 32%, var(--md-surface-container-high));
   color: var(--p-info);
 }
-.stage--curr .stage__mark::before {
+.tl__step--curr .tl__node::before {
   content: ""; position: absolute; inset: -6px; border-radius: 50%;
   background: color-mix(in srgb, var(--p-info) 16%, transparent);
   animation: halo 2.2s ease-in-out infinite;
 }
-.stage--queued .stage__mark { background: var(--md-surface-container); color: var(--md-on-surface-decor); }
-.stage--fail .stage__mark   { background: color-mix(in srgb, var(--p-err) 26%, var(--md-surface-container-high)); color: var(--p-err); }
-
-.stage__name { font: 500 13.5px/1.2 var(--md-font-plain); color: var(--md-on-surface); }
-.stage--queued .stage__name { color: var(--md-on-surface-faint); font-weight: 400; }
-.stage--done .stage__name { color: var(--md-on-surface-variant); }
-.stage__note {
-  font: 400 12.5px/1.4 var(--md-font-data);
-  color: var(--md-on-surface-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.tl__step--curr .tl__node::after {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--p-info);
 }
-.stage--queued .stage__note { color: var(--md-on-surface-decor); }
-.stage__dur {
-  font: 400 11.5px/1 var(--md-font-data);
+.tl__step--queued .tl__node { background: var(--md-surface-container); color: var(--md-on-surface-decor); }
+.tl__step--fail .tl__node {
+  background: color-mix(in srgb, var(--p-err) 28%, var(--md-surface-container-high));
+  color: var(--p-err);
+}
+.tl__step--fail .tl__node::after { content: "!"; }
+.tl__lbl {
+  font: 500 11px/1.25 var(--md-font-plain);
+  color: var(--md-on-surface);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl__step--queued .tl__lbl { color: var(--md-on-surface-decor); font-weight: 400; }
+.tl__step--done .tl__lbl   { color: var(--md-on-surface-variant); }
+.tl__step--curr .tl__lbl   { color: var(--p-info); font-weight: 600; }
+.tl__dur {
+  font: 400 10.5px/1 var(--md-font-data);
   color: var(--md-on-surface-faint);
-  text-align: right; letter-spacing: 0.02em;
+  letter-spacing: 0.02em;
 }
-.stage--curr .stage__dur { color: var(--p-info); font-weight: 500; }
+.tl__step--curr .tl__dur { color: var(--p-info); font-weight: 500; }
 @media (prefers-reduced-motion: reduce) {
-  .stage--curr .stage__mark::before { animation: none; }
+  .tl__step--curr .tl__node::before { animation: none; }
 }
 
 /* Pipeline strip */
@@ -1727,96 +2566,71 @@ html[data-theme="dark"]  { color-scheme: dark; }
 html[data-theme="light"] { color-scheme: light; }
 html[data-theme="auto"]  { color-scheme: light dark; }
 
-/* ─── Callout strip (spec 0169 §2.1) ─────────────────────────────────
-   One row, three cards. Hero (~60%) + counter cluster (~25%) + avg
-   cycle (~15%). Replaces the previous hero + pipeline + metrics stack.
+/* ─── Hero + counter row layout (spec 0177 §2.1) ─────────────────────
+   The `.strip` wrapper from spec 0169 used to be a 3-column grid that
+   pinned the avg-cycle card next to the counters and made the in-flight
+   hero stack a narrow timeline alongside it. v3 lets the hero span the
+   full container width with the horizontal timeline beneath, and folds
+   the avg-cycle card into the counter row as its 5th counter. `.strip`
+   becomes `display: contents` so its children (hero region, counters
+   region) become direct block children of `.page`.
    ──────────────────────────────────────────────────────────────────── */
-.strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.6fr);
-  gap: 12px;
-  margin: 16px 0;
-  align-items: stretch;
-}
-.strip [data-region="hero"],
-.strip [data-region="counters"],
-.strip [data-region="avg"] { min-width: 0; }
-.strip .hero { margin: 0; min-height: 96px; }
+.strip { display: contents; }
+.strip > [data-region="hero"] { display: block; margin-bottom: 12px; }
+.strip > [data-region="counters"] { display: block; }
+.strip .hero { margin: 0; }
 
-/* Counter cluster */
+/* Counter row — 5 cards in one full-width row. The accent variant
+   carries the avg-cycle counter (rolling-10 mean + delta + sparkline).
+   The other four counters keep their plain shape. */
 .counters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 8px;
+}
+.counter {
   background: var(--md-surface-container);
   border: 1px solid var(--md-outline-hair);
   border-radius: var(--md-shape-lg);
   padding: 14px 16px;
-  min-height: 96px;
-  align-items: center;
-}
-.counters .counter { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
-.counters .counter__lbl {
-  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--md-on-surface-faint);
-  margin-bottom: 4px;
-}
-.counters .counter__num {
-  font: var(--md-w-semi) 22px/1 var(--md-font-data);
-  color: var(--md-on-surface);
-  font-variant-numeric: tabular-nums;
-}
-.counters .counter__sub {
-  font: 11px/1 var(--md-font-plain);
-  color: var(--md-on-surface-faint);
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Avg cycle card */
-.avg-cycle {
-  background: var(--md-surface-container);
-  border: 1px solid var(--md-outline-hair);
-  border-radius: var(--md-shape-lg);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 96px;
+  display: flex; flex-direction: column; gap: 6px;
   min-width: 0;
 }
-.avg-cycle__lbl {
+.counter__lbl {
   font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--md-on-surface-faint);
-  margin-bottom: 6px;
 }
-.avg-cycle__num {
-  font: var(--md-w-semi) 22px/1 var(--md-font-data);
+.counter__num {
+  font: var(--md-w-semi) 26px/1 var(--md-font-data);
   color: var(--md-on-surface);
   font-variant-numeric: tabular-nums;
 }
-.avg-cycle__delta {
-  font: 11px/1.4 var(--md-font-plain);
-  color: var(--md-on-surface-variant);
-  margin-top: 6px;
+.counter__num.is-zero { color: var(--md-on-surface-decor); font-weight: 400; }
+.counter__sub {
+  font: 11.5px/1.3 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.avg-cycle__delta .delta-up   { color: var(--p-ok); }
-.avg-cycle__delta .delta-down { color: var(--p-warn); }
+.counter__sub .delta-up   { color: var(--p-ok); }
+.counter__sub .delta-down { color: var(--p-warn); }
+.counter--accent .counter__num { color: var(--p-info); }
+.counter__spark {
+  margin-top: 2px;
+  width: 100%;
+  height: 24px;
+  display: block;
+  color: var(--p-info);
+}
 
-/* Strip responsiveness */
 @media (max-width: 1100px) {
-  .strip { grid-template-columns: 1fr 1fr; }
-  .strip [data-region="hero"] { grid-column: 1 / -1; }
+  .counters { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 700px) {
-  .strip { grid-template-columns: 1fr; }
-  .strip [data-region="hero"] { grid-column: auto; }
   .counters { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -1944,6 +2758,202 @@ html[data-theme="auto"]  { color-scheme: light dark; }
   .tabs .tab,
   .strip,
   .te-banner { transition: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Spec 0177 — Dashboard redesign v3
+   Metrics tab populate · pagination · history-table columns
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ─── Metrics tab: callout strip (spec 0177 §2.4.1) ─────────────────── */
+.callouts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.callout {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md);
+  padding: 14px 16px;
+  display: flex; gap: 12px; align-items: flex-start;
+  min-width: 0;
+}
+.callout__icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--p-info) 18%, transparent);
+  color: var(--p-info);
+  font: var(--md-w-semi) 16px/1 var(--md-font-plain);
+}
+.callout--ok .callout__icon   { background: color-mix(in srgb, var(--p-ok) 18%, transparent);   color: var(--p-ok); }
+.callout--warn .callout__icon { background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn); }
+.callout__body { min-width: 0; }
+.callout__lbl {
+  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  margin-bottom: 4px;
+}
+.callout__val {
+  font: var(--md-w-semi) 18px/1.2 var(--md-font-data);
+  color: var(--md-on-surface);
+}
+.callout__sub {
+  font: 11.5px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  margin-top: 4px;
+}
+
+/* ─── Metrics tab: chart cards + grid (spec 0177 §2.4) ──────────────── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.charts-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+.chart-card {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
+  padding: 16px 18px;
+  min-width: 0;
+}
+.chart-card__title {
+  font: var(--md-w-medium) 13px/1.2 var(--md-font-plain);
+  color: var(--md-on-surface);
+  margin-bottom: 2px;
+}
+.chart-card__sub {
+  font: 11.5px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+  margin-bottom: 12px;
+}
+.chart-card__legend {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font: 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  margin-top: 10px;
+}
+.chart-card__legend .lg__sw {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px; margin-right: 6px;
+  vertical-align: middle;
+}
+svg.chart { width: 100%; display: block; }
+
+/* Horizontal bar list — used for the "by type" breakdown. */
+.bar-list { display: flex; flex-direction: column; gap: 10px; }
+.bar-row {
+  display: grid; grid-template-columns: 100px 1fr 70px;
+  gap: 12px; align-items: center;
+}
+.bar-row__lbl {
+  font: 12.5px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  text-transform: capitalize;
+}
+.bar-row__track {
+  height: 10px; border-radius: 5px;
+  background: var(--chart-track);
+  overflow: hidden; position: relative;
+}
+.bar-row__fill { height: 100%; border-radius: 5px; }
+.bar-row__val {
+  font: var(--md-w-medium) 12px/1 var(--md-font-data);
+  color: var(--md-on-surface);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.metrics-empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--md-on-surface-faint);
+  font: 12px/1.5 var(--md-font-plain);
+}
+
+@media (max-width: 1100px) {
+  .callouts { grid-template-columns: 1fr; }
+  .charts-grid, .charts-grid--3 { grid-template-columns: 1fr; }
+}
+
+/* ─── History tab: 6-column All-specs grid (spec 0177 §2.3) ─────────── */
+.qrow--history,
+.qrow--history-header {
+  grid-template-columns: 70px 1fr 110px 100px 90px 90px;
+}
+.qrow--history-header { padding: 10px 16px; }
+.qrow--history .qrow__age { text-align: right; }
+
+@media (max-width: 1100px) {
+  .qrow--history,
+  .qrow--history-header { grid-template-columns: 60px 1fr 90px 90px 80px 80px; }
+}
+@media (max-width: 700px) {
+  .qrow--history,
+  .qrow--history-header { grid-template-columns: 60px 1fr 80px 70px; }
+  .qrow--history > :nth-child(5),
+  .qrow--history > :nth-child(6),
+  .qrow--history-header > :nth-child(5),
+  .qrow--history-header > :nth-child(6) { display: none; }
+}
+
+/* ─── Pagination strip (spec 0177 §2.6) ─────────────────────────────────
+   New `.pager` component. Lands in both the canonical design-system
+   composed-components.css AND the live-app components.css in the same
+   spec (DS sync rule from CLAUDE.md). This block in dashboard.css is
+   the dashboard-specific tuning; the structural rules are in the DS.
+   ──────────────────────────────────────────────────────────────────── */
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 10px 4px 0;
+  font: 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+}
+.pager__count {
+  font-family: var(--md-font-data);
+  font-variant-numeric: tabular-nums;
+}
+.pager__nav { display: flex; gap: 4px; align-items: center; }
+.pager__btn {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  padding: 5px 10px;
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  min-width: 30px;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              border-color var(--md-dur-short-3) var(--md-easing-standard),
+              color var(--md-dur-short-3) var(--md-easing-standard);
+}
+.pager__btn:hover {
+  border-color: var(--md-outline);
+  color: var(--md-on-surface);
+}
+.pager__btn[aria-current="page"] {
+  background: color-mix(in srgb, var(--p-info) 14%, var(--md-surface-container));
+  border-color: color-mix(in srgb, var(--p-info) 40%, var(--md-outline-hair));
+  color: var(--p-info);
+  font-weight: var(--md-w-semi);
+}
+.pager__btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.pager__btn[disabled]:hover { border-color: var(--md-outline-hair); color: var(--md-on-surface-variant); }
+.pager__ellipsis { color: var(--md-on-surface-decor); padding: 0 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pager__btn { transition: none !important; }
+}
+
+/* ─── Timeline responsive collapse (spec 0177 §2.2) ─────────────────── */
+@media (max-width: 700px) {
+  .tl__steps { overflow-x: auto; }
+  .hero--inflight .hero__right { display: none; }
 }
 """
 
@@ -2075,8 +3085,9 @@ DASHBOARD_LIVE_JS = """\
   var toggleBtn = document.getElementById('theme-toggle');
   if (toggleBtn) {
     var saved = (function () { try { return localStorage.getItem('dr-dashboard-theme'); } catch (e) { return null; } })();
+    // Spec 0177 §2.7 — default for first-visit users is 'light' (was 'auto').
     if (saved && THEMES.indexOf(saved) >= 0) applyTheme(saved);
-    else applyTheme('auto');
+    else applyTheme('light');
     toggleBtn.addEventListener('click', function () {
       var current = document.documentElement.getAttribute('data-theme') || 'auto';
       var idx = THEMES.indexOf(current);
@@ -2136,6 +3147,31 @@ DASHBOARD_BOOTSTRAP_JS = """\
     'handoff_written': 'handoff written'
   };
 
+  // Spec 0177 §2.2 — STAGE_DEFS must mirror STAGES in
+  // scripts/spec_lifecycle/stages.py. Each entry is [name, completedStep].
+  // The bootstrap re-implements compute_stages so the horizontal timeline
+  // survives the 5s /api/data refresh (previously the timeline was server-
+  // rendered only, then wiped on first bootstrap repaint).
+  var STAGE_DEFS = [
+    ['Pre-flight',   'preflight_ok'],
+    ['Read handoff', 'handoff_read'],
+    ['Read spec',    'spec_read'],
+    ['Reconcile',    'reconcile_complete'],
+    ['Branch',       'branched'],
+    ['Implement',    'implement_complete'],
+    ['Test',         'tests_green'],
+    ['PR',           'pr_opened'],
+    ['Merge',        'merged'],
+    ['Deploy',       'deployed'],
+    ['Handoff',      'handoff_written']
+  ];
+
+  // Spec 0177 §2.6 pager state. Page index per section name; consulted
+  // by paint() after each refresh so the user doesn't get bounced back
+  // to page 1 every 5s.
+  var pagerState = {};
+  var PAGER_PAGE_SIZE = 10;
+
   // Spec 0163 §2.4 staleness thresholds — must match _STALE_*_SECONDS in
   // scripts/spec_lifecycle/render_dashboard.py.
   var STALE_WARN_S = 30;
@@ -2182,6 +3218,108 @@ DASHBOARD_BOOTSTRAP_JS = """\
   function statusChip(status) {
     var tone = ({'deployed':'ok','merged':'ok','in_progress':'info','queued':'neutral','failed':'err'})[status] || 'neutral';
     return '<span class="chip tone-' + tone + '">' + ESC(status || '—') + '</span>';
+  }
+
+  // Spec 0177 §2.2 — compute stage states for an in-flight spec from its
+  // event log. Mirrors stages.py:compute_stages but trimmed: we don't
+  // compute durations (the server already rendered them and they don't
+  // change often within a 5s refresh window), only done/curr/queued.
+  function computeStages(events, failureStep) {
+    var byStep = {};
+    events.forEach(function (e) {
+      var step = e && e.step;
+      if (step && !(step in byStep)) byStep[step] = e;
+    });
+    var failIdx = null;
+    if (failureStep) {
+      var key = String(failureStep).toLowerCase().replace(/[ -]/g, '_');
+      for (var fi = 0; fi < STAGE_DEFS.length; fi++) {
+        if (key === STAGE_DEFS[fi][0].toLowerCase().replace(/[ -]/g, '_')) {
+          failIdx = fi; break;
+        }
+      }
+    }
+    var currIdx = null;
+    if (failIdx === null) {
+      for (var i = 0; i < STAGE_DEFS.length; i++) {
+        if (STAGE_DEFS[i][1] in byStep) continue;
+        if (i === 0 || STAGE_DEFS[i - 1][1] in byStep) { currIdx = i; break; }
+      }
+    }
+    return STAGE_DEFS.map(function (def, i) {
+      var status;
+      if (def[1] in byStep) status = 'done';
+      else if (failIdx !== null && i === failIdx) status = 'fail';
+      else if (currIdx !== null && i === currIdx) status = 'curr';
+      else status = 'queued';
+      return { name: def[0], status: status, ev: byStep[def[1]] || null };
+    });
+  }
+
+  function renderTimeline(states, cycleStartedIso) {
+    var doneCount = states.filter(function (s) { return s.status === 'done'; }).length;
+    var total = states.length || 1;
+    var railStyle = doneCount
+      ? 'style="width: calc((' + doneCount + '/' + total + ') * (100% - 28px));"'
+      : 'style="width: 0;"';
+    var nodes = states.map(function (s) {
+      // Carry data-stage-started-at on the current node so dashboard-live.js's
+      // 1s ticker (spec 0156 §2.3) can keep rewriting the elapsed text.
+      var attrs = '';
+      if (s.status === 'curr' && cycleStartedIso) {
+        attrs = ' data-stage-started-at="' + ESC(cycleStartedIso) + '"';
+      }
+      return (
+        '<div class="tl__step tl__step--' + s.status + '">' +
+        '<div class="tl__node"></div>' +
+        '<div class="tl__lbl">' + ESC(s.name) + '</div>' +
+        '<div class="tl__dur"' + attrs + '>—</div>' +
+        '</div>'
+      );
+    }).join('');
+    var railDone = doneCount ? '<div class="tl__rail-done" ' + railStyle + '></div>' : '';
+    return (
+      '<div class="tl" aria-label="Cycle stages">' +
+      '<div class="tl__rail"></div>' +
+      railDone +
+      '<div class="tl__steps">' + nodes + '</div>' +
+      '</div>'
+    );
+  }
+
+  // Spec 0177 §2.6 — pager strip. The server-side helper lives at
+  // _render_pager in scripts/spec_lifecycle/render_dashboard.py; mirror
+  // its output here so re-renders preserve the strip.
+  function renderPager(totalRows, label, currentPage) {
+    if (totalRows <= PAGER_PAGE_SIZE) return '';
+    var totalPages = Math.ceil(totalRows / PAGER_PAGE_SIZE);
+    var current = Math.min(Math.max(1, currentPage || 1), totalPages);
+    var start = (current - 1) * PAGER_PAGE_SIZE + 1;
+    var end = Math.min(current * PAGER_PAGE_SIZE, totalRows);
+    var buttons = [];
+    function btn(p) {
+      var attrs = (p === current) ? ' aria-current="page"' : '';
+      return '<button class="pager__btn" type="button" data-pager-go="' + p + '"' + attrs + '>' + p + '</button>';
+    }
+    if (totalPages <= 5) {
+      for (var p = 1; p <= totalPages; p++) buttons.push(btn(p));
+    } else {
+      buttons.push(btn(1), btn(2), btn(3));
+      buttons.push('<span class="pager__ellipsis">…</span>');
+      buttons.push(btn(totalPages));
+    }
+    var prevDisabled = current <= 1 ? ' disabled' : '';
+    var nextDisabled = current >= totalPages ? ' disabled' : '';
+    return (
+      '<div class="pager" data-pager-total="' + totalRows + '" data-pager-pages="' + totalPages +
+      '" data-pager-current="' + current + '" aria-label="' + ESC(label) + ' pagination">' +
+      '<div class="pager__count" data-pager-count>Showing ' + start + '–' + end + ' of ' + totalRows + '</div>' +
+      '<div class="pager__nav">' +
+      '<button class="pager__btn" type="button" data-pager-prev aria-label="Previous page"' + prevDisabled + '>←</button>' +
+      buttons.join('') +
+      '<button class="pager__btn" type="button" data-pager-next aria-label="Next page"' + nextDisabled + '>→</button>' +
+      '</div></div>'
+    );
   }
 
   // ── Section renderers ───────────────────────────────────────────────────
@@ -2253,6 +3391,11 @@ DASHBOARD_BOOTSTRAP_JS = """\
         'last event ' + (isNaN(ageSec) ? '—' : humanizeSec(ageSec)) + ' ago</span>'
       );
     }
+    // Spec 0177 §2.2 — horizontal stage timeline beneath the hero. Without
+    // this, the bootstrap repaint wipes the server-rendered timeline 5s
+    // after page load.
+    var states = computeStages(events, spec.failure_step);
+    var timeline = renderTimeline(states, cycleStartedIso);
     return (
       '<section class="hero hero--inflight" aria-label="Queue in flight" data-current-step="' + ESC(latestStep) + '">' +
       '<div class="hero__top">' +
@@ -2266,7 +3409,10 @@ DASHBOARD_BOOTSTRAP_JS = """\
       '<div class="hero__right">' +
       '<div class="hero__big" data-cycle-started-at="' + ESC(cycleStartedIso) + '">' + ESC(elapsed) + '</div>' +
       '<div class="hero__lbl">elapsed</div>' +
-      '</div></div></section>'
+      '</div></div>' +
+      '<div class="hero__divider"></div>' +
+      timeline +
+      '</section>'
     );
   }
 
@@ -2287,12 +3433,15 @@ DASHBOARD_BOOTSTRAP_JS = """\
         '<code>/spec-promote &lt;id&gt;</code> or queue a new one with <code>/spec-queue</code>.</div>' +
         '</section>';
     }
+    var current = pagerState['Queue'] || 1;
     var rows = ['<div class="qrow qrow--header"><div>#</div><div>Spec</div>' +
       '<div>Title</div><div>Type</div><div style="text-align:right">Waiting</div></div>'];
-    queued.forEach(function (s) {
+    queued.forEach(function (s, idx) {
+      var page = Math.floor(idx / PAGER_PAGE_SIZE) + 1;
+      var hidden = page !== current ? ' hidden' : '';
       var waiting = ago(s.queued_at, nowMs).replace(' ago', '');
       rows.push(
-        '<div class="qrow">' +
+        '<div class="qrow" data-pager-page="' + page + '"' + hidden + '>' +
         '<div class="qrow__pos">' + ESC(s.queue_position) + '</div>' +
         '<div class="qrow__id"><a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
         '<div class="qrow__title">' + ESC(s.title) + '</div>' +
@@ -2300,7 +3449,9 @@ DASHBOARD_BOOTSTRAP_JS = """\
         '<div class="qrow__age">' + ESC(waiting) + '</div></div>'
       );
     });
-    return header + '<section class="qtable" aria-label="Queue">' + rows.join('') + '</section>';
+    var table =
+      '<section class="qtable" aria-label="Queue" data-pager-target>' + rows.join('') + '</section>';
+    return header + table + renderPager(queued.length, 'Queue', current);
   }
 
   function renderFeed(data, nowMs) {
@@ -2326,7 +3477,11 @@ DASHBOARD_BOOTSTRAP_JS = """\
         '<div class="feed__what"><em>No events in the last 24 hours.</em></div>' +
         '<div class="feed__dur">—</div></div></section>';
     }
-    var rows = flat.slice(0, 40).map(function (r) {
+    var capped = flat.slice(0, 40);
+    var current = pagerState['Recent activity'] || 1;
+    var rows = capped.map(function (r, idx) {
+      var page = Math.floor(idx / PAGER_PAGE_SIZE) + 1;
+      var hidden = page !== current ? ' hidden' : '';
       var d = new Date(r.ts);
       var hh = String(d.getUTCHours()).padStart(2, '0');
       var mm = String(d.getUTCMinutes()).padStart(2, '0');
@@ -2337,14 +3492,17 @@ DASHBOARD_BOOTSTRAP_JS = """\
         : '';
       var detail = r.spec ? specLink + ' · ' + ESC(r.spec.title) : ESC(step);
       return (
-        '<div class="feed__row">' +
+        '<div class="feed__row" data-pager-page="' + page + '"' + hidden + '>' +
         '<div class="feed__ts">' + hh + ':' + mm + ':' + ss + ' UTC</div>' +
         '<div class="feed__step feed__step--neutral"></div>' +
         '<div class="feed__what"><span class="kicker">' + ESC(step.replace(/_/g, ' ')) + '</span>' +
         detail + '</div><div class="feed__dur">—</div></div>'
       );
     });
-    return header + '<section class="feed" aria-label="Recent activity">' + rows.join('') + '</section>';
+    var section =
+      '<section class="feed" aria-label="Recent activity" data-pager-target>' +
+      rows.join('') + '</section>';
+    return header + section + renderPager(capped.length, 'Recent activity', current);
   }
 
   function renderDrafts(data, nowMs) {
@@ -2374,6 +3532,28 @@ DASHBOARD_BOOTSTRAP_JS = """\
     return header + '<section class="drafts" aria-label="Drafts">' + rows.join('') + '</section>';
   }
 
+  // Spec 0177 §2.3 — Lifetime + Cycle columns mirror the Python
+  // `_spec_lifetime_seconds` + `SpecRow.cycle_seconds`. Returns null when
+  // either anchor is missing (so the column renders as `—`).
+  function specLifetimeSeconds(s) {
+    if (!s.deployed_at) return null;
+    var rawCreated = s.created || s.queued_at || '';
+    if (!rawCreated) return null;
+    var createdStr = String(rawCreated);
+    // Bare YYYY-MM-DD → midnight-UTC isoformat
+    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(createdStr)) createdStr += 'T00:00:00Z';
+    var created = Date.parse(createdStr);
+    var deployed = Date.parse(s.deployed_at);
+    if (isNaN(created) || isNaN(deployed)) return null;
+    return Math.max(0, Math.floor((deployed - created) / 1000));
+  }
+  function specCycleSeconds(s) {
+    if (!s.started_at || !s.deployed_at) return null;
+    var st = Date.parse(s.started_at), dp = Date.parse(s.deployed_at);
+    if (isNaN(st) || isNaN(dp)) return null;
+    return Math.max(0, Math.floor((dp - st) / 1000));
+  }
+
   function renderAllSpecs(data) {
     var dev = (data.specs || []).slice().sort(function (a, b) {
       return parseInt(b.number, 10) - parseInt(a.number, 10);
@@ -2383,23 +3563,26 @@ DASHBOARD_BOOTSTRAP_JS = """\
       queued: dev.filter(function (s) { return s.status === 'queued'; }).length,
       inflight: dev.filter(function (s) { return s.status === 'in_progress'; }).length
     };
-    var grid = 'grid-template-columns: 76px 1fr 130px 100px 100px;';
     var header =
       '<div class="sh"><div class="sh__name">All specs</div>' +
       '<div class="sh__hint">' + counts.deployed + ' shipped · ' + counts.queued +
       ' queued · ' + counts.inflight + ' in flight</div>' +
       '<div class="sh__rule"></div></div>';
-    var rows = ['<div class="qrow qrow--header" style="' + grid + '">' +
+    var rows = ['<div class="qrow qrow--history qrow--history-header">' +
       '<div>Spec</div><div>Title</div><div>Type</div><div>Status</div>' +
-      '<div style="text-align:right">Version</div></div>'];
+      '<div style="text-align:right">Lifetime</div>' +
+      '<div style="text-align:right">Cycle</div></div>'];
     dev.forEach(function (s) {
+      var lifetime = humanizeSec(specLifetimeSeconds(s));
+      var cycle = humanizeSec(specCycleSeconds(s));
       rows.push(
-        '<div class="qrow" style="' + grid + '">' +
+        '<div class="qrow qrow--history">' +
         '<div class="qrow__id"><a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
         '<div class="qrow__title">' + ESC(s.title) + '</div>' +
         '<div>' + typeChip(s.type) + '</div>' +
         '<div>' + statusChip(s.status) + '</div>' +
-        '<div class="qrow__age">' + ESC(s.target_version || '—') + '</div></div>'
+        '<div class="qrow__age">' + ESC(lifetime) + '</div>' +
+        '<div class="qrow__age">' + ESC(cycle) + '</div></div>'
       );
     });
     return header + '<section class="qtable" aria-label="All specs">' + rows.join('') + '</section>';
@@ -2455,9 +3638,80 @@ DASHBOARD_BOOTSTRAP_JS = """\
       });
   }
 
+  // Spec 0177 §2.6 — pager click delegation. One handler attached to
+  // document so it survives the 5s repaint cycle (which destroys and
+  // recreates pager DOM). When a button fires, we look up the
+  // surrounding `.pager`'s nav-label (the section name) to drive the
+  // pagerState map; the bootstrap reads pagerState on next paint to keep
+  // the user on the same page across /api/data refreshes.
+  function wirePager() {
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.pager__btn');
+      if (!btn) return;
+      if (btn.hasAttribute('disabled')) return;
+      var pager = btn.closest('.pager');
+      if (!pager) return;
+      var label = (pager.getAttribute('aria-label') || '').replace(/ pagination$/, '');
+      var total = parseInt(pager.getAttribute('data-pager-total') || '0', 10);
+      var totalPages = parseInt(pager.getAttribute('data-pager-pages') || '1', 10);
+      var current = parseInt(pager.getAttribute('data-pager-current') || '1', 10) || 1;
+      var target = null;
+      if (btn.hasAttribute('data-pager-go')) {
+        target = parseInt(btn.getAttribute('data-pager-go'), 10);
+      } else if (btn.hasAttribute('data-pager-prev')) {
+        target = current - 1;
+      } else if (btn.hasAttribute('data-pager-next')) {
+        target = current + 1;
+      }
+      if (!target || target < 1 || target > totalPages) return;
+      pagerState[label] = target;
+      applyPager(pager, target, total, totalPages);
+    }, false);
+  }
+
+  function applyPager(pager, page, total, totalPages) {
+    pager.setAttribute('data-pager-current', String(page));
+    // Toggle [hidden] on rows in the previous `[data-pager-target]` section.
+    var section = pager.previousElementSibling;
+    while (section && !(section.hasAttribute && section.hasAttribute('data-pager-target'))) {
+      section = section.previousElementSibling;
+    }
+    if (section) {
+      section.querySelectorAll('[data-pager-page]').forEach(function (row) {
+        var p = parseInt(row.getAttribute('data-pager-page'), 10);
+        if (p === page) row.removeAttribute('hidden');
+        else row.setAttribute('hidden', '');
+      });
+    }
+    // Recompute count text.
+    var count = pager.querySelector('[data-pager-count]');
+    if (count) {
+      var start = (page - 1) * PAGER_PAGE_SIZE + 1;
+      var end = Math.min(page * PAGER_PAGE_SIZE, total);
+      count.textContent = 'Showing ' + start + '–' + end + ' of ' + total;
+    }
+    // Update button aria-current + disabled states.
+    pager.querySelectorAll('.pager__btn[data-pager-go]').forEach(function (b) {
+      var p = parseInt(b.getAttribute('data-pager-go'), 10);
+      if (p === page) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    var prev = pager.querySelector('[data-pager-prev]');
+    var next = pager.querySelector('[data-pager-next]');
+    if (prev) {
+      if (page <= 1) prev.setAttribute('disabled', '');
+      else prev.removeAttribute('disabled');
+    }
+    if (next) {
+      if (page >= totalPages) next.setAttribute('disabled', '');
+      else next.removeAttribute('disabled');
+    }
+  }
+
   function start() {
     // First paint: if we have cached data, paint it immediately so returning
     // visitors see populated content before the network round-trip completes.
+    wirePager();
     var cached = readCache();
     if (cached) paint(cached, Date.now(), {});
     refresh();

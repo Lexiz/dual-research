@@ -2245,3 +2245,70 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   background: color-mix(in srgb, var(--p-warn) 18%, transparent);
   color: var(--p-warn);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Pager (spec 0177 §2.6)
+   ─────────────────────────────────────────────────────────────
+   Pagination strip used beneath paginated lists (queue + activity
+   feed on the spec dashboard; future: any list that grows past one
+   page). `.pager` is the wrapper; `.pager__count` shows
+   "Showing X–Y of N"; `.pager__nav` holds prev/page-number/next
+   buttons. The active page button carries aria-current="page";
+   disabled buttons (prev on page 1, next on last page) get
+   `[disabled]` and reduced opacity. Mid-pages collapse to an
+   ellipsis once total > 5 pages.
+   ─────────────────────────────────────────────────────────────
+*/
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--md-sp-4);
+  padding: var(--md-sp-3) var(--md-sp-1) 0;
+  font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+}
+.pager__count {
+  font-family: var(--md-font-data);
+  font-variant-numeric: tabular-nums;
+}
+.pager__nav {
+  display: flex; gap: var(--md-sp-1); align-items: center;
+}
+.pager__btn {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  padding: 5px 10px;
+  font: var(--md-w-medium) var(--md-body-s-size)/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  min-width: 30px;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              border-color var(--md-dur-short-3) var(--md-easing-standard),
+              color var(--md-dur-short-3) var(--md-easing-standard);
+}
+.pager__btn:hover {
+  border-color: var(--md-outline);
+  color: var(--md-on-surface);
+}
+.pager__btn:focus-visible {
+  outline: 2px solid var(--p-info);
+  outline-offset: 2px;
+}
+.pager__btn[aria-current="page"] {
+  background: color-mix(in srgb, var(--p-info) 14%, var(--md-surface-container));
+  border-color: color-mix(in srgb, var(--p-info) 40%, var(--md-outline-hair));
+  color: var(--p-info);
+  font-weight: var(--md-w-semi);
+}
+.pager__btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.pager__btn[disabled]:hover {
+  border-color: var(--md-outline-hair);
+  color: var(--md-on-surface-variant);
+}
+.pager__ellipsis {
+  color: var(--md-on-surface-decor);
+  padding: 0 var(--md-sp-1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pager__btn { transition: none !important; }
+}
