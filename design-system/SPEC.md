@@ -318,7 +318,8 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 | **Navigation rail** | `.md-rail`, `.md-rail__{brand,group-label}`, `.md-rail nav a` | — | 280 dp open, collapses to 80 dp icon-only under 1500 px. |
 | **List item** | `.md-list`, `.md-list__{item,lead,body,overline,headline,support}` | — | M3 three-line list anatomy (lead · headline · support). |
 | **Divider** | `.md-divider`, `.md-divider--inset` | — | Hairline, optional inset. |
-| **AgentStrip** | `.as` | `<AgentStrip>` | Equal-width agent identifier with model, tokens, cost, status. Both pills share width via `flex: 1 1 0`. Compact 4 px vertical padding. |
+| **AgentStrip** | `.as` | `<AgentStrip>` | Equal-width agent identifier with model, tokens, cost, status. Both pills share width via `flex: 1 1 0`. Compact 4 px vertical padding. Inside `.tl__head` / `.tl__tabs` (the `.in-header` variant), the strip carries an 8 % `color-mix` tonal background matching the provider (spec 0164 §2.5). |
+| **Timeline card** | `.tl-thread` (always rendered as `.qthread.tl-thread`) | — (JSX inline in `run-detail.jsx`) | Filled M3 card for one turn row in the timeline pane (spec 0164 §2.4). Surface-container-high background, outline-variant border, 16 dp radius. Four states (rest / hover / expanded-rest / expanded-hover) — hover lifts to `--md-elev-1`, expanded to `--md-elev-2`. Provider stripe via native CSS `:has()` against the card-head identity chip: 2 px sable for Claude, sage for GPT, idle grey for System cards. `overflow: hidden` clips the expanded body's bottom corners during the lift transition. |
 | **CollapsibleSection** | `.cs-*` | `<CollapsibleSection>` | Generic disclosure primitive. Rotating chevron + count chip. Persists open/closed to `localStorage`. Used inside critique pane sections, How-It-Works sections, timeline phase groups. |
 | **QuoteCallout** | `.quote-callout` | `<QuoteCallout>` | Styled callout for quote fields on critique cards. Left border tinted by agent + serif italic + muted bg. |
 | **LoadingState** | `.dr-loading-*` | `<LoadingState>` | Three sizes: `inline` (14 px spinner, row), `panel` (28 px, column), `page` (44 px, column). Spinner + label + optional hint. Default hint: "Just a moment, please." **The one loading visual everywhere.** |
@@ -384,13 +385,36 @@ Three forms (spec 0100, polished by specs 0116, 0118, 0146):
 
 ### 4.4 — Timeline pane
 
-Header chrome only — body is built from existing primitives. `.tl-phase` is a collapsible section per phase; `.tl-turn` is a one-line row per turn; `.tl-turn--open` is the expanded card form. No new primitives — composition only.
+Header chrome only — body is built from existing primitives. `.tl-phase` is a collapsible section per phase; `.tl-thread` is the timeline turn card (M3 chrome — see § 3 Primitives "Timeline card"). `.tl-turn--open` is the legacy expanded-card form, kept for inline expansion compatibility.
+
+**Phase header anatomy** (spec 0164). Five-column grid: `marker · chevron · name · meta · chips`. The marker carries the full-word phase identity — `Phase 0` / `Phase 1` / `Phase 2` / `Phase 3` / `Phase 4` — rendered inside `.tl-phase__marker .lbl`. The earlier `.tl-phase__pcode` uppercase data-font phase code that sat between the chevron and the name was removed by spec 0164 §2.2; the marker is now the canonical identity.
+
+**Phase pane gutter** (spec 0164). Both `.tl-phase__hd` and `.tl-phase__body` inset 16 px from the pane edges (`padding: 12px 16px` and `8px 16px 12px` respectively). Inter-card spacing is `gap: 6px` on the body.
 
 **Phase indicators** (spec 0099) render outside the timeline column as a vertical rail. One marker per visible phase header, anchored to the header's vertical centre. Markers for phases with no data are hidden, not greyed.
 
-**REPAIR-round explainer** (spec 0099 § 7.4 / Notion issue 16): a REPAIR turn renders as `.tl-turn` with the `REPAIR` tag inline; expanded body contains one explanatory sentence (e.g., *"GPT was silent this turn. Claude will reissue the same plan on the next round. No data lost."*).
+**Turn card chrome** (spec 0164 §2.4). Filled M3 card on `--md-surface-container-high`, `1px solid --md-outline-variant`, 16 dp radius (`--md-shape-lg`). Card itself owns no padding — head / body / actions own theirs. **Provider stripe** (2 px left border, via native CSS `:has()`):
+- `:has(.tl-card-head > .chip.tone-claude)` → `var(--p-sable)`
+- `:has(.tl-card-head > .chip.tone-gpt)` → `var(--p-sage)`
+- `:has(.tl-card-head > .chip.tone-neutral:not(.mono))` → `var(--p-idle)` (system cards — the `.tone-neutral` identity chip, distinguished from the mono activity chip that may also carry `.tone-neutral`)
 
-**Double-divider on unfold** (Notion issue 11): when a `.tl-turn--open` opens, render one dashed top border between the still-visible row and the body. No second solid divider.
+States — four total, all driven by class on the card itself:
+- **Rest** — chrome above, no shadow.
+- **Hover** — background bumps to `--md-surface-container-highest`, border to `--md-outline`, `box-shadow: var(--md-elev-1)`.
+- **Expanded** (`.is-open-expanded`) — background drops to `--md-surface-container-low`, `box-shadow: var(--md-elev-2)`. The `.tl-card-head` inside the expanded card carries `--md-surface-container-high` and a 1 px hairline bottom border so it reads as the still-visible row above the expanded body.
+- **Expanded + hover** — combination of the two above.
+
+Status colors (`is-open` / `is-resolved` / `is-drift`) inherited from `.qthread` are explicitly cleared on `.tl-thread` so the provider stripe shows through. Status info reads off the right-cluster status chip on timeline cards.
+
+`overflow: hidden` is load-bearing — without it the expanded body's rounded corners clip incorrectly when the card lifts.
+
+**REPAIR-round explainer** (spec 0099 § 7.4 / Notion issue 16): a REPAIR turn renders as a `.tl-thread` with the `REPAIR` tag inline; expanded body contains one explanatory sentence (e.g., *"GPT was silent this turn. Claude will reissue the same plan on the next round. No data lost."*).
+
+**Double-divider on unfold** (Notion issue 11): when a turn card expands, render one dashed top border between the still-visible head and the body. No second solid divider.
+
+**Header agent strips** (spec 0164 §2.5). Inside `.tl__head` / `.tl__tabs` (the `in-header` AgentStrip variant), the strip carries an 8 % `color-mix` tonal background matching the provider — `--p-sable` for `is-a`, `--p-sage` for `is-b`. The 2 px left-border and brand-mark icon stay.
+
+**Responsive — narrow viewport ≤ 1799 px** (spec 0164 §2.6). Both `.as.in-header` instances inside `.rdvc__pane` (`.tl__head .as.in-header` + `.tl__tabs .as.in-header`) cap to 320 px and right-align to the same column. Without this, `.tl__tabs` (whose leading content is wider than `.tl__head`'s) overflows the pane edge by ~33 px at 1280 px viewport. The `.as-activity` text inside the capped strip falls back to `text-overflow: ellipsis` if it doesn't fit.
 
 ### 4.5 — Agent input panel + PhaseRail + RoundScrubber
 

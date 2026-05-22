@@ -1721,13 +1721,22 @@
 
         <div class="cols-2" style="gap: 16px;">
           <div class="md-card md-card--outlined">
-            <div class="t-label-m subtle">PHASE SECTION HEADER</div>
-            <div class="muted" style="margin-top: 6px; font-size: 13px;">Use <span class="code">.tl-phase</span> wrapper + <span class="code">.tl-phase__hd</span> header with chevron, <span class="code">.tl-phase__pcode</span>, <span class="code">.tl-phase__name</span>, and <span class="code">.tl-phase__meta</span>. Toggle via the global click handler.</div>
+            <div class="t-label-m subtle">PHASE SECTION HEADER · 5-COL</div>
+            <div class="muted" style="margin-top: 6px; font-size: 13px;">
+              Spec 0164 §2.1–2.3 — five-column grid:
+              <span class="code">.tl-phase__marker</span> (with full-word <span class="code">Phase N</span> label) ·
+              chevron · <span class="code">.tl-phase__name</span> · <span class="code">.tl-phase__meta</span> ·
+              <span class="code">.tl-phase__chips</span>. The earlier <span class="code">.tl-phase__pcode</span> uppercase
+              data-font column was removed — the marker is the canonical identity. Pane gutter is 16 px (`padding: 12px 16px`).
+            </div>
             <div style="margin-top: 12px; padding: 8px 0; border-top: 1px solid var(--md-outline-hair);">
               <div class="tl-phase" style="border-top:0;">
                 <div class="tl-phase__hd" role="button" tabindex="0">
+                  <span class="tl-phase__marker is-done" aria-hidden="true">
+                    <span class="dot"></span>
+                    <span class="lbl">Phase 2</span>
+                  </span>
                   <span class="chev"><span class="ms ms-18" aria-hidden="true">expand_more</span></span>
-                  <span class="tl-phase__pcode">PHASE 2</span>
                   <span class="tl-phase__name">Negotiate plan</span>
                   <span class="tl-phase__meta">32m 31s · 12 rounds</span>
                 </div>
@@ -1735,24 +1744,81 @@
             </div>
           </div>
           <div class="md-card md-card--outlined">
-            <div class="t-label-m subtle">TURN ROW · ONE-LINE</div>
-            <div class="muted" style="margin-top: 6px; font-size: 13px;">Use <span class="code">.tl-turn</span> for compact one-liners with avatar + name + label + delta chips + round chip. Click to expand inline.</div>
-            <div style="margin-top: 12px; padding: 4px 0; border-top: 1px solid var(--md-outline-hair);">
-              <div class="tl-turn">
-                <span class="tl-turn__ai is-a">C</span>
-                <span class="tl-turn__nm">Claude</span>
-                <span class="tl-turn__lbl">turn 2</span>
-                <span class="tl-turn__deltas"><span class="tl-delta up">+4 questions</span><span class="tl-delta down">−8 prior</span><span class="tl-delta rep">REPAIR</span></span>
-                <span class="tl-turn__round">R2</span>
-              </div>
-              <div class="tl-turn">
-                <span class="tl-turn__ai is-b">G</span>
-                <span class="tl-turn__nm">GPT</span>
-                <span class="tl-turn__lbl">turn 2</span>
-                <span class="tl-turn__deltas"><span class="tl-delta up">+4 questions</span><span class="tl-delta down">−5 prior</span></span>
-                <span class="tl-turn__round">R2</span>
-              </div>
+            <div class="t-label-m subtle">TIMELINE CARD · M3 CHROME</div>
+            <div class="muted" style="margin-top: 6px; font-size: 13px;">
+              Spec 0164 §2.4 — <span class="code">.tl-thread</span> on
+              <span class="code">--md-surface-container-high</span>,
+              <span class="code">--md-outline-variant</span> border, 16 dp radius
+              (<span class="code">--md-shape-lg</span>). 2 px provider stripe via
+              <span class="code">:has()</span> against the card head's identity chip —
+              sable for Claude, sage for GPT, idle for System.
             </div>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px;">
+              <article class="qthread tl-thread is-running" style="background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-lg); border-left: 2px solid var(--p-sable); padding: 10px 12px; cursor: pointer;">
+                <header class="tl-card-head" style="display: flex; gap: 6px; align-items: center;">
+                  <span class="chip tone-claude">Claude</span>
+                  <span class="chip tone-neutral mono">draft</span>
+                  <span style="flex:1"></span>
+                  <span class="chip tone-info">running</span>
+                </header>
+              </article>
+              <article class="qthread tl-thread is-resolved" style="background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-lg); border-left: 2px solid var(--p-sage); padding: 10px 12px; cursor: pointer;">
+                <header class="tl-card-head" style="display: flex; gap: 6px; align-items: center;">
+                  <span class="chip tone-gpt">GPT</span>
+                  <span class="chip tone-neutral mono">critique</span>
+                  <span style="flex:1"></span>
+                  <span class="chip tone-ok">✓ agreed</span>
+                </header>
+              </article>
+              <article class="qthread tl-thread" style="background: var(--md-surface-container-high); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-lg); border-left: 2px solid var(--p-idle); padding: 10px 12px; cursor: pointer;">
+                <header class="tl-card-head" style="display: flex; gap: 6px; align-items: center;">
+                  <span class="chip tone-neutral">System</span>
+                  <span class="chip tone-neutral mono">brief</span>
+                  <span style="flex:1"></span>
+                  <span class="chip tone-neutral">queued</span>
+                </header>
+              </article>
+              <article class="qthread tl-thread is-open-expanded" style="background: var(--md-surface-container-low); border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-lg); border-left: 2px solid var(--p-sable); padding: 0; cursor: pointer; box-shadow: var(--md-elev-2); overflow: hidden;">
+                <header class="tl-card-head" style="display: flex; gap: 6px; align-items: center; background: var(--md-surface-container-high); border-bottom: 1px solid var(--md-outline-hair); padding: 10px 12px;">
+                  <span class="chip tone-claude">Claude</span>
+                  <span class="chip tone-neutral mono">draft</span>
+                  <span style="flex:1"></span>
+                  <span class="chip tone-info">expanded</span>
+                </header>
+                <div style="padding: 10px 12px; font: 13px/1.55 var(--md-font-brand); font-style: italic; color: var(--md-on-surface-variant);">Conceded D·01 — regrouped sections by mitigation owner. Q·03 deferred…</div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <h4 class="t-title-l" style="margin: 32px 0 12px;">Header AgentStrip · in-header variant</h4>
+        <p class="muted" style="max-width: 760px; margin: 0 0 16px;">
+          Spec 0164 §2.5 — inside <span class="code">.tl__head</span> / <span class="code">.tl__tabs</span>,
+          the <span class="code">.as.in-header</span> strip carries an 8 % <span class="code">color-mix</span>
+          tonal background matching the provider. The 2 px left-border and brand-mark icon stay.
+        </p>
+        <div class="show" style="display: flex; flex-direction: column; gap: 8px; max-width: 760px;">
+          <div class="as in-header is-a" style="background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container)); border: 1px solid var(--md-outline-hair); border-left: 2px solid var(--p-sable); border-radius: var(--md-shape-full); padding: 4px 24px; display: flex; align-items: center; gap: 18px; min-height: 36px;">
+            <span class="as-left" style="display: inline-flex; align-items: center; gap: 12px;">
+              <span style="font: var(--md-w-medium) 13px/1 var(--md-font-plain);">Claude</span>
+              <span class="as-model" style="color: var(--md-on-surface-variant); font-size: 13px;">opus 4.1</span>
+            </span>
+            <span class="as-right" style="display: inline-flex; align-items: center; gap: 16px; margin-left: auto; font-size: 13px; color: var(--md-on-surface-muted);">
+              <span class="num">28.4kt</span>
+              <span class="num">$0.21</span>
+              <span class="as-activity">drafting · turn 4</span>
+            </span>
+          </div>
+          <div class="as in-header is-b" style="background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container)); border: 1px solid var(--md-outline-hair); border-left: 2px solid var(--p-sage); border-radius: var(--md-shape-full); padding: 4px 24px; display: flex; align-items: center; gap: 18px; min-height: 36px;">
+            <span class="as-left" style="display: inline-flex; align-items: center; gap: 12px;">
+              <span style="font: var(--md-w-medium) 13px/1 var(--md-font-plain);">GPT</span>
+              <span class="as-model" style="color: var(--md-on-surface-variant); font-size: 13px;">gpt-4.1</span>
+            </span>
+            <span class="as-right" style="display: inline-flex; align-items: center; gap: 16px; margin-left: auto; font-size: 13px; color: var(--md-on-surface-muted);">
+              <span class="num">31.7kt</span>
+              <span class="num">$0.18</span>
+              <span class="as-activity">deadlocked at round 4 — manual intervention required</span>
+            </span>
           </div>
         </div>
 
