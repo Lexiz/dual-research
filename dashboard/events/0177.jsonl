@@ -6,3 +6,4 @@
 {"ts":"2026-05-22T21:00:21Z","step":"planning_started","data":{}}
 {"ts":"2026-05-22T21:01:04Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"11 bare-basename citations to render_dashboard.py — URL paths and line numbers all verified correct"}}
 {"ts":"2026-05-22T21:02:17Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T21:03:06Z","step":"branched","data":{"branch":"spec/0177-dashboard-redesign-v3-horizontal-hero-and-metrics","from":"main@ecc6a9c"}}
