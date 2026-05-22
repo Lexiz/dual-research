@@ -8,3 +8,5 @@
 {"ts":"2026-05-22T13:50:39Z","step":"branched","data":{"branch":"spec/0157-spec-queue-auto-decomposition","from":"main@65eb7de"}}
 {"ts":"2026-05-22T13:52:46Z","step":"implement_complete","data":{"files_changed":5,"commits":1,"host_side_files":1}}
 {"ts":"2026-05-22T13:53:17Z","step":"tests_green","data":{"passed":1490,"failed":0}}
+{"ts":"2026-05-22T13:54:01Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/180"}}
+{"ts":"2026-05-22T13:54:01Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/180"}}
