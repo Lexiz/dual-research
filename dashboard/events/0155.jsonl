@@ -7,3 +7,5 @@
 {"ts":"2026-05-22T13:13:51Z","step":"branched","data":{"branch":"spec/0155-fix-session-title-stamping","from":"main@51ff692"}}
 {"ts":"2026-05-22T13:18:12Z","step":"implement_complete","data":{"files_changed":2,"commits":1,"host_side_files":8}}
 {"ts":"2026-05-22T13:18:43Z","step":"tests_green","data":{"passed":1478,"failed":0}}
+{"ts":"2026-05-22T13:19:23Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/178"}}
+{"ts":"2026-05-22T13:19:23Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/178"}}
