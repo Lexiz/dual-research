@@ -23,7 +23,7 @@ CACHE_READ_MULTIPLIER = 0.1
 # (``tests/agents/test_pricing_version.py::test_version_tracks_table``)
 # snapshots the ``PRICING`` dict alongside this version string so a rate
 # change can't ship without bumping the date.
-PRICING_VERSION = "2026-05-21"
+PRICING_VERSION = "2026-05-22"
 
 
 @dataclass(frozen=True)
@@ -88,7 +88,14 @@ PRICING: dict[str, ModelPricing] = {
         output_per_mtok=2.00,
         cache_read_per_mtok=0.025,
         web_search_per_request=0.025,                   # same as GPT-5.5
-        notes="GPT-5-mini (estimated).",
+        notes=(
+            "GPT-5-mini (estimated) — spec 0149 D06 audit attempt "
+            "2026-05-22 was blocked by 403 on platform.openai.com/docs/pricing "
+            "and openai.com/api/pricing; rates unchanged pending a live "
+            "verification path. The test tier (Haiku + gpt-5-mini) is rarely "
+            "run in production; if reconcile starts flagging it, this is the "
+            "row to bump alongside a new PRICING_VERSION entry."
+        ),
     ),
 }
 

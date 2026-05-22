@@ -41,6 +41,12 @@ def test_version_tracks_table():
         # Spec 0143 — bumped GPT-5.5 to verified OpenAI rates
         # ($5/$30/$0.50 input/output/cache, $0.010/call web_search).
         "2026-05-21": "9bfe60cd0febe31e75358669e424cd41a9dde1cc3e8591a24061e7f212aa519c",
+        # Spec 0149 D06 — `gpt-5-mini` `notes` field updated to record
+        # the 2026-05-22 audit attempt (rates unchanged; pricing pages
+        # returned 403). Documentation-only bump; the test_tier rates
+        # ($0.25/$2.00/$0.025) and the GPT-5.5 + Claude tiers are
+        # unchanged from 2026-05-21.
+        "2026-05-22": "9d8f500f29779c2baba10e79e06f35256cc83f80c01776cc6867ff1c67809fb7",
     }
 
     assert PRICING_VERSION in expected_versions_to_snapshots, (

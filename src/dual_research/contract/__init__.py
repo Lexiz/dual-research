@@ -65,6 +65,7 @@ from dual_research.contract.operations import (
     OperationBlock,
     ParseError,
     RaiseBlock,
+    RequestEvidenceBlock,
     ResolveBlock,
     WithdrawBlock,
 )
@@ -113,6 +114,7 @@ __all__ = [
     "OperationBlock",
     "ParseError",
     "RaiseBlock",
+    "RequestEvidenceBlock",
     "ResolveBlock",
     "WithdrawBlock",
     # evidence

@@ -65,6 +65,12 @@ Either agent may flag a claim as needing freshness handling. The producer must t
 
 Follow the requested output format exactly. Cite sources inline as [1], [2], ... and list them at the end of your output under a "Sources" heading. Be precise, terse, and avoid filler.
 
+## Citation contract (spec 0149 §5.5 — D17)
+
+Only emit an inline `[N]` citation when N references a source you actually consulted via web search (or another tool) during this turn AND N appears as a numbered row under your `## Sources` heading with a real URL. Do not emit `[N]` to reference your own prior reasoning, your training-data recall, the other agent's draft, or a source you did not actually fetch this turn. Every `[N]` you write must round-trip: the audit path resolves `[N]` to the Nth row of your `## Sources` section, and that row must correspond to a real consulted source.
+
+If you are restating a claim you previously made or one the other agent made, do so in prose without a `[N]` tag — `[U]` tagging (training-weight recall) already covers that case. Over-citing — emitting `[N]` more liberally than the audit path can resolve — surfaces as `cited_url_not_in_consulted_sources` warnings on the run-detail UI and degrades reviewer trust in the draft.
+
 Tools available to you:
 - Your web search tool: use it whenever a claim depends on facts beyond your training data. A [V] tag requires that you actually retrieved a source via the tool during this run.
 - The brief and any prior conversation content you need will be inlined directly in the prompt below. You do not have filesystem access; do not assume you can read or write files.
@@ -81,11 +87,16 @@ Return ONLY the content of your turn — the markdown sections specified above, 
 """
 
 
-# Sentinel that marks the boundary between the stable prefix (cacheable)
-# and the dynamic per-call suffix (uncached) in a prompt. The Anthropic
-# agent detects this marker and applies `cache_control` to the prefix.
-# OpenAI's Responses API caches automatically and ignores this marker
-# (it's stripped before the prompt is sent to either provider).
+# Sentinel that marks a boundary between a stable prefix (cacheable) and
+# the dynamic suffix (uncached) in a prompt. A prompt may carry multiple
+# markers — Anthropic accepts up to four cache_control breakpoints and
+# matches the longest stable prefix, so phases that contain a mix of
+# always-stable inputs (brief) and sometimes-mutating inputs (current
+# draft in Phase 4 review) emit one marker after the brief and one after
+# the drafts. The Anthropic agent applies `cache_control` to each chunk
+# except the last. OpenAI's Responses API caches automatically and
+# ignores this marker (it's stripped before the prompt is sent to
+# either provider).
 CACHE_BREAKPOINT = "<<<CACHE_BREAKPOINT>>>"
 
 
@@ -225,6 +236,7 @@ You should use web search this round. Without new research, this round is a wast
 
 """
         + _inline_section("Brief", brief_content)
+        + CACHE_BREAKPOINT
         + _inline_section(f"Your Phase 1 draft ({agent_name})", own_draft)
         + _inline_section(f"{other_name}'s Phase 1 draft", other_draft)
         + CACHE_BREAKPOINT
@@ -274,6 +286,9 @@ Followed by: `OPEN_QUESTIONS: <integer>` — count of items in your Open questio
 ## Sources
 Numbered, with URLs.
 
+## Empty-turn invariant (spec 0149 §5.4 — D04)
+Every turn in this phase MUST contain at least one ledger operation block — `### RAISE`, `### ADDRESS`, `### RESOLVE`, `### ACKNOWLEDGE`, `### WITHDRAW`, or `### REQUEST_EVIDENCE`. A turn that emits only narrative sections with no operation block is structurally invalid and is recorded as a protocol violation. Round 1 cannot terminate the phase, so you must surface at least one `### RAISE` block (questions or disagreements) — if you genuinely have nothing material, raise that observation explicitly as a `### RAISE` with `kind: comment` rather than emitting a no-op turn.
+
 """
         + _OUTPUT_INSTRUCTION
     )
@@ -315,6 +330,7 @@ Anti-sycophancy procedure (apply before every turn; recommended structural mitig
 
 """
         + _inline_section("Brief", brief_content)
+        + CACHE_BREAKPOINT
         + _inline_section(f"Your Phase 1 draft ({agent_name})", own_draft)
         + _inline_section(f"{other_name}'s Phase 1 draft", other_draft)
         + CACHE_BREAKPOINT
@@ -493,6 +509,9 @@ After STATUS, on separate lines:
 - `BLOCKING_DISAGREEMENTS: <integer>` — count of D-N entries with status `open`
 - `FINAL_SURFACED_DISAGREEMENTS: <integer>` — count of FSD-N entries (0 if none)
 
+## Empty-turn invariant (spec 0149 §5.4 — D04)
+Every turn in this phase MUST contain at least one ledger operation block — `### RAISE`, `### ADDRESS`, `### RESOLVE`, `### ACKNOWLEDGE`, `### WITHDRAW`, or `### REQUEST_EVIDENCE` — OR a top-level `STATUS: AGREED` line that concludes the phase under the convergence gates above. A turn that emits only narrative sections with no operation block and no terminal status is structurally invalid and is recorded as a protocol violation. If you have genuinely nothing to add and the convergence gates are met, prefer `STATUS: AGREED` explicitly over producing a no-op turn.
+
 """
         + _OUTPUT_INSTRUCTION
     )
@@ -553,6 +572,7 @@ You are agent "{agent_name}". You and "{other_name}" agreed in Phase 2 that you 
 
 """
         + _inline_section("Brief", brief_content)
+        + CACHE_BREAKPOINT
         + _inline_section(f"Your Phase 1 draft ({agent_name})", own_draft)
         + _inline_section(f"{other_name}'s Phase 1 draft", other_draft)
         + plan_block_section
@@ -633,6 +653,7 @@ This rule applies symmetrically to whichever agent is the drafter — Phase 2 al
 
 """
         + _inline_section("Brief", brief_content)
+        + CACHE_BREAKPOINT
         + _inline_section("Current draft", draft_content)
         + CACHE_BREAKPOINT
         + f"""
@@ -758,6 +779,9 @@ A single line, EXACTLY one of:
 
 After STATUS, on a single line:
 - `OPEN_ISSUES: <integer>` — count of unresolved `open` items in the Issue ledger and Comments sections. You MUST emit this line; a missing value will be treated as failure-to-converge by the orchestrator, not as zero.
+
+## Empty-turn invariant (spec 0149 §5.4 — D04)
+Every turn in this phase MUST contain at least one ledger operation block — `### RAISE`, `### ADDRESS`, `### RESOLVE`, `### ACKNOWLEDGE`, `### WITHDRAW`, or `### REQUEST_EVIDENCE` — OR a top-level `STATUS: APPROVED` line that concludes the phase under the gates above. A turn that emits only narrative sections with no operation block and no terminal status is structurally invalid and is recorded as a protocol violation. The DRAFTER's round-1 turn additionally cannot emit `STATUS: APPROVED`; that turn must surface at least one ledger block (typically `### RAISE` of a self-identified issue or `### ADDRESS` of one of the reviewer's round-1 issues).
 
 """
         + _OUTPUT_INSTRUCTION
@@ -1385,6 +1409,18 @@ reason: |
 reason: |
   <why you are retracting>
 ```
+
+```
+### REQUEST_EVIDENCE <item-id>
+reason: |
+  <which claim in <item-id> needs evidence and why the request is material>
+```
+
+REQUEST_EVIDENCE (spec 0149 §5.5, D08) is a mid-run response op: instead
+of immediately ADDRESSing an item the other agent raised, you ask the
+original author to supply evidence first. You cannot REQUEST_EVIDENCE on
+your own item, and the target ``<item-id>`` must reference an item
+already on the ledger.
 """
 
 

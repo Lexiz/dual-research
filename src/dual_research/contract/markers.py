@@ -78,6 +78,14 @@ OP_WITHDRAW_RE = re.compile(
     r"^###\s+WITHDRAW\b" + _ID_TAIL,
     re.MULTILINE,
 )
+# Spec 0149 §5.5 (D08) — mid-run channel for requesting evidence on a
+# previously-stated item, distinct from raise-time
+# ``evidence_required: bool``. Same ID-tail tolerance as the other
+# id-bearing ops.
+OP_REQUEST_EVIDENCE_RE = re.compile(
+    r"^###\s+REQUEST_EVIDENCE\b" + _ID_TAIL,
+    re.MULTILINE,
+)
 # Linked EVIDENCE record headings — appear inside an ADDRESS block.
 OP_EVIDENCE_RE = re.compile(
     r"^###\s+EVIDENCE\s+for\s+(?P<id>\S+)\s*$",

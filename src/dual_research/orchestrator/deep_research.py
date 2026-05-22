@@ -34,6 +34,7 @@ from dual_research.contract.operations import (
     AcknowledgeBlock,
     AddressBlock,
     RaiseBlock,
+    RequestEvidenceBlock,
     ResolveBlock,
     WithdrawBlock,
 )
@@ -560,6 +561,11 @@ class DeepResearchPhase:
                 if isinstance(blk, (
                     RaiseBlock, AddressBlock, ResolveBlock,
                     WithdrawBlock, AcknowledgeBlock,
+                    # Spec 0149 §5.5 (D08) — REQUEST_EVIDENCE counts as a
+                    # ledger-affecting block. A turn that emits only
+                    # REQUEST_EVIDENCE has surfaced material work; it
+                    # should not trip the empty-turn signal.
+                    RequestEvidenceBlock,
                 ))
             )
             if ledger_block_count == 0:

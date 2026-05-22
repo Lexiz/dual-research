@@ -37,6 +37,7 @@ from dual_research.contract.operations import (
     AddressBlock,
     OperationBlock,
     RaiseBlock,
+    RequestEvidenceBlock,
     ResolveBlock,
     WithdrawBlock,
 )
@@ -212,6 +213,24 @@ def _operation_errors(
                 errors.append(ValidationError(
                     code="withdraw_missing_reason",
                     message=f"WITHDRAW {block.item_id} requires non-empty reason",
+                ))
+        elif isinstance(block, RequestEvidenceBlock):
+            # Spec 0149 §5.5 (D08) — REQUEST_EVIDENCE is a mid-run
+            # response op. Intra-turn shape checks live here; the
+            # cross-turn "requester ≠ original author" + "item_id refers
+            # to an existing item" checks happen at the ledger layer in
+            # the orchestrator (where the ledger is materialized).
+            if not block.item_id:
+                errors.append(ValidationError(
+                    code="request_evidence_missing_item_id",
+                    message="REQUEST_EVIDENCE block is missing its item ID",
+                ))
+            if not (block.reason or "").strip():
+                errors.append(ValidationError(
+                    code="request_evidence_missing_reason",
+                    message=(
+                        f"REQUEST_EVIDENCE {block.item_id} requires non-empty reason"
+                    ),
                 ))
     return errors
 

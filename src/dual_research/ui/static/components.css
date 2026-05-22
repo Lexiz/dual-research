@@ -2537,8 +2537,10 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   color: var(--md-on-surface-faint);
   font-variant-numeric: tabular-nums;
 }
-.ccx-header .stats .sep { color: var(--md-on-surface-faint); }
-.ccx-header .stats .pct { color: var(--md-on-surface-faint); font-style: normal; }
+/* Spec 0149 §5.11 (D22) — two orphaned descendant rules under the
+   stats slot removed (the sep + pct selectors). The 0146 header
+   rework collapsed the stats block to a single token; the
+   descendants had zero JSX matches in the ccx-header subtree. */
 .ccx-header .chev {
   justify-self: end;
   width: 24px; height: 24px;

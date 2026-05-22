@@ -745,7 +745,7 @@
         { letter: 'D', label: 'Disagreements' },
       ],
       convergence: 'Both agents emit STATUS: AGREED in the same round AND every raised item is in a terminal state (resolved, acknowledged, withdrawn, or capped) AND both agents emit the AGREED_INTERPRETATION block in matching form.',
-      diagramName: '02-phase-inputs',
+      diagramName: 'deep-research-pipeline',
       diagramCaption: 'In Phase 0, system.task.input fills the system-task row; carry-forward inputs are absent in round 1. From round 2, prior_turns.phase0 + ledger.standing_items activate (dashed rows in the diagram).',
       outputs: [
         { id: 'phase0.<agent>.r<N>',             tone: 'neutral', name: 'per-round turn artifact (one per agent per round)' },
@@ -767,7 +767,7 @@
       categories: [],
       categoriesNote: '(none — this is a production phase, not a negotiation phase)',
       convergence: 'Both phase1.claude and phase1.openai artifacts present and well-formed.',
-      diagramName: '02-phase-inputs',
+      diagramName: 'deep-research-pipeline',
       diagramCaption: 'Phase 1 has no round-conditional inputs (one-shot) and no agreement-emitted output — the dashed rows and ok-green output pill in the diagram are absent here.',
       outputs: [
         { id: 'phase1.claude',  tone: 'neutral', name: "Claude's research plan + thesis (Summary · Thesis · Detailed findings · Sources)" },
@@ -796,7 +796,7 @@
         { letter: 'D', label: 'Disagreements' },
       ],
       convergence: 'Both AGREED + every raised item terminal + both emit the AGREED_PLAN block in matching form + both emit a matching DRAFTER: line (tiebreak resolves disagreements per tiebreak.pick_drafter).',
-      diagramName: '02-phase-inputs',
+      diagramName: 'deep-research-pipeline',
       diagramCaption: 'Phase 2 is the densest-input phase: both research plans (in agent-tinted pills) plus the agreed-interpretation carry-forward plus round-conditional inputs from round 2 onward. Outputs include the agreement-emitted plan + drafter pair (ok-green) when convergence lands.',
       outputs: [
         { id: 'phase2.<agent>.r<N>',         tone: 'neutral', name: 'per-round turn artifact' },
