@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.20.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: 2026-05-22T13:12:40Z
 started_at: "2026-05-22T13:26:37Z"
 merged_at: "2026-05-22T13:36:36Z"
-deployed_at: ""
+deployed_at: "2026-05-22T13:45:00Z"
 pr: "https://github.com/Lexiz/dual-research/pull/179"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0156-dashboard-liveness-improvements.md"
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
