@@ -10,3 +10,5 @@
 {"ts":"2026-05-22T14:45:06Z","step":"tests_green","data":{"passed":1510,"failed":0}}
 {"ts":"2026-05-22T14:46:08Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/183"}}
 {"ts":"2026-05-22T14:46:08Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/183"}}
+{"ts":"2026-05-22T14:50:18Z","step":"deployed","data":{"version":"1.23.0","strategy":"bluegreen","note":"bluegreen deploy clean on retry after lease-lock from prior run"}}
+{"ts":"2026-05-22T14:51:15Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0160-dashboard-live-data-via-pages-function.md"}}

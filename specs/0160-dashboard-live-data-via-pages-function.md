@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.23.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T14:30:41Z"
 started_at: "2026-05-22T14:36:03Z"
 merged_at: "2026-05-22T14:46:08Z"
-deployed_at: ""
+deployed_at: "2026-05-22T14:50:13Z"
 pr: "https://github.com/Lexiz/dual-research/pull/183"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0160-dashboard-live-data-via-pages-function.md"
 failure_step: ""
 source_session: dashboard-live-data-ideation-2026-05-22
 promoted_from_draft: ""
