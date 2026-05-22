@@ -1,3 +1,10 @@
+---
+spec: "0149"
+date: 2026-05-22
+version: 1.14.0
+pr: "https://github.com/Lexiz/dual-research/pull/171"
+---
+
 # Handover — Spec 0149 — Post-batch cleanup + Anthropic cache engagement + protocol follow-ups (v1.14.0)
 
 - **Date:** 2026-05-22

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DS · Timeline pane (verbatim from Design System v2.html §16)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500;8..144,600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+  <!-- The exact stylesheets the Design System v2.html page loads. -->
+  <link rel="stylesheet" href="/design-system/assets/styles/v2-m3.css" />
+  <link rel="stylesheet" href="/design-system/assets/styles/v2-m3-page.css" />
+
+  <style>
+    /* Material Symbols base, copied from Design System v2.html L17–28. */
+    .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; vertical-align: middle; user-select: none; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .ms-24 { font-size: 24px; }
+    .ms-20 { font-size: 20px; }
+    .ms-18 { font-size: 18px; }
+
+    .ds-section:first-of-type { margin-top: var(--md-sp-8); }
+
+    .__src {
+      position: sticky; top: 0; z-index: 50;
+      padding: 8px 14px;
+      background: var(--md-surface-container);
+      border-bottom: 1px solid var(--md-outline-hair);
+      font: 500 11px/1 var(--md-font-data);
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--md-on-surface-faint);
+    }
+    .__src b { color: var(--md-on-surface); font-weight: 600; letter-spacing: 0; text-transform: none; font-family: var(--md-font-plain); font-size: 12px; margin-right: 8px; }
+
+    /* Mimic the .ds-main padding without the rail (since we render section alone). */
+    .__shell {
+      padding: 0 var(--md-sp-12) var(--md-sp-20);
+      max-width: var(--md-content-max);
+      width: 100%;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body class="dark">
+  <div class="__src"><b>DS · verbatim §16</b> from <code>design-system/assets/Design System v2.html</code> lines 1685–1793 · what the design system shows for the timeline today</div>
+  <main class="__shell">
+      <section id="timeline" class="ds-section">
+        <div class="ds-section__head">
+          <h3 class="ds-section__title">Timeline pane</h3>
+          <span class="ds-section__index">§16 · components · NEW</span>
+        </div>
+        <p class="ds-section__lede">
+          The left pane of the run-detail split view. Sticky header chrome: <b>Timeline · count</b> title row, pill-style <b>Conversation / Consumption</b> tabs, and a thin <b>vertical phase indicator</b> outside the column. The body is built by composing the components we already shipped — collapsible phase sections + agent-tonal cards + the tlcard timeline cards — not a new layout. This section documents the chrome only.
+        </p>
+
+        <h4 class="t-title-l" style="margin: 0 0 12px;">Header chrome (sticky)</h4>
+        <div class="show show--padless" style="border:1px solid var(--md-outline-hair); border-radius: var(--md-shape-md); overflow: hidden; background: var(--md-surface);">
+          <div class="tl__head">
+            <span class="ttl">Timeline</span>
+            <span class="ct">29 artifacts</span>
+          </div>
+          <div class="tl__tabs">
+            <button class="tl__tab is-active"><span class="ms ms-18" style="margin-right:6px" aria-hidden="true">forum</span>Conversation</button>
+            <button class="tl__tab"><span class="ms ms-18" style="margin-right:6px" aria-hidden="true">stacked_bar_chart</span>Consumption</button>
+          </div>
+          <div class="tl__body">
+            <div class="tl__rail" aria-hidden="true" style="min-height: 200px;">
+              <div class="seg is-done"><span class="marker"></span><span class="lbl">P0</span></div>
+              <div class="seg is-done"><span class="marker"></span><span class="lbl">P1</span></div>
+              <div class="seg is-current"><span class="marker"></span><span class="lbl">P2</span></div>
+              <div class="seg"><span class="marker"></span><span class="lbl">P4</span></div>
+            </div>
+            <div style="padding: 60px 0; text-align: center; color: var(--md-on-surface-faint); font-size: 13px; font-style: italic; border: 1px dashed var(--md-outline-hair); border-radius: var(--md-shape-md); margin: 8px 4px;">
+              … phase sections + turn cards render here · see anatomy below …
+            </div>
+          </div>
+        </div>
+
+        <h4 class="t-title-l" style="margin: 32px 0 12px;">Anatomy · what goes in the body</h4>
+        <p class="muted" style="max-width: 760px; margin: 0 0 16px;">
+          The body is a stack of <span class="code">.tl-phase</span> sections, each one a collapsible header above a list of turn rows. Use the existing components:
+        </p>
+
+        <div class="cols-2" style="gap: 16px;">
+          <div class="md-card md-card--outlined">
+            <div class="t-label-m subtle">PHASE SECTION HEADER</div>
+            <div class="muted" style="margin-top: 6px; font-size: 13px;">Use <span class="code">.tl-phase</span> wrapper + <span class="code">.tl-phase__hd</span> header with chevron, <span class="code">.tl-phase__pcode</span>, <span class="code">.tl-phase__name</span>, and <span class="code">.tl-phase__meta</span>. Toggle via the global click handler.</div>
+            <div style="margin-top: 12px; padding: 8px 0; border-top: 1px solid var(--md-outline-hair);">
+              <div class="tl-phase" style="border-top:0;">
+                <div class="tl-phase__hd" role="button" tabindex="0">
+                  <span class="chev"><span class="ms ms-18" aria-hidden="true">expand_more</span></span>
+                  <span class="tl-phase__pcode">PHASE 2</span>
+                  <span class="tl-phase__name">Negotiate plan</span>
+                  <span class="tl-phase__meta">32m 31s · 12 rounds</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="md-card md-card--outlined">
+            <div class="t-label-m subtle">TURN ROW · ONE-LINE</div>
+            <div class="muted" style="margin-top: 6px; font-size: 13px;">Use <span class="code">.tl-turn</span> for compact one-liners with avatar + name + label + delta chips + round chip. Click to expand inline.</div>
+            <div style="margin-top: 12px; padding: 4px 0; border-top: 1px solid var(--md-outline-hair);">
+              <div class="tl-turn">
+                <span class="tl-turn__ai is-a">C</span>
+                <span class="tl-turn__nm">Claude</span>
+                <span class="tl-turn__lbl">turn 2</span>
+                <span class="tl-turn__deltas"><span class="tl-delta up">+4 questions</span><span class="tl-delta down">−8 prior</span><span class="tl-delta rep">REPAIR</span></span>
+                <span class="tl-turn__round">R2</span>
+              </div>
+              <div class="tl-turn">
+                <span class="tl-turn__ai is-b">G</span>
+                <span class="tl-turn__nm">GPT</span>
+                <span class="tl-turn__lbl">turn 2</span>
+                <span class="tl-turn__deltas"><span class="tl-delta up">+4 questions</span><span class="tl-delta down">−5 prior</span></span>
+                <span class="tl-turn__round">R2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h4 class="t-title-l" style="margin: 32px 0 12px;">Expanded turn (inline)</h4>
+        <p class="muted" style="max-width: 760px; margin: 0 0 16px;">
+          Clicking a row swaps it for an <span class="code">.tl-turn--open</span> wrapper that keeps the same one-liner header and adds a body preview + actions. The <b>Open full view</b> button deep-links to <span class="code">/runs/&lt;id&gt;/turns/&lt;n&gt;</span>.
+        </p>
+        <div class="show">
+          <div class="tl-turn--open" style="max-width: 760px;">
+            <div class="tl-turn">
+              <span class="tl-turn__ai is-a">C</span>
+              <span class="tl-turn__nm">Claude</span>
+              <span class="tl-turn__lbl">turn 5 · expanded</span>
+              <span class="tl-turn__deltas"><span class="tl-delta up">+2 questions</span><span class="tl-delta down">−1 prior</span></span>
+              <span class="tl-turn__round">R5</span>
+            </div>
+            <div class="body">&quot;Conceding D·01 (taxonomy not actionable). Regrouped sections by mitigation owner — Platform / AppSec / On-call. Q·03 deferred to next round pending separate RLS / pool-reuse split…&quot;</div>
+            <div class="actions">
+              <button class="md-btn md-btn--tonal md-btn--sm"><span class="ms ms-18" aria-hidden="true">open_in_full</span>Open full view</button>
+              <button class="md-btn md-btn--text md-btn--sm">Copy hash · b1c8…</button>
+              <span style="flex:1"></span>
+              <span class="md-chip md-chip--sm">18.4kt in</span>
+              <span class="md-chip md-chip--sm">2.1kt out</span>
+              <span class="md-chip md-chip--sm">$0.0566</span>
+            </div>
+          </div>
+        </div>
+
+        <h4 class="t-title-l" style="margin: 32px 0 12px;">Tabs · Conversation vs Consumption</h4>
+        <p class="muted" style="max-width: 760px; margin: 0 0 16px;">
+          The Conversation tab shows the phase-grouped turn list above. The Consumption tab swaps the body for the <a href="#consumption" style="color:var(--md-primary)">Consumption rows</a> — collapsed cards by default, click to unfold into the breakdown. Same chrome, same rail, different body.
+        </p>
+
+        <div class="note">
+          <span class="ms ms-20" aria-hidden="true">tips_and_updates</span>
+          <div><b>Build with what we have.</b> The Timeline pane is composition: chrome + <span class="code">.tl-phase</span> sections + <span class="code">.tl-turn</span> rows for Conversation, or <span class="code">.ccx</span> cards for Consumption. No new primitives.</div>
+        </div>
+      </section>
+  </main>
+</body>
+</html>

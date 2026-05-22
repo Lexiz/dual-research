@@ -1,14 +1,27 @@
 ---
-spec: 0150
+kind: dev
+spec: "0150"
+slug: legacy-shim-sunset-and-input-bundle-backfill
 title: Legacy-shim sunset + historical input-bundle backfill
-label: tech-debt
-version-bump: MINOR
-status: ready
-target-version: 1.15.0
+type: refactoring
+label: refactoring
+version_bump: MINOR
+target_version: 1.15.0
+status: deployed
+queue_position: 0
+depends_on: []
+complexity: M
 created: 2026-05-22
-pr: ""
+queued_at: ""
+started_at: ""
+merged_at: "2026-05-22T02:53:03Z"
+deployed_at: "2026-05-22T02:53:03Z"
+pr: "https://github.com/Lexiz/dual-research/pull/172"
+handover: "handoffs/2026-05-22-spec-0150-legacy-shim-sunset-and-input-bundle-backfill.md"
+failure_step: ""
+source_session: pre-lifecycle-bootstrap
+promoted_from_draft: ""
 ---
-
 # Spec 0150 — Legacy-shim sunset + historical input-bundle backfill
 
 > Ship bucket: **Retire the dual compatibility layers that have served pre-0145 / pre-0142 runs since 0145 introduced canonical artifact IDs and 0142 introduced the per-turn input bundle. Backfill historical runs into the canonical schema, then delete the JS shim, the legacy aggregate `ArtifactDef`, the `LEGACY_INPUT_BUNDLE_KEYS` tuple, and the input.json synth fallback — in that order. The sequencing is load-bearing: deleting before the backfill is verified complete breaks every historical run.**

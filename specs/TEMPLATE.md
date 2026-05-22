@@ -1,39 +1,13 @@
----
-spec: NNNN
-title: <short imperative phrase>
-label: new-feature | bug | refactoring | test | breaking
-version-bump: MAJOR | MINOR | PATCH
-status: proposed
-target-version: X.Y.Z
-created: YYYY-MM-DD
-pr: ""
----
+# Spec templates
 
-# Spec NNNN — <title>
+As of spec 0152, spec templates are typed. Pick the right one for the work:
 
-## Context
+| Type | Use when | Template |
+|---|---|---|
+| **new-feature** | Adding capability, new UI/UX, new endpoint | [`_templates/new-feature.md`](_templates/new-feature.md) |
+| **bug** | Fixing something that doesn't work | [`_templates/bug.md`](_templates/bug.md) |
+| **refactoring** | Restructuring without behavior change | [`_templates/refactoring.md`](_templates/refactoring.md) |
+| **test** | Adding coverage to existing code | [`_templates/test.md`](_templates/test.md) |
+| **breaking** | Removing or changing an existing contract | [`_templates/breaking.md`](_templates/breaking.md) |
 
-Why are we doing this? What problem does it solve, or what capability does it add? One or two paragraphs maximum. Include relevant prior context (links to other specs, commits, briefing files) here.
-
-## Proposed change
-
-Concretely, what changes. Be specific: file paths, function names, schema deltas, new endpoints. If multiple sub-changes, bullet them. A future reader should be able to read this and understand the full scope of the change.
-
-## Out of scope
-
-What this spec deliberately does NOT touch. Cuts ambiguity for reviewers and future-you.
-
-## Test plan
-
-How we verify the change works. Bullet list:
-- [ ] Unit tests for X
-- [ ] Manual test of Y
-- [ ] CI/regression of Z
-
-## Risks
-
-What could go wrong, and what we're doing about it. If a risk is "we'll roll back if it breaks", say so.
-
-## Open questions
-
-If any. Otherwise omit the section.
+In normal operation you do **not** copy a template by hand. The `/spec-draft`, `/spec-queue`, and `/spec-promote` skills choose the right template and populate it from the current conversation. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for the full lifecycle.

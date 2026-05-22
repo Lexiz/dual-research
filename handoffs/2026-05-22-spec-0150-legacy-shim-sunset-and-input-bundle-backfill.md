@@ -1,3 +1,10 @@
+---
+spec: "0150"
+date: 2026-05-22
+version: 1.15.0
+pr: "https://github.com/Lexiz/dual-research/pull/172"
+---
+
 # Handover — Spec 0150 — Legacy-shim sunset + historical input-bundle backfill (v1.15.0)
 
 - **Date:** 2026-05-22

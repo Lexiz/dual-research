@@ -30,31 +30,50 @@ Runs from the stable worktree write to the same Supabase backend as the primary 
 ## TL;DR
 
 ```
-spec → branch → implement → PR (admin squash-merge) → next spec
+draft / queue → /dev-next → branch → implement → PR (admin squash-merge) → deploy → handoff → stop
 ```
 
 Every change touching code, data, prompts, or infrastructure starts with a spec file. No exceptions. The spec lives in the repo forever — it is the architectural memory.
+
+As of spec 0152, the workflow is automated via four user-facing skills (see `~/.claude/skills/`) — `/spec-draft`, `/spec-queue`, `/spec-promote`, `/dev-next`. The skills know which template to pick, validate the spec, set queue state, and drive the dev cycle. A dashboard at `https://lexiz.github.io/dual-research/` shows queue, history, and timings (regenerated on every push to `main` via `.github/workflows/dashboard.yml`).
+
+The sections below describe the manual moves the skills perform — useful when something goes wrong and you need to drive a step by hand.
 
 ## Workflow
 
 ### 1. Write a spec
 
-Copy `specs/TEMPLATE.md` to `specs/NNNN-<slug>.md`, where `NNNN` is the next zero-padded sequential number and `<slug>` is a short kebab-case description (under ~40 chars).
+In normal operation, the `/spec-draft` or `/spec-queue` skill creates the file from a conversation. To do it manually:
 
-Fill in the front-matter:
+- For a draft (no number reservation, lives at `specs/drafts/draft-NNN-<slug>.md`): copy frontmatter shape from another draft.
+- For a queued dev spec: pick the right template under `specs/_templates/` (`new-feature.md`, `bug.md`, `refactoring.md`, `test.md`, or `breaking.md`) and copy it to `specs/NNNN-<slug>.md` where `NNNN` is the next zero-padded sequential number and `<slug>` is a short kebab-case description (under ~40 chars).
+
+Fill in the front-matter (new schema as of spec 0152):
 
 ```yaml
-spec: NNNN
+kind: dev
+spec: "NNNN"                            # quoted to survive YAML octal parsing
+slug: <kebab>
 title: <short imperative phrase>
-label: new-feature | bug | refactoring | test | breaking
-version-bump: MAJOR | MINOR | PATCH    # derived from label
-status: proposed
-target-version: X.Y.Z                  # the version this spec ships in
-created: YYYY-MM-DD                    # absolute date
+type: new-feature | bug | refactoring | test | breaking
+label: <mirror of type>                 # kept for legacy version-bump table compat
+version_bump: MAJOR | MINOR | PATCH     # derived from type
+status: queued | in_progress | merged | deployed | failed | cancelled
+queue_position: <int, meaningful only while queued>
+target_version: X.Y.Z | TBD
+depends_on: []
+complexity: S | M | L
+created: YYYY-MM-DD                     # absolute date
 pr: ""                                 # fill in after opening the PR
 ```
 
-Body sections (omit `Open questions` if there are none): Context, Proposed change, Out of scope, Test plan, Risks, Open questions.
+Body sections are type-specific. See the templates under [`specs/_templates/`](specs/_templates/) for the exact required shape per type. The validator at `scripts/spec_lifecycle/validator.py` enforces the contract per type — run it on any spec before queueing:
+
+```bash
+uv run python -m scripts.spec_lifecycle.validator specs/NNNN-<slug>.md
+```
+
+**Dev specs do not contain an "Open questions" section.** Questions are queue blockers — resolve them before queueing. Drafts may have an "Unresolved questions" section; the `/spec-promote` skill walks through each before promoting to a dev spec.
 
 The template is a maximum, not a minimum. A typo fix can be three sentences. A new subsystem might be three pages.
 
@@ -69,10 +88,12 @@ Branch name matches the spec filename. One spec ↔ one branch ↔ one PR.
 
 ### 3. Implement
 
-Code, tests, docs. Update `CHANGELOG.md` with an `[Unreleased]` entry (or a versioned entry — see step 5). Bump `pyproject.toml` and `src/dual_research/__init__.py` version per the spec's `version-bump`.
+Code, tests, docs. Update `CHANGELOG.md` with an `[Unreleased]` entry (or a versioned entry — see step 5). Bump `pyproject.toml` and `src/dual_research/__init__.py` version per the spec's `version_bump`.
 
 Before opening the PR, flip the spec front-matter:
-- `status: proposed` → `status: in-progress` (during work) → `status: merged` (just before merge)
+- `status: queued` → `status: in_progress` (during work) → `status: merged` (just before merge) → `status: deployed` (after `fly deploy` + handoff).
+
+`/dev-next` does this automatically; you only do it manually for failure recovery.
 
 ### 4. Open the PR
 
@@ -134,5 +155,20 @@ Commit messages inside a feature branch are working-state — they get squashed 
 
 - **Multi-spec PR.** Don't. Split into separate PRs in dependency order.
 - **Spec that touches no code.** Still legitimate (e.g., changing this workflow itself). Bump version anyway because the repo's effective behaviour changed.
-- **PR that decides not to merge.** Mark spec `status: rejected` and merge ONLY the spec file (with the rejection rationale appended to the body). Captures the decision durably.
+- **PR that decides not to merge.** Mark spec `status: cancelled` and merge ONLY the spec file (with the rationale appended to the body). Captures the decision durably.
 - **Hotfix.** Same workflow, but the spec body can be terse and the branch can ship in an hour. The discipline is the spec FILE, not its length.
+
+## Skills + dashboard (spec 0152 onwards)
+
+The four skills under `~/.claude/skills/` drive the workflow:
+
+- **`/spec-draft`** — in an authoring session, captures the current thread into `specs/drafts/draft-NNN-<slug>.md`. No branch, no dev-number reservation. Triggers: "save this as a draft", "park this idea", "draft spec from this".
+- **`/spec-queue`** — in an authoring session, classifies the type, populates the right template, validates, previews in chat, commits to `main` as `specs/NNNN-<slug>.md` with `status: queued`. Triggers: "queue this for dev", "make the dev spec", "this is ready to ship".
+- **`/spec-promote <draft-id>`** — takes a draft, walks unresolved questions, validates, writes the dev spec, deletes the draft.
+- **`/dev-next`** — in your queue-control session, runs the next queued spec end-to-end (pre-flight → reconcile → branch → implement → tests → PR → admin merge → deploy → handoff → stop). Triggers: "next", "go", "kick off the next one".
+
+Authoring sessions run from the worktree at `~/dual-research-author/` so they never touch the queue session's checked-out branch. The queue session runs from `~/dual-research/` (this checkout).
+
+The dashboard at `https://lexiz.github.io/dual-research/` shows the queue, in-flight spec, recently shipped, drafts, and aggregate metrics. It's regenerated on every push to `main` via `.github/workflows/dashboard.yml` — no manual deploy step.
+
+Spec lifecycle code lives in `scripts/spec_lifecycle/` (validator, picker, reconciler, dashboard renderer, event log). Tests at `tests/spec_lifecycle/`.
