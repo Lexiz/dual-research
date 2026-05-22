@@ -7,3 +7,5 @@
 {"ts":"2026-05-22T12:57:52Z","step":"branched","data":{"branch":"spec/0154-orchestrator-hardening-ds-steering-and-queue-runner","from":"main@db110b9"}}
 {"ts":"2026-05-22T13:03:25Z","step":"implement_complete","data":{"files_changed":4,"commits":1,"host_side_files":7}}
 {"ts":"2026-05-22T13:03:57Z","step":"tests_green","data":{"passed":1474,"failed":0}}
+{"ts":"2026-05-22T13:04:36Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/177"}}
+{"ts":"2026-05-22T13:04:36Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/177"}}
