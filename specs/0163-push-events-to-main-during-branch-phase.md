@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.24.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T15:51:01Z"
 started_at: "2026-05-22T16:05:00Z"
 merged_at: "2026-05-22T16:35:00Z"
-deployed_at: ""
+deployed_at: "2026-05-22T16:38:30Z"
 pr: "https://github.com/Lexiz/dual-research/pull/186"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0163-push-events-to-main-during-branch-phase.md"
 failure_step: ""
 source_session: dashboard-live-events-investigation-2026-05-22
 promoted_from_draft: ""
