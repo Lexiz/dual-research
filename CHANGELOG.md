@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.34.0] — 2026-05-22
+
+### Added
+
+- **Spec 0170 — `/canvas <pane>` workshop skill + scaffold** ([spec 0170](specs/0170-canvas-workshop-skill-and-scaffold.md)). Registry-driven pane iteration sandbox with verbatim live + DS snapshots. `/canvas <pane>` reads a registry entry under `prototypes/_canvas/registry.yml`, dumps the live pane's `outerHTML` via the Claude Preview MCP, extracts the matching `<section id="X" class="ds-section">` blocks from `design-system/assets/Design System v2.html`, renders the three workshop templates, and reports a workshop URL. Re-runs refresh `live.html` + `ds.html` + `mockup.html`; `proposed.html` and `NOTES.md` are preserved across re-runs.
+  - **Registry** ([`prototypes/_canvas/registry.yml`](prototypes/_canvas/registry.yml)). Pre-populated with `timeline` and `critique` entries that reproduce the existing workshops. Adding a new pane is a yaml entry edit — no code changes.
+  - **Templates** ([`prototypes/_canvas/templates/`](prototypes/_canvas/templates/)). `mockup.html.tmpl` (workshop wrapper with Iteration/Live/DS tabs + theme + width toggles), `live.html.tmpl` (shell for the verbatim outerHTML dump), `ds.html.tmpl` (shell for the verbatim DS extracts), `proposed.html.tmpl` (initial iteration sandbox — copy of live), `NOTES.md.tmpl` (running record with four-quadrant per-element format).
+  - **Scaffold script** ([`prototypes/_canvas/spin-up.py`](prototypes/_canvas/spin-up.py)). Reads registry, extracts DS sections (balanced-tag match), wraps pre-captured live HTML dumps in the canonical live.html shell, renders templates, writes the workshop dir. Idempotent on `live.html` + `ds.html` + `mockup.html`; preserves `proposed.html` + `NOTES.md` unless `--force-overwrite-proposed`. Supports multi-state panes via repeatable `--live-html-state NAME:PATH`.
+  - **Skill** ([`.claude/skills/canvas/SKILL.md`](.claude/skills/canvas/SKILL.md)). Repo-local; auto-loads in every Claude Code session opened against this repo. Drives the Claude Preview MCP for the actual live HTML dumps, then invokes the scaffold script.
+  - **Tests** ([`tests/canvas/test_spin_up.py`](tests/canvas/test_spin_up.py)). Cover registry parsing, balanced DS-section extraction (including nested sections like `id="how"`), template substitution, multi-state arg parsing + ordering, and end-to-end build of live/ds/mockup HTML.
+  - **README** ([`prototypes/_canvas/README.md`](prototypes/_canvas/README.md)). Explains the registry contract, how to add a new pane, and the manual (non-Claude) invocation path.
+
 ## [1.33.0] — 2026-05-23
 
 ### Added
