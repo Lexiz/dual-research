@@ -9,3 +9,4 @@
 {"ts":"2026-05-22T19:39:35Z","step":"reconcile_complete","data":{"mechanical":18,"semantic":0,"verdict":"tolerated","note":"18 line citations are bare basename (render_dashboard.py:NNN) — unambiguous since only scripts/spec_lifecycle/render_dashboard.py matches. Functionally clean; line numbers will rotate as the file is rewritten anyway. Skipping canonical-path patches."}}
 {"ts":"2026-05-22T19:39:45Z","step":"in_progress","data":{}}
 {"ts":"2026-05-22T19:39:53Z","step":"branched","data":{"branch":"spec/0169-dashboard-redesign-v2-tabs-themes-history","from":"main@d03ffd8"}}
+{"ts":"2026-05-22T19:39:57Z","step":"implementing_started","data":{}}
