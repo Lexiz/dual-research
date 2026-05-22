@@ -15,3 +15,7 @@
 {"ts":"2026-05-22T19:51:45Z","step":"tests_green","data":{"passed":1534,"failed":0,"js_passed":9}}
 {"ts":"2026-05-22T19:52:25Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/192"}}
 {"ts":"2026-05-22T19:52:40Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/192"}}
+{"ts":"2026-05-22T19:53:33Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-22T20:03:10Z","step":"deployed","data":{"version":"1.30.0","strategy":"bluegreen","cluster_machines":4,"note":"5 lease-error attempts before convergence — same Fly orchestrator bug as previous deploys. Cluster is 4 machines (2 pairs of new images); LB serves 1.30.0."}}
+{"ts":"2026-05-22T20:03:11Z","step":"deploy_health_check_ok","data":{"endpoint":"/api/health","response":"{ok:true,version:1.30.0}"}}
+{"ts":"2026-05-22T20:03:58Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0169-dashboard-redesign-v2-tabs-themes-history.md"}}
