@@ -8,3 +8,5 @@
 {"ts":"2026-05-22T14:01:06Z","step":"branched","data":{"branch":"spec/0158-deferred-spec-subagent","from":"main@6364487"}}
 {"ts":"2026-05-22T14:03:44Z","step":"implement_complete","data":{"files_changed":6,"commits":1,"host_side_files":1}}
 {"ts":"2026-05-22T14:04:16Z","step":"tests_green","data":{"passed":1500,"failed":0}}
+{"ts":"2026-05-22T14:05:02Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/181"}}
+{"ts":"2026-05-22T14:05:02Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/181"}}
