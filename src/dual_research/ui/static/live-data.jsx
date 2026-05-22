@@ -315,7 +315,11 @@ function useInputBundle(turnKey) {
     setLoading(true);
     setBundle(null);
     setError(null);
-    authedFetch(`/api/runs/${encodeURIComponent(runId)}/inputs/${encodeURIComponent(turnKey)}`)
+    // Spec 0150 — `?v=0150` busts the spec-0079 `immutable, max-age=86400`
+    // HTTP cache after the legacy-shim sunset rewrote every historical
+    // bundle's pieces dict in place. Without the cache-buster, browsers
+    // would serve the pre-deploy (legacy-keyed) response for up to 24h.
+    authedFetch(`/api/runs/${encodeURIComponent(runId)}/inputs/${encodeURIComponent(turnKey)}?v=0150`)
       .then(r => {
         if (r.status === 404) return null;
         if (!r.ok) throw new Error(`HTTP ${r.status}`);

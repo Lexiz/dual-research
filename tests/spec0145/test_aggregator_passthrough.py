@@ -96,11 +96,13 @@ class TestPromptPiecesPassthrough:
 
     def test_anchor_run_shape_passes_through(self, tmp_path: Path) -> None:
         """Spec §1.1 — pin the exact key set the anchor run's seq=83
-        turn_ended event carries (verified live in the spec brief).
+        turn_ended event carries (post-spec-0150 backfill, the legacy
+        aggregate `user_prompt` is gone; `user_prompt.message`
+        carries the chat-message token count instead).
         Adding any normalisation would silently break this fixture."""
         run = _empty_run()
         anchor_shape = {
-            "user_prompt": 5251,
+            "user_prompt.message": 5251,
             "phase1.claude": 10971,
             "phase1.openai": 5525,
             "prior_turns.phase2": 5482,
@@ -110,6 +112,5 @@ class TestPromptPiecesPassthrough:
         }
         apply_event(run, _turn_ended(anchor_shape), tmp_path)
         usage = run.phase_token_usage["phase2_round1_claude"]
-        # The legacy aggregate `user_prompt` key survives — the JS shim
-        # is what makes the read path render it correctly under canonical.
+        # Passthrough invariant: the aggregator never normalises keys.
         assert usage.prompt_pieces == anchor_shape

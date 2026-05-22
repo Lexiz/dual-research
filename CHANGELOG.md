@@ -10,6 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-05-22
+
+### Changed
+
+- **Spec 0150 — Legacy-shim sunset + historical input-bundle backfill (v1.15.0)** ([spec 0150](specs/0150-legacy-shim-sunset-and-input-bundle-backfill.md)). Tech-debt removal: backfilled every historical run on production Supabase into the canonical artifact-ID schema, then deleted the five JS+Python compatibility surfaces spec 0145 left in place under a 90-day deadline (2026-08-19). Net code negative. Closes D15 + D05 from the post-batch cleanup audit; three operational rows remain (D09, D18, D24).
+  - **D15 — Backfill `events.payload.prompt_pieces` JSONB → `turn_prompt_pieces`.** One-shot `scripts/backfill_legacy_shim.py` pass-1 translated legacy short keys (`system`, `brief`, `d1`, …) to canonical IDs (`system.task.<phase>`, `user_prompt.message`, `phase1.<agent>`, …) and upserted ~1,196 rows across 10 runs into `turn_prompt_pieces`. Idempotent.
+  - **D05 — Backfill `inputs/input.json` for pre-0142 historical runs.** Pass-2 walked `runs/*/` and wrote 21 persisted `inputs/input.json` files via `_persist_initial_brief_bundle()`, then re-pushed each session-dir to Supabase so the hosted UI sees `system_source="recorded"` instead of the synth-path `"agent-default"` caveat.
+  - **Pass 3 — Per-turn input bundle translation.** Walked every `runs/*/inputs/phase{N}_*.json` and translated the legacy 8-key `pieces` dict to canonical IDs in-place (235 files across 7 sessions; text values byte-identical). Pushed only the `inputs/*.json` rows to Supabase via a minimal helper that bypasses the multi-MB transcript that overshoots `statement_timeout` on the full push.
+  - **D15 frontend deletions** (in `src/dual_research/ui/static/artifacts.jsx`): `LEGACY_KEY_TO_CANONICAL` map, `LEGACY_SYSTEM_BY_PHASE` resolver, `canonicaliseLegacyKey()`, `canonicalisePieces()`, `hasCanonicalKey()` plus all four exports from `window.DrArtifacts`.
+  - **D15 frontend deletions** (in `src/dual_research/ui/static/run-detail.jsx`): `LEGACY_PIECE_KEYS` Set, `LEGACY_PIECE_LABELS`, `hasNewVocabPieces()`, `legacyGroupPieces()` and the legacy-vocab dispatch branch in `CcxCard`. Two `canonicalisePieces` call sites in `InputTabContent` and `PreflightResponseModal` simplified to `bundle.pieces` directly.
+  - **D15 Python deletions**: legacy single-segment `user_prompt` `ArtifactDef` in `contract/artifacts.py`; `LEGACY_INPUT_BUNDLE_KEYS` 8-tuple in `protocol/prompts.py`.
+  - **D05 Python deletions**: `build_phase0_input_bundle()` in `ui/aggregator.py` plus its call sites in `ui/server.py:_read_input_bundle_fs` (FS mode) and the inline Phase-0 synth in `_read_input_bundle_supabase` (Supabase mode). Missing `inputs/input.json` post-deletion returns `None` (404 to the FE) instead of synthesizing a fake bundle.
+  - **Self-pruning allowlist** in `ui/server.py`: `_CANONICAL_SINGLE_SEGMENT_IDS` is derived from `REGISTRY` at import time and now contains exactly `{current_draft, all_p2_turns, all_carry_forward}` (was 4 entries; the `user_prompt` bare entry was dropped).
+  - **Push-pipeline fix** in `persistence/remote.py:push_session_dir`: collapse duplicate `(run_id, turn_key, artifact_id)` tuples that retried turns can produce; postgres rejects duplicates within a single upsert batch. Latest occurrence wins.
+  - **Cache-buster** bumped `?v=0149a → ?v=0150a` across all 25 static-asset imports in `index.html`.
+
 ## [1.14.0] — 2026-05-22
 
 ### Added

@@ -38,54 +38,31 @@ def script_mod():
     return _load_script_module()
 
 
-def _parse_js_translation_table(jsx_text: str) -> dict[str, str]:
-    """Extract the LEGACY_KEY_TO_CANONICAL object literal from artifacts.jsx."""
-    m = re.search(
-        r"const\s+LEGACY_KEY_TO_CANONICAL\s*=\s*\{(.+?)\};",
-        jsx_text, re.DOTALL,
-    )
-    assert m, "could not locate LEGACY_KEY_TO_CANONICAL in artifacts.jsx"
-    body = m.group(1)
-    out: dict[str, str] = {}
-    for line in body.splitlines():
-        line = line.split("//", 1)[0].strip()
-        if not line:
-            continue
-        m2 = re.match(r"(\w+)\s*:\s*['\"]([^'\"]+)['\"],?", line)
-        if m2:
-            out[m2.group(1)] = m2.group(2)
-    return out
+def test_translation_table_matches_frozen_snapshot(script_mod) -> None:
+    """The Python translation table is a frozen snapshot of the legacy
+    JS shim (the JS source was deleted in Phase E of spec 0150). Pin
+    the canonical values so a future re-run of the backfill on a
+    forgotten historical run produces correct results."""
+    assert script_mod.LEGACY_KEY_TO_CANONICAL == {
+        "system": "system.task.input",
+        "brief":  "user_prompt.message",
+        "d1":     "phase1.claude",
+        "d2":     "phase1.openai",
+        "plan":   "phase2.agreement.plan",
+        "hist":   "prior_turns.phase2",
+        "draft":  "current_draft",
+        "histp":  "prior_turns.phase4",
+    }
 
 
-def _parse_js_system_table(jsx_text: str) -> dict[int, str]:
-    m = re.search(
-        r"const\s+LEGACY_SYSTEM_BY_PHASE\s*=\s*\{(.+?)\};",
-        jsx_text, re.DOTALL,
-    )
-    assert m, "could not locate LEGACY_SYSTEM_BY_PHASE in artifacts.jsx"
-    body = m.group(1)
-    out: dict[int, str] = {}
-    for line in body.splitlines():
-        line = line.split("//", 1)[0].strip()
-        if not line:
-            continue
-        m2 = re.match(r"(\d+)\s*:\s*['\"]([^'\"]+)['\"],?", line)
-        if m2:
-            out[int(m2.group(1))] = m2.group(2)
-    return out
-
-
-def test_translation_table_matches_js_source(script_mod) -> None:
-    """The Python translation table must mirror artifacts.jsx exactly."""
-    jsx_text = ARTIFACTS_JSX_PATH.read_text(encoding="utf-8")
-    js_table = _parse_js_translation_table(jsx_text)
-    assert script_mod.LEGACY_KEY_TO_CANONICAL == js_table
-
-
-def test_phase_aware_system_table_matches_js_source(script_mod) -> None:
-    jsx_text = ARTIFACTS_JSX_PATH.read_text(encoding="utf-8")
-    js_table = _parse_js_system_table(jsx_text)
-    assert script_mod.LEGACY_SYSTEM_BY_PHASE == js_table
+def test_phase_aware_system_table_matches_frozen_snapshot(script_mod) -> None:
+    assert script_mod.LEGACY_SYSTEM_BY_PHASE == {
+        0: "system.task.input",
+        1: "system.task.research_plan",
+        2: "system.task.plan_negotiation",
+        3: "system.task.drafting",
+        4: "system.task.review",
+    }
 
 
 def test_legacy_keys_are_exactly_eight(script_mod) -> None:
@@ -325,10 +302,13 @@ def test_translate_pieces_in_bundle_prefer_canonical(script_mod) -> None:
 
 
 def test_plan_pass3_identifies_legacy_files(script_mod, tmp_path) -> None:
-    """plan_pass3 walks runs/*/inputs/ and flags legacy-keyed files."""
+    """plan_pass3 walks runs/*/inputs/ and flags legacy-keyed files
+    (including ``input.json`` post-spec-0150, which Pass 2 skipped when
+    the file already existed on disk pre-spec-0145)."""
     run = tmp_path / "20260518-000000-historical-run"
     inputs = run / "inputs"
     inputs.mkdir(parents=True)
+    # Canonical-keyed input.json — passes through.
     (inputs / "input.json").write_text(json.dumps({"pieces": {"user_prompt.message": "x"}}))
     (inputs / "phase2_round1_claude.json").write_text(json.dumps({
         "pieces": {"brief": "B", "d1": "D1", "draft": "DRAFT"}
@@ -337,7 +317,8 @@ def test_plan_pass3_identifies_legacy_files(script_mod, tmp_path) -> None:
         "pieces": {"system": "S", "draft": "D"}
     }))
     counts, candidates = script_mod.plan_pass3(tmp_path)
-    assert counts.total_per_turn_files == 2
+    # 3 files total counted (input.json + 2 phase files post-spec-0150).
+    assert counts.total_per_turn_files == 3
     assert counts.legacy_files_to_translate == 2
     assert counts.files_with_mixed_keys == 0
     assert candidates == [run]

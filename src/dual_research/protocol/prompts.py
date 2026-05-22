@@ -1240,25 +1240,6 @@ def force_verbatim_copy_input_bundle(
     }
 
 
-# Spec 0145 — the legacy short-key vocabulary that historical bundles
-# carry on disk. Kept here as the source of truth for the JS read-shim
-# (`artifact-display.js::LEGACY_KEY_TO_CANONICAL`). Producers now emit
-# canonical artifact IDs (`system.task.*`, `user_prompt.message`,
-# `user_prompt.attachment.<id>`, `phase1.claude`, `phase1.openai`,
-# `phase2.agreement.plan`, `prior_turns.phase{0,2,4}`, `current_draft`).
-# Sunset: 2026-08-19 (90 days post-merge, per Q4 in the spec brief).
-LEGACY_INPUT_BUNDLE_KEYS: "tuple[str, ...]" = (
-    "system",
-    "brief",
-    "d1",
-    "d2",
-    "plan",
-    "hist",
-    "draft",
-    "histp",
-)
-
-
 # ─── Spec 0114 — Deep Research protocol prompts ───────────────────────
 #
 # New prompts for the canonical Deep Research methodology. These coexist

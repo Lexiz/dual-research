@@ -581,9 +581,10 @@ def plan_pass3(runs_dir: Path) -> tuple[Pass3Counts, list[Path]]:
         if not inputs_dir.is_dir():
             continue
         session_needs_translation = False
+        # Spec 0150 — include input.json so pre-0145 Initial-Brief bundles
+        # (those that Pass 2 didn't replace because they already existed)
+        # also get translated to canonical keys.
         for input_file in sorted(inputs_dir.glob("*.json")):
-            if input_file.name == "input.json":
-                continue
             counts.total_per_turn_files += 1
             try:
                 data = json.loads(input_file.read_text(encoding="utf-8"))
@@ -672,8 +673,6 @@ def execute_pass3(
         inputs_dir = session_dir / "inputs"
         translated_here = 0
         for input_file in sorted(inputs_dir.glob("*.json")):
-            if input_file.name == "input.json":
-                continue
             try:
                 data = json.loads(input_file.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
