@@ -10,6 +10,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.23.1] — 2026-05-22
+
+### Added
+
+- **Spec 0161 — JS test stack for the Pages Function and `dashboard-bootstrap.js`** ([spec 0161](specs/0161-js-test-stack-for-pages-function.md)). Auto-queued by the spec 0158 deferred-spec subagent after spec 0160's handoff flagged the missing JS coverage. Five test cases across two files:
+  - `functions/api/data.test.js` — 4 cases (vitest, node env): happy-path (tree + blob fetches → JSON payload shape, `specs.length`, `events["0001"].length`, valid `generated_at` ISO, `cache-control` headers carry `max-age=15` + `stale-while-revalidate=60`); cache hit (returns the cached `Response` without re-calling `fetch`); error case (upstream 401 → 502 with structured `{ error, generated_at: null }` body); missing `GITHUB_TOKEN` env var → 502 with a helpful error message.
+  - `tests/js/dashboard-bootstrap.test.js` (spec body said `dashboard/site/…` but that path is gitignored as the build-output dir, so the test lives under `tests/js/` — 1 case, vitest happy-dom env): boots the shell HTML produced by `--shell-only`, stubs `window.fetch` with a fixture `/api/data` payload (one in-progress + one queued spec), executes the bootstrap IIFE, asserts the queue table is populated with 1 row, the hero contains the in-progress spec's title + number, the skeleton placeholders are gone, and the `[data-last-updated]` header was rewritten.
+- New JS test tooling — `package.json` (devDependencies only: `vitest@^1.6`, `happy-dom@^14`); `vitest.config.js` (two environments by glob, `globalSetup` to render the shell once per session); `tests/js/globalSetup.js`; `Makefile` `test-js` target (`npm install --no-audit --no-fund && npm test`). Production JS remains zero-dependency.
+- Fixtures under `tests/js/fixtures/` (specs/events/handoffs) — escape the pytest collector by living outside `tests/spec_lifecycle/`.
+
+### Notes
+
+- The default Python suite (`uv run pytest tests/ -q`) is unchanged at 1510 passing. JS tests run on opt-in via `make test-js`. CI wiring (adding a `.github/workflows/js-tests.yml`) stays deferred per spec 0161 §5 until after a few local cycles confirm the suite's stable.
+
 ## [1.23.0] — 2026-05-22
 
 ### Added
