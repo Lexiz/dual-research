@@ -1,2 +1,5 @@
 {"ts":"2026-05-22T00:00:00Z","step":"queued","data":{"bootstrap":true}}
 {"ts":"2026-05-22T00:00:00Z","step":"in_progress","data":{"bootstrap":true}}
+{"ts":"2026-05-22T10:50:17Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/175"}}
+{"ts":"2026-05-22T10:50:17Z","step":"deployed","data":{"version":"1.17.0"}}
+{"ts":"2026-05-22T10:50:17Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0152-spec-lifecycle-system-v1.md"}}
