@@ -7,13 +7,13 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: TBD
-status: queued
+status: in_progress
 queue_position: 1
 depends_on: []
 complexity: L
 created: 2026-05-22
 queued_at: "2026-05-22T20:48:00Z"
-started_at: ""
+started_at: "2026-05-22T21:02:06Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
