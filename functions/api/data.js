@@ -4,18 +4,22 @@
  * Spec 0160 — serves the dashboard's live data to dashboard-bootstrap.js.
  * Reads spec frontmatter, draft frontmatter, handoff frontmatter, and
  * per-spec event sidecars directly from the Lexiz/dual-research repo via
- * GitHub's Contents/Trees/Blobs API, parses YAML and JSONL on the fly, and
- * returns a single JSON payload.
+ * GitHub's APIs, parses YAML and JSONL on the fly, and returns a single
+ * JSON payload.
+ *
+ * Spec 0174 — blob fetching uses a single batched GraphQL POST (per file as
+ * an aliased `Repository.object(expression: "<ref>:<path>")`) instead of one
+ * REST `/git/blobs/<sha>` call per file. This drops subrequest count from
+ * `1 + N` (tree + per-file) to ~2 (tree + GraphQL), keeping the Function
+ * well under Cloudflare's 50-subrequest free-tier limit even as the repo
+ * grows past 100s of files.
  *
  * Caching: response is cached at the edge for 15s (`max-age`) with a 60s
- * `stale-while-revalidate` window. First request after expiry pays the
- * GitHub round-trips; subsequent requests within the window are served from
- * Cloudflare's edge cache in <10ms.
+ * `stale-while-revalidate` window.
  *
  * Auth: a fine-grained PAT scoped to `Contents: Read-only` on this repo is
- * read from the `GITHUB_TOKEN` env var (configured in Pages → Settings →
- * Environment variables → Encrypted). See dashboard/HOSTING.md § Live data
- * setup.
+ * read from the `GITHUB_TOKEN` env var. The same PAT works for both REST and
+ * GraphQL.
  *
  * Response shape:
  *   {
@@ -35,6 +39,11 @@ const REPO_NAME = 'dual-research';
 const REF = 'main';
 const CACHE_MAX_AGE = 15; // seconds
 const CACHE_SWR = 60;
+// GitHub's GraphQL endpoint accepts large queries, but to stay well under
+// the per-query field limit (~500) we batch in chunks of GRAPHQL_BATCH_SIZE
+// aliased fields. At today's repo size (~160 files) this is one batch; at
+// 1000 files it's three.
+const GRAPHQL_BATCH_SIZE = 400;
 
 export async function onRequest(context) {
   const { env, request } = context;
@@ -87,8 +96,7 @@ function errorResponse(status, message) {
 
 async function buildPayload(token) {
   // Single tree call gives us the full repo file listing with per-path SHAs.
-  // Recursive flag walks the whole tree in one request — much cheaper than
-  // four directory-listing calls.
+  // Recursive flag walks the whole tree in one request.
   const tree = await ghJson(`/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REF}?recursive=1`, token);
   if (!tree.tree) throw new Error('trees response missing `tree` array');
 
@@ -106,19 +114,34 @@ async function buildPayload(token) {
     else if (/^dashboard\/events\/\d{4}\.jsonl$/.test(p)) eventBlobs.push(entry);
   }
 
-  // Fetch all blob contents in parallel. GitHub's git/blobs API returns
-  // { content: base64, encoding: "base64", sha, size }.
-  const [specRows, draftRows, handoffRows, eventBuckets] = await Promise.all([
-    Promise.all(specBlobs.map((b) => fetchBlobText(b, token).then((text) => parseFrontmatter(text, b.path)))),
-    Promise.all(draftBlobs.map((b) => fetchBlobText(b, token).then((text) => parseFrontmatter(text, b.path)))),
-    Promise.all(handoffBlobs.map((b) => fetchBlobText(b, token).then((text) => parseFrontmatter(text, b.path)))),
-    Promise.all(eventBlobs.map((b) =>
-      fetchBlobText(b, token).then((text) => ({
-        number: b.path.match(/(\d{4})\.jsonl$/)[1],
+  // Concatenate in a stable order so the alias-index ↔ path mapping is
+  // deterministic across batches. Categories are reconstructed at parse
+  // time from path regexes (same as the filtering above).
+  const allBlobs = [...specBlobs, ...draftBlobs, ...handoffBlobs, ...eventBlobs];
+  const texts = await fetchAllBlobTextsViaGraphQL(allBlobs, token);
+
+  const specRows = [];
+  const draftRows = [];
+  const handoffRows = [];
+  const eventBuckets = [];
+
+  for (let i = 0; i < allBlobs.length; i++) {
+    const entry = allBlobs[i];
+    const text = texts[i] || '';
+    const p = entry.path;
+    if (/^specs\/\d{4}-[^/]+\.md$/.test(p)) {
+      specRows.push(parseFrontmatter(text, p));
+    } else if (/^specs\/drafts\/draft-\d{3}-[^/]+\.md$/.test(p)) {
+      draftRows.push(parseFrontmatter(text, p));
+    } else if (/^handoffs\/\d{4}-\d{2}-\d{2}-spec-\d{4}-[^/]+\.md$/.test(p)) {
+      handoffRows.push(parseFrontmatter(text, p));
+    } else if (/^dashboard\/events\/\d{4}\.jsonl$/.test(p)) {
+      eventBuckets.push({
+        number: p.match(/(\d{4})\.jsonl$/)[1],
         events: text.split('\n').filter(Boolean).map(safeJsonParse).filter(Boolean),
-      })),
-    )),
-  ]);
+      });
+    }
+  }
 
   const specs = specRows
     .filter((row) => row && row.fm)
@@ -154,6 +177,48 @@ async function buildPayload(token) {
   };
 }
 
+/**
+ * Fetch the text content of every blob in `entries` using GitHub's GraphQL
+ * API. Each batch is a single POST with up to GRAPHQL_BATCH_SIZE aliased
+ * `Repository.object(expression: "<ref>:<path>")` fields. Returns an array
+ * of texts aligned with `entries` (missing / binary blobs become `''`).
+ */
+async function fetchAllBlobTextsViaGraphQL(entries, token) {
+  const texts = new Array(entries.length).fill('');
+  if (entries.length === 0) return texts;
+
+  for (let start = 0; start < entries.length; start += GRAPHQL_BATCH_SIZE) {
+    const chunk = entries.slice(start, start + GRAPHQL_BATCH_SIZE);
+    const fields = chunk.map((entry, idx) => {
+      const expr = `${REF}:${entry.path}`;
+      // Local alias is just the in-chunk index. We track positions
+      // separately when copying results back into `texts`.
+      return `f${idx}: object(expression: ${JSON.stringify(expr)}) { ... on Blob { text isBinary } }`;
+    }).join('\n      ');
+
+    const query = `query DashboardBundle {
+  repository(owner: ${JSON.stringify(REPO_OWNER)}, name: ${JSON.stringify(REPO_NAME)}) {
+      ${fields}
+  }
+}`;
+
+    const data = await ghGraphQL(query, token);
+    const repo = data && data.repository;
+    if (!repo) throw new Error('GraphQL response missing `repository`');
+
+    for (let idx = 0; idx < chunk.length; idx++) {
+      const node = repo[`f${idx}`];
+      if (!node || node.isBinary || typeof node.text !== 'string') {
+        // Missing or binary blob — leave as ''.
+        continue;
+      }
+      texts[start + idx] = node.text;
+    }
+  }
+
+  return texts;
+}
+
 async function ghJson(path, token) {
   const url = 'https://api.github.com' + path;
   const r = await fetch(url, {
@@ -171,13 +236,27 @@ async function ghJson(path, token) {
   return r.json();
 }
 
-async function fetchBlobText(treeEntry, token) {
-  const data = await ghJson(
-    `/repos/${REPO_OWNER}/${REPO_NAME}/git/blobs/${treeEntry.sha}`,
-    token,
-  );
-  if (data.encoding === 'base64') return atob(data.content.replace(/\n/g, ''));
-  return data.content || '';
+async function ghGraphQL(query, token) {
+  const r = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      accept: 'application/vnd.github+json',
+      'content-type': 'application/json',
+      'user-agent': 'dual-research-pages-function/1.0',
+    },
+    body: JSON.stringify({ query }),
+  });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    throw new Error(`GitHub graphql ${r.status}: ${body.slice(0, 200)}`);
+  }
+  const json = await r.json();
+  if (json.errors && json.errors.length) {
+    const first = json.errors[0];
+    throw new Error(`GitHub graphql error: ${first.message || JSON.stringify(first)}`);
+  }
+  return json.data;
 }
 
 function extractNumber(path, regex) {

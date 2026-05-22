@@ -10,6 +10,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.30.1] — 2026-05-22
+
+### Fixed
+
+- **Spec 0174 — `/api/data` subrequest-limit blowup (502) + dashboard poll dropped to 5s** ([spec 0174](specs/0174-fix-api-data-subrequest-blowup-and-5s-poll.md)). The Cloudflare Pages Function at [functions/api/data.js](functions/api/data.js) was making 1 REST tree call + N per-file REST blob calls (~162 at today's repo size). Cloudflare's free-tier subrequest cap is 50, so the Function blew the cap and returned `502 — Too many subrequests by single Worker invocation` on every request. The dashboard at the live URL fell back to the build-time-baked content and never refreshed.
+
+### Changed
+
+- **GitHub blob fetching uses GraphQL** — `functions/api/data.js` now POSTs a single batched GraphQL query that asks for `Repository.object(expression: "<ref>:<path>")` as aliased fields for every file the tree walk discovered. Net subrequest count drops from `1 + N` (~162) to ~2 (1 tree REST call + 1 GraphQL POST). At repos > 400 files, batches in chunks of 400 fields per POST — still ~3 subrequests max at 1000-spec scale. The existing 15s edge-cache + `stale-while-revalidate=60s` headers stay. ([functions/api/data.js:170–211](functions/api/data.js))
+- **Dashboard poll interval: 15s → 5s** ([scripts/spec_lifecycle/render_dashboard.py](scripts/spec_lifecycle/render_dashboard.py) `DASHBOARD_BOOTSTRAP_JS`). With the GraphQL fix the Function returns in ~300–500 ms, and the response is edge-cached for 15s, so most polls hit Cloudflare's edge cache rather than reaching GitHub. Perceived end-to-end latency from `origin/main` change → dashboard repaint drops from ~15s to ~5–7s.
+
+### Tests
+
+- [functions/api/data.test.js](functions/api/data.test.js) — fixtures rewritten to mock the GraphQL POST. New regression-prevention assertion: the happy-path test asserts `fetchMock.mock.calls.length === 2` (1 tree + 1 GraphQL), so any future regression that reintroduces per-file fetches blows the count and trips the test. New test added for the GraphQL `errors` path → 502.
+
 ## [1.30.0] — 2026-05-22
 
 ### Added

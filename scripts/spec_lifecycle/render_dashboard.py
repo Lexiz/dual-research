@@ -2091,17 +2091,19 @@ DASHBOARD_LIVE_JS = """\
 # ── Live data bootstrap (spec 0160) ────────────────────────────────────────
 
 DASHBOARD_BOOTSTRAP_JS = """\
-// dashboard-bootstrap.js (spec 0160) — fetch live data from the Cloudflare
-// Pages Function at /api/data and populate the dashboard's data-region
-// containers. Polls every 15s. On error: fall back to localStorage cache
-// with a `stale` chip. No-op gracefully if /api/data is unreachable
-// (e.g. local preview without the Function running) — the server-rendered
-// content stays in place.
+// dashboard-bootstrap.js (spec 0160 + spec 0174) — fetch live data from the
+// Cloudflare Pages Function at /api/data and populate the dashboard's
+// data-region containers. Polls every 5s (was 15s; the underlying Function
+// edge-caches responses for 15s so most polls hit Cloudflare's cache and
+// don't reach GitHub). On error: fall back to localStorage cache with a
+// `stale` chip. No-op gracefully if /api/data is unreachable (e.g. local
+// preview without the Function running) — the server-rendered content
+// stays in place.
 
 (function () {
   'use strict';
 
-  var POLL_MS = 15000;
+  var POLL_MS = 5000;
   var CACHE_KEY = 'dr-dashboard-data-v1';
   var ESC = function (s) {
     if (s === null || s === undefined) return '';
