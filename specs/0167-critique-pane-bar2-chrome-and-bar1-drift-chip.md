@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.28.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T17:08:41Z"
 started_at: "2026-05-22T20:35:00Z"
 merged_at: "2026-05-22T20:42:00Z"
-deployed_at: ""
+deployed_at: "2026-05-22T20:45:00Z"
 pr: "https://github.com/Lexiz/dual-research/pull/190"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0167-critique-pane-bar2-chrome-and-bar1-drift-chip.md"
 failure_step: ""
 source_session: critique-iteration-2026-05-22
 promoted_from_draft: "004"
