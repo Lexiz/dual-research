@@ -6,14 +6,14 @@ title: Timeline pane — M3 card chrome + phase header simplification + narrow-v
 type: new-feature
 label: new-feature
 version_bump: MINOR
-target_version: TBD
-status: queued
+target_version: 1.25.0
+status: in_progress
 queue_position: 1
 depends_on: []
 complexity: M
 created: 2026-05-22
 queued_at: "2026-05-22T17:08:41Z"
-started_at: ""
+started_at: "2026-05-22T17:15:00Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
