@@ -143,7 +143,13 @@ var POLL_MS = 5000;
 
 No UI changes. No DS work required.
 
-## 6. Test plan
+## 6. Regression-prevention test
+
+A test that **fails before this fix and passes after**:
+
+- [ ] **Vitest** in `functions/api/data.test.js` — happy-path fixture asserts the Pages Function makes **exactly 2 subrequests total** for a fixture repo with ~10 files (`fetchMock.mock.calls.length === 2`). Before this fix, the equivalent assertion would resolve to `1 + N` where `N = file count`. The assertion locks the GraphQL-batched fetch pattern; any future regression that reintroduces per-file fetches blows the count and trips the test.
+
+## 7. Test plan
 
 - [ ] **Vitest: GraphQL fetch shape.** Update [functions/api/data.test.js](functions/api/data.test.js) happy-path fixture to mock GitHub's GraphQL POST. Assert: 1 tree REST call + 1 GraphQL POST + response cached. Assert `specs.length`, `events["0001"].length` matches the fixture.
 - [ ] **Vitest: cache hit unchanged.** The `caches.default.match` early-return path still works — fixture caches a Response and asserts the GraphQL call is NOT made.
@@ -153,14 +159,14 @@ No UI changes. No DS work required.
 - [ ] **Manual: poll interval.** DevTools Network tab — three `/api/data` requests within a 15 s window (5 s interval × 3).
 - [ ] **`uv run pytest tests/ -q`** exits 0. `npm test` (vitest) passes.
 
-## 7. Risks
+## 8. Risks
 
 - **GraphQL query size.** At ~162 aliased fields, the query body is ~10–15 KB. GitHub's GraphQL endpoint accepts up to 50 KB body; well under. If the repo grows past ~400 files, batch into multiple POSTs (the implementer adds a chunked-batch loop).
 - **Field-name collisions.** Aliased field names must be valid GraphQL identifiers. Filenames with dashes / dots need sanitization (`spec_0163_…`). Implementer handles via a `pathToAlias(path)` helper.
 - **Auth scope.** Same fine-grained PAT (`Contents: Read-only` on `Lexiz/dual-research`) works for GraphQL too — no token rotation required.
 - **Rate-limit blowup if the cache breaks.** A 5 s poll with no cache = 720 polls/hour/user. If the cache header gets dropped or the edge cache misbehaves, the PAT's 5000/hour limit could be approached at ~7 concurrent users. Mitigation: keep the cache header; alert if observed cache-miss rate spikes.
 
-## 8. Implementation steps
+## 9. Implementation steps
 
 1. Rewrite the post-tree-walk fetch in `functions/api/data.js` to GraphQL. Single POST. Parse the aliased response.
 2. Update `functions/api/data.test.js` fixtures.
