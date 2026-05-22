@@ -730,6 +730,17 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
 }
 .drift-chip svg { width: 12px; height: 12px; }
 
+/* Spec 0167 §2.3 — muted-at-zero variant. Slot stays present so the bar-1
+   right cluster doesn't reflow if drift appears mid-run. The live impl
+   uses `.crit-drift-pill[data-count]`; this DS rule documents the same
+   muted-at-zero contract for both class names. */
+.drift-chip[data-count="0"],
+.crit-drift-pill[data-count="0"] {
+  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  color: var(--md-on-surface-faint);
+  opacity: 0.55;
+}
+
 /* Kind tabs (Bar 2) */
 .kind-tabs { display: inline-flex; gap: 2px; }
 .kind-tab {

@@ -2347,6 +2347,18 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   color: color-mix(in srgb, var(--p-warn) 85%, var(--md-on-surface) 15%);
 }
 
+/* Spec 0167 §2.3 — muted-at-zero variant. Slot stays present so the bar-1
+   right cluster doesn't reflow if drift appears mid-run. */
+.crit-drift-pill[data-count="0"] {
+  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  border-color: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+  color: var(--md-on-surface-faint);
+  opacity: 0.55;
+}
+.crit-drift-pill[data-count="0"] .crit-drift-pill__lbl {
+  color: var(--md-on-surface-faint);
+}
+
 /* ── Crit-totals cluster (Bar 1 right) ─────────────────── */
 .crit-totals {
   display: inline-flex; gap: 16px; align-items: baseline;

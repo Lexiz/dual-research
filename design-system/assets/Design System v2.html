@@ -760,7 +760,11 @@
           <div class="bar1">
             <span class="ttl">Critique</span>
             <span class="vbar"></span>
+            <!-- Spec 0167 §2.4 — P0 Brief tab catch-up. Live renders the
+                 four-tab set since spec 0136; DS reference was stuck on
+                 the spec 0098 three-tab set. -->
             <div class="phase-tabs">
+              <button class="phase-tab"><span class="pcode">P0</span><span class="pname">Brief</span></button>
               <button class="phase-tab"><span class="pcode">P2</span><span class="pname">Negotiate</span></button>
               <button class="phase-tab is-active"><span class="pcode">P4</span><span class="pname">Review</span></button>
               <button class="phase-tab"><span class="sigma">Σ</span><span class="pname">Summary</span></button>
@@ -771,16 +775,19 @@
                 <span><span class="n is-info">5</span><span class="lbl">open</span></span>
                 <span><span class="n is-ok">22</span><span class="lbl">resolved</span></span>
               </span>
-              <span class="drift-chip"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zm-1 5v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>1 drift</span>
+              <span class="drift-chip" data-count="1"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zm-1 5v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>1 drift</span>
             </div>
           </div>
           <div class="bar2">
+            <!-- Spec 0167 §2.5 / §2.6 — kind-cluster order locked to
+                 Q · D · I · C (matches the timeline `.tl-phase__chips`
+                 cluster). The leading "All" reset is dropped — no active
+                 kind chip = "show all". -->
             <div class="kind-tabs">
-              <button class="kind-tab is-active"><span>All</span><span class="ct">31</span></button>
-              <button class="kind-tab is-zero"><span>Issues</span><span class="ct">0</span></button>
-              <button class="kind-tab is-zero"><span>Comments</span><span class="ct">0</span></button>
               <button class="kind-tab"><span>Questions</span><span class="ct is-info">30</span></button>
               <button class="kind-tab"><span>Disagreements</span><span class="ct is-warn">1</span></button>
+              <button class="kind-tab is-zero"><span>Issues</span><span class="ct">0</span></button>
+              <button class="kind-tab is-zero"><span>Comments</span><span class="ct">0</span></button>
             </div>
             <div class="right">
               <div class="tab-group-solid">

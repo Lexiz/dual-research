@@ -339,9 +339,9 @@ Composed components are surface-level patterns built from the primitives. They a
 
 Two-bar header + status-grouped body. The canonical reference for this lives in spec 0098 (M3 rework) and was tightened by spec 0124 (filter header parity + responsive compaction).
 
-**Bar 1** carries: title (`Critique`) · phase tabs (P2 Negotiate / P4 Review / Σ Summary) · run-wide totals (`introduced` · `open` · `resolved`) + drift chip on the right.
+**Bar 1** carries: title (`Critique`) · phase tabs (`P0 Brief` / `P2 Negotiate` / `P4 Review` / `Σ Summary` — four tabs since spec 0136, spec 0167 §2.4 brought DS reference into alignment) · run-wide totals (`introduced` · `open` · `resolved`) + drift chip on the right (`.crit-drift-pill` in live, `.drift-chip` in DS canonical). The drift slot is **always rendered** (spec 0167 §2.3); when count is 0 it carries `data-count="0"` and renders muted (opacity 0.55, on-surface-faint color) so the bar-1 right cluster doesn't reflow if drift appears mid-run.
 
-**Bar 2** carries: kind tabs (All / Issues / Comments / Questions / Disagreements) with **per-phase counts** baked into each tab as a tinted chip · agent segmented filter (All / Claude / GPT) · status segmented filter (All / Open / Resolved / Drift). **Hidden in Σ Summary state.**
+**Bar 2** carries: kind tabs in the canonical order **Questions · Disagreements · Issues · Comments** (spec 0167 §2.5, matches `.tl-phase__chips`) — **no leading "All" chip** (spec 0167 §2.6, no active chip = "show all"); clicking an active kind chip deselects it. Per-kind phase counts baked into each tab. Agent segmented filter (All / Claude / GPT) · status segmented filter (All / Open / Resolved / Drift). **Hidden in Σ Summary state.** The live implementation uses `.fgroup` markup; the DS canonical reference uses `.tab-group-solid` — same lifted-tile contract (`var(--md-surface)` background + `--md-elev-1` on active). Spec 0167 §2.1/§2.2's class-rename + per-segment count plumbing is deferred.
 
 **Body** is **status-grouped collapsible sections** with rotating chevron headers:
 - `Open · new this round` — info-strong tint, info count chip
