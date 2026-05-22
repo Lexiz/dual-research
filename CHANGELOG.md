@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.19.1] — 2026-05-22
+
+### Fixed
+
+- **Spec 0155 — Lifecycle skills' session-title stamping is now implemented** ([spec 0155](specs/0155-fix-session-title-stamping.md)). Before this fix, `/spec-draft`, `/spec-queue`, `/spec-promote`, `/dev-next`, and `/dev-queue-run` all described the desired `[DR · NNNN · O] <slug>` title format but hand-waved the write mechanism, so most lifecycle stamps silently never happened (spec 0154's session ran as bare `[DR]` until deploy). A new host-side CLI at `~/.claude/hooks/stamp-session-title.py` does the atomic write + retry-against-CCD-overwrite + cache update in one bash call. The five lifecycle skills now invoke it directly at their stamping steps.
+
+### Added
+
+- `tests/hooks/test_stamp_session_title.py` — regression test for the new helper. Asserts that one invocation writes `[<prefix>] <body>` into the metadata file and stores the full lifecycle prefix in the session-prefix cache, that a second invocation replaces the cache entry (no duplicates), that a missing session exits 1 cleanly, and that `build_title` enforces the 60-char total cap. Skips automatically when the host-side helper isn't installed (e.g. on CI).
+
 ## [1.19.0] — 2026-05-22
 
 ### Added
