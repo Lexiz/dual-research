@@ -7,13 +7,13 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.24.0
-status: queued
+status: in_progress
 queue_position: 1
 depends_on: []
 complexity: M
 created: 2026-05-22
 queued_at: "2026-05-22T15:51:01Z"
-started_at: ""
+started_at: "2026-05-22T16:05:00Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
@@ -81,7 +81,7 @@ Each is one extra line in the SKILL.md, mirroring the existing `append_event` ca
 
 ### 2.4 — Staleness chip in the hero
 
-- New chip in the in-flight hero showing "last event Ns ago", updated every second by the existing `dashboard-live.js` ticker at [render_dashboard.py:1401](scripts/spec_lifecycle/render_dashboard.py) (extend the existing setInterval loop — no new timer).
+- New chip in the in-flight hero showing "last event Ns ago", updated every second by the existing `dashboard-live.js` ticker at [scripts/spec_lifecycle/render_dashboard.py:1401](scripts/spec_lifecycle/render_dashboard.py) (extend the existing setInterval loop — no new timer).
 - Color via existing chip-tone classes:
   - `< 30s` → `chip tone-ok`
   - `30s – 2min` → `chip tone-warning`
