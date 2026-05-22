@@ -1,1 +1,6 @@
 {"ts":"2026-05-22T11:44:43Z","step":"queued","data":{}}
+{"ts":"2026-05-22T11:53:02Z","step":"preflight_ok","data":{"checks":["main_clean","no_open_spec_prs","no_in_flight"]}}
+{"ts":"2026-05-22T11:53:02Z","step":"handoff_read","data":{"path":"handoffs/2026-05-22-spec-0152-spec-lifecycle-system-v1.md"}}
+{"ts":"2026-05-22T11:53:02Z","step":"spec_read","data":{"path":"specs/0153-dashboard-redesign-staged-hero-and-activity-feed.md","lines":233,"type":"new-feature"}}
+{"ts":"2026-05-22T11:53:02Z","step":"reconcile_complete","data":{"anchors":4,"mechanical":0,"semantic":0,"verdict":"clean"}}
+{"ts":"2026-05-22T11:53:02Z","step":"in_progress","data":{}}
