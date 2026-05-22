@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.23.2] — 2026-05-22
+
+### Fixed
+
+- **Spec 0162 — Post-deploy sweep for `safe_to_destroy` blue machines** ([spec 0162](specs/0162-post-deploy-blue-sweep.md)). Adds a `scripts/sweep_stale_blues.sh` script that runs after `fly deploy` and destroys any machine Fly itself has tagged with `metadata.fly_bluegreen_deployment_tag: "safe_to_destroy"`. Best-effort hygiene; failures are logged and never fail the caller. Wraps an upstream Fly orchestrator bug where the destroy-lease for stale blues failed to acquire on 2 of 2 deploys (handoffs 0160, 0161).
+- **Diagnostic fallback (added during implementation):** if the sweep finds 0 stale blues but the cluster is larger than `--expected-count` (default 2), the script dumps every machine's metadata to stderr. **This is the verification path for the filter itself** — at implementation time we had no live stale-blue machine to inspect, so we cannot prove the filter matches Fly's real tag scheme. The dump captures evidence the next time the bug fires with whatever shape Fly actually uses; we can then correct the filter in a follow-up spec without manual triage. Until that evidence arrives, the script is a safe no-op.
+- Host-side `~/.claude/skills/dev-next/SKILL.md` step 21 now invokes the sweep after `fly deploy` and surfaces its single-line summary (plus any diagnostic dump) in the handoff's Deploy notes.
+
+### Added
+
+- `tests/scripts/test_sweep_stale_blues_filter.py` — 9 cases: the jq filter selects only `safe_to_destroy` machines (never live greens, never other tags, never missing-metadata, never on empty input), plus end-to-end script tests using a new `--input <file>` flag that exercise the diagnostic-dump path against a "no stale found but cluster oversized" fixture.
+
 ## [1.23.1] — 2026-05-22
 
 ### Added

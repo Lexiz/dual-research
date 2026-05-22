@@ -1,0 +1,46 @@
+[
+  {
+    "id": "green-aaaaaaaaaaaaaaa",
+    "name": "live-green-1",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_release_version": "283",
+        "fly_bluegreen_deployment_tag": "1779464079"
+      }
+    }
+  },
+  {
+    "id": "green-bbbbbbbbbbbbbbb",
+    "name": "live-green-2",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_release_version": "283",
+        "fly_bluegreen_deployment_tag": "1779464079"
+      }
+    }
+  },
+  {
+    "id": "mystery-stale-cccccccccccccc",
+    "name": "mystery-stale-1",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_release_version": "273",
+        "fly_bluegreen_deployment_tag": "1779399999"
+      }
+    }
+  },
+  {
+    "id": "mystery-stale-dddddddddddddd",
+    "name": "mystery-stale-2",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_release_version": "273",
+        "fly_bluegreen_deployment_tag": "1779399999"
+      }
+    }
+  }
+]

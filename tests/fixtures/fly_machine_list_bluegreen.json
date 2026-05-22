@@ -1,0 +1,70 @@
+[
+  {
+    "id": "green-aaaaaaaaaaaaaaa",
+    "name": "live-green-1",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_platform_version": "v2",
+        "fly_process_group": "app",
+        "fly_release_id": "abcdef1234",
+        "fly_release_version": "278",
+        "fly_flyctl_version": "0.3.165"
+      }
+    }
+  },
+  {
+    "id": "green-bbbbbbbbbbbbbbb",
+    "name": "live-green-2",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_platform_version": "v2",
+        "fly_process_group": "app",
+        "fly_release_id": "abcdef1234",
+        "fly_release_version": "278"
+      }
+    }
+  },
+  {
+    "id": "blue-stale-ccccccccccccc",
+    "name": "stale-blue-1",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_platform_version": "v2",
+        "fly_process_group": "app",
+        "fly_bluegreen_deployment_tag": "safe_to_destroy",
+        "fly_release_version": "273"
+      }
+    }
+  },
+  {
+    "id": "blue-stale-ddddddddddddd",
+    "name": "stale-blue-2",
+    "state": "started",
+    "config": {
+      "metadata": {
+        "fly_bluegreen_deployment_tag": "safe_to_destroy",
+        "fly_release_version": "273"
+      }
+    }
+  },
+  {
+    "id": "blue-mid-deploy-eeeeeeee",
+    "name": "transitional-blue",
+    "state": "stopped",
+    "config": {
+      "metadata": {
+        "fly_bluegreen_deployment_tag": "attached",
+        "fly_release_version": "278"
+      }
+    }
+  },
+  {
+    "id": "no-metadata-ffffffffff",
+    "name": "machine-without-metadata",
+    "state": "started",
+    "config": {}
+  }
+]
