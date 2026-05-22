@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.22.1
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T14:05:00Z"
 started_at: "2026-05-22T14:18:22Z"
 merged_at: "2026-05-22T14:20:28Z"
-deployed_at: ""
+deployed_at: "2026-05-22T14:22:42Z"
 pr: "https://github.com/Lexiz/dual-research/pull/182"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0159-fly-deploy-stability.md"
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
