@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-05-22
+
+### Added
+
+- **Spec 0153 — Dashboard redesign — design-system primitives, expandable in-flight hero with stage timeline, activity feed** ([spec 0153](specs/0153-dashboard-redesign-staged-hero-and-activity-feed.md)). The spec dashboard at `https://lexiz.github.io/dual-research/` now uses the canonical dual-research design system (sable/sage palette, Material 3 tokens) instead of the bootstrap-era inline styles. New page chrome: header with live-version chip, hero that renders idle vs in-flight states from `status: in_progress` data, eleven-stage timeline driven by event sidecars, pipeline strip, rolling-10 metrics, dense queue table, 24-hour activity feed, drafts surface, full spec catalog.
+- `scripts/spec_lifecycle/stages.py` — `compute_stages(spec_id, events, failure_step=None, now=None)` returns one `StageState` per canonical dev-cycle stage (done / curr / queued / fail) plus a list of unknown event step names for build-log warnings.
+- Inline event emissions across the `/dev-next` cycle: `preflight_ok`, `handoff_read`, `spec_read`, `reconcile_complete`, `branched`, `implement_complete`, `tests_green`, `pr_opened`, `merged`, `deployed`, `handoff_written`. The eleven stages now have data to render even partway through a cycle.
+
+### Changed
+
+- `scripts/spec_lifecycle/render_dashboard.py` rewritten to emit the new layout. Output filenames are unchanged at the page level (`index.html`, `spec-NNNN.html`, `draft-NNN.html`); the stylesheet split moves from a single inline `style.css` to three files copied at build time: `tokens.css` and `components.css` from `design-system/assets/styles/`, plus a new `dashboard.css` for page chrome.
+
 ## [1.17.0] — 2026-05-22
 
 ### Added
