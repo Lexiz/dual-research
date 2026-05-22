@@ -65,14 +65,25 @@ def test_index_contains_all_sections(tmp_path: Path) -> None:
     root = _bootstrap_repo(tmp_path)
     specs, drafts = collect(root)
     html = render_index(specs, drafts, live_version="1.18.0")
-    # New design-system anchors per spec 0153.
+    # Spec 0153 anchors that survived the spec-0169 redesign.
     assert "hero--inflight" in html  # there's one in-progress spec in the bootstrap
-    assert 'class="pipe"' in html
-    assert 'class="metrics"' in html
     assert 'class="qtable"' in html
     assert 'class="feed"' in html
     assert 'class="drafts"' in html
     assert 'class="foot"' in html
+    # Spec 0169 §2.1 / §2.2 — callout strip + tab bar replace the pipe + metrics row.
+    assert 'class="strip"' in html
+    assert 'class="counters"' in html
+    assert 'class="avg-cycle"' in html
+    assert 'class="tabs"' in html
+    assert 'data-panel="now"' in html
+    assert 'data-panel="spec"' in html
+    assert 'data-panel="history"' in html
+    assert 'data-panel="metrics"' in html
+    # The legacy .metrics section moved INTO the Metrics tab — still present.
+    assert 'class="metrics"' in html
+    # Spec 0169 §2.5 — total-elapsed banner ships inside the History tab.
+    assert 'class="te-banner"' in html
     # Spec links remain filename-derived.
     assert 'href="spec-0101.html"' in html
     assert 'href="spec-0102.html"' in html
@@ -83,6 +94,67 @@ def test_index_contains_all_sections(tmp_path: Path) -> None:
     assert "Drafts" in html
     assert "All specs" in html
     assert "Recent activity" in html
+
+
+def test_spec_0169_theme_toggle_and_shim(tmp_path: Path) -> None:
+    """Spec 0169 §2.7 — theme toggle in header + inline init script + shim CSS."""
+    root = _bootstrap_repo(tmp_path)
+    specs, drafts = collect(root)
+    html = render_index(specs, drafts, live_version="1.30.0")
+    # Toggle button in the header.
+    assert 'id="theme-toggle"' in html
+    assert 'data-theme-icon' in html
+    assert 'data-theme-label' in html
+    # <html data-theme="auto"> default.
+    assert 'data-theme="auto"' in html
+    # Inline init script reads localStorage before paint.
+    assert "localStorage.getItem('dr-dashboard-theme')" in html
+    # Shim CSS lives in DASHBOARD_CSS; live JS wires persistence.
+    from scripts.spec_lifecycle.render_dashboard import DASHBOARD_CSS, DASHBOARD_LIVE_JS
+    assert 'html[data-theme="dark"]' in DASHBOARD_CSS
+    assert 'html[data-theme="light"]' in DASHBOARD_CSS
+    assert 'html[data-theme="auto"]' in DASHBOARD_CSS
+    assert "dr-dashboard-theme" in DASHBOARD_LIVE_JS
+    assert "applyTheme" in DASHBOARD_LIVE_JS
+
+
+def test_spec_0169_total_elapsed_banner_math(tmp_path: Path) -> None:
+    """Spec 0169 §2.5 — banner math: sum, mean (excl > 1h), median, fastest/slowest."""
+    import datetime as dt
+    from scripts.spec_lifecycle.render_dashboard import _render_total_elapsed_banner, SpecRow
+
+    base = dt.datetime(2026, 5, 22, 10, 0, 0, tzinfo=dt.timezone.utc)
+    def row(number: str, cycle_seconds: int) -> SpecRow:
+        started = base.strftime("%Y-%m-%dT%H:%M:%SZ")
+        deployed = (base + dt.timedelta(seconds=cycle_seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return SpecRow(
+            fm={
+                "spec": number, "slug": f"spec-{number}", "title": f"Spec {number}",
+                "type": "new-feature", "status": "deployed",
+                "started_at": started, "deployed_at": deployed,
+            },
+            path=tmp_path / f"specs/{number}-spec.md",
+        )
+
+    specs = [
+        row("0001", 300),    # 5m
+        row("0002", 600),    # 10m
+        row("0003", 1200),   # 20m
+        row("0004", 1800),   # 30m
+        row("0005", 40000),  # outlier > 1h, excluded from mean
+    ]
+    html = _render_total_elapsed_banner(specs)
+    # Total: 43900s → "12h 11m"
+    assert "12h 11m" in html
+    # Mean excl outliers: (300+600+1200+1800)/4 = 975s → "16m 15s"
+    assert "16m 15s" in html
+    # Median (incl outliers): 1200s = "20m"
+    assert "20m" in html
+    # Fastest 0001 / Slowest 0005
+    assert "0001" in html
+    assert "0005" in html
+    # Excluded-outlier note
+    assert "excluding 1 outlier" in html
 
 
 def test_cycle_time_formatting(tmp_path: Path) -> None:

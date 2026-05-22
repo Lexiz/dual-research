@@ -8,3 +8,8 @@
 {"ts":"2026-05-22T19:05:03Z","step":"paused_by_drain","data":{"reason":"spec scope is L-grade despite M tag — full rewrite of render_index() + DASHBOARD_BOOTSTRAP_JS + DASHBOARD_CSS + theme shim + tabs + total-elapsed banner + metrics chart + filter/search/pagination. Deserves a dedicated session, not a queue-drain partial. Pre-flight buffer is local-only (no in_progress commit); spec stays queue_position:1, status:queued on origin/main."}}
 {"ts":"2026-05-22T19:39:35Z","step":"reconcile_complete","data":{"mechanical":18,"semantic":0,"verdict":"tolerated","note":"18 line citations are bare basename (render_dashboard.py:NNN) — unambiguous since only scripts/spec_lifecycle/render_dashboard.py matches. Functionally clean; line numbers will rotate as the file is rewritten anyway. Skipping canonical-path patches."}}
 {"ts":"2026-05-22T19:39:45Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T19:39:53Z","step":"branched","data":{"branch":"spec/0169-dashboard-redesign-v2-tabs-themes-history","from":"main@d03ffd8"}}
+{"ts":"2026-05-22T19:39:57Z","step":"implementing_started","data":{}}
+{"ts":"2026-05-22T19:51:17Z","step":"implement_complete","data":{"files_changed":7,"commits":1}}
+{"ts":"2026-05-22T19:51:20Z","step":"tests_started","data":{}}
+{"ts":"2026-05-22T19:51:45Z","step":"tests_green","data":{"passed":1534,"failed":0,"js_passed":9}}

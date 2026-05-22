@@ -35,8 +35,9 @@ def test_shell_mode_emits_data_region_skeletons(tmp_path: Path) -> None:
     root = _bootstrap_repo(tmp_path)
     specs, drafts = collect(root)
     html = render_index(specs, drafts, shell_only=True)
-    # All seven sections have data-region wrappers.
-    for region in ("hero", "pipeline", "metrics", "queue", "feed", "drafts", "all-specs"):
+    # Spec 0169 — `pipeline` region retired; new regions `counters`, `avg`,
+    # `total-elapsed` ship. Metrics still has a region (inside the Metrics tab).
+    for region in ("hero", "counters", "avg", "metrics", "queue", "feed", "drafts", "all-specs", "total-elapsed"):
         assert f'data-region="{region}"' in html, f"missing data-region={region!r}"
     # Skeleton class present (visual placeholders).
     assert "region-skeleton" in html

@@ -345,12 +345,18 @@ def _html_head(title: str) -> str:
     # `/api/data` every 15s for live data; `dashboard-live.js` continues to
     # tick the per-second stage-elapsed display from data attributes the
     # bootstrap script writes.
+    # Spec 0169 §2.7 — inline <script> that reads localStorage for the saved
+    # theme preference and writes data-theme on <html> BEFORE the body
+    # paints. Prevents theme flash on first paint. Kept inline + tiny
+    # (5 lines compressed) so it never blocks anything; the deferred
+    # bootstrap script handles everything else.
     return (
         "<!DOCTYPE html>\n"
-        "<html lang=\"en\"><head>"
+        "<html lang=\"en\" data-theme=\"auto\"><head>"
         "<meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<title>{_escape(title)}</title>"
+        + _render_theme_init_script()
         + GFONTS_HEAD
         + '<link rel="stylesheet" href="tokens.css">'
         + '<link rel="stylesheet" href="components.css">'
@@ -842,6 +848,17 @@ def _render_header(live_version: str, now: dt.datetime, *, shell_only: bool = Fa
     # timestamp by default; `dashboard-bootstrap.js` rewrites it with a live
     # "X ago" string after each successful /api/data fetch.
     last_updated_initial = "" if shell_only else f"updated {_escape(ts)}"
+    # Spec 0169 §2.7 — theme toggle button. Cycles light → dark → auto.
+    # dashboard-live.js wires the click handler + localStorage persistence.
+    # The initial label is filled in by JS on first paint (the inline init
+    # script in <head> already set the html[data-theme] attribute).
+    theme_toggle = (
+        '<button class="theme-toggle" id="theme-toggle" type="button" '
+        'aria-label="Toggle theme — light, dark, or auto (system)">'
+        '<span class="material-symbols-outlined" aria-hidden="true" data-theme-icon>brightness_auto</span>'
+        '<span class="theme-toggle__label" data-theme-label>auto</span>'
+        '</button>'
+    )
     return (
         '<header class="dh">'
         '<div>'
@@ -852,6 +869,7 @@ def _render_header(live_version: str, now: dt.datetime, *, shell_only: bool = Fa
         '<div class="dh__meta">'
         f'<span>{chip}</span>'
         f'<span data-last-updated>{last_updated_initial}</span>'
+        + theme_toggle +
         f'<a href="{REPO_URL}">repo ↗</a>'
         '</div>'
         '</header>'
@@ -865,6 +883,201 @@ def _render_footer() -> str:
         'regenerated on every push to <code>main</code></span>'
         f'<a href="{PAGES_URL}">view on GitHub Pages →</a>'
         '</footer>'
+    )
+
+
+# ─────────────────────────────────────────────────────────────
+# Spec 0169 — Dashboard redesign v2: callout strip, tabs, theme toggle,
+# total-elapsed banner.
+#
+# The mockup at dashboard/mockups/0169-dashboard-redesign-v2.html is the
+# visual contract. We bind to existing --md-* / --p-* tokens (per spec 0169
+# §2.9 — the mockup's ad-hoc tokens like --bg-page / --text-1 are NOT
+# reproduced here; the live tokens already cover light + dark themes via
+# tokens.css's prefers-color-scheme blocks, and the theme shim below
+# re-projects them onto [data-theme="light"] / "dark" / "auto" so a manual
+# toggle can override the OS preference).
+# ─────────────────────────────────────────────────────────────
+
+
+def _render_counter_cluster(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datetime) -> str:
+    """Spec 0169 §2.1 — 4-counter card (Drafts / Queued / In flight / Shipped).
+    Replaces the 5-column .pipe strip. 'Merged today' folds into the activity
+    feed instead (per spec)."""
+    counts = {
+        "drafts": len(drafts),
+        "queued": sum(1 for s in specs if s.status == "queued"),
+        "inflight": sum(1 for s in specs if s.status == "in_progress"),
+        "shipped": sum(1 for s in specs if s.status == "deployed"),
+    }
+    subs = {
+        "drafts": "ideation",
+        "queued": "pending",
+        "inflight": "running",
+        "shipped": "all-time",
+    }
+    labels = {
+        "drafts": "Drafts",
+        "queued": "Queued",
+        "inflight": "In flight",
+        "shipped": "Shipped",
+    }
+    cells = []
+    for key in ("drafts", "queued", "inflight", "shipped"):
+        cells.append(
+            '<div class="counter">'
+            f'<div class="counter__lbl">{labels[key]}</div>'
+            f'<div class="counter__num">{counts[key]}</div>'
+            f'<div class="counter__sub">{subs[key]}</div>'
+            '</div>'
+        )
+    return '<section class="counters" aria-label="Pipeline counters">' + "".join(cells) + '</section>'
+
+
+def _render_avg_cycle_card(specs: list[SpecRow], now: dt.datetime) -> str:
+    """Spec 0169 §2.1 — rolling-10 mean as the at-a-glance KPI. Same math as
+    `_render_metrics` (which now lives inside the Metrics tab)."""
+    deployed = sorted(
+        [s for s in specs if s.status == "deployed"],
+        key=lambda s: s.fm.get("deployed_at") or "",
+        reverse=True,
+    )
+    cycle_times = [s.cycle_seconds for s in deployed if s.cycle_seconds]
+    last10 = cycle_times[:10]
+    prior10 = cycle_times[10:20]
+    avg_str = _humanize_seconds(int(statistics.mean(last10))) if last10 else "—"
+    delta_html = ""
+    if last10 and prior10:
+        d = int(statistics.mean(prior10) - statistics.mean(last10))
+        if d > 0:
+            delta_html = f'<span class="delta-up">↓ {_escape(_humanize_seconds(d))}</span> vs prior 10'
+        elif d < 0:
+            delta_html = f'<span class="delta-down">↑ {_escape(_humanize_seconds(-d))}</span> vs prior 10'
+        else:
+            delta_html = 'flat vs prior 10'
+    elif last10:
+        delta_html = f'rolling {len(last10)}'
+    return (
+        '<section class="avg-cycle" aria-label="Average cycle time">'
+        '<div class="avg-cycle__lbl">Avg cycle (last 10)</div>'
+        f'<div class="avg-cycle__num">{_escape(avg_str)}</div>'
+        f'<div class="avg-cycle__delta">{delta_html}</div>'
+        '</section>'
+    )
+
+
+def _render_total_elapsed_banner(specs: list[SpecRow]) -> str:
+    """Spec 0169 §2.5 — Total time spent banner, 4 tiles. The user-priority
+    feature: prominent cumulative agent-hours across all timed cycles."""
+    deployed = [s for s in specs if s.status == "deployed" and s.cycle_seconds]
+    cycle_times = [s.cycle_seconds for s in deployed]
+    if not cycle_times:
+        empty = (
+            '<section class="te-banner" aria-label="Total time spent">'
+            '<div class="sh"><div class="sh__name">Total time spent</div><div class="sh__rule"></div></div>'
+            '<div class="te-banner__empty"><em>No timed cycles yet.</em></div>'
+            '</section>'
+        )
+        return empty
+
+    total_sec = sum(cycle_times)
+    # Spec 0169 §2.5 — mean excludes outliers > 1h (3600s). The bootstrap
+    # outlier 0152 (10.8h) skews the rolling mean otherwise.
+    non_outliers = [c for c in cycle_times if c <= 3600]
+    excluded = len(cycle_times) - len(non_outliers)
+    mean_sec = int(statistics.mean(non_outliers)) if non_outliers else 0
+    # Median includes outliers (p50 of all timed cycles).
+    median_sec = int(statistics.median(cycle_times))
+
+    # Fastest / slowest with spec ids.
+    fast_idx = min(range(len(cycle_times)), key=lambda i: cycle_times[i])
+    slow_idx = max(range(len(cycle_times)), key=lambda i: cycle_times[i])
+    fast_spec = deployed[fast_idx]
+    slow_spec = deployed[slow_idx]
+    fast_str = _humanize_seconds(cycle_times[fast_idx])
+    slow_str = _humanize_seconds(cycle_times[slow_idx])
+
+    def _humanize_long(sec: int) -> str:
+        """For total elapsed — show as Xd Yh / Xh Ym / Xm Ys depending on magnitude."""
+        if sec < 3600:
+            m = sec // 60
+            s = sec % 60
+            return f"{m}m {s}s" if m else f"{s}s"
+        if sec < 86400:
+            h = sec // 3600
+            m = (sec % 3600) // 60
+            return f"{h}h {m}m" if m else f"{h}h"
+        d = sec // 86400
+        h = (sec % 86400) // 3600
+        return f"{d}d {h}h" if h else f"{d}d"
+
+    excluded_sub = f"excluding {excluded} outlier{'' if excluded == 1 else 's'} > 1h" if excluded else "no outliers excluded"
+
+    def tile(label: str, value_html: str, sub: str) -> str:
+        return (
+            '<div class="te-tile">'
+            f'<div class="te-tile__lbl">{_escape(label)}</div>'
+            f'<div class="te-tile__val">{value_html}</div>'
+            f'<div class="te-tile__sub">{_escape(sub)}</div>'
+            '</div>'
+        )
+
+    return (
+        '<section class="te-banner" aria-label="Total time spent">'
+        '<div class="sh"><div class="sh__name">Total time spent</div>'
+        f'<div class="sh__hint">across {len(cycle_times)} timed cycles</div>'
+        '<div class="sh__rule"></div></div>'
+        '<div class="te-banner__row">'
+        + tile("Total elapsed", _escape(_humanize_long(total_sec)), f"across {len(cycle_times)} timed cycles")
+        + tile("Mean cycle", _escape(_humanize_seconds(mean_sec)), excluded_sub)
+        + tile("Median cycle", _escape(_humanize_seconds(median_sec)), "p50 of timed runs")
+        + tile(
+            "Fastest / Slowest",
+            f'{_escape(fast_str)}<small> / </small>{_escape(slow_str)}',
+            f"{_escape(fast_spec.number)} / {_escape(slow_spec.number)}",
+        )
+        + '</div></section>'
+    )
+
+
+def _render_tabs(*, now_count: int, spec_count: int, history_count: int) -> str:
+    """Spec 0169 §2.2 — tab bar above tab panels. Active tab carries
+    aria-selected="true" + visible underline (CSS-driven from --p-info).
+    The default-active tab is 'now'."""
+    def btn(slug: str, label: str, count: int | None = None, active: bool = False) -> str:
+        ct = f' <span class="tab__count">{count}</span>' if count is not None else ''
+        return (
+            f'<button class="tab" role="tab" '
+            f'aria-selected="{"true" if active else "false"}" '
+            f'data-tab="{slug}" id="tab-{slug}">'
+            f'{_escape(label)}{ct}</button>'
+        )
+    return (
+        '<nav class="tabs" role="tablist" aria-label="Dashboard sections">'
+        + btn("now", "Now", now_count, active=True)
+        + btn("spec", "Spec creation", spec_count)
+        + btn("history", "History", history_count)
+        + btn("metrics", "Metrics")
+        + '</nav>'
+    )
+
+
+def _render_theme_init_script() -> str:
+    """Spec 0169 §2.7 — inline script in <head> that reads localStorage and
+    sets data-theme on <html> before the body paints. Prevents the theme
+    flash on first paint."""
+    return (
+        '<script>'
+        '(function(){'
+        'try{'
+        "var t=localStorage.getItem('dr-dashboard-theme')||'auto';"
+        "if(t!=='light'&&t!=='dark'&&t!=='auto')t='auto';"
+        "document.documentElement.setAttribute('data-theme',t);"
+        '}catch(e){'
+        "document.documentElement.setAttribute('data-theme','auto');"
+        '}'
+        '})();'
+        '</script>'
     )
 
 
@@ -896,34 +1109,79 @@ def render_index(
         [s for s in specs if s.status == "queued"],
         key=lambda s: int(s.fm.get("queue_position") or 999),
     )
+    deployed_count = sum(1 for s in specs if s.status == "deployed")
+
+    # Spec 0169 — tab counts. Now tab counts in_flight + queued (the things
+    # that need attention "now"). Spec creation counts drafts + queued (the
+    # authoring backlog). History counts all-time shipped.
+    now_count = len(in_flight) + len(queued)
+    spec_count = len(drafts) + len(queued)
+    history_count = deployed_count
 
     parts: list[str] = []
     parts.append(_html_head("dual-research · spec dashboard"))
     parts.append('<body><main class="page">')
     parts.append(_render_header(live_version, now, shell_only=shell_only))
 
+    # ─── Callout strip (spec 0169 §2.1) ──────────────────────────────
+    # Replaces hero + pipeline + metrics stack. Single row, three cards:
+    # hero (~60%) + counter cluster (~25%) + avg cycle (~15%).
+    parts.append('<section class="strip" aria-label="Status callouts">')
     if shell_only:
-        # Skeleton placeholders only — sized to match populated state to avoid
-        # layout shift when the bootstrap script swaps content in.
         parts.append(_skeleton_hero())
-        parts.append(_skeleton_pipeline())
-        parts.append(_skeleton_metrics())
-        parts.append(_skeleton_section("queue", "Queue"))
-        parts.append(_skeleton_section("feed", "Recent activity"))
-        parts.append(_skeleton_section("drafts", "Drafts"))
-        parts.append(_skeleton_section("all-specs", "All specs"))
+        parts.append(_skeleton_section("counters", "Counters"))
+        parts.append(_skeleton_section("avg", "Avg cycle"))
     else:
         if in_flight:
             for spec in in_flight:
                 parts.append(_wrap_region("hero", _render_hero_inflight(spec, specs, now)))
         else:
             parts.append(_wrap_region("hero", _render_hero_idle(specs, queued, drafts, now)))
-        parts.append(_wrap_region("pipeline", _render_pipeline(specs, drafts, now)))
-        parts.append(_wrap_region("metrics", _render_metrics(specs, now)))
+        parts.append(_wrap_region("counters", _render_counter_cluster(specs, drafts, now)))
+        parts.append(_wrap_region("avg", _render_avg_cycle_card(specs, now)))
+    parts.append('</section>')
+
+    # ─── Tab bar (spec 0169 §2.2) ────────────────────────────────────
+    parts.append(_render_tabs(now_count=now_count, spec_count=spec_count, history_count=history_count))
+
+    # ─── Now tab (spec 0169 §2.3) ────────────────────────────────────
+    parts.append('<section class="tab-panel" role="tabpanel" data-panel="now" aria-hidden="false">')
+    if shell_only:
+        parts.append(_skeleton_section("queue", "Queue"))
+        parts.append(_skeleton_section("feed", "Recent activity"))
+    else:
         parts.append(_wrap_region("queue", _render_queue(queued, now)))
         parts.append(_wrap_region("feed", _render_feed(specs, now)))
+    parts.append('</section>')
+
+    # ─── Spec creation tab (spec 0169 §2.4) ──────────────────────────
+    parts.append('<section class="tab-panel" role="tabpanel" data-panel="spec" aria-hidden="true">')
+    if shell_only:
+        parts.append(_skeleton_section("drafts", "Drafts"))
+    else:
         parts.append(_wrap_region("drafts", _render_drafts(drafts, now)))
+    parts.append('</section>')
+
+    # ─── History tab (spec 0169 §2.5) ────────────────────────────────
+    # Total-elapsed banner leads (user-priority surface), then all-specs.
+    parts.append('<section class="tab-panel" role="tabpanel" data-panel="history" aria-hidden="true">')
+    if shell_only:
+        parts.append(_skeleton_section("total-elapsed", "Total time spent"))
+        parts.append(_skeleton_section("all-specs", "All specs"))
+    else:
+        parts.append(_wrap_region("total-elapsed", _render_total_elapsed_banner(specs)))
         parts.append(_wrap_region("all-specs", _render_all_specs(specs)))
+    parts.append('</section>')
+
+    # ─── Metrics tab (spec 0169 §2.6) ────────────────────────────────
+    # Reuses the existing _render_metrics — full chart/by-type subsections
+    # are deferred to a follow-up polish spec.
+    parts.append('<section class="tab-panel" role="tabpanel" data-panel="metrics" aria-hidden="true">')
+    if shell_only:
+        parts.append(_skeleton_section("metrics", "Metrics"))
+    else:
+        parts.append(_wrap_region("metrics", _render_metrics(specs, now)))
+    parts.append('</section>')
 
     parts.append(_render_footer())
     parts.append('</main></body></html>')
@@ -1441,6 +1699,252 @@ body {
 /* `stale` chip in the header when /api/data fetch fails and the bootstrap
    script repaints from localStorage. Spec 0160 §3 error states. */
 .dh__meta .chip.tone-warn { background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn); }
+
+/* ════════════════════════════════════════════════════════════════════
+   Spec 0169 — Dashboard redesign v2
+   Theme shim · callout strip · tabs · total-elapsed banner
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ─── Theme shim (spec 0169 §2.7) ────────────────────────────────────
+   The DS canonical tokens.css keys dark-mode overrides by
+   prefers-color-scheme. The dashboard's manual toggle needs to override
+   the OS preference, so we project the dark deltas onto the
+   [data-theme="dark"] selector explicitly. [data-theme="auto"] is the
+   default — it lets the existing prefers-color-scheme media inside
+   tokens.css drive the page.
+
+   `color-scheme` on the <html> tells the browser's UA which native
+   form-control palette to use; we set it explicitly per data-theme so
+   scrollbars and form controls follow the manual override.
+
+   The actual token re-projection (the meaty color overrides) lives in
+   the `body.dark` block at the bottom of tokens.css. Dashboard-live.js
+   toggles `body.dark` / `body.light` in tandem with html[data-theme] so
+   the same selectors fire whether the OS preference matches or a
+   manual toggle is in play.
+   ──────────────────────────────────────────────────────────────────── */
+html[data-theme="dark"]  { color-scheme: dark; }
+html[data-theme="light"] { color-scheme: light; }
+html[data-theme="auto"]  { color-scheme: light dark; }
+
+/* ─── Callout strip (spec 0169 §2.1) ─────────────────────────────────
+   One row, three cards. Hero (~60%) + counter cluster (~25%) + avg
+   cycle (~15%). Replaces the previous hero + pipeline + metrics stack.
+   ──────────────────────────────────────────────────────────────────── */
+.strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.6fr);
+  gap: 12px;
+  margin: 16px 0;
+  align-items: stretch;
+}
+.strip [data-region="hero"],
+.strip [data-region="counters"],
+.strip [data-region="avg"] { min-width: 0; }
+.strip .hero { margin: 0; min-height: 96px; }
+
+/* Counter cluster */
+.counters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
+  padding: 14px 16px;
+  min-height: 96px;
+  align-items: center;
+}
+.counters .counter { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.counters .counter__lbl {
+  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  margin-bottom: 4px;
+}
+.counters .counter__num {
+  font: var(--md-w-semi) 22px/1 var(--md-font-data);
+  color: var(--md-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+.counters .counter__sub {
+  font: 11px/1 var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Avg cycle card */
+.avg-cycle {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 96px;
+  min-width: 0;
+}
+.avg-cycle__lbl {
+  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  margin-bottom: 6px;
+}
+.avg-cycle__num {
+  font: var(--md-w-semi) 22px/1 var(--md-font-data);
+  color: var(--md-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+.avg-cycle__delta {
+  font: 11px/1.4 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  margin-top: 6px;
+}
+.avg-cycle__delta .delta-up   { color: var(--p-ok); }
+.avg-cycle__delta .delta-down { color: var(--p-warn); }
+
+/* Strip responsiveness */
+@media (max-width: 1100px) {
+  .strip { grid-template-columns: 1fr 1fr; }
+  .strip [data-region="hero"] { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .strip { grid-template-columns: 1fr; }
+  .strip [data-region="hero"] { grid-column: auto; }
+  .counters { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ─── Tab bar (spec 0169 §2.2) ─────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 20px 0 12px;
+  border-bottom: 1px solid var(--md-outline-hair);
+  flex-wrap: wrap;
+}
+.tabs .tab {
+  background: transparent;
+  border: 0;
+  padding: 10px 14px 11px;
+  font: var(--md-w-medium) 13px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  position: relative;
+  border-radius: var(--md-shape-md) var(--md-shape-md) 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              color      var(--md-dur-short-3) var(--md-easing-standard);
+}
+.tabs .tab:hover {
+  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  color: var(--md-on-surface);
+}
+.tabs .tab:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.tabs .tab[aria-selected="true"] { color: var(--md-on-surface); font-weight: var(--md-w-semi); }
+.tabs .tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 8px; right: 8px; bottom: -1px;
+  height: 2px;
+  background: var(--p-info);
+  border-radius: 1px;
+}
+.tabs .tab__count {
+  font: var(--md-w-regular) 11px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  padding: 2px 6px;
+  border-radius: var(--md-shape-full);
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+}
+.tabs .tab[aria-selected="true"] .tab__count {
+  background: color-mix(in srgb, var(--p-info) 14%, transparent);
+  color: var(--p-info);
+}
+
+.tab-panel { display: none; margin: 8px 0 16px; }
+.tab-panel[aria-hidden="false"] { display: block; }
+
+/* ─── Total-elapsed banner (spec 0169 §2.5) ─────────────────────────── */
+.te-banner {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg);
+  padding: 14px 16px 16px;
+  margin-bottom: 20px;
+}
+.te-banner__row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+.te-banner__empty { padding: 20px 0; text-align: center; color: var(--md-on-surface-faint); }
+.te-tile { display: flex; flex-direction: column; min-width: 0; }
+.te-tile__lbl {
+  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  margin-bottom: 6px;
+}
+.te-tile__val {
+  font: var(--md-w-semi) 24px/1.1 var(--md-font-data);
+  color: var(--md-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+.te-tile__val small {
+  font: var(--md-w-regular) 16px/1 var(--md-font-data);
+  color: var(--md-on-surface-faint);
+  margin: 0 4px;
+}
+.te-tile__sub { font: 11px/1.4 var(--md-font-plain); color: var(--md-on-surface-faint); margin-top: 6px; }
+
+@media (max-width: 1100px) {
+  .te-banner__row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .te-banner__row { grid-template-columns: 1fr; }
+}
+
+/* ─── Theme toggle button (spec 0169 §2.7) ──────────────────────────── */
+.theme-toggle {
+  background: transparent;
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-full);
+  padding: 4px 10px 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              border-color var(--md-dur-short-3) var(--md-easing-standard),
+              color var(--md-dur-short-3) var(--md-easing-standard);
+}
+.theme-toggle:hover {
+  background: color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  border-color: var(--md-outline);
+  color: var(--md-on-surface);
+}
+.theme-toggle:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
+.theme-toggle .material-symbols-outlined { font-size: 16px; }
+.theme-toggle__label { letter-spacing: 0.04em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle,
+  .tabs .tab,
+  .strip,
+  .te-banner { transition: none !important; }
+}
 """
 
 
@@ -1525,6 +2029,61 @@ DASHBOARD_LIVE_JS = """\
   // re-paint every second.
   tick();
   setInterval(tick, 1000);
+
+  // Spec 0169 §2.2 — tab switching. CSS-only show/hide via aria-hidden.
+  // No router, no state persistence between visits.
+  function activateTab(slug) {
+    document.querySelectorAll('.tabs .tab').forEach(function (b) {
+      b.setAttribute('aria-selected', b.getAttribute('data-tab') === slug ? 'true' : 'false');
+    });
+    document.querySelectorAll('.tab-panel').forEach(function (p) {
+      p.setAttribute('aria-hidden', p.getAttribute('data-panel') === slug ? 'false' : 'true');
+    });
+  }
+  document.querySelectorAll('.tabs .tab').forEach(function (b) {
+    b.addEventListener('click', function () { activateTab(b.getAttribute('data-tab')); });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activateTab(b.getAttribute('data-tab'));
+      }
+    });
+  });
+
+  // Spec 0169 §2.7 — theme toggle. Cycles light → dark → auto and
+  // persists to localStorage. The inline <head> script already set the
+  // initial data-theme attribute before this script ran; here we wire
+  // the click handler + the body.dark/body.light mirroring (so the
+  // tokens.css overrides keyed on body.dark fire under manual toggle).
+  var THEMES = ['light', 'dark', 'auto'];
+  var THEME_ICONS = { light: 'light_mode', dark: 'dark_mode', auto: 'brightness_auto' };
+  function applyTheme(theme) {
+    if (THEMES.indexOf(theme) < 0) theme = 'auto';
+    document.documentElement.setAttribute('data-theme', theme);
+    // Mirror onto body.dark / body.light so the existing tokens.css
+    // overrides (keyed on body.dark) fire under manual override.
+    document.body.classList.remove('dark', 'light');
+    if (theme === 'dark') document.body.classList.add('dark');
+    if (theme === 'light') document.body.classList.add('light');
+    // auto: leave body class alone — prefers-color-scheme drives it.
+    try { localStorage.setItem('dr-dashboard-theme', theme); } catch (e) { /* quota */ }
+    var icon = document.querySelector('[data-theme-icon]');
+    var label = document.querySelector('[data-theme-label]');
+    if (icon) icon.textContent = THEME_ICONS[theme] || 'brightness_auto';
+    if (label) label.textContent = theme;
+  }
+  var toggleBtn = document.getElementById('theme-toggle');
+  if (toggleBtn) {
+    var saved = (function () { try { return localStorage.getItem('dr-dashboard-theme'); } catch (e) { return null; } })();
+    if (saved && THEMES.indexOf(saved) >= 0) applyTheme(saved);
+    else applyTheme('auto');
+    toggleBtn.addEventListener('click', function () {
+      var current = document.documentElement.getAttribute('data-theme') || 'auto';
+      var idx = THEMES.indexOf(current);
+      var next = THEMES[(idx + 1) % THEMES.length];
+      applyTheme(next);
+    });
+  }
 })();
 """
 
