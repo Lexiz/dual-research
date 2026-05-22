@@ -13,3 +13,7 @@
 {"ts":"2026-05-22T23:05:21Z","step":"implement_complete","data":{"files_changed":6,"commits":1}}
 {"ts":"2026-05-22T23:06:29Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/196"}}
 {"ts":"2026-05-22T23:06:55Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/196"}}
+{"ts":"2026-05-22T23:08:26Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-22T23:13:26Z","step":"deployed","data":{"version":"1.33.0"}}
+{"ts":"2026-05-22T23:13:26Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-22T23:14:23Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0186-queue-drain-session-isolation-and-l-spec-checkpointing.md"}}

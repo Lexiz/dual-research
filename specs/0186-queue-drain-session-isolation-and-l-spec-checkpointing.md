@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.32.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-22T22:56:31Z"
 merged_at: "2026-05-22T23:06:43Z"
-deployed_at: ""
+deployed_at: "2026-05-22T23:15:02Z"
 pr: "https://github.com/Lexiz/dual-research/pull/196"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0186-queue-drain-session-isolation-and-l-spec-checkpointing.md"
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
