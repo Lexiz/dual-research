@@ -7,7 +7,7 @@ type: test
 label: test
 version_bump: PATCH
 target_version: 1.23.1
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: ""
 started_at: "2026-05-22T14:58:36Z"
 merged_at: "2026-05-22T15:04:00Z"
-deployed_at: ""
+deployed_at: "2026-05-22T15:12:25Z"
 pr: "https://github.com/Lexiz/dual-research/pull/184"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0161-js-test-stack-for-pages-function.md"
 failure_step: ""
 source_session: deferred-from-spec-0160
 promoted_from_draft: ""

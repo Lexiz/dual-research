@@ -10,3 +10,5 @@
 {"ts":"2026-05-22T15:02:31Z","step":"tests_green","data":{"passed":1515,"failed":0,"note":"1510 python + 5 js"}}
 {"ts":"2026-05-22T15:04:00Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/184"}}
 {"ts":"2026-05-22T15:04:00Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/184"}}
+{"ts":"2026-05-22T15:14:11Z","step":"deployed","data":{"version":"1.23.1","strategy":"bluegreen","note":"green machines healthy and serving v1.23.1; blue cleanup deferred due to Fly lease-lock — 2 old v273 machines still running, proxy routes to v278"}}
+{"ts":"2026-05-22T15:15:03Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0161-js-test-stack-for-pages-function.md"}}
