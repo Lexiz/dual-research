@@ -25,6 +25,7 @@ export default defineConfig({
     globalSetup: ['./tests/js/globalSetup.js'],
     environmentMatchGlobs: [
       ['tests/js/dashboard-bootstrap.test.js', 'happy-dom'],
+      ['tests/js/staleness-chip.test.js', 'happy-dom'],
       ['functions/**/*.test.js', 'node'],
     ],
     testTimeout: 10_000,

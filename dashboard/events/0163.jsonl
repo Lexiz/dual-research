@@ -5,6 +5,7 @@
 {"ts":"2026-05-22T16:15:24Z","step":"spec_read","data":{"path":"specs/0163-push-events-to-main-during-branch-phase.md","lines":139,"type":"new-feature"}}
 {"ts":"2026-05-22T16:16:07Z","step":"reconcile_complete","data":{"mechanical":1,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-22T16:16:50Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T16:19:32Z","step":"branched","data":{"branch":"spec/0163-push-events-to-main-during-branch-phase","from":"main@d81a8e2"}}
 {"ts":"2026-05-22T16:33:15Z","step":"implement_complete","data":{"files_changed":11,"commits":1}}
 {"ts":"2026-05-22T16:33:19Z","step":"tests_green","data":{"passed":1532,"failed":0}}
 {"ts":"2026-05-22T16:34:12Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/186"}}

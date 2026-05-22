@@ -10,6 +10,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.24.0] — 2026-05-22
+
+### Added
+
+- **Spec 0163 — Push `/dev-next` events to `main` during the feature-branch phase** ([spec 0163](specs/0163-push-events-to-main-during-branch-phase.md)). The dashboard sees branch-phase events (`branched`, `implementing_started`, `implement_complete`, `tests_started`, `tests_green`, `pr_opened`, `merged`) within ~1–2s of emission instead of staying frozen at `in_progress` until the squash-merge 5–20 minutes later. The mechanism: a new `push_event_to_main()` helper in [scripts/spec_lifecycle/append_event.py](scripts/spec_lifecycle/append_event.py) uses git plumbing (`read-tree` + `update-index` with `GIT_INDEX_FILE` + `commit-tree` + atomic ref-update push) to land each event as its own commit on `origin/main` without disturbing the working tree, the main index, or the feature branch. Idempotent when the current branch is already `main`; gracefully degrades on push failure (the line is still in the local file and will reach `main` via the eventual squash-merge).
+- New CLI flag on `python -m scripts.spec_lifecycle.append_event`: `--push-to-main` triggers the live push after the local write.
+- **Five new event types** marking implementation-phase progress that was previously invisible: `planning_started`, `implementing_started`, `tests_started`, `deploy_started`, `deploy_health_check_ok`. All five join `TOLERATED_NON_STAGE_STEPS` in [scripts/spec_lifecycle/stages.py](scripts/spec_lifecycle/stages.py) — they don't anchor stages, they're informational markers within existing stages.
+- **`STEP_LABELS` mapping** ([scripts/spec_lifecycle/stages.py](scripts/spec_lifecycle/stages.py)) — single source of truth for human-readable step names, mirrored into `DASHBOARD_BOOTSTRAP_JS` so server-rendered and client-rendered pages stay consistent.
+- **In-flight hero: `currently · <step>` chip** ([scripts/spec_lifecycle/render_dashboard.py](scripts/spec_lifecycle/render_dashboard.py)). Reflects the most recent event; updates every 15s when the bootstrap JS refreshes `/api/data`. The hero `<section>` also carries `data-current-step="<step>"` for headless inspection.
+- **In-flight hero: staleness chip** with `data-last-event-at` and tone-based color: `< 30s` → `tone-ok`, `30s–2min` → `tone-warn`, `> 2min` → `tone-err`. The existing `dashboard-live.js` setInterval loop ticks the chip every second; no new timer. Uses the existing `chip` composed component — no new DS primitives. Reduced-motion users keep the server-rendered initial value.
+- **Host-side `~/.claude/skills/dev-next/SKILL.md`** updated to emit the five new events at steps 9 / 14 / 16 / 21 / 22 and to flag branch-phase emits with `--push-to-main` (steps 14, 15b, 16, 17, 18 — `branched`, `implement_complete`, `tests_started`, `tests_green`, `pr_opened`, `merged`).
+
+### Tests
+
+- [tests/spec_lifecycle/test_push_event_to_main.py](tests/spec_lifecycle/test_push_event_to_main.py) — 6 cases against a real temp git repo: two-events-land-two-commits, race retry on non-fast-forward, idempotent on `main`, graceful failure when push fails (file intact + warning logged), `append_event(push_to_main=True)` writes + pushes in one call, appending to an existing on-main events file concatenates correctly.
+- [tests/spec_lifecycle/test_stages_new_tolerated_steps.py](tests/spec_lifecycle/test_stages_new_tolerated_steps.py) — every new step name is in `TOLERATED_NON_STAGE_STEPS`, doesn't trip `compute_stages` as unknown, and has an entry in `STEP_LABELS`.
+- [tests/spec_lifecycle/test_render_dashboard_current_step.py](tests/spec_lifecycle/test_render_dashboard_current_step.py) — hero carries `data-current-step` + the friendly label chip; staleness chip carries `data-last-event-at` + a valid tone class; unknown step falls back to underscore-stripped label.
+- [tests/js/staleness-chip.test.js](tests/js/staleness-chip.test.js) — happy-dom vitest: chip class is `tone-ok` at 5s, `tone-warn` at 90s, `tone-err` at 300s; hero `data-current-step` populated by the bootstrap script after `/api/data` paint.
+
 ## [1.23.2] — 2026-05-22
 
 ### Fixed
