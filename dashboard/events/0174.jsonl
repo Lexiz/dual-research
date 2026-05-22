@@ -9,3 +9,4 @@
 {"ts":"2026-05-22T20:17:20Z","step":"branched","data":{"branch":"spec/0174-fix-api-data-subrequest-blowup-and-5s-poll","from":"main@929d285"}}
 {"ts":"2026-05-22T20:17:24Z","step":"implementing_started","data":{}}
 {"ts":"2026-05-22T20:19:58Z","step":"implement_complete","data":{"files_changed":6,"commits":0}}
+{"ts":"2026-05-22T20:20:02Z","step":"tests_started","data":{}}
