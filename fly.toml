@@ -11,6 +11,15 @@
 app = "dual-research-alex"
 primary_region = "iad"
 
+# Spec 0159 — bluegreen replaces the default rolling deploy. New machines
+# boot fully and pass health checks before old machines terminate. Far more
+# forgiving than rolling on 2 machines — a slow boot can't strand a
+# half-rolled deploy because the old machines stay up until the new ones are
+# observably healthy. Mitigates the 9-in-a-row machines-API mid-rolling
+# timeout pattern (handoffs 2026-05-22-spec-0141…0150,0153,0156).
+[deploy]
+  strategy = "bluegreen"
+
 [build]
   dockerfile = "Dockerfile"
 
@@ -33,7 +42,11 @@ primary_region = "iad"
   [[http_service.checks]]
     interval = "30s"
     timeout = "5s"
-    grace_period = "30s"
+    # Spec 0159 — bumped from 30s to 90s. The 30s margin was too tight
+    # for cold boots on `shared-cpu-1x:512MB` (image pull + heavy import
+    # graph), routinely landing past Fly's API observation window during
+    # rolling deploys.
+    grace_period = "90s"
     method = "GET"
     path = "/api/health"
 
