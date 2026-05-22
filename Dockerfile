@@ -4,10 +4,16 @@
 # At runtime, Fly sets RUNS_BACKEND=supabase + the supabase secrets via
 # `fly secrets set`; the server then reads from Supabase instead of local disk.
 
-# Using the full python image (not -slim) because supabase-py pulls in
-# pyiceberg, which has no Python 3.14 wheel as of writing and needs gcc to
-# build from source. Revisit once pyiceberg ships a 3.14 wheel.
-FROM python:3.14
+# Spec 0159 — pinned to 3.13-slim. The full 3.14 image was ~1.2GB and the
+# resulting cold boot routinely exceeded Fly's machines-API observation
+# window during rolling deploys (9 consecutive timeouts: handoffs
+# 2026-05-22-spec-0141…0150,0153,0156). 3.13-slim drops to ~200MB; faster
+# pull, faster extract, smaller import footprint at boot. All direct + key
+# transitive deps (anthropic, fastapi, openai, supabase, pyiceberg) have
+# shipped 3.13 wheels for months. If a future dep needs to build from
+# source, add a minimal `apt-get install -y --no-install-recommends gcc`
+# before the first `uv sync` (and clean apt lists in the same RUN).
+FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

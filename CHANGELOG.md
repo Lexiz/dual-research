@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.22.1] — 2026-05-22
+
+### Fixed
+
+- **Spec 0159 — Fly machines-API mid-rolling-deploy timeout (9-in-a-row)** ([spec 0159](specs/0159-fly-deploy-stability.md)). Four coordinated config changes targeting the cold-boot margin that was repeatedly putting machine 2 past Fly's API observation window during rolling deploys (specs 0141 through 0150, 0153, 0156 all hit the same shape; recovery was always `fly machine start <id>`):
+  - `fly.toml` — `grace_period` on the `/api/health` check bumped from 30s to 90s. Triples Fly's wait before considering a fresh machine unhealthy; no runtime cost (only affects first-boot observability).
+  - `fly.toml` — added `[deploy] strategy = "bluegreen"`. New machines boot fully and pass health checks *before* old machines terminate. Far more forgiving than rolling on 2 machines — a slow boot can't strand a half-rolled deploy because the old machines stay up until the new ones are observably healthy.
+  - `Dockerfile` — `FROM python:3.14` → `FROM python:3.13-slim`. Image drops from ~1.2GB to ~200MB; faster pull + extract, smaller import footprint at boot. All direct + key transitive deps (anthropic, fastapi, openai, supabase, pyiceberg) have shipped 3.13 wheels for months.
+  - `pyproject.toml` — `requires-python = ">=3.14"` → `">=3.13"`. Lockfile regenerated.
+- VM size stays at `shared-cpu-1x:512MB` per user direction ("try first…then if it's still an issue, consider maybe bumping up machines"). The bump is the round-2 fallback if this spec doesn't end the timeout pattern.
+
 ## [1.22.0] — 2026-05-22
 
 ### Added
