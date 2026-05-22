@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{pane_name}} · workshop · {{date}}</title>
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #14171c;
+    --surface-2: #191c21;
+    --hair: #232830;
+    --ink: #d9dee5;
+    --ink-faint: #8a93a0;
+    --accent: {{accent}};
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
+  header.wsh {
+    flex: 0 0 auto;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hair);
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 20;
+  }
+  .wsh__brand { font-weight: 700; font-size: 13.5px; letter-spacing: 0.02em; color: var(--ink); }
+  .wsh__brand .accent { color: var(--accent); }
+  .wsh__pill { background: var(--surface-2); border: 1px solid var(--hair); padding: 3px 10px; border-radius: 999px; font-size: 11px; color: var(--ink-faint); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wsh__tabs { display: flex; gap: 4px; margin-left: 8px; }
+  .wsh__tab {
+    background: transparent; border: 1px solid transparent; color: var(--ink-faint);
+    padding: 6px 14px; border-radius: 8px; font: inherit; font-size: 12.5px; cursor: pointer;
+    transition: background 120ms, color 120ms, border-color 120ms;
+  }
+  .wsh__tab:hover { color: var(--ink); background: rgba(255,255,255,0.03); }
+  .wsh__tab.is-active { color: var(--ink); background: var(--surface-2); border-color: var(--hair); box-shadow: inset 0 -2px 0 var(--accent); }
+  .wsh__spacer { flex: 1 1 auto; }
+
+  .wsh__group {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-2); border: 1px solid var(--hair); border-radius: 999px; padding: 3px;
+  }
+  .wsh__group-label {
+    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 4px 10px; border-radius: 999px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: transparent; border: 0; cursor: default;
+  }
+  .wsh__opt {
+    background: transparent; border: 0; color: var(--ink-faint);
+    padding: 4px 12px; border-radius: 999px; font: inherit; font-size: 11.5px; cursor: pointer;
+    transition: background 120ms, color 120ms;
+  }
+  .wsh__opt:hover { color: var(--ink); }
+  .wsh__opt.is-active { background: var(--bg); color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
+
+  .wsh__note { font-size: 11px; color: var(--ink-faint); font-family: ui-monospace, "SF Mono", Menlo, monospace; width: 100%; padding-top: 2px; }
+
+  main.wsh__stage {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    overflow: auto;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0 8px, transparent 8px 16px),
+      var(--bg);
+  }
+  main.wsh__stage > section {
+    flex: 1 1 auto;
+    min-height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 0;
+  }
+  main.wsh__stage > section.stage-hidden { display: none !important; }
+  .frame-host {
+    /* width set dynamically by the width toggle */
+    flex: 0 0 auto;
+    display: flex; flex-direction: column;
+    min-height: 100%;
+    background: var(--bg);
+    box-shadow: 0 0 0 1px var(--hair), 0 12px 32px rgba(0,0,0,0.32);
+    transition: width 180ms ease;
+  }
+  .frame-host > .frame__label {
+    flex: 0 0 auto; padding: 6px 14px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-faint); background: var(--surface-2); border-bottom: 1px solid var(--hair);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .frame-host > .frame__label .meta { color: var(--ink-faint); opacity: 0.7; }
+  .frame-host > iframe { flex: 1 1 0%; min-height: 0; width: 100%; height: 100%; border: 0; background: var(--bg); }
+</style>
+</head>
+<body>
+<header class="wsh">
+  <div class="wsh__brand">{{pane_brand}} <span class="accent">·</span> workshop</div>
+  <span class="wsh__pill">prototypes/{{output_dir}}</span>
+  <nav class="wsh__tabs" role="tablist">
+    <button class="wsh__tab is-active" data-tab="iter" role="tab" aria-selected="true">Iteration</button>
+    <button class="wsh__tab" data-tab="live" role="tab" aria-selected="false">Live</button>
+    <button class="wsh__tab" data-tab="ds" role="tab" aria-selected="false">Design system</button>
+  </nav>
+  <span class="wsh__spacer"></span>
+  <div class="wsh__group" role="group" aria-label="Theme">
+    <span class="wsh__group-label">theme</span>
+    <button class="wsh__opt is-active" data-theme="dark" aria-pressed="true">Dark</button>
+    <button class="wsh__opt" data-theme="light" aria-pressed="false">Light</button>
+  </div>
+  <div class="wsh__group" role="group" aria-label="Monitor width">
+    <span class="wsh__group-label">width</span>
+    <button class="wsh__opt is-active" data-width="narrow" aria-pressed="true" title="{{narrow_width_px}}px total viewport — narrow @media fires">Narrow</button>
+    <button class="wsh__opt" data-width="wide" aria-pressed="false" title="{{wide_width_px}}px total viewport — wide @media does not fire">Wide</button>
+    <button class="wsh__opt" data-width="monitor" aria-pressed="false" title="Workshop viewport width — your actual monitor">Monitor</button>
+  </div>
+  <span class="wsh__note" id="state-note">{{initial_note}} · narrow ({{narrow_width_px}}px) · dark</span>
+</header>
+<main class="wsh__stage">
+  <section data-stage="iter">
+    <div class="frame-host" data-host="iter">
+      <div class="frame__label">
+        <span>proposed.html</span>
+        <span class="meta" id="iter-meta">narrow · {{narrow_width_px}}px · dark</span>
+      </div>
+      <iframe src="proposed.html" title="Proposed"></iframe>
+    </div>
+  </section>
+  <section data-stage="live" class="stage-hidden">
+    <div class="frame-host" data-host="live">
+      <div class="frame__label">
+        <span>live.html · verbatim outerHTML dump</span>
+        <span class="meta" id="live-meta">narrow · {{narrow_width_px}}px · dark</span>
+      </div>
+      <iframe src="live.html" title="Live"></iframe>
+    </div>
+  </section>
+  <section data-stage="ds" class="stage-hidden">
+    <div class="frame-host" data-host="ds">
+      <div class="frame__label">
+        <span>ds.html · {{ds_label}} (verbatim)</span>
+        <span class="meta" id="ds-meta">desktop · dark</span>
+      </div>
+      <iframe src="ds.html" title="Design system"></iframe>
+    </div>
+  </section>
+</main>
+<script>
+  (function(){
+    /* Width presets bracket the live @media (max-width: 1799px) breakpoint.
+       narrow={{narrow_width_px}} (laptop, narrow media fires),
+       wide={{wide_width_px}} (full-HD, wide does not),
+       monitor=workshop viewport width (responsive to user's actual screen). */
+    function widthFor(mode) {
+      if (mode === 'narrow') return {{narrow_width_px}};
+      if (mode === 'wide') return {{wide_width_px}};
+      if (mode === 'monitor') return Math.max({{wide_width_px}}, window.innerWidth);
+      return {{narrow_width_px}};
+    }
+
+    const tabs = document.querySelectorAll('.wsh__tab');
+    const stages = document.querySelectorAll('main.wsh__stage > section');
+    const widthOpts = document.querySelectorAll('.wsh__opt[data-width]');
+    const themeOpts = document.querySelectorAll('.wsh__opt[data-theme]');
+    const note = document.getElementById('state-note');
+
+    let currentTab = 'iter';
+    let widthMode = 'narrow';
+    let theme = 'dark';
+
+    function noteFor() {
+      const px = widthFor(widthMode);
+      const stageLabel = currentTab === 'iter' ? '{{initial_note}}'
+                       : currentTab === 'live' ? 'live · verbatim outerHTML dump'
+                       : 'design system · {{ds_label}}';
+      return stageLabel + ' · ' + widthMode + ' (' + px + 'px) · ' + theme;
+    }
+
+    function syncMeta() {
+      const px = widthFor(widthMode);
+      ['iter', 'live'].forEach(k => {
+        const meta = document.getElementById(k + '-meta');
+        if (meta) meta.textContent = widthMode + ' · ' + px + 'px · ' + theme;
+      });
+      const dsMeta = document.getElementById('ds-meta');
+      if (dsMeta) dsMeta.textContent = 'desktop · ' + theme;
+    }
+
+    function applyWidth() {
+      const px = widthFor(widthMode);
+      document.querySelectorAll('.frame-host').forEach(h => {
+        h.style.width = px + 'px';
+        h.style.flexBasis = px + 'px';
+      });
+      syncMeta();
+    }
+
+    function applyTheme() {
+      document.querySelectorAll('main.wsh__stage iframe').forEach(f => {
+        try {
+          const doc = f.contentDocument;
+          if (doc && doc.body) {
+            const isDS = f.closest('section').dataset.stage === 'ds';
+            if (!isDS) doc.body.className = theme;
+          }
+        } catch(e) {}
+      });
+      syncMeta();
+    }
+
+    function refreshNote() { if (note) note.textContent = noteFor(); }
+
+    document.querySelectorAll('main.wsh__stage iframe').forEach(f => {
+      f.addEventListener('load', () => {
+        try {
+          const doc = f.contentDocument;
+          const isDS = f.closest('section').dataset.stage === 'ds';
+          if (doc && doc.body && !isDS) doc.body.className = theme;
+        } catch(e) {}
+      });
+    });
+
+    tabs.forEach(t => t.addEventListener('click', () => {
+      currentTab = t.dataset.tab;
+      tabs.forEach(o => {
+        const on = o === t;
+        o.classList.toggle('is-active', on);
+        o.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      stages.forEach(s => s.classList.toggle('stage-hidden', s.dataset.stage !== currentTab));
+      refreshNote();
+    }));
+
+    widthOpts.forEach(o => o.addEventListener('click', () => {
+      widthMode = o.dataset.width;
+      widthOpts.forEach(x => {
+        const on = x === o;
+        x.classList.toggle('is-active', on);
+        x.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      applyWidth();
+      refreshNote();
+    }));
+
+    themeOpts.forEach(o => o.addEventListener('click', () => {
+      theme = o.dataset.theme;
+      themeOpts.forEach(x => {
+        const on = x === o;
+        x.classList.toggle('is-active', on);
+        x.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      applyTheme();
+      refreshNote();
+    }));
+
+    window.addEventListener('resize', () => { if (widthMode === 'monitor') applyWidth(); });
+
+    applyWidth();
+    applyTheme();
+    refreshNote();
+  })();
+</script>
+</body>
+</html>

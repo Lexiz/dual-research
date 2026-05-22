@@ -1,0 +1,79 @@
+# prototypes/_canvas/registry.yml
+#
+# Single source of truth for what panes the /canvas workshop skill can
+# spin up. Each entry describes how to dump a verbatim live-HTML snapshot,
+# which Design System v2 sections to extract verbatim, which CSS files the
+# live + DS iframes should link to, and what port the workshop server uses.
+#
+# Adding a new pane = add a new entry here. No code changes required.
+#
+# Field reference (per spec 0170 §2.1):
+#
+#   name              Display name shown in workshop header and banners.
+#   description       One-line human-readable description.
+#   live_url          URL template; {anchor_run} is substituted before nav.
+#   live_selector     CSS selector whose outerHTML the skill dumps.
+#   ds_sections       List of DS section ids to extract verbatim. Section
+#                     ids match <section id="X" class="ds-section"> in
+#                     design-system/assets/Design System v2.html.
+#   ds_label          Display label for the DS tab (e.g. "§16 Timeline pane",
+#                     "§12 + §13 + §13b"). Free-form short string.
+#   port              TCP port for the workshop's Claude Preview server.
+#                     Must be unique across panes.
+#   accent            Workshop-chrome accent color hex (sable/sage/etc).
+#   states            Multi-state capture list. Empty list for single-state.
+#                     Each entry has {name, click} — click is a CSS selector
+#                     to activate before the per-state dump.
+#   initial_note      Initial text for the workshop's #state-note banner
+#                     (e.g. "iters 1-12", "iter 1"). Updated by the user
+#                     as iters accumulate; the scaffold only seeds it.
+#   live_css          List of /-rooted CSS paths the live iframe links to.
+#   ds_css            List of /-rooted CSS paths the DS iframe links to.
+#   default_anchor_run  Anchor run id used when --anchor-run is not given.
+
+panes:
+  timeline:
+    name: "Timeline pane"
+    description: "Run-detail timeline (left column of .rdvc__split)"
+    live_url: "http://localhost:6173/#/runs/{anchor_run}"
+    live_selector: ".rdvc__pane"
+    ds_sections: ["timeline"]
+    ds_label: "§16 Timeline pane"
+    port: 6175
+    accent: "#d4a574"
+    states: []
+    initial_note: "iter 1"
+    live_css:
+      - /src/dual_research/ui/static/tokens.css
+      - /src/dual_research/ui/static/base.css
+      - /src/dual_research/ui/static/components.css
+      - /src/dual_research/ui/static/theme.css
+    ds_css:
+      - /design-system/assets/styles/v2-m3.css
+      - /design-system/assets/styles/v2-m3-page.css
+    default_anchor_run: "20260521-010637-dvs-backend-language-choice"
+
+  critique:
+    name: "Critique pane"
+    description: "Run-detail critique (right column of .rdvc__split)"
+    live_url: "http://localhost:6173/#/runs/{anchor_run}"
+    live_selector: ".crit2"
+    ds_sections: ["critique", "itemcard", "thread"]
+    ds_label: "§12 + §13 + §13b"
+    port: 6174
+    accent: "#7cc4b8"
+    states:
+      - { name: "P0",    click: "[data-phase-tab='P0']" }
+      - { name: "P2",    click: "[data-phase-tab='P2']" }
+      - { name: "P4",    click: "[data-phase-tab='P4']" }
+      - { name: "sigma", click: "[data-phase-tab='sigma']" }
+    initial_note: "iter 1"
+    live_css:
+      - /src/dual_research/ui/static/tokens.css
+      - /src/dual_research/ui/static/base.css
+      - /src/dual_research/ui/static/components.css
+      - /src/dual_research/ui/static/theme.css
+    ds_css:
+      - /design-system/assets/styles/v2-m3.css
+      - /design-system/assets/styles/v2-m3-page.css
+    default_anchor_run: "20260521-010637-dvs-backend-language-choice"

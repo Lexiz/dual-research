@@ -1,0 +1,54 @@
+# {{pane_name}} — workshop notes
+
+Workshop dir: `prototypes/{{output_dir}}/`
+Anchor run: `{{anchor_run}}`
+Live selector: `{{live_selector}}`
+DS sections: {{ds_section_list}}
+Created: {{date}}
+
+---
+
+## How to use this notebook
+
+One row per iter. Lock the four-quadrant format below so future iters stay scannable. Each iter is also expressed as a single `<style id="iter-N-short-label">…</style>` block at the top of `proposed.html` — keep ids monotonic and labels short.
+
+| Iter | One-line change | Element touched |
+|------|-----------------|-----------------|
+
+---
+
+## Per-element specification
+
+For each element the workshop is iterating on, record the locked answers to:
+
+1. **Now** — what the live pane does today (visual + behaviour).
+2. **After** — what the iter changes to.
+3. **DS change** — the corresponding canonical change in `design-system/SPEC.md` / `composed-components.css` / `Design System v2.html` once locked.
+4. **Live change** — the corresponding change to `src/dual_research/ui/static/components.css` + any JSX/CSS in `src/dual_research/ui/static/` once locked.
+
+### Element 1 — TBD
+
+- **Now:** —
+- **After:** —
+- **DS change:** —
+- **Live change:** —
+
+---
+
+## Drift fixes (live → DS)
+
+Drift = the live pane behaves correctly but the live CSS encodes the answer differently from the DS reference. Capture each drift fix here with the elements affected + the resolution (which side moves).
+
+### Drift 1 — TBD
+
+- **Symptom:** —
+- **Root cause:** —
+- **Resolution:** —
+
+---
+
+## Refresh log
+
+Each refresh = a re-run of `/canvas {{pane_key}}` that re-dumps `live.html` + `ds.html`. `proposed.html` and `NOTES.md` are preserved.
+
+- {{date}} — initial scaffold
