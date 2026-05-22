@@ -496,10 +496,16 @@ The per-source meta chip on each `.source-row__head` (covered in §2.8) is the t
 
 **After.**
 
-1. **Cards start collapsed.** Default `data-expanded="false"` on every `.item-card`. Click `.item-card__head` to toggle.
-2. **Phase-section collapse strengthened.** `.crit-group__hd` (the "Resolved / Open · new" group header) gets `cursor: pointer` + a hover/active background tint. The collapse toggle on `.crit-group` (already wired in live) becomes visibly clickable. CSS:
+1. **Cards start collapsed.** Default `data-expanded="false"` on every `.item-card`. Click `.item-card__head` to toggle. The toggle is bidirectional: a click while expanded collapses, a click while collapsed expands. No keyboard binding required (future spec may add `Enter` / `Space` on the head's `role="button"` semantic).
+2. **Phase-section groups start UNFOLDED by default.** Default `data-collapsed="false"` on every `.crit-group`. The prior live default may be different per status group (Open vs Resolved vs Drift); this spec normalises all groups to start unfolded so the user sees every card immediately upon opening a phase tab. Click `.crit-group__hd` to toggle.
+3. **Phase-section header click affordance strengthened.** `.crit-group__hd` (the "Resolved 13" / "Open · new" / "Drift" group header) gets `cursor: pointer` + a hover/active background tint. The collapse toggle on `.crit-group` (already wired in live) becomes visibly clickable. CSS:
 
 ```css
+.crit2 .crit-group {
+  /* default state — explicit on the JSX render so the implementer doesn't
+     rely on absence of attribute meaning unfolded; the CSS keys off the
+     attribute to set chevron rotation */
+}
 .crit2 .crit-group__hd {
   cursor: pointer;
   transition: background var(--md-dur-short-3) var(--md-easing-standard);
@@ -510,14 +516,47 @@ The per-source meta chip on each `.source-row__head` (covered in §2.8) is the t
 .crit2 .crit-group__hd:active {
   background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
 }
+
+/* Chevron rotation — points DOWN when unfolded, RIGHT when collapsed.
+   Uses `expand_more` Material Symbol as the base glyph (a downward V).
+   - data-collapsed="false" (default): no transform → V points down
+   - data-collapsed="true": rotate -90deg → V points left (chevron-left)
+     If the design preference is chevron-right (more conventional for
+     "click to expand"), use rotate(90deg) here instead. The implementer
+     should match the timeline pane's existing `.tl-phase__chev` direction
+     for consistency across panes. */
+.crit2 .crit-group__chev {
+  transition: transform var(--md-dur-short-3) var(--md-easing-standard);
+}
+.crit2 .crit-group[data-collapsed="true"] .crit-group__chev {
+  transform: rotate(-90deg);
+}
 ```
 
-3. **Pre-expand first source-row per card.** When a card with sources renders for the first time (or after the user opens it), the first source row's head is set to `aria-expanded="true"`. Subsequent rows stay collapsed. This means opening a card with 2+ sources shows the first source fully expanded alongside collapsed siblings.
-4. **Auto-expand first card with sources per phase.** When a phase tab is rendered, the first `.item-card` whose subtree contains a non-empty `.item-card__sources` segment is set to `data-expanded="true"` automatically. Other cards stay collapsed. This shows one fully demonstrated card per phase tab without requiring a click.
-5. **`.item-card__head` is clickable in both states.** Hover / active background tint applies regardless of `data-expanded` (covered in §2.1's `.item-card__head:hover` rule). The cursor is `pointer` always.
+4. **Card-head chevron rotation.** The `.item-card__head::after` chevron (introduced in §2.1) rotates to signal state: points down when expanded (`data-expanded="true"`), points right when collapsed (`data-expanded="false"`). Uses CSS `transform: rotate()` keyed off `data-expanded`. Implementation:
+
+```css
+.crit2 .item-card__head::after {
+  content: '›';
+  margin-left: 0;
+  transition: transform var(--md-dur-short-3) var(--md-easing-standard);
+}
+.crit2 .item-card[data-expanded="false"] .item-card__head::after {
+  transform: rotate(0);     /* › points right — "click to expand" */
+}
+.crit2 .item-card[data-expanded="true"] .item-card__head::after {
+  transform: rotate(90deg); /* › rotated 90° → points down — "click to collapse" */
+}
+```
+
+5. **Pre-expand first source-row per card.** When a card with sources renders, the first source row's head is set to `aria-expanded="true"`. Subsequent rows stay collapsed (`aria-expanded="false"`). This means opening a card with 2+ sources shows the first source fully expanded alongside collapsed siblings — the user immediately sees both visualisations of a source row without clicking.
+6. **Auto-expand first card with sources per phase.** When a phase tab is rendered, the first `.item-card` whose subtree contains a non-empty `.item-card__sources` segment is set to `data-expanded="true"` automatically. Other cards stay collapsed. This shows one fully demonstrated card per phase tab without requiring a click. If no card in the phase has sources, all cards stay collapsed (no fallback expansion).
+7. **`.item-card__head` is clickable in both states.** Hover / active background tint applies regardless of `data-expanded` (covered in §2.1's `.item-card__head:hover` rule). The cursor is `pointer` always. Hover tint colour: 4% on-surface (`color-mix`) on hover, 8% on active (mousedown).
 
 **Files to change.**
-- `src/dual_research/ui/static/run-detail.jsx` — implement the auto-expand-first-with-sources logic per phase tab on render. Implement the pre-expand-first-source-row-per-card logic. Wire `data-expanded` toggle on `.item-card__head` click. Wire the existing `.crit-group` collapse toggle on `.crit-group__hd` click.
+- `src/dual_research/ui/static/run-detail.jsx` — set `data-collapsed="false"` on every `.crit-group` render. Implement the auto-expand-first-with-sources logic per phase tab on render. Implement the pre-expand-first-source-row-per-card logic. Wire `data-expanded` toggle on `.item-card__head` click. Wire the existing `.crit-group` collapse toggle on `.crit-group__hd` click. Add the chevron rotation CSS keyed on `data-expanded`.
+- `src/dual_research/ui/static/components.css` — add the chevron rotation rules + the data-collapsed chevron rotation rule (if not already present).
+- `design-system/assets/styles/composed-components.css` — same.
 
 ## 3. UX / behaviour
 
@@ -591,6 +630,10 @@ Files that MUST land in the same commit:
 - [ ] **Source row meta chip.** Each `.source-row__head` contains a `.source-row__meta.chip.tone-neutral.mono` showing `[provider icon] R<N>`. The chip is right-aligned (`margin-left: auto`).
 - [ ] **Source row body fields.** When expanded, `.source-row__fields` is a 130 px / 1fr grid of `<dt>` / `<dd>` pairs: URL, SEARCH QUERY, FETCHED, UNVERIFIED REASON (when applicable). `.source-row__excerpt` is the italic-serif quote in a tinted recess.
 - [ ] **Auto-expand first card with sources per phase.** Open each phase tab. The first `.item-card` whose `.item-card__sources` segment is non-empty has `data-expanded="true"`. All other cards have `data-expanded="false"`.
+- [ ] **Card head chevron rotation.** For a collapsed card, `getComputedStyle(card.querySelector('.item-card__head'), '::after').transform` resolves to `matrix(1, 0, 0, 1, 0, 0)` (no rotation) or equivalent. For an expanded card, it resolves to a 90° rotation matrix. Toggling the card flips the transform.
+- [ ] **Phase-section group default unfolded.** On phase tab open, every `.crit-group` has `data-collapsed="false"`. Their `.crit-group__body` is visible (non-zero height).
+- [ ] **Phase-section group toggle.** Click `.crit-group__hd`. `data-collapsed` flips to `"true"`. The `.crit-group__body` collapses (height 0, display none). Click again — flips back to `"false"`.
+- [ ] **Phase-section chevron rotation.** When `data-collapsed="true"`, the `.crit-group__chev` element has computed `transform: rotate(-90deg)` (matches timeline pane convention). When `data-collapsed="false"`, no rotation.
 - [ ] **Phase-section header click feedback.** Hover `.crit-group__hd`. Computed `background-color` resolves to a 4 % on-surface mix. Click — `background-color` momentarily resolves to 8 % during active state.
 - [ ] **ID drop — URL anchor still works.** Navigate to `/runs/<id>#Q7`. The card with that ID still scrolls into view (the DOM `id` attribute on `<article>` is preserved).
 - [ ] **DS reference catch-up.** Open `design-system/assets/Design System v2.html` §13. Markup uses `.item-card` BEM throughout. Rendered examples show the new chrome, the canonical head composition, the lifecycle expanded view, and the sources segment. No `.crit-card` selectors remain.

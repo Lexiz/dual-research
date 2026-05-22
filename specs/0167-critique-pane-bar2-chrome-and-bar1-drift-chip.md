@@ -123,8 +123,30 @@ The explicit "All" option in each segment is the canonical "show all" reset. Cli
   gap: 8px;
   padding: 10px 12px;
   flex-wrap: nowrap;
+  /* Single-row stability: nowrap also applies to the kind cluster and the
+     two segmented controls so a long kind label or count never wraps onto a
+     second line. The kind cluster scrolls horizontally inside its own slot
+     before bar 2 itself wraps (see below). */
 }
-.crit2 .bar2.crit-filter-row > .kind-tabs { margin-right: auto; }
+.crit2 .bar2.crit-filter-row > .kind-tabs {
+  margin-right: auto;
+  flex-wrap: nowrap;
+  overflow-x: auto;        /* in case a kind label is unusually long */
+  scrollbar-width: none;   /* hide cosmetic scrollbar in firefox */
+}
+.crit2 .bar2.crit-filter-row > .kind-tabs::-webkit-scrollbar { display: none; }
+
+/* Bar 2 sticks to the top of the critique-pane body when the body scrolls.
+   The pane body (`.crit2 > .crit2__body`) is the scroll container; bar 2
+   uses position: sticky relative to that container so cards scroll under
+   it while the chrome stays anchored. The z-index keeps bar 2 above the
+   crit-group__hd sticky group headers (which use a lower z-index). */
+.crit2 .bar2 {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--md-surface-container);
+}
 
 /* Narrow-mode count drop — labels stay, parens go */
 @media (max-width: 1799px) {
@@ -135,6 +157,8 @@ The explicit "All" option in each segment is the canonical "show all" reset. Cli
 **Layout.** The right cluster carries agent THEN status (matching DS §12 state-A markup). The `.crit-filter-spacer` divider element is removed from JSX — the segmented-control pills provide visual grouping. Padding tightens from `16px` to `12px` horizontal, gap from `12` to `8` — at a 960 px critique-pane width (wide viewport), the total content row width fits in one row (918 px content in 936 px inner).
 
 **Narrow-mode behaviour.** At viewports ≤ 1799 px, drop the `(N)` count parens from segmented controls (labels stay). The kind cluster reclaims ~100 px of horizontal room and bar 2 stays single-row. Kind chips already lose their text labels at narrow per an existing `@media` rule.
+
+**Bar 2 stickiness (carried forward from the prototype iter 2.1 stabilisation work).** Bar 2 is `position: sticky` against the critique-pane body scroll container. When the user scrolls the phase view vertically, cards scroll under bar 2 while the agent / status / kind filters stay visible at the top. Background colour matches the pane (`--md-surface-container`) so cards visually pass under the chrome without bleed. `z-index: 5` keeps bar 2 above any `.crit-group__hd` sticky group headers (those use a lower z-index, defined in the existing live CSS for `.crit-group`). The DS reference in `Design System v2.html` §12 should be re-rendered with this sticky behaviour observable (a tall scrolling demo body beneath bar 2).
 
 **Files to change.**
 - `src/dual_research/ui/static/run-detail.jsx` — wrap the agent + status chip clusters in `<div class="tab-group-solid">` segments. Prepend explicit "All" `<button class="tab-solid">` to each. Drop `.crit-filter-spacer` elements. Add `<span class="chip-value">({N})</span>` to every option (including "All" + "Drift" when count = 0).
@@ -293,6 +317,8 @@ Files that MUST land in the same commit:
 - [ ] **Bar 2 segmented controls — active state.** Click the "Claude" option. It gets `data-active="true"`. Computed `background-color` resolves to `--md-surface`, computed `box-shadow` resolves to `--md-elev-1`. Click "Claude" again — `data-active` flips off and the All button becomes the implicit reset (no `data-active` set).
 - [ ] **Bar 2 nowrap.** Resize the workshop iframe to 960 px wide (wide critique pane). All bar-2 content fits in one row — no wrap.
 - [ ] **Bar 2 narrow-mode counts.** Resize to 640 px (narrow). `.chip-value` elements inside segmented controls have computed `display: none`. Labels remain visible.
+- [ ] **Bar 2 sticky on body scroll.** Open a run with enough cards to overflow the critique-pane body. Scroll the pane vertically. `.crit2 .bar2` stays anchored at the top of the pane (`getBoundingClientRect().top` value relative to the pane is constant). Cards scroll under bar 2 with no visual bleed (bar 2 background matches the pane container token). The z-index keeps bar 2 above any `.crit-group__hd` sticky headers.
+- [ ] **Bar 2 single-row at all widths.** At every supported critique-pane width (narrow ≤ 1799 px and wide), bar 2's `.bar2.crit-filter-row` does NOT wrap. The kind cluster's `.kind-tabs` has `flex-wrap: nowrap` and overflows horizontally inside its own slot before bar 2 itself wraps.
 - [ ] **Bar 1 drift chip — non-zero.** Render a run with drift items. `.crit2 .bar1 .drift-chip` exists with `data-count="3"` (or whatever the actual count is). Computed `background-color` resolves to `color-mix(in srgb, var(--p-err) 18%, transparent)`, computed `color` resolves to `--p-err`.
 - [ ] **Bar 1 drift chip — zero count muted.** Render a run with 0 drift items. The chip still renders with `data-count="0"`. Computed `opacity === 0.55`. Computed `color` resolves to `--md-on-surface-faint`. The slot occupies space — toggling drift count from 0 to 1 doesn't reflow the bar-1 right cluster (verified via measuring `.bar1 .right` width before / after).
 - [ ] **Phase tabs — P0 in DS.** Open `design-system/assets/Design System v2.html` §12 in a browser. All three rendered states show four phase tabs: P0 Brief, P2, P4, Σ.
