@@ -4890,3 +4890,64 @@ body.light .tour-spotlight__dim {
   white-space: pre-wrap;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Pager (spec 0177 §2.6) — mirrors design-system/assets/styles/
+   composed-components.css; the two MUST stay in sync per the
+   "New components land in two places in one commit" rule in
+   CLAUDE.md.
+   ─────────────────────────────────────────────────────────────
+*/
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--md-sp-4);
+  padding: var(--md-sp-3) var(--md-sp-1) 0;
+  font: var(--md-w-regular) var(--md-body-s-size)/var(--md-body-s-lh) var(--md-font-plain);
+  color: var(--md-on-surface-faint);
+}
+.pager__count {
+  font-family: var(--md-font-data);
+  font-variant-numeric: tabular-nums;
+}
+.pager__nav {
+  display: flex; gap: var(--md-sp-1); align-items: center;
+}
+.pager__btn {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  padding: 5px 10px;
+  font: var(--md-w-medium) var(--md-body-s-size)/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  min-width: 30px;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              border-color var(--md-dur-short-3) var(--md-easing-standard),
+              color var(--md-dur-short-3) var(--md-easing-standard);
+}
+.pager__btn:hover {
+  border-color: var(--md-outline);
+  color: var(--md-on-surface);
+}
+.pager__btn:focus-visible {
+  outline: 2px solid var(--p-info);
+  outline-offset: 2px;
+}
+.pager__btn[aria-current="page"] {
+  background: color-mix(in srgb, var(--p-info) 14%, var(--md-surface-container));
+  border-color: color-mix(in srgb, var(--p-info) 40%, var(--md-outline-hair));
+  color: var(--p-info);
+  font-weight: var(--md-w-semi);
+}
+.pager__btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.pager__btn[disabled]:hover {
+  border-color: var(--md-outline-hair);
+  color: var(--md-on-surface-variant);
+}
+.pager__ellipsis {
+  color: var(--md-on-surface-decor);
+  padding: 0 var(--md-sp-1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pager__btn { transition: none !important; }
+}

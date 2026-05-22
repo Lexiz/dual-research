@@ -35,10 +35,14 @@ def test_shell_mode_emits_data_region_skeletons(tmp_path: Path) -> None:
     root = _bootstrap_repo(tmp_path)
     specs, drafts = collect(root)
     html = render_index(specs, drafts, shell_only=True)
-    # Spec 0169 — `pipeline` region retired; new regions `counters`, `avg`,
-    # `total-elapsed` ship. Metrics still has a region (inside the Metrics tab).
-    for region in ("hero", "counters", "avg", "metrics", "queue", "feed", "drafts", "all-specs", "total-elapsed"):
+    # Spec 0169 introduced `counters` / `avg` / `total-elapsed`; spec 0177
+    # folded `avg` into the counter row so it's no longer a separate region.
+    # Metrics still has a region (inside the Metrics tab).
+    for region in ("hero", "counters", "metrics", "queue", "feed", "drafts", "all-specs", "total-elapsed"):
         assert f'data-region="{region}"' in html, f"missing data-region={region!r}"
+    # `avg` region is gone — assert that explicitly so we don't accidentally
+    # re-introduce a separate avg-cycle swap path.
+    assert 'data-region="avg"' not in html
     # Skeleton class present (visual placeholders).
     assert "region-skeleton" in html
 

@@ -72,16 +72,21 @@ def test_index_contains_all_sections(tmp_path: Path) -> None:
     assert 'class="drafts"' in html
     assert 'class="foot"' in html
     # Spec 0169 §2.1 / §2.2 — callout strip + tab bar replace the pipe + metrics row.
+    # Spec 0177 §2.1 — strip wrapper is still emitted (display:contents) so the
+    # data-region hooks survive; counter row is full-width and now folds the
+    # avg-cycle card in as `counter--accent` (no separate `.avg-cycle` class).
     assert 'class="strip"' in html
     assert 'class="counters"' in html
-    assert 'class="avg-cycle"' in html
+    assert 'counter counter--accent' in html
     assert 'class="tabs"' in html
     assert 'data-panel="now"' in html
     assert 'data-panel="spec"' in html
     assert 'data-panel="history"' in html
     assert 'data-panel="metrics"' in html
-    # The legacy .metrics section moved INTO the Metrics tab — still present.
-    assert 'class="metrics"' in html
+    # Spec 0177 §2.4 — the legacy 4-tile `.metrics` section was replaced by
+    # callouts + chart-card grid. Assert one chart-card lives inside the
+    # Metrics tab so we don't regress to the empty placeholder.
+    assert 'class="chart-card"' in html
     # Spec 0169 §2.5 — total-elapsed banner ships inside the History tab.
     assert 'class="te-banner"' in html
     # Spec links remain filename-derived.
@@ -97,7 +102,8 @@ def test_index_contains_all_sections(tmp_path: Path) -> None:
 
 
 def test_spec_0169_theme_toggle_and_shim(tmp_path: Path) -> None:
-    """Spec 0169 §2.7 — theme toggle in header + inline init script + shim CSS."""
+    """Spec 0169 §2.7 — theme toggle in header + inline init script + shim CSS.
+    Spec 0177 §2.7 flipped the first-visit default from 'auto' to 'light'."""
     root = _bootstrap_repo(tmp_path)
     specs, drafts = collect(root)
     html = render_index(specs, drafts, live_version="1.30.0")
@@ -105,10 +111,12 @@ def test_spec_0169_theme_toggle_and_shim(tmp_path: Path) -> None:
     assert 'id="theme-toggle"' in html
     assert 'data-theme-icon' in html
     assert 'data-theme-label' in html
-    # <html data-theme="auto"> default.
-    assert 'data-theme="auto"' in html
+    # Spec 0177 — <html data-theme="light"> default for first-visit users.
+    assert 'data-theme="light"' in html
     # Inline init script reads localStorage before paint.
     assert "localStorage.getItem('dr-dashboard-theme')" in html
+    # Spec 0177 — fallback default is 'light', not 'auto'.
+    assert "||'light'" in html
     # Shim CSS lives in DASHBOARD_CSS; live JS wires persistence.
     from scripts.spec_lifecycle.render_dashboard import DASHBOARD_CSS, DASHBOARD_LIVE_JS
     assert 'html[data-theme="dark"]' in DASHBOARD_CSS
@@ -173,8 +181,11 @@ def test_idle_vs_inflight_hero(tmp_path: Path) -> None:
 
     inflight_html = render_index(specs, drafts)
     assert "hero--inflight" in inflight_html
-    # Eleven stages rendered.
-    assert inflight_html.count('class="stage stage--') == 11
+    # Spec 0177 §2.2 — eleven stages now render as horizontal `tl__step` nodes
+    # (was a vertical `<ol class="stages">`).
+    assert inflight_html.count('class="tl__step tl__step--') == 11
+    # The new timeline wrapper sits beneath the hero divider.
+    assert 'class="tl" aria-label="Cycle stages"' in inflight_html
 
     idle_html = render_index(idle_specs, drafts)
     assert "hero--idle" in idle_html

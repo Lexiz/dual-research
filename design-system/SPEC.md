@@ -74,6 +74,24 @@ The palette feeds the M3 role tokens. Components read the roles, not the base pa
 
 Containers are rgba tints of the base hue (~18% in dark mode, ~26% in light), giving the agent-tagged backgrounds room to read against the surface tier without competing.
 
+#### Chart palette (spec 0177 §2.5)
+
+Pastel tokens for analytical surfaces only. The spec dashboard's Metrics tab is the sole consumer at present; future analytical surfaces (run timelines, agent-time bars, etc.) may opt in. **Status chips, live-state colours (in-flight hero, the dot on live rows), and tone-* utility chips keep the bold `--p-*` tokens** — pastels are never substituted for those.
+
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `--chart-blue` | `#7fa8d8` | `#a8c8e8` | Primary chart line, large-share fill. |
+| `--chart-purple` | `#b89edc` | `#c8b5e8` | Rolling-mean overlay, plan-stage stack. |
+| `--chart-green` | `#94c8a4` | `#b8dcc0` | Success arcs (donut deployed slice), tests-stage stack. |
+| `--chart-yellow` | `#e0c890` | `#f0deaa` | Reconcile-stage stack, refactor-type bar. |
+| `--chart-pink` | `#e0a4ac` | `#f0bcc0` | Failure arc (donut failed slice), bug-type bar. |
+| `--chart-peach` | `#e0b498` | `#f4ccb0` | Deploy-stage stack, breaking-change bar. |
+| `--chart-mint` | `#94c4bc` | `#b8dcd4` | Test-type bar, queue stage of authoring funnel. |
+| `--chart-grey` | `#6a7480` | `#d8dde3` | Other / unaccounted stage, draft stage of funnel. |
+| `--chart-track` | `#232b35` | `#ecf0f4` | Empty rail behind a bar fill (bar-row track). |
+
+Contrast: dark-mode pastels target ≥ 4.5:1 against `--md-surface-container`; light-mode pastels are softer than the dark variants so they sit on cream surfaces without vibrating.
+
 ### 2.2 — Surfaces (M3 tonal scale)
 
 M3 expresses elevation through both **shadow** and **tonal surface tint**. The surface tier set is:

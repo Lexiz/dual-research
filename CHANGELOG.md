@@ -10,6 +10,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.31.0] — 2026-05-22
+
+### Added
+
+- **Spec 0177 — dashboard redesign v3: horizontal hero + timeline, full-width counter row, populated Metrics tab, pagination, pastel chart palette, light default** ([spec 0177](specs/0177-dashboard-redesign-v3-horizontal-hero-and-metrics.md)).
+  - **Hero + counter row layout** ([scripts/spec_lifecycle/render_dashboard.py](scripts/spec_lifecycle/render_dashboard.py)). Hero spans the full container width; the 3-column callout strip from spec 0169 is replaced by two stacked full-width regions (hero row + counter row). Counter row holds 5 cards: Drafts · Queued · In flight · Shipped · Avg cycle (last 10) — the avg-cycle card folds in as the accented 5th counter with an inline sparkline of the last 12 cycle times.
+  - **Horizontal in-flight stage timeline** — the vertical `<ol class="stages">` list under the hero is replaced by `<div class="tl">` with 11 horizontal `.tl__step` nodes, a grey base rail, and an ok-coloured `.tl__rail-done` overlay sized to `(done_count / total) * (100% - 28px)`. Bootstrap client re-computes stage states client-side so the timeline survives the 5s `/api/data` repaint (previously it was server-rendered only and wiped on first refresh).
+  - **History tab: Lifetime + Cycle columns** — the All-specs table moves from a 5-column grid `(Spec · Title · Type · Status · Version)` to a 6-column grid `(Spec · Title · Type · Status · Lifetime · Cycle)`. Lifetime = wall-clock from `created` (fallback `queued_at`) to `deployed_at`; Cycle = agent-time from `started_at` to `deployed_at`. The `Version` column is dropped. `_humanize_seconds` extended to weeks.
+  - **Metrics tab full populate** — three top callouts (cycle-time WoW, dominant stage, reconcile drift) + cycle-time line chart (last 22 cycles + rolling-10 overlay, outliers > 1h clipped) + stage-breakdown stacked bar (mean across last 10) + throughput per ISO week (last 8) + by-type horizontal bars (last 30d) + success-rate donut + authoring funnel. All inline SVG, no chart libraries. Helper `_compute_stage_durations(events)` derives per-stage seconds from event sequences.
+  - **Pastel chart palette tokens** in [design-system/assets/styles/tokens-and-primitives.css](design-system/assets/styles/tokens-and-primitives.css) (`--chart-blue / -purple / -green / -yellow / -pink / -peach / -mint / -grey / -track`, light + dark). Documented in [design-system/SPEC.md §2.1](design-system/SPEC.md#L44) under a new "Chart palette" sub-heading. Scoped to Metrics-tab charts only — status chips, hero halo, in-flight chip keep the bold `--p-*` tones.
+  - **Pagination** on Queue + Recent activity at 10 rows / page. New `.pager` component lands in both [design-system/assets/styles/composed-components.css](design-system/assets/styles/composed-components.css) and [src/dual_research/ui/static/components.css](src/dual_research/ui/static/components.css) per the "two places, one commit" rule. Active-page state is preserved across `/api/data` refreshes via a `pagerState` map in the bootstrap client — a user on page 2 isn't bounced back to page 1 every 5s.
+  - **Light theme as the default for first-visit users** — `_render_theme_init_script`'s no-localStorage fallback flips from `'auto'` to `'light'`. Returning users with a stored preference keep it; the light → dark → auto toggle cycle is unchanged.
+
+### Changed
+
+- `_render_counter_cluster` now returns a 5-counter row (was 4) and folds in the avg-cycle card as the accented 5th counter.
+- `_render_metrics` body fully replaced (was 4 plain tiles; now 3 callouts + 6 charts including the authoring funnel).
+- `_render_all_specs` emits the 6-column history grid; `target_version` no longer appears in the table.
+- Bootstrap client (`DASHBOARD_BOOTSTRAP_JS`) mirrors every server-side change: `renderHeroInflight` emits the horizontal timeline, `renderAllSpecs` emits the 6-column grid, `renderQueue` + `renderFeed` emit the pager strip + `data-pager-page` row attributes.
+
+### Removed
+
+- `_render_avg_cycle_card` (data folded into the counter row).
+- `_render_stage_row` + the `<ol class="stages">` rendering path (replaced by `_render_stage_node` + horizontal `<div class="tl">`).
+- `Version` column in the History tab's All-specs table.
+
 ## [1.30.1] — 2026-05-22
 
 ### Fixed
