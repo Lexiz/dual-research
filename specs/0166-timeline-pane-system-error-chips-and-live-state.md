@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.27.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: ["0164"]
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T17:08:41Z"
 started_at: "2026-05-22T20:15:00Z"
 merged_at: "2026-05-22T20:28:00Z"
-deployed_at: ""
+deployed_at: "2026-05-22T20:31:00Z"
 pr: "https://github.com/Lexiz/dual-research/pull/189"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0166-timeline-pane-system-error-chips-and-live-state.md"
 failure_step: ""
 source_session: timeline-iteration-2026-05-22
 promoted_from_draft: "006"

@@ -13,3 +13,7 @@
 {"ts":"2026-05-22T18:25:01Z","step":"tests_green","data":{"passed":1532,"failed":0,"js_passed":9}}
 {"ts":"2026-05-22T18:25:31Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/189"}}
 {"ts":"2026-05-22T18:25:48Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/189"}}
+{"ts":"2026-05-22T18:26:13Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-22T18:30:39Z","step":"deployed","data":{"version":"1.27.0","strategy":"bluegreen","sweep":"no stale blues","cluster_machines":2,"note":"two consecutive lease-error attempts, third attempt converged. Same Fly bug as previous deploys."}}
+{"ts":"2026-05-22T18:30:39Z","step":"deploy_health_check_ok","data":{"endpoint":"/api/health","response":"{ok:true,version:1.27.0}"}}
+{"ts":"2026-05-22T18:31:36Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0166-timeline-pane-system-error-chips-and-live-state.md"}}
