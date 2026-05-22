@@ -49,6 +49,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -365,6 +366,22 @@ def plan_pass1(
     return counts, conflicts, rows_by_run
 
 
+def _dedupe_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collapse (run_id, turn_key, artifact_id) duplicates within a batch.
+
+    Postgres rejects upserts that have duplicate constrained tuples
+    within a single command. Retried turns can produce two
+    ``turn_ended`` events with the same label → same turn_key →
+    same artifact rows. Latest occurrence wins, matching the
+    semantics the upsert would have if the rows were sent one-by-one.
+    """
+    seen: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for row in rows:
+        key = (row["run_id"], row["turn_key"], row["artifact_id"])
+        seen[key] = row
+    return list(seen.values())
+
+
 def execute_pass1(
     client: Any,
     rows_by_run: dict[str, list[dict[str, Any]]],
@@ -377,8 +394,9 @@ def execute_pass1(
     rows_written = 0
     batch_size = 200
     for run_id, rows in rows_by_run.items():
-        for i in range(0, len(rows), batch_size):
-            batch = rows[i:i + batch_size]
+        deduped = _dedupe_rows(rows)
+        for i in range(0, len(deduped), batch_size):
+            batch = deduped[i:i + batch_size]
             client.table("turn_prompt_pieces").upsert(
                 batch, on_conflict="run_id,turn_key,artifact_id"
             ).execute()
@@ -386,7 +404,7 @@ def execute_pass1(
         runs_written += 1
         print(
             f"  [{runs_written}/{len(rows_by_run)}] {run_id} "
-            f"→ wrote {len(rows)} rows"
+            f"→ wrote {len(deduped)} rows (deduped from {len(rows)})"
         )
     return runs_written, rows_written
 
@@ -429,10 +447,18 @@ def execute_pass2(
     *,
     push: bool,
     limit: int | None = None,
+    max_retries: int = 3,
+    retry_delay_s: float = 10.0,
 ) -> tuple[int, int]:
     """Write inputs/input.json for each candidate session-dir and
     (when ``push=True``) push the session-dir to Supabase. Returns
-    (dirs_written, dirs_pushed)."""
+    (dirs_written, dirs_pushed).
+
+    Supabase statement timeouts on large file batches are retried with
+    a delay — the push pipeline is idempotent so retries are safe.
+    """
+    import time
+
     from dual_research.config import load_supabase_credentials
     from dual_research.orchestrator.run import (
         _persist_initial_brief_bundle,
@@ -441,8 +467,15 @@ def execute_pass2(
 
     remote = None
     if push:
+        # Spec 0150 — historical runs can carry 10-15MB transcripts and
+        # per-event payloads up to ~600KB, which blow past Supabase's
+        # statement_timeout on a 500-event batch. Override the batch
+        # sizes for the backfill push only.
+        import dual_research.persistence.remote as _remote_mod
         from dual_research.persistence.remote import RemoteSession
 
+        _remote_mod.EVENT_BATCH_SIZE = 5
+        _remote_mod.FILE_BATCH_SIZE = 5
         creds = load_supabase_credentials()
         remote = RemoteSession.from_credentials(creds.url, creds.service_role_key)
 
@@ -457,14 +490,247 @@ def execute_pass2(
         written += 1
         print(f"  [{idx}/{len(selected)}] {session_dir.name} → wrote input.json")
         if remote is not None:
-            summary = remote.push_session_dir(session_dir)
-            pushed += 1
-            print(
-                f"      pushed: events={summary.events_upserted} "
-                f"files={summary.files_upserted} "
-                f"pieces={summary.prompt_pieces_upserted}"
-            )
+            last_exc: Exception | None = None
+            for attempt in range(1, max_retries + 1):
+                try:
+                    summary = remote.push_session_dir(session_dir)
+                    pushed += 1
+                    print(
+                        f"      pushed: events={summary.events_upserted} "
+                        f"files={summary.files_upserted} "
+                        f"pieces={summary.prompt_pieces_upserted}"
+                    )
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    print(
+                        f"      push attempt {attempt}/{max_retries} failed: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+                    if attempt < max_retries:
+                        time.sleep(retry_delay_s)
+            if last_exc is not None:
+                raise last_exc
     return written, pushed
+
+
+# ─── Pass 3 (D15, per-turn bundles) — translate inputs/*.json text dicts ──
+
+
+@dataclass
+class Pass3Counts:
+    total_per_turn_files: int = 0
+    legacy_files_to_translate: int = 0
+    files_with_mixed_keys: int = 0
+    files_without_phase_in_name: int = 0
+
+
+_PHASE_IN_FILENAME_RE = re.compile(r"^phase(\d+)")
+
+
+def _phase_num_from_filename(name: str) -> int | None:
+    """Extract phase number from filenames like `phase2_round1_claude.json`
+    or `phase0_claude.json`. Returns None when no phase prefix is present."""
+    m = _PHASE_IN_FILENAME_RE.match(name)
+    if not m:
+        return None
+    try:
+        n = int(m.group(1))
+    except ValueError:
+        return None
+    return n if 0 <= n <= 4 else None
+
+
+def _translate_pieces_in_bundle(
+    pieces: dict[str, Any], phase_num: int | None
+) -> dict[str, Any]:
+    """Per-turn bundle translation: keys only, preserving values verbatim.
+
+    Same legacy → canonical translation policy as `translate_prompt_pieces`,
+    but operates on string-valued pieces (the actual text the agent saw),
+    not token counts. Prefer-canonical: if both a legacy key and its
+    canonical sibling exist in the same dict, canonical wins.
+    """
+    out: dict[str, Any] = {}
+    legacy_seen: dict[str, Any] = {}
+    canonical_present: set[str] = set()
+    for k, v in (pieces or {}).items():
+        if k in LEGACY_KEY_TO_CANONICAL:
+            legacy_seen[k] = v
+        else:
+            canonical_present.add(k)
+            out[k] = v
+    for legacy_key, legacy_value in legacy_seen.items():
+        canon = canonicalise_legacy_key(legacy_key, phase_num)
+        if canon in canonical_present:
+            continue
+        out[canon] = legacy_value
+    return out
+
+
+def plan_pass3(runs_dir: Path) -> tuple[Pass3Counts, list[Path]]:
+    counts = Pass3Counts()
+    candidates: list[Path] = []
+    if not runs_dir.is_dir():
+        return counts, candidates
+    for session_dir in sorted(runs_dir.iterdir()):
+        if not session_dir.is_dir():
+            continue
+        inputs_dir = session_dir / "inputs"
+        if not inputs_dir.is_dir():
+            continue
+        session_needs_translation = False
+        for input_file in sorted(inputs_dir.glob("*.json")):
+            if input_file.name == "input.json":
+                continue
+            counts.total_per_turn_files += 1
+            try:
+                data = json.loads(input_file.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            pieces = data.get("pieces") or {}
+            if not pieces:
+                continue
+            keys = set(pieces.keys())
+            has_legacy = bool(keys & set(LEGACY_KEY_TO_CANONICAL))
+            has_canonical = any("." in k for k in keys)
+            if not has_legacy:
+                continue
+            if has_canonical:
+                counts.files_with_mixed_keys += 1
+            counts.legacy_files_to_translate += 1
+            if _phase_num_from_filename(input_file.name) is None:
+                counts.files_without_phase_in_name += 1
+            session_needs_translation = True
+        if session_needs_translation:
+            candidates.append(session_dir)
+    return counts, candidates
+
+
+def _push_inputs_dir_only(
+    client: Any, run_id: str, session_dir: Path
+) -> int:
+    """Minimal push: upsert just the `inputs/*.json` rows to session_files.
+
+    The full push pipeline re-uploads multi-MB transcripts that
+    overshoot Supabase's statement_timeout on these large historical
+    runs. Since the only files this backfill changed are the per-turn
+    input bundles, uploading just those is sufficient — and small
+    enough to fit under the timeout.
+    """
+    rows: list[dict[str, Any]] = []
+    inputs_dir = session_dir / "inputs"
+    if not inputs_dir.is_dir():
+        return 0
+    for path in sorted(inputs_dir.glob("*.json")):
+        content = path.read_text(encoding="utf-8")
+        rows.append({
+            "run_id": run_id,
+            "path": str(path.relative_to(session_dir)),
+            "content": content,
+            "size_bytes": len(content.encode("utf-8")),
+        })
+    BATCH = 3
+    for i in range(0, len(rows), BATCH):
+        batch = rows[i:i + BATCH]
+        client.table("session_files").upsert(
+            batch, on_conflict="run_id,path"
+        ).execute()
+    return len(rows)
+
+
+def execute_pass3(
+    candidates: list[Path],
+    *,
+    push: bool,
+    limit: int | None = None,
+    max_retries: int = 3,
+    retry_delay_s: float = 10.0,
+) -> tuple[int, int, int]:
+    """For each session-dir with legacy per-turn bundles, translate keys
+    in-place and (when push=True) push ONLY the `inputs/*.json` rows
+    to Supabase via `_push_inputs_dir_only`. Returns
+    (dirs_touched, files_translated, dirs_pushed)."""
+    import time
+
+    from dual_research.config import load_supabase_credentials
+    from dual_research.persistence.state import write_atomic
+
+    client = None
+    if push:
+        from supabase import create_client
+
+        creds = load_supabase_credentials()
+        client = create_client(creds.url, creds.service_role_key)
+
+    dirs_touched = 0
+    files_translated = 0
+    dirs_pushed = 0
+    selected = candidates if limit is None else candidates[:limit]
+    for idx, session_dir in enumerate(selected, start=1):
+        inputs_dir = session_dir / "inputs"
+        translated_here = 0
+        for input_file in sorted(inputs_dir.glob("*.json")):
+            if input_file.name == "input.json":
+                continue
+            try:
+                data = json.loads(input_file.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            pieces = data.get("pieces") or {}
+            if not pieces:
+                continue
+            if not any(k in LEGACY_KEY_TO_CANONICAL for k in pieces):
+                continue
+            phase_num = _phase_num_from_filename(input_file.name)
+            new_pieces = _translate_pieces_in_bundle(pieces, phase_num)
+            if new_pieces == pieces:
+                continue
+            data["pieces"] = new_pieces
+            write_atomic(input_file, json.dumps(data, indent=2))
+            translated_here += 1
+        files_translated += translated_here
+        if translated_here > 0:
+            dirs_touched += 1
+            print(
+                f"  [{idx}/{len(selected)}] {session_dir.name} "
+                f"→ translated {translated_here} per-turn bundles"
+            )
+        if client is not None and translated_here > 0:
+            last_exc: Exception | None = None
+            for attempt in range(1, max_retries + 1):
+                try:
+                    n = _push_inputs_dir_only(
+                        client, session_dir.name, session_dir
+                    )
+                    dirs_pushed += 1
+                    print(f"      pushed: input files={n}")
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    print(
+                        f"      push attempt {attempt}/{max_retries} failed: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+                    if attempt < max_retries:
+                        time.sleep(retry_delay_s)
+            if last_exc is not None:
+                raise last_exc
+    return dirs_touched, files_translated, dirs_pushed
+
+
+def _print_pass3_dryrun(counts: Pass3Counts, candidates: list[Path]) -> None:
+    print("── Pass 3 (per-turn bundles) — inputs/*.json key translation ──")
+    print(f"  total per-turn files (excl. input.json) : {counts.total_per_turn_files}")
+    print(f"  legacy-keyed files to translate         : {counts.legacy_files_to_translate}")
+    print(f"  files with mixed legacy+canonical keys  : {counts.files_with_mixed_keys}")
+    print(f"  files lacking phase prefix in filename  : {counts.files_without_phase_in_name}")
+    if candidates:
+        print(f"  sessions needing translation: {len(candidates)}")
+        for p in candidates[:5]:
+            print(f"    {p.name}")
 
 
 # ─── CLI ──────────────────────────────────────────────────────────────
@@ -514,8 +780,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true",
                         help="enumerate work but write nothing")
-    parser.add_argument("--pass", dest="which", choices=["1", "2"],
-                        help="run only pass 1 (D15) or pass 2 (D05)")
+    parser.add_argument("--pass", dest="which", choices=["1", "2", "3"],
+                        help="run only pass 1 (D15 — turn_prompt_pieces), "
+                             "2 (D05 — input.json), or 3 (per-turn bundles)")
     parser.add_argument("--limit", type=int, default=None,
                         help="process at most N runs in the selected pass")
     parser.add_argument("--runs-dir", type=Path, default=Path("runs"),
@@ -526,6 +793,7 @@ def main() -> int:
 
     run_pass1 = args.which in (None, "1")
     run_pass2 = args.which in (None, "2")
+    run_pass3 = args.which in (None, "3")
 
     if run_pass1:
         try:
@@ -557,6 +825,24 @@ def main() -> int:
                     limit=args.limit,
                 )
                 print(f"  done. written={written} pushed={pushed}")
+
+    if run_pass3:
+        counts3, candidates3 = plan_pass3(args.runs_dir)
+        _print_pass3_dryrun(counts3, candidates3)
+        if not args.dry_run:
+            if not candidates3:
+                print("  nothing to translate (already idempotent).")
+            else:
+                print(f"  translating per-turn bundles in {len(candidates3)} sessions ...")
+                dirs_t, files_t, pushed3 = execute_pass3(
+                    candidates3,
+                    push=not args.no_push,
+                    limit=args.limit,
+                )
+                print(
+                    f"  done. dirs_touched={dirs_t} files_translated={files_t} "
+                    f"pushed={pushed3}"
+                )
 
     return 0
 

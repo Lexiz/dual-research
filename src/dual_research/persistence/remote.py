@@ -133,11 +133,16 @@ class RemoteSession:
         # carrying a non-empty prompt_pieces dict. Attachment IDs are
         # parsed from canonical artifact_ids; display_title is resolved
         # via the contemporaneous attachments.json at push time.
+        # Spec 0150 — collapse duplicate (run_id, turn_key, artifact_id)
+        # tuples that retried turns can produce; postgres rejects
+        # duplicate constrained values within a single upsert batch.
+        # Latest occurrence wins, matching one-row-at-a-time upsert
+        # semantics.
         pieces_count = 0
-        for batch in _batch(
-            _iter_turn_prompt_pieces_rows(run_id, session_dir, event_rows),
-            PIECE_BATCH_SIZE,
-        ):
+        deduped_rows: dict[tuple[str, str, str], dict[str, Any]] = {}
+        for row in _iter_turn_prompt_pieces_rows(run_id, session_dir, event_rows):
+            deduped_rows[(row["run_id"], row["turn_key"], row["artifact_id"])] = row
+        for batch in _batch(iter(deduped_rows.values()), PIECE_BATCH_SIZE):
             self._client.table("turn_prompt_pieces").upsert(
                 batch, on_conflict="run_id,turn_key,artifact_id"
             ).execute()

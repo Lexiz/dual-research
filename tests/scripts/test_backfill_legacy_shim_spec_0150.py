@@ -9,6 +9,7 @@ data the post-deletion FE can't render correctly.
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 from pathlib import Path
 
@@ -262,3 +263,130 @@ def test_parse_phase_num_accepts_known_shapes(script_mod, payload_phase, expecte
 @pytest.mark.parametrize("bad", ["", "final", "phase9", "phaseN", "garbage", "7", None, 4, []])
 def test_parse_phase_num_rejects_bad_shapes(script_mod, bad) -> None:
     assert script_mod.parse_phase_num(bad) is None
+
+
+# ── Pass 3: per-turn bundle translation (keys only, text values intact) ──
+
+
+@pytest.mark.parametrize("name,expected", [
+    ("phase0_claude.json", 0),
+    ("phase2_round1_claude.json", 2),
+    ("phase4_round12_gpt.json", 4),
+    ("phase0_round3_gpt.json", 0),
+])
+def test_phase_num_from_filename_known_shapes(script_mod, name, expected) -> None:
+    assert script_mod._phase_num_from_filename(name) == expected
+
+
+@pytest.mark.parametrize("bad", ["input.json", "extra.json", "transcript.jsonl", ""])
+def test_phase_num_from_filename_rejects_non_phase(script_mod, bad) -> None:
+    assert script_mod._phase_num_from_filename(bad) is None
+
+
+def test_translate_pieces_in_bundle_legacy_text(script_mod) -> None:
+    """Per-turn bundle translation maps keys only; text values are
+    preserved byte-identical."""
+    out = script_mod._translate_pieces_in_bundle({
+        "system": "TASK\n\nDo X.",
+        "brief": "# Brief\n\nFull brief text here.",
+        "d1": "Phase 1 claude draft body...",
+        "draft": "Current Phase 4 draft body...",
+    }, phase_num=4)
+    assert out == {
+        "system.task.review": "TASK\n\nDo X.",
+        "user_prompt.message": "# Brief\n\nFull brief text here.",
+        "phase1.claude": "Phase 1 claude draft body...",
+        "current_draft": "Current Phase 4 draft body...",
+    }
+
+
+def test_translate_pieces_in_bundle_canonical_passthrough(script_mod) -> None:
+    """An already-canonical bundle round-trips byte-identical."""
+    src = {
+        "system.task.plan_negotiation": "...",
+        "user_prompt.message": "...",
+        "phase1.claude": "...",
+    }
+    assert script_mod._translate_pieces_in_bundle(src, phase_num=2) == src
+
+
+def test_translate_pieces_in_bundle_prefer_canonical(script_mod) -> None:
+    """If a legacy key and its canonical sibling both appear, canonical
+    wins and the legacy is silently dropped."""
+    out = script_mod._translate_pieces_in_bundle({
+        "system": "OLD",
+        "system.task.review": "NEW",
+        "brief": "B",
+    }, phase_num=4)
+    assert out == {
+        "system.task.review": "NEW",
+        "user_prompt.message": "B",
+    }
+
+
+def test_plan_pass3_identifies_legacy_files(script_mod, tmp_path) -> None:
+    """plan_pass3 walks runs/*/inputs/ and flags legacy-keyed files."""
+    run = tmp_path / "20260518-000000-historical-run"
+    inputs = run / "inputs"
+    inputs.mkdir(parents=True)
+    (inputs / "input.json").write_text(json.dumps({"pieces": {"user_prompt.message": "x"}}))
+    (inputs / "phase2_round1_claude.json").write_text(json.dumps({
+        "pieces": {"brief": "B", "d1": "D1", "draft": "DRAFT"}
+    }))
+    (inputs / "phase4_round3_gpt.json").write_text(json.dumps({
+        "pieces": {"system": "S", "draft": "D"}
+    }))
+    counts, candidates = script_mod.plan_pass3(tmp_path)
+    assert counts.total_per_turn_files == 2
+    assert counts.legacy_files_to_translate == 2
+    assert counts.files_with_mixed_keys == 0
+    assert candidates == [run]
+
+
+def test_plan_pass3_skips_canonical_files(script_mod, tmp_path) -> None:
+    """plan_pass3 leaves already-canonical files alone."""
+    run = tmp_path / "20260521-010637-anchor"
+    inputs = run / "inputs"
+    inputs.mkdir(parents=True)
+    (inputs / "phase2_round1_claude.json").write_text(json.dumps({
+        "pieces": {
+            "system.task.plan_negotiation": "S",
+            "user_prompt.message": "B",
+            "phase1.claude": "D",
+        }
+    }))
+    counts, candidates = script_mod.plan_pass3(tmp_path)
+    assert counts.total_per_turn_files == 1
+    assert counts.legacy_files_to_translate == 0
+    assert candidates == []
+
+
+def test_execute_pass3_no_push_translates_in_place(script_mod, tmp_path) -> None:
+    """execute_pass3 with push=False writes back translated files only."""
+    import json as _json
+
+    run = tmp_path / "20260518-000000-historical-run"
+    inputs = run / "inputs"
+    inputs.mkdir(parents=True)
+    f = inputs / "phase2_round1_claude.json"
+    f.write_text(_json.dumps({
+        "pieces": {"brief": "B", "d1": "D1", "draft": "DRAFT"}
+    }, indent=2))
+    _, candidates = script_mod.plan_pass3(tmp_path)
+    assert candidates == [run]
+
+    dirs_t, files_t, pushed = script_mod.execute_pass3(candidates, push=False)
+    assert dirs_t == 1
+    assert files_t == 1
+    assert pushed == 0
+
+    data = _json.loads(f.read_text(encoding="utf-8"))
+    assert data["pieces"] == {
+        "user_prompt.message": "B",
+        "phase1.claude": "D1",
+        "current_draft": "DRAFT",
+    }
+
+    # Idempotent: re-running translates nothing.
+    _, candidates2 = script_mod.plan_pass3(tmp_path)
+    assert candidates2 == []
