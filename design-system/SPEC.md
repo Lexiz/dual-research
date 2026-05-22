@@ -320,6 +320,8 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 | **Divider** | `.md-divider`, `.md-divider--inset` | — | Hairline, optional inset. |
 | **AgentStrip** | `.as` | `<AgentStrip>` | Equal-width agent identifier with model, tokens, cost, status. Both pills share width via `flex: 1 1 0`. Compact 4 px vertical padding. Inside `.tl__head` / `.tl__tabs` (the `.in-header` variant), the strip carries an 8 % `color-mix` tonal background matching the provider (spec 0164 §2.5). |
 | **Timeline card** | `.tl-thread` (always rendered as `.qthread.tl-thread`) | — (JSX inline in `run-detail.jsx`) | Filled M3 card for one turn row in the timeline pane (spec 0164 §2.4). Surface-container-high background, outline-variant border, 16 dp radius. Four states (rest / hover / expanded-rest / expanded-hover) — hover lifts to `--md-elev-1`, expanded to `--md-elev-2`. Provider stripe via native CSS `:has()` against the card-head identity chip: 2 px sable for Claude, sage for GPT, idle grey for System cards. `overflow: hidden` clips the expanded body's bottom corners during the lift transition. |
+| **SystemChip** | `.chip.tone-neutral.no-dot` (with `.chip-leading-icon`) | `<SystemChip>` | Agentless identity chip — the canonical leading chip on cards where no AI agent owns the turn (Phase 0 brief, future orchestrator status messages, render-error fallback). Anatomy mirrors `<AgentIcon>`: a 12×12 `--p-idle`-coloured square containing the Material `settings` gear at 8×8. Label `System`. Background inside `.tl-card-head` scopes to 20 % `color-mix` of `--p-idle` (spec 0165 §2.2 / 0166 §2.1). |
+| **ErrorChip** | `.chip.tone-err.no-dot` (with `.chip-leading-icon`) | `<ErrorChip label="…">` | Canonical "couldn't render" chip — sits in place of an activity chip when the data layer hands the renderer something it can't stringify. Inherits the standard `.chip.tone-err` background + text colours (no scoped override). The `label` prop must be one of the canonical phrases in §9.5 (defaults to `"Could not render this turn"`); the same string is mirrored to `aria-label`. Anatomy: filled error-circle SVG at 12×12 in `currentColor` + text label. Spec 0166 §2.2. |
 | **CollapsibleSection** | `.cs-*` | `<CollapsibleSection>` | Generic disclosure primitive. Rotating chevron + count chip. Persists open/closed to `localStorage`. Used inside critique pane sections, How-It-Works sections, timeline phase groups. |
 | **QuoteCallout** | `.quote-callout` | `<QuoteCallout>` | Styled callout for quote fields on critique cards. Left border tinted by agent + serif italic + muted bg. |
 | **LoadingState** | `.dr-loading-*` | `<LoadingState>` | Three sizes: `inline` (14 px spinner, row), `panel` (28 px, column), `page` (44 px, column). Spinner + label + optional hint. Default hint: "Just a moment, please." **The one loading visual everywhere.** |
@@ -430,6 +432,12 @@ Light-mode chip-text backstop (spec 0165 §2.6). `body.light .tl-card-head .chip
 **Phase-header category bubble dim** (spec 0165 §2.4). Inside `.tl-phase__chips`, the `.cat-bubble` (Q / D / I / C knockout-white letter on a brand-tone fill) drops to 70 % alpha so the bubble doesn't dominate the chip's 18 %-tinted background. Letter remains knockout-white and legible on all four tones (info / warn / err / idle). Scoped to `.tl-phase__chips` so the critique-pane kind cluster (same `.cat-bubble` primitive, different visual budget) keeps its 100 % saturation.
 
 **Cost chips inside expanded turn cards** (spec 0165 §2.5). The cost chip in `.tl-thread__actions` uses 2-decimal precision via the new `fmtCost2(value)` helper in `run-detail.jsx`. Sub-cent values render as `<$0.01` (so they don't round to `$0.00`). The run-detail footer aggregate continues to use `fmt.cost` (4-decimal) as the audit value — see §4.3.
+
+**Live-state agent strip** (spec 0166 §2.5–§2.6). When `.as.in-header` carries `.is-live`, four reinforcing signals fire together: (a) the spec-0138 §5.1 gradient sweep across the strip; (b) the per-agent dot pulse (sable / sage); (c) the live activity phrase from `composeAgentActivity` (`"negotiating · round 4"` / `"reviewing · round 2"` etc.); (d) **a new `--md-elev-2` shadow lift**. Reduced-motion fallback (per spec 0138 + spec 0166): static surface-container-high background, no sweep, no dot pulse — the elev-2 lift and the live phrase are retained as static signals.
+
+**Agentless brief card** (spec 0166 §2.3). The Phase 0 brief card renders `[SystemChip] [Chip mono label="brief"]` — the canonical `[identity] [activity]` composition pattern that agent turn cards use (`[Claude] [turn 2]` / `[GPT] [turn 1]`). The spec-0119 §8.8 file-document leading icon is gone — System is the canonical identity now.
+
+**Defensive turn-render** (spec 0166 §2.4). The activity-label derivation in `TlTurnRow` type-checks `item.round` before stringifying. Non-numeric values trigger the `[SystemChip] [ErrorChip]` fallback rather than rendering `turn [object object]`. Once the data layer is correct, this branch never fires — it's a safety net.
 
 ### 4.5 — Agent input panel + PhaseRail + RoundScrubber
 
@@ -600,7 +608,9 @@ Render order inside the chip: leading slot → label → value → add → sub �
 | Kind | Leading | Label | Value | Deltas | Where |
 |---|---|---|---|---|---|
 | **Provider** | AgentIcon | "Claude" / "GPT" | — | — | every card header, every lifecycle row, every filter |
+| **System identity** | gear glyph in 12×12 `--p-idle` square | "System" | — | — | agentless cards (Phase 0 brief, orchestrator status, render-error fallback) — spec 0166 §2.1 |
 | **Activity / round** | — | "brief" / "preflight" / "turn N" / "draft" / "review rN" | — | — | every timeline card |
+| **Error** | filled-error-circle 12×12 | one of §9.5's canonical Error phrases | — | — | sits in place of the Activity chip when the data layer hands the renderer something it can't stringify — spec 0166 §2.2 / §2.4 |
 | **Category counter (dense)** | category-bubble (Q/D/I/C) | — | standing | +raised, −closed | timeline turn cards; phase headers |
 | **Category filter (legend)** | category-bubble | "Questions" / "Disagreements" / "Issues" / "Comments" | total | — | critique pane filter row only |
 | **Status** | dot OR check | "running" / "agreed" / "queued" or none | — | — | every timeline card (right-aligned); critique card header |
@@ -635,6 +645,7 @@ Render order inside the chip: leading slot → label → value → add → sub �
 | Lifecycle | raised · addressed · resolved · acknowledged · withdrawn · capped · "raised again" | conceded · answered · noted · accepted · non_blocking_limitation |
 | Turn status | running · agreed (preceded by ✓) · queued · bare ✓ for completed | repair · NEGOTIATING · REVIEWING · APPROVED · BRIEF_OK · drafting · thinking |
 | Modifier | "via hard cap" · "via ghost cap" · "⊘ N capped" · "↻ closeout" · "⚠ unverified" · "⚠ ledger drift" | "ghosted N rounds" · run-wide drift |
+| Error (spec 0166 §2.2) | "Could not render this turn" · "Turn data missing" · "Agent timed out" · "Empty turn received" | `[object object]` · raw exception messages · stack traces · error codes |
 
 Enforcement: `tests/contract/test_ui_vocabulary.py` scans `src/dual_research/ui/static/` for the forbidden literals and fails CI if any chip-rendering surface drifts. Legitimate data-layer compat references carry a `// spec-0119:vocab-ok` marker.
 

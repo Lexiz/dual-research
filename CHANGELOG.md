@@ -10,6 +10,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.27.0] — 2026-05-22
+
+### Added
+
+- **Spec 0166 — Timeline pane: System + Error chip primitives + brief-card refactor + live-state lift + turn-render data-layer guard** ([spec 0166](specs/0166-timeline-pane-system-error-chips-and-live-state.md)). Two new chip primitives, one canonical agentless composition, one defensive render path, one live-state visual lift.
+- **`<SystemChip>` primitive** ([src/dual_research/ui/static/shared.jsx](src/dual_research/ui/static/shared.jsx)) — agentless identity chip. 12×12 `--p-idle`-coloured square with the Material `settings` gear at 8×8, label `System`. Sits as the leading chip on cards where no AI agent owns the turn (Phase 0 brief, future orchestrator status messages, render-error fallback). Anatomy mirrors `<AgentIcon>` exactly so `[System] [brief]` composes the same way `[Claude] [turn 2]` does.
+- **`<ErrorChip label="…">` primitive** ([src/dual_research/ui/static/shared.jsx](src/dual_research/ui/static/shared.jsx)) — canonical "couldn't render" chip. Filled error-circle SVG at 12×12 + text label, on `.chip.tone-err`. Label vocabulary canonicalised in [design-system/SPEC.md](design-system/SPEC.md) §9.5: `"Could not render this turn"` (default), `"Turn data missing"`, `"Agent timed out"`, `"Empty turn received"`. Raw exception messages, stack traces, and error codes are explicitly forbidden — the human phrase is the contract.
+- **Brief-card refactor** ([src/dual_research/ui/static/run-detail.jsx](src/dual_research/ui/static/run-detail.jsx)). The Phase 0 brief card now renders `[SystemChip] [Chip mono label="brief"]` — the canonical `[identity] [activity]` composition pattern. Replaces the spec-0119 §8.8 `<Chip leadingIcon={<Icon.FileDocument />}>` variant.
+- **Defensive turn-render guard** ([src/dual_research/ui/static/run-detail.jsx](src/dual_research/ui/static/run-detail.jsx)). The activity-label derivation type-checks `item.round` before stringifying. Non-numeric values trigger the `[SystemChip] [ErrorChip "Could not render this turn"]` fallback rather than rendering `turn [object object]`. Once the data-layer regression is fixed upstream, this branch never fires — it's a safety net.
+- **Live-state agent-strip lift (§2.6)** ([components.css](src/dual_research/ui/static/components.css), [composed-components.css](design-system/assets/styles/composed-components.css)). `.as.in-header.is-live` now carries `box-shadow: var(--md-elev-2)` with a standard-easing transition. Fourth reinforcing live signal alongside the spec-0138 §5.1 gradient sweep, the per-agent dot pulse, and the live activity phrase from `composeAgentActivity` (all of which already shipped in production). Retained under `prefers-reduced-motion: reduce`.
+- **`@keyframes pulse-info`** ([components.css](src/dual_research/ui/static/components.css), [composed-components.css](design-system/assets/styles/composed-components.css)). Defines the canonical info-blue halo pulse that `.sb-running > .dot` (StatusBadge) has been referencing as a silent no-op (the keyframe was never declared). Adding it makes the existing reference live. The timeline-strip dot intentionally keeps its existing per-agent brand pulse (`pulse-a` / `pulse-b` from spec 0138) — `pulse-info` is reserved for surfaces where the running state isn't agent-coloured.
+
+### Notes on spec deviations
+
+- **§2.5 dot-color rewire — skipped.** The spec proposed flipping the in-header activity dot from `var(--md-outline)` (grey, off) → `var(--p-info)` (info-blue, on) when the strip is `.is-live`. Production already implements §2.5's intent (the `.is-live` class is wired at [run-detail.jsx:193](src/dual_research/ui/static/run-detail.jsx) via spec 0138, and the dot uses the per-agent brand color via `composeAgentActivity`'s `live` boolean → `meta.color`). Flipping the dot to info-blue would regress spec 0138's brand-identity reading. The §2.6 elev-2 lift and the §2.5 `pulse-info` keyframe addition still apply — the only piece dropped was the dot-color rewire itself.
+- **§2.4 upstream data-layer fix — deferred.** The defensive guard at [run-detail.jsx:1155](src/dual_research/ui/static/run-detail.jsx) catches the `[object object]` symptom and renders the canonical error chip composition instead. The upstream regression that puts an object into `item.round` in the anchor run `20260521-010637-dvs-backend-language-choice` Phase 4 is not located in `run-detail.jsx` — it's upstream in the Python aggregator or the live-data shaping path. Deferred to a separate spec because finding it requires reproducing the anchor run + bisecting recent aggregator changes.
+
 ## [1.26.0] — 2026-05-22
 
 ### Changed

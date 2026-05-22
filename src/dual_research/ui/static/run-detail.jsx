@@ -1152,14 +1152,35 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   );
 
   // Spec 0115 — full-word activity label (no single-letter badge).
-  const activityLabel = item.round != null ? `Turn ${item.round}`
-                      : item.kind === 'input' ? 'Brief'
-                      : item.kind === 'preflight' ? 'Preflight'
-                      : item.kind === 'plan' ? 'Plan'
-                      : item.kind === 'plan-live' ? 'Plan'
-                      : item.kind === 'doc' ? 'Draft'
-                      : item.kind === 'doc-live' ? 'Draft'
-                      : item.kind || '—';
+  // Spec 0166 §2.4 — defensive guard: an upstream regression in the
+  // anchor run `20260521-010637-dvs-backend-language-choice` (Phase 4
+  // cross-review) handed `item.round` an object instead of a numeric
+  // index, producing `turn [object object]` after the lowercase pass.
+  // If we ever get a non-number where a number is expected, set
+  // `activityLabelError` so the chip render falls back to a SystemChip +
+  // ErrorChip pair rather than stringifying the object. The check is
+  // strictly a safety net — once the data layer is correct, this branch
+  // never fires.
+  let activityLabel;
+  let activityLabelError = null;
+  if (item.round != null) {
+    if (typeof item.round === 'number') {
+      activityLabel = `Turn ${item.round}`;
+    } else {
+      activityLabelError = 'Could not render this turn';
+      activityLabel = '—';
+    }
+  } else if (item.kind === 'input') {
+    activityLabel = 'Brief';
+  } else if (item.kind === 'preflight') {
+    activityLabel = 'Preflight';
+  } else if (item.kind === 'plan' || item.kind === 'plan-live') {
+    activityLabel = 'Plan';
+  } else if (item.kind === 'doc' || item.kind === 'doc-live') {
+    activityLabel = 'Draft';
+  } else {
+    activityLabel = item.kind || '—';
+  }
 
   const phase = item.phase ?? null;
 
@@ -1222,16 +1243,23 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
             label={agentName}
           />
         )}
-        {/* Spec 0119 §8.8 — Phase 0 brief card is the only no-agent
-            card; it gets a file-document glyph as its leading icon so
-            it reads as "the document we're working from" rather than
-            as an activity step. */}
-        {!agent && item.kind === 'input' ? (
-          <Chip
-            tone="neutral"
-            leadingIcon={<Icon.FileDocument size={12} />}
-            label="brief"
-          />
+        {/* Spec 0166 §2.3 / §2.4 — three branches in the activity-chip slot.
+            Defensive path FIRST: if the data layer handed us a non-numeric
+            turn index, render [SystemChip] [ErrorChip] so the card head
+            never carries `turn [object object]`. Otherwise: agentless brief
+            card → [SystemChip] [brief] (replaces the spec-0119 file-document
+            glyph variant — System is the canonical identity now). Agent
+            cards: mono activity chip as before. */}
+        {activityLabelError ? (
+          <>
+            <SystemChip />
+            <ErrorChip label={activityLabelError} />
+          </>
+        ) : !agent && item.kind === 'input' ? (
+          <>
+            <SystemChip />
+            <Chip mono tone="neutral" label="brief" />
+          </>
         ) : (
           <Chip mono tone="neutral" label={activityLabel.toLowerCase()} />
         )}

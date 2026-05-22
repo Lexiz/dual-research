@@ -1701,6 +1701,32 @@ body.light .ccx-bar .reuse {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Live-state elevation lift (spec 0166 §2.6)
+
+   When the in-header agent strip is `.is-live`, lift it with --md-elev-2.
+   Fourth reinforcing live signal alongside the spec-0138 §5.1 gradient
+   sweep, the per-agent dot pulse, and the live activity phrase.
+   Retained under reduced-motion (shadow is a static signal).
+   ───────────────────────────────────────────────────────────── */
+.as.in-header.is-live {
+  box-shadow: var(--md-elev-2);
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   pulse-info keyframe (spec 0166 §2.5)
+
+   Canonical info-blue halo pulse. The timeline-strip dot keeps its
+   existing per-agent brand pulse (spec 0138 pulse-a / pulse-b);
+   pulse-info is reserved for surfaces where the running state isn't
+   agent-coloured (StatusBadge .sb-running, future surfaces).
+   ───────────────────────────────────────────────────────────── */
+@keyframes pulse-info {
+  0%, 100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--p-info) 60%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-info)  0%, transparent); }
+}
+
+/* ─────────────────────────────────────────────────────────────
    Timeline chip polish (spec 0165 §2.2 / §2.3)
 
    Scoped to `.tl-card-head` only — the global `.chip.tone-*` rules

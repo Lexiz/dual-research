@@ -620,6 +620,45 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Live-state elevation lift (spec 0166 §2.6)
+
+   When the in-header agent strip is .is-live, lift it with --md-elev-2.
+   Fourth reinforcing live signal alongside the spec-0138 sweep, the
+   per-agent dot pulse, and the live activity phrase. Retained under
+   reduced-motion (shadow is a static signal — no animation).
+   ───────────────────────────────────────────────────────────── */
+.as.in-header.is-live {
+  box-shadow: var(--md-elev-2);
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   pulse-info keyframe (spec 0166 §2.5)
+
+   This keyframe was already referenced at components.css line ~88
+   (`.sb-running > .dot { animation: pulse-info 2.2s ease-out infinite }`)
+   but the keyframe itself was never defined — silent no-op. Adding it
+   here so existing call sites animate, and so future surfaces have
+   a canonical info-blue halo pulse available.
+
+   The timeline-strip dot keeps its existing per-agent brand-tinted
+   pulse (spec 0138 — pulse-a / pulse-b) — info-blue is reserved for
+   surfaces where the running state isn't agent-coloured.
+   ───────────────────────────────────────────────────────────── */
+@keyframes pulse-info {
+  0%, 100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--p-info) 60%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-info)  0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-running > .dot,
+  .as.in-header.is-live .activity-dot {
+    animation: none;
+    box-shadow: none;
+  }
+}
+
 /* AgentIcon (.ai) — agent logo tile */
 .ai {
   display: inline-flex;
