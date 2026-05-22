@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.22.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: 2026-05-22T13:29:58Z
 started_at: "2026-05-22T14:00:54Z"
 merged_at: "2026-05-22T14:05:02Z"
-deployed_at: ""
+deployed_at: "2026-05-22T14:07:02Z"
 pr: "https://github.com/Lexiz/dual-research/pull/181"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0158-deferred-spec-subagent.md"
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
