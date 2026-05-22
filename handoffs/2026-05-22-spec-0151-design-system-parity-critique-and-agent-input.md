@@ -1,3 +1,10 @@
+---
+spec: "0151"
+date: 2026-05-22
+version: 1.16.0
+pr: "https://github.com/Lexiz/dual-research/pull/173"
+---
+
 # Handover — Spec 0151 — Design-system parity for critique surface + canonical Agent Input grouping + run-ID copy affordance (v1.16.0)
 
 - **Date:** 2026-05-22

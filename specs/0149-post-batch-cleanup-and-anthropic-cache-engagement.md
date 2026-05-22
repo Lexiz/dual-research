@@ -1,14 +1,27 @@
 ---
-spec: 0149
+kind: dev
+spec: "0149"
+slug: post-batch-cleanup-and-anthropic-cache-engagement
 title: Post-batch cleanup + Anthropic cache engagement + protocol follow-ups
+type: new-feature
 label: new-feature
-version-bump: MINOR
-status: ready
-target-version: 1.14.0
+version_bump: MINOR
+target_version: 1.14.0
+status: deployed
+queue_position: 0
+depends_on: []
+complexity: M
 created: 2026-05-22
-pr: ""
+queued_at: ""
+started_at: ""
+merged_at: "2026-05-22T01:00:00Z"
+deployed_at: "2026-05-22T01:00:00Z"
+pr: "https://github.com/Lexiz/dual-research/pull/171"
+handover: "handoffs/2026-05-22-spec-0149-post-batch-cleanup-and-anthropic-cache-engagement.md"
+failure_step: ""
+source_session: pre-lifecycle-bootstrap
+promoted_from_draft: ""
 ---
-
 # Spec 0149 — Post-batch cleanup, Anthropic cache engagement, and protocol follow-ups
 
 > Ship bucket: **The long-tail spec. Closes all post-batch-cleanup-audit rows except D15 (legacy-shim sunset, owned by 0150) and D05 (input.json backfill, consolidated into 0150 alongside D15's backfill). Marquee item is D02 — the Anthropic `cache_control` engagement fix — which is the only real cost-impact change in the batch. Everything else is small individually but accumulates: one new protocol op (D08), one prompt tightening (D04), one search-citation tightening (D17), one validator measurement (D18), one rich-preview UI surface (D19), a pricing-rate audit (D06), an anchor-run salvage script (D07), three cleanup deletions (D20, D22, D23), a diagram regeneration (D21), and two operational hand-offs (D09 fresh-run smoke, D24 fly support ticket).**

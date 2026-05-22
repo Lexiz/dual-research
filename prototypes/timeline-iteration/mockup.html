@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Timeline iteration — Live ↔ Design system (verbatim)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+<style>
+/* =============================================================
+   This wrapper does ONE thing: a tab switch between two iframes.
+   - tab "live"   loads ./live.html which contains the verbatim
+     outerHTML of `.rdvc__pane` dumped from the live dev server
+     at http://localhost:6173/#/runs/20260521-…  on 2026-05-22.
+   - tab "ds"     loads ./ds.html which contains the verbatim
+     `<section id="timeline">` from Design System v2.html §16.
+   Both iframes pull the SAME CSS files the underlying pages
+   load (live: src/dual_research/ui/static/*.css ;
+        ds:   design-system/assets/styles/v2-m3{,-page}.css).
+   No transcription. No extrapolation.
+   ============================================================= */
+
+:root {
+  --md-surface: #0d0f12;
+  --md-surface-container: #14171c;
+  --md-surface-container-high: #191c21;
+  --md-on-surface: #ffffff;
+  --md-on-surface-variant: #b4bac4;
+  --md-on-surface-faint: #7d8290;
+  --md-outline-hair: #1c1f24;
+  --md-primary: #d4a574;
+  --md-on-primary: #1f1407;
+  --md-primary-container: rgba(212,165,116,0.18);
+  --md-on-primary-container: #f3deca;
+  --md-secondary: #7cc4b8;
+  --md-on-secondary-container: #cfece6;
+  --md-shape-full: 9999px;
+  --md-shape-xs: 4px;
+  --p-sable: #d4a574;
+  --p-sage: #7cc4b8;
+  --md-font-plain: "Roboto Flex", "Roboto", system-ui, -apple-system, sans-serif;
+  --md-font-data: "Roboto Flex", "Roboto", ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--md-surface); color: var(--md-on-surface); font-family: var(--md-font-plain); }
+
+.toolbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px;
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  height: 56px;
+}
+.toolbar h1 { font-size: 16px; font-weight: 600; margin: 0; color: var(--md-on-surface); }
+.toolbar .ver {
+  font: 600 10px/1 var(--md-font-data);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 4px 8px; border-radius: var(--md-shape-xs);
+  background: var(--md-surface-container-high); color: var(--md-on-surface-faint);
+}
+.toolbar__spacer { flex: 1; }
+
+.tab-switch {
+  display: inline-flex;
+  background: var(--md-surface-container-high);
+  border-radius: var(--md-shape-full);
+  padding: 4px; gap: 2px;
+}
+.tab-switch__opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 16px;
+  border: 0; cursor: pointer;
+  background: transparent;
+  border-radius: var(--md-shape-full);
+  font: 500 13px/1 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+}
+.tab-switch__opt[aria-pressed="true"] {
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  box-shadow: 0 1px 2px 0 rgba(0,0,0,.30);
+}
+.tab-switch__opt[data-tab="proposed"] .dot { background: #6b9cf0; }
+.tab-switch__opt[data-tab="live"]     .dot { background: var(--p-sable); }
+.tab-switch__opt[data-tab="ds"]       .dot { background: var(--p-sage); }
+.tab-switch__opt .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+.note {
+  padding: 6px 14px;
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  font-size: 11px; color: var(--md-on-surface-faint);
+}
+.note code { font-family: var(--md-font-data); color: var(--md-on-surface); background: var(--md-surface-container-high); padding: 1px 5px; border-radius: 3px; font-size: 10.5px; }
+
+.frames {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 86px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.split-half {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  border-right: 1px solid var(--md-outline-hair);
+}
+.split-half:last-of-type { border-right: 0; }
+.split-half[hidden] { display: none; }
+.split-label {
+  padding: 5px 12px;
+  font: 600 10px/1 var(--md-font-data);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--md-on-surface-faint);
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+  flex: 0 0 auto;
+}
+.split-half iframe { flex: 1; min-height: 0; }
+.frame {
+  width: 100%; height: 100%;
+  border: 0; background: var(--md-surface);
+}
+.frame.single {
+  grid-column: 1 / -1;
+}
+.frame[hidden] { display: none; }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <h1>Timeline iteration</h1>
+    <span class="ver">verbatim · 2026-05-22</span>
+    <span class="toolbar__spacer"></span>
+    <div class="tab-switch" role="tablist" aria-label="View">
+      <button class="tab-switch__opt" role="tab" data-tab="proposed" aria-pressed="true"  onclick="setTab('proposed')">
+        <span class="dot"></span>Proposed (iterating)
+      </button>
+      <button class="tab-switch__opt" role="tab" data-tab="live" aria-pressed="false" onclick="setTab('live')">
+        <span class="dot"></span>Live (verbatim · :6173)
+      </button>
+      <button class="tab-switch__opt" role="tab" data-tab="ds"   aria-pressed="false" onclick="setTab('ds')">
+        <span class="dot"></span>Design system (DS v2.html §16)
+      </button>
+    </div>
+  </div>
+
+  <div class="note" id="note">
+    Proposed · iter 12 · elev-2 on live agent strip · prior: live sweep animation · activity chip + cost · bubbles dimmed · agent strip tint + card stripe + radius · chip polish · gutter · M3 cards · System chip · pcode · marker
+  </div>
+
+  <div class="frames">
+    <div class="split-half" id="split-proposed-dark">
+      <div class="split-label">Dark</div>
+      <iframe class="frame" id="frame-proposed-dark" src="proposed.html?theme=dark" title="Proposed (dark)"></iframe>
+    </div>
+    <div class="split-half" id="split-proposed-light">
+      <div class="split-label">Light</div>
+      <iframe class="frame" id="frame-proposed-light" src="proposed.html?theme=light" title="Proposed (light)"></iframe>
+    </div>
+    <iframe class="frame single" id="frame-live" src="live.html" title="Live timeline pane (verbatim)" hidden></iframe>
+    <iframe class="frame single" id="frame-ds"   src="ds.html"   title="Design system §16 timeline" hidden></iframe>
+  </div>
+
+  <script>
+    const NOTE = {
+      proposed: `Proposed · iter 12 · elev-2 on live agent strip · prior: live sweep animation · activity chip + cost · bubbles dimmed · agent strip tint + card stripe + radius · chip polish · gutter · M3 cards · System chip · pcode · marker`,
+      live:     `Live · <code>.rdvc__pane</code> dumped via <code>preview_eval(document.querySelector('.rdvc__pane').outerHTML)</code> on the live dev server. Saved verbatim to <code>live.html</code>. Same CSS files loaded.`,
+      ds:       `DS · <code>&lt;section id="timeline"&gt;</code> copied verbatim from <code>design-system/assets/Design System v2.html</code> lines 1685–1793 into <code>ds.html</code>. Same CSS files loaded.`
+    };
+    function setTab(name) {
+      const isProposed = name === 'proposed';
+      document.getElementById('split-proposed-dark').hidden  = !isProposed;
+      document.getElementById('split-proposed-light').hidden = !isProposed;
+      document.getElementById('frame-live').hidden = (name !== 'live');
+      document.getElementById('frame-ds').hidden   = (name !== 'ds');
+      document.querySelectorAll('.tab-switch__opt').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === name ? 'true' : 'false'));
+      document.getElementById('note').innerHTML = NOTE[name];
+      try { localStorage.setItem('tl-iter-tab', name); } catch (e) {}
+    }
+    try {
+      const t = localStorage.getItem('tl-iter-tab');
+      if (t && NOTE[t]) setTab(t);
+    } catch (e) {}
+  </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Critique-iteration kickoff prompt — copy</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #14171c;
+    --surface-hi: #191c21;
+    --surface-higher: #21252b;
+    --border: #1c1f24;
+    --border-vis: #262a31;
+    --text: #ffffff;
+    --text-mid: #b4bac4;
+    --text-dim: #7d8290;
+    --primary: #d4a574;
+    --primary-on: #1f1407;
+    --ok: #6fb380;
+    --info: #6b9cf0;
+    --font: "Roboto Flex","Roboto",system-ui,-apple-system,sans-serif;
+    --font-data: "Roboto Flex","Roboto",ui-monospace,monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+  .toolbar {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    height: 72px;
+  }
+  .toolbar h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  .toolbar .sub {
+    font-family: var(--font-data); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); padding: 4px 8px; background: var(--surface-hi);
+    border-radius: 4px; margin-left: 4px;
+  }
+  .toolbar .spacer { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 20px;
+    border: 0; cursor: pointer;
+    border-radius: 9999px;
+    background: var(--primary); color: var(--primary-on);
+    font: 600 14px/1 var(--font);
+    letter-spacing: 0.01em;
+    transition: filter 150ms ease, background 150ms ease;
+  }
+  .btn:hover  { filter: brightness(1.05); }
+  .btn:active { filter: brightness(0.95); }
+  .btn .ms    { font-size: 18px; font-family: 'Material Symbols Outlined'; vertical-align: middle; }
+  .btn.is-copied { background: var(--ok); color: #06201d; }
+
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 36px; padding: 0 14px;
+    border: 1px solid var(--border-vis); cursor: pointer;
+    border-radius: 9999px;
+    background: transparent; color: var(--text-mid);
+    font: 500 13px/1 var(--font);
+  }
+  .btn-ghost:hover { background: var(--surface-hi); color: var(--text); }
+  .btn-ghost .ms { font-family: 'Material Symbols Outlined'; font-size: 16px; vertical-align: middle; }
+
+  .lead {
+    padding: 18px 24px;
+    color: var(--text-mid);
+    font-size: 13.5px; line-height: 1.55;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .lead code {
+    font-family: var(--font-data); font-size: 12px;
+    padding: 2px 6px; border-radius: 3px;
+    background: var(--surface-higher); color: var(--text);
+  }
+  .lead .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 22px; padding: 0 10px; border-radius: 9999px;
+    background: rgba(212, 165, 116, 0.18); color: #f3deca;
+    font: 500 11px/1 var(--font); letter-spacing: 0.04em;
+    margin-right: 6px; vertical-align: middle;
+  }
+
+  .stage {
+    padding: 24px;
+    max-width: 1100px; margin: 0 auto;
+  }
+
+  .pre-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border-vis);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .pre-wrap__head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface-hi);
+    border-bottom: 1px solid var(--border);
+    font: 500 11px/1 var(--font-data);
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .pre-wrap__head .spacer { flex: 1; }
+  .pre-wrap__head .stat {
+    font-family: var(--font-data); font-size: 11px;
+    color: var(--text-dim);
+  }
+  .pre-wrap__head .stat b { color: var(--text); font-weight: 600; }
+
+  pre.prompt {
+    margin: 0;
+    padding: 20px 24px;
+    overflow-x: auto;
+    max-height: 70vh; overflow-y: auto;
+    font: 400 12.5px/1.55 var(--font-data);
+    color: var(--text-mid);
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 2;
+  }
+  pre.prompt strong, pre.prompt b {
+    color: var(--text); font-weight: 600;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    padding: 10px 16px;
+    background: var(--ok); color: #06201d;
+    border-radius: 9999px;
+    font: 600 13px/1 var(--font);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 200ms, transform 200ms;
+    pointer-events: none;
+  }
+  .toast.is-shown { opacity: 1; transform: translateY(0); }
+
+  .error {
+    padding: 20px 24px;
+    background: rgba(217, 106, 106, 0.12);
+    color: #d96a6a;
+    border-radius: 12px;
+    border: 1px solid rgba(217, 106, 106, 0.4);
+    font: 400 13.5px/1.55 var(--font);
+  }
+  .error b { color: #f3c8c5; }
+
+  @media (max-width: 640px) {
+    .toolbar { height: auto; flex-wrap: wrap; padding: 12px 16px; }
+    .toolbar h1 { font-size: 16px; }
+    .stage { padding: 16px; }
+    pre.prompt { font-size: 11.5px; padding: 14px 18px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="toolbar">
+    <h1>Critique-iteration kickoff</h1>
+    <span class="sub">2026-05-22</span>
+    <span class="spacer"></span>
+    <button class="btn-ghost" onclick="window.open('KICKOFF-PROMPT.md', '_blank')">
+      <span class="ms">description</span>Open raw .md
+    </button>
+    <button class="btn" id="copyBtn" onclick="copyPrompt()">
+      <span class="ms">content_copy</span><span id="copyBtnLabel">Copy prompt</span>
+    </button>
+  </header>
+
+  <div class="lead">
+    <span class="pill">Workshop kickoff</span>
+    Self-contained prompt for a <b>new Claude Code session</b>. Click <b>Copy prompt</b> above, paste into a fresh session inside the <code>dual-research</code> repo, hit enter. The session will bootstrap the critique-pane workshop (verbatim Live + Design-system iframes + side-by-side dark/light Iteration), stop at the verification step, and wait for your approval before iterating.
+  </div>
+
+  <main class="stage">
+    <div class="pre-wrap">
+      <div class="pre-wrap__head">
+        <span>KICKOFF-PROMPT.md</span>
+        <span class="spacer"></span>
+        <span class="stat" id="stats">loading…</span>
+      </div>
+      <pre class="prompt" id="prompt">Loading prompt…</pre>
+    </div>
+  </main>
+
+  <div class="toast" id="toast">Copied to clipboard</div>
+
+  <script>
+    let promptText = '';
+
+    async function loadPrompt() {
+      try {
+        const r = await fetch('KICKOFF-PROMPT.md');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const t = await r.text();
+        promptText = t;
+        document.getElementById('prompt').textContent = t;
+        const lines = t.split('\n').length;
+        const chars = t.length;
+        document.getElementById('stats').innerHTML =
+          `<b>${lines}</b> lines · <b>${(chars / 1024).toFixed(1)} KB</b>`;
+      } catch (e) {
+        document.getElementById('prompt').outerHTML = `<div class="error" style="margin: 20px 24px;"><b>Could not load KICKOFF-PROMPT.md</b> — ${e.message}. Make sure the prototype-mockup server (port 6174) is running and that you're viewing this file at <code>http://localhost:6174/prototypes/critique-iteration/copy-prompt.html</code>, not as <code>file://</code>.</div>`;
+        document.getElementById('stats').textContent = 'load failed';
+      }
+    }
+
+    async function copyPrompt() {
+      if (!promptText) {
+        alert('Prompt not loaded yet. Wait a moment and try again.');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(promptText);
+        showCopied();
+      } catch (e) {
+        // Fallback: select the pre + execCommand('copy')
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = promptText;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showCopied();
+        } catch (e2) {
+          alert('Could not copy to clipboard automatically. Select the text below and copy manually.\n\nError: ' + (e2.message || e.message));
+        }
+      }
+    }
+
+    function showCopied() {
+      const btn = document.getElementById('copyBtn');
+      const lbl = document.getElementById('copyBtnLabel');
+      const toast = document.getElementById('toast');
+      btn.classList.add('is-copied');
+      lbl.textContent = 'Copied';
+      toast.classList.add('is-shown');
+      setTimeout(() => {
+        btn.classList.remove('is-copied');
+        lbl.textContent = 'Copy prompt';
+        toast.classList.remove('is-shown');
+      }, 1800);
+    }
+
+    loadPrompt();
+  </script>
+</body>
+</html>

@@ -1,14 +1,27 @@
 ---
-spec: 0151
+kind: dev
+spec: "0151"
+slug: critique-parity-agent-input-grouping-run-id-copy
 title: Design-system parity for critique surface + canonical Agent Input grouping + run-ID copy affordance
+type: bug
 label: bug
-version-bump: MINOR
-status: ready
-target-version: 1.16.0
+version_bump: MINOR
+target_version: 1.16.0
+status: deployed
+queue_position: 0
+depends_on: []
+complexity: M
 created: 2026-05-22
-pr: ""
+queued_at: ""
+started_at: ""
+merged_at: "2026-05-22T07:16:27Z"
+deployed_at: "2026-05-22T07:16:27Z"
+pr: "https://github.com/Lexiz/dual-research/pull/173"
+handover: "handoffs/2026-05-22-spec-0151-design-system-parity-critique-and-agent-input.md"
+failure_step: ""
+source_session: pre-lifecycle-bootstrap
+promoted_from_draft: ""
 ---
-
 # Spec 0151 — Design-system parity for critique surface + canonical Agent Input grouping + run-ID copy affordance
 
 > Ship bucket: **Close out four UI regressions accumulated across the 0140–0150 batch — the critique-section header/cards never matched the design-system reference; the split-view Agent Input tab in preflight modals still uses a pre-canonical flat renderer; the three-section Agent Input panel silently hides empty pieces; and the run-ID badge has no explicit copy affordance.**
