@@ -16,9 +16,14 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
+
+# Spec 0156 §2.4 — the deploy-to-Pages job was removed because
+# Pages-from-Actions isn't enabled for this private repo (`gh api
+# /repos/.../pages` returns 422 "Your current plan does not support
+# GitHub Pages for this repository"). The render output is still uploaded
+# as a generic workflow artifact so it's downloadable from the run UI;
+# adding a real hosting path for the rendered dashboard is a follow-up.
 
 jobs:
   render:
@@ -38,18 +43,9 @@ jobs:
       - name: Render dashboard
         run: python -m scripts.spec_lifecycle.render_dashboard --repo-root . --out dashboard/site
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: dashboard-site
           path: dashboard/site
-
-  deploy:
-    needs: render
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          retention-days: 14

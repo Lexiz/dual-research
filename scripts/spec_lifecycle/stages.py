@@ -36,7 +36,9 @@ STAGES: tuple[StageDef, ...] = (
     StageDef("Handoff", "handoff_written", failure_aliases=("handoff",)),
 )
 
-TOLERATED_NON_STAGE_STEPS: frozenset[str] = frozenset({"queued", "in_progress", "failed"})
+TOLERATED_NON_STAGE_STEPS: frozenset[str] = frozenset(
+    {"queued", "in_progress", "failed", "cycle_started"}
+)
 
 
 @dataclass
@@ -46,6 +48,11 @@ class StageState:
     event: dict[str, Any] | None
     duration_seconds: int | None
     note: str
+    # Wall-clock instant this stage began — equal to the prior stage's event
+    # timestamp (or the cycle anchor for stage 0). Used by the live ticker in
+    # render_dashboard.py (spec 0156) to compute incrementing durations
+    # client-side without a server roundtrip.
+    started_at: dt.datetime | None = None
 
 
 def _parse_ts(raw: str | None) -> dt.datetime | None:
@@ -167,8 +174,22 @@ def compute_stages(
 
     fail_idx = _normalize_failure(failure_step)
 
-    # Cycle anchor for stage 0's prior timestamp: prefer in_progress, fall back to queued.
-    anchor_ev = by_step.get("in_progress") or by_step.get("queued")
+    # Cycle anchor for stage 0's prior timestamp. Preference order (spec 0156):
+    #   1. `cycle_started` — emitted at the top of /dev-next step 1, the
+    #      canonical "agent began work" marker. Set this and the pre-flight
+    #      stage gets a real, non-zero duration.
+    #   2. `queued` — fallback for specs that pre-date `cycle_started`. Mixes
+    #      queue-dwell time into pre-flight duration but is non-zero and
+    #      broadly correct for historical specs.
+    #   3. `in_progress` — last-resort fallback. Before spec 0156 this was
+    #      the only anchor; /dev-next emits it in step 12 *alongside* the
+    #      buffered early events, so anchoring here clipped pre-flight,
+    #      read-handoff, and read-spec durations to 0.
+    anchor_ev = (
+        by_step.get("cycle_started")
+        or by_step.get("queued")
+        or by_step.get("in_progress")
+    )
     prev_ts = _parse_ts(anchor_ev.get("ts")) if anchor_ev else None
 
     # Find current stage index (lowest-index stage not done, where prior is done or i==0).
@@ -193,6 +214,7 @@ def compute_stages(
         else:
             status = "queued"
 
+        stage_started_at = prev_ts  # The instant this stage began.
         duration: int | None = None
         if ev is not None:
             ev_ts = _parse_ts(ev.get("ts"))
@@ -210,6 +232,7 @@ def compute_stages(
                 event=ev,
                 duration_seconds=duration,
                 note=_note_for(stage, ev),
+                started_at=stage_started_at,
             )
         )
 

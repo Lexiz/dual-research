@@ -5,3 +5,8 @@
 {"ts":"2026-05-22T13:26:14Z","step":"spec_read","data":{"path":"specs/0156-dashboard-liveness-improvements.md","lines":114,"type":"new-feature"}}
 {"ts":"2026-05-22T13:26:37Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"reconciler false-positives on author-worktree-prefixed paths; targets all exist in this checkout at the cited line numbers"}}
 {"ts":"2026-05-22T13:26:51Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T13:27:00Z","step":"branched","data":{"branch":"spec/0156-dashboard-liveness-improvements","from":"main@558003f"}}
+{"ts":"2026-05-22T13:35:11Z","step":"implement_complete","data":{"files_changed":7,"commits":1}}
+{"ts":"2026-05-22T13:35:44Z","step":"tests_green","data":{"passed":1485,"failed":0}}
+{"ts":"2026-05-22T13:36:36Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/179"}}
+{"ts":"2026-05-22T13:36:36Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/179"}}

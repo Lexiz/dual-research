@@ -340,16 +340,21 @@ def _feed_detail(spec: SpecRow | None, step: str, data: dict[str, Any]) -> str:
 
 
 def _html_head(title: str) -> str:
+    # Auto-refresh every 60s so the dashboard tracks new spec events without
+    # the user reaching for ⌘R. Long enough not to disrupt mid-scroll reads;
+    # short enough that the dashboard feels current. Spec 0156 §2.2.
     return (
         "<!DOCTYPE html>\n"
         "<html lang=\"en\"><head>"
         "<meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        '<meta http-equiv="refresh" content="60">'
         f"<title>{_escape(title)}</title>"
         + GFONTS_HEAD
         + '<link rel="stylesheet" href="tokens.css">'
         + '<link rel="stylesheet" href="components.css">'
         + '<link rel="stylesheet" href="dashboard.css">'
+        + '<script src="dashboard-live.js" defer></script>'
         + "</head>"
     )
 
@@ -403,12 +408,18 @@ def _render_stage_row(stage: StageState) -> str:
         "curr": "in progress",
         "fail": "failed",
     }.get(stage.status, "")
+    # Live ticker (spec 0156 §2.3): the current stage's duration cell carries
+    # a data-stage-started-at attribute so dashboard-live.js can rewrite the
+    # text every second without a page reload.
+    dur_attrs = ""
+    if stage.status == "curr" and stage.started_at is not None:
+        dur_attrs = f' data-stage-started-at="{_escape(stage.started_at.isoformat())}"'
     return (
         f'<li class="stage stage--{stage.status}">'
         f'<span class="stage__mark">{mark_inner}</span>'
         f'<span class="stage__name">{_escape(stage.name)}</span>'
         f'<span class="stage__note">{_escape(note)}</span>'
-        f'<span class="stage__dur">{_escape(dur)}</span>'
+        f'<span class="stage__dur"{dur_attrs}>{_escape(dur)}</span>'
         f'</li>'
     )
 
@@ -423,8 +434,19 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         else "In flight"
     )
 
-    started = _parse_ts(spec.fm.get("started_at"))
-    elapsed_seconds = int((now - started).total_seconds()) if started else None
+    # Cycle anchor preference for the elapsed display (spec 0156): the
+    # `cycle_started` event (emitted in /dev-next step 1) is the canonical
+    # "agent began work" marker. Fall back to frontmatter started_at for
+    # legacy specs that pre-date it.
+    cycle_started_ev = next(
+        (e for e in spec.events if e.get("step") == "cycle_started"), None
+    )
+    cycle_started = (
+        _parse_ts(cycle_started_ev.get("ts")) if cycle_started_ev else None
+    ) or _parse_ts(spec.fm.get("started_at"))
+    elapsed_seconds = (
+        int((now - cycle_started).total_seconds()) if cycle_started else None
+    )
     elapsed = _humanize_seconds(elapsed_seconds) if elapsed_seconds is not None else "—"
 
     cycle_times = [s.cycle_seconds for s in all_specs if s.status == "deployed" and s.cycle_seconds]
@@ -465,7 +487,9 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         f'<div class="hero__row">{"".join(chips)}</div>'
         '</div>'
         '<div class="hero__right">'
-        f'<div class="hero__big">{_escape(elapsed)}</div>'
+        # The cycle-started attribute powers the live ticker (spec 0156 §2.3);
+        # dashboard-live.js rewrites the text every second using Date.now().
+        f'<div class="hero__big" data-cycle-started-at="{_escape(cycle_started.isoformat()) if cycle_started else ""}">{_escape(elapsed)}</div>'
         f'<div class="hero__lbl">elapsed · {_escape(eta_str)}</div>'
         '</div>'
         '</div>'
@@ -1237,6 +1261,63 @@ body {
 """
 
 
+# ── Live ticker JS (spec 0156 §2.3) ────────────────────────────────────────
+
+DASHBOARD_LIVE_JS = """\
+// dashboard-live.js — increment elapsed durations every second without a
+// page reload. Powered by data attributes that the server emits:
+//   data-cycle-started-at  — on the in-flight hero's ELAPSED display.
+//   data-stage-started-at  — on the current stage row's duration cell.
+// Spec 0156 §2.3. Tiny on purpose: no external deps, no framework.
+
+(function () {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Reduced-motion users see static server-side timings.
+    return;
+  }
+
+  function fmt(seconds) {
+    if (seconds < 0) seconds = 0;
+    if (seconds < 60) return seconds + 's';
+    var minutes = Math.floor(seconds / 60);
+    var sec = seconds % 60;
+    if (minutes < 60) return sec === 0 ? minutes + 'm' : minutes + 'm ' + sec + 's';
+    var hours = Math.floor(minutes / 60);
+    var mins = minutes % 60;
+    if (hours < 24) return mins === 0 ? hours + 'h' : hours + 'h ' + mins + 'm';
+    var days = Math.floor(hours / 24);
+    var hrs = hours % 24;
+    return hrs === 0 ? days + 'd' : days + 'd ' + hrs + 'h';
+  }
+
+  function tick() {
+    var now = Date.now();
+    // Cycle elapsed display (the hero's big number).
+    document.querySelectorAll('[data-cycle-started-at]').forEach(function (el) {
+      var raw = el.getAttribute('data-cycle-started-at');
+      if (!raw) return;
+      var startMs = Date.parse(raw);
+      if (isNaN(startMs)) return;
+      el.textContent = fmt(Math.floor((now - startMs) / 1000));
+    });
+    // Current-stage duration cell.
+    document.querySelectorAll('[data-stage-started-at]').forEach(function (el) {
+      var raw = el.getAttribute('data-stage-started-at');
+      if (!raw) return;
+      var startMs = Date.parse(raw);
+      if (isNaN(startMs)) return;
+      el.textContent = fmt(Math.floor((now - startMs) / 1000));
+    });
+  }
+
+  // Initial paint synchronises with whatever the server rendered, then we
+  // re-paint every second.
+  tick();
+  setInterval(tick, 1000);
+})();
+"""
+
+
 # ── Asset copy + entrypoint ────────────────────────────────────────────────
 
 
@@ -1278,6 +1359,7 @@ def main(argv: list[str] | None = None) -> int:
 
     copy_design_system_assets(repo_root, out_dir)
     (out_dir / "dashboard.css").write_text(DASHBOARD_CSS, encoding="utf-8")
+    (out_dir / "dashboard-live.js").write_text(DASHBOARD_LIVE_JS, encoding="utf-8")
     (out_dir / "index.html").write_text(
         render_index(specs, drafts, live_version=live_version, now=now),
         encoding="utf-8",
