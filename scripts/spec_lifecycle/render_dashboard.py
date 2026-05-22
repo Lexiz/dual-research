@@ -33,7 +33,7 @@ from typing import Any
 
 from .append_event import read_events
 from .frontmatter import parse
-from .stages import StageState, compute_stages, current_stage_label
+from .stages import STEP_LABELS, StageState, compute_stages, current_stage_label
 
 
 REPO_URL = "https://github.com/Lexiz/dual-research"
@@ -436,6 +436,15 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         else "In flight"
     )
 
+    # Spec 0163 §2.3 — the "currently: <step>" tag mirrors the most recent
+    # event. With branch-phase events now streaming live to main, this tag
+    # changes throughout implementation/test/deploy instead of being frozen
+    # at `in_progress` until merge.
+    latest_event = spec.events[-1] if spec.events else None
+    latest_step = (latest_event or {}).get("step", "") or ""
+    latest_event_ts = (latest_event or {}).get("ts", "") or ""
+    current_step_label = STEP_LABELS.get(latest_step, latest_step.replace("_", " "))
+
     # Cycle anchor preference for the elapsed display (spec 0156): the
     # `cycle_started` event (emitted in /dev-next step 1) is the canonical
     # "agent began work" marker. Fall back to frontmatter started_at for
@@ -477,10 +486,26 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         mech = (reconcile_ev.get("data") or {}).get("mechanical", 0)
         chips.append(f'<span class="chip tone-ok">{_escape(verdict)} · {_escape(mech)} patches</span>')
 
+    # Spec 0163 §2.3 — "currently: <step>" reflects whatever the latest event is.
+    if current_step_label:
+        chips.append(
+            f'<span class="chip tone-info">currently · {_escape(current_step_label)}</span>'
+        )
+    # Spec 0163 §2.4 — staleness chip, ticked by dashboard-live.js. Server-rendered
+    # tone matches what the JS will compute at first paint (avoids a flash).
+    if latest_event_ts:
+        stale_seconds = _staleness_seconds(latest_event_ts, now)
+        stale_tone = _staleness_tone(stale_seconds)
+        chips.append(
+            f'<span class="chip {stale_tone}" data-last-event-at="{_escape(latest_event_ts)}">'
+            f'last event {_escape(_humanize_seconds(stale_seconds) if stale_seconds is not None else "—")} ago'
+            f'</span>'
+        )
+
     stage_rows = "\n".join(_render_stage_row(s) for s in states)
 
     return (
-        '<section class="hero hero--inflight" aria-label="Queue in flight">'
+        f'<section class="hero hero--inflight" aria-label="Queue in flight" data-current-step="{_escape(latest_step)}">'
         '<div class="hero__top">'
         '<div class="hero__icon"><span class="material-symbols-outlined">play_circle</span></div>'
         '<div class="hero__body">'
@@ -499,6 +524,30 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         f'<ol class="stages" aria-label="Cycle stages">{stage_rows}</ol>'
         '</section>'
     )
+
+
+# Spec 0163 §2.4 — staleness thresholds. The DS uses tone-warn / tone-err
+# (not the tone-warning / tone-danger names the spec body sketched, which
+# aren't in design-system/assets/styles/composed-components.css).
+_STALE_WARN_SECONDS = 30
+_STALE_DANGER_SECONDS = 120
+
+
+def _staleness_seconds(latest_event_ts: str, now: dt.datetime) -> int | None:
+    ts = _parse_ts(latest_event_ts)
+    if ts is None:
+        return None
+    return max(0, int((now - ts).total_seconds()))
+
+
+def _staleness_tone(seconds: int | None) -> str:
+    if seconds is None:
+        return "chip-stale tone-neutral"
+    if seconds < _STALE_WARN_SECONDS:
+        return "chip-stale tone-ok"
+    if seconds < _STALE_DANGER_SECONDS:
+        return "chip-stale tone-warn"
+    return "chip-stale tone-err"
 
 
 # ── Pipeline strip ─────────────────────────────────────────────────────────
@@ -1402,13 +1451,21 @@ DASHBOARD_LIVE_JS = """\
 // page reload. Powered by data attributes that the server emits:
 //   data-cycle-started-at  — on the in-flight hero's ELAPSED display.
 //   data-stage-started-at  — on the current stage row's duration cell.
-// Spec 0156 §2.3. Tiny on purpose: no external deps, no framework.
+//   data-last-event-at     — on the staleness chip (spec 0163 §2.4).
+// Spec 0156 §2.3, extended by spec 0163 §2.4. Tiny on purpose: no external
+// deps, no framework.
 
 (function () {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     // Reduced-motion users see static server-side timings.
     return;
   }
+
+  // Spec 0163 §2.4 staleness thresholds — must match _STALE_WARN_SECONDS /
+  // _STALE_DANGER_SECONDS in scripts/spec_lifecycle/render_dashboard.py.
+  var STALE_WARN_S = 30;
+  var STALE_DANGER_S = 120;
+  var STALE_TONES = ['tone-ok', 'tone-warn', 'tone-err', 'tone-neutral'];
 
   function fmt(seconds) {
     if (seconds < 0) seconds = 0;
@@ -1422,6 +1479,13 @@ DASHBOARD_LIVE_JS = """\
     var days = Math.floor(hours / 24);
     var hrs = hours % 24;
     return hrs === 0 ? days + 'd' : days + 'd ' + hrs + 'h';
+  }
+
+  function staleTone(seconds) {
+    if (seconds === null) return 'tone-neutral';
+    if (seconds < STALE_WARN_S) return 'tone-ok';
+    if (seconds < STALE_DANGER_S) return 'tone-warn';
+    return 'tone-err';
   }
 
   function tick() {
@@ -1441,6 +1505,19 @@ DASHBOARD_LIVE_JS = """\
       var startMs = Date.parse(raw);
       if (isNaN(startMs)) return;
       el.textContent = fmt(Math.floor((now - startMs) / 1000));
+    });
+    // Spec 0163 §2.4 — staleness chip text + tone.
+    document.querySelectorAll('[data-last-event-at]').forEach(function (el) {
+      var raw = el.getAttribute('data-last-event-at');
+      var ageSec = null;
+      if (raw) {
+        var t = Date.parse(raw);
+        if (!isNaN(t)) ageSec = Math.max(0, Math.floor((now - t) / 1000));
+      }
+      var nextTone = staleTone(ageSec);
+      STALE_TONES.forEach(function (cls) { el.classList.remove(cls); });
+      el.classList.add(nextTone);
+      el.textContent = 'last event ' + (ageSec === null ? '—' : fmt(ageSec)) + ' ago';
     });
   }
 
@@ -1473,6 +1550,46 @@ DASHBOARD_BOOTSTRAP_JS = """\
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   };
+
+  // Spec 0163 §2.3 — must mirror STEP_LABELS in scripts/spec_lifecycle/stages.py.
+  // Used by the "currently: <step>" chip on the in-flight hero.
+  var STEP_LABELS = {
+    'queued': 'queued',
+    'cycle_started': 'starting',
+    'preflight_ok': 'pre-flight',
+    'handoff_read': 'reading handoff',
+    'spec_read': 'reading spec',
+    'planning_started': 'planning',
+    'reconcile_complete': 'reconciled',
+    'in_progress': 'starting',
+    'branched': 'branched',
+    'implementing_started': 'implementing',
+    'implement_complete': 'implement done',
+    'tests_started': 'testing',
+    'tests_green': 'tests green',
+    'pr_opened': 'PR opened',
+    'merged': 'merged',
+    'deploy_started': 'deploying',
+    'deployed': 'deployed',
+    'deploy_health_check_ok': 'health check ok',
+    'handoff_written': 'handoff written'
+  };
+
+  // Spec 0163 §2.4 staleness thresholds — must match _STALE_*_SECONDS in
+  // scripts/spec_lifecycle/render_dashboard.py.
+  var STALE_WARN_S = 30;
+  var STALE_DANGER_S = 120;
+
+  function staleTone(seconds) {
+    if (seconds === null) return 'tone-neutral';
+    if (seconds < STALE_WARN_S) return 'tone-ok';
+    if (seconds < STALE_DANGER_S) return 'tone-warn';
+    return 'tone-err';
+  }
+  function stepLabel(step) {
+    if (!step) return '';
+    return STEP_LABELS[step] || step.replace(/_/g, ' ');
+  }
 
   // ── Time/duration helpers (mirror Python _humanize_seconds / _ago) ──────
   function humanizeSec(s) {
@@ -1558,8 +1675,25 @@ DASHBOARD_BOOTSTRAP_JS = """\
       var mech = (rec.data && rec.data.mechanical) || 0;
       chips.push('<span class="chip tone-ok">' + ESC(verdict) + ' · ' + ESC(mech) + ' patches</span>');
     }
+    // Spec 0163 §2.3 — "currently: <step>" reflects the latest event.
+    var latest = events.length ? events[events.length - 1] : null;
+    var latestStep = (latest && latest.step) || '';
+    var latestTs = (latest && latest.ts) || '';
+    var currentLabel = stepLabel(latestStep);
+    if (currentLabel) {
+      chips.push('<span class="chip tone-info">currently · ' + ESC(currentLabel) + '</span>');
+    }
+    // Spec 0163 §2.4 — staleness chip ticked every second by dashboard-live.js.
+    if (latestTs) {
+      var ageSec = Math.max(0, Math.floor((nowMs - Date.parse(latestTs)) / 1000));
+      var tone = staleTone(isNaN(ageSec) ? null : ageSec);
+      chips.push(
+        '<span class="chip chip-stale ' + tone + '" data-last-event-at="' + ESC(latestTs) + '">' +
+        'last event ' + (isNaN(ageSec) ? '—' : humanizeSec(ageSec)) + ' ago</span>'
+      );
+    }
     return (
-      '<section class="hero hero--inflight" aria-label="Queue in flight">' +
+      '<section class="hero hero--inflight" aria-label="Queue in flight" data-current-step="' + ESC(latestStep) + '">' +
       '<div class="hero__top">' +
       '<div class="hero__icon"><span class="material-symbols-outlined">play_circle</span></div>' +
       '<div class="hero__body">' +

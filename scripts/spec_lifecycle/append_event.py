@@ -2,13 +2,19 @@
 
 Skills call this from the dev cycle (and the spec-creation flows for `queued`
 events). Events on `main` get committed inline by the caller; events on a
-feature branch buffer and flush at end-of-cycle.
+feature branch buffer and flush at end-of-cycle — unless the caller passes
+``--push-to-main`` (spec 0163), in which case each event is pushed live to
+origin/main via git plumbing immediately after the local file write, so the
+dashboard sees branch-phase progress in real time.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,8 +33,18 @@ def append_event(
     data: dict[str, Any] | None = None,
     *,
     ts: str | None = None,
+    push_to_main: bool = False,
+    repo_dir: str | Path | None = None,
 ) -> Path:
-    """Append one event line. Returns the file path."""
+    """Append one event line. Returns the file path.
+
+    When ``push_to_main`` is True (spec 0163), also pushes the new event
+    directly to ``origin/main`` via git plumbing, so the dashboard sees the
+    event in real time without waiting for the eventual squash-merge. The
+    push is best-effort: failures are logged to stderr and never raise — the
+    line is still safely in the local file and will reach main via the
+    squash-merge anyway.
+    """
     if ts is None:
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     line = json.dumps(
@@ -37,7 +53,169 @@ def append_event(
     log = event_log_path(events_dir, spec_id)
     with log.open("a", encoding="utf-8") as fh:
         fh.write(line + "\n")
+    if push_to_main:
+        push_event_to_main(events_dir, spec_id, line + "\n", repo_dir=repo_dir)
     return log
+
+
+def push_event_to_main(
+    events_dir: str | Path,
+    spec_id: str,
+    new_line: str,
+    *,
+    retries: int = 1,
+    repo_dir: str | Path | None = None,
+) -> bool:
+    """Push a new event line directly to origin/main using git plumbing.
+
+    Operates without disturbing the working tree or the main git index: a
+    temporary index (``GIT_INDEX_FILE``) is populated from ``origin/main``,
+    the events file is updated in place, a new commit is built atop
+    ``origin/main``, and pushed as an atomic ref update.
+
+    Returns True on successful push, False on graceful failure (the local
+    events file still contains the line; the eventual squash-merge will
+    carry it to main).
+
+    Idempotent when the current branch is already ``main`` — the caller is
+    already committing to main directly, so no push is needed.
+    """
+    if _current_branch(repo_dir) == "main":
+        return False
+
+    # The events file path must be repo-relative for `git update-index
+    # --cacheinfo`. Callers commonly pass an absolute path (e.g. from
+    # `tmp_path / "dashboard" / "events"`); convert it to repo-relative when
+    # we know the repo root.
+    events_path = Path(events_dir)
+    if events_path.is_absolute() and repo_dir is not None:
+        try:
+            events_path = events_path.relative_to(Path(repo_dir).resolve())
+        except ValueError:
+            pass
+    rel_path = f"{events_path.as_posix().rstrip('/')}/{spec_id}.jsonl"
+    step = _extract_step(new_line)
+    last_err: Exception | str | None = None
+
+    for attempt in range(retries + 1):
+        try:
+            _git(["fetch", "--quiet", "origin", "main"], repo_dir)
+            cat = _git(
+                ["cat-file", "-p", f"origin/main:{rel_path}"], repo_dir, check=False
+            )
+            existing = cat.stdout if cat.returncode == 0 else ""
+            new_content = existing + new_line
+            blob_sha = _git(
+                ["hash-object", "-w", "--stdin"], repo_dir, input=new_content
+            ).stdout.strip()
+            new_tree = _build_tree_with_temp_index(rel_path, blob_sha, repo_dir)
+            msg = f"spec({spec_id}): event {step}"
+            commit_sha = _git(
+                ["commit-tree", new_tree, "-p", "origin/main", "-m", msg], repo_dir
+            ).stdout.strip()
+            push = _git(
+                ["push", "origin", f"{commit_sha}:refs/heads/main"],
+                repo_dir,
+                check=False,
+            )
+            if push.returncode == 0:
+                return True
+            err_text = (push.stderr or push.stdout or "").lower()
+            if "non-fast-forward" in err_text or "rejected" in err_text:
+                last_err = f"non-fast-forward on attempt {attempt + 1}"
+                continue
+            last_err = (push.stderr or push.stdout or "").strip() or "unknown push failure"
+            break
+        except subprocess.CalledProcessError as e:
+            last_err = e
+            break
+
+    sys.stderr.write(
+        f"warning: push_event_to_main failed for {spec_id} ({step}): {last_err}\n"
+    )
+    return False
+
+
+def _git(
+    args: list[str],
+    cwd: str | Path | None = None,
+    *,
+    input: str | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=str(cwd) if cwd else None,
+        input=input,
+        capture_output=True,
+        text=True,
+        check=check,
+    )
+
+
+def _current_branch(repo_dir: str | Path | None) -> str:
+    try:
+        return _git(["rev-parse", "--abbrev-ref", "HEAD"], repo_dir).stdout.strip()
+    except subprocess.CalledProcessError:
+        return ""
+
+
+def _extract_step(new_line: str) -> str:
+    try:
+        return json.loads(new_line.strip()).get("step", "unknown")
+    except Exception:
+        return "unknown"
+
+
+def _build_tree_with_temp_index(
+    rel_path: str, blob_sha: str, repo_dir: str | Path | None
+) -> str:
+    """Build a new root tree atop ``origin/main`` with ``rel_path`` set to ``blob_sha``.
+
+    Uses ``GIT_INDEX_FILE`` to isolate from the repo's main index. Equivalent
+    to the ``ls-tree`` + ``mktree`` walk described in spec 0163 §2.1, but
+    path-aware and substantially simpler (``update-index --add --cacheinfo``
+    handles arbitrary nesting depth without a manual climb).
+    """
+    fd, index_path = tempfile.mkstemp(suffix=".index")
+    os.close(fd)
+    os.unlink(index_path)
+    try:
+        env = {**os.environ, "GIT_INDEX_FILE": index_path}
+        cwd = str(repo_dir) if repo_dir else None
+        subprocess.run(
+            ["git", "read-tree", "origin/main"],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                f"100644,{blob_sha},{rel_path}",
+            ],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return subprocess.run(
+            ["git", "write-tree"],
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    finally:
+        if os.path.exists(index_path):
+            os.unlink(index_path)
 
 
 def read_events(events_dir: str | Path, spec_id: str) -> list[dict[str, Any]]:
@@ -59,13 +237,19 @@ def read_events(events_dir: str | Path, spec_id: str) -> list[dict[str, Any]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = argv or sys.argv[1:]
+    args = list(argv) if argv is not None else sys.argv[1:]
+    push_to_main = False
+    if "--push-to-main" in args:
+        args.remove("--push-to-main")
+        push_to_main = True
     if len(args) < 3 or args[0] in {"-h", "--help"}:
-        print("Usage: append_event.py <events_dir> <spec_id> <step> [data_json]")
+        print(
+            "Usage: append_event.py [--push-to-main] <events_dir> <spec_id> <step> [data_json]"
+        )
         return 1
     events_dir, spec_id, step = args[0], args[1], args[2]
     data = json.loads(args[3]) if len(args) > 3 else None
-    path = append_event(events_dir, spec_id, step, data)
+    path = append_event(events_dir, spec_id, step, data, push_to_main=push_to_main)
     print(f"wrote event to {path}")
     return 0
 

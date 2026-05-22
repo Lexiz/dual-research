@@ -37,8 +37,45 @@ STAGES: tuple[StageDef, ...] = (
 )
 
 TOLERATED_NON_STAGE_STEPS: frozenset[str] = frozenset(
-    {"queued", "in_progress", "failed", "cycle_started"}
+    {
+        "queued",
+        "in_progress",
+        "failed",
+        "cycle_started",
+        # Spec 0163 — informational markers within existing stages, pushed
+        # live to main during the branch phase. They don't anchor new stages.
+        "planning_started",
+        "implementing_started",
+        "tests_started",
+        "deploy_started",
+        "deploy_health_check_ok",
+    }
 )
+
+# Spec 0163 §2.3 — human-readable labels for the "currently: ..." tag on the
+# in-flight hero. Kept in sync with STEP_LABELS at the top of
+# DASHBOARD_BOOTSTRAP_JS in render_dashboard.py.
+STEP_LABELS: dict[str, str] = {
+    "queued": "queued",
+    "cycle_started": "starting",
+    "preflight_ok": "pre-flight",
+    "handoff_read": "reading handoff",
+    "spec_read": "reading spec",
+    "planning_started": "planning",
+    "reconcile_complete": "reconciled",
+    "in_progress": "starting",
+    "branched": "branched",
+    "implementing_started": "implementing",
+    "implement_complete": "implement done",
+    "tests_started": "testing",
+    "tests_green": "tests green",
+    "pr_opened": "PR opened",
+    "merged": "merged",
+    "deploy_started": "deploying",
+    "deployed": "deployed",
+    "deploy_health_check_ok": "health check ok",
+    "handoff_written": "handoff written",
+}
 
 
 @dataclass
