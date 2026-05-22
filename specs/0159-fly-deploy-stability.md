@@ -6,14 +6,14 @@ title: "Fix: Fly machines-API mid-rolling-deploy timeout (9-in-a-row)"
 type: bug
 label: bug
 version_bump: PATCH
-target_version: TBD
-status: queued
+target_version: 1.22.1
+status: in_progress
 queue_position: 1
 depends_on: []
 complexity: M
 created: 2026-05-22
 queued_at: "2026-05-22T14:05:00Z"
-started_at: ""
+started_at: "2026-05-22T14:18:22Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
