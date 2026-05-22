@@ -11,3 +11,4 @@
 {"ts":"2026-05-22T18:46:54Z","step":"tests_started","data":{}}
 {"ts":"2026-05-22T18:47:30Z","step":"tests_green","data":{"passed":1532,"failed":0,"js_passed":9}}
 {"ts":"2026-05-22T18:48:20Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/191"}}
+{"ts":"2026-05-22T18:48:38Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/191"}}
