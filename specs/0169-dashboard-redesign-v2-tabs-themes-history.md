@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.30.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T17:37:52Z"
 started_at: "2026-05-22T21:10:00Z"
 merged_at: "2026-05-22T21:55:00Z"
-deployed_at: ""
+deployed_at: "2026-05-22T22:00:00Z"
 pr: "https://github.com/Lexiz/dual-research/pull/192"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0169-dashboard-redesign-v2-tabs-themes-history.md"
 failure_step: ""
 source_session: dashboard-mockup-2026-05-22
 promoted_from_draft: ""
