@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.21.0] — 2026-05-22
+
+### Added
+
+- **Spec 0157 — `/spec-queue` auto-decomposition: conservative bundle-by-default, auto-chained sub-specs** ([spec 0157](specs/0157-spec-queue-auto-decomposition.md)). The actual decomposition logic lives in `~/.claude/skills/spec-queue/SKILL.md` step 1d (host-side; not in this PR). When a `/spec-queue` invocation describes N independent concerns with no shared unifying purpose and bundled complexity > L, the skill now decomposes into N sub-specs in topologically sorted order, each with its own dev number, queue_position, frontmatter, and commit, with inter-spec `depends_on` chains populated from the dependency analysis. Conservative posture — bundle remains the default; splitting is the exception triggered only by strong multi-domain signals.
+- `tests/spec_lifecycle/test_pick_next_number_sequential.py` — locks in the per-sub-spec numbering contract: `next_dev_number('specs')` called N times with intermediate filesystem materializations returns strictly sequential, non-colliding numbers.
+- `tests/spec_lifecycle/test_depends_on_frontmatter.py` — locks in that the validator accepts `depends_on` as a list of spec IDs (`[]`, `["0154"]`, `["0154", "0156"]`), so the decomposition flow's inter-spec chains don't regress the existing field contract.
+
+### Changed
+
+- `/spec-queue` step 9 report now branches: single-spec format unchanged, multi-spec format lists each sub-spec with its `depends_on` chain, partial-state format surfaces push-race failures with clear next-step instructions.
+
 ## [1.20.0] — 2026-05-22
 
 ### Added

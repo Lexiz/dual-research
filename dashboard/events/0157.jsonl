@@ -5,3 +5,6 @@
 {"ts":"2026-05-22T13:50:05Z","step":"spec_read","data":{"path":"specs/0157-spec-queue-auto-decomposition.md","lines":156,"type":"new-feature"}}
 {"ts":"2026-05-22T13:50:28Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"reconciler false-positive on host-side ~/.claude path; no real drift"}}
 {"ts":"2026-05-22T13:50:37Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T13:50:39Z","step":"branched","data":{"branch":"spec/0157-spec-queue-auto-decomposition","from":"main@65eb7de"}}
+{"ts":"2026-05-22T13:52:46Z","step":"implement_complete","data":{"files_changed":5,"commits":1,"host_side_files":1}}
+{"ts":"2026-05-22T13:53:17Z","step":"tests_green","data":{"passed":1490,"failed":0}}
