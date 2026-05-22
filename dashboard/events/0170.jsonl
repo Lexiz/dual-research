@@ -7,3 +7,4 @@
 {"ts":"2026-05-22T23:30:46Z","step":"in_progress","data":{}}
 {"ts":"2026-05-22T23:30:58Z","step":"branched","data":{"branch":"spec/0170-canvas-workshop-skill-and-scaffold","from":"main@e49fc88"}}
 {"ts":"2026-05-22T23:31:02Z","step":"implementing_started","data":{}}
+{"ts":"2026-05-22T23:47:08Z","step":"implement_complete","data":{"files_changed":11,"commits":1}}
