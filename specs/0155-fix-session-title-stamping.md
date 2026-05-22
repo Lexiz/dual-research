@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.19.1
-status: merged
+status: deployed
 queue_position: 1
 depends_on: ["0154"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: 2026-05-22T13:02:02Z
 started_at: "2026-05-22T13:13:22Z"
 merged_at: "2026-05-22T13:19:18Z"
-deployed_at: ""
+deployed_at: "2026-05-22T13:21:17Z"
 pr: "https://github.com/Lexiz/dual-research/pull/178"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0155-fix-session-title-stamping.md"
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
