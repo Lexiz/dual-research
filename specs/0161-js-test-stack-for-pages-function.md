@@ -6,14 +6,14 @@ title: "Tests: JS test stack for Pages Function and dashboard-bootstrap.js"
 type: test
 label: test
 version_bump: PATCH
-target_version: TBD
-status: queued
+target_version: 1.23.1
+status: in_progress
 queue_position: 1
 depends_on: []
 complexity: M
 created: 2026-05-22
 queued_at: ""
-started_at: ""
+started_at: "2026-05-22T14:58:36Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
