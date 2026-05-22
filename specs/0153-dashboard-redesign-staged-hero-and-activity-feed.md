@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.18.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: 2026-05-22T11:25:00Z
 started_at: "2026-05-22T11:52:51Z"
 merged_at: "2026-05-22T12:04:29Z"
-deployed_at: ""
+deployed_at: "2026-05-22T12:13:34Z"
 pr: "https://github.com/Lexiz/dual-research/pull/176"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0153-dashboard-redesign-staged-hero-and-activity-feed.md"
 failure_step: ""
 source_session: lifecycle-bootstrap-2026-05-22
 promoted_from_draft: ""
