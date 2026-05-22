@@ -1228,23 +1228,24 @@ def _read_input_bundle_fs(session: Path, turn_key: str) -> dict | None:
     """
     from dual_research.ui.aggregator import (
         build_input_bundle_fallback,
-        build_phase0_input_bundle,
     )
 
     key = _normalize_input_key(turn_key)
     if key is None:
         return None
     if key == "input":
-        # Try a persisted bundle first; fall back to synthesis from brief.md.
+        # Spec 0150 — synth fallback retired; pre-0142 runs were
+        # backfilled with persisted ``inputs/input.json`` files.
+        # Missing file => no bundle to surface.
         path = session / "inputs" / "input.json"
-        if path.is_file():
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                return None
-            payload.setdefault("system_source", "recorded")
-            return payload
-        return build_phase0_input_bundle(session)
+        if not path.is_file():
+            return None
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        payload.setdefault("system_source", "recorded")
+        return payload
     path = session / "inputs" / f"{key}.json"
     if path.is_file():
         try:
@@ -1460,7 +1461,6 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
     not cached so live runs can still attach a real bundle and have it
     pick up on the next read.
     """
-    from dual_research.protocol.prompts import preflight_input_bundle
     from dual_research.ui.aggregator import _parse_snake_key, synthesize_bundle_payload
 
     key = _normalize_input_key(turn_key)
@@ -1494,10 +1494,16 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
         _INPUT_BUNDLE_CACHE.set(cache_key, payload)
         return payload
 
-    # Spec 0085 — fetch the brief once so both the Phase 0 synthesis
-    # path and the new fallback path can populate ``pieces.brief`` from
-    # real text. ``brief.md`` is the only file we need to satisfy the
-    # synthesis contract on the Supabase backend.
+    # Spec 0150 — Phase-0 synth fallback retired; pre-0142 runs were
+    # backfilled with persisted ``inputs/input.json`` rows so the
+    # ``key == "input"`` branch always finds the file above. The
+    # non-Phase-0 fallback below stays — it serves keys whose per-turn
+    # bundle was never recorded (pre-spec-0033 runs).
+    if key == "input":
+        return None
+
+    # Spec 0085 — fetch the brief once for the non-Phase-0 fallback
+    # path below.
     brief_text = ""
     try:
         brief_res = (
@@ -1513,24 +1519,6 @@ def _read_input_bundle_supabase(client: Any, run_id: str, turn_key: str) -> dict
     brief_rows = (brief_res.data if brief_res else None) or []
     if brief_rows:
         brief_text = brief_rows[0].get("content") or ""
-
-    if key == "input":
-        if not brief_text:
-            return None
-        pieces = preflight_input_bundle(brief=brief_text, agent_name="<agent>")
-        payload = {
-            "agent": "shared",
-            "phase": "phase0",
-            "label": "phase0-input",
-            "pieces": pieces,
-            "emitted_at": "",
-            "system_source": "agent-default",
-        }
-        # Negative-result not cached, but Phase 0 synthesis IS cacheable
-        # because it depends only on the brief which itself is immutable
-        # for a given run.
-        _INPUT_BUNDLE_CACHE.set(cache_key, payload)
-        return payload
 
     # Spec 0085 — non-Phase-0 fallback: parse the snake key and dispatch
     # to the appropriate builder. Mirrors aggregator.build_input_bundle_fallback

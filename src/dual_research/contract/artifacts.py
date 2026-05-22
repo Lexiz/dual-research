@@ -181,8 +181,6 @@ REGISTRY: tuple[ArtifactDef, ...] = (
     # same orchestrator/_call.py augmentation site as system.web_sources.
     ArtifactDef("system.tool_definitions", "Tool definitions",
                 ArtifactKind.SYSTEM, "per-turn", False),
-    ArtifactDef("user_prompt", "User prompt",
-                ArtifactKind.USER, "run", False),
     ArtifactDef("user_prompt.message", "Chat message",
                 ArtifactKind.USER, "run", False),
     ArtifactDef("user_prompt.attachment.<id>", "Attachment · {title}",

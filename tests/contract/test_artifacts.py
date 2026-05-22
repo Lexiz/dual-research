@@ -76,7 +76,6 @@ def test_every_registry_id_has_unique_template():
         ("system.preamble", "Methodology preamble"),
         ("system.task.input", "Preflight instructions"),
         ("system.task.closeout", "Closeout instructions"),
-        ("user_prompt", "User prompt"),
         ("user_prompt.message", "Chat message"),
         ("phase1.claude", "Claude's research plan"),
         ("phase1.openai", "GPT's research plan"),
@@ -164,7 +163,7 @@ def test_is_known_false_for_unregistered():
     "artifact_id, expected_kind",
     [
         ("system.preamble", ArtifactKind.SYSTEM),
-        ("user_prompt", ArtifactKind.USER),
+        ("user_prompt.message", ArtifactKind.USER),
         ("user_prompt.attachment.foo", ArtifactKind.USER),
         ("prior_turns.phase0", ArtifactKind.DERIVED),
         ("phase0.claude.r3", ArtifactKind.AGENT_OUTPUT),
@@ -225,7 +224,6 @@ def test_spec_0117_normative_id_table_matches_registry():
         # Spec 0148 D13/D14 — agent-layer-emitted pieces.
         "system.web_sources",
         "system.tool_definitions",
-        "user_prompt",
         "user_prompt.message",
         "user_prompt.attachment.<id>",
         "prior_turns.phase0",

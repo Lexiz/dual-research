@@ -111,17 +111,14 @@ class TestGetBundle:
         r = client.get("/api/runs/run-3b/inputs/phaseXY_round1_claude")
         assert r.status_code == 404
 
-    def test_phase0_input_synthesised_from_brief(self, client: TestClient, tmp_path: Path) -> None:
+    def test_phase0_input_missing_returns_404(self, client: TestClient, tmp_path: Path) -> None:
+        """Spec 0150 — the Phase-0 synth fallback was retired. Sessions
+        without a persisted ``inputs/input.json`` return 404 instead of
+        synthesizing a fake bundle. Pre-0142 runs were backfilled with
+        persisted files so the 404 path is unreachable in practice."""
         _seed_minimal_session(tmp_path / "runs", "run-4")
         r = client.get("/api/runs/run-4/inputs/input")
-        assert r.status_code == 200
-        data = r.json()
-        assert data["phase"] == "phase0"
-        # Spec 0145 — synthesised bundle exposes canonical keys.
-        assert "# Test" in data["pieces"]["user_prompt.message"]
-        assert "epistemic" in data["pieces"]["system.task.input"]
-        # Spec 0085 — Phase 0 synthesis also stamps system_source.
-        assert data["system_source"] == "agent-default"
+        assert r.status_code == 404
 
     def test_recorded_bundle_stamps_system_source_recorded(
         self, client: TestClient, tmp_path: Path

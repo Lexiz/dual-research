@@ -257,8 +257,7 @@ def _persist_initial_brief_bundle(
 ) -> None:
     """Spec 0142 — write ``inputs/input.json`` once at session setup.
 
-    Mirrors :func:`dual_research.ui.aggregator.build_phase0_input_bundle`
-    but stamps ``system_source="recorded"`` so the hosted UI's Initial
+    Stamps ``system_source="recorded"`` so the hosted UI's Initial
     Brief modal does not render the spec-0085 "agent default — not
     recorded" caveat. The file is then picked up by
     :func:`dual_research.persistence.remote._iter_file_rows` and pushed

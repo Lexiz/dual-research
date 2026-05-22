@@ -12,7 +12,6 @@ from __future__ import annotations
 from dual_research.contract.artifacts import is_known
 from dual_research.protocol.prompt_pieces import Attachment
 from dual_research.protocol.prompts import (
-    LEGACY_INPUT_BUNDLE_KEYS,
     PriorTurn,
     drafting_input_bundle,
     force_verbatim_copy_input_bundle,
@@ -180,11 +179,5 @@ class TestPriorTurnsRendering:
         assert "P4_BODY" in b["prior_turns.phase4"]
 
 
-class TestLegacyShimSurface:
-    """The `LEGACY_INPUT_BUNDLE_KEYS` tuple is the source of truth for the
-    JS read-shim. Pin its membership so any addition is intentional."""
-
-    def test_legacy_keys_are_the_eight_short_vocab_entries(self) -> None:
-        assert LEGACY_INPUT_BUNDLE_KEYS == (
-            "system", "brief", "d1", "d2", "plan", "hist", "draft", "histp",
-        )
+# Spec 0150 — TestLegacyShimSurface removed alongside
+# LEGACY_INPUT_BUNDLE_KEYS in protocol/prompts.py.

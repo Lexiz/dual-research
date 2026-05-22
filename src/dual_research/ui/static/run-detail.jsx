@@ -2126,36 +2126,10 @@ function ConsumptionRow() { return null; }
 // SPEC-0086 ConsumptionCard — kept as stub; SPEC-0100 replaces with CcxCard.
 function ConsumptionCard() { return null; }
 
-// ── Spec 0118 — Consumption-tab piece grouping & vocabulary detection ──
-
-// Spec 0030 legacy piece-vocabulary keys. Detection is by key-presence:
-// if a turn carries ANY non-legacy key, the new renderer is used; otherwise
-// the legacy fallback path renders pre-0118 runs with their original labels.
-const LEGACY_PIECE_KEYS = new Set(['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp']);
-
-// Legacy display names for the legacy renderer path. Tied to the 7-key
-// spec 0030 vocabulary; only consulted when a turn's piecesRaw matches
-// the legacy pattern (no spec-0118 canonical keys present).
-const LEGACY_PIECE_LABELS = {
-  brief: 'Brief',
-  d1:    "Claude's Phase 1 draft",
-  d2:    "GPT's Phase 1 draft",
-  plan:  'Agreed plan',
-  hist:  'Prior Phase 2 turns',
-  draft: 'Current draft',
-  histp: 'Prior Phase 4 turns',
-};
-
-// Spec 0118: detect new vocab by key-presence. Returns true iff piecesRaw
-// contains any key NOT in the legacy 7-key set (i.e. at least one spec-
-// 0117 canonical artifact ID). Empty dicts return false → legacy renderer.
-function hasNewVocabPieces(piecesRaw) {
-  if (!piecesRaw) return false;
-  for (const k of Object.keys(piecesRaw)) {
-    if (!LEGACY_PIECE_KEYS.has(k)) return true;
-  }
-  return false;
-}
+// ── Spec 0118 — Consumption-tab piece grouping ──
+// Spec 0150 — legacy 7-key vocab detection and labels removed.
+// Historical events were backfilled to canonical artifact IDs; the
+// legacy fallback render branch is gone.
 
 // Spec 0118 master grouping table (NORMATIVE). For each phase, which
 // canonical artifact IDs collapse into the "System prompt" aggregate row,
@@ -2278,25 +2252,6 @@ function groupPiecesForPhase(piecesRaw, phase) {
   return { rows };
 }
 
-// Spec 0030 fallback for pre-0118 runs. Returns rows in the order the
-// legacy renderer used (brief, d1, d2, plan, hist, draft, histp), with
-// legacy display names. Each row that ends up with zero tokens is dropped.
-function legacyGroupPieces(piecesRaw) {
-  const rows = [];
-  for (const k of ['brief', 'd1', 'd2', 'plan', 'hist', 'draft', 'histp']) {
-    const tokens = Number(piecesRaw?.[k]) || 0;
-    if (tokens > 0) {
-      rows.push({
-        id: k,
-        label: LEGACY_PIECE_LABELS[k] || k,
-        tokens,
-        legacy: true,
-      });
-    }
-  }
-  return { rows };
-}
-
 // Proportional cost share for a piece. The total INPUT cost is exact
 // (API-billed); each piece's cost is its proportional share of that
 // total. Returns 0 when billed_input_tokens is zero (defensive).
@@ -2319,11 +2274,21 @@ function fmtCost1(n) {
   return `$${v.toFixed(1)}`;
 }
 
+// Spec 0150 — synthetic display names for FE-only aggregate row ids
+// that no longer have a registry entry (the bare `user_prompt`
+// ArtifactDef was dropped; the canonical entries are `user_prompt.message`
+// and `user_prompt.attachment.<id>`). The CcxCard still emits a
+// synthetic `user_prompt` row that aggregates the message + attachments.
+const SYNTHETIC_ROW_LABELS = {
+  user_prompt: 'User prompt',
+};
+
 // Display-name resolver. Routes through the spec 0117 registry
 // (window.DrArtifacts.displayName) so no display strings are hardcoded
 // in the Consumption tab. Falls back to the artifact ID if the registry
 // is missing (paranoid; the artifacts.jsx module always loads).
 function consumptionLabel(artifactId) {
+  if (SYNTHETIC_ROW_LABELS[artifactId]) return SYNTHETIC_ROW_LABELS[artifactId];
   if (window.DrArtifacts && typeof window.DrArtifacts.displayName === 'function') {
     return window.DrArtifacts.displayName(artifactId);
   }
@@ -2659,11 +2624,8 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
     ? Math.min(totalPct, (reuse.reused / totalDenom) * 100)
     : 0;
 
-  // Vocabulary detection: new canonical-key vocab vs legacy 7-key vocab.
-  const isNewVocab = hasNewVocabPieces(piecesRaw);
-  const grouped = isNewVocab
-    ? groupPiecesForPhase(piecesRaw, phase)
-    : legacyGroupPieces(piecesRaw);
+  // Spec 0150 — legacy-vocab branch retired; events are canonical-only.
+  const grouped = groupPiecesForPhase(piecesRaw, phase);
 
   // Sum of piece tokens used as denominator for proportional cost.
   // Use billed input tokens (exact) so per-piece costs sum to inputCost.
@@ -4475,6 +4437,7 @@ function artifactIdFromItem(item) {
 
 function displayNameForItem(item, fallback) {
   const id = artifactIdFromItem(item);
+  if (id && SYNTHETIC_ROW_LABELS[id]) return SYNTHETIC_ROW_LABELS[id];
   if (id && typeof window !== 'undefined' && window.DrArtifacts) {
     return window.DrArtifacts.displayName(id);
   }
@@ -5647,12 +5610,9 @@ function AgentInputPane({ slot, turnKey, run }) {
         {turnKey && loading && 'Loading…'}
         {turnKey && error && `Error: ${error}`}
         {turnKey && bundle && (() => {
-          // Spec 0145 — canonicalise then order via per-phase arrival.
+          // Spec 0150 — bundles are canonical-only post-backfill.
           const phaseNum = phaseNumFromTurnKey(turnKey);
-          const rawPieces = bundle.pieces || {};
-          const pieces = (window.DrArtifacts && window.DrArtifacts.canonicalisePieces)
-            ? window.DrArtifacts.canonicalisePieces(rawPieces, { phaseNum })
-            : rawPieces;
+          const pieces = bundle.pieces || {};
           const populated = Object.keys(pieces).filter((k) => pieces[k]);
           if (populated.length === 0) return 'Empty input bundle.';
           const keys = orderPiecesForPhase(
@@ -5678,10 +5638,8 @@ function AgentInputPane({ slot, turnKey, run }) {
 // ─────────────────── Spec 0145 — Input tab + bundle rendering ───────────────
 //
 // Display names resolve via `window.DrArtifacts.displayName(id, {titleForId})`
-// against the canonical artifact registry. Historical bundles carrying the
-// legacy 8-key short vocab are translated through
-// `window.DrArtifacts.canonicalisePieces(pieces, {phaseNum})` on the read
-// path; producers from spec 0145 onward emit canonical IDs directly.
+// against the canonical artifact registry. Spec 0150 retired the read-shim;
+// every bundle now arrives canonical-keyed (historical runs were backfilled).
 
 // A piece is collapsed-by-default when it's bulk methodology text the
 // reader rarely cares about. Today: system templates and prior-turn
@@ -5784,13 +5742,8 @@ function InputTabContent({ turnKey, attachmentTitles }) {
     return <InputEmptyState label="No agent input bundle available for this turn." />;
   }
   const phaseNum = phaseNumFromTurnKey(turnKey);
-  // Spec 0145 — historical bundles carry the legacy short-key vocab
-  // (system/brief/d1/...). Run them through the read-shim before
-  // rendering; canonical-key bundles pass through unchanged.
-  const rawPieces = bundle.pieces || {};
-  const pieces = (window.DrArtifacts && window.DrArtifacts.canonicalisePieces)
-    ? window.DrArtifacts.canonicalisePieces(rawPieces, { phaseNum })
-    : rawPieces;
+  // Spec 0150 — bundles are canonical-only post-backfill.
+  const pieces = bundle.pieces || {};
   const systemSource = bundle.system_source || 'recorded';
   const populated = Object.keys(pieces).filter((k) => pieces[k]);
   const renderKeys = orderPiecesForPhase(

@@ -20,7 +20,6 @@
     ['system.task.closeout',                  'Closeout instructions'],
     ['system.web_sources',                    'Web search results'],
     ['system.tool_definitions',               'Tool definitions'],
-    ['user_prompt',                           'User prompt'],
     ['user_prompt.message',                   'Chat message'],
     ['user_prompt.attachment.<id>',           'Attachment · {title}'],
     ['prior_turns.phase0',                    'Prior preflight turns'],
@@ -157,93 +156,11 @@
     return PHASE_ORDER[key] ? PHASE_ORDER[key].slice() : [];
   }
 
-  // Spec 0145 §5.4 / Goal 5 — legacy short-key → canonical-ID shim.
-  // Translates historical runs (the anchor run included) into the new
-  // vocabulary on the read path. Both `pieces` text bundles (from
-  // `inputs/<turnKey>.json`) and `prompt_pieces` token dicts (from
-  // pre-spec `turn_ended` events) flow through this map.
-  //
-  // REMOVE AFTER 2026-08-19 (90 days post-merge; sunset follow-up
-  // backfills any remaining legacy data through one push pass and
-  // drops both this shim and the legacy `user_prompt` `ArtifactDef`).
-  const LEGACY_KEY_TO_CANONICAL = {
-    system: 'system.task.input',         // phase-specific in practice
-    brief:  'user_prompt.message',
-    d1:     'phase1.claude',
-    d2:     'phase1.openai',
-    plan:   'phase2.agreement.plan',
-    hist:   'prior_turns.phase2',
-    draft:  'current_draft',
-    histp:  'prior_turns.phase4',
-  };
-
-  // Spec 0145 — phase-aware overrides for the `system` legacy key.
-  // The legacy bundle's `system` slot always held the per-phase task
-  // template; the canonical equivalent depends on the phase. The shim
-  // accepts an optional `phaseNum` and resolves the system key to its
-  // phase-specific canonical sibling.
-  const LEGACY_SYSTEM_BY_PHASE = {
-    0: 'system.task.input',
-    1: 'system.task.research_plan',
-    2: 'system.task.plan_negotiation',
-    3: 'system.task.drafting',
-    4: 'system.task.review',
-  };
-
-  function canonicaliseLegacyKey(legacyKey, opts) {
-    if (typeof legacyKey !== 'string' || !legacyKey) return legacyKey;
-    const phaseNum = opts && Number.isFinite(Number(opts.phaseNum))
-      ? Number(opts.phaseNum)
-      : null;
-    if (legacyKey === 'system' && phaseNum !== null) {
-      return LEGACY_SYSTEM_BY_PHASE[phaseNum] || 'system.task.input';
-    }
-    if (Object.prototype.hasOwnProperty.call(LEGACY_KEY_TO_CANONICAL, legacyKey)) {
-      return LEGACY_KEY_TO_CANONICAL[legacyKey];
-    }
-    return legacyKey;
-  }
-
-  // Returns true iff at least one key on the dict looks canonical (i.e.,
-  // contains a dot — every canonical ID is dotted, every legacy short
-  // key is single-segment). Callers use this to decide whether the
-  // shim needs to run.
-  function hasCanonicalKey(pieces) {
-    if (!pieces || typeof pieces !== 'object') return false;
-    for (const k of Object.keys(pieces)) {
-      if (typeof k === 'string' && k.includes('.')) return true;
-    }
-    return false;
-  }
-
-  // Map a (possibly legacy-keyed) `pieces` dict into a canonical-keyed
-  // one. Idempotent: a fully-canonical input is returned as-is. Mixed
-  // input is normalised; unknown keys pass through unchanged.
-  function canonicalisePieces(pieces, opts) {
-    if (!pieces || typeof pieces !== 'object') return pieces;
-    if (hasCanonicalKey(pieces) && !Object.keys(pieces).some(
-      (k) => Object.prototype.hasOwnProperty.call(LEGACY_KEY_TO_CANONICAL, k),
-    )) {
-      return pieces;
-    }
-    const out = {};
-    for (const [k, v] of Object.entries(pieces)) {
-      const canon = canonicaliseLegacyKey(k, opts);
-      out[canon] = v;
-    }
-    return out;
-  }
-
   window.DrArtifacts = {
     REGISTRY,
     displayName,
     isKnown,
     truncateTitle,
-    // Spec 0145 additions:
     phaseOrderFor,
-    canonicaliseLegacyKey,
-    canonicalisePieces,
-    hasCanonicalKey,
-    LEGACY_KEY_TO_CANONICAL,
   };
 })();

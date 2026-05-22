@@ -586,40 +586,6 @@ def _on_turn_ended(run: Run, event: dict) -> None:
     )
 
 
-def build_phase0_input_bundle(session_dir: Path) -> dict | None:
-    """Spec 0033 — synthesise the shared Phase 0 input bundle on demand.
-
-    Called by the UI server for the special ``input`` turn-key (the
-    "input modal" on the run's Phase 0 card). Reads ``brief.md`` and
-    composes a preflight-shaped bundle with a placeholder ``agent_name``.
-
-    Returns the JSON-ready payload or ``None`` if ``brief.md`` is
-    missing.
-    """
-    from dual_research.protocol.prompts import preflight_input_bundle
-
-    brief_path = session_dir / "brief.md"
-    if not brief_path.exists():
-        return None
-    try:
-        brief_text = brief_path.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    pieces = preflight_input_bundle(brief=brief_text, agent_name="<agent>")
-    return {
-        "agent": "shared",
-        "phase": "phase0",
-        "label": "phase0-input",
-        "pieces": pieces,
-        "emitted_at": "",
-        # Spec 0085: this synthesis path embeds the AGENT-DEFAULT system
-        # prompt (built from the current source) plus the run's actual
-        # brief. The frontend uses ``system_source`` to render the
-        # "this is the default for this agent" caveat.
-        "system_source": "agent-default",
-    }
-
-
 # Spec 0085 — turn-key → builder dispatch for runs whose per-turn
 # bundle was never persisted (pre-dates spec 0033's input-audit
 # rollout, or the JSON was lost). Every builder produces a system
@@ -828,9 +794,24 @@ def _on_turn_inputs(run: Run, event: dict, session_dir: Path) -> None:
     pieces: dict[str, str] = {str(k): str(v) for k, v in pieces_raw.items()}
 
     inputs_dir = session_dir / "inputs"
+    path = inputs_dir / f"{key}.json"
+    # Spec 0150 — the serve mode replays events to compute snapshots; the
+    # writer here used to overwrite existing files on every replay. For
+    # historical runs whose events still carry the legacy 8-key vocab,
+    # that overwrote backfilled canonical files with legacy data. Guard
+    # against overwrite so backfilled state survives serve replays. The
+    # orchestrator's first write still lands (the file doesn't exist yet
+    # on the first emission of a turn).
+    if path.exists():
+        rel = f"inputs/{key}.json"
+        existing = run.phase_token_usage.get(key)
+        if existing is not None:
+            existing.input_path = rel
+        else:
+            run.phase_token_usage[key] = TurnTokenUsage(input_path=rel)
+        return
     try:
         inputs_dir.mkdir(parents=True, exist_ok=True)
-        path = inputs_dir / f"{key}.json"
         payload = {
             "agent": ag,
             "phase": phase_str,

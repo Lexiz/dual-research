@@ -1,14 +1,13 @@
-"""Spec 0033 — input-bundle persistence + Phase 0 synthesis in aggregator.
+"""Spec 0033 — input-bundle persistence in aggregator.
 
-Two flows under test:
+Flow under test: ``_on_turn_inputs`` writes the bundle JSON to
+``inputs/<key>.json`` and stamps the relative path on
+``TurnTokenUsage.input_path``. The subsequent ``TurnEnded`` preserves
+``input_path`` while filling in the token/cost fields.
 
-1. ``_on_turn_inputs`` writes the bundle JSON to ``inputs/<key>.json``
-   and stamps the relative path on ``TurnTokenUsage.input_path``. The
-   subsequent ``TurnEnded`` preserves ``input_path`` while filling in
-   the token/cost fields.
-2. ``build_phase0_input_bundle`` synthesises the shared Phase 0 input
-   bundle from ``brief.md`` on demand (the per-agent critique modals
-   share this single bundle).
+Spec 0150 — ``build_phase0_input_bundle`` retired; pre-0142 runs were
+backfilled with persisted ``inputs/input.json`` files, so the synth
+fallback is dead code. Its tests are removed.
 """
 
 from __future__ import annotations
@@ -20,7 +19,6 @@ from dual_research.ui.aggregator import (
     _parse_snake_key,
     apply_event,
     build_input_bundle_fallback,
-    build_phase0_input_bundle,
     synthesize_bundle_payload,
 )
 from dual_research.ui.models import Run
@@ -189,23 +187,6 @@ class TestPersistInputBundle:
         assert not (tmp_path / "inputs" / "phase0_claude.json").exists()
 
 
-class TestPhase0Synthesis:
-    def test_returns_none_when_brief_missing(self, tmp_path: Path) -> None:
-        assert build_phase0_input_bundle(tmp_path) is None
-
-    def test_synthesises_bundle_from_brief(self, tmp_path: Path) -> None:
-        (tmp_path / "brief.md").write_text("UNIQUE_BRIEF_42", encoding="utf-8")
-        bundle = build_phase0_input_bundle(tmp_path)
-        assert bundle is not None
-        assert bundle["phase"] == "phase0"
-        assert bundle["agent"] == "shared"
-        # Spec 0145 — canonical keys replace legacy `brief`/`system`.
-        assert bundle["pieces"]["user_prompt.message"] == "UNIQUE_BRIEF_42"
-        assert "UNIQUE_BRIEF_42" not in bundle["pieces"]["system.task.input"]
-        # System has the epistemic-duty preamble.
-        assert "epistemic" in bundle["pieces"]["system.task.input"]
-
-
 class TestSpec0045InputBundleFiltering:
     """Spec 0045 D3+D4 — the frontend hides per-turn input pieces that
     have empty bodies, and floats the brief to the top labelled as the
@@ -264,22 +245,6 @@ class TestSpec0045InputBundleFiltering:
         for absent in ("plan", "hist", "draft", "histp"):
             assert absent in pieces
             assert pieces[absent] == ""
-
-    def test_phase0_synthesis_brief_is_nonempty_when_brief_md_present(
-        self, tmp_path: Path
-    ) -> None:
-        """Spec 0045 D4 — the user-prompt section (= brief) is the
-        most-relevant input piece. The synthesised Phase 0 bundle MUST
-        carry the brief text in ``pieces['brief']`` so the frontend's
-        floats-to-top render has something to show.
-        """
-        (tmp_path / "brief.md").write_text("THIS IS THE USER PROMPT", encoding="utf-8")
-        bundle = build_phase0_input_bundle(tmp_path)
-        assert bundle is not None
-        # Spec 0145 — canonical key replaces legacy `brief`.
-        assert bundle["pieces"]["user_prompt.message"]
-        assert bundle["pieces"]["user_prompt.message"] == "THIS IS THE USER PROMPT"
-
 
 class TestSpec0085ParseSnakeKey:
     """Spec 0085 — turn-key parser handles every shape the on-disk
@@ -433,12 +398,3 @@ class TestSpec0085BundleSynthesisFallback:
         assert payload["agent"] == "claude"
         assert payload["phase"] == "phase1"
 
-    def test_phase0_synthesized_marks_system_source(self, tmp_path: Path) -> None:
-        """``build_phase0_input_bundle`` (the original Phase 0 path)
-        also needs the ``system_source`` marker now that the frontend
-        renders the caveat unconditionally on ``'agent-default'``.
-        Older code paths that hit this function get the same marker."""
-        (tmp_path / "brief.md").write_text("HI", encoding="utf-8")
-        bundle = build_phase0_input_bundle(tmp_path)
-        assert bundle is not None
-        assert bundle["system_source"] == "agent-default"
