@@ -112,6 +112,64 @@ function AgentIcon({ agent, size = 16, variant = 'solid' }) {
   );
 }
 
+// SystemChip + ErrorChip — agentless identity / error primitives (spec 0166).
+//
+// SystemChip mirrors the AgentIcon anatomy: a 12×12 idle-coloured square
+// containing an 8×8 glyph (Material "settings" gear). Sits as the leading
+// identity chip on agentless cards (Phase 0 brief, future orchestrator
+// status messages). Pairs with a downstream activity chip — canonical
+// composition `[System] [brief]` mirrors `[Claude] [turn 2]`.
+//
+// ErrorChip is the canonical "we couldn't render this turn" surface. Sits
+// in place of an activity chip when the data layer hands the renderer
+// something it can't stringify. Inherits the standard `.chip.tone-err`
+// background; the label vocabulary lives in design-system/SPEC.md §9.5.
+function SystemChip() {
+  return (
+    <Chip
+      tone="neutral"
+      noDot
+      label="System"
+      ariaLabel="System"
+      leadingIcon={
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 12, height: 12, borderRadius: 3,
+          background: 'var(--p-idle)', color: '#ffffff',
+          flexShrink: 0, lineHeight: 1,
+        }}>
+          {/* Material "settings" gear, 8×8 inside the 12×12 idle square. */}
+          <svg viewBox="0 0 24 24" width="8" height="8" aria-hidden="true">
+            <path
+              d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"
+              fill="currentColor"
+            />
+          </svg>
+        </span>
+      }
+    />
+  );
+}
+
+function ErrorChip({ label = 'Could not render this turn' }) {
+  return (
+    <Chip
+      tone="err"
+      noDot
+      label={label}
+      ariaLabel={label}
+      leadingIcon={
+        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+          <path
+            d="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10s10-4.48 10-10S17.52,2 12,2z M13,17h-2v-2h2V17z M13,13h-2V7h2V13z"
+            fill="currentColor"
+          />
+        </svg>
+      }
+    />
+  );
+}
+
 // SPEC-0093 — StatusBadge now emits M3 `.md-status` class names.
 // Maps every known status string to one of the six M3 status pill
 // modifiers. Prop API unchanged — callers pass `status="running"` etc.
@@ -1648,6 +1706,8 @@ Object.assign(window, {
   scrollAndFlash, BRAND_SVGS, BrandMark,
   // SPEC-0052 primitives
   Button, SB, Chip, RunIDChip, Card, CardBody, AgentStrip, ThemeToggleSegmented,
+  // Spec 0166 — agentless / error identity chips
+  SystemChip, ErrorChip,
   // SPEC-0053 primitives
   Tab, TabGroup,
   // SPEC-0054 + SPEC-0097 primitives
