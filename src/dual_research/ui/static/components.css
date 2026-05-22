@@ -4450,20 +4450,41 @@ body.light .tour-spotlight__dim {
    governance-iter3/mockup.html. The item-card surface is the
    kind-agnostic primitive: Q/D/I/C all render with the same layout. */
 
+/* Spec 0168 §2.1 — adopt the M3 card chrome locked in for the timeline
+   pane by spec 0164. Same surface-container-high / outline-variant /
+   16 dp radius / hover-lift contract — only the selector scope is
+   different. The provider stripe is keyed off `[data-raised-by]`
+   (already present on the live element) rather than the timeline's
+   :has() against the card-head chip. */
 .item-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 12px 14px;
-  background: var(--md-surface-container);
-  border: 1px solid var(--md-outline-hair);
-  border-radius: var(--md-shape-sm, 8px);
-  margin: 8px 0;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-lg);
+  margin: 0;
   cursor: pointer;
+  overflow: hidden;
+  transition: background     var(--md-dur-short-3) var(--md-easing-standard),
+              box-shadow     var(--md-dur-short-3) var(--md-easing-standard),
+              border-color   var(--md-dur-short-3) var(--md-easing-standard);
 }
 .item-card:hover {
-  background: var(--md-surface-container-high);
+  background: var(--md-surface-container-highest);
+  border-color: var(--md-outline);
+  box-shadow: var(--md-elev-1);
 }
+/* Spec 0168 §2.1 — provider stripe via [data-raised-by] (the live element
+   already carries this attribute; no JSX change required). Matches the
+   timeline turn card's :has() provider stripe from spec 0164. */
+.crit2 .item-card[data-raised-by="claude"] { border-left: 2px solid var(--p-sable); }
+.crit2 .item-card[data-raised-by="gpt"]    { border-left: 2px solid var(--p-sage); }
+.crit2 .item-card[data-raised-by="system"] { border-left: 2px solid var(--p-idle); }
+/* Spec 0168 §2.1 — gap on the status-group body so cards don't need
+   per-card margin to space themselves. */
+.crit2 .crit-group__body { display: flex; flex-direction: column; gap: 6px; }
 .item-card__head {
   display: flex;
   flex-wrap: wrap;
