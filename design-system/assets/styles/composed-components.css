@@ -1701,6 +1701,75 @@ body.light .ccx-bar .reuse {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   Timeline chip polish (spec 0165 §2.2 / §2.3)
+
+   Scoped to `.tl-card-head` only — the global `.chip.tone-*` rules
+   and the critique-pane chips are explicitly NOT changed by this
+   block. The new M3 card surface from spec 0164 swallowed the chips'
+   tonal-container backgrounds, so the timeline card head needs
+   stronger tints to re-establish chip identity.
+
+   §2.2 Identity chips — 30 % brand-tinted background. Claude → sable,
+   GPT → sage. System (.tone-neutral:not(.mono)) → 20 % idle with
+   on-surface text so it reads as neutral identity rather than as
+   activity.
+
+   §2.3 Activity chip — the mono .tone-neutral chip (`turn N`, `brief`,
+   `plan`, `draft`) bumps to surface-container-highest, one tier
+   brighter than the card's surface-container-high. Without this the
+   activity chip vanishes against the card.
+   ───────────────────────────────────────────────────────────── */
+.tl-card-head .chip.tone-claude {
+  background: color-mix(in srgb, var(--p-sable) 30%, transparent);
+}
+.tl-card-head .chip.tone-gpt {
+  background: color-mix(in srgb, var(--p-sage) 30%, transparent);
+}
+.tl-card-head .chip.tone-neutral:not(.mono) {
+  background: color-mix(in srgb, var(--p-idle) 20%, transparent);
+  color: var(--md-on-surface);
+}
+.tl-card-head .chip.tone-neutral.mono {
+  background: var(--md-surface-container-highest);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Phase-header category bubble dim (spec 0165 §2.4)
+
+   The .cat-bubble inside .tl-phase__chips renders the Q/D/I/C
+   knockout-white letter on a brand-tone fill. Dropping the fill to
+   70 % alpha balances the bubble against the chip's own 18 %-tinted
+   background — the bubble still wins on hue, but no longer
+   dominates the chip's visual weight.
+
+   Scoped to .tl-phase__chips so the critique-pane kind cluster (which
+   uses the same .cat-bubble primitive on a different visual budget)
+   keeps its 100 % saturation.
+   ───────────────────────────────────────────────────────────── */
+.tl-phase__chips .chip.tone-info  .cat-bubble { background: color-mix(in srgb, var(--p-info) 70%, transparent); }
+.tl-phase__chips .chip.tone-warn  .cat-bubble { background: color-mix(in srgb, var(--p-warn) 70%, transparent); }
+.tl-phase__chips .chip.tone-err   .cat-bubble { background: color-mix(in srgb, var(--p-err)  70%, transparent); }
+.tl-phase__chips .chip.tone-idle  .cat-bubble { background: color-mix(in srgb, var(--p-idle) 70%, transparent); }
+
+/* ─────────────────────────────────────────────────────────────
+   Light-mode chip-text backstop (spec 0165 §2.6)
+
+   Defensive overlay scoped to `.tl-card-head`. The same hex values
+   the token override at tokens-and-primitives.css:204/207 produces,
+   declared explicitly here so timeline chips stay readable if a
+   future change drifts the --md-on-{primary,secondary}-container
+   light values again.
+   ───────────────────────────────────────────────────────────── */
+body.light .tl-card-head .chip.tone-claude,
+body.light .tl-card-head .chip.tone-claude .chip-label {
+  color: #3b2810;
+}
+body.light .tl-card-head .chip.tone-gpt,
+body.light .tl-card-head .chip.tone-gpt .chip-label {
+  color: #0a322d;
+}
+
+/* ─────────────────────────────────────────────────────────────
    Narrow-view strip equalisation (spec 0164 §2.6)
 
    At viewports ≤ 1799 px the `.as.in-header` strips inside
