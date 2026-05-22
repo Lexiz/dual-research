@@ -6,14 +6,14 @@ title: "Fix: /api/data subrequest-limit blowup (502) + drop dashboard poll from 
 type: bug
 label: bug
 version_bump: PATCH
-target_version: TBD
-status: queued
+target_version: 1.30.1
+status: in_progress
 queue_position: 1
 depends_on: []
 complexity: S
 created: 2026-05-22
 queued_at: "2026-05-22T22:10:00Z"
-started_at: ""
+started_at: "2026-05-22T20:16:18Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
