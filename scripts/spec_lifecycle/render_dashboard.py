@@ -340,20 +340,22 @@ def _feed_detail(spec: SpecRow | None, step: str, data: dict[str, Any]) -> str:
 
 
 def _html_head(title: str) -> str:
-    # Auto-refresh every 60s so the dashboard tracks new spec events without
-    # the user reaching for ⌘R. Long enough not to disrupt mid-scroll reads;
-    # short enough that the dashboard feels current. Spec 0156 §2.2.
+    # Spec 0160 — dropped the 60s <meta http-equiv="refresh"> (and the JS-side
+    # refresh per spec 0156 §2.2). `dashboard-bootstrap.js` now polls
+    # `/api/data` every 15s for live data; `dashboard-live.js` continues to
+    # tick the per-second stage-elapsed display from data attributes the
+    # bootstrap script writes.
     return (
         "<!DOCTYPE html>\n"
         "<html lang=\"en\"><head>"
         "<meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        '<meta http-equiv="refresh" content="60">'
         f"<title>{_escape(title)}</title>"
         + GFONTS_HEAD
         + '<link rel="stylesheet" href="tokens.css">'
         + '<link rel="stylesheet" href="components.css">'
         + '<link rel="stylesheet" href="dashboard.css">'
+        + '<script src="dashboard-bootstrap.js" defer></script>'
         + '<script src="dashboard-live.js" defer></script>'
         + "</head>"
     )
@@ -780,13 +782,17 @@ def _render_all_specs(specs: list[SpecRow]) -> str:
 # ── Header / footer ────────────────────────────────────────────────────────
 
 
-def _render_header(live_version: str, now: dt.datetime) -> str:
+def _render_header(live_version: str, now: dt.datetime, *, shell_only: bool = False) -> str:
     chip = (
         f'<span class="chip tone-ok no-dot">v{_escape(live_version)} live</span>'
         if live_version
         else ""
     )
     ts = now.strftime("%Y-%m-%d %H:%M UTC")
+    # Spec 0160 — the `data-last-updated` span carries the build-time
+    # timestamp by default; `dashboard-bootstrap.js` rewrites it with a live
+    # "X ago" string after each successful /api/data fetch.
+    last_updated_initial = "" if shell_only else f"updated {_escape(ts)}"
     return (
         '<header class="dh">'
         '<div>'
@@ -796,7 +802,7 @@ def _render_header(live_version: str, now: dt.datetime) -> str:
         '</div>'
         '<div class="dh__meta">'
         f'<span>{chip}</span>'
-        f'<span>updated <time>{_escape(ts)}</time></span>'
+        f'<span data-last-updated>{last_updated_initial}</span>'
         f'<a href="{REPO_URL}">repo ↗</a>'
         '</div>'
         '</header>'
@@ -822,7 +828,19 @@ def render_index(
     *,
     live_version: str = "",
     now: dt.datetime | None = None,
+    shell_only: bool = False,
 ) -> str:
+    """Render the dashboard index.
+
+    Default mode (``shell_only=False``): emits a fully-populated page from
+    the data on disk. Used for local previews and as a build-time fallback.
+
+    Shell mode (``shell_only=True``, spec 0160): emits the page chrome with
+    empty ``data-region`` containers and skeleton placeholders. The
+    ``dashboard-bootstrap.js`` client fetches ``/api/data`` and populates
+    them at runtime. This is what the Cloudflare Pages build ships so the
+    dashboard reflects fresh repo state without paying the rebuild lag.
+    """
     now = now or dt.datetime.now(dt.timezone.utc)
     in_flight = [s for s in specs if s.status == "in_progress"]
     queued = sorted(
@@ -833,23 +851,107 @@ def render_index(
     parts: list[str] = []
     parts.append(_html_head("dual-research · spec dashboard"))
     parts.append('<body><main class="page">')
-    parts.append(_render_header(live_version, now))
+    parts.append(_render_header(live_version, now, shell_only=shell_only))
 
-    if in_flight:
-        for spec in in_flight:
-            parts.append(_render_hero_inflight(spec, specs, now))
+    if shell_only:
+        # Skeleton placeholders only — sized to match populated state to avoid
+        # layout shift when the bootstrap script swaps content in.
+        parts.append(_skeleton_hero())
+        parts.append(_skeleton_pipeline())
+        parts.append(_skeleton_metrics())
+        parts.append(_skeleton_section("queue", "Queue"))
+        parts.append(_skeleton_section("feed", "Recent activity"))
+        parts.append(_skeleton_section("drafts", "Drafts"))
+        parts.append(_skeleton_section("all-specs", "All specs"))
     else:
-        parts.append(_render_hero_idle(specs, queued, drafts, now))
+        if in_flight:
+            for spec in in_flight:
+                parts.append(_wrap_region("hero", _render_hero_inflight(spec, specs, now)))
+        else:
+            parts.append(_wrap_region("hero", _render_hero_idle(specs, queued, drafts, now)))
+        parts.append(_wrap_region("pipeline", _render_pipeline(specs, drafts, now)))
+        parts.append(_wrap_region("metrics", _render_metrics(specs, now)))
+        parts.append(_wrap_region("queue", _render_queue(queued, now)))
+        parts.append(_wrap_region("feed", _render_feed(specs, now)))
+        parts.append(_wrap_region("drafts", _render_drafts(drafts, now)))
+        parts.append(_wrap_region("all-specs", _render_all_specs(specs)))
 
-    parts.append(_render_pipeline(specs, drafts, now))
-    parts.append(_render_metrics(specs, now))
-    parts.append(_render_queue(queued, now))
-    parts.append(_render_feed(specs, now))
-    parts.append(_render_drafts(drafts, now))
-    parts.append(_render_all_specs(specs))
     parts.append(_render_footer())
     parts.append('</main></body></html>')
     return "\n".join(parts)
+
+
+def _wrap_region(name: str, html: str) -> str:
+    """Wrap a populated section in a ``data-region`` container so the bootstrap
+    client can find and swap it the same way it finds shell placeholders.
+    Spec 0160."""
+    return f'<div data-region="{name}">{html}</div>'
+
+
+def _skeleton_section(region: str, label: str) -> str:
+    """Generic skeleton — just a labelled container the bootstrap script will
+    populate. Sized to roughly match the populated state to limit reflow."""
+    return (
+        f'<div data-region="{region}" class="region-skeleton" aria-busy="true" aria-label="{_escape(label)}">'
+        f'<div class="skeleton__line skeleton__line--header"></div>'
+        f'<div class="skeleton__line"></div>'
+        f'<div class="skeleton__line"></div>'
+        f'<div class="skeleton__line"></div>'
+        f'</div>'
+    )
+
+
+def _skeleton_hero() -> str:
+    return (
+        '<div data-region="hero" class="region-skeleton" aria-busy="true" aria-label="Queue status">'
+        '<section class="hero hero--idle">'
+        '<div class="hero__icon skeleton__icon"></div>'
+        '<div class="hero__body">'
+        '<div class="skeleton__line skeleton__line--kicker"></div>'
+        '<div class="skeleton__line skeleton__line--title"></div>'
+        '<div class="skeleton__line"></div>'
+        '</div>'
+        '<div class="hero__right">'
+        '<div class="skeleton__line skeleton__line--big"></div>'
+        '<div class="skeleton__line"></div>'
+        '</div>'
+        '</section>'
+        '</div>'
+    )
+
+
+def _skeleton_pipeline() -> str:
+    return (
+        '<div data-region="pipeline" class="region-skeleton" aria-busy="true" aria-label="Pipeline">'
+        '<section class="pipe">'
+        + ''.join(
+            '<div class="pipe__col">'
+            '<div class="skeleton__line skeleton__line--label"></div>'
+            '<div class="skeleton__line skeleton__line--num"></div>'
+            '<div class="pipe__bar"></div>'
+            '</div>'
+            for _ in range(5)
+        )
+        + '</section>'
+        '</div>'
+    )
+
+
+def _skeleton_metrics() -> str:
+    return (
+        '<div data-region="metrics" class="region-skeleton" aria-busy="true" aria-label="Throughput &amp; cycle time">'
+        '<section class="metrics">'
+        + ''.join(
+            '<div class="metric">'
+            '<div class="skeleton__line skeleton__line--label"></div>'
+            '<div class="skeleton__line skeleton__line--num"></div>'
+            '<div class="skeleton__line"></div>'
+            '</div>'
+            for _ in range(4)
+        )
+        + '</section>'
+        '</div>'
+    )
 
 
 def render_spec_page(s: SpecRow) -> str:
@@ -1258,6 +1360,38 @@ body {
   .feed__dur { display: none; }
   .stage { grid-template-columns: 24px 110px 1fr 60px; }
 }
+
+/* Shell mode skeletons (spec 0160). The bootstrap script swaps these out
+   once /api/data resolves. Shapes match populated state to limit reflow. */
+.region-skeleton { display: block; }
+.region-skeleton .skeleton__line,
+.region-skeleton .skeleton__icon {
+  background: color-mix(in srgb, var(--md-on-surface-faint) 12%, var(--md-surface-container));
+  border-radius: 4px;
+  height: 16px;
+  margin: 6px 0;
+  width: 100%;
+}
+.region-skeleton .skeleton__line--header { width: 40%; height: 18px; margin-bottom: 14px; }
+.region-skeleton .skeleton__line--kicker { width: 35%; height: 11px; }
+.region-skeleton .skeleton__line--title  { width: 70%; height: 22px; }
+.region-skeleton .skeleton__line--label  { width: 50%; height: 11px; }
+.region-skeleton .skeleton__line--num    { width: 30%; height: 22px; margin-top: 4px; }
+.region-skeleton .skeleton__line--big    { width: 60%; height: 28px; }
+.region-skeleton .skeleton__icon {
+  width: 44px; height: 44px; border-radius: 50%; margin: 0;
+}
+@keyframes skeleton-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+.region-skeleton .skeleton__line,
+.region-skeleton .skeleton__icon { animation: skeleton-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .region-skeleton .skeleton__line,
+  .region-skeleton .skeleton__icon { animation: none; }
+}
+
+/* `stale` chip in the header when /api/data fetch fails and the bootstrap
+   script repaints from localStorage. Spec 0160 §3 error states. */
+.dh__meta .chip.tone-warn { background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn); }
 """
 
 
@@ -1318,6 +1452,332 @@ DASHBOARD_LIVE_JS = """\
 """
 
 
+# ── Live data bootstrap (spec 0160) ────────────────────────────────────────
+
+DASHBOARD_BOOTSTRAP_JS = """\
+// dashboard-bootstrap.js (spec 0160) — fetch live data from the Cloudflare
+// Pages Function at /api/data and populate the dashboard's data-region
+// containers. Polls every 15s. On error: fall back to localStorage cache
+// with a `stale` chip. No-op gracefully if /api/data is unreachable
+// (e.g. local preview without the Function running) — the server-rendered
+// content stays in place.
+
+(function () {
+  'use strict';
+
+  var POLL_MS = 15000;
+  var CACHE_KEY = 'dr-dashboard-data-v1';
+  var ESC = function (s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  };
+
+  // ── Time/duration helpers (mirror Python _humanize_seconds / _ago) ──────
+  function humanizeSec(s) {
+    if (s === null || s === undefined || s < 0) return '—';
+    if (s < 60) return s + 's';
+    var m = Math.floor(s / 60), sec = s % 60;
+    if (m < 60) return sec === 0 ? m + 'm' : m + 'm ' + sec + 's';
+    var h = Math.floor(m / 60), min = m % 60;
+    if (h < 24) return min === 0 ? h + 'h' : h + 'h ' + min + 'm';
+    var d = Math.floor(h / 24), hr = h % 24;
+    return hr === 0 ? d + 'd' : d + 'd ' + hr + 'h';
+  }
+  function ago(iso, nowMs) {
+    if (!iso) return '—';
+    var t = Date.parse(iso);
+    if (isNaN(t)) return '—';
+    return humanizeSec(Math.floor((nowMs - t) / 1000)) + ' ago';
+  }
+
+  // ── Chips, type → tone (mirror Python _TYPE_TONE) ───────────────────────
+  var TYPE_TONE = {
+    'new-feature': 'info', 'bug': 'err', 'refactoring': 'warn',
+    'test': 'neutral', 'breaking': 'warn', 'unclassified': 'neutral'
+  };
+  function typeChip(type) {
+    var tone = TYPE_TONE[type] || 'neutral';
+    return '<span class="chip chip-type tone-' + tone + ' no-dot">' + ESC(type || '—') + '</span>';
+  }
+  function statusChip(status) {
+    var tone = ({'deployed':'ok','merged':'ok','in_progress':'info','queued':'neutral','failed':'err'})[status] || 'neutral';
+    return '<span class="chip tone-' + tone + '">' + ESC(status || '—') + '</span>';
+  }
+
+  // ── Section renderers ───────────────────────────────────────────────────
+  function renderHero(data, nowMs) {
+    var inflight = data.specs.filter(function (s) { return s.status === 'in_progress'; });
+    if (inflight.length === 0) return renderHeroIdle(data, nowMs);
+    return renderHeroInflight(inflight[0], data, nowMs);
+  }
+
+  function renderHeroIdle(data, nowMs) {
+    var queued = data.specs.filter(function (s) { return s.status === 'queued'; });
+    var deployed = data.specs
+      .filter(function (s) { return s.status === 'deployed'; })
+      .sort(function (a, b) { return (b.deployed_at || '').localeCompare(a.deployed_at || ''); });
+    var last = deployed[0] || null;
+    var lastAgo = last ? ago(last.deployed_at, nowMs) : '—';
+    var big = last ? lastAgo.replace(' ago', '') : '—';
+    var lastLabel = last ? 'last deploy · ' + ESC(last.number) : 'no deploys yet';
+    return (
+      '<section class="hero hero--idle" aria-label="Queue status">' +
+      '<div class="hero__icon"><span class="material-symbols-outlined">pause_circle</span></div>' +
+      '<div class="hero__body">' +
+      '<div class="hero__kicker">Queue · idle</div>' +
+      '<div class="hero__title">Nothing in flight. ' +
+      '<span class="hero__hint">Run <code>/dev-next</code> in your queue session to start the next spec.</span>' +
+      '</div>' +
+      '<div class="hero__row">' +
+      '<span class="chip tone-neutral">0 in flight</span>' +
+      '<span class="chip tone-info">' + queued.length + ' queued</span>' +
+      '<span class="chip tone-ok">last shipped ' + ESC(lastAgo) + '</span>' +
+      '</div></div>' +
+      '<div class="hero__right">' +
+      '<div class="hero__big">' + ESC(big) + '<small> ago</small></div>' +
+      '<div class="hero__lbl">' + lastLabel + '</div>' +
+      '</div></section>'
+    );
+  }
+
+  function renderHeroInflight(spec, data, nowMs) {
+    var events = (data.events && data.events[spec.number]) || [];
+    var cycleStartedEv = events.find(function (e) { return e.step === 'cycle_started'; });
+    var cycleStartedIso = (cycleStartedEv && cycleStartedEv.ts) || spec.started_at || '';
+    var elapsedSec = cycleStartedIso ? Math.floor((nowMs - Date.parse(cycleStartedIso)) / 1000) : null;
+    var elapsed = elapsedSec !== null ? humanizeSec(elapsedSec) : '—';
+    var slug = spec.slug || '';
+    var branch = 'spec/' + spec.number + '-' + slug;
+    var chips = [typeChip(spec.type)];
+    if (branch) chips.push('<span class="chip tone-neutral">branch · <code>' + ESC(branch) + '</code></span>');
+    var rec = events.slice().reverse().find(function (e) { return e.step === 'reconcile_complete'; });
+    if (rec) {
+      var verdict = (rec.data && rec.data.verdict) || 'clean';
+      var mech = (rec.data && rec.data.mechanical) || 0;
+      chips.push('<span class="chip tone-ok">' + ESC(verdict) + ' · ' + ESC(mech) + ' patches</span>');
+    }
+    return (
+      '<section class="hero hero--inflight" aria-label="Queue in flight">' +
+      '<div class="hero__top">' +
+      '<div class="hero__icon"><span class="material-symbols-outlined">play_circle</span></div>' +
+      '<div class="hero__body">' +
+      '<div class="hero__kicker">In flight — ' + ESC(spec.slug) + '</div>' +
+      '<div class="hero__title"><a href="spec-' + ESC(spec.number) + '.html">Spec ' +
+      ESC(spec.number) + ' — ' + ESC(spec.title) + '</a></div>' +
+      '<div class="hero__row">' + chips.join('') + '</div>' +
+      '</div>' +
+      '<div class="hero__right">' +
+      '<div class="hero__big" data-cycle-started-at="' + ESC(cycleStartedIso) + '">' + ESC(elapsed) + '</div>' +
+      '<div class="hero__lbl">elapsed</div>' +
+      '</div></div></section>'
+    );
+  }
+
+  function renderQueue(data, nowMs) {
+    var queued = data.specs
+      .filter(function (s) { return s.status === 'queued'; })
+      .sort(function (a, b) { return (a.queue_position || 999) - (b.queue_position || 999); });
+    var header =
+      '<div class="sh"><div class="sh__name">Queue</div>' +
+      '<div class="sh__hint">/dev-next picks position 1 first</div>' +
+      '<div class="sh__rule"></div></div>';
+    if (queued.length === 0) {
+      return header +
+        '<section class="qtable" aria-label="Queue">' +
+        '<div class="qrow qrow--header"><div>#</div><div>Spec</div><div>Title</div>' +
+        '<div>Type</div><div style="text-align:right">Waiting</div></div>' +
+        '<div class="qrow qrow--empty">Queue is empty. Promote a draft with ' +
+        '<code>/spec-promote &lt;id&gt;</code> or queue a new one with <code>/spec-queue</code>.</div>' +
+        '</section>';
+    }
+    var rows = ['<div class="qrow qrow--header"><div>#</div><div>Spec</div>' +
+      '<div>Title</div><div>Type</div><div style="text-align:right">Waiting</div></div>'];
+    queued.forEach(function (s) {
+      var waiting = ago(s.queued_at, nowMs).replace(' ago', '');
+      rows.push(
+        '<div class="qrow">' +
+        '<div class="qrow__pos">' + ESC(s.queue_position) + '</div>' +
+        '<div class="qrow__id"><a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
+        '<div class="qrow__title">' + ESC(s.title) + '</div>' +
+        '<div>' + typeChip(s.type) + '</div>' +
+        '<div class="qrow__age">' + ESC(waiting) + '</div></div>'
+      );
+    });
+    return header + '<section class="qtable" aria-label="Queue">' + rows.join('') + '</section>';
+  }
+
+  function renderFeed(data, nowMs) {
+    var cutoff = nowMs - 24 * 3600 * 1000;
+    var flat = [];
+    var specByNum = {};
+    data.specs.forEach(function (s) { specByNum[s.number] = s; });
+    Object.keys(data.events || {}).forEach(function (num) {
+      (data.events[num] || []).forEach(function (e) {
+        var ts = Date.parse(e.ts || '');
+        if (!isNaN(ts) && ts >= cutoff) flat.push({ ts: ts, ev: e, spec: specByNum[num] });
+      });
+    });
+    flat.sort(function (a, b) { return b.ts - a.ts; });
+
+    var header =
+      '<div class="sh"><div class="sh__name">Recent activity</div>' +
+      '<div class="sh__hint">last 24 hours</div><div class="sh__rule"></div></div>';
+    if (flat.length === 0) {
+      return header +
+        '<section class="feed" aria-label="Recent activity"><div class="feed__row">' +
+        '<div class="feed__ts">—</div><div></div>' +
+        '<div class="feed__what"><em>No events in the last 24 hours.</em></div>' +
+        '<div class="feed__dur">—</div></div></section>';
+    }
+    var rows = flat.slice(0, 40).map(function (r) {
+      var d = new Date(r.ts);
+      var hh = String(d.getUTCHours()).padStart(2, '0');
+      var mm = String(d.getUTCMinutes()).padStart(2, '0');
+      var ss = String(d.getUTCSeconds()).padStart(2, '0');
+      var step = r.ev.step || '';
+      var specLink = r.spec
+        ? '<a href="spec-' + ESC(r.spec.number) + '.html">' + ESC(r.spec.number) + '</a>'
+        : '';
+      var detail = r.spec ? specLink + ' · ' + ESC(r.spec.title) : ESC(step);
+      return (
+        '<div class="feed__row">' +
+        '<div class="feed__ts">' + hh + ':' + mm + ':' + ss + ' UTC</div>' +
+        '<div class="feed__step feed__step--neutral"></div>' +
+        '<div class="feed__what"><span class="kicker">' + ESC(step.replace(/_/g, ' ')) + '</span>' +
+        detail + '</div><div class="feed__dur">—</div></div>'
+      );
+    });
+    return header + '<section class="feed" aria-label="Recent activity">' + rows.join('') + '</section>';
+  }
+
+  function renderDrafts(data, nowMs) {
+    var drafts = data.drafts || [];
+    var header =
+      '<div class="sh"><div class="sh__name">Drafts</div>' +
+      '<div class="sh__hint">backlog · promote with <code>/spec-promote &lt;id&gt;</code></div>' +
+      '<div class="sh__rule"></div></div>';
+    if (drafts.length === 0) {
+      return header +
+        '<section class="drafts" aria-label="Drafts">' +
+        '<div class="draft-row"><div class="draft-row__id">—</div>' +
+        '<div class="draft-row__title"><em>No drafts parked.</em></div>' +
+        '<div></div><div class="draft-row__age">—</div></div></section>';
+    }
+    var rows = drafts.map(function (d) {
+      var age = d.created ? ago(d.created, nowMs).replace(' ago', '') : '—';
+      return (
+        '<div class="draft-row">' +
+        '<div class="draft-row__id">' + ESC(d.draft_id) + '</div>' +
+        '<div class="draft-row__title"><a href="draft-' + ESC(d.draft_id) + '.html">' +
+        ESC(d.title) + '</a></div>' +
+        '<div>' + typeChip(d.type) + '</div>' +
+        '<div class="draft-row__age">park · ' + ESC(age) + '</div></div>'
+      );
+    });
+    return header + '<section class="drafts" aria-label="Drafts">' + rows.join('') + '</section>';
+  }
+
+  function renderAllSpecs(data) {
+    var dev = (data.specs || []).slice().sort(function (a, b) {
+      return parseInt(b.number, 10) - parseInt(a.number, 10);
+    });
+    var counts = {
+      deployed: dev.filter(function (s) { return s.status === 'deployed'; }).length,
+      queued: dev.filter(function (s) { return s.status === 'queued'; }).length,
+      inflight: dev.filter(function (s) { return s.status === 'in_progress'; }).length
+    };
+    var grid = 'grid-template-columns: 76px 1fr 130px 100px 100px;';
+    var header =
+      '<div class="sh"><div class="sh__name">All specs</div>' +
+      '<div class="sh__hint">' + counts.deployed + ' shipped · ' + counts.queued +
+      ' queued · ' + counts.inflight + ' in flight</div>' +
+      '<div class="sh__rule"></div></div>';
+    var rows = ['<div class="qrow qrow--header" style="' + grid + '">' +
+      '<div>Spec</div><div>Title</div><div>Type</div><div>Status</div>' +
+      '<div style="text-align:right">Version</div></div>'];
+    dev.forEach(function (s) {
+      rows.push(
+        '<div class="qrow" style="' + grid + '">' +
+        '<div class="qrow__id"><a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
+        '<div class="qrow__title">' + ESC(s.title) + '</div>' +
+        '<div>' + typeChip(s.type) + '</div>' +
+        '<div>' + statusChip(s.status) + '</div>' +
+        '<div class="qrow__age">' + ESC(s.target_version || '—') + '</div></div>'
+      );
+    });
+    return header + '<section class="qtable" aria-label="All specs">' + rows.join('') + '</section>';
+  }
+
+  function paint(data, nowMs, opts) {
+    opts = opts || {};
+    var hero = document.querySelector('[data-region="hero"]');
+    if (hero) hero.innerHTML = renderHero(data, nowMs);
+    var q = document.querySelector('[data-region="queue"]');
+    if (q) q.innerHTML = renderQueue(data, nowMs);
+    var feed = document.querySelector('[data-region="feed"]');
+    if (feed) feed.innerHTML = renderFeed(data, nowMs);
+    var drafts = document.querySelector('[data-region="drafts"]');
+    if (drafts) drafts.innerHTML = renderDrafts(data, nowMs);
+    var all = document.querySelector('[data-region="all-specs"]');
+    if (all) all.innerHTML = renderAllSpecs(data);
+
+    var updated = document.querySelector('[data-last-updated]');
+    if (updated) {
+      var generatedAt = data.generated_at ? Date.parse(data.generated_at) : nowMs;
+      var age = humanizeSec(Math.floor((nowMs - generatedAt) / 1000));
+      var stalePrefix = opts.stale ? '<span class="chip tone-warn">stale · </span> ' : '';
+      updated.innerHTML = stalePrefix + 'updated ' + age + ' ago';
+    }
+  }
+
+  function readCache() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function writeCache(data) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (e) { /* quota */ }
+  }
+
+  function refresh() {
+    fetch('/api/data', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        writeCache(data);
+        paint(data, Date.now(), {});
+      })
+      .catch(function (err) {
+        console.warn('[dr-dashboard] /api/data failed:', err && err.message);
+        var cached = readCache();
+        if (cached) paint(cached, Date.now(), { stale: true });
+        // else: leave server-rendered content in place; no destructive swap.
+      });
+  }
+
+  function start() {
+    // First paint: if we have cached data, paint it immediately so returning
+    // visitors see populated content before the network round-trip completes.
+    var cached = readCache();
+    if (cached) paint(cached, Date.now(), {});
+    refresh();
+    setInterval(refresh, POLL_MS);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();
+"""
+
+
 # ── Asset copy + entrypoint ────────────────────────────────────────────────
 
 
@@ -1347,6 +1807,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", default=".", type=Path)
     parser.add_argument("--out", default="dashboard/site", type=Path)
+    parser.add_argument(
+        "--shell-only",
+        action="store_true",
+        help=(
+            "Emit data-empty skeleton placeholders for hero/queue/feed/drafts/all-specs "
+            "(spec 0160). dashboard-bootstrap.js fetches /api/data at runtime and "
+            "populates them. Per-spec pages are still emitted in full. Used by the "
+            "Cloudflare Pages build; local previews omit the flag to bake data in."
+        ),
+    )
     ns = parser.parse_args(argv)
 
     repo_root = ns.repo_root.resolve()
@@ -1360,8 +1830,11 @@ def main(argv: list[str] | None = None) -> int:
     copy_design_system_assets(repo_root, out_dir)
     (out_dir / "dashboard.css").write_text(DASHBOARD_CSS, encoding="utf-8")
     (out_dir / "dashboard-live.js").write_text(DASHBOARD_LIVE_JS, encoding="utf-8")
+    (out_dir / "dashboard-bootstrap.js").write_text(DASHBOARD_BOOTSTRAP_JS, encoding="utf-8")
     (out_dir / "index.html").write_text(
-        render_index(specs, drafts, live_version=live_version, now=now),
+        render_index(
+            specs, drafts, live_version=live_version, now=now, shell_only=ns.shell_only,
+        ),
         encoding="utf-8",
     )
     for s in specs:

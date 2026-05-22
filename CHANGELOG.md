@@ -10,7 +10,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
-## [1.22.1] — 2026-05-22
+## [1.23.0] — 2026-05-22
+
+### Added
+
+- **Spec 0160 — Dashboard live data via Cloudflare Pages Function** ([spec 0160](specs/0160-dashboard-live-data-via-pages-function.md)). The dashboard at `dr-dashboard.pages.dev` now reflects fresh repo state within ~15s instead of the ~2–5 minute rebuild lag. Three coupled surfaces:
+  - `functions/api/data.js` — Cloudflare Pages Function at `/api/data`. Reads spec/draft/handoff frontmatter and per-spec event sidecars via the GitHub Contents API using a fine-grained PAT (`GITHUB_TOKEN` env var, encrypted in Pages settings). Returns a single JSON payload. Edge-cached for 15s (`max-age`) with a 60s `stale-while-revalidate` window. Returns `502 + { error, generated_at: null }` on auth/upstream failure so the client falls back to localStorage.
+  - `DASHBOARD_BOOTSTRAP_JS` constant in the renderer (written to `dashboard/site/dashboard-bootstrap.js` at build time) — fetches `/api/data` on `DOMContentLoaded`, paints hero / queue / feed / drafts / all-specs sections into shell `[data-region]` containers, polls every 15s. Caches the last good payload in `localStorage`; on fetch failure repaints from cache with a `stale` chip in the header. No-op on local previews where `/api/data` 404s — the server-rendered baseline stays in place.
+  - `render_dashboard.py` — new `--shell-only` CLI flag plus `shell_only=True` kwarg on `render_index()`. Shell mode emits data-empty `[data-region]` skeletons (sized to match populated state to limit reflow) instead of fully-rendered specs/drafts/events. Default mode (no flag) is unchanged — still produces a fully-baked self-contained dashboard for local previews and as a build-time fallback. Both modes now wrap sections in `[data-region]` containers so the bootstrap script can swap them.
+  - `wrangler.toml` at repo root for `npx wrangler pages dev dist` local-dev support; `.dev.vars` added to `.gitignore` for local-only `GITHUB_TOKEN` storage.
+  - `dashboard/HOSTING.md` § Live data setup walks through the one-time fine-grained PAT creation and the Cloudflare env-var configuration; updated build command to include `--shell-only`.
+
+### Changed
+
+- Removed the 60s `<meta http-equiv="refresh">` from the dashboard's `<head>` (spec 0156 §2.2). The bootstrap script's 15s `/api/data` poll handles freshness without page reloads; mid-scroll users no longer get bounced.
+- `dashboard-live.js` (the per-second stage-elapsed ticker) keeps running unchanged — the bootstrap script writes `data-stage-started-at` and `data-cycle-started-at` attributes that the live ticker reads, same as before.
+
+
 
 ### Fixed
 

@@ -39,3 +39,7 @@ reconcile/
 !.claude/skills/
 !.claude/skills/**
 supabase/.temp/
+
+# Spec 0160 — Cloudflare Pages Function local-dev secrets. Holds
+# GITHUB_TOKEN for `npx wrangler pages dev dist`. Never commit.
+.dev.vars
