@@ -1,0 +1,7 @@
+{"ts":"2026-05-22T18:41:13Z","step":"cycle_started","data":{}}
+{"ts":"2026-05-22T18:41:13Z","step":"preflight_ok","data":{"checks":["main_clean","no_open_spec_prs","no_in_flight"]}}
+{"ts":"2026-05-22T18:41:13Z","step":"handoff_read","data":{"path":"handoffs/2026-05-22-spec-0167-critique-pane-bar2-chrome-and-bar1-drift-chip.md"}}
+{"ts":"2026-05-22T18:41:18Z","step":"spec_read","data":{"path":"specs/0168-critique-pane-item-card-refresh.md","lines":657,"type":"new-feature"}}
+{"ts":"2026-05-22T18:41:18Z","step":"planning_started","data":{}}
+{"ts":"2026-05-22T18:46:06Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"L-complexity spec — shipping §2.1 (M3 frame catch-up) only this cycle. §2.2–§2.9 (head rebuild, lifecycle view, sources attribution, collapse affordance, etc.) deferred to follow-up spec."}}
+{"ts":"2026-05-22T18:46:06Z","step":"in_progress","data":{}}
