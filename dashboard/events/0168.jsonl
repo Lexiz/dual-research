@@ -6,3 +6,4 @@
 {"ts":"2026-05-22T18:46:06Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"L-complexity spec — shipping §2.1 (M3 frame catch-up) only this cycle. §2.2–§2.9 (head rebuild, lifecycle view, sources attribution, collapse affordance, etc.) deferred to follow-up spec."}}
 {"ts":"2026-05-22T18:46:06Z","step":"in_progress","data":{}}
 {"ts":"2026-05-22T18:46:11Z","step":"branched","data":{"branch":"spec/0168-critique-pane-item-card-refresh","from":"main@9e20490"}}
+{"ts":"2026-05-22T18:46:16Z","step":"implementing_started","data":{}}
