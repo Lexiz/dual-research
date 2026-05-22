@@ -1,0 +1,13 @@
+{
+  "name": "dual-research-js-tests",
+  "private": true,
+  "type": "module",
+  "description": "JS test harness for the Cloudflare Pages Function (functions/api/data.js) and the dashboard-bootstrap.js artefact (built from scripts/spec_lifecycle/render_dashboard.py DASHBOARD_BOOTSTRAP_JS). Production has zero JS dependencies — these are devDependencies only. Spec 0161.",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0",
+    "happy-dom": "^14.0.0"
+  }
+}

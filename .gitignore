@@ -43,3 +43,8 @@ supabase/.temp/
 # Spec 0160 — Cloudflare Pages Function local-dev secrets. Holds
 # GITHUB_TOKEN for `npx wrangler pages dev dist`. Never commit.
 .dev.vars
+
+# Spec 0161 — JS test stack devDependencies tree. Installed locally on
+# opt-in via `make test-js`; never committed.
+node_modules/
+package-lock.json
