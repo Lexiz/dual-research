@@ -10,6 +10,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.30.0] — 2026-05-22
+
+### Added
+
+- **Spec 0169 — Dashboard redesign v2: callout strip, tabs, theme toggle, total-elapsed banner** ([spec 0169](specs/0169-dashboard-redesign-v2-tabs-themes-history.md)). The dashboard at the spec-dashboard URL goes from a 3-stacked-callout + flat-scroll layout to a callout strip + tabbed layout. The user-priority "cumulative agent-hours" view ships as a 4-tile banner in the History tab.
+- **Callout strip (§2.1)** ([scripts/spec_lifecycle/render_dashboard.py](scripts/spec_lifecycle/render_dashboard.py) `_render_counter_cluster` + `_render_avg_cycle_card`). One row, three cards: hero (~60%) + counter cluster (4 counters: Drafts / Queued / In flight / Shipped, each ~25% / ~15%) + avg cycle (rolling-10 mean with delta vs prior 10). Replaces the previous `.pipe` + `.metrics` row stack. The previous `_render_pipeline()` is retired; the `merged_today` column folds into the activity feed (per spec).
+- **Tab bar (§2.2)** (`_render_tabs`). Four tabs: Now (counts in_flight + queued) · Spec creation (drafts + queued) · History (all-time shipped) · Metrics (no count). Active tab carries an underline in `--p-info` and a tinted count chip. CSS-only show/hide via `aria-hidden` — no router, no state persistence between visits. Click and keyboard (Enter / Space) supported.
+- **Now tab content (§2.3)** — queue table + dev-side activity feed.
+- **Spec creation tab content (§2.4)** — drafts table.
+- **History tab content (§2.5)** — leads with the new total-elapsed banner, then the all-specs table. Banner ships as a 4-tile row: Total elapsed (sum across all timed cycles, e.g. `12h 11m`), Mean cycle (excluding outliers > 1h to suppress the 0152 bootstrap outlier), Median cycle (p50 including outliers), Fastest / Slowest (with spec ids). `_render_total_elapsed_banner` handles the math.
+- **Metrics tab content (§2.6)** — reuses the existing `_render_metrics` for now (4 KPI tiles: Avg cycle, Throughput, Reconcile patches, Failed cycles). Cycle-time bar chart + by-type breakdown deferred to a follow-up polish spec.
+- **Theme toggle (§2.7)** — cycles `light → dark → auto` from a button in the header. Persists to `localStorage` under `dr-dashboard-theme`. An inline init script in `<head>` reads localStorage before the body paints (no theme flash). A dashboard-local theme shim in `DASHBOARD_CSS` re-projects the dark token deltas onto `html[data-theme="dark"]` via `body.dark` class mirroring (the existing `tokens.css` overrides keyed on `body.dark` continue to drive the actual color values — single source). `prefers-reduced-motion: reduce` disables transitions on the toggle, tabs, and strip.
+
+### Notes on deferrals
+
+- **§2.5 paginated all-specs table** with client-side filter / search / sort — deferred to a follow-up polish spec. The existing static `_render_all_specs` ships unchanged within the History tab.
+- **§2.6 cycle-time bar chart + by-type / reconcile stacks** — deferred. The Metrics tab ships with the existing 4 KPI tiles (`_render_metrics`).
+- These two deferrals are the only `§2.*` sub-sections from the spec body NOT shipped under this PR. Everything else (callout strip, tabs, History banner, theme toggle, shim) is in.
+
+### Tests
+
+- [tests/spec_lifecycle/test_render_dashboard.py](tests/spec_lifecycle/test_render_dashboard.py) — new `test_spec_0169_theme_toggle_and_shim` (toggle markup + shim CSS + live JS wiring) and `test_spec_0169_total_elapsed_banner_math` (sum + mean-excl-outliers + median + fastest/slowest with known fixtures). The existing `test_index_contains_all_sections` updated for the new `.strip` / `.tabs` / `.te-banner` anchors; `.pipe` assertion removed since `_render_pipeline` is retired.
+- [tests/spec_lifecycle/test_render_dashboard_shell_only.py](tests/spec_lifecycle/test_render_dashboard_shell_only.py) + [test_render_dashboard_default_still_works.py](tests/spec_lifecycle/test_render_dashboard_default_still_works.py) — `data-region` allowlist updated: `pipeline` retired; `counters`, `avg`, `total-elapsed` added.
+
 ## [1.29.0] — 2026-05-22
 
 ### Changed

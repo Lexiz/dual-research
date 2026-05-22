@@ -40,7 +40,11 @@ def test_default_mode_has_data_region_wrappers_for_bootstrap_swaps(tmp_path: Pat
     root = _bootstrap_repo(tmp_path)
     specs, drafts = collect(root)
     html = render_index(specs, drafts)
-    for region in ("hero", "pipeline", "metrics", "queue", "feed", "drafts", "all-specs"):
+    # Spec 0169 — `pipeline` region retired (counter cluster replaced it);
+    # new regions `counters`, `avg`, and `total-elapsed` ship as part of the
+    # callout strip + history banner. `metrics` lives inside the Metrics tab
+    # but is still data-region wrapped.
+    for region in ("hero", "counters", "avg", "metrics", "queue", "feed", "drafts", "all-specs", "total-elapsed"):
         assert f'data-region="{region}"' in html
 
 
