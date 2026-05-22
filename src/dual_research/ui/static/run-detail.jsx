@@ -310,16 +310,18 @@ function PhaseDotsRow({ run, startedClock, elapsedLabel }) {
       <span style={{ flex: 1 }} />
       {/* Spec 0138 §5.3 — full run id, copyable. Sits to the LEFT of the
           existing started/elapsed/round metadata so the visual hierarchy
-          reads identity first → activity context second. The chip uses
-          the existing `.rid` primitive (shared.jsx:844-852); no new
-          design-system surface. */}
+          reads identity first → activity context second. Spec 0151 §3.3 —
+          RunIDChip is now compound: the id span is inert and a separate
+          copy button (right of a hairline divider) is the sole copy
+          affordance. The handler payload (id · cost · tokens) is
+          unchanged. */}
       {run.id && (
         <RunIDChip
           id={run.id}
-          onClick={copyRunId}
-          title={copiedRunId
+          onCopy={copyRunId}
+          copyTitle={copiedRunId
             ? 'copied — id · cost · tokens'
-            : `${copyPayload} — click to copy`}
+            : `Copy ${copyPayload}`}
         />
       )}
       <span className="mono" style={{
@@ -1407,6 +1409,227 @@ const _ITEM_CARD_TERMINAL_STATES = new Set([
   'resolved', 'acknowledged', 'withdrawn', 'capped',
 ]);
 
+// Spec 0151 §3.4.3 — per-kind verb labels for the footer strip.
+// Disagreement and Question have agent-specific terminal phrasing
+// ("both aligned" vs "answered"); Issue and Comment stay literal.
+// These verb strings come directly from the design-system reference
+// screenshots (07/08/09/10) and supersede the spec 0119 §13 vocabulary
+// scan for this specific call site — they are chip labels by intent.
+const _FOOTER_VERBS = {
+  disagreement: { resolved: 'both aligned', acknowledged: 'acknowledged',
+                  capped: 'capped', withdrawn: 'withdrawn' },
+  question:     { resolved: 'answered', acknowledged: 'acknowledged', // spec-0119:vocab-ok (spec 0151 §3.4.3 design-system verb)
+                  capped: 'capped', withdrawn: 'withdrawn' },
+  issue:        { resolved: 'resolved', acknowledged: 'acknowledged',
+                  capped: 'capped', withdrawn: 'withdrawn' },
+  comment:      { resolved: 'noted', acknowledged: 'noted', // spec-0119:vocab-ok (spec 0151 §3.4.3 design-system verb)
+                  capped: 'noted',   withdrawn: 'noted' }, // spec-0119:vocab-ok (spec 0151 §3.4.3 design-system verb)
+};
+
+// Map a transition to a per-turn verb chip (design-system reference
+// `08-disagreement-card.png`: conceded / pushed back / restated /
+// aligned / raised).
+function _transitionVerb(t) {
+  const to = t.toState || t.to_state || '';
+  const from = t.fromState || t.from_state || '';
+  if (to === 'addressed') return 'pushed back';
+  if (from === 'addressed' && to === 'open') return 'restated';
+  if (to === 'acknowledged') return 'aligned';
+  if (to === 'resolved' || to === 'withdrawn') return 'conceded'; // spec-0119:vocab-ok (spec 0151 §3.4.3 design-system verb)
+  if (to === 'capped') return 'capped';
+  return to || 'raised';
+}
+
+function _verbTone(verb) {
+  if (verb === 'conceded' || verb === 'aligned') return 'info'; // spec-0119:vocab-ok (data-layer comparison)
+  if (verb === 'pushed back' || verb === 'restated') return 'warn';
+  if (verb === 'capped') return 'error';
+  return 'muted';
+}
+
+function _actorTone(actor) {
+  const a = actor === 'openai' ? 'gpt' : actor;
+  if (a === 'claude') return 'a';
+  if (a === 'gpt') return 'b';
+  if (a === 'mutual') return 'muted';
+  return 'muted';
+}
+
+function _actorLabel(actor) {
+  if (actor === 'openai' || actor === 'gpt') return 'GPT';
+  if (actor === 'claude') return 'Claude';
+  if (actor === 'mutual') return 'Both';
+  if (actor === 'orchestrator') return 'Orchestrator';
+  return actor || '—';
+}
+
+// Per-turn row inside Disagreement / Question bodies. Matches design
+// reference `08-disagreement-card.png`:
+//   [Agent badge] · r<N> · [verb badge]
+//     ┃ <quoted reason text>
+function ItemCardTurnRow({ actor, round, verb, tone, text }) {
+  const a = actor === 'openai' ? 'gpt' : actor;
+  const agentTone = _actorTone(actor);
+  return (
+    <div className="item-card__turn">
+      <div className="item-card__turn-head">
+        <span className={`item-card__agent item-card__agent--${a}`}>
+          <i className="dot" style={{ background: a === 'mutual' ? 'var(--md-on-surface-variant)' : `var(--${a})` }} />
+          {_actorLabel(actor)}
+        </span>
+        <span className="item-card__turn-sep">·</span>
+        <span className="item-card__turn-round">r{round}</span>
+        <span className="item-card__turn-sep">·</span>
+        <Chip tone={tone} size="sm">{verb}</Chip>
+      </div>
+      {text && (
+        <blockquote className="item-card__turn-text">{text}</blockquote>
+      )}
+    </div>
+  );
+}
+
+// Disagreement / Question body — matches `08-disagreement-card.png`.
+// Layout:
+//   id chip · [state] ........... N turns
+//   [state] — <resolution text>          (terminal only)
+//   <per-turn rows: raise + each transition>
+function ItemCardDQBody({ item, transitions, stateLabel, stateTone, isTerminal }) {
+  const turnsCount = transitions.length;
+  const lastTerminal = [...transitions].reverse()
+    .find((t) => _ITEM_CARD_TERMINAL_STATES.has(t.toState || t.to_state || ''));
+  const resolutionText = (lastTerminal && (lastTerminal.reason || '')) || '';
+  return (
+    <div className="item-card__body item-card__body--turns">
+      <div className="item-card__bmeta">
+        <code className="item-card__sid">{item.id}</code>
+        <Chip tone={stateTone} size="sm">{stateLabel}</Chip>
+        <span style={{ flex: 1 }} />
+        <span className="item-card__turn-count">{turnsCount} turn{turnsCount === 1 ? '' : 's'}</span>
+      </div>
+      {isTerminal && resolutionText && (
+        <div className="item-card__verdict">
+          <Chip tone={stateTone} size="sm">{stateLabel}</Chip>
+          <span className="item-card__verdict-sep">—</span>
+          <span className="item-card__verdict-text">{resolutionText}</span>
+        </div>
+      )}
+      <div className="item-card__turns">
+        <ItemCardTurnRow
+          actor={item.raiser}
+          round={item.raisedRound || item.raised_round}
+          verb="raised"
+          tone="muted"
+          text={item.body}
+        />
+        {transitions.map((t, i) => {
+          const verb = _transitionVerb(t);
+          return (
+            <ItemCardTurnRow
+              key={i}
+              actor={t.actor}
+              round={t.round}
+              verb={verb}
+              tone={_verbTone(verb)}
+              text={t.reason}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Issue body — matches `09-issue-card.png`. Layout:
+//   <short code> [state] — <title>
+//   > quote: <anchor>                       (inline anchor, if quote)
+//   <body paragraph>
+//   [flagged by Agent] [first seen R<N>] [last seen R<M>]
+//   "<anchor>"                              (bottom blockquote)
+function ItemCardIssueBody({ item, stateLabel, stateTone, anchorType, anchorText }) {
+  const parsed = parseCodeId(item.id);
+  const shortCode = parsed.sequence != null
+    ? `${(parsed.kind || 'i')[0].toUpperCase()}-${parsed.sequence}`
+    : item.id;
+  const lines = String(item.body || '').split('\n');
+  const titleLine = lines[0] || '';
+  const restBody = lines.slice(1).join('\n').trim();
+  const transitions = item.transitions || [];
+  const lastSeen = transitions.length > 0
+    ? transitions[transitions.length - 1].round
+    : (item.raisedRound || item.raised_round);
+  const firstSeen = item.raisedRound || item.raised_round;
+  return (
+    <div className="item-card__body item-card__body--issue">
+      <div className="item-card__title-row">
+        <strong className="item-card__sid">{shortCode}</strong>
+        <Chip tone={stateTone} size="sm">{stateLabel}</Chip>
+        <span className="item-card__title-sep">—</span>
+        <span className="item-card__title">{titleLine}</span>
+      </div>
+      {anchorType === 'quote' && anchorText && (
+        <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
+      )}
+      {restBody && (
+        <div className="item-card__text"><Markdown text={restBody} /></div>
+      )}
+      <div className="item-card__seen-row">
+        <Chip tone={_actorTone(item.raiser)} size="sm">
+          <i className="dot" style={{ background: `var(--${item.raiser === 'openai' ? 'gpt' : item.raiser})` }} />
+          {' '}flagged by {_actorLabel(item.raiser)}
+        </Chip>
+        <Chip tone="muted" size="sm">first seen R{firstSeen}</Chip>
+        <Chip tone="muted" size="sm">last seen R{lastSeen}</Chip>
+      </div>
+      {anchorType && anchorText && (
+        <blockquote className="item-card__anchor item-card__anchor--bottom">"{anchorText}"</blockquote>
+      )}
+    </div>
+  );
+}
+
+// Comment body — matches `10-comments-card.png`. Layout:
+//   <markdown body>
+//   > quote: <anchor>                       (inline anchor, if quote)
+//   [noted by Agent] [R<N>]
+//   "<anchor>"                              (bottom blockquote)
+function ItemCardCommentBody({ item, anchorType, anchorText }) {
+  const round = item.raisedRound || item.raised_round;
+  return (
+    <div className="item-card__body item-card__body--comment">
+      {item.body && (
+        <div className="item-card__text"><Markdown text={String(item.body)} /></div>
+      )}
+      {anchorType === 'quote' && anchorText && (
+        <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
+      )}
+      <div className="item-card__seen-row">
+        <Chip tone={_actorTone(item.raiser)} size="sm">
+          <i className="dot" style={{ background: `var(--${item.raiser === 'openai' ? 'gpt' : item.raiser})` }} />
+          {' '}noted by {_actorLabel(item.raiser)}
+        </Chip>
+        <Chip tone="muted" size="sm">R{round}</Chip>
+      </div>
+      {anchorType && anchorText && (
+        <blockquote className="item-card__anchor item-card__anchor--bottom">"{anchorText}"</blockquote>
+      )}
+    </div>
+  );
+}
+
+// Spec 0151 §3.4.3 — ItemCard rewritten so each kind matches its
+// design-system reference pixel-by-pixel:
+//   Question     → design-system/notion-issues/screenshots/07-question-card-duplicate.png
+//   Disagreement → design-system/notion-issues/screenshots/08-disagreement-card.png
+//   Issue        → design-system/notion-issues/screenshots/09-issue-card.png
+//   Comment      → design-system/notion-issues/screenshots/10-comments-card.png
+// The slim header (id + kind + state, no raised-by/round badges) is
+// shared; the body delegates to a per-kind sub-renderer. Lifecycle is
+// surfaced via per-turn rows inside Q/D bodies (not as a separate
+// "Lifecycle" timeline section). Terminal items get a green footer
+// strip whose verb is kind-aware (`both aligned` / `answered` /
+// `resolved` / `noted`). Hover elevation per design-system/notion-
+// issues/ISSUES.md Issue 3 via the shared `data-hoverable` token.
 function ItemCard({ item, onHighlight }) {
   const cardRef = React.useRef(null);
   const kindLabel = ({
@@ -1424,38 +1647,28 @@ function ItemCard({ item, onHighlight }) {
     open: 'info',
     addressed: 'info',
   })[stateLabel] || 'info';
-  const raiserName = item.raiser === 'openai' ? 'GPT' : 'Claude';
   const transitions = item.transitions || [];
   const evidence = item.evidence || [];
   const evidenceRequired = !!(item.evidenceRequired || item.evidence_required);
   const anchorType = item.anchorType || item.anchor_type;
   const anchorText = item.anchorText || item.anchor_text;
-  // Spec 0144 §6.2.e — lifecycle footer, parity across all four kinds.
-  // Find the last terminal transition and count total turns to derive
-  // "M turns to converge". Open items get no footer.
+  const isTerminal = _ITEM_CARD_TERMINAL_STATES.has(stateLabel);
+
+  // Lifecycle footer (Spec 0151 §3.4.3): kind-aware verb, green strip.
   let lifecycleFooter = null;
-  if (_ITEM_CARD_TERMINAL_STATES.has(stateLabel)) {
-    const lastTerminal = [...transitions]
-      .reverse()
+  if (isTerminal) {
+    const lastTerminal = [...transitions].reverse()
       .find((t) => _ITEM_CARD_TERMINAL_STATES.has(t.toState || t.to_state || ''));
-    const terminalRound = lastTerminal ? lastTerminal.round : null;
-    const turns = transitions.length || 0;
+    const terminalRound = lastTerminal ? lastTerminal.round : (item.raisedRound || item.raised_round);
+    const verb = (_FOOTER_VERBS[item.kind] || {})[stateLabel] || stateLabel;
     lifecycleFooter = (
-      <div className="item-card__lifecycle-footer">
+      <div className="item-card__footer item-card__footer--ok">
         <span aria-hidden="true">✓</span>{' '}
-        {stateLabel}{terminalRound != null ? ` at round ${terminalRound}` : ''}
-        {turns > 0 && ` · ${turns} turn${turns === 1 ? '' : 's'} to converge`}
+        {verb}{terminalRound != null ? ` in round ${terminalRound}` : ''}
       </div>
     );
   }
-  // Spec 0144 §6.2.h — clicking the Sources N header chip jumps the
-  // card's SOURCES segment into view. Per-card-jump confirmed as the
-  // default in the open-question round. We compute the scroll-delta
-  // explicitly against the nearest scrollable ancestor because the
-  // critique pane has its own scroll container; relying on
-  // `scrollIntoView({block:'nearest'})` was a no-op in some browsers
-  // when the segment sat outside the pane's clientHeight without
-  // being far enough out to trigger the "minimum scroll" path.
+
   const handleSourcesChipClick = (e) => {
     e.stopPropagation();
     const root = cardRef.current;
@@ -1480,18 +1693,63 @@ function ItemCard({ item, onHighlight }) {
     const delta = targetRect.top - scrollerRect.top - 12;
     scroller.scrollBy({ top: delta, behavior: 'auto' });
   };
+
+  // Per-kind body
+  let body;
+  if (item.kind === 'disagreement' || item.kind === 'question') {
+    body = (
+      <ItemCardDQBody
+        item={item}
+        transitions={transitions}
+        stateLabel={stateLabel}
+        stateTone={stateTone}
+        isTerminal={isTerminal}
+      />
+    );
+  } else if (item.kind === 'issue') {
+    body = (
+      <ItemCardIssueBody
+        item={item}
+        stateLabel={stateLabel}
+        stateTone={stateTone}
+        anchorType={anchorType}
+        anchorText={anchorText}
+      />
+    );
+  } else if (item.kind === 'comment') {
+    body = (
+      <ItemCardCommentBody
+        item={item}
+        anchorType={anchorType}
+        anchorText={anchorText}
+      />
+    );
+  } else {
+    // Fallback for unknown kinds — keep the legacy compact body.
+    body = (
+      <div className="item-card__body">
+        {item.body}
+        {anchorType && anchorType !== 'none' && (
+          <blockquote className="item-card__anchor">
+            {anchorType === 'quote' ? '> quote: ' : '> after: '}
+            {anchorText}
+          </blockquote>
+        )}
+      </div>
+    );
+  }
+
   return (
     <article
       ref={cardRef}
-      className={`item-card item-card--${stateLabel}`}
+      className={`item-card item-card--${item.kind} item-card--${stateLabel}`}
+      data-hoverable="true"
       onClick={onHighlight}
     >
       <header className="item-card__head">
         <span className="md-chip md-chip--sm"><code>{item.id}</code></span>
         <span className="md-chip md-chip--sm">{kindLabel}</span>
         <Chip tone={stateTone}>{stateLabel}</Chip>
-        <span className="md-chip md-chip--sm">raised by {raiserName}</span>
-        <span className="md-chip md-chip--sm">round {item.raisedRound || item.raised_round}</span>
         {evidence.length > 0 && (
           <button
             type="button"
@@ -1503,44 +1761,10 @@ function ItemCard({ item, onHighlight }) {
           </button>
         )}
       </header>
-      <div className="item-card__body">
-        {item.body}
-        {anchorType && anchorType !== 'none' && (
-          <blockquote className="item-card__anchor">
-            {anchorType === 'quote' ? '> quote: ' : '> after: '}
-            {anchorText}
-          </blockquote>
-        )}
-      </div>
+      {body}
       {evidenceRequired && (
         <div className="item-card__evidence-needed">
           Evidence needed — addresses must cite consulted sources.
-        </div>
-      )}
-      {transitions.length > 0 && (
-        <div className="item-card__timeline">
-          <div className="item-card__timeline-hd">Lifecycle</div>
-          {transitions.map((t, i) => {
-            const fromS = t.fromState || t.from_state;
-            const toS = t.toState || t.to_state;
-            const actor = t.actor || '';
-            const actorLabel = actor === 'openai' ? 'GPT'
-                             : actor === 'claude' ? 'Claude'
-                             : actor === 'mutual' ? 'Both (mutual)'
-                             : actor === 'orchestrator' ? 'Orchestrator'
-                             : actor;
-            const via = t.via ? ` (${t.via})` : '';
-            return (
-              <div key={i} className="item-card__transition">
-                <span className="item-card__transition-meta">
-                  Round {t.round} — {fromS} → <strong>{toS}</strong>{via} · by {actorLabel}
-                </span>
-                {t.reason && (
-                  <div className="item-card__transition-reason">{t.reason}</div>
-                )}
-              </div>
-            );
-          })}
         </div>
       )}
       {lifecycleFooter}
@@ -5594,8 +5818,12 @@ function AgentInputDualPane({ item, run }) {
   );
 }
 
+// Spec 0151 §3.1 — AgentInputPane retains its per-agent card frame
+// (AgentStrip + StatusBadge) but delegates the prompt-piece body to
+// the shared three-section view. Pre-0151 this rendered each piece as
+// a flat row, diverging from every other Agent Input surface — the
+// migration brings the split-view in line with InputTabContent.
 function AgentInputPane({ slot, turnKey, run }) {
-  const { bundle, loading, error } = window.useInputBundle(turnKey);
   const agentName = slot === 'a' ? 'Claude' : 'GPT';
   const statusLabel = run?.status || 'idle';
 
@@ -5606,30 +5834,7 @@ function AgentInputPane({ slot, turnKey, run }) {
         <StatusBadge status={statusLabel} />
       </div>
       <div className="agent-input__body">
-        {!turnKey && 'No paired turn available.'}
-        {turnKey && loading && 'Loading…'}
-        {turnKey && error && `Error: ${error}`}
-        {turnKey && bundle && (() => {
-          // Spec 0150 — bundles are canonical-only post-backfill.
-          const phaseNum = phaseNumFromTurnKey(turnKey);
-          const pieces = bundle.pieces || {};
-          const populated = Object.keys(pieces).filter((k) => pieces[k]);
-          if (populated.length === 0) return 'Empty input bundle.';
-          const keys = orderPiecesForPhase(
-            Object.fromEntries(populated.map((k) => [k, pieces[k]])),
-            phaseNum,
-          );
-          const systemSource = bundle.system_source || 'recorded';
-          return keys.map(k => (
-            <InputSection
-              key={k}
-              piece={k}
-              text={pieces[k] || ''}
-              defaultCollapsed={isDefaultCollapsed(k)}
-              isAgentDefault={isSystemPiece(k) && systemSource === 'agent-default'}
-            />
-          ));
-        })()}
+        <PromptPiecesThreeSectionView turnKey={turnKey} frame="split" />
       </div>
     </div>
   );
@@ -5726,7 +5931,13 @@ function sectionFor(canonicalKey) {
   return 'derived';
 }
 
-function InputTabContent({ turnKey, attachmentTitles }) {
+// Spec 0151 §3.1 — shared three-section renderer used by both the
+// single-pane Input tab (InputTabContent) and the split-pane preflight
+// renderer (AgentInputPane). The `frame` prop controls only minor
+// spacing between the two contexts; the section structure, piece
+// rendering, default-open behaviour, and loading/error/empty states
+// are identical across both consumers.
+function PromptPiecesThreeSectionView({ turnKey, attachmentTitles, frame = 'single' }) {
   const { bundle, loading, error } = window.useInputBundle(turnKey);
 
   if (!turnKey) {
@@ -5745,11 +5956,12 @@ function InputTabContent({ turnKey, attachmentTitles }) {
   // Spec 0150 — bundles are canonical-only post-backfill.
   const pieces = bundle.pieces || {};
   const systemSource = bundle.system_source || 'recorded';
-  const populated = Object.keys(pieces).filter((k) => pieces[k]);
-  const renderKeys = orderPiecesForPhase(
-    Object.fromEntries(populated.map((k) => [k, pieces[k]])),
-    phaseNum,
-  );
+  // Spec 0151 §3.2 — keep every piece present in the bundle, including
+  // empty-string values. Empty pieces render with an `(empty)`
+  // placeholder so users can see the field exists in the bundle even
+  // when no value was written for this turn (e.g. `phase1.claude` is
+  // an empty string before Claude's draft lands at Phase 2 r1).
+  const renderKeys = orderPiecesForPhase(pieces, phaseNum);
 
   if (renderKeys.length === 0) {
     return <InputEmptyState label="This turn's agent input bundle is empty." />;
@@ -5785,8 +5997,13 @@ function InputTabContent({ turnKey, attachmentTitles }) {
     },
   ].filter((s) => s.keys.length > 0);
 
+  // Spec 0151 §3.1 — `frame="split"` reduces the inter-section gap to
+  // suit the denser dual-pane layout; `frame="single"` keeps the
+  // single-modal spacing unchanged from pre-0151.
+  const outerGap = frame === 'split' ? 10 : 14;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: outerGap }}>
       {sections.map((section) => (
         <InputSectionGroup
           key={section.id}
@@ -5809,6 +6026,19 @@ function InputTabContent({ turnKey, attachmentTitles }) {
         </InputSectionGroup>
       ))}
     </div>
+  );
+}
+
+// Spec 0145 §5.4 introduced the three-section grouping; spec 0151 §3.1
+// extracted it into PromptPiecesThreeSectionView so the split-pane
+// preflight renderer (AgentInputPane) can share the same structure.
+function InputTabContent({ turnKey, attachmentTitles }) {
+  return (
+    <PromptPiecesThreeSectionView
+      turnKey={turnKey}
+      attachmentTitles={attachmentTitles}
+      frame="single"
+    />
   );
 }
 
@@ -5905,7 +6135,9 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault, attachmen
               saw may have differed.
             </p>
           )}
-          <Markdown text={text} />
+          {text
+            ? <Markdown text={text} />
+            : <span className="prompt-piece__empty">(empty)</span>}
         </div>
       </CollapsibleSection>
     </div>
@@ -6705,6 +6937,14 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const runWideIntroduced = allPhaseItems.length;
   const runWideOpen = allPhaseItems.filter(it => it.status === 'open').length;
   const runWideResolved = allPhaseItems.filter(it => it.status !== 'open').length;
+  // Spec 0151 §3.4.1.3 — reinstate the run-wide drift count for bar1.
+  // Spec 0119 §8.6 had retired the drift surface from the critique
+  // header; spec 0151 supersedes that decision per the design-system
+  // target at design-system/notion-issues/screenshots/02-critique-target.png
+  // (which shows `⚠ N drift` adjacent to the introduced/open/resolved
+  // totals). Uses the same `isDrift` predicate as the bar2 chip so the
+  // header count matches what the user can filter to.
+  const runWideDrift = allPhaseItems.filter((it) => isDrift(it)).length;
 
   // Kind-tab counts (filtered by agent + status)
   const filteredAll = [...openNewItems, ...openCarriedItems, ...resolvedItems, ...driftItems];
@@ -6787,35 +7027,13 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
     );
   };
 
-  // Spec 0115 — count-augmented kind tabs. Counts come from the new
-  // unified Item bundle when available; legacy runs fall back to the
-  // per-kind list lengths the legacy renderer already computes.
-  // (``_itemsAll`` was hoisted above ``renderItem`` for spec 0144's
-  // ItemCard branch; it's the same list either way.)
-  const _phaseItemsForCount = isSummary
-    ? _itemsAll
-    : _itemsAll.filter((it) => it.phase === selectedPhase);
-  const _itemCountByKind = (kind) =>
-    _phaseItemsForCount.filter((it) => it.kind === kind).length;
-  // Prefer the new-bundle count when available (>0); else legacy.
-  const _displayCount = (newCount, legacyCount) =>
-    (newCount > 0 ? newCount : legacyCount);
-
-  const KIND_TABS = [
-    { id: 'all', label: 'All', tone: null,
-      count: _phaseItemsForCount.length || undefined },
-    { id: 'issues', label: 'Issues', tone: 'is-warn',
-      count: _displayCount(_itemCountByKind('issue'), phaseIssues.length) },
-    { id: 'comments', label: 'Comments', tone: null,
-      count: _displayCount(_itemCountByKind('comment'), phaseComments.length) },
-    { id: 'questions', label: 'Questions', tone: 'is-info',
-      count: _displayCount(_itemCountByKind('question'), phaseQuestions.length) },
-    { id: 'disagreements', label: 'Disagreements', tone: 'is-warn',
-      count: _displayCount(_itemCountByKind('disagreement'), phaseDisagreements.length) },
-  ].map((t) => ({
-    ...t,
-    label: (t.count != null && t.count > 0) ? `${t.label} (${t.count})` : t.label,
-  }));
+  // Spec 0151 §3.4.1 — the previous KIND_TABS descriptor + its private
+  // helpers (`_phaseItemsForCount`, `_itemCountByKind`, `_displayCount`,
+  // formerly used to munge "Label (N)" strings) are removed. The
+  // kind-filter row is now rendered inline below via
+  // <TabGroup variant="kind-tabs"> + <Tab variant="kind" count={…}>,
+  // which surfaces the count as a separate visual token per the
+  // design-system target (count appears next to the label, not inside it).
 
   // Render a collapsible crit-group section
   const renderGroup = (title, items, tone, countClass, collapsed) => {
@@ -6875,89 +7093,130 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
             <span><span className="n is-info">{runWideOpen}</span><span className="lbl">open</span></span>
             <span><span className="n is-ok">{runWideResolved}</span><span className="lbl">resolved</span></span>
           </span>
-          {/* Spec 0119 §8.6 — run-wide drift chip retired from the
-              critique-pane header. Per-phase ledger-drift now surfaces
-              on the timeline phase header (commit 4); validate-run is
-              the canonical surface for per-run drift totals. */}
+          {/* Spec 0151 §3.4.1.3 — reinstated run-wide drift pill,
+              superseding the spec 0119 §8.6 decision to retire it. The
+              design-system target (`02-critique-target.png`) shows the
+              `⚠ N drift` pill adjacent to the introduced/open/resolved
+              totals; this restores that affordance. Per-phase drift on
+              the timeline header and validate-run remain canonical
+              alternative surfaces. */}
+          {runWideDrift > 0 && (
+            <span
+              className="crit-drift-pill"
+              role="status"
+              title={`${runWideDrift} item${runWideDrift === 1 ? '' : 's'} with ledger drift`}
+            >
+              <Mdi name="alert" size={11} color="var(--p-warn)" />
+              <span className="crit-drift-pill__n">{runWideDrift}</span>
+              <span className="crit-drift-pill__lbl">drift</span>
+            </span>
+          )}
         </div>
       </header>
 
-      {/* BAR 2 — Spec 0119 §8.3 — chip-row legend.
-          The filter row at the top of the Critique pane IS the
-          canonical legend: every bubble + full-word + count appears
-          here so anywhere a dense-form chip appears on the timeline,
-          the reader can scroll to this row to confirm what each
-          bubble means. */}
+      {/* BAR 2 — Spec 0151 §3.4.1 — design-system parity. Layout per
+          design-system/notion-issues/screenshots/02-critique-target.png:
+          [kind-tabs row]  [agent fgroup] [state fgroup]
+          The kind-tab row uses .kind-tabs / .kind-tab CSS already
+          present in components.css; the agent and state filters use
+          the canonical .fgroup segmented control. Pre-0151 this row
+          used <Chip> for everything with label-embedded count strings
+          (`Issues (3)`) — superseded so counts render as separate
+          tokens per the target. */}
       {!isSummary && (
         <header className="bar2 crit-filter-row">
-          {['questions', 'disagreements', 'issues', 'comments'].map((cat) => (
-            <Chip
-              key={cat}
-              tone={CATEGORY_TONE[cat]}
-              categoryBubble={CATEGORY_BUBBLE[cat]}
-              label={CATEGORY_LABEL_PLURAL[cat]}
-              value={kindCounts[cat] || 0}
-              onClick={() => setKindFilter(cat)}
-              data-active={kindFilter === cat ? 'true' : undefined}
-              data-kind-filter="true"
-              title={`Show only ${CATEGORY_LABEL_PLURAL[cat]}`}
-            />
-          ))}
-          <Chip
-            tone="neutral"
-            label="All"
-            value={kindCounts.all || 0}
-            onClick={() => setKindFilter('all')}
-            data-active={kindFilter === 'all' ? 'true' : undefined}
-            data-kind-filter="true"
-            title="Show all critique item types"
-          />
+          <TabGroup variant="kind-tabs">
+            <Tab
+              variant="kind"
+              active={kindFilter === 'all'}
+              count={kindCounts.all || 0}
+              onClick={() => setKindFilter('all')}
+            >All</Tab>
+            <Tab
+              variant="kind"
+              active={kindFilter === 'issues'}
+              count={kindCounts.issues || 0}
+              onClick={() => setKindFilter('issues')}
+            >Issues</Tab>
+            <Tab
+              variant="kind"
+              active={kindFilter === 'comments'}
+              count={kindCounts.comments || 0}
+              onClick={() => setKindFilter('comments')}
+            >Comments</Tab>
+            <Tab
+              variant="kind"
+              active={kindFilter === 'questions'}
+              count={kindCounts.questions || 0}
+              onClick={() => setKindFilter('questions')}
+            >Questions</Tab>
+            <Tab
+              variant="kind"
+              active={kindFilter === 'disagreements'}
+              count={kindCounts.disagreements || 0}
+              onClick={() => setKindFilter('disagreements')}
+            >Disagreements</Tab>
+          </TabGroup>
+
           <span className="crit-filter-spacer" aria-hidden="true" />
-          <Chip
-            tone="info"
-            leadingDot
-            label="Open"
-            value={runWideOpen}
-            onClick={() => setStatusFilter(statusFilter === 'open' ? 'all' : 'open')}
-            data-active={statusFilter === 'open' ? 'true' : undefined}
-            title="Show only open items"
-          />
-          <Chip
-            tone="ok"
-            leadingDot
-            label="Resolved"
-            value={runWideResolved}
-            onClick={() => setStatusFilter(statusFilter === 'resolved' ? 'all' : 'resolved')}
-            data-active={statusFilter === 'resolved' ? 'true' : undefined}
-            title="Show only resolved items"
-          />
-          {kindFilter !== 'questions' && (
-            <Chip
-              tone="warn"
-              leadingDot
-              label="Drift"
-              onClick={() => setStatusFilter(statusFilter === 'drift' ? 'all' : 'drift')}
-              data-active={statusFilter === 'drift' ? 'true' : undefined}
-              title="Show only items with ledger drift"
-            />
-          )}
-          <span className="crit-filter-spacer" aria-hidden="true" />
-          <Chip
-            tone={agentFilter === 'claude' ? 'claude' : 'neutral'}
-            leadingIcon={<AgentIcon agent="claude" size={12} />}
-            label="Claude"
-            onClick={() => setAgentFilter(agentFilter === 'claude' ? 'all' : 'claude')}
-            data-active={agentFilter === 'claude' ? 'true' : undefined}
-            title="Show only items raised by Claude"
-          />
-          <Chip
-            tone={agentFilter === 'gpt' ? 'gpt' : 'neutral'}
-            leadingIcon={<AgentIcon agent="gpt" size={12} />}
-            label="GPT"
-            onClick={() => setAgentFilter(agentFilter === 'gpt' ? 'all' : 'gpt')}
-            data-active={agentFilter === 'gpt' ? 'true' : undefined}
-            title="Show only items raised by GPT"
-          />
+
+          {/* Agent fgroup — [All] [• Claude] [• GPT] */}
+          <div className="fgroup" role="group" aria-label="Filter by raising agent">
+            <button
+              type="button"
+              className={`ft${agentFilter === 'all' ? ' is-active' : ''}`}
+              onClick={() => setAgentFilter('all')}
+              title="Show items raised by any agent"
+            >All</button>
+            <button
+              type="button"
+              className={`ft${agentFilter === 'claude' ? ' is-active' : ''}`}
+              onClick={() => setAgentFilter('claude')}
+              title="Show only items raised by Claude"
+            >
+              <i className="dot" style={{ background: 'var(--claude)' }} />
+              Claude
+            </button>
+            <button
+              type="button"
+              className={`ft${agentFilter === 'gpt' ? ' is-active' : ''}`}
+              onClick={() => setAgentFilter('gpt')}
+              title="Show only items raised by GPT"
+            >
+              <i className="dot" style={{ background: 'var(--gpt)' }} />
+              GPT
+            </button>
+          </div>
+
+          {/* State fgroup — [All] [Open] [Resolved] [Drift?] */}
+          <div className="fgroup" role="group" aria-label="Filter by item state">
+            <button
+              type="button"
+              className={`ft${statusFilter === 'all' ? ' is-active' : ''}`}
+              onClick={() => setStatusFilter('all')}
+              title="Show items in any state"
+            >All</button>
+            <button
+              type="button"
+              className={`ft${statusFilter === 'open' ? ' is-active' : ''}`}
+              onClick={() => setStatusFilter('open')}
+              title="Show only open items"
+            >Open</button>
+            <button
+              type="button"
+              className={`ft${statusFilter === 'resolved' ? ' is-active' : ''}`}
+              onClick={() => setStatusFilter('resolved')}
+              title="Show only resolved items"
+            >Resolved</button>
+            {kindFilter !== 'questions' && (
+              <button
+                type="button"
+                className={`ft${statusFilter === 'drift' ? ' is-active' : ''}`}
+                onClick={() => setStatusFilter('drift')}
+                title="Show only items with ledger drift"
+              >Drift</button>
+            )}
+          </div>
         </header>
       )}
 

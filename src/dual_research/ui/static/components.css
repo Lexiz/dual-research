@@ -295,6 +295,50 @@ button.chip:focus-visible {
 }
 .rid-sm { height: 18px; padding: 0 8px; font-size: var(--md-label-s-size); }
 
+/* Spec 0151 §3.3 — compound RunIDChip: [id]·divider·[copy button].
+   The id span is inert; the copy button is the sole copy affordance.
+   The pill keeps its `.rid` ring; the divider is a 1 px hairline at
+   ~60% of the pill height; the copy button is square, sized to match
+   the `.icon-btn` family. */
+.rid--with-copy {
+  padding-right: 4px; /* right-shrink so the inner button hugs the ring */
+}
+.rid__id {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+.rid__divider {
+  display: inline-block;
+  width: 1px;
+  height: 60%;
+  background: var(--md-outline-hair);
+  margin: 0 8px;
+}
+.rid__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.rid__copy:hover,
+.rid__copy:focus-visible {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  outline: none;
+}
+.rid__copy:active {
+  background: var(--md-surface-container-highest, var(--md-surface-container-high));
+}
+
 /* ─────────────────────────────────────────────────────────────
    AgentStrip (.as) — equal-width pill identifying an agent + key metrics
    min-width 320 (was 480 — CMP-07)
@@ -1238,6 +1282,16 @@ body.light .tab-group.tabs-solid .tab.is-active,
      modal; nested per-accordion scrollbars are out (Notion issue 9). */
 }
 
+/* Spec 0151 §3.2 — empty-piece placeholder for Agent Input bundle
+   pieces whose value is an empty string. Renders inside the same
+   `.agent-input-body` region a `<Markdown>` would otherwise fill. */
+.prompt-piece__empty {
+  display: inline-block;
+  font-style: italic;
+  color: var(--md-on-surface-faint);
+  font-size: 11.5px;
+}
+
 /* ─────────────────────────────────────────────────────────────
    Consumption card — SPEC-0075
    Three-zone vertical layout: data header (metrics + costs) at top,
@@ -2114,6 +2168,30 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   background: var(--md-surface-container-low);
   padding: 12px 20px 24px;
   display: flex; flex-direction: column; gap: 12px;
+}
+
+/* Spec 0151 §3.4.1.3 — run-wide drift pill in bar1 right cluster.
+   Lives alongside .crit-totals; warn-tone background with an alert
+   glyph + count + label. Hidden when runWideDrift === 0. */
+.crit-drift-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  background: color-mix(in srgb, var(--p-warn) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-warn) 36%, transparent);
+  border-radius: var(--md-shape-full);
+  color: var(--p-warn);
+  font: var(--md-w-medium) 11px/1 var(--md-font-plain);
+}
+.crit-drift-pill__n {
+  font-family: var(--md-font-data);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--md-w-semi);
+}
+.crit-drift-pill__lbl {
+  color: color-mix(in srgb, var(--p-warn) 85%, var(--md-on-surface) 15%);
 }
 
 /* ── Crit-totals cluster (Bar 1 right) ─────────────────── */
@@ -4236,6 +4314,187 @@ body.light .tour-spotlight__dim {
 }
 .item-card__sources-chip:hover {
   background: var(--md-surface-container-high);
+}
+
+/* Spec 0151 §3.4.2.5 — hover-elevation on ItemCard per design-system
+   Issue 3. Mirrors the .md-card[data-hoverable] rule for the legacy
+   .item-card wrapper used in the critique pane. */
+.item-card[data-hoverable="true"] {
+  transition: box-shadow var(--md-dur-short-3) var(--md-easing-standard),
+              background var(--md-dur-short-3) var(--md-easing-standard);
+}
+.item-card[data-hoverable="true"]:hover {
+  box-shadow: var(--md-elev-2);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Spec 0151 §3.4.3 — ItemCard per-kind body chrome.
+   The shared `.item-card` shell wraps four kind-specific layouts that
+   match the design-system reference screenshots
+   (design-system/notion-issues/screenshots/07/08/09/10).
+   ──────────────────────────────────────────────────────────── */
+
+/* Body meta row (Disagreement / Question): short id + state + N turns. */
+.item-card__body--turns,
+.item-card__body--issue,
+.item-card__body--comment {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--md-on-surface);
+  font-size: 13px;
+  line-height: 1.55;
+  /* Body content can be mixed text + chips; opt out of the default
+     pre-wrap from .item-card__body which would break inline chip rows. */
+  white-space: normal;
+}
+.item-card__bmeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--md-outline-hair);
+}
+.item-card__sid {
+  font-family: var(--md-font-data);
+  font-weight: var(--md-w-medium);
+  font-size: 12px;
+  color: var(--md-on-surface);
+}
+.item-card__turn-count {
+  font-family: var(--md-font-data);
+  font-size: 11.5px;
+  color: var(--md-on-surface-variant);
+}
+
+/* Verdict row (terminal only) — shown above the per-turn rows. */
+.item-card__verdict {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--md-on-surface);
+}
+.item-card__verdict-sep {
+  color: var(--md-on-surface-faint);
+}
+.item-card__verdict-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Per-turn rows (Disagreement / Question). */
+.item-card__turns {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.item-card__turn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.item-card__turn-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--md-on-surface);
+}
+.item-card__turn-sep {
+  color: var(--md-on-surface-faint);
+}
+.item-card__turn-round {
+  font-family: var(--md-font-data);
+  color: var(--md-on-surface-variant);
+}
+.item-card__turn-text {
+  margin: 0 0 0 14px;
+  padding: 4px 0 4px 10px;
+  border-left: 2px solid var(--md-outline-hair);
+  color: var(--md-on-surface-variant);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}
+.item-card__agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  font-size: 11.5px;
+  font-weight: var(--md-w-medium);
+  color: var(--md-on-surface);
+}
+.item-card__agent .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Issue body. */
+.item-card__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.item-card__title-sep {
+  color: var(--md-on-surface-faint);
+}
+.item-card__title {
+  font-weight: var(--md-w-medium);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.item-card__quote-inline {
+  margin: 0;
+  padding: 4px 0 4px 10px;
+  border-left: 2px solid var(--md-outline-hair);
+  font-size: 12px;
+  color: var(--md-on-surface-variant);
+  white-space: pre-wrap;
+}
+.item-card__text {
+  font-size: 12.5px;
+  color: var(--md-on-surface);
+}
+.item-card__seen-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 2px;
+}
+.item-card__anchor--bottom {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  background: var(--md-surface-container-low);
+  border-left: 2px solid var(--md-outline);
+  color: var(--md-on-surface-variant);
+  font-size: 12px;
+  font-style: italic;
+  border-radius: 2px;
+}
+
+/* Terminal footer — green strip with check glyph. Replaces the
+   pre-0151 muted lifecycle-footer text. */
+.item-card__footer {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: var(--md-shape-xs, 4px);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  color: var(--md-on-surface);
+}
+.item-card__footer--ok {
+  background: color-mix(in srgb, var(--p-ok) 14%, transparent);
+  border-color: color-mix(in srgb, var(--p-ok) 36%, transparent);
+  color: color-mix(in srgb, var(--p-ok) 85%, var(--md-on-surface) 15%);
 }
 
 .source-row {
