@@ -6,3 +6,8 @@
 {"ts":"2026-05-22T22:55:52Z","step":"planning_started","data":{}}
 {"ts":"2026-05-22T22:56:25Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-22T22:56:39Z","step":"in_progress","data":{}}
+{"ts":"2026-05-22T22:56:58Z","step":"branched","data":{"branch":"spec/0186-queue-drain-session-isolation-and-l-spec-checkpointing","from":"main@e286f5e"}}
+{"ts":"2026-05-22T22:57:02Z","step":"implementing_started","data":{}}
+{"ts":"2026-05-22T23:02:44Z","step":"tests_started","data":{}}
+{"ts":"2026-05-22T23:05:17Z","step":"tests_green","data":{"passed":1574}}
+{"ts":"2026-05-22T23:05:21Z","step":"implement_complete","data":{"files_changed":6,"commits":1}}

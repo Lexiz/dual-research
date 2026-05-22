@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.33.0] — 2026-05-23
+
+### Added
+
+- **Spec 0186 — queue-drain session isolation and L-spec checkpointing** ([spec 0186](specs/0186-queue-drain-session-isolation-and-l-spec-checkpointing.md)). `/dev-queue-run` no longer inlines `/dev-next`'s body. Instead it supervises a sequential loop of headless `claude -p "/dev-next"` subprocesses — one fresh Claude Code session per queued spec, so later specs no longer run under a context-burned window. Per-iteration logs at `runs/queue-drain/<timestamp>-spec-NNNN.log` (gitignored). Supervisor halts on the first non-zero exit; the failed spec is at `status: failed` and the next `/dev-queue-run` refuses until the user resolves.
+  - **Supervisor contract** ([`~/.claude/skills/dev-queue-run/SKILL.md`](../.claude/skills/dev-queue-run/SKILL.md)). One greenlight at start. Per-iteration recipe: `mkdir -p runs/queue-drain`; `DR_DEV_NEXT_NONINTERACTIVE=1 claude -p "/dev-next" --cwd /Users/alexlisitzky/dual-research > "$LOG" 2>&1`. The supervisor never reads spec bodies or runs git operations beyond the pre-flight `git pull`.
+  - **Headless bypass in `/dev-next`** ([`~/.claude/skills/dev-next/SKILL.md`](../.claude/skills/dev-next/SKILL.md) step 7). When `DR_DEV_NEXT_NONINTERACTIVE=1` is set, the per-spec greenlight is suppressed — the supervisor's single confirmation at pre-flight covers it.
+  - **L-spec checkpoint handoffs** ([`~/.claude/skills/dev-next/SKILL.md`](../.claude/skills/dev-next/SKILL.md) step 15-CP). For specs with `complexity: L`, `/dev-next` may write a `kind: in-spec-checkpoint` handoff after each completed `## 2.N` subsection and halt cleanly with the spec at `status: in_progress`. The next iteration's supervisor subprocess reads the checkpoint via the new resume-mode branch in step 5 / step 9, re-checks out the branch, and picks up at `next_subsection` without re-branching or re-bumping the version.
+  - **`scripts/spec_lifecycle/checkpoint.py`** ([scripts/spec_lifecycle/checkpoint.py](scripts/spec_lifecycle/checkpoint.py)). Typed helpers: `classify_handoff_kind` (backwards-compat default of `"post-deploy"` for pre-spec-0186 handoffs), `CheckpointHandoff` dataclass, `read_checkpoint`, `find_active_checkpoint` (the resume-mode predicate — gated on `kind == "in-spec-checkpoint"` AND spec `status == "in_progress"`), `build_headless_command` (supervisor argv shape, isolated for spec 0186 §7 mitigation against `claude -p` CLI drift).
+  - **Test coverage** ([tests/spec_lifecycle/test_checkpoint.py](tests/spec_lifecycle/test_checkpoint.py)). 21 cases covering the kind classifier (including backwards-compat against legacy frontmatter and pass-through of unknown kinds), checkpoint frontmatter parse (typed fields, safe defaults), resume-mode predicate (not-in-progress halt, post-deploy handoff falls through, latest-checkpoint wins on multiple), and supervisor argv shape.
+
 ## [1.32.0] — 2026-05-23
 
 ### Added
