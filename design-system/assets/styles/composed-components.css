@@ -1506,10 +1506,15 @@ body.light .ccx-bar .reuse {
 /* Phase section · collapsible */
 .tl-phase { border-top: 1px solid var(--md-outline-hair); }
 .tl-phase:first-child { border-top: 0; }
+/* Spec 0164 §2.2 — pcode dropped; the .tl-phase__marker (full-word
+   "Phase 0" label per §2.1, see src/dual_research/ui/static/run-detail.jsx)
+   carries the phase identity. Grid drops from 6 cols to 5:
+   marker · chevron · name · meta · chips. */
 .tl-phase__hd {
-  display: grid; grid-template-columns: 20px auto 1fr auto;
+  display: grid; grid-template-columns: auto 20px auto 1fr auto;
   gap: 10px; align-items: center;
-  padding: 10px 8px;
+  /* Spec 0164 §2.3 — 16 px pane gutter. */
+  padding: 12px 16px;
   cursor: pointer;
   position: relative;
   user-select: none;
@@ -1525,11 +1530,8 @@ body.light .ccx-bar .reuse {
 }
 .tl-phase[data-collapsed="true"] .chev { transform: rotate(-90deg); }
 .tl-phase[data-collapsed="true"] .tl-phase__body { display: none; }
-.tl-phase__pcode {
-  font: var(--md-w-semi) 10px/1 var(--md-font-data);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--md-on-surface-faint);
-}
+/* .tl-phase__pcode removed by spec 0164 §2.2 — phase marker now carries
+   the full "Phase N" label so the uppercase data-font pcode is redundant. */
 .tl-phase__name {
   font: var(--md-w-medium) 13px/1 var(--md-font-plain);
   color: var(--md-on-surface);
@@ -1538,7 +1540,8 @@ body.light .ccx-bar .reuse {
   font: 11px/1 var(--md-font-data);
   color: var(--md-on-surface-faint);
 }
-.tl-phase__body { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 8px; }
+/* Spec 0164 §2.3 — 16 px pane gutter + 6 px inter-card spacing. */
+.tl-phase__body { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 12px; }
 
 /* Turn row · one line summary */
 .tl-turn {
@@ -1606,6 +1609,123 @@ body.light .ccx-bar .reuse {
   display: flex; align-items: center; gap: 8px;
   padding: 0 14px 12px;
   flex-wrap: wrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Timeline card · .tl-thread (spec 0164 §2.4)
+
+   M3 filled-card chrome on surface-container-high (one tier brighter
+   than the pane), outline-variant border (one tier more visible than
+   the hair), 16 dp radius. A 2 px provider-coloured left stripe is
+   set via native CSS :has() based on the agent/system chip in the
+   card head — sable for Claude, sage for GPT, idle grey for System.
+
+   The card itself owns no inner padding (head/body/actions own
+   theirs) so the stripe + radius read clean against the pane gutter.
+
+   The :has() selector targets `.tl-card-head > .chip.tone-*`. The
+   System variant uses `.tone-neutral:not(.mono)` to distinguish the
+   identity chip from the mono activity chip, which can also carry
+   .tone-neutral.
+
+   `overflow: hidden` clips the expanded body's bottom corners when
+   the card lifts on hover/expand — load-bearing, not cosmetic.
+   ───────────────────────────────────────────────────────────── */
+.tl-thread {
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-lg);
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background     var(--md-dur-short-3) var(--md-easing-standard),
+              box-shadow     var(--md-dur-short-3) var(--md-easing-standard),
+              border-color   var(--md-dur-short-3) var(--md-easing-standard);
+}
+.tl-thread:hover {
+  background: var(--md-surface-container-highest);
+  border-color: var(--md-outline);
+  box-shadow: var(--md-elev-1);
+}
+/* Provider stripe — uses :has() against the card head's identity chip
+   per spec 0164 §2.4. Chrome 105+, Safari 15.4+, Firefox 121+. */
+.tl-thread:has(.tl-card-head > .chip.tone-claude) {
+  border-left: 2px solid var(--p-sable);
+}
+.tl-thread:has(.tl-card-head > .chip.tone-gpt) {
+  border-left: 2px solid var(--p-sage);
+}
+.tl-thread:has(.tl-card-head > .chip.tone-neutral:not(.mono)) {
+  border-left: 2px solid var(--p-idle);
+}
+/* Expanded turn card — drops tier (surface-container-low) and lifts
+   to elev-2; the card head inside keeps surface-container-high so it
+   reads as the "row" still visible above the expanded body. */
+.tl-thread.is-open-expanded {
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-variant);
+  box-shadow: var(--md-elev-2);
+}
+.tl-thread.is-open-expanded > .tl-card-head {
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+/* Head/body/actions own their padding since .tl-thread is now 0-padded. */
+.tl-thread > .tl-card-head {
+  padding: 10px 12px;
+}
+.tl-thread > .tl-thread__body {
+  padding: 10px 12px 0;
+  font: 13px/1.55 var(--md-font-brand); font-style: italic;
+  color: var(--md-on-surface-variant);
+}
+.tl-thread > .tl-thread__actions {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px 10px;
+  flex-wrap: wrap;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   AgentStrip · in-header variant tint (spec 0164 §2.5)
+
+   The `.in-header` AgentStrip carries an 8 % color-mix tonal
+   background matching the provider, so brand identity reads even
+   without hover. The 2 px left-border and brand-mark icon stay.
+   ───────────────────────────────────────────────────────────── */
+.as.is-a.in-header {
+  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container));
+}
+.as.is-b.in-header {
+  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container));
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Narrow-view strip equalisation (spec 0164 §2.6)
+
+   At viewports ≤ 1799 px the `.as.in-header` strips inside
+   `.tl__head` and `.tl__tabs` both cap to 320 px and right-align
+   to the same column inside `.rdvc__pane`. Without this, `.tl__tabs`
+   (wider leading content) overflows the pane edge by ~33 px and
+   clips the trailing activity phrase. !important is needed to
+   override the unconditional `min-width: 600px` + `flex: 0 0 auto`
+   declarations on `.as.in-header` that win on specificity otherwise.
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 1799px) {
+  .tl__head .as.in-header,
+  .tl__tabs .as.in-header {
+    min-width: 0 !important;
+    width: 320px !important;
+    max-width: 320px !important;
+    flex: 0 0 320px !important;
+  }
+  .tl__head .as.in-header .as-activity,
+  .tl__tabs .as.in-header .as-activity {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 /* ── Critique pane (RIGHT) ─────────────────── */

@@ -474,6 +474,52 @@ button.chip:focus-visible {
 }
 .as.in-header.is-a { --agent-rgb: var(--agent-a-rgb); }
 .as.in-header.is-b { --agent-rgb: var(--agent-b-rgb); }
+
+/* Spec 0164 §2.5 — 8 % tonal background by provider so the strip's
+   brand identity reads even without focusing on the 2 px left-border or
+   the brand-mark icon. Sits behind the .as.in-header::before gradient
+   sweep (lower stacking context: this is the base background, the
+   ::before sweep paints on top in the live state). */
+.as.is-a.in-header {
+  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container));
+}
+.as.is-b.in-header {
+  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container));
+}
+
+/* Spec 0164 §2.6 — narrow-view strip equalisation.
+
+   At viewports ≤ 1799 px, both `.as.in-header` instances (inside
+   `.tl__head` and `.tl__tabs`) force-cap to 320 px and right-align
+   to the same column inside `.rdvc__pane`. Without this, `.tl__tabs`
+   leading content (wider than `.tl__head`) pushes the strip past
+   the pane edge by ~33 px at 1280 px viewport and clips the trailing
+   activity phrase.
+
+   Width math at 1280 px viewport: 640 px pane → 599 px inner content
+   box (after 20 px × 2 horizontal padding) → 272 px max leading
+   content (tabs row) → 327 px maximum strip width that fits.
+   Capped at 320 px to leave a 7 px buffer.
+
+   `!important` is required because the unconditional `min-width:
+   600px` + `flex: 0 0 auto` on `.as.in-header` (above) win on
+   specificity otherwise. */
+@media (max-width: 1799px) {
+  .tl__head .as.in-header,
+  .tl__tabs .as.in-header {
+    min-width: 0 !important;
+    width: 320px !important;
+    max-width: 320px !important;
+    flex: 0 0 320px !important;
+  }
+  .tl__head .as.in-header .as-activity,
+  .tl__tabs .as.in-header .as-activity {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 .as.in-header.is-live::before {
   opacity: 1;
   animation: as-pulse-sweep 3.2s ease-in-out infinite;
@@ -2398,10 +2444,14 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   border-radius: var(--md-shape-sm);
   overflow: hidden;
 }
+/* Spec 0164 §2.2 — pcode dropped; the .tl-phase__marker (full-word
+   "Phase 0" label per §2.1) carries the phase identity. Grid drops
+   from 6 cols to 5: marker · chevron · name · meta · chips. */
 .tl-phase__hd {
-  display: grid; grid-template-columns: auto 20px auto auto 1fr auto;
+  display: grid; grid-template-columns: auto 20px auto 1fr auto;
   gap: 10px; align-items: center;
-  padding: 10px 14px;
+  /* Spec 0164 §2.3 — 16 px pane gutter. */
+  padding: 12px 16px;
   cursor: pointer;
   position: relative;
   user-select: none;
@@ -2420,18 +2470,15 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 }
 .tl-phase[data-collapsed="true"] .chev { transform: rotate(-90deg); }
 .tl-phase[data-collapsed="true"] .tl-phase__body { display: none; }
-.tl-phase__pcode {
-  font: var(--md-w-semi) 10px/1 var(--md-font-data);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--md-on-surface-faint);
-}
+/* .tl-phase__pcode removed by spec 0164 §2.2 — phase marker now carries
+   the full "Phase N" label so the uppercase data-font pcode is redundant. */
 .tl-phase__name {
   /* Spec 0116 — harmonised with .crit-group__title so Timeline phase
      headers and Critique section headers read at equal visual weight
      (user request via 2026-05-19 follow-up screenshot). Was 13px/1;
-     now title-medium (16dp / 1.5). The .tl-phase__pcode "P0" prefix
-     and .tl-phase__meta "0m 20s" suffix stay at their quieter 10/11 px
-     sizes — the user specifically called out the NAME text. */
+     now title-medium (16dp / 1.5). The .tl-phase__meta "0m 20s" suffix
+     stays at its quieter 11 px size — the user specifically called out
+     the NAME text. */
   font: var(--md-w-medium) var(--md-title-m-size)/1.5 var(--md-font-plain);
   color: var(--md-on-surface);
 }
@@ -2447,22 +2494,89 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   flex-wrap: wrap;
   justify-self: end;
 }
-.tl-phase__body { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 14px; }
+/* Spec 0164 §2.3 — 16 px pane gutter + 6 px inter-card spacing. */
+.tl-phase__body { display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 12px; }
 
-/* SPEC polish — Timeline turn rows now reuse the critique-pane .qthread card
-   anatomy verbatim (background, border, radius, hover lift, status side
-   border). .tl-thread is a thin override layer for the timeline's tighter
-   padding + smaller font, since timeline rows show a one-line glance rather
-   than the multi-turn critique thread. */
+/* ─────────────────────────────────────────────────────────────
+   Timeline card · .tl-thread (spec 0164 §2.4)
+
+   M3 filled-card chrome on surface-container-high (one tier brighter
+   than the pane), outline-variant border (one tier more visible than
+   the hair), 16 dp radius. A 2 px provider-coloured left stripe is
+   set via native CSS :has() based on the agent/system chip in the
+   card head — sable for Claude, sage for GPT, idle grey for System.
+
+   The card itself owns no inner padding (head/body/actions own
+   theirs) so the stripe + radius read clean against the pane gutter.
+
+   The :has() selector targets `.tl-card-head > .chip.tone-*`. The
+   System variant uses `.tone-neutral:not(.mono)` to distinguish the
+   identity chip from the mono activity chip, which also carries
+   .tone-neutral.
+
+   `overflow: hidden` clips the expanded body's bottom corners when
+   the card lifts on hover/expand — load-bearing, not cosmetic.
+
+   The selector targets `.qthread.tl-thread` (not bare `.tl-thread`)
+   because the JSX renders `<article className="qthread tl-thread …">`
+   and the new rules need to win over `.qthread`'s background / border /
+   radius / padding. The status-color stripes from `.qthread.is-open`
+   etc. are explicitly cleared on `.tl-thread` so the provider stripe
+   from :has() can show through (status info lives in the right
+   chip cluster, not the border, for timeline cards).
+   ───────────────────────────────────────────────────────────── */
 .qthread.tl-thread {
-  /* Spec 0111 — route through shared --dr-card-pad-* tokens so Timeline
-     turn rows match Timeline .card and Critique .qthread heights (Notion
-     issue 5). The prior 10px/14px override is gone; the token values
-     (6px/12px) are the single source of truth across both panes. */
-  padding: var(--dr-card-pad-v) var(--dr-card-pad-h);
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-lg);
+  padding: 0;
   margin: 0;
   gap: 0;
+  overflow: hidden;
   cursor: pointer;
+  transition: background     var(--md-dur-short-3) var(--md-easing-standard),
+              box-shadow     var(--md-dur-short-3) var(--md-easing-standard),
+              border-color   var(--md-dur-short-3) var(--md-easing-standard);
+}
+.qthread.tl-thread:hover {
+  background: var(--md-surface-container-highest);
+  border-color: var(--md-outline);
+  box-shadow: var(--md-elev-1);
+}
+/* Clear .qthread's status side-border so the spec-0164 provider stripe
+   from :has() below isn't overridden. The status reads off the right-
+   cluster status chip on timeline cards. */
+.qthread.tl-thread.is-open,
+.qthread.tl-thread.is-resolved,
+.qthread.tl-thread.is-drift {
+  border-left-width: 1px;
+  border-left-color: var(--md-outline-variant);
+}
+/* Provider stripe — :has() against the card head's identity chip. */
+.qthread.tl-thread:has(.tl-card-head > .chip.tone-claude) {
+  border-left: 2px solid var(--p-sable);
+}
+.qthread.tl-thread:has(.tl-card-head > .chip.tone-gpt) {
+  border-left: 2px solid var(--p-sage);
+}
+.qthread.tl-thread:has(.tl-card-head > .chip.tone-neutral:not(.mono)) {
+  border-left: 2px solid var(--p-idle);
+}
+/* Expanded turn card — drops a tier, lifts to elev-2; the card head
+   keeps surface-container-high so it reads as the still-visible "row"
+   above the expanded body. */
+.qthread.tl-thread.is-open-expanded {
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-variant);
+  box-shadow: var(--md-elev-2);
+}
+.qthread.tl-thread.is-open-expanded > .tl-card-head {
+  background: var(--md-surface-container-high);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+/* Head / body / actions own their padding (the card is 0-padded now). */
+.qthread.tl-thread > .tl-card-head {
+  padding: 10px 12px;
 }
 .qthread.tl-thread .qt-head {
   gap: 8px;
@@ -2472,16 +2586,14 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   letter-spacing: 0;
 }
 .qthread.tl-thread .tl-thread__body {
-  margin-top: 12px;
-  padding-top: 12px;
+  padding: 10px 12px 0;
   border-top: 1px dashed var(--md-outline-hair);
   font: 13px/1.55 var(--md-font-brand); font-style: italic;
   color: var(--md-on-surface-variant);
 }
 .qthread.tl-thread .tl-thread__actions {
   display: flex; align-items: center; gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
+  padding: 8px 12px 10px;
   border-top: 1px solid var(--md-outline-hair);
   flex-wrap: wrap;
 }

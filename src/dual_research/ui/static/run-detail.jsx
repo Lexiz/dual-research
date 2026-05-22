@@ -908,10 +908,16 @@ function Timeline({ run, highlightedTurnKeys }) {
                     >
                       <span className={`tl-phase__marker ${markerStateCls}`} aria-hidden="true">
                         <span className="dot"></span>
-                        <span className="lbl">{vp.pDef?.short || `P${vp.pid}`}</span>
+                        {/* Spec 0164 §2.1 — marker label now reads the full
+                            "Phase N" identity. Previously fell back to the
+                            short "P0" form from live-data PHASES.short,
+                            kept for the PhaseRail cells (line 784) and the
+                            tooltip on the progress strip (line 756). */}
+                        <span className="lbl">Phase {vp.pid}</span>
                       </span>
                       <span className="chev"><span className="ms ms-18">expand_more</span></span>
-                      <span className="tl-phase__pcode">PHASE {vp.pid}</span>
+                      {/* Spec 0164 §2.2 — .tl-phase__pcode removed.
+                          The marker above carries the canonical identity. */}
                       <span className="tl-phase__name">{vp.pDef?.label || `Phase ${vp.pid}`}</span>
                       <span className="tl-phase__meta">{metaParts.join(' \u00b7 ') || '\u2014'}</span>
                       <TlPhaseHeadChips phaseId={vp.pid} run={run} />
