@@ -1307,8 +1307,11 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
             <span className="md-chip md-chip--sm">
               {isRepair ? '0 tokens' : `${(totalTokens / 1000).toFixed(1)}kt in`}
             </span>
+            {/* Spec 0165 §2.5 — 2-decimal precision for card-internal cost
+                display. `fmt.cost` (4-decimal) stays the audit value for the
+                run-detail footer aggregate. */}
             <span className="md-chip md-chip--sm">
-              {isRepair ? '$0.0000' : fmt.cost(cost)}
+              {isRepair ? '$0.00' : fmtCost2(cost)}
             </span>
           </div>
         </>
@@ -2502,6 +2505,17 @@ function piecePropCost(pieceTokens, billedInputTokens, totalInputCost) {
 function fmtCost1(n) {
   const v = Number(n) || 0;
   return `$${v.toFixed(1)}`;
+}
+
+// Spec 0165 §2.5 — two-decimal cost formatter for the expanded turn-card
+// action row. Sub-cent values render as `<$0.01` so they don't round to
+// `$0.00`. `fmt.cost` (4-decimal) stays the audit value for the run-detail
+// footer aggregate per design-system/SPEC.md §4.3 / §4.4.
+function fmtCost2(n) {
+  if (n == null || isNaN(n)) return '$—';
+  const v = Number(n) || 0;
+  if (v > 0 && v < 0.01) return '<$0.01';
+  return `$${v.toFixed(2)}`;
 }
 
 // Spec 0150 — synthetic display names for FE-only aggregate row ids

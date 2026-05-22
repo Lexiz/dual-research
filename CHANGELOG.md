@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.26.0] — 2026-05-22
+
+### Changed
+
+- **Spec 0165 — Timeline pane: chip polish (identity / activity / category bubble / cost) + light-mode token drift fix** ([spec 0165](specs/0165-timeline-pane-chip-polish-and-token-drift.md)). After spec 0164 swapped the timeline turn card to `--md-surface-container-high`, the chips inside `.tl-card-head` lost contrast. Five scoped fixes ship in this MINOR release. **§2.1 was a no-op on landing** — both `src/dual_research/ui/static/tokens.css` (lines 339/342) and `design-system/assets/styles/tokens-and-primitives.css` (lines 204/207) already carried the canonical light-mode `--md-on-{primary,secondary}-container` overrides; the spec was authored against a stale snapshot.
+- **Identity chip backgrounds (scoped to `.tl-card-head`)** — `.chip.tone-claude` → 30 % `color-mix(--p-sable, transparent)`; `.chip.tone-gpt` → 30 % `--p-sage`; `.chip.tone-neutral:not(.mono)` (System) → 20 % `--p-idle` with forced `var(--md-on-surface)` text. Critique-pane chips unchanged.
+- **Activity chip surface bump (scoped to `.tl-card-head`)** — `.chip.tone-neutral.mono` (the `turn N` / `brief` / `plan` / `draft` badge) bumps to `--md-surface-container-highest`, one tier brighter than the card surface so the chip is visibly distinct.
+- **Phase-header category-bubble alpha dim (scoped to `.tl-phase__chips`)** — the four `.cat-bubble` tones (info / warn / err / idle) drop to 70 % `color-mix` fills so the bubble doesn't dominate the chip's 18 %-tinted background. Knockout-white Q/D/I/C letter preserved. Critique-pane kind cluster keeps its 100 % saturation.
+- **Cost precision on expanded-card action chip** — new `fmtCost2(n)` helper in [src/dual_research/ui/static/run-detail.jsx](src/dual_research/ui/static/run-detail.jsx): returns `$X.XX` (2-decimal) for typical values, `<$0.01` for sub-cent values. Call site at `.tl-thread__actions` switches from `fmt.cost` (4-decimal) to `fmtCost2`. The run-detail footer aggregate keeps `fmt.cost` as the 4-decimal audit value.
+- **Light-mode chip-text backstop (scoped to `.tl-card-head`)** — explicit `#3b2810` on `body.light .chip.tone-claude` / `.chip-label`, `#0a322d` on `.chip.tone-gpt`. Same hex values the token override produces; declared scoped as a defensive overlay in case the tokens drift again.
+- **DS catch-up** — [design-system/SPEC.md](design-system/SPEC.md) §4.4 gains a chip-polish table + cost-chip rule; §9.6 letter-bubble note allows alpha-modulated fills on `.tl-phase__chips`. [design-system/assets/Design System v2.html](design-system/assets/Design System v2.html) §16 expanded-turn example cost chip updated from `$0.0566` to `$0.06`.
+
 ## [1.25.0] — 2026-05-22
 
 ### Changed

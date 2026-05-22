@@ -416,6 +416,21 @@ Status colors (`is-open` / `is-resolved` / `is-drift`) inherited from `.qthread`
 
 **Responsive — narrow viewport ≤ 1799 px** (spec 0164 §2.6). Both `.as.in-header` instances inside `.rdvc__pane` (`.tl__head .as.in-header` + `.tl__tabs .as.in-header`) cap to 320 px and right-align to the same column. Without this, `.tl__tabs` (whose leading content is wider than `.tl__head`'s) overflows the pane edge by ~33 px at 1280 px viewport. The `.as-activity` text inside the capped strip falls back to `text-overflow: ellipsis` if it doesn't fit.
 
+**Chip polish inside `.tl-card-head`** (spec 0165 §2.2–§2.3, §2.6). The M3 card surface from spec 0164 (`--md-surface-container-high`) swallows the chip primitive's tonal-container backgrounds, so timeline-card chips need scoped overrides. All rules below scope to `.tl-card-head` only — the global `.chip.tone-*` rules and the critique pane stay unchanged.
+
+| Chip | Background | Text |
+|---|---|---|
+| `.chip.tone-claude` (Claude identity) | `color-mix(in srgb, var(--p-sable) 30%, transparent)` | inherits (default chip text colour) |
+| `.chip.tone-gpt` (GPT identity) | `color-mix(in srgb, var(--p-sage) 30%, transparent)` | inherits |
+| `.chip.tone-neutral:not(.mono)` (System identity) | `color-mix(in srgb, var(--p-idle) 20%, transparent)` — held at 20 % (vs. 30 %) because the idle palette is itself dimmer; 30 % reads too prominent | forced `var(--md-on-surface)` (neutral, not branded) |
+| `.chip.tone-neutral.mono` (activity badge — `turn N` / `brief` / `plan` / `draft`) | `var(--md-surface-container-highest)` — one tier brighter than the card surface | inherits |
+
+Light-mode chip-text backstop (spec 0165 §2.6). `body.light .tl-card-head .chip.tone-claude` and its `.chip-label` child carry an explicit `#3b2810` text colour; the `.tone-gpt` equivalents carry `#0a322d`. These match the canonical `--md-on-primary-container` / `--md-on-secondary-container` light values declared in `tokens-and-primitives.css` — they're declared as scoped backstops so timeline chips stay readable if a future change drifts the tokens again.
+
+**Phase-header category bubble dim** (spec 0165 §2.4). Inside `.tl-phase__chips`, the `.cat-bubble` (Q / D / I / C knockout-white letter on a brand-tone fill) drops to 70 % alpha so the bubble doesn't dominate the chip's 18 %-tinted background. Letter remains knockout-white and legible on all four tones (info / warn / err / idle). Scoped to `.tl-phase__chips` so the critique-pane kind cluster (same `.cat-bubble` primitive, different visual budget) keeps its 100 % saturation.
+
+**Cost chips inside expanded turn cards** (spec 0165 §2.5). The cost chip in `.tl-thread__actions` uses 2-decimal precision via the new `fmtCost2(value)` helper in `run-detail.jsx`. Sub-cent values render as `<$0.01` (so they don't round to `$0.00`). The run-detail footer aggregate continues to use `fmt.cost` (4-decimal) as the audit value — see §4.3.
+
 ### 4.5 — Agent input panel + PhaseRail + RoundScrubber
 
 The agent input panel (spec 0074, extended by 0085, refreshed by 0101) is a 3-tier hierarchy:
@@ -626,6 +641,8 @@ Enforcement: `tests/contract/test_ui_vocabulary.py` scans `src/dual_research/ui/
 ### 9.6 — Letter-bubble rule
 
 The 14 px filled circle with a knockout-white first letter (Q / D / I / C) is a **designed icon glyph**, not a raw abbreviation. The full word always appears in the critique-pane filter-row legend, one scroll away from any surface that uses the dense form. Color + bubble glyph + fixed Q→D→I→C order make the combination unambiguous given the legend is always visible.
+
+On phase-header chip clusters (`.tl-phase__chips`), the bubble may be rendered at 70 % alpha so it doesn't dominate the chip's tonal background — the brand colour must remain the dominant hue and the knockout-white letter must stay legible (spec 0165 §2.4).
 
 ---
 
