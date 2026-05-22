@@ -10,6 +10,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.16.0] — 2026-05-22
+
+### Changed
+
+- **Spec 0151 — Design-system parity for critique surface + canonical Agent Input grouping + run-ID copy affordance (v1.16.0)** ([spec 0151](specs/0151-critique-parity-agent-input-grouping-run-id-copy.md)). Four discrete UI regressions accumulated across the 0140–0150 batch closed in a single release.
+  - **Bug 1 — Preflight Agent Input three-section grouping.** Extracted `PromptPiecesThreeSectionView` in `ui/static/run-detail.jsx` so the split-view `AgentInputPane` (used in `NegotiateReviewModal` for Phase-0 preflight turns) and the single-pane `InputTabContent` (used elsewhere) share one grouping logic. Preflight modals now show SYSTEM PROMPT / USER PROMPT / DERIVED INPUTS collapsible sections inside each agent column instead of the pre-canonical flat row stack.
+  - **Bug 2 — Empty-piece `(empty)` placeholder.** Dropped the truthy filter at `run-detail.jsx:5748` that silently hid empty-string pieces. Empty pieces now render with an italic muted `(empty)` placeholder in `InputSection`; section headers stay visible for sections with at least one piece (populated or not). New `.prompt-piece__empty` rule in `components.css`.
+  - **Bug 3 — Run-ID copy button.** `RunIDChip` (in `shared.jsx`) refactored from a single click-to-copy pill into a compound `[id span] · [divider] · [copy button]`. The badge is now inert; the explicit copy button (MDI `content-copy` glyph at 12 px) is the sole copy affordance. Hover/focus states reuse the canonical `.icon-btn` token chrome. Pre-spec the affordance was non-discoverable; users had to know clicking the badge did something.
+  - **Bug 4 — Critique surface pixel-parity.** Header and card bodies aligned to the design-system references at `design-system/notion-issues/screenshots/02/07/08/09/10`.
+    - **Toolbar (bar1+bar2):** kind-tab row migrated to the canonical `<TabGroup variant="kind-tabs">` + `<Tab variant="kind" count>` primitives (order: All / Issues / Comments / Questions / Disagreements); counts surface as separate visual tokens, not appended to label strings. Agent + state filters migrated from `Chip` to the `.fgroup` segmented control (`[All] [• Claude] [• GPT]` and `[All] [Open] [Resolved] [Drift]`). Dead `KIND_TABS` descriptor and its three private helpers (`_phaseItemsForCount`, `_itemCountByKind`, `_displayCount`) removed.
+    - **Run-wide drift pill reinstated** on bar1 right cluster, gated on `runWideDrift > 0`, computed via the existing `isDrift` predicate. **Supersedes spec 0119 §8.6** (which had retired the surface); the design-system target shows `⚠ N drift` adjacent to the introduced/open/resolved totals, so this spec returns it. Per-phase drift on timeline headers + `validate-run` remain canonical alternative surfaces.
+    - **Card bodies (`ItemCard`):** the unified shell now delegates body rendering to per-kind sub-renderers (`ItemCardDQBody` for Question + Disagreement; `ItemCardIssueBody`; `ItemCardCommentBody`). Disagreement / Question cards show a meta row (id + state + `N turns`), an optional verdict row, and per-turn rows (`[Agent] · r<N> · [verb]` with a quoted `reason` blockquote underneath) matching screenshot 08. Issue body matches screenshot 09 (short code + state + title, inline `quote:` line, body paragraph, `flagged by` / `first seen R<N>` / `last seen R<M>` chip row, bottom anchor blockquote). Comment body matches screenshot 10 (markdown body, inline `quote:` line, `noted by` / `R<N>` chip row, bottom anchor blockquote). Terminal lifecycle footer replaced with a kind-aware green strip: `✓ both aligned in round N` (disagreement) / `✓ answered in round N` (question) / `✓ resolved in round N` (issue) / `✓ noted in round N` (comment). `raised by` and `round` badges dropped from the card header — those signals now live inside the per-turn rows where they belong.
+    - **Hover elevation** per design-system audit Issue 3 — `.item-card[data-hoverable="true"]` mirrors the existing `.md-card[data-hoverable]` elevation-1 → elevation-2 rule.
+  - **Cache-buster** bumped `?v=0150a → ?v=0151a` across all 25 static-asset imports in `index.html`.
+
 ## [1.15.0] — 2026-05-22
 
 ### Changed

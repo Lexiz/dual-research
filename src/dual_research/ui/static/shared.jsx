@@ -841,14 +841,37 @@ function CheckGlyph(props) {
   return <Icon.Check {...props} />;
 }
 
-// RunIDChip — pure identity, pill-shaped 4-char hex. Size sm or md.
-function RunIDChip({ id, size = 'md', className, onClick, title }) {
+// RunIDChip — pill-shaped run-id badge. Pre-0151 the whole pill was a
+// single click-to-copy button; spec 0151 §3.3 splits it into three
+// regions so the copy affordance is explicit:
+//   [id]  │  [copy-button]
+// The id span is inert; only the copy button copies. The divider
+// (`.rid__divider`) is a 1px vertical hairline. When `onCopy` is not
+// provided the chip renders without the divider or button, falling
+// back to a pure identity surface (used by surfaces that want to show
+// a run-id without enabling copy).
+function RunIDChip({ id, size = 'md', className, onCopy, copyTitle, title }) {
   const sizeClass = size === 'sm' ? 'rid-sm' : null;
-  const cls = _cn('rid', sizeClass, className);
-  if (onClick) {
-    return <button type="button" className={cls} onClick={onClick} title={title || id}>{id}</button>;
-  }
-  return <span className={cls} title={title || id}>{id}</span>;
+  const cls = _cn('rid', sizeClass, onCopy && 'rid--with-copy', className);
+  return (
+    <div className={cls} title={title || id}>
+      <span className="rid__id">{id}</span>
+      {onCopy && (
+        <>
+          <span className="rid__divider" aria-hidden="true" />
+          <button
+            type="button"
+            className="rid__copy"
+            onClick={onCopy}
+            title={copyTitle || `Copy run id ${id}`}
+            aria-label={`Copy run id ${id}`}
+          >
+            <Mdi name="content-copy" size={12} />
+          </button>
+        </>
+      )}
+    </div>
+  );
 }
 
 // Card — base + variants. Wrap in `<CardBody>` for the expanded body region
