@@ -6,3 +6,4 @@
 {"ts":"2026-05-22T18:04:18Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"§2.1 stale relative to current state — tokens.css and tokens-and-primitives.css already carry the light-mode overrides at lines 339/342 and 204/207 respectively. Skipping the no-op part; rest of spec applies as written."}}
 {"ts":"2026-05-22T18:04:27Z","step":"in_progress","data":{}}
 {"ts":"2026-05-22T18:05:12Z","step":"branched","data":{"branch":"spec/0165-timeline-pane-chip-polish-and-token-drift","from":"main@38a7b24"}}
+{"ts":"2026-05-22T18:05:16Z","step":"implementing_started","data":{}}
