@@ -10,3 +10,5 @@
 {"ts":"2026-05-22T17:50:05Z","step":"implement_complete","data":{"files_changed":7,"commits":1}}
 {"ts":"2026-05-22T17:50:09Z","step":"tests_started","data":{}}
 {"ts":"2026-05-22T17:50:46Z","step":"tests_green","data":{"passed":1532,"failed":0,"js_passed":9}}
+{"ts":"2026-05-22T17:51:35Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/187"}}
+{"ts":"2026-05-22T17:51:56Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/187"}}
