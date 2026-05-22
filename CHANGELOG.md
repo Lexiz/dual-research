@@ -10,6 +10,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.29.0] — 2026-05-22
+
+### Changed
+
+- **Spec 0168 — Critique pane item-card M3 frame catch-up** ([spec 0168](specs/0168-critique-pane-item-card-refresh.md)). Adopts the M3 card chrome from spec 0164's `.tl-thread` for `.item-card` (critique pane): `--md-surface-container-high` background, `--md-outline-variant` border, 16 dp radius (`--md-shape-lg`), `overflow: hidden`, hover lifts to `--md-elev-1` + container-highest. Provider stripe via `[data-raised-by]` attribute (already present on the live element): 2 px sable for Claude, sage for GPT, idle grey for System. Status-group body now uses `gap: 6px` instead of per-card margin. Critique pane cards are now visually distinct from the pane surface and consistent with timeline turn cards.
+- **DS canonical CSS** ([design-system/assets/styles/composed-components.css](design-system/assets/styles/composed-components.css)) — both `.crit-card` (DS name) and `.item-card` (live name) selectors now share the same chrome block. Resolves the long-standing naming drift between the two surfaces without renaming either.
+
+### Notes on partial implementation
+
+This is **§2.1 only** of the L-complexity spec 0168. The other seven sections are deferred to a follow-up cycle (or split into smaller specs) because the scope exceeds what a single drain-cycle iteration accommodates:
+
+- §2.2 — Card head rebuild (drop ID chip, reorganise chip sequence)
+- §2.3 — ID rendering rationale (drop from card head entirely)
+- §2.4 — Round / state lifecycle chip with provenance
+- §2.5 — Evidence-needed banner inline (vs. body row)
+- §2.6 — Resolver identity on resolved state
+- §2.7 — Expanded view lifecycle scaffolding
+- §2.8 — Source attribution (per-source provider + round)
+- §2.9 — Per-card collapse affordance (`data-expanded="false"` default)
+
+§2.1 alone delivers the highest-value user-visible win: the critique pane now matches the timeline pane visually. The deferred sections concern card-internal layout and behaviour, which can land independently without breaking what §2.1 ships.
+
 ## [1.28.0] — 2026-05-22
 
 ### Changed

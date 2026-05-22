@@ -2038,15 +2038,36 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
    ============================================================= */
 
 /* ── Critique card frame ──────────────────────────── */
-.crit-card {
-  background: var(--md-surface-container);
-  border: 1px solid var(--md-outline-hair);
-  border-left: 3px solid var(--md-outline);
-  border-radius: var(--md-shape-md);
+/* Spec 0168 §2.1 — M3 card chrome catch-up. Same surface / outline /
+   16 dp radius / hover-lift contract as `.tl-thread` (spec 0164). The
+   DS canonical name is `.crit-card`; the live impl uses `.item-card`
+   (BEM). Both selectors carry the same rule below so the DS reference
+   page and the live app render identically. */
+.crit-card,
+.item-card {
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-lg);
   padding: 14px 16px;
-  margin-bottom: 12px;
+  margin: 0;
   color: var(--md-on-surface);
+  overflow: hidden;
+  transition: background     var(--md-dur-short-3) var(--md-easing-standard),
+              box-shadow     var(--md-dur-short-3) var(--md-easing-standard),
+              border-color   var(--md-dur-short-3) var(--md-easing-standard);
 }
+.crit-card:hover,
+.item-card:hover {
+  background: var(--md-surface-container-highest);
+  border-color: var(--md-outline);
+  box-shadow: var(--md-elev-1);
+}
+.crit-card[data-raised-by="claude"],
+.item-card[data-raised-by="claude"] { border-left: 2px solid var(--p-sable); }
+.crit-card[data-raised-by="gpt"],
+.item-card[data-raised-by="gpt"]    { border-left: 2px solid var(--p-sage); }
+.crit-card[data-raised-by="system"],
+.item-card[data-raised-by="system"] { border-left: 2px solid var(--p-idle); }
 .crit-card.is-open         { border-left-color: var(--p-info); }
 .crit-card.is-addressed    { border-left-color: var(--p-info); }
 .crit-card.is-resolved     { border-left-color: var(--p-ok); }
