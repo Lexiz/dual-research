@@ -10,6 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.28.0] — 2026-05-22
+
+### Changed
+
+- **Spec 0167 — Critique pane bar2 + bar1 + DS catch-up** ([spec 0167](specs/0167-critique-pane-bar2-chrome-and-bar1-drift-chip.md)). Four locked changes to the critique pane chrome plus a DS catch-up. Two larger changes (§2.1 class rename and §2.2 per-segment count plumbing) deferred — the existing `.fgroup` markup already provides the spec's visual contract (lifted-tile active state via `.is-active`), and count plumbing is substantial enough to warrant its own spec.
+- **§2.3 Bar-1 drift slot — always rendered + muted-at-zero.** [src/dual_research/ui/static/run-detail.jsx](src/dual_research/ui/static/run-detail.jsx) drops the `runWideDrift > 0 &&` guard around `.crit-drift-pill`; the slot now renders unconditionally with `data-count={runWideDrift}`. New CSS rule `.crit-drift-pill[data-count="0"]` mutes background, color, and opacity to 0.55 so the bar-1 right cluster stays stable if drift appears mid-run.
+- **§2.4 Phase-tab DS catch-up.** [design-system/assets/Design System v2.html](design-system/assets/Design System v2.html) §12 (state A) gains the missing `P0 Brief` tab. Live has rendered four tabs (P0 / P2 / P4 / Σ) since spec 0136; DS reference was stuck at three.
+- **§2.5 Kind-cluster order — Q · D · I · C.** Live now renders the cluster in the canonical order (matches the timeline `.tl-phase__chips` cluster). DS HTML §12 reordered to match.
+- **§2.6 Drop "All" from kind cluster.** Live no longer renders the leading "All" reset chip in the kind cluster. No active chip = "show all categories". Clicking an active kind chip deselects it (toggles `kindFilter` back to `'all'`). The bar-1 `.crit-totals` is the run-wide global; the kind cluster shows per-kind phase counts only.
+- **DS catch-up.** [design-system/SPEC.md](design-system/SPEC.md) §4.1 rewritten: documents the four-tab phase set, the always-rendered drift slot with muted-at-zero variant, the locked kind-cluster order, the dropped "All" chip, and the `.fgroup` ↔ `.tab-group-solid` naming reality.
+
+### Notes on deferrals
+
+- **§2.1 class-rename `.fgroup` → `.tab-group-solid`** — the existing `.fgroup .ft.is-active` rule at [components.css:2275](src/dual_research/ui/static/components.css) already produces the spec's lifted-tile active state (`background: --md-surface; box-shadow: --md-elev-1`). Renaming would be pure code-organisation churn with zero user-visible delta. Deferred to a future cleanup spec if/when the DS canonical adopts `.tab-group-solid` consistently.
+- **§2.2 per-segment count plumbing on agent + status filters** — currently the agent / status filter buttons don't show counts. Adding them requires computing `agentCounts.{all,claude,gpt}` and `statusCounts.{all,open,resolved,drift}` for the active phase and plumbing into JSX. Deferred — substantial scope, no blocking dependency on this spec's other items.
+
 ## [1.27.0] — 2026-05-22
 
 ### Added

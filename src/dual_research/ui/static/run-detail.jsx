@@ -7147,18 +7147,27 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
               `⚠ N drift` pill adjacent to the introduced/open/resolved
               totals; this restores that affordance. Per-phase drift on
               the timeline header and validate-run remain canonical
-              alternative surfaces. */}
-          {runWideDrift > 0 && (
-            <span
-              className="crit-drift-pill"
-              role="status"
-              title={`${runWideDrift} item${runWideDrift === 1 ? '' : 's'} with ledger drift`}
-            >
-              <Mdi name="alert" size={11} color="var(--p-warn)" />
-              <span className="crit-drift-pill__n">{runWideDrift}</span>
-              <span className="crit-drift-pill__lbl">drift</span>
-            </span>
-          )}
+              alternative surfaces.
+
+              Spec 0167 §2.3 — the slot is now rendered unconditionally
+              with `data-count={N}`. When count=0 the chip renders muted
+              (.crit-drift-pill[data-count="0"] in components.css) so the
+              bar-1 right cluster doesn't reflow if drift appears mid-run.
+              Per spec 0167 §2.3 + design-system/SPEC.md §4.1. */}
+          <span
+            className="crit-drift-pill"
+            data-count={runWideDrift}
+            role="status"
+            title={
+              runWideDrift > 0
+                ? `${runWideDrift} item${runWideDrift === 1 ? '' : 's'} with ledger drift`
+                : 'No items with ledger drift'
+            }
+          >
+            <Mdi name="alert" size={11} color="var(--p-warn)" />
+            <span className="crit-drift-pill__n">{runWideDrift}</span>
+            <span className="crit-drift-pill__lbl">drift</span>
+          </span>
         </div>
       </header>
 
@@ -7173,37 +7182,38 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
           tokens per the target. */}
       {!isSummary && (
         <header className="bar2 crit-filter-row">
+          {/* Spec 0167 §2.5 / §2.6 — kind-cluster order locked to
+              Q · D · I · C (matches timeline `.tl-phase__chips` cluster).
+              The leading "All" reset chip is dropped — no active kind
+              chip = "show all categories". Clicking an active chip
+              deselects it (toggles kindFilter back to 'all'). The bar-1
+              `.crit-totals` is the run-wide global; the kind cluster
+              shows per-kind phase counts only. */}
           <TabGroup variant="kind-tabs">
-            <Tab
-              variant="kind"
-              active={kindFilter === 'all'}
-              count={kindCounts.all || 0}
-              onClick={() => setKindFilter('all')}
-            >All</Tab>
-            <Tab
-              variant="kind"
-              active={kindFilter === 'issues'}
-              count={kindCounts.issues || 0}
-              onClick={() => setKindFilter('issues')}
-            >Issues</Tab>
-            <Tab
-              variant="kind"
-              active={kindFilter === 'comments'}
-              count={kindCounts.comments || 0}
-              onClick={() => setKindFilter('comments')}
-            >Comments</Tab>
             <Tab
               variant="kind"
               active={kindFilter === 'questions'}
               count={kindCounts.questions || 0}
-              onClick={() => setKindFilter('questions')}
+              onClick={() => setKindFilter(kindFilter === 'questions' ? 'all' : 'questions')}
             >Questions</Tab>
             <Tab
               variant="kind"
               active={kindFilter === 'disagreements'}
               count={kindCounts.disagreements || 0}
-              onClick={() => setKindFilter('disagreements')}
+              onClick={() => setKindFilter(kindFilter === 'disagreements' ? 'all' : 'disagreements')}
             >Disagreements</Tab>
+            <Tab
+              variant="kind"
+              active={kindFilter === 'issues'}
+              count={kindCounts.issues || 0}
+              onClick={() => setKindFilter(kindFilter === 'issues' ? 'all' : 'issues')}
+            >Issues</Tab>
+            <Tab
+              variant="kind"
+              active={kindFilter === 'comments'}
+              count={kindCounts.comments || 0}
+              onClick={() => setKindFilter(kindFilter === 'comments' ? 'all' : 'comments')}
+            >Comments</Tab>
           </TabGroup>
 
           <span className="crit-filter-spacer" aria-hidden="true" />
