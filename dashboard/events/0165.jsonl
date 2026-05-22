@@ -12,3 +12,7 @@
 {"ts":"2026-05-22T18:09:04Z","step":"tests_green","data":{"passed":1532,"failed":0,"js_passed":9}}
 {"ts":"2026-05-22T18:09:36Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/188"}}
 {"ts":"2026-05-22T18:09:51Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/188"}}
+{"ts":"2026-05-22T18:11:09Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-22T18:14:22Z","step":"deployed","data":{"version":"1.26.0","strategy":"bluegreen","sweep":"no stale blues","cluster_machines":2,"note":"transient lease-error on initial attempt + a retry attempt; cluster converged on second retry."}}
+{"ts":"2026-05-22T18:14:22Z","step":"deploy_health_check_ok","data":{"endpoint":"/api/health","response":"{ok:true,version:1.26.0}"}}
+{"ts":"2026-05-22T18:15:10Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0165-timeline-pane-chip-polish-and-token-drift.md"}}
