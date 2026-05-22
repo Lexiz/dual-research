@@ -7,13 +7,13 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.19.1
-status: queued
+status: in_progress
 queue_position: 1
 depends_on: ["0154"]
 complexity: S
 created: 2026-05-22
 queued_at: 2026-05-22T13:02:02Z
-started_at: ""
+started_at: "2026-05-22T13:13:22Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
