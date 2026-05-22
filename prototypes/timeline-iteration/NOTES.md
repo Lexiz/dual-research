@@ -36,6 +36,7 @@ Open the workshop at `http://localhost:6174/prototypes/timeline-iteration/mockup
 | 10 | Activity chip bumped to `surface-container-highest` + cost rounded to 2 decimals | Turn card head + expanded actions |
 | 11 | Activated spec 0138 §5.1 sweep animation by setting `.is-live` on the Claude header strip; activity dot pulse + phrase updated to "negotiating · round 4" | Header strips |
 | 12 | `box-shadow: var(--md-elev-2)` added to `.as.in-header.is-live` | Header strips (live state only) |
+| 13 | Narrow-view (≤1799 px) agent-strip equalisation — both `.as.in-header` capped at 320 px so the GPT strip stops overflowing `.tl__tabs` and both right-align to the same column | Header strips (responsive) |
 
 ---
 
@@ -199,6 +200,25 @@ When the strip is **not** `.is-live` (idle / completed / deadlocked):
 **Live change.**
 - [`components.css`](../../src/dual_research/ui/static/components.css) — add the dot-pulse keyframes and apply them via `.as.in-header.is-live .activity-dot { animation: pulse-info 2s ease-in-out infinite; }` (or whatever the activity-dot class is in the live JSX).
 - `run-detail.jsx` — make sure the activity-phrase derivation picks up the live phase + round rather than the terminal state.
+
+### 2.2.5 Narrow-view strip equalisation (iter 13)
+
+**Now.** `.as.in-header` has `min-width: 600 px` and `flex: 0 0 auto`. In `.tl__head` (leading content ~239 px), the 600 px strip fits inside a 599 px-inner pane by overflowing slightly under the row's right padding. In `.tl__tabs` (leading content ~272 px because the tabs are wider), the same 600 px strip overflows the pane edge by ~33 px and visibly clips the trailing activity phrase ("deadlocked" → "deadloc…" with no ellipsis).
+
+The two strips, despite identical CSS, end up visually different widths because the constraint is content-driven and each row has different leading-content widths.
+
+**After.** When the viewport is ≤ 1799 px (the live `@media` breakpoint), both `.tl__head .as.in-header` and `.tl__tabs .as.in-header` are forced to `width: 320 px; max-width: 320 px; flex: 0 0 320 px; min-width: 0`. With `margin-left: auto` on each, both strips right-align to the same column (`[299..619]` at 1280 px pane) and both fit inside the pane's inner content box (619 ≤ 639 − 20 px row padding).
+
+Math: pane width − padding (40 px) = inner 599 px. `.tl__tabs` leading is the limiting factor at 272 px. Max strip width = 599 − 272 = 327 px → 320 px chosen with a small buffer.
+
+`.as-activity` falls back to `text-overflow: ellipsis` if the activity phrase doesn't fit at 320 px.
+
+**DS change.**
+- [`SPEC.md`](../../design-system/SPEC.md) §4.4 — add a responsive note: *"In narrow viewport (≤ 1799 px), both `.as.in-header` instances are capped at 320 px and right-align to the same column inside `.rdvc__pane`."*
+- [`composed-components.css`](../../design-system/assets/styles/composed-components.css) — add the `@media (max-width: 1799px)` block from iter-13 in `proposed.html`.
+
+**Live change.**
+- [`components.css`](../../src/dual_research/ui/static/components.css) — add the same `@media` block. The current rule at L407 has `min-width: 600 px` unconditionally; the narrow override neutralises it.
 
 ### 2.2.4 Elevation on the live strip
 

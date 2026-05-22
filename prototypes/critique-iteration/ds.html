@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Critique pane · DS (verbatim §12+§13+§13b) · 2026-05-22</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500;8..144,600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet" />
+<link rel="stylesheet" href="/design-system/assets/styles/v2-m3.css" />
+<link rel="stylesheet" href="/design-system/assets/styles/v2-m3-page.css" />
+<style>
+  .ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; vertical-align: middle; user-select: none; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  .ms-24 { font-size: 24px; } .ms-20 { font-size: 20px; } .ms-18 { font-size: 18px; }
+  html, body { margin: 0; padding: 0; min-height: 100vh; }
+  body { background: var(--md-background, #0f1115); color: var(--md-on-surface, #d9dee5); font-family: var(--md-font-plain, system-ui, sans-serif); }
+  .wrap__banner {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--md-surface-container, #14171c);
+    border-bottom: 1px solid var(--md-outline-hair, #1c1f24);
+    padding: 8px 16px; font-size: 11.5px; line-height: 1.4;
+    color: var(--md-on-surface-variant, #a7adb6);
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    font-family: var(--md-font-data, ui-monospace, SF Mono, monospace);
+  }
+  .wrap__banner b { color: var(--md-on-surface); }
+  .wrap__banner .pill { background: var(--md-surface-container-high, #191c21); padding: 2px 8px; border-radius: 10px; }
+  .ds-shell-wrap { padding: 16px 32px 48px; max-width: 1200px; margin: 0 auto; }
+  .ds-section { padding: 24px 0; border-bottom: 1px solid var(--md-outline-hair, #1c1f24); }
+</style>
+</head>
+<body class="dark">
+<div class="wrap__banner">
+  <span><b>Critique pane · DESIGN SYSTEM</b></span>
+  <span class="pill">verbatim copy of §12 + §13 + §13b</span>
+  <span>source · <code>design-system/assets/Design System v2.html</code></span>
+  <span style="margin-left:auto"><i>this wrapper is immutable</i></span>
+</div>
+<div class="ds-shell-wrap">
+      <section id="critique" class="ds-section">
+        <div class="ds-section__head">
+          <h3 class="ds-section__title">Critique pane header</h3>
+          <span class="ds-section__index">§12 · components · REWORKED</span>
+        </div>
+        <div class="note" style="margin: 0 0 16px;"><span class="ms ms-20" aria-hidden="true">verified</span><div><b>Canonical pattern.</b> This is the critique pane the implementation should follow — two bars, three states, collapsible status-grouped sections of compact item rows. No alternate layouts are sanctioned.</div></div>
+        <p class="ds-section__lede">
+          Two bars. <b>Bar 1</b> carries title · phase tabs (P2 Negotiate / P4 Review / Σ Summary) · run-wide totals (introduced · open · resolved · drift chip). <b>Bar 2</b> carries kind tabs with per-phase counts + agent + status segmented controls. Selecting <b>Σ Summary</b> hides bar 2 — summary is one read, not triage.
+        </p>
+
+        <!-- State A: P4 Review (default) -->
+        <div class="row" style="gap:10px;margin-bottom:10px;">
+          <span class="t-label-m subtle">STATE · P4 REVIEW</span>
+          <span class="chip tone-info no-dot">default</span>
+        </div>
+        <div class="crit2" style="margin-bottom:24px;">
+          <div class="bar1">
+            <span class="ttl">Critique</span>
+            <span class="vbar"></span>
+            <div class="phase-tabs">
+              <button class="phase-tab"><span class="pcode">P2</span><span class="pname">Negotiate</span></button>
+              <button class="phase-tab is-active"><span class="pcode">P4</span><span class="pname">Review</span></button>
+              <button class="phase-tab"><span class="sigma">Σ</span><span class="pname">Summary</span></button>
+            </div>
+            <div class="right">
+              <span class="crit-totals">
+                <span><span class="n">164</span><span class="lbl">introduced</span></span>
+                <span><span class="n is-info">5</span><span class="lbl">open</span></span>
+                <span><span class="n is-ok">22</span><span class="lbl">resolved</span></span>
+              </span>
+              <span class="drift-chip"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zm-1 5v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>1 drift</span>
+            </div>
+          </div>
+          <div class="bar2">
+            <div class="kind-tabs">
+              <button class="kind-tab is-active"><span>All</span><span class="ct">31</span></button>
+              <button class="kind-tab is-zero"><span>Issues</span><span class="ct">0</span></button>
+              <button class="kind-tab is-zero"><span>Comments</span><span class="ct">0</span></button>
+              <button class="kind-tab"><span>Questions</span><span class="ct is-info">30</span></button>
+              <button class="kind-tab"><span>Disagreements</span><span class="ct is-warn">1</span></button>
+            </div>
+            <div class="right">
+              <div class="tab-group-solid">
+                <button class="tab-solid is-active">All</button>
+                <button class="tab-solid"><span class="dot" style="background:var(--p-sable)"></span>Claude</button>
+                <button class="tab-solid"><span class="dot" style="background:var(--p-sage)"></span>GPT</button>
+              </div>
+              <div class="tab-group-solid">
+                <button class="tab-solid is-active">All</button>
+                <button class="tab-solid">Open</button>
+                <button class="tab-solid">Resolved</button>
+                <button class="tab-solid">Drift</button>
+              </div>
+            </div>
+          </div>
+          <div style="padding:14px 20px;display:flex;flex-direction:column;gap:10px;">
+            <!-- Open new this round (info-strong) -->
+            <div class="crit-group">
+              <div class="crit-group__hd" role="button" tabindex="0">
+                <span class="crit-group__chev"><span class="ms ms-20">expand_more</span></span>
+                <span class="crit-group__title">Open · new this round<span class="crit-group__count is-info">3</span></span>
+                <span class="crit-group__meta">raised in P4 · r5</span>
+              </div>
+              <div class="crit-group__body">
+                <div class="sc is-open">
+                  <div class="sc-head">
+                    <span class="qref" data-kind="Q"><span class="qref-k">Q</span><span class="qref-sep">·</span><span class="qref-n">04</span></span>
+                    <span class="chip tone-info-strong">open · new</span>
+                    <span class="sc-by">by <span class="a">Claude</span> · r5</span>
+                    <span style="margin-left:auto"><span class="md-chip md-chip--sm">P4</span></span>
+                  </div>
+                  <div class="sc-q">What exact RLS controls do you think are mandatory beyond connection-pool reset — specifically the SET LOCAL vs SET SESSION distinction?</div>
+                </div>
+                <div class="sc is-open">
+                  <div class="sc-head">
+                    <span class="qref" data-kind="D"><span class="qref-k">D</span><span class="qref-sep">·</span><span class="qref-n">09</span></span>
+                    <span class="chip tone-info-strong">open · new</span>
+                    <span class="sc-by">by <span class="b">GPT</span> · r5</span>
+                    <span style="margin-left:auto"><span class="md-chip md-chip--sm">P4</span></span>
+                  </div>
+                  <div class="sc-q">Mitigation owners for D·04 + D·05 missing in §3. Need on-call assignee per row.</div>
+                </div>
+                <div class="sc is-open">
+                  <div class="sc-head">
+                    <span class="qref" data-kind="Q"><span class="qref-k">Q</span><span class="qref-sep">·</span><span class="qref-n">11</span></span>
+                    <span class="chip tone-info-strong">open · new</span>
+                    <span class="sc-by">by <span class="b">GPT</span> · r5</span>
+                    <span style="margin-left:auto"><span class="md-chip md-chip--sm">P4</span></span>
+                  </div>
+                  <div class="sc-q">Are tenant-id assertions logged on every pool checkout? Section §2.4 implies yes but doesn't say.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Open carried over (warn) -->
+            <div class="crit-group">
+              <div class="crit-group__hd" role="button" tabindex="0">
+                <span class="crit-group__chev"><span class="ms ms-20">expand_more</span></span>
+                <span class="crit-group__title">Open · carried over<span class="crit-group__count is-warn">2</span></span>
+                <span class="crit-group__meta">raised earlier · awaiting</span>
+              </div>
+              <div class="crit-group__body">
+                <div class="sc is-open">
+                  <div class="sc-head">
+                    <span class="qref" data-kind="Q"><span class="qref-k">Q</span><span class="qref-sep">·</span><span class="qref-n">03</span></span>
+                    <span class="chip tone-warn">open · carried</span>
+                    <span class="sc-by">by <span class="b">GPT</span> · r3</span>
+                    <span style="margin-left:auto"><span class="md-chip md-chip--sm">P4</span></span>
+                  </div>
+                  <div class="sc-q">RLS controls vs pool re-use semantics — two separate guarantees. Needs split.</div>
+                </div>
+                <div class="sc is-open">
+                  <div class="sc-head">
+                    <span class="qref" data-kind="D"><span class="qref-k">D</span><span class="qref-sep">·</span><span class="qref-n">06</span></span>
+                    <span class="chip tone-warn">open · carried</span>
+                    <span class="sc-by">by <span class="a">Claude</span> · r4</span>
+                    <span style="margin-left:auto"><span class="md-chip md-chip--sm">P4</span></span>
+                  </div>
+                  <div class="sc-q">Severity scale uses CVSS but mitigation horizon doesn't — inconsistent.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resolved (collapsed by default · ok) -->
+            <div class="crit-group" data-collapsed="true">
+              <div class="crit-group__hd" role="button" tabindex="0">
+                <span class="crit-group__chev"><span class="ms ms-20">expand_more</span></span>
+                <span class="crit-group__title">Resolved<span class="crit-group__count is-ok">22</span></span>
+                <span class="crit-group__meta">click to expand</span>
+              </div>
+              <div class="crit-group__body">
+                <!-- Items render here when expanded -->
+              </div>
+            </div>
+
+            <!-- Drift (collapsed by default · err) -->
+            <div class="crit-group" data-collapsed="true">
+              <div class="crit-group__hd" role="button" tabindex="0">
+                <span class="crit-group__chev"><span class="ms ms-20">expand_more</span></span>
+                <span class="crit-group__title">Drift<span class="crit-group__count is-err">1</span></span>
+                <span class="crit-group__meta">does not block exit</span>
+              </div>
+              <div class="crit-group__body">
+                <div class="sc is-drift">
+                  <div class="sc-head">
+                    <span class="qref" data-kind="D"><span class="qref-k">D</span><span class="qref-sep">·</span><span class="qref-n">07</span></span>
+                    <span class="chip tone-err">drift</span>
+                    <span class="sc-by">by <span class="a">Claude</span> · r2 · ghosted at r5</span>
+                    <span style="margin-left:auto"><span class="md-chip md-chip--sm">P4</span></span>
+                  </div>
+                  <div class="sc-q">Disagreement on §4 financing split — proposal to split 4a/4b on regressivity grounds was not addressed in three subsequent rounds.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- State B: P2 Negotiate -->
+        <div class="row" style="gap:10px;margin-bottom:10px;">
+          <span class="t-label-m subtle">STATE · P2 NEGOTIATE</span>
+          <span class="chip tone-neutral no-dot">kind counts reflow per active phase</span>
+        </div>
+        <div class="crit2" style="margin-bottom:24px;">
+          <div class="bar1">
+            <span class="ttl">Critique</span>
+            <span class="vbar"></span>
+            <div class="phase-tabs">
+              <button class="phase-tab is-active"><span class="pcode">P2</span><span class="pname">Negotiate</span></button>
+              <button class="phase-tab"><span class="pcode">P4</span><span class="pname">Review</span></button>
+              <button class="phase-tab"><span class="sigma">Σ</span><span class="pname">Summary</span></button>
+            </div>
+            <div class="right">
+              <span class="crit-totals">
+                <span><span class="n">164</span><span class="lbl">introduced</span></span>
+                <span><span class="n is-info">5</span><span class="lbl">open</span></span>
+                <span><span class="n is-ok">22</span><span class="lbl">resolved</span></span>
+              </span>
+              <span class="drift-chip"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zm-1 5v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>1 drift</span>
+            </div>
+          </div>
+          <div class="bar2">
+            <div class="kind-tabs">
+              <button class="kind-tab is-active"><span>All</span><span class="ct">28</span></button>
+              <button class="kind-tab is-zero"><span>Issues</span><span class="ct">0</span></button>
+              <button class="kind-tab is-zero"><span>Comments</span><span class="ct">0</span></button>
+              <button class="kind-tab"><span>Questions</span><span class="ct is-info">19</span></button>
+              <button class="kind-tab"><span>Disagreements</span><span class="ct is-warn">9</span></button>
+            </div>
+            <div class="right">
+              <div class="tab-group-solid">
+                <button class="tab-solid is-active">All</button>
+                <button class="tab-solid"><span class="dot" style="background:var(--p-sable)"></span>Claude</button>
+                <button class="tab-solid"><span class="dot" style="background:var(--p-sage)"></span>GPT</button>
+              </div>
+              <div class="tab-group-solid">
+                <button class="tab-solid is-active">All</button>
+                <button class="tab-solid">Open</button>
+                <button class="tab-solid">Resolved</button>
+                <button class="tab-solid">Drift</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- State C: Σ Summary -->
+        <div class="row" style="gap:10px;margin-bottom:10px;">
+          <span class="t-label-m subtle">STATE · Σ SUMMARY</span>
+          <span class="chip tone-neutral no-dot">filter chrome hides</span>
+        </div>
+        <div class="crit2">
+          <div class="bar1">
+            <span class="ttl">Critique</span>
+            <span class="vbar"></span>
+            <div class="phase-tabs">
+              <button class="phase-tab"><span class="pcode">P2</span><span class="pname">Negotiate</span></button>
+              <button class="phase-tab"><span class="pcode">P4</span><span class="pname">Review</span></button>
+              <button class="phase-tab is-active"><span class="sigma">Σ</span><span class="pname">Summary</span></button>
+            </div>
+            <div class="right">
+              <span class="crit-totals">
+                <span><span class="n">164</span><span class="lbl">introduced</span></span>
+                <span><span class="n is-info">5</span><span class="lbl">open</span></span>
+                <span><span class="n is-ok">22</span><span class="lbl">resolved</span></span>
+              </span>
+              <span class="drift-chip"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 4.5L19.5 19h-15L12 6.5zm-1 5v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>1 drift</span>
+            </div>
+          </div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+            <p style="margin:0;color:var(--md-on-surface-variant);font-size:14px;line-height:1.5;">
+              <b style="color:var(--md-on-surface)">Highest-leverage open thread:</b>
+              <span class="qref" data-kind="Q" style="margin: 0 4px;"><span class="qref-k">Q</span><span class="qref-sep">·</span><span class="qref-n">04</span></span>
+              <span class="chip tone-warn" style="margin-right:6px;">open</span>
+              RLS / connection-pool isolation. Claude raised in P4·r1; GPT has not responded in three rounds, at risk of drift.
+            </p>
+            <p style="margin:0;color:var(--md-on-surface-variant);font-size:14px;line-height:1.5;">
+              <b style="color:var(--md-on-surface)">Hottest disagreement:</b>
+              <span class="qref" data-kind="D" style="margin: 0 4px;"><span class="qref-k">D</span><span class="qref-sep">·</span><span class="qref-n">01</span></span>
+              <span class="chip tone-ok" style="margin-right:6px;">resolved · r7</span>
+              Schema-first vs code-first boundaries — six rounds in P2, resolved on hash match at r7.
+            </p>
+            <p style="margin:0;color:var(--md-on-surface-variant);font-size:14px;line-height:1.5;">
+              <b style="color:var(--md-on-surface)">Drift:</b>
+              <span class="qref" data-kind="D" style="margin: 0 4px;"><span class="qref-k">D</span><span class="qref-sep">·</span><span class="qref-n">07</span></span>
+              <span class="chip tone-err" style="margin-right:6px;">drift</span>
+              One item ghosted after five rounds. Recorded with full history; does not block exit.
+            </p>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:24px;">
+          <span class="ms ms-20" aria-hidden="true">info</span>
+          <div><b>Kind letter codes.</b> Q · Questions, D · Disagreements, I · Issues, C · Comments, Cl · Claims. Color follows the question kind in the <span class="code">.qref-k</span> badge: Q/Cl use tertiary, D/I use error, C uses primary.</div>
+        </div>
+      </section>
+
+      <section id="itemcard" class="ds-section">
+        <div class="ds-section__head">
+          <h3 class="ds-section__title">Critique card · ItemCard + Sources</h3>
+          <span class="ds-section__index">§13 · components · NEW · spec 0144</span>
+        </div>
+        <p class="ds-section__lede">
+          The canonical per-card primitive for every critique item. All four kinds — <b>Question</b>, <b>Disagreement</b>, <b>Issue</b>, <b>Comment</b> — render with the same layout; only the category chip varies. Each card carries header chips, the item text, an optional <em>Evidence needed</em> helper, a vertical <b>Lifecycle</b> timeline of transitions, a terminal-state footer, and (when N&gt;0) a <b>SOURCES (N)</b> segment that itemises each consulted source the agent cited when addressing the item.
+        </p>
+
+        <!-- ── Anatomy diagram (numbered stacking order) ── -->
+        <div class="md-card md-card--outlined" style="margin: 16px 0 24px;">
+          <div class="md-card__hd" style="margin-bottom: 14px;">
+            <span class="ms ms-24" style="color:var(--md-primary)" aria-hidden="true">view_agenda</span>
+            <div class="md-card__title">Stacking order (top → bottom)</div>
+          </div>
+          <ol style="margin:0; padding-left:22px; color:var(--md-on-surface-variant); line-height: 1.7;">
+            <li><b>Header chip row.</b> <span class="code">{id}</span> (mono inline, not a chip) · <b>agent</b> · <b>kind</b> · <span class="code">raised in rN</span> · <span class="code">Sources N</span> (when N&gt;0) · right-aligned <b>status</b> chip.</li>
+            <li><b>Body.</b> Item text. When <span class="code">anchor_type !== 'none'</span>, a tinted blockquote follows.</li>
+            <li><b>Evidence-needed helper.</b> Italic line, rendered only when <span class="code">evidence_required === true</span>: <em>"Evidence needed — addresses must cite consulted sources."</em></li>
+            <li><b>Lifecycle timeline.</b> Vertical list of transitions; each row is <span class="code">round N · agent · verb</span> with the reason in muted serif italic underneath.</li>
+            <li><b>Footer.</b> Single tinted line (ok-toned by default): <span class="code">✓ {terminalState} at round N · M turns to converge</span>. Rendered in any terminal state; never on open / addressed items.</li>
+            <li><b>SOURCES (N).</b> Vertical stack of <code>&lt;SourceRow&gt;</code> instances after a dashed top border. Hidden entirely when N === 0.</li>
+          </ol>
+        </div>
+
+        <!-- ── Two example cards: resolved + capped ── -->
+        <div class="cards-2up">
+
+          <!-- (1) Resolved Question · with sources -->
+          <article class="crit-card is-resolved" aria-labelledby="ic-1">
+            <div class="crit-card-head">
+              <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+              <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">Question</span>
+              <span class="md-chip md-chip--sm">raised in r1</span>
+              <span class="md-chip md-chip--sm">Sources&nbsp;<span style="color:var(--md-on-surface)">2</span></span>
+              <span class="spacer"></span>
+              <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);"><span style="font-weight:800">✓</span>&nbsp;resolved</span>
+            </div>
+
+            <div class="crit-card-body" id="ic-1">
+              Does <code>pgx/v5</code> with <code>SET LOCAL</code> RLS session context behave correctly against Azure Postgres Flexible Server's built-in PgBouncer?
+              <em class="evidence-needed">Evidence needed — addresses must cite consulted sources.</em>
+            </div>
+            <div class="crit-card-id">id: Q-plan-c-02</div>
+
+            <div class="crit-section-title">Lifecycle</div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                <span class="md-chip md-chip--sm">round 1</span>
+                <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">raised</span>
+              </div>
+              <div class="lc-row-body">
+                "Need verification — pgx pooling on Flexible Server documents <code>SET LOCAL</code> as transaction-scoped, not session-scoped. Flag as decision check 2."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+                <span class="md-chip md-chip--sm">round 2</span>
+                <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">addressed</span>
+              </div>
+              <div class="lc-row-body">
+                "Reframing: <code>SET LOCAL</code> is transaction-scoped per pg docs. PgBouncer documents plain <code>SET/RESET</code> as unsupported in transaction pooling. Protocol-level prepared plans can work if <code>max_prepared_plans</code> is non-zero."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                <span class="md-chip md-chip--sm">round 2</span>
+                <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);">resolved</span>
+              </div>
+              <div class="lc-row-body">
+                "Accepted. Plan now specifies <code>max_prepared_plans</code> and explicit <code>SET LOCAL ... INSIDE TX</code> guarded by pgx middleware."
+              </div>
+            </div>
+
+            <div class="lc-footer">
+              <span style="font-weight:800">✓</span>
+              <span>resolved at round 2</span>
+              <span class="sep">·</span>
+              <span class="meta">2 turns to converge</span>
+            </div>
+
+            <div class="item-card__sources">
+              <div class="item-card__sources-hd">Sources <span class="count">(2)</span></div>
+
+              <div class="source-row" data-open="true">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">PostgreSQL — SET</span>
+                  <span class="source-row__host">postgresql.org</span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://www.postgresql.org/docs/current/sql-set.html</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>pgx SET LOCAL transaction scope PgBouncer Flexible Server</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 01:09 UTC</div>
+                  <div class="source-row__excerpt">"The effects of SET LOCAL last only till the end of the current transaction, whether committed or not. A special case is SET followed by SET LOCAL within a single transaction: the SET LOCAL value will be seen until the end of the transaction, but afterwards (if the transaction is committed) the SET value will take effect."</div>
+                </div>
+              </div>
+
+              <div class="source-row" data-open="false">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">PgBouncer — config / pooling notes</span>
+                  <span class="source-row__host">pgbouncer.org</span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://www.pgbouncer.org/config.html</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>PgBouncer transaction pooling max_prepared_plans</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 01:09 UTC</div>
+                  <div class="source-row__excerpt">"In transaction pooling mode, SET, RESET, LISTEN, and a number of other session-state-changing commands are not supported. Protocol-level prepared statements work when max_prepared_statements is non-zero (server-side; the equivalent setting also exists for clients)."</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- (2) Capped Issue · with one unverified source -->
+          <article class="crit-card is-capped" aria-labelledby="ic-2">
+            <div class="crit-card-head">
+              <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+              <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">Issue</span>
+              <span class="md-chip md-chip--sm">raised in r3</span>
+              <span class="md-chip md-chip--sm">via ghost cap</span>
+              <span class="md-chip md-chip--sm">Sources&nbsp;<span style="color:var(--md-on-surface)">1</span></span>
+              <span class="spacer"></span>
+              <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">capped</span>
+            </div>
+
+            <div class="crit-card-body" id="ic-2">
+              Logical-replication slot configuration on Azure Postgres Flex does not survive a failover — the proposed CDC strategy assumes slot persistence that the platform doesn't guarantee.
+            </div>
+            <div class="crit-card-id">id: I-cdc-g-04</div>
+
+            <div class="crit-section-title">Lifecycle</div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+                <span class="md-chip md-chip--sm">round 3</span>
+                <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">raised</span>
+              </div>
+              <div class="lc-row-body">
+                "Flex Server's primary-failover docs do not list logical-replication slots among preserved objects. Need a backup CDC strategy or this is a P0 risk."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                <span class="md-chip md-chip--sm">round 4</span>
+                <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">addressed</span>
+              </div>
+              <div class="lc-row-body">
+                "Acknowledge the risk; propose Debezium fallback. Need to verify behaviour on a planned-failover dry-run before promoting the plan."
+              </div>
+            </div>
+
+            <div class="lc-row">
+              <div class="lc-row-chips">
+                <span class="md-chip md-chip--sm">round 5</span>
+                <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">capped</span>
+                <span class="md-chip md-chip--sm">via ghost cap</span>
+              </div>
+              <div class="lc-row-body">
+                "Closeout budget exhausted before mutual ack. Issue recorded; downstream owner notified."
+              </div>
+            </div>
+
+            <div class="lc-footer">
+              <span style="font-weight:800">⊘</span>
+              <span>capped at round 5</span>
+              <span class="sep">·</span>
+              <span class="meta">closeout exhausted · 2 turns to converge</span>
+            </div>
+
+            <div class="item-card__sources">
+              <div class="item-card__sources-hd">Sources <span class="count">(1)</span></div>
+
+              <div class="source-row is-unverified" data-open="true">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">Azure Postgres Flex — failover behaviour</span>
+                  <span class="source-row__host">learn.microsoft.com</span>
+                  <span class="right">
+                    <span class="chip-unverified" title="evidence_event_id did not match any tool event in this turn's audit">⚠ unverified</span>
+                  </span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-high-availability</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>Azure Postgres Flexible Server failover replication slot persistence</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 02:14 UTC</div>
+                  <div class="source-row__field"><span class="source-row__label">unverified reason</span><span style="color: var(--p-warn)">evidence_event_id_fabricated</span> — the cited handle <span class="code">search_4</span> did not match any tool event in this turn's audit.</div>
+                  <div class="source-row__excerpt">"During a failover event, server-side state including replication slots may not survive without explicit configuration. Customers using logical decoding for change data capture should review the high-availability and disaster-recovery guidance for their workload."</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+
+        <!-- ── Open card · full width · with Evidence-needed but no sources yet ── -->
+        <article class="crit-card is-open" aria-labelledby="ic-3" style="margin-top:16px;">
+          <div class="crit-card-head">
+            <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+            <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">Disagreement</span>
+            <span class="md-chip md-chip--sm">raised in r2</span>
+            <span class="spacer"></span>
+            <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">open · awaiting Claude</span>
+          </div>
+
+          <div class="crit-card-body" id="ic-3">
+            The proposed CDC outbox-poll interval (5 s) is too high for the agreed P95-latency target of 3 s end-to-end. Either tighten the poll or reframe the target.
+            <em class="evidence-needed">Evidence needed — addresses must cite consulted sources.</em>
+          </div>
+          <div class="crit-card-id">id: D-cdc-g-01</div>
+
+          <div class="crit-section-title">Lifecycle</div>
+
+          <div class="lc-row">
+            <div class="lc-row-chips">
+              <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+              <span class="md-chip md-chip--sm">round 2</span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">raised</span>
+            </div>
+            <div class="lc-row-body">
+              "5 s poll · 3 s P95 target → arithmetic doesn't close. Sources needed to back the 5 s number — current plan cites none."
+            </div>
+          </div>
+        </article>
+
+        <!-- ── SourceRow detail · collapsed vs expanded ── -->
+        <div style="margin-top: 32px;">
+          <h4 class="t-title-m" style="margin: 0 0 12px;">SourceRow — anatomy</h4>
+          <p class="ds-section__lede" style="margin-bottom: 14px;">
+            One row per evidence record. Collapsed by default; click the chevron or the title to expand. The collapsed form carries title + host (and an <span class="chip-unverified" style="vertical-align: middle">⚠ unverified</span> chip when the validator flagged the record). The expanded form adds the URL, the search query, the fetched-at timestamp, the content excerpt (bounded scroll above 800 chars), and any unverified reason.
+          </p>
+
+          <div class="cols-2" style="gap: 16px;">
+            <div class="md-card md-card--outlined">
+              <div class="md-card__hd" style="margin-bottom: 10px;"><div class="md-card__title">Collapsed</div></div>
+              <div class="source-row" data-open="false">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">PostgreSQL — SET</span>
+                  <span class="source-row__host">postgresql.org</span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://www.postgresql.org/docs/current/sql-set.html</a></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="md-card md-card--outlined">
+              <div class="md-card__hd" style="margin-bottom: 10px;"><div class="md-card__title">Expanded · unverified</div></div>
+              <div class="source-row is-unverified" data-open="true">
+                <div class="source-row__head">
+                  <span class="source-row__chev">▶</span>
+                  <span class="source-row__title">Azure Postgres Flex — failover behaviour</span>
+                  <span class="source-row__host">learn.microsoft.com</span>
+                  <span class="right">
+                    <span class="chip-unverified">⚠ unverified</span>
+                  </span>
+                </div>
+                <div class="source-row__body">
+                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://learn.microsoft.com/azure/postgresql/…</a></div>
+                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>Azure Postgres Flex failover replication slot</i>"</div>
+                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 02:14 UTC</div>
+                  <div class="source-row__field"><span class="source-row__label">unverified reason</span><span style="color: var(--p-warn)">evidence_event_id_fabricated</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Governance notes ── -->
+        <div class="cols-2" style="gap: 16px; margin-top: 24px;">
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">rule</span>
+            <div>
+              <b>The kind-agnostic invariant.</b> All four kinds — Question, Disagreement, Issue, Comment — render with this exact stacking order. No kind-specific variant exists. A reviewer who sees an Issue or a Comment card that diverges from this anatomy is looking at a bug, not a variant.
+            </div>
+          </div>
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">visibility_off</span>
+            <div>
+              <b>Empty SOURCES segment is hidden.</b> When the item has <span class="code">N === 0</span> evidence records, the entire SOURCES segment — label, border, and list — is removed from the DOM. A segment showing <span class="code">(0)</span> on an item that never had source data would be misleading; the segment's presence is itself the signal.
+            </div>
+          </div>
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">warning</span>
+            <div>
+              <b>Unverified chip placement.</b> The <span class="chip-unverified" style="vertical-align: middle">⚠ unverified</span> chip lives on the <i>offending source row</i>, never on the card header. A card with three sources where only one is flagged would mislead reviewers with a card-level chip — only the row in question is annotated.
+            </div>
+          </div>
+          <div class="note">
+            <span class="ms ms-20" aria-hidden="true">link</span>
+            <div>
+              <b>Visual source-of-truth.</b> <a href="audits/2026-05-19-badge-governance-iter3/mockup.html" style="color:var(--md-primary)">audits/2026-05-19-badge-governance-iter3/mockup.html</a> — the recovered iter-3 ideation mockup. Spec contract: <span class="code">SPEC.md</span> §3 (SourceRow primitive) · §4.7 (Sources segment) · §4.8 (Critique card composition). Live implementation: <span class="code">src/dual_research/ui/static/run-detail.jsx</span> — search for <code>function ItemCard</code> and <code>function SourceRow</code>.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="thread" class="ds-section">
+        <div class="ds-section__head">
+          <h3 class="ds-section__title">QuestionThread (legacy)</h3>
+          <span class="ds-section__index">§13b · components · LEGACY · pre-0114 fallback</span>
+        </div>
+        <div class="note" style="margin-bottom:16px;">
+          <span class="ms ms-20" aria-hidden="true">history</span>
+          <div>
+            <b>Legacy fallback.</b> The canonical critique-card primitive is now <a href="#itemcard" style="color:var(--md-primary)">Critique card · ItemCard</a> (§13) — it handles all four kinds (Q · D · I · C) and surfaces evidence sources per the spec 0144 contract. The thread component below is retained for pre-0114 archived runs whose items have no <span class="code">transitions[]</span> array. Routing logic: <span class="code">Array.isArray(item.transitions)</span> → <span class="code">&lt;ItemCard&gt;</span>; else → <span class="code">&lt;QuestionThread&gt;</span>.
+          </div>
+        </div>
+        <p class="ds-section__lede">
+          Turn-by-turn conversation for a single critique item. Border-left tinted by status: <b style="color:var(--p-warn)">open</b> warn, <b style="color:var(--p-ok)">resolved</b> ok, <b style="color:var(--p-err)">drift</b> err. Each row carries an agent pill (initial + name + round + verdict) and the agent's quote in serif italic. The header carries the <span class="code">qref</span> badge — Q · 03 · [agent] · r1 — plus the resolution chip.
+        </p>
+
+        <div class="cards-2up">
+          <!-- Resolved thread -->
+          <article class="qthread is-resolved" aria-labelledby="qt-1">
+            <div class="qt-head">
+              <span class="qref" data-kind="Q">
+                <span class="qref-k">Q</span><span class="qref-sep">·</span><span class="qref-n">03</span>
+                <span class="qref-by is-b"><span class="ai ai-sm ai-b">G</span><span class="qref-by-n">GPT</span></span>
+                <span class="qref-round">r1</span>
+              </span>
+              <span class="chip tone-ok">resolved · r3</span>
+              <span class="right md-chip md-chip--sm" style="margin-left:auto;">P2 · 2 turns to converge</span>
+            </div>
+            <div class="qt-timeline">
+              <div class="qt-row is-b">
+                <span class="qt-pill"><span class="ai ai-sm ai-b">G</span><span class="qt-agent">GPT</span><span class="qt-sep">·</span><span class="qt-round">r1</span><span class="qt-sep">·</span><span class="qt-verdict">raised</span></span>
+                <p class="qt-quote">&quot;Are tenant boundaries enforced at the connection-pool level or strictly via RLS policy?&quot;</p>
+              </div>
+              <div class="qt-row is-a">
+                <span class="qt-pill"><span class="ai ai-sm ai-a">C</span><span class="qt-agent">Claude</span><span class="qt-sep">·</span><span class="qt-round">r2</span><span class="qt-sep">·</span><span class="qt-verdict">pushback</span></span>
+                <p class="qt-quote">&quot;RLS alone is insufficient if pool re-use isn't reset on tenant switch. Both are required.&quot;</p>
+              </div>
+              <div class="qt-row is-b">
+                <span class="qt-pill"><span class="ai ai-sm ai-b">G</span><span class="qt-agent">GPT</span><span class="qt-sep">·</span><span class="qt-round">r3</span><span class="qt-sep">·</span><span class="qt-verdict">conceded</span></span>
+                <p class="qt-quote">&quot;Concede the dual contract — pool reset + RLS — is required. Hash matches.&quot;</p>
+              </div>
+            </div>
+            <div class="qt-resolved-foot">resolved at round 3 · 2 turns to converge · hash match</div>
+          </article>
+
+          <!-- Drift thread -->
+          <article class="qthread is-drift" aria-labelledby="qt-2">
+            <div class="qt-head">
+              <span class="qref" data-kind="D">
+                <span class="qref-k">D</span><span class="qref-sep">·</span><span class="qref-n">07</span>
+                <span class="qref-by is-a"><span class="ai ai-sm ai-a">C</span><span class="qref-by-n">Claude</span></span>
+                <span class="qref-round">r2</span>
+              </span>
+              <span class="chip tone-err">drift · ghosted at r5</span>
+              <span class="right md-chip md-chip--sm" style="margin-left:auto;">P4 · does not block exit</span>
+            </div>
+            <div class="qt-timeline">
+              <div class="qt-row is-a">
+                <span class="qt-pill"><span class="ai ai-sm ai-a">C</span><span class="qt-agent">Claude</span><span class="qt-sep">·</span><span class="qt-round">r2</span><span class="qt-sep">·</span><span class="qt-verdict">raised</span></span>
+                <p class="qt-quote">&quot;Disagreement on §4 financing split — proposal to split 4a/4b on regressivity grounds.&quot;</p>
+              </div>
+              <div class="qt-row is-b is-ghosted">
+                <span class="qt-pill"><span class="ai ai-sm ai-b">G</span><span class="qt-agent">GPT</span><span class="qt-sep">·</span><span class="qt-round">r3-r5</span><span class="qt-sep">·</span><span class="qt-verdict">ghosted</span></span>
+                <p class="qt-quote">&quot;No response in three subsequent rounds. Continued to address adjacent issues; this thread was not addressed.&quot;</p>
+              </div>
+            </div>
+            <div class="qt-drift">drift · recorded with full history · does not block exit</div>
+          </article>
+        </div>
+
+        <!-- Open thread (full-width) -->
+        <article class="qthread is-open" aria-labelledby="qt-3" style="margin-top:16px;">
+          <div class="qt-head">
+            <span class="qref" data-kind="Q">
+              <span class="qref-k">Q</span><span class="qref-sep">·</span><span class="qref-n">04</span>
+              <span class="qref-by is-a"><span class="ai ai-sm ai-a">C</span><span class="qref-by-n">Claude</span></span>
+              <span class="qref-round">r1</span>
+            </span>
+            <span class="chip tone-warn">open · awaiting GPT</span>
+            <span class="md-chip md-chip--sm">P4</span>
+            <span class="delta-chip"><span class="up">+1</span><span style="opacity:0.5">turn</span></span>
+            <span class="right" style="margin-left:auto"><span class="md-chip md-chip--sm">last touched · 24s ago</span></span>
+          </div>
+          <div class="qt-timeline">
+            <div class="qt-row is-a">
+              <span class="qt-pill"><span class="ai ai-sm ai-a">C</span><span class="qt-agent">Claude</span><span class="qt-sep">·</span><span class="qt-round">r1</span><span class="qt-sep">·</span><span class="qt-verdict">raised</span></span>
+              <p class="qt-quote">&quot;What exact RLS controls do you think are mandatory beyond connection-pool reset — specifically the SET LOCAL vs SET SESSION distinction?&quot;</p>
+            </div>
+          </div>
+        </article>
+
+        <div class="note" style="margin-top:24px;">
+          <span class="ms ms-20" aria-hidden="true">tips_and_updates</span>
+          <div><b>Verdict vocabulary.</b> Six labels, in order: <span class="code">raised</span>, <span class="code">pushback</span>, <span class="code">conceded</span>, <span class="code">resolved</span>, <span class="code">ghosted</span>, <span class="code">drift</span>. No abbreviations — never &quot;→ c&quot;.</div>
+        </div>
+      </section>
+</div>
+</body>
+</html>

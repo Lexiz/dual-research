@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Timeline pane · workshop · 2026-05-22</title>
+<title>Critique pane · workshop · 2026-05-22</title>
 <style>
   :root {
     --bg: #0a0c10;
@@ -12,7 +12,7 @@
     --hair: #232830;
     --ink: #d9dee5;
     --ink-faint: #8a93a0;
-    --accent: #d4a574;  /* sable — timeline workshop's accent (critique uses sage) */
+    --accent: #7cc4b8;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; }
@@ -47,8 +47,10 @@
     color: var(--ink-faint);
     padding: 4px 10px; border-radius: 999px;
     font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    background: transparent; border: 0; cursor: default;
+    background: transparent; border: 0; cursor: pointer;
+    transition: background 120ms, color 120ms;
   }
+  .wsh__group-label:hover { color: var(--ink); background: rgba(255,255,255,0.04); }
   .wsh__opt {
     background: transparent; border: 0; color: var(--ink-faint);
     padding: 4px 12px; border-radius: 999px; font: inherit; font-size: 11.5px; cursor: pointer;
@@ -98,8 +100,8 @@
 </head>
 <body>
 <header class="wsh">
-  <div class="wsh__brand">timeline <span class="accent">·</span> workshop</div>
-  <span class="wsh__pill">prototypes/timeline-iteration</span>
+  <div class="wsh__brand">critique <span class="accent">·</span> workshop</div>
+  <span class="wsh__pill">prototypes/critique-iteration</span>
   <nav class="wsh__tabs" role="tablist">
     <button class="wsh__tab is-active" data-tab="iter" role="tab" aria-selected="true">Iteration</button>
     <button class="wsh__tab" data-tab="live" role="tab" aria-selected="false">Live</button>
@@ -107,17 +109,17 @@
   </nav>
   <span class="wsh__spacer"></span>
   <div class="wsh__group" role="group" aria-label="Theme">
-    <span class="wsh__group-label">theme</span>
+    <span class="wsh__group-label" style="cursor: default;">theme</span>
     <button class="wsh__opt is-active" data-theme="dark" aria-pressed="true">Dark</button>
     <button class="wsh__opt" data-theme="light" aria-pressed="false">Light</button>
   </div>
   <div class="wsh__group" role="group" aria-label="Monitor width">
-    <span class="wsh__group-label">width</span>
-    <button class="wsh__opt is-active" data-width="narrow" aria-pressed="true" title="1280px total viewport — narrow @media fires">Narrow</button>
-    <button class="wsh__opt" data-width="wide" aria-pressed="false" title="1920px total viewport — wide @media does not fire">Wide</button>
-    <button class="wsh__opt" data-width="monitor" aria-pressed="false" title="Workshop viewport width — your actual monitor">Monitor</button>
+    <span class="wsh__group-label" style="cursor: default;">width</span>
+    <button class="wsh__opt is-active" data-width="narrow" aria-pressed="true" title="1280px total viewport — critique pane gets ~640px (half), narrow @media fires">Narrow</button>
+    <button class="wsh__opt" data-width="wide" aria-pressed="false" title="1920px total viewport — critique pane gets ~960px (half), wide @media fires">Wide</button>
+    <button class="wsh__opt" data-width="monitor" aria-pressed="false" title="Workshop viewport width — your actual monitor, scaled to whatever you have">Monitor</button>
   </div>
-  <span class="wsh__note" id="state-note">iters 1-12 · narrow (1280px) · dark</span>
+  <span class="wsh__note" id="state-note">iter 1 · DS-aligned right cluster · narrow (1280px) · dark</span>
 </header>
 <main class="wsh__stage">
   <section data-stage="iter">
@@ -141,7 +143,7 @@
   <section data-stage="ds" class="stage-hidden">
     <div class="frame-host" data-host="ds">
       <div class="frame__label">
-        <span>ds.html · §16 Timeline pane (verbatim)</span>
+        <span>ds.html · §12 + §13 + §13b (verbatim)</span>
         <span class="meta" id="ds-meta">desktop · dark</span>
       </div>
       <iframe src="ds.html" title="Design system"></iframe>
@@ -150,9 +152,16 @@
 </main>
 <script>
   (function(){
-    /* Width presets bracket the live @media (max-width: 1799px) breakpoint.
-       narrow=1280 (laptop, narrow media fires), wide=1920 (full-HD, wide does not),
-       monitor=workshop viewport width (responsive to user's actual screen). */
+    /* The live critique pane's responsive split is @media (max-width: 1799px).
+       To make narrow / wide modes faithfully fire that media query, we resize
+       the iframe to a width on each side of the breakpoint:
+         narrow → 1280 px (typical laptop, narrow media fires naturally)
+         wide   → 1920 px (typical full-HD / ultrawide, wide media does not fire)
+       Iframe overflows horizontally inside main.wsh__stage when needed —
+       horizontal scroll lets the user see the full width without the workshop
+       chrome forcing a compromise. */
+    // narrow/wide are fixed presets that bracket the live @media (max-width: 1799px) breakpoint.
+    // monitor uses the workshop viewport width — scales to whatever screen the user has.
     function widthFor(mode) {
       if (mode === 'narrow') return 1280;
       if (mode === 'wide') return 1920;
@@ -172,9 +181,9 @@
 
     function noteFor() {
       const px = widthFor(widthMode);
-      const stageLabel = currentTab === 'iter' ? 'iters 1-12 stacked'
+      const stageLabel = currentTab === 'iter' ? 'iter 1 · DS-aligned right cluster'
                        : currentTab === 'live' ? 'live · verbatim outerHTML dump'
-                       : 'design system · §16 Timeline pane';
+                       : 'design system · §12 + §13 + §13b';
       return stageLabel + ' · ' + widthMode + ' (' + px + 'px) · ' + theme;
     }
 
@@ -202,6 +211,7 @@
         try {
           const doc = f.contentDocument;
           if (doc && doc.body) {
+            // DS body keeps .dark; we leave it alone (the DS file always renders dark).
             const isDS = f.closest('section').dataset.stage === 'ds';
             if (!isDS) doc.body.className = theme;
           }
@@ -255,6 +265,8 @@
       refreshNote();
     }));
 
+    // Re-apply monitor width on workshop resize (so iframe tracks the user's
+     // actual viewport when they resize the browser).
     window.addEventListener('resize', () => { if (widthMode === 'monitor') applyWidth(); });
 
     applyWidth();
