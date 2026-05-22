@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dual-research · spec dashboard (mockup)</title>
+<style>
+/* ===================================================================
+   TOKENS — light + dark themes
+   =================================================================== */
+:root {
+  /* Type */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, "Cascadia Mono", Consolas, monospace;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  /* Radii */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  /* Spacing scale (rem-ish at 16px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Easing */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Light theme (default) */
+[data-theme="light"], [data-theme="auto"] {
+  --bg-page: #fbf8f1;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #fffdf6;
+  --bg-elev-3: #faf6ec;
+  --bg-row-alt: #f6f1e3;
+  --hairline: rgba(28, 25, 23, 0.08);
+  --hairline-strong: rgba(28, 25, 23, 0.16);
+
+  --text-1: #1c1917;        /* primary */
+  --text-2: #44403c;        /* secondary */
+  --text-3: #78716c;        /* tertiary */
+  --text-4: #a8a29e;        /* faint */
+
+  --accent: #4f46e5;        /* indigo 600 */
+  --accent-bg: rgba(79, 70, 229, 0.10);
+  --accent-bg-2: rgba(79, 70, 229, 0.18);
+
+  --ok: #15803d;
+  --ok-bg: rgba(21, 128, 61, 0.10);
+  --warn: #b45309;
+  --warn-bg: rgba(180, 83, 9, 0.10);
+  --err: #b91c1c;
+  --err-bg: rgba(185, 28, 28, 0.10);
+  --info: #1d4ed8;
+  --info-bg: rgba(29, 78, 216, 0.10);
+  --neutral-bg: rgba(120, 113, 108, 0.10);
+}
+
+/* Dark theme override (manual) */
+[data-theme="dark"] {
+  --bg-page: #0e1116;
+  --bg-elev-1: #161b22;
+  --bg-elev-2: #1c232c;
+  --bg-elev-3: #232b35;
+  --bg-row-alt: #1a212a;
+  --hairline: rgba(230, 237, 243, 0.08);
+  --hairline-strong: rgba(230, 237, 243, 0.16);
+
+  --text-1: #e6edf3;
+  --text-2: #c0c8d2;
+  --text-3: #8b96a3;
+  --text-4: #5c6573;
+
+  --accent: #818cf8;
+  --accent-bg: rgba(129, 140, 248, 0.16);
+  --accent-bg-2: rgba(129, 140, 248, 0.24);
+
+  --ok: #4ade80;
+  --ok-bg: rgba(74, 222, 128, 0.14);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, 0.14);
+  --err: #f87171;
+  --err-bg: rgba(248, 113, 113, 0.14);
+  --info: #60a5fa;
+  --info-bg: rgba(96, 165, 250, 0.14);
+  --neutral-bg: rgba(139, 150, 163, 0.14);
+}
+
+/* System-preference auto when no manual override */
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --bg-page: #0e1116;
+    --bg-elev-1: #161b22;
+    --bg-elev-2: #1c232c;
+    --bg-elev-3: #232b35;
+    --bg-row-alt: #1a212a;
+    --hairline: rgba(230, 237, 243, 0.08);
+    --hairline-strong: rgba(230, 237, 243, 0.16);
+    --text-1: #e6edf3;
+    --text-2: #c0c8d2;
+    --text-3: #8b96a3;
+    --text-4: #5c6573;
+    --accent: #818cf8;
+    --accent-bg: rgba(129, 140, 248, 0.16);
+    --accent-bg-2: rgba(129, 140, 248, 0.24);
+    --ok: #4ade80;
+    --ok-bg: rgba(74, 222, 128, 0.14);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251, 191, 36, 0.14);
+    --err: #f87171;
+    --err-bg: rgba(248, 113, 113, 0.14);
+    --info: #60a5fa;
+    --info-bg: rgba(96, 165, 250, 0.14);
+    --neutral-bg: rgba(139, 150, 163, 0.14);
+  }
+}
+
+/* ===================================================================
+   GLOBAL
+   =================================================================== */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg-page);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+  font-feature-settings: "cv11" 1, "ss01" 1, "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+.page { max-width: 1320px; margin: 0 auto; padding: 20px 28px 80px; }
+a { color: inherit; text-decoration: none; }
+code { font-family: var(--font-mono); font-size: 0.93em; padding: 1px 5px; background: var(--bg-elev-3); border-radius: 4px; color: var(--text-2); }
+small { font-size: 11.5px; color: var(--text-3); }
+
+/* ===================================================================
+   HEADER
+   =================================================================== */
+.dh {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 4px 0 16px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 20px;
+}
+.dh__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: -0.012em;
+  color: var(--text-1);
+}
+.dh__title .dot { color: var(--text-4); margin: 0 6px; font-weight: 400; }
+.dh__sub { color: var(--text-3); font-size: 12px; margin-left: 6px; }
+.dh__spacer { flex: 1; }
+.dh__meta { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--text-3); }
+.dh__meta a { color: var(--text-2); border-bottom: 1px dotted var(--hairline-strong); padding-bottom: 1px; }
+.dh__meta a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  transition: background 0.15s, color 0.15s;
+}
+.theme-toggle:hover { background: var(--bg-elev-3); color: var(--text-1); }
+.theme-toggle .icon { width: 14px; height: 14px; display: inline-block; }
+
+/* ===================================================================
+   CALLOUT STRIP (top condensed row)
+   =================================================================== */
+.strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.65fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.card {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  position: relative;
+}
+
+/* Hero */
+.hero { display: flex; align-items: center; gap: 16px; min-height: 96px; }
+.hero__pulse {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--neutral-bg);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.hero--idle .hero__pulse { background: var(--neutral-bg); color: var(--text-3); }
+.hero--flight .hero__pulse { background: var(--info-bg); color: var(--info); }
+.hero--flight .hero__pulse::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  background: var(--info-bg);
+  animation: pulse 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.1; transform: scale(1.18); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero__pulse::after { animation: none; }
+}
+.hero__pulse svg { width: 22px; height: 22px; }
+.hero__body { flex: 1; min-width: 0; }
+.hero__kicker {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.hero__title {
+  font-size: 17px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  color: var(--text-1);
+  margin-bottom: 4px;
+  letter-spacing: -0.005em;
+}
+.hero__subline { color: var(--text-3); font-size: 13px; }
+.hero__right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.hero__big {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+}
+.hero__big small { font-size: 12px; color: var(--text-3); margin-left: 4px; font-weight: 400; }
+.hero__lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* Counter card */
+.counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; min-height: 96px; align-items: center; }
+.counter { padding: 4px 4px; border-right: 1px solid var(--hairline); }
+.counter:last-child { border-right: none; }
+.counter__lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-3);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.counter__num {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+}
+.counter__num.is-zero { color: var(--text-4); font-weight: 400; }
+.counter__sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Avg cycle card */
+.avg { display: flex; flex-direction: column; gap: 4px; min-height: 96px; justify-content: center; }
+.avg__lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-3);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.avg__num {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text-1);
+}
+.avg__delta { font-size: 11.5px; color: var(--text-3); }
+.avg__delta .up { color: var(--ok); font-weight: 500; }
+.avg__delta .down { color: var(--err); font-weight: 500; }
+
+/* ===================================================================
+   TABS
+   =================================================================== */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+.tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 11px 18px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  position: relative;
+  letter-spacing: 0.005em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: color 0.15s;
+}
+.tab:hover { color: var(--text-2); }
+.tab[aria-selected="true"] {
+  color: var(--text-1);
+}
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 12px; right: 12px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+.tab__count {
+  display: inline-block;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  line-height: 18px;
+  font-size: 11px;
+  background: var(--bg-elev-3);
+  color: var(--text-3);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  text-align: center;
+  font-weight: 500;
+}
+.tab[aria-selected="true"] .tab__count {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.tab-panel { display: none; }
+.tab-panel[aria-hidden="false"] { display: block; }
+
+/* ===================================================================
+   SECTION HEADING
+   =================================================================== */
+.sh {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 24px 0 12px;
+}
+.sh__name {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.sh__hint { font-size: 11.5px; color: var(--text-4); }
+.sh__rule { flex: 1; height: 1px; background: var(--hairline); }
+.sh__actions { display: flex; gap: 6px; }
+
+/* ===================================================================
+   CHIPS
+   =================================================================== */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--neutral-bg);
+  color: var(--text-2);
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.chip--type { text-transform: uppercase; font-size: 10px; letter-spacing: 0.08em; padding: 2px 8px; }
+.chip--ok { background: var(--ok-bg); color: var(--ok); }
+.chip--info { background: var(--info-bg); color: var(--info); }
+.chip--warn { background: var(--warn-bg); color: var(--warn); }
+.chip--err { background: var(--err-bg); color: var(--err); }
+.chip--neutral { background: var(--neutral-bg); color: var(--text-2); }
+.chip--accent { background: var(--accent-bg); color: var(--accent); }
+
+/* ===================================================================
+   TABLES (queue, all-specs)
+   =================================================================== */
+.tbl {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 13px;
+}
+.tbl__head, .tbl__row {
+  display: grid;
+  align-items: center;
+  padding: 0 16px;
+}
+.tbl__head {
+  height: 36px;
+  background: var(--bg-elev-3);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  border-bottom: 1px solid var(--hairline);
+}
+.tbl__row {
+  min-height: 44px;
+  border-bottom: 1px solid var(--hairline);
+  transition: background 0.12s;
+}
+.tbl__row:last-child { border-bottom: 0; }
+.tbl__row:hover { background: var(--bg-elev-2); }
+.tbl__col--num { font-family: var(--font-mono); color: var(--text-3); font-size: 12px; }
+.tbl__col--id { font-family: var(--font-mono); font-weight: 500; color: var(--text-1); }
+.tbl__col--id a { border-bottom: 1px dotted var(--hairline-strong); padding-bottom: 1px; }
+.tbl__col--id a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.tbl__col--title {
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+.tbl__col--mono { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); }
+.tbl__col--right { text-align: right; }
+.tbl__col--mute { color: var(--text-3); }
+
+/* Queue table specific */
+.queue-grid { grid-template-columns: 36px 70px 1fr 130px 70px 80px; gap: 14px; }
+
+/* All-specs table */
+.allspecs-grid { grid-template-columns: 70px 1fr 130px 100px 80px 90px; gap: 14px; }
+
+/* Cycle-time prominent cell */
+.cycle-cell {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  text-align: right;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+.cycle-bar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 4px;
+  background: var(--bg-elev-3);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.cycle-bar__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 2px; }
+.cycle-bar__fill--fast { background: var(--ok); }
+.cycle-bar__fill--slow { background: var(--warn); }
+.cycle-bar__fill--vslow { background: var(--err); }
+
+/* ===================================================================
+   IN-FLIGHT STAGE TIMELINE
+   =================================================================== */
+.inflight-card {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.inflight-card__head { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.inflight-card__body { padding-top: 16px; border-top: 1px solid var(--hairline); }
+.stages { list-style: none; margin: 0; padding: 0; }
+.stage {
+  display: grid;
+  grid-template-columns: 22px 1fr 70px;
+  gap: 14px;
+  align-items: center;
+  padding: 8px 0;
+  position: relative;
+}
+.stage + .stage::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: -1px;
+  bottom: 50%;
+  width: 2px;
+  background: var(--hairline);
+}
+.stage::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  bottom: 0;
+  width: 2px;
+  background: var(--hairline);
+}
+.stage:last-child::after { display: none; }
+.stage--done + .stage::before,
+.stage--done::after { background: var(--ok); }
+.stage--curr::after { background: var(--info); }
+.stage__mark {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--bg-elev-3);
+  display: grid; place-items: center;
+  z-index: 1;
+  position: relative;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.stage--done .stage__mark { background: var(--ok-bg); color: var(--ok); }
+.stage--curr .stage__mark { background: var(--info-bg); color: var(--info); }
+.stage--curr .stage__mark::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--info-bg);
+  animation: pulse 2.2s ease-in-out infinite;
+  z-index: -1;
+}
+.stage__name { font-size: 13px; font-weight: 500; color: var(--text-1); }
+.stage--queued .stage__name { color: var(--text-4); font-weight: 400; }
+.stage--done .stage__name { color: var(--text-2); }
+.stage__note { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); margin-left: 8px; }
+.stage__dur { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); text-align: right; }
+.stage--curr .stage__dur { color: var(--info); font-weight: 500; }
+
+/* ===================================================================
+   ACTIVITY FEED
+   =================================================================== */
+.feed { display: flex; flex-direction: column; gap: 0; }
+.feed__row {
+  display: grid;
+  grid-template-columns: 90px 18px 1fr 100px;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--hairline);
+  font-size: 13px;
+}
+.feed__row:last-child { border-bottom: 0; }
+.feed__ts { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); }
+.feed__dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-4);
+  margin: 0 5px;
+  align-self: center;
+}
+.feed__dot--ok { background: var(--ok); }
+.feed__dot--info { background: var(--info); }
+.feed__dot--err { background: var(--err); }
+.feed__dot--accent { background: var(--accent); }
+.feed__kicker {
+  display: inline-block;
+  min-width: 82px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-3);
+  margin-right: 6px;
+  font-weight: 500;
+}
+.feed__what { color: var(--text-2); }
+.feed__what a { border-bottom: 1px dotted var(--hairline-strong); }
+.feed__what a:hover { color: var(--accent); }
+.feed__dur { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); text-align: right; }
+
+/* ===================================================================
+   HISTORY — TOTAL ELAPSED BANNER
+   =================================================================== */
+.total-banner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+  margin-bottom: 12px;
+}
+.total-tile { display: flex; flex-direction: column; gap: 4px; padding-right: 16px; border-right: 1px solid var(--hairline); }
+.total-tile:last-child { border-right: none; padding-right: 0; }
+.total-tile__lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-3);
+  font-weight: 600;
+}
+.total-tile__big {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.total-tile__big small { font-size: 14px; color: var(--text-3); margin-left: 4px; font-weight: 400; }
+.total-tile__sub { font-size: 11.5px; color: var(--text-3); }
+
+/* ===================================================================
+   PAGINATION
+   =================================================================== */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pager__btns { display: flex; gap: 4px; }
+.pager__btn {
+  appearance: none;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.12s;
+}
+.pager__btn:hover:not(:disabled) { background: var(--bg-elev-3); color: var(--text-1); }
+.pager__btn[aria-current="true"] { background: var(--accent); color: white; border-color: var(--accent); }
+.pager__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===================================================================
+   FILTER BAR
+   =================================================================== */
+.fbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.fbtn {
+  appearance: none;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.12s;
+}
+.fbtn:hover { background: var(--bg-elev-3); color: var(--text-1); }
+.fbtn[aria-pressed="true"] {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--accent-bg-2);
+}
+.fbar input[type="search"] {
+  appearance: none;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  color: var(--text-1);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  min-width: 220px;
+}
+.fbar input[type="search"]::placeholder { color: var(--text-4); }
+.fbar input[type="search"]:focus { outline: none; border-color: var(--accent); }
+.fbar__spacer { flex: 1; }
+
+/* ===================================================================
+   METRICS TAB
+   =================================================================== */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.metric-card {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+}
+.metric-card__title {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 14px;
+}
+.metric-card__sub { color: var(--text-3); font-size: 12px; margin-bottom: 18px; }
+
+/* Bar chart (cycle time over time) */
+.chart {
+  position: relative;
+  height: 180px;
+  padding: 0 0 28px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.chart__bar {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+  position: relative;
+  min-height: 4px;
+  cursor: default;
+  opacity: 0.92;
+  transition: opacity 0.15s;
+}
+.chart__bar:hover { opacity: 1; }
+.chart__bar--fast { background: var(--ok); }
+.chart__bar--slow { background: var(--warn); }
+.chart__bar--vslow { background: var(--err); }
+.chart__bar::after {
+  content: attr(data-spec);
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.chart__bar:hover::before {
+  content: attr(data-label);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  background: var(--text-1);
+  color: var(--bg-elev-1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Donut-ish type breakdown via flexbox bars */
+.typebars { display: flex; flex-direction: column; gap: 10px; }
+.typebar { display: grid; grid-template-columns: 100px 1fr 50px; gap: 12px; align-items: center; font-size: 12.5px; }
+.typebar__name { color: var(--text-2); font-weight: 500; }
+.typebar__track { height: 8px; background: var(--bg-elev-3); border-radius: 4px; overflow: hidden; }
+.typebar__fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s var(--ease-out); }
+.typebar__fill--bug { background: var(--err); }
+.typebar__fill--feature { background: var(--accent); }
+.typebar__fill--refactor { background: var(--warn); }
+.typebar__fill--test { background: var(--text-3); }
+.typebar__count { font-family: var(--font-mono); font-size: 12px; color: var(--text-2); text-align: right; }
+
+/* ===================================================================
+   DRAFTS
+   =================================================================== */
+.draft-grid { grid-template-columns: 60px 1fr 140px 90px; gap: 14px; }
+
+/* ===================================================================
+   FOOTER
+   =================================================================== */
+.foot {
+  margin-top: 56px;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-4);
+  font-size: 11.5px;
+}
+.foot a { color: var(--text-3); border-bottom: 1px dotted var(--hairline-strong); }
+
+/* ===================================================================
+   MOCKUP CONTROLS (demo-only)
+   =================================================================== */
+.mockup-banner {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mockup-banner strong { font-weight: 600; }
+.mockup-banner .mockup-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+}
+.mockup-banner button {
+  appearance: none;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  padding: 3px 10px;
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.mockup-banner button[aria-pressed="true"] {
+  background: var(--warn);
+  color: var(--bg-page);
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+@media (max-width: 1100px) {
+  .strip { grid-template-columns: 1fr 1fr; }
+  .strip .card:nth-child(3) { grid-column: 1 / -1; }
+  .metrics-grid { grid-template-columns: 1fr; }
+  .total-banner { grid-template-columns: repeat(2, 1fr); }
+  .total-tile { border-right: none; padding-right: 0; }
+}
+@media (max-width: 720px) {
+  .strip { grid-template-columns: 1fr; }
+  .counters { grid-template-columns: repeat(2, 1fr); }
+  .total-banner { grid-template-columns: 1fr; }
+  .queue-grid, .allspecs-grid { grid-template-columns: 50px 1fr 90px; }
+  .queue-grid > div:nth-child(n+4):nth-child(-n+6),
+  .allspecs-grid > div:nth-child(n+4):nth-child(-n+6) { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- =================== HEADER =================== -->
+  <header class="dh">
+    <div>
+      <span class="dh__title">dual-research <span class="dot">·</span> spec dashboard</span>
+      <span class="dh__sub">mockup preview</span>
+    </div>
+    <div class="dh__spacer"></div>
+    <div class="dh__meta">
+      <span class="chip chip--ok">v1.32 live</span>
+      <span id="updated-meta">updated <span data-relative-from="2026-05-22T19:42:00Z">just now</span></span>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="theme-icon">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <span id="theme-label">light</span>
+      </button>
+      <a href="#" aria-label="GitHub repo">repo ↗</a>
+    </div>
+  </header>
+
+  <!-- =================== MOCKUP CONTROLS =================== -->
+  <div class="mockup-banner">
+    <strong>Mockup preview.</strong>
+    <span>Static HTML with real cycle-time data from <code>dual-research</code> repo (specs 0149–0163). Use the toggle to preview the in-flight hero state — the live dashboard would auto-detect.</span>
+    <div class="mockup-toggle">
+      <button id="mode-idle" aria-pressed="false">Idle</button>
+      <button id="mode-flight" aria-pressed="true">In flight</button>
+    </div>
+  </div>
+
+  <!-- =================== TOP STRIP =================== -->
+  <section class="strip" id="strip">
+    <!-- HERO — Idle variant -->
+    <div class="card hero hero--idle" id="hero-idle" style="display:none">
+      <div class="hero__pulse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <line x1="9" y1="9" x2="9" y2="15"/>
+          <line x1="15" y1="9" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <div class="hero__body">
+        <div class="hero__kicker">Queue · idle</div>
+        <div class="hero__title">Nothing in flight</div>
+        <div class="hero__subline">Last shipped <strong>spec 0163</strong> · <code>push-events-to-main-during-branch-phase</code> · v1.32</div>
+      </div>
+      <div class="hero__right">
+        <div class="hero__big">2h 14m<small>ago</small></div>
+        <div class="hero__lbl">last deploy</div>
+      </div>
+    </div>
+
+    <!-- HERO — In-flight variant (default) -->
+    <div class="card hero hero--flight" id="hero-flight">
+      <div class="hero__pulse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="6 4 18 12 6 20 6 4" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="hero__body">
+        <div class="hero__kicker">In flight · step 6 of 11 — implementing</div>
+        <div class="hero__title">Spec 0164 — Timeline pane · M3 card chrome</div>
+        <div class="hero__subline">
+          <span class="chip chip--info chip--type">new-feature</span>
+          <span class="chip chip--neutral">branch · <code>spec/0164-timeline-card-chrome</code></span>
+          <span class="chip chip--accent">currently · implementing</span>
+        </div>
+      </div>
+      <div class="hero__right">
+        <div class="hero__big" id="elapsed-live">7m 42s</div>
+        <div class="hero__lbl">elapsed · ETA 6m</div>
+      </div>
+    </div>
+
+    <!-- COUNTERS -->
+    <div class="card counters">
+      <div class="counter">
+        <div class="counter__lbl">Drafts</div>
+        <div class="counter__num">6</div>
+        <div class="counter__sub">ideation</div>
+      </div>
+      <div class="counter">
+        <div class="counter__lbl">Queued</div>
+        <div class="counter__num">4</div>
+        <div class="counter__sub">pending</div>
+      </div>
+      <div class="counter">
+        <div class="counter__lbl">In flight</div>
+        <div class="counter__num" id="counter-inflight">1</div>
+        <div class="counter__sub">running</div>
+      </div>
+      <div class="counter">
+        <div class="counter__lbl">Shipped</div>
+        <div class="counter__num">15</div>
+        <div class="counter__sub">all-time</div>
+      </div>
+    </div>
+
+    <!-- AVG CYCLE -->
+    <div class="card avg">
+      <div class="avg__lbl">Avg cycle (last 10)</div>
+      <div class="avg__num">12m 16s</div>
+      <div class="avg__delta">
+        <span class="up">↓ 4m</span> vs prior 10
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TABS =================== -->
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="now" id="tab-now">
+      Now <span class="tab__count">5</span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="spec" id="tab-spec">
+      Spec creation <span class="tab__count">6</span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="history" id="tab-history">
+      History <span class="tab__count">15</span>
+    </button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="metrics" id="tab-metrics">
+      Metrics
+    </button>
+  </nav>
+
+  <!-- =================== TAB: NOW =================== -->
+  <section class="tab-panel" role="tabpanel" data-panel="now" aria-hidden="false">
+
+    <!-- IN-FLIGHT (visible only in flight mode) -->
+    <div id="inflight-section">
+      <div class="sh">
+        <div class="sh__name">In flight</div>
+        <div class="sh__hint">stage timeline · live</div>
+        <div class="sh__rule"></div>
+      </div>
+      <div class="inflight-card">
+        <div class="inflight-card__head">
+          <div class="hero__pulse" style="background: var(--info-bg); color: var(--info)">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="6 4 18 12 6 20 6 4"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-family: var(--font-mono); font-size:12px; color: var(--text-3)">Spec 0164</div>
+            <div style="font-size: 16px; font-weight: 600; color: var(--text-1)">Timeline pane — M3 card chrome + phase header simplification</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family: var(--font-mono); font-size:24px; font-weight:500" id="elapsed-detail">7m 42s</div>
+            <div style="font-size: 10.5px; color: var(--text-3); text-transform:uppercase; letter-spacing:0.08em">elapsed</div>
+          </div>
+        </div>
+        <div class="inflight-card__body">
+          <ol class="stages">
+            <li class="stage stage--done"><span class="stage__mark">✓</span><span><strong class="stage__name">Pre-flight</strong><span class="stage__note">main clean · no open PRs</span></span><span class="stage__dur">8s</span></li>
+            <li class="stage stage--done"><span class="stage__mark">✓</span><span><strong class="stage__name">Read handoff</strong><span class="stage__note">handoffs/2026-05-22-spec-0163-…</span></span><span class="stage__dur">12s</span></li>
+            <li class="stage stage--done"><span class="stage__mark">✓</span><span><strong class="stage__name">Read spec</strong><span class="stage__note">specs/0164-… · 242 lines</span></span><span class="stage__dur">9s</span></li>
+            <li class="stage stage--done"><span class="stage__mark">✓</span><span><strong class="stage__name">Reconcile</strong><span class="stage__note">clean · 0 patches</span></span><span class="stage__dur">22s</span></li>
+            <li class="stage stage--done"><span class="stage__mark">✓</span><span><strong class="stage__name">Branch</strong><span class="stage__note">spec/0164-timeline-card-chrome</span></span><span class="stage__dur">3s</span></li>
+            <li class="stage stage--curr"><span class="stage__mark"></span><span><strong class="stage__name">Implement</strong><span class="stage__note">7 files changed · 3 commits</span></span><span class="stage__dur" id="stage-curr-dur">6m 48s</span></li>
+            <li class="stage stage--queued"><span class="stage__mark"></span><span><strong class="stage__name">Test</strong><span class="stage__note">queued</span></span><span class="stage__dur">—</span></li>
+            <li class="stage stage--queued"><span class="stage__mark"></span><span><strong class="stage__name">PR</strong><span class="stage__note">queued</span></span><span class="stage__dur">—</span></li>
+            <li class="stage stage--queued"><span class="stage__mark"></span><span><strong class="stage__name">Merge</strong><span class="stage__note">queued</span></span><span class="stage__dur">—</span></li>
+            <li class="stage stage--queued"><span class="stage__mark"></span><span><strong class="stage__name">Deploy</strong><span class="stage__note">queued</span></span><span class="stage__dur">—</span></li>
+            <li class="stage stage--queued"><span class="stage__mark"></span><span><strong class="stage__name">Handoff</strong><span class="stage__note">queued</span></span><span class="stage__dur">—</span></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUEUE -->
+    <div class="sh">
+      <div class="sh__name">Dev queue</div>
+      <div class="sh__hint">/dev-next picks position 1 first</div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="tbl">
+      <div class="tbl__head queue-grid">
+        <div>#</div>
+        <div>Spec</div>
+        <div>Title</div>
+        <div>Type</div>
+        <div class="tbl__col--right">Cplx</div>
+        <div class="tbl__col--right">Waiting</div>
+      </div>
+      <div class="tbl__row queue-grid">
+        <div class="tbl__col--num">1</div>
+        <div class="tbl__col--id"><a href="#">0164</a></div>
+        <div class="tbl__col--title">Timeline pane — M3 card chrome + phase header simplification</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--right">M</div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">2h 34m</div>
+      </div>
+      <div class="tbl__row queue-grid">
+        <div class="tbl__col--num">2</div>
+        <div class="tbl__col--id"><a href="#">0165</a></div>
+        <div class="tbl__col--title">Timeline pane — chip polish (identity / activity / category / cost)</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--right">M</div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">2h 34m</div>
+      </div>
+      <div class="tbl__row queue-grid">
+        <div class="tbl__col--num">3</div>
+        <div class="tbl__col--id"><a href="#">0166</a></div>
+        <div class="tbl__col--title">Timeline pane — System + Error chip primitives + brief-card refactor</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--right">M</div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">2h 34m</div>
+      </div>
+      <div class="tbl__row queue-grid">
+        <div class="tbl__col--num">4</div>
+        <div class="tbl__col--id"><a href="#">0167</a></div>
+        <div class="tbl__col--title">Critique pane — bar2 segmented controls + bar1 drift chip + phase-tab</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--right">M</div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">2h 34m</div>
+      </div>
+    </div>
+
+    <!-- RECENT ACTIVITY (dev-side only) -->
+    <div class="sh">
+      <div class="sh__name">Recent activity</div>
+      <div class="sh__hint">dev cycles · last 24 hours</div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="card" style="padding: 6px 18px">
+      <div class="feed">
+        <div class="feed__row">
+          <div class="feed__ts">17:42:23</div>
+          <div class="feed__dot feed__dot--ok"></div>
+          <div class="feed__what"><span class="feed__kicker">deployed</span><a href="#">0163</a> · push-events-to-main · v1.32.0</div>
+          <div class="feed__dur">2m</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">17:40:11</div>
+          <div class="feed__dot feed__dot--info"></div>
+          <div class="feed__what"><span class="feed__kicker">merged</span><a href="#">0163</a> · admin squash → PR #186</div>
+          <div class="feed__dur">12s</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">17:25:54</div>
+          <div class="feed__dot feed__dot--ok"></div>
+          <div class="feed__what"><span class="feed__kicker">tests green</span><a href="#">0163</a> · 1,127 passed</div>
+          <div class="feed__dur">3m 12s</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">17:08:41</div>
+          <div class="feed__dot feed__dot--accent"></div>
+          <div class="feed__what"><span class="feed__kicker">queued</span><a href="#">0164</a>, <a href="#">0165</a>, <a href="#">0166</a>, <a href="#">0167</a> · 4 specs from decomposition</div>
+          <div class="feed__dur">—</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">15:48:09</div>
+          <div class="feed__dot feed__dot--ok"></div>
+          <div class="feed__what"><span class="feed__kicker">deployed</span><a href="#">0162</a> · post-deploy-blue-sweep · v1.30.0</div>
+          <div class="feed__dur">14m</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">15:21:33</div>
+          <div class="feed__dot feed__dot--ok"></div>
+          <div class="feed__what"><span class="feed__kicker">deployed</span><a href="#">0161</a> · js-test-stack-pages-function · v1.29.0</div>
+          <div class="feed__dur">9m</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TAB: SPEC CREATION =================== -->
+  <section class="tab-panel" role="tabpanel" data-panel="spec" aria-hidden="true">
+
+    <!-- DRAFTS -->
+    <div class="sh">
+      <div class="sh__name">Drafts</div>
+      <div class="sh__hint">parked ideas · promote with <code>/spec-promote &lt;id&gt;</code></div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="tbl">
+      <div class="tbl__head draft-grid">
+        <div>ID</div><div>Title</div><div>Type</div><div class="tbl__col--right">Parked</div>
+      </div>
+      <div class="tbl__row draft-grid">
+        <div class="tbl__col--id"><a href="#">001</a></div>
+        <div class="tbl__col--title">Summary tab v2 — celebratory close-out with verdict, stats, critique outcomes</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">9h</div>
+      </div>
+      <div class="tbl__row draft-grid">
+        <div class="tbl__col--id"><a href="#">002</a></div>
+        <div class="tbl__col--title">Login screen v2 — animated hero, theme toggle continuity, looping chatter</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">8h</div>
+      </div>
+      <div class="tbl__row draft-grid">
+        <div class="tbl__col--id"><a href="#">003</a></div>
+        <div class="tbl__col--title">Timeline pane — M3 card chrome + phase header simplification</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">3h</div>
+      </div>
+      <div class="tbl__row draft-grid">
+        <div class="tbl__col--id"><a href="#">004</a></div>
+        <div class="tbl__col--title">Critique pane refresh — align live pane with design-system reference</div>
+        <div><span class="chip chip--neutral chip--type">unclassified</span></div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">3h</div>
+      </div>
+      <div class="tbl__row draft-grid">
+        <div class="tbl__col--id"><a href="#">005</a></div>
+        <div class="tbl__col--title">Timeline pane — chip polish + light-mode token drift fix</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">2h</div>
+      </div>
+      <div class="tbl__row draft-grid">
+        <div class="tbl__col--id"><a href="#">006</a></div>
+        <div class="tbl__col--title">Timeline pane — System + Error chip primitives + render-error data-layer fix</div>
+        <div><span class="chip chip--info chip--type">new-feature</span></div>
+        <div class="tbl__col--mono tbl__col--mute tbl__col--right">2h</div>
+      </div>
+    </div>
+
+    <!-- Spec-side activity feed -->
+    <div class="sh">
+      <div class="sh__name">Spec activity</div>
+      <div class="sh__hint">draft + queue + promote events · last 24 hours</div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="card" style="padding: 6px 18px">
+      <div class="feed">
+        <div class="feed__row">
+          <div class="feed__ts">17:08:41</div>
+          <div class="feed__dot feed__dot--accent"></div>
+          <div class="feed__what"><span class="feed__kicker">queued</span><a href="#">0164</a>, <a href="#">0165</a>, <a href="#">0166</a>, <a href="#">0167</a> · decomposed from one /spec-queue call</div>
+          <div class="feed__dur">38s</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">15:30:14</div>
+          <div class="feed__dot feed__dot--accent"></div>
+          <div class="feed__what"><span class="feed__kicker">drafted</span><a href="#">006</a> · Timeline pane System+Error chips</div>
+          <div class="feed__dur">11s</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">15:18:42</div>
+          <div class="feed__dot feed__dot--accent"></div>
+          <div class="feed__what"><span class="feed__kicker">drafted</span><a href="#">005</a> · Timeline chip polish</div>
+          <div class="feed__dur">9s</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">14:55:01</div>
+          <div class="feed__dot feed__dot--accent"></div>
+          <div class="feed__what"><span class="feed__kicker">drafted</span><a href="#">004</a> · Critique pane refresh</div>
+          <div class="feed__dur">14s</div>
+        </div>
+        <div class="feed__row">
+          <div class="feed__ts">14:31:22</div>
+          <div class="feed__dot feed__dot--accent"></div>
+          <div class="feed__what"><span class="feed__kicker">drafted</span><a href="#">003</a> · Timeline M3 card chrome</div>
+          <div class="feed__dur">7s</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TAB: HISTORY =================== -->
+  <section class="tab-panel" role="tabpanel" data-panel="history" aria-hidden="true">
+
+    <!-- TOTAL ELAPSED BANNER — the headline thing you asked for -->
+    <div class="sh">
+      <div class="sh__name">Total time spent</div>
+      <div class="sh__hint">cumulative across all deployed runs · spec 0149 onward</div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="total-banner">
+      <div class="total-tile">
+        <div class="total-tile__lbl">Total elapsed</div>
+        <div class="total-tile__big">13h 21m</div>
+        <div class="total-tile__sub">across 12 timed cycles</div>
+      </div>
+      <div class="total-tile">
+        <div class="total-tile__lbl">Mean cycle</div>
+        <div class="total-tile__big">13m 22s</div>
+        <div class="total-tile__sub">excluding bootstrap outlier (10.8h)</div>
+      </div>
+      <div class="total-tile">
+        <div class="total-tile__lbl">Median cycle</div>
+        <div class="total-tile__big">14m 10s</div>
+        <div class="total-tile__sub">p50 of timed runs</div>
+      </div>
+      <div class="total-tile">
+        <div class="total-tile__lbl">Fastest / Slowest</div>
+        <div class="total-tile__big">4m 20s<small>/ 33m</small></div>
+        <div class="total-tile__sub">0157 / 0153</div>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="sh">
+      <div class="sh__name">All specs</div>
+      <div class="sh__hint">15 deployed · 4 queued · 0 in flight · 13 historical (pre-lifecycle)</div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="fbar">
+      <button class="fbtn" aria-pressed="true">All</button>
+      <button class="fbtn" aria-pressed="false">Deployed</button>
+      <button class="fbtn" aria-pressed="false">Queued</button>
+      <button class="fbtn" aria-pressed="false">Failed</button>
+      <button class="fbtn" aria-pressed="false">bug</button>
+      <button class="fbtn" aria-pressed="false">new-feature</button>
+      <button class="fbtn" aria-pressed="false">refactoring</button>
+      <div class="fbar__spacer"></div>
+      <input type="search" placeholder="Search title or number…">
+      <button class="fbtn">Sort: spec # ↓</button>
+    </div>
+
+    <div class="tbl">
+      <div class="tbl__head allspecs-grid">
+        <div>Spec</div>
+        <div>Title</div>
+        <div>Type</div>
+        <div>Status</div>
+        <div class="tbl__col--right">Version</div>
+        <div class="tbl__col--right">Cycle</div>
+      </div>
+      <!-- Rows populated by JS from real data -->
+      <div id="allspecs-rows"></div>
+    </div>
+
+    <div class="pager">
+      <span>Showing <strong>1–10</strong> of <strong>15</strong> deployed</span>
+      <div class="pager__btns">
+        <button class="pager__btn" disabled>←</button>
+        <button class="pager__btn" aria-current="true">1</button>
+        <button class="pager__btn">2</button>
+        <button class="pager__btn">→</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== TAB: METRICS =================== -->
+  <section class="tab-panel" role="tabpanel" data-panel="metrics" aria-hidden="true">
+    <div class="sh">
+      <div class="sh__name">Cycle time over deploys</div>
+      <div class="sh__hint">timed cycles only · click bar for spec details</div>
+      <div class="sh__rule"></div>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-card__title">Cycle time, last 12 deploys</div>
+        <div class="metric-card__sub">Spec 0152–0163. Median 14m. Color-coded by speed bucket.</div>
+        <div class="chart" id="cycle-chart"></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__title">By type</div>
+        <div class="metric-card__sub">All deployed specs since 0149.</div>
+        <div class="typebars">
+          <div class="typebar">
+            <div class="typebar__name">new-feature</div>
+            <div class="typebar__track"><div class="typebar__fill typebar__fill--feature" style="width: 73%"></div></div>
+            <div class="typebar__count">11</div>
+          </div>
+          <div class="typebar">
+            <div class="typebar__name">bug</div>
+            <div class="typebar__track"><div class="typebar__fill typebar__fill--bug" style="width: 20%"></div></div>
+            <div class="typebar__count">3</div>
+          </div>
+          <div class="typebar">
+            <div class="typebar__name">refactoring</div>
+            <div class="typebar__track"><div class="typebar__fill typebar__fill--refactor" style="width: 7%"></div></div>
+            <div class="typebar__count">1</div>
+          </div>
+          <div class="typebar">
+            <div class="typebar__name">test</div>
+            <div class="typebar__track"><div class="typebar__fill typebar__fill--test" style="width: 0%"></div></div>
+            <div class="typebar__count">0</div>
+          </div>
+        </div>
+        <div style="height: 24px"></div>
+        <div class="metric-card__title">Reconcile</div>
+        <div class="typebars">
+          <div class="typebar">
+            <div class="typebar__name">clean</div>
+            <div class="typebar__track"><div class="typebar__fill typebar__fill--feature" style="width: 92%"></div></div>
+            <div class="typebar__count">11/12</div>
+          </div>
+          <div class="typebar">
+            <div class="typebar__name">mechanical</div>
+            <div class="typebar__track"><div class="typebar__fill typebar__fill--refactor" style="width: 8%"></div></div>
+            <div class="typebar__count">1/12</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-grid" style="grid-template-columns: repeat(4, 1fr)">
+      <div class="metric-card">
+        <div class="metric-card__title">Throughput</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; font-weight:500">2.1<small style="font-size: 12px; color: var(--text-3); margin-left: 4px">/ day</small></div>
+        <div style="font-size: 11.5px; color: var(--text-3); margin-top: 6px">7-day rolling · 15 / week</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__title">Failed cycles</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; font-weight:500">0</div>
+        <div style="font-size: 11.5px; color: var(--text-3); margin-top: 6px">last 30 days</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__title">Deferrals</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; font-weight:500">7</div>
+        <div style="font-size: 11.5px; color: var(--text-3); margin-top: 6px">auto-captured to specs/drafts</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__title">Queue dwell</div>
+        <div style="font-family: var(--font-mono); font-size: 28px; font-weight:500">22m<small style="font-size: 12px; color: var(--text-3); margin-left: 4px">avg</small></div>
+        <div style="font-size: 11.5px; color: var(--text-3); margin-top: 6px">queued_at → started_at</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== FOOTER =================== -->
+  <footer class="foot">
+    <span>Mockup · static HTML at <code>/tmp/dr-dashboard-mockup/index.html</code></span>
+    <span>Real data from <code>specs/</code> + <code>handoffs/</code> at <code>main</code></span>
+  </footer>
+
+</main>
+
+<script>
+// ===================================================================
+// REAL DATA — pulled from dual-research repo at build time
+// ===================================================================
+const SPECS = [
+  // Pre-lifecycle (no started_at/deployed_at) — keep these visible but with — for cycle
+  {spec:'0148', title:'Consumption-card backend follow-ups + protocol-violation UI surface', type:'new-feature', status:'ready', version:'1.13.0', cycle:null},
+  {spec:'0149', title:'Post-batch cleanup + Anthropic cache engagement + protocol follow-ups', type:'new-feature', status:'deployed', version:'1.14.0', cycle:null},
+  {spec:'0150', title:'Legacy-shim sunset + historical input-bundle backfill', type:'refactoring', status:'deployed', version:'1.15.0', cycle:null},
+  {spec:'0151', title:'Design-system parity for critique surface + canonical Agent Input grouping', type:'bug', status:'deployed', version:'1.16.0', cycle:null},
+  {spec:'0152', title:'Spec lifecycle system v1 — typed drafts, dev queue, dashboard, session naming', type:'new-feature', status:'deployed', version:'1.17.0', cycle:39017},
+  {spec:'0153', title:'Dashboard redesign — staged hero with stage timeline, activity feed', type:'new-feature', status:'deployed', version:'1.18.0', cycle:1243},
+  {spec:'0154', title:'Spec workflow hardening — DS steering at spec time, queue runner, project CLAUDE.md', type:'new-feature', status:'deployed', version:'1.19.0', cycle:540},
+  {spec:'0155', title:'Fix: lifecycle skills\' session-title stamping is unimplemented', type:'bug', status:'deployed', version:'1.19.1', cycle:475},
+  {spec:'0156', title:'Dashboard live-ness — cycle-started anchor, auto-refresh, live elapsed ticker', type:'new-feature', status:'deployed', version:'1.20.0', cycle:1103},
+  {spec:'0157', title:'/spec-queue auto-decomposition — bundle-by-default, chained sub-specs', type:'new-feature', status:'deployed', version:'1.21.0', cycle:319},
+  {spec:'0158', title:'Deferred-spec subagent in /dev-next — auto-capture in-flight deferrals', type:'new-feature', status:'deployed', version:'1.22.0', cycle:368},
+  {spec:'0159', title:'Fix: Fly machines-API mid-rolling-deploy timeout (9-in-a-row)', type:'bug', status:'deployed', version:'1.22.1', cycle:260},
+  {spec:'0160', title:'Dashboard live data via Pages Function (GitHub Contents API)', type:'new-feature', status:'deployed', version:'1.27.0', cycle:850},
+  {spec:'0161', title:'JS test stack for Pages Function — vitest, msw, deterministic fixtures', type:'test', status:'deployed', version:'1.28.0', cycle:829},
+  {spec:'0162', title:'Post-deploy stale-blue sweep — destroy lingering Fly machines', type:'bug', status:'deployed', version:'1.30.0', cycle:1048},
+  {spec:'0163', title:'Push events to main during branch phase — live dashboard during implement', type:'new-feature', status:'deployed', version:'1.32.0', cycle:2010},
+  // Queued
+  {spec:'0164', title:'Timeline pane — M3 card chrome + phase header simplification', type:'new-feature', status:'queued', version:'—', cycle:null},
+  {spec:'0165', title:'Timeline pane — chip polish (identity / activity / category / cost)', type:'new-feature', status:'queued', version:'—', cycle:null},
+  {spec:'0166', title:'Timeline pane — System + Error chip primitives + brief-card refactor', type:'new-feature', status:'queued', version:'—', cycle:null},
+  {spec:'0167', title:'Critique pane — bar2 segmented controls + bar1 drift chip', type:'new-feature', status:'queued', version:'—', cycle:null},
+];
+
+// ===================================================================
+// HELPERS
+// ===================================================================
+function fmtCycle(seconds) {
+  if (seconds === null || seconds === undefined) return '—';
+  if (seconds < 60) return seconds + 's';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return s === 0 ? `${m}m` : `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  const min = m % 60;
+  if (h < 24) return min === 0 ? `${h}h` : `${h}h ${min}m`;
+  const d = Math.floor(h / 24);
+  const hr = h % 24;
+  return hr === 0 ? `${d}d` : `${d}d ${hr}h`;
+}
+
+function typeChip(type) {
+  const tones = {'new-feature':'info','bug':'err','refactoring':'warn','test':'neutral','breaking':'warn','unclassified':'neutral'};
+  const tone = tones[type] || 'neutral';
+  return `<span class="chip chip--${tone} chip--type">${type}</span>`;
+}
+
+function statusChip(status) {
+  const tones = {'deployed':'ok','merged':'ok','in_progress':'info','queued':'accent','failed':'err','ready':'neutral'};
+  const tone = tones[status] || 'neutral';
+  return `<span class="chip chip--${tone}">${status}</span>`;
+}
+
+function bucketColor(cycle) {
+  if (cycle === null) return '';
+  if (cycle < 360) return 'fast';        // < 6m
+  if (cycle < 900) return '';            // 6-15m (normal — accent color)
+  if (cycle < 1800) return 'slow';       // 15-30m
+  return 'vslow';                        // > 30m
+}
+
+// ===================================================================
+// ALL SPECS TABLE (History tab)
+// ===================================================================
+function renderAllSpecs() {
+  const container = document.getElementById('allspecs-rows');
+  // Sort by spec number descending
+  const sorted = [...SPECS].sort((a, b) => parseInt(b.spec) - parseInt(a.spec));
+  // Find max cycle for bar normalization
+  const maxCycle = Math.max(...sorted.filter(s => s.cycle !== null && s.cycle < 5000).map(s => s.cycle), 2010);
+  container.innerHTML = sorted.slice(0, 20).map(s => {
+    let cycleCell = '<span class="cycle-cell" style="color: var(--text-4)">—</span>';
+    if (s.cycle !== null) {
+      const bucket = bucketColor(s.cycle);
+      const fillClass = bucket ? `cycle-bar__fill--${bucket}` : '';
+      const widthPct = Math.min(100, (s.cycle / maxCycle) * 100);
+      cycleCell = `<span class="cycle-cell">
+        ${fmtCycle(s.cycle)}
+        <span class="cycle-bar"><span class="cycle-bar__fill ${fillClass}" style="width:${widthPct}%"></span></span>
+      </span>`;
+    }
+    return `<div class="tbl__row allspecs-grid">
+      <div class="tbl__col--id"><a href="#">${s.spec}</a></div>
+      <div class="tbl__col--title">${s.title}</div>
+      <div>${typeChip(s.type)}</div>
+      <div>${statusChip(s.status)}</div>
+      <div class="tbl__col--mono tbl__col--mute tbl__col--right">${s.version}</div>
+      <div class="tbl__col--right">${cycleCell}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===================================================================
+// CYCLE-TIME CHART (Metrics tab)
+// ===================================================================
+function renderChart() {
+  const chart = document.getElementById('cycle-chart');
+  // Timed specs only, in order (oldest left, newest right), excluding the bootstrap outlier
+  const timed = SPECS.filter(s => s.cycle !== null && s.cycle < 5000).sort((a, b) => parseInt(a.spec) - parseInt(b.spec));
+  const max = Math.max(...timed.map(s => s.cycle));
+  chart.innerHTML = timed.map(s => {
+    const h = (s.cycle / max) * 100;
+    const bucket = bucketColor(s.cycle);
+    const cls = bucket ? `chart__bar--${bucket}` : '';
+    return `<div class="chart__bar ${cls}"
+      style="height:${h}%"
+      data-spec="${s.spec}"
+      data-label="${s.spec} · ${fmtCycle(s.cycle)}"></div>`;
+  }).join('');
+}
+
+// ===================================================================
+// TAB SWITCHING
+// ===================================================================
+function setupTabs() {
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const name = tab.dataset.tab;
+      tabs.forEach(t => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+      panels.forEach(p => p.setAttribute('aria-hidden', p.dataset.panel === name ? 'false' : 'true'));
+    });
+  });
+}
+
+// ===================================================================
+// THEME TOGGLE
+// ===================================================================
+function setupTheme() {
+  const btn = document.getElementById('theme-toggle');
+  const label = document.getElementById('theme-label');
+  const icon = document.getElementById('theme-icon');
+  const moonPath = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  const sunPath = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      icon.innerHTML = moonPath;
+      label.textContent = 'dark';
+    } else if (theme === 'light') {
+      icon.innerHTML = sunPath;
+      label.textContent = 'light';
+    } else {
+      icon.innerHTML = sunPath;
+      label.textContent = 'auto';
+    }
+    try { localStorage.setItem('dr-dashboard-theme', theme); } catch(e) {}
+  }
+
+  let stored = null;
+  try { stored = localStorage.getItem('dr-dashboard-theme'); } catch(e) {}
+  applyTheme(stored || 'auto');
+
+  btn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme') || 'auto';
+    const next = cur === 'light' ? 'dark' : (cur === 'dark' ? 'auto' : 'light');
+    applyTheme(next);
+  });
+}
+
+// ===================================================================
+// MOCKUP IDLE / IN-FLIGHT TOGGLE (demo only)
+// ===================================================================
+function setupModeToggle() {
+  const idleBtn = document.getElementById('mode-idle');
+  const flightBtn = document.getElementById('mode-flight');
+  const heroIdle = document.getElementById('hero-idle');
+  const heroFlight = document.getElementById('hero-flight');
+  const inflightSection = document.getElementById('inflight-section');
+  const counterInflight = document.getElementById('counter-inflight');
+
+  function setMode(mode) {
+    if (mode === 'flight') {
+      heroIdle.style.display = 'none';
+      heroFlight.style.display = '';
+      inflightSection.style.display = '';
+      counterInflight.textContent = '1';
+      counterInflight.classList.remove('is-zero');
+      idleBtn.setAttribute('aria-pressed', 'false');
+      flightBtn.setAttribute('aria-pressed', 'true');
+    } else {
+      heroIdle.style.display = '';
+      heroFlight.style.display = 'none';
+      inflightSection.style.display = 'none';
+      counterInflight.textContent = '0';
+      counterInflight.classList.add('is-zero');
+      idleBtn.setAttribute('aria-pressed', 'true');
+      flightBtn.setAttribute('aria-pressed', 'false');
+    }
+  }
+  idleBtn.addEventListener('click', () => setMode('idle'));
+  flightBtn.addEventListener('click', () => setMode('flight'));
+}
+
+// ===================================================================
+// LIVE ELAPSED TICK (in-flight hero demo)
+// ===================================================================
+function setupLiveTick() {
+  let elapsed = 462; // 7m 42s
+  const big = document.getElementById('elapsed-live');
+  const detail = document.getElementById('elapsed-detail');
+  const stage = document.getElementById('stage-curr-dur');
+  setInterval(() => {
+    elapsed += 1;
+    const text = fmtCycle(elapsed);
+    if (big) big.textContent = text;
+    if (detail) detail.textContent = text;
+    if (stage) stage.textContent = fmtCycle(elapsed - 54); // implement started at +54s
+  }, 1000);
+}
+
+// ===================================================================
+// INIT
+// ===================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  renderAllSpecs();
+  renderChart();
+  setupTabs();
+  setupTheme();
+  setupModeToggle();
+  setupLiveTick();
+});
+</script>
+</body>
+</html>
