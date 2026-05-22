@@ -7,3 +7,4 @@
 {"ts":"2026-05-22T18:17:38Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"§2.5 dot-color/pulse change skipped — would regress spec 0138 brand-identity wiring already in production at run-detail.jsx:193. Elev-2 lift (§2.6) and missing pulse-info keyframe still applied."}}
 {"ts":"2026-05-22T18:17:47Z","step":"in_progress","data":{}}
 {"ts":"2026-05-22T18:19:03Z","step":"branched","data":{"branch":"spec/0166-timeline-pane-system-error-chips-and-live-state","from":"main@a5aa034"}}
+{"ts":"2026-05-22T18:19:07Z","step":"implementing_started","data":{}}
