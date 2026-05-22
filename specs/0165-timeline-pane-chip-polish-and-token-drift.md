@@ -6,14 +6,14 @@ title: Timeline pane — chip polish (identity / activity / category bubble / co
 type: new-feature
 label: new-feature
 version_bump: MINOR
-target_version: TBD
-status: queued
+target_version: 1.26.0
+status: in_progress
 queue_position: 1
 depends_on: ["0164"]
 complexity: M
 created: 2026-05-22
 queued_at: "2026-05-22T17:08:41Z"
-started_at: ""
+started_at: "2026-05-22T20:00:00Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
