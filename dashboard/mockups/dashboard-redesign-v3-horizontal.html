@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup · dual-research dashboard v3 — horizontal layout + metrics</title>
+<style>
+/* ─────────────────────────────────────────────────────────────────
+   Mockup-only stylesheet. Lives outside the canonical design system
+   so this file is fully portable (open in any browser, no build).
+   Color tokens here are *placeholders* — the real spec will bind to
+   --md-* / --p-* tokens from design-system/assets/styles/.
+   ───────────────────────────────────────────────────────────────── */
+:root {
+  --bg: #0e1116;
+  --surface-1: #161b22;
+  --surface-2: #1c232c;
+  --surface-3: #232b35;
+  --hair: #2b333d;
+  --hair-strong: #3a4452;
+  --text-1: #e6edf3;
+  --text-2: #9da7b3;
+  --text-3: #6b7480;
+  --info: #589bff;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --err: #f85149;
+  --idle: #8b95a1;
+  --accent: #a371f7;
+  --font-plain: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-data: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  /* Pastel chart palette — used ONLY in the Metrics tab so chips/status colours
+     stay bold for live state. Light-mode values; dark-mode block overrides. */
+  --chart-blue:    #a8c8e8;
+  --chart-purple:  #c8b5e8;
+  --chart-green:   #b8dcc0;
+  --chart-yellow:  #f0deaa;
+  --chart-pink:    #f0bcc0;
+  --chart-peach:   #f4ccb0;
+  --chart-mint:    #b8dcd4;
+  --chart-grey:    #d8dde3;
+  --chart-track:   #ecf0f4;
+}
+html[data-theme="light"] {
+  --bg: #f6f8fa;
+  --surface-1: #ffffff;
+  --surface-2: #f0f3f6;
+  --surface-3: #e8ecf1;
+  --hair: #d0d7de;
+  --hair-strong: #afb8c1;
+  --text-1: #1f2328;
+  --text-2: #57606a;
+  --text-3: #8a929c;
+  --info: #0969da;
+  --ok: #1a7f37;
+  --warn: #9a6700;
+  --err: #cf222e;
+  --idle: #6e7781;
+  --accent: #6639ba;
+}
+html[data-theme="dark"] {
+  /* Dark-mode pastels: slightly more saturated so they read against the dark
+     surfaces, still soft (not the punchy live-state colours). */
+  --chart-blue:   #7fa8d8;
+  --chart-purple: #b89edc;
+  --chart-green:  #94c8a4;
+  --chart-yellow: #e0c890;
+  --chart-pink:   #e0a4ac;
+  --chart-peach:  #e0b498;
+  --chart-mint:   #94c4bc;
+  --chart-grey:   #6a7480;
+  --chart-track:  #232b35;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-plain);
+  font-feature-settings: "tnum" 1;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1440px; margin: 0 auto; padding: 24px 32px 80px; }
+
+/* ─── Header ──────────────────────────────────────────────────── */
+.dh {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 16px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--hair); gap: 24px; flex-wrap: wrap;
+}
+.dh__title { font: 500 22px/1.2 var(--font-plain); letter-spacing: -0.01em; }
+.dh__sub { color: var(--text-2); font-size: 12.5px; }
+.dh__meta { display: flex; gap: 14px; align-items: center; color: var(--text-3); font-size: 12px; }
+.dh__meta a { color: var(--text-2); text-decoration: none; border-bottom: 1px dotted var(--hair-strong); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px; font: 500 11.5px/1 var(--font-plain);
+  background: var(--surface-3); color: var(--text-1);
+}
+.chip.tone-ok { background: color-mix(in srgb, var(--ok) 18%, var(--surface-3)); color: var(--ok); }
+.chip.tone-info { background: color-mix(in srgb, var(--info) 18%, var(--surface-3)); color: var(--info); }
+.chip.tone-warn { background: color-mix(in srgb, var(--warn) 18%, var(--surface-3)); color: var(--warn); }
+.chip.tone-err { background: color-mix(in srgb, var(--err) 18%, var(--surface-3)); color: var(--err); }
+.chip.tone-neutral { background: var(--surface-3); color: var(--text-2); }
+.chip code { font-family: var(--font-data); font-size: 11px; }
+.chip-type { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; padding: 3px 8px; }
+
+.theme-toggle {
+  background: transparent; border: 1px solid var(--hair);
+  border-radius: 999px; padding: 5px 12px;
+  font: 500 12px/1 var(--font-plain); color: var(--text-2);
+  cursor: pointer; display: inline-flex; gap: 6px; align-items: center;
+}
+.theme-toggle:hover { border-color: var(--hair-strong); color: var(--text-1); }
+
+/* ─── HERO STRIP (the key change) ─────────────────────────────── */
+/* Hero is FULL WIDTH, single row. Timeline runs HORIZONTALLY across it. */
+.hero {
+  background: var(--surface-1);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 12px;
+}
+
+/* Idle hero: 3 columns — icon | body | big number */
+.hero--idle {
+  display: grid; grid-template-columns: 56px 1fr auto; gap: 20px; align-items: center;
+}
+.hero__icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--idle) 22%, transparent);
+  color: var(--text-2); font-size: 22px;
+}
+.hero--inflight .hero__icon {
+  background: color-mix(in srgb, var(--info) 22%, transparent);
+  color: var(--info);
+  position: relative;
+}
+.hero--inflight .hero__icon::before {
+  content: ""; position: absolute; inset: -8px; border-radius: 50%;
+  background: color-mix(in srgb, var(--info) 14%, transparent);
+  animation: halo 2.2s ease-in-out infinite;
+}
+@keyframes halo { 0%,100% { opacity: .4; transform: scale(1); } 50% { opacity: .12; transform: scale(1.15); } }
+.hero__kicker {
+  font: 500 10.5px/1 var(--font-plain); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-3); margin-bottom: 6px;
+}
+.hero__title { font: 500 18px/1.25 var(--font-plain); color: var(--text-1); margin-bottom: 8px; }
+.hero__title a { color: inherit; text-decoration: none; }
+.hero__title a:hover { color: var(--info); }
+.hero__row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.hero__hint { color: var(--text-2); font-size: 13px; font-weight: 400; }
+.hero__right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; min-width: 140px; }
+.hero__big { font: 500 30px/1 var(--font-data); letter-spacing: -0.01em; }
+.hero__big small { font-weight: 400; font-size: 13px; color: var(--text-3); letter-spacing: 0; }
+.hero__lbl { color: var(--text-3); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* In-flight hero: top row (icon | body | big) THEN a horizontal timeline below */
+.hero--inflight { display: block; }
+.hero--inflight .hero__top {
+  display: grid; grid-template-columns: 56px 1fr auto; gap: 20px; align-items: center;
+  margin-bottom: 18px;
+}
+.hero__divider {
+  height: 1px; background: var(--hair); margin: 4px -22px 18px;
+}
+
+/* ─── HORIZONTAL TIMELINE ─────────────────────────────────────── */
+.tl {
+  position: relative;
+  padding: 4px 0 8px;
+}
+/* The connecting rail */
+.tl__rail {
+  position: absolute; left: 14px; right: 14px; top: 18px; height: 3px;
+  background: var(--hair); border-radius: 2px;
+  z-index: 0;
+}
+.tl__rail-done {
+  position: absolute; left: 14px; top: 18px; height: 3px;
+  background: var(--ok); border-radius: 2px;
+  z-index: 1;
+}
+.tl__steps {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  position: relative; z-index: 2;
+}
+.tl__step {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; padding: 0 4px; text-align: center; min-width: 0;
+}
+.tl__node {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface-3); color: var(--text-3);
+  font: 500 12px/1 var(--font-data);
+  border: 2px solid var(--bg);
+  position: relative;
+}
+.tl__step--done .tl__node {
+  background: color-mix(in srgb, var(--ok) 28%, var(--surface-2));
+  color: var(--ok);
+}
+.tl__step--done .tl__node::after {
+  content: "✓"; font: 600 13px/1 var(--font-plain);
+}
+.tl__step--curr .tl__node {
+  background: color-mix(in srgb, var(--info) 30%, var(--surface-2));
+  color: var(--info);
+}
+.tl__step--curr .tl__node::before {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  background: color-mix(in srgb, var(--info) 16%, transparent);
+  animation: halo 2.2s ease-in-out infinite;
+}
+.tl__step--curr .tl__node::after {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--info);
+}
+.tl__step--queued .tl__node::after { content: ""; }
+.tl__step--fail .tl__node {
+  background: color-mix(in srgb, var(--err) 28%, var(--surface-2)); color: var(--err);
+}
+.tl__step--fail .tl__node::after { content: "!"; font: 600 13px/1 var(--font-plain); }
+
+.tl__lbl {
+  font: 500 11px/1.25 var(--font-plain);
+  color: var(--text-1);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl__step--queued .tl__lbl { color: var(--text-3); font-weight: 400; }
+.tl__step--done .tl__lbl { color: var(--text-2); }
+.tl__step--curr .tl__lbl { color: var(--info); font-weight: 600; }
+.tl__dur {
+  font: 400 10.5px/1 var(--font-data); color: var(--text-3);
+  letter-spacing: 0.02em;
+}
+.tl__step--curr .tl__dur { color: var(--info); font-weight: 500; }
+
+/* ─── COUNTER ROW (below hero, 5 cards, horizontal) ───────────── */
+.counters {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  margin-bottom: 8px;
+}
+.counter {
+  background: var(--surface-1);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.counter__lbl {
+  font: 500 10.5px/1 var(--font-plain); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-3);
+}
+.counter__num {
+  font: 500 28px/1 var(--font-data); color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+.counter__num.is-zero { color: var(--text-3); font-weight: 400; }
+.counter__sub { font: 11.5px/1.3 var(--font-plain); color: var(--text-3); }
+.counter__sub .delta-up   { color: var(--ok); }
+.counter__sub .delta-down { color: var(--warn); }
+.counter--accent .counter__num { color: var(--accent); }
+
+/* Avg cycle counter gets a small inline sparkline */
+.counter__spark { margin-top: 4px; }
+
+/* ─── Tabs ────────────────────────────────────────────────────── */
+.tabs {
+  display: flex; gap: 4px; margin: 24px 0 12px;
+  border-bottom: 1px solid var(--hair); flex-wrap: wrap;
+}
+.tabs .tab {
+  background: transparent; border: 0;
+  padding: 10px 14px 11px;
+  font: 500 13px/1 var(--font-plain); color: var(--text-2);
+  cursor: pointer; position: relative;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tabs .tab:hover { background: color-mix(in srgb, var(--text-1) 6%, transparent); color: var(--text-1); }
+.tabs .tab[aria-selected="true"] { color: var(--text-1); font-weight: 600; }
+.tabs .tab[aria-selected="true"]::after {
+  content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px;
+  height: 2px; background: var(--info); border-radius: 1px;
+}
+.tabs .tab__count {
+  font: 400 11px/1 var(--font-data); color: var(--text-3);
+  padding: 2px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--text-1) 8%, transparent);
+}
+.tabs .tab[aria-selected="true"] .tab__count {
+  background: color-mix(in srgb, var(--info) 18%, transparent); color: var(--info);
+}
+.tab-panel { display: none; padding: 12px 0; }
+.tab-panel[aria-hidden="false"] { display: block; }
+
+/* ─── Section heading ─────────────────────────────────────────── */
+.sh {
+  display: flex; align-items: baseline; gap: 12px;
+  margin: 22px 0 12px;
+}
+.sh__name {
+  font: 500 11px/1 var(--font-plain); letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-3);
+}
+.sh__hint { color: var(--text-2); font-size: 11.5px; }
+.sh__rule { flex: 1; height: 1px; background: var(--hair); }
+
+/* ─── Queue table ─────────────────────────────────────────────── */
+.qtable {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-radius: 12px; overflow: hidden;
+}
+.qrow {
+  display: grid; grid-template-columns: 44px 76px 1fr 130px 100px;
+  gap: 12px; align-items: center; padding: 12px 16px;
+  border-top: 1px solid var(--hair);
+}
+.qrow:first-of-type { border-top: 0; }
+.qrow--header {
+  background: var(--surface-2); color: var(--text-3);
+  font: 500 11px/1 var(--font-plain); letter-spacing: 0.10em; text-transform: uppercase;
+  padding: 10px 16px;
+}
+.qrow__id { font: 500 13px/1 var(--font-data); color: var(--text-1); }
+.qrow__id a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--hair-strong); }
+.qrow__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qrow__age { color: var(--text-3); font-size: 12px; font-family: var(--font-data); text-align: right; }
+
+/* History tab: wider table with Lifetime + Cycle columns */
+.qrow--history,
+.qrow--history-header {
+  grid-template-columns: 70px 1fr 100px 110px 90px 90px;
+}
+.qrow--history-header { padding: 10px 16px; }
+
+/* ─── Activity feed ───────────────────────────────────────────── */
+.feed { background: var(--surface-1); border: 1px solid var(--hair); border-radius: 12px; padding: 4px 16px; }
+.feed__row {
+  display: grid; grid-template-columns: 140px 28px 1fr 80px;
+  gap: 14px; align-items: baseline;
+  padding: 10px 0; border-top: 1px dashed var(--hair);
+}
+.feed__row:first-child { border-top: 0; }
+.feed__ts { font: 400 12px/1.2 var(--font-data); color: var(--text-3); }
+.feed__step--ok { color: var(--ok); }
+.feed__step--info { color: var(--info); }
+.feed__step--warn { color: var(--warn); }
+.feed__step--err { color: var(--err); }
+.feed__what { font-size: 13.5px; }
+.feed__what a { color: var(--text-1); text-decoration: none; border-bottom: 1px dotted var(--hair-strong); }
+.feed__what .kicker {
+  display: inline-block; min-width: 92px;
+  font: 500 10.5px/1 var(--font-plain); letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-3); margin-right: 8px;
+}
+.feed__dur { color: var(--text-3); font-family: var(--font-data); font-size: 12px; text-align: right; }
+
+/* ─── Drafts ──────────────────────────────────────────────────── */
+.drafts { background: var(--surface-1); border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
+.draft-row {
+  display: grid; grid-template-columns: 60px 1fr 140px 100px;
+  gap: 12px; align-items: center;
+  padding: 12px 16px; border-top: 1px dashed var(--hair);
+}
+.draft-row:first-child { border-top: 0; }
+.draft-row__id { font: 500 12px/1 var(--font-data); color: var(--text-3); }
+.draft-row__title a { color: var(--text-1); text-decoration: none; }
+
+/* ─── Metrics tab ─────────────────────────────────────────────── */
+.te-banner {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-radius: 14px; padding: 14px 18px 18px;
+  margin-bottom: 20px;
+}
+.te-banner__row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  margin-top: 10px;
+}
+.te-tile__lbl { font: 500 10.5px/1 var(--font-plain); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+.te-tile__val { font: 500 24px/1.1 var(--font-data); color: var(--text-1); font-variant-numeric: tabular-nums; }
+.te-tile__val small { font: 400 16px/1 var(--font-data); color: var(--text-3); margin: 0 4px; }
+.te-tile__sub { font: 11.5px/1.4 var(--font-plain); color: var(--text-3); margin-top: 6px; }
+
+.charts-grid {
+  display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px;
+  margin-bottom: 16px;
+}
+.charts-grid--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.chart-card {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-radius: 14px; padding: 16px 18px;
+}
+.chart-card__title { font: 500 13px/1 var(--font-plain); color: var(--text-1); margin-bottom: 2px; }
+.chart-card__sub { font: 11.5px/1.4 var(--font-plain); color: var(--text-3); margin-bottom: 12px; }
+.chart-card__legend {
+  display: flex; gap: 14px; font: 11px/1 var(--font-plain); color: var(--text-2);
+  margin-top: 10px; flex-wrap: wrap;
+}
+.lg__sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+svg.chart { width: 100%; display: block; }
+
+/* Bar list (used for "by type" breakdown) */
+.bar-list { display: flex; flex-direction: column; gap: 10px; }
+.bar-row {
+  display: grid; grid-template-columns: 100px 1fr 60px; gap: 12px; align-items: center;
+}
+.bar-row__lbl { font: 12.5px/1 var(--font-plain); color: var(--text-2); text-transform: capitalize; }
+.bar-row__track {
+  height: 10px; border-radius: 5px;
+  background: var(--surface-3); overflow: hidden; position: relative;
+}
+.bar-row__fill { height: 100%; border-radius: 5px; }
+.bar-row__val { font: 500 12px/1 var(--font-data); color: var(--text-1); text-align: right; }
+
+.callouts {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin-bottom: 20px;
+}
+.callout {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.callout__icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--info) 18%, transparent); color: var(--info);
+  font: 600 16px/1 var(--font-plain);
+}
+.callout--ok .callout__icon { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.callout--warn .callout__icon { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.callout__lbl { font: 500 10.5px/1 var(--font-plain); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; }
+.callout__val { font: 500 18px/1.2 var(--font-data); color: var(--text-1); }
+.callout__sub { font: 11.5px/1.4 var(--font-plain); color: var(--text-2); margin-top: 4px; }
+
+/* State-toggle (mockup only) */
+.state-toggle {
+  position: fixed; top: 16px; right: 16px;
+  background: var(--surface-2); border: 1px solid var(--hair);
+  border-radius: 10px; padding: 4px;
+  display: flex; gap: 0; z-index: 20;
+  font: 500 12px/1 var(--font-plain);
+}
+.state-toggle button {
+  background: transparent; border: 0; cursor: pointer;
+  padding: 6px 10px; border-radius: 7px;
+  color: var(--text-2);
+}
+.state-toggle button.is-on { background: var(--info); color: white; }
+.mockup-banner {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--hair));
+  border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 16px;
+  font: 12.5px/1.4 var(--font-plain); color: var(--text-1);
+}
+.mockup-banner strong { color: var(--accent); }
+
+.foot {
+  margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--hair);
+  color: var(--text-3); font-size: 12px;
+  display: flex; justify-content: space-between; gap: 12px;
+}
+
+/* ─── Pagination ──────────────────────────────────────────────── */
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 10px 4px 0;
+  font: 12px/1 var(--font-plain); color: var(--text-3);
+}
+.pager__count { font-family: var(--font-data); }
+.pager__nav { display: flex; gap: 4px; align-items: center; }
+.pager__btn {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-radius: 8px; padding: 5px 10px;
+  font: 500 12px/1 var(--font-plain); color: var(--text-2);
+  cursor: pointer; min-width: 30px;
+}
+.pager__btn:hover { border-color: var(--hair-strong); color: var(--text-1); }
+.pager__btn[aria-current="page"] {
+  background: color-mix(in srgb, var(--info) 14%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--info) 40%, var(--hair));
+  color: var(--info); font-weight: 600;
+}
+.pager__btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+.pager__ellipsis { color: var(--text-3); padding: 0 4px; }
+
+@media (max-width: 1100px) {
+  .counters { grid-template-columns: repeat(3, 1fr); }
+  .charts-grid, .charts-grid--3 { grid-template-columns: 1fr; }
+  .te-banner__row { grid-template-columns: repeat(2, 1fr); }
+  .callouts { grid-template-columns: 1fr; }
+  .qrow--history, .qrow--history-header { grid-template-columns: 60px 1fr 90px 90px 80px 80px; }
+}
+@media (max-width: 700px) {
+  .counters { grid-template-columns: repeat(2, 1fr); }
+  .hero--inflight .hero__top { grid-template-columns: 48px 1fr; }
+  .hero__right { display: none; }
+  .tl__steps { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+<div class="state-toggle" role="group" aria-label="Mockup state">
+  <button data-state="inflight" class="is-on">In flight</button>
+  <button data-state="idle">Idle</button>
+</div>
+
+<main class="page">
+  <div class="mockup-banner">
+    <strong>Mockup</strong> · dual-research dashboard redesign v3 — horizontal live card &amp; timeline, full-width counters row, populated History &amp; Metrics. This file is static; the state toggle (top right) swaps between in-flight and idle views.
+  </div>
+
+  <!-- ─── Header ─────────────────────────────────────────────── -->
+  <header class="dh">
+    <div>
+      <div class="dh__title">dual-research · spec dashboard</div>
+      <div class="dh__sub">read-only view of <code>specs/</code>, <code>handoffs/</code> and <code>dashboard/events/</code> at <code>main</code></div>
+    </div>
+    <div class="dh__meta">
+      <span class="chip tone-ok">v1.30.0 live</span>
+      <span>updated 12s ago</span>
+      <button class="theme-toggle" id="theme-toggle"><span>☀</span><span>light</span></button>
+      <a href="#">repo ↗</a>
+    </div>
+  </header>
+
+  <!-- ─── HERO (full-width, horizontal) ──────────────────────── -->
+  <!-- In-flight state -->
+  <section class="hero hero--inflight" id="hero-inflight">
+    <div class="hero__top">
+      <div class="hero__icon">▶</div>
+      <div>
+        <div class="hero__kicker">In flight · step 7 of 11 — implement</div>
+        <div class="hero__title"><a href="#">Spec 0173 — Drain deferrals from 0166/0167/0168</a></div>
+        <div class="hero__row">
+          <span class="chip chip-type tone-info">new-feature</span>
+          <span class="chip tone-neutral">branch · <code>spec/0173-drain-deferrals</code></span>
+          <span class="chip tone-ok">clean · 0 patches</span>
+          <span class="chip tone-info">currently · implementing</span>
+          <span class="chip tone-ok">last event 4s ago</span>
+        </div>
+      </div>
+      <div class="hero__right">
+        <div class="hero__big">6m 42s</div>
+        <div class="hero__lbl">elapsed · ETA 7m</div>
+      </div>
+    </div>
+    <div class="hero__divider"></div>
+    <!-- Horizontal timeline -->
+    <div class="tl" aria-label="Cycle stages">
+      <div class="tl__rail"></div>
+      <div class="tl__rail-done" style="width: calc((6/10) * (100% - 28px));"></div>
+      <div class="tl__steps">
+        <div class="tl__step tl__step--done">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Pre-flight</div>
+          <div class="tl__dur">3s</div>
+        </div>
+        <div class="tl__step tl__step--done">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Read handoff</div>
+          <div class="tl__dur">8s</div>
+        </div>
+        <div class="tl__step tl__step--done">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Read spec</div>
+          <div class="tl__dur">11s</div>
+        </div>
+        <div class="tl__step tl__step--done">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Reconcile</div>
+          <div class="tl__dur">22s</div>
+        </div>
+        <div class="tl__step tl__step--done">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Branch</div>
+          <div class="tl__dur">2s</div>
+        </div>
+        <div class="tl__step tl__step--done">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Plan</div>
+          <div class="tl__dur">48s</div>
+        </div>
+        <div class="tl__step tl__step--curr">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Implement</div>
+          <div class="tl__dur">4m 28s</div>
+        </div>
+        <div class="tl__step tl__step--queued">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Tests</div>
+          <div class="tl__dur">—</div>
+        </div>
+        <div class="tl__step tl__step--queued">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">PR / merge</div>
+          <div class="tl__dur">—</div>
+        </div>
+        <div class="tl__step tl__step--queued">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Deploy</div>
+          <div class="tl__dur">—</div>
+        </div>
+        <div class="tl__step tl__step--queued">
+          <div class="tl__node"></div>
+          <div class="tl__lbl">Handoff</div>
+          <div class="tl__dur">—</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Idle state (hidden by default; toggled via state-toggle) -->
+  <section class="hero hero--idle" id="hero-idle" style="display:none;">
+    <div class="hero__icon">⏸</div>
+    <div>
+      <div class="hero__kicker">Queue · idle</div>
+      <div class="hero__title">Nothing in flight. <span class="hero__hint">Run <code>/dev-next</code> in your queue session to start the next spec.</span></div>
+      <div class="hero__row">
+        <span class="chip tone-neutral">0 in flight</span>
+        <span class="chip tone-info">4 queued</span>
+        <span class="chip tone-ok">last shipped 4h 18m ago</span>
+      </div>
+    </div>
+    <div class="hero__right">
+      <div class="hero__big">4h 18m<small> ago</small></div>
+      <div class="hero__lbl">last deploy · 0169</div>
+    </div>
+  </section>
+
+  <!-- ─── COUNTERS (full-width row, 5 cards) ─────────────────── -->
+  <section class="counters" aria-label="Pipeline counters">
+    <div class="counter">
+      <div class="counter__lbl">Drafts</div>
+      <div class="counter__num">1</div>
+      <div class="counter__sub">ideation · oldest 2d</div>
+    </div>
+    <div class="counter">
+      <div class="counter__lbl">Queued</div>
+      <div class="counter__num">4</div>
+      <div class="counter__sub">pending · next is 0173</div>
+    </div>
+    <div class="counter">
+      <div class="counter__lbl">In flight</div>
+      <div class="counter__num">1</div>
+      <div class="counter__sub">running · 6m 42s elapsed</div>
+    </div>
+    <div class="counter">
+      <div class="counter__lbl">Shipped</div>
+      <div class="counter__num">169</div>
+      <div class="counter__sub">all-time · 22 with full timings</div>
+    </div>
+    <div class="counter counter--accent">
+      <div class="counter__lbl">Avg cycle (last 10)</div>
+      <div class="counter__num">8m 12s</div>
+      <div class="counter__sub"><span class="delta-up">↓ 1m 24s</span> vs prior 10</div>
+      <svg class="counter__spark" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden="true">
+        <polyline fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linejoin="round" stroke-linecap="round"
+          style="color: var(--accent)"
+          points="0,10 12,14 24,12 36,8 48,11 60,9 72,7 84,10 96,6 108,5 120,4" />
+      </svg>
+    </div>
+  </section>
+
+  <!-- ─── Tabs ────────────────────────────────────────────────── -->
+  <nav class="tabs" role="tablist" aria-label="Dashboard sections">
+    <button class="tab" role="tab" aria-selected="true" data-tab="now">Now <span class="tab__count">5</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="spec">Spec creation <span class="tab__count">5</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="history">History <span class="tab__count">169</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="metrics">Metrics</button>
+  </nav>
+
+  <!-- ─── Now tab ─────────────────────────────────────────────── -->
+  <section class="tab-panel" role="tabpanel" data-panel="now" aria-hidden="false">
+    <div class="sh"><div class="sh__name">Queue</div><div class="sh__hint">/dev-next picks position 1 first</div><div class="sh__rule"></div></div>
+    <section class="qtable">
+      <div class="qrow qrow--header"><div>#</div><div>Spec</div><div>Title</div><div>Type</div><div style="text-align:right">Waiting</div></div>
+      <div class="qrow"><div>1</div><div class="qrow__id"><a>0173</a></div><div class="qrow__title">Drain deferrals from 0166/0167/0168</div><div><span class="chip chip-type tone-info">new-feature</span></div><div class="qrow__age">in flight</div></div>
+      <div class="qrow"><div>2</div><div class="qrow__id"><a>0170</a></div><div class="qrow__title">/canvas workshop skill — registry-driven pane iteration sandbox</div><div><span class="chip chip-type tone-info">new-feature</span></div><div class="qrow__age">5h</div></div>
+      <div class="qrow"><div>3</div><div class="qrow__id"><a>0171</a></div><div class="qrow__title">Agent Input — single column with agent toggle (split-pane scroll fix)</div><div><span class="chip chip-type tone-err">bug</span></div><div class="qrow__age">2h</div></div>
+      <div class="qrow"><div>4</div><div class="qrow__id"><a>0172</a></div><div class="qrow__title">Critique card — drop ID chip; fix markdown title rendering</div><div><span class="chip chip-type tone-err">bug</span></div><div class="qrow__age">1h 30m</div></div>
+      <div class="qrow"><div>5</div><div class="qrow__id"><a>0174</a></div><div class="qrow__title">Cloudflare Pages function — /api/data cache tuning</div><div><span class="chip chip-type tone-warn">refactoring</span></div><div class="qrow__age">1h 12m</div></div>
+      <div class="qrow"><div>6</div><div class="qrow__id"><a>0175</a></div><div class="qrow__title">Stage durations — backfill missing branch events for specs 0152–0160</div><div><span class="chip chip-type tone-neutral">test</span></div><div class="qrow__age">58m</div></div>
+      <div class="qrow"><div>7</div><div class="qrow__id"><a>0176</a></div><div class="qrow__title">Reconcile — guardrail when handoff drift exceeds 5 mechanical patches</div><div><span class="chip chip-type tone-info">new-feature</span></div><div class="qrow__age">44m</div></div>
+      <div class="qrow"><div>8</div><div class="qrow__id"><a>0177</a></div><div class="qrow__title">Tokens — drop unused --p-amber-* aliases (DS spring cleanup)</div><div><span class="chip chip-type tone-warn">refactoring</span></div><div class="qrow__age">32m</div></div>
+      <div class="qrow"><div>9</div><div class="qrow__id"><a>0178</a></div><div class="qrow__title">Agent strip — expandable live-state row with per-agent token spend</div><div><span class="chip chip-type tone-info">new-feature</span></div><div class="qrow__age">21m</div></div>
+      <div class="qrow"><div>10</div><div class="qrow__id"><a>0179</a></div><div class="qrow__title">Critique pane — affordance chip on hover instead of always-visible</div><div><span class="chip chip-type tone-err">bug</span></div><div class="qrow__age">11m</div></div>
+    </section>
+    <div class="pager" aria-label="Queue pagination">
+      <div class="pager__count">Showing 1–10 of 14</div>
+      <div class="pager__nav">
+        <button class="pager__btn" disabled aria-label="Previous page">←</button>
+        <button class="pager__btn" aria-current="page">1</button>
+        <button class="pager__btn">2</button>
+        <button class="pager__btn" aria-label="Next page">→</button>
+      </div>
+    </div>
+
+    <div class="sh"><div class="sh__name">Recent activity</div><div class="sh__hint">last 24 hours</div><div class="sh__rule"></div></div>
+    <section class="feed">
+      <div class="feed__row"><div class="feed__ts">22:06:14 UTC</div><div class="feed__step feed__step--info">●</div><div class="feed__what"><span class="kicker">implementing</span><a>0173</a> · drain deferrals</div><div class="feed__dur">—</div></div>
+      <div class="feed__row"><div class="feed__ts">22:05:32 UTC</div><div class="feed__step feed__step--ok">●</div><div class="feed__what"><span class="kicker">reconcile</span><a>0173</a> · clean · 0 patches</div><div class="feed__dur">22s</div></div>
+      <div class="feed__row"><div class="feed__ts">22:04:58 UTC</div><div class="feed__step feed__step--info">●</div><div class="feed__what"><span class="kicker">branched</span><a>0173</a> · <code>spec/0173-drain-deferrals</code></div><div class="feed__dur">2s</div></div>
+      <div class="feed__row"><div class="feed__ts">22:04:21 UTC</div><div class="feed__step feed__step--info">●</div><div class="feed__what"><span class="kicker">in progress</span><a>0173</a> · drain deferrals</div><div class="feed__dur">—</div></div>
+      <div class="feed__row"><div class="feed__ts">22:00:08 UTC</div><div class="feed__step feed__step--ok">●</div><div class="feed__what"><span class="kicker">deployed</span><a>0169</a> · v1.30.0</div><div class="feed__dur">—</div></div>
+      <div class="feed__row"><div class="feed__ts">21:58:32 UTC</div><div class="feed__step feed__step--ok">●</div><div class="feed__what"><span class="kicker">handoff written</span><a>0169</a> · handoffs/2026-05-22-spec-0169-…</div><div class="feed__dur">—</div></div>
+      <div class="feed__row"><div class="feed__ts">21:55:41 UTC</div><div class="feed__step feed__step--info">●</div><div class="feed__what"><span class="kicker">merged</span><a>0169</a> · admin squash · <a>PR #192</a></div><div class="feed__dur">—</div></div>
+      <div class="feed__row"><div class="feed__ts">21:54:09 UTC</div><div class="feed__step feed__step--ok">●</div><div class="feed__what"><span class="kicker">tests green</span><a>0169</a> · 218 passed</div><div class="feed__dur">1m 12s</div></div>
+      <div class="feed__row"><div class="feed__ts">21:10:02 UTC</div><div class="feed__step feed__step--info">●</div><div class="feed__what"><span class="kicker">in progress</span><a>0169</a> · dashboard redesign v2</div><div class="feed__dur">—</div></div>
+      <div class="feed__row"><div class="feed__ts">20:56:00 UTC</div><div class="feed__step feed__step--ok">●</div><div class="feed__what"><span class="kicker">deployed</span><a>0168</a> · v1.29.0</div><div class="feed__dur">—</div></div>
+    </section>
+    <div class="pager" aria-label="Recent activity pagination">
+      <div class="pager__count">Showing 1–10 of 38</div>
+      <div class="pager__nav">
+        <button class="pager__btn" disabled aria-label="Previous page">←</button>
+        <button class="pager__btn" aria-current="page">1</button>
+        <button class="pager__btn">2</button>
+        <button class="pager__btn">3</button>
+        <span class="pager__ellipsis">…</span>
+        <button class="pager__btn">4</button>
+        <button class="pager__btn" aria-label="Next page">→</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Spec creation tab ──────────────────────────────────── -->
+  <section class="tab-panel" role="tabpanel" data-panel="spec" aria-hidden="true">
+    <div class="sh"><div class="sh__name">Drafts</div><div class="sh__hint">backlog · promote with <code>/spec-promote &lt;id&gt;</code></div><div class="sh__rule"></div></div>
+    <section class="drafts">
+      <div class="draft-row">
+        <div class="draft-row__id">002</div>
+        <div class="draft-row__title"><a>Login screen v2 — passkey-first auth flow</a></div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div class="qrow__age">park · 2d</div>
+      </div>
+    </section>
+
+    <div class="sh"><div class="sh__name">Recently queued</div><div class="sh__rule"></div></div>
+    <section class="qtable">
+      <div class="qrow qrow--header"><div>#</div><div>Spec</div><div>Title</div><div>Type</div><div style="text-align:right">Queued</div></div>
+      <div class="qrow"><div>1</div><div class="qrow__id"><a>0173</a></div><div class="qrow__title">Drain deferrals from 0166/0167/0168</div><div><span class="chip chip-type tone-info">new-feature</span></div><div class="qrow__age">1h 5m</div></div>
+      <div class="qrow"><div>2</div><div class="qrow__id"><a>0170</a></div><div class="qrow__title">/canvas workshop skill</div><div><span class="chip chip-type tone-info">new-feature</span></div><div class="qrow__age">5h</div></div>
+      <div class="qrow"><div>3</div><div class="qrow__id"><a>0171</a></div><div class="qrow__title">Agent Input single-column fix</div><div><span class="chip chip-type tone-err">bug</span></div><div class="qrow__age">2h</div></div>
+      <div class="qrow"><div>4</div><div class="qrow__id"><a>0172</a></div><div class="qrow__title">Critique card markdown fix</div><div><span class="chip chip-type tone-err">bug</span></div><div class="qrow__age">1h 30m</div></div>
+    </section>
+  </section>
+
+  <!-- ─── History tab (now with Lifetime + Cycle columns) ────── -->
+  <section class="tab-panel" role="tabpanel" data-panel="history" aria-hidden="true">
+    <section class="te-banner">
+      <div class="sh" style="margin: 0;"><div class="sh__name">Total time spent</div><div class="sh__hint">across 22 timed cycles</div><div class="sh__rule"></div></div>
+      <div class="te-banner__row">
+        <div class="te-tile"><div class="te-tile__lbl">Total elapsed</div><div class="te-tile__val">14h 32m</div><div class="te-tile__sub">across 22 timed cycles</div></div>
+        <div class="te-tile"><div class="te-tile__lbl">Mean cycle</div><div class="te-tile__val">8m 12s</div><div class="te-tile__sub">excluding 1 outlier &gt; 1h</div></div>
+        <div class="te-tile"><div class="te-tile__lbl">Median cycle</div><div class="te-tile__val">7m 04s</div><div class="te-tile__sub">p50 of timed runs</div></div>
+        <div class="te-tile"><div class="te-tile__lbl">Fastest / Slowest</div><div class="te-tile__val">3m 12s<small>/</small>10h 48m</div><div class="te-tile__sub">0167 / 0152</div></div>
+      </div>
+    </section>
+
+    <div class="sh"><div class="sh__name">All specs</div><div class="sh__hint">169 shipped · 4 queued · 1 in flight</div><div class="sh__rule"></div></div>
+    <section class="qtable">
+      <div class="qrow qrow--history qrow--header">
+        <div>Spec</div><div>Title</div><div>Type</div><div>Status</div><div style="text-align:right">Lifetime</div><div style="text-align:right">Cycle</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0169</a></div>
+        <div class="qrow__title">Dashboard redesign v2 — tabs, themes, history</div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">4h 22m</div>
+        <div class="qrow__age">50m</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0168</a></div>
+        <div class="qrow__title">Critique pane — item card refresh</div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">8m</div>
+        <div class="qrow__age">8m</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0167</a></div>
+        <div class="qrow__title">Critique pane — bar2 chrome + bar1 drift chip</div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">10m</div>
+        <div class="qrow__age">10m</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0166</a></div>
+        <div class="qrow__title">Timeline pane — System + Error chip primitives</div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">16m</div>
+        <div class="qrow__age">16m</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0165</a></div>
+        <div class="qrow__title">Timeline pane — chip polish + token drift fix</div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">13m 30s</div>
+        <div class="qrow__age">13m 30s</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0164</a></div>
+        <div class="qrow__title">Pane registry + composed pane shells</div>
+        <div><span class="chip chip-type tone-warn">refactoring</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">3d 4h</div>
+        <div class="qrow__age">22m</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0163</a></div>
+        <div class="qrow__title">Live-stage chip + staleness indicator</div>
+        <div><span class="chip chip-type tone-info">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">5h 18m</div>
+        <div class="qrow__age">9m</div>
+      </div>
+      <div class="qrow qrow--history">
+        <div class="qrow__id"><a>0162</a></div>
+        <div class="qrow__title">Reconcile drift-fix patch surface</div>
+        <div><span class="chip chip-type tone-warn">refactoring</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">1d 2h</div>
+        <div class="qrow__age">14m</div>
+      </div>
+    </section>
+    <div style="margin-top: 12px; color: var(--text-3); font-size: 12px; text-align: center;">
+      Showing 8 of 169 specs · <a href="#" style="color: var(--info);">load more</a>
+    </div>
+  </section>
+
+  <!-- ─── Metrics tab (the meaty one) ────────────────────────── -->
+  <section class="tab-panel" role="tabpanel" data-panel="metrics" aria-hidden="true">
+
+    <!-- Top callouts -->
+    <div class="callouts">
+      <div class="callout callout--ok">
+        <div class="callout__icon">↓</div>
+        <div>
+          <div class="callout__lbl">Cycle time improving</div>
+          <div class="callout__val">−14% week-over-week</div>
+          <div class="callout__sub">Last 7d: avg 7m 28s, vs 8m 41s the week prior. Driven by faster reconcile.</div>
+        </div>
+      </div>
+      <div class="callout">
+        <div class="callout__icon">⏱</div>
+        <div>
+          <div class="callout__lbl">Where time goes</div>
+          <div class="callout__val">62% in <em>implement</em></div>
+          <div class="callout__sub">Mean implement leg = 4m 47s. Tests next at 1m 12s, deploy 38s.</div>
+        </div>
+      </div>
+      <div class="callout callout--warn">
+        <div class="callout__icon">!</div>
+        <div>
+          <div class="callout__lbl">Reconcile drift</div>
+          <div class="callout__val">3 of last 10</div>
+          <div class="callout__sub">Needed mechanical patches before code landed. Trending up from 1/10 last week.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cycle time over last 22 cycles (main line chart) + stage breakdown -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-card__title">Cycle time over last 22 cycles</div>
+        <div class="chart-card__sub">Each point is one deployed spec. Dashed = rolling-10 mean. Outlier 0152 (10.8h) clipped.</div>
+        <svg class="chart" viewBox="0 0 600 220" preserveAspectRatio="none" role="img" aria-label="Cycle time line chart">
+          <!-- axes / grid -->
+          <g stroke="var(--hair)" stroke-width="1">
+            <line x1="40" y1="20"  x2="600" y2="20"  stroke-dasharray="2,3"/>
+            <line x1="40" y1="60"  x2="600" y2="60"  stroke-dasharray="2,3"/>
+            <line x1="40" y1="100" x2="600" y2="100" stroke-dasharray="2,3"/>
+            <line x1="40" y1="140" x2="600" y2="140" stroke-dasharray="2,3"/>
+            <line x1="40" y1="180" x2="600" y2="180" />
+          </g>
+          <g fill="var(--text-3)" font-family="var(--font-data)" font-size="10" text-anchor="end">
+            <text x="34" y="24">20m</text>
+            <text x="34" y="64">15m</text>
+            <text x="34" y="104">10m</text>
+            <text x="34" y="144">5m</text>
+            <text x="34" y="184">0</text>
+          </g>
+          <!-- rolling mean (dashed) -->
+          <polyline fill="none" stroke="var(--chart-purple)" stroke-width="1.5" stroke-dasharray="4,4"
+            points="50,118 75,120 100,116 125,114 150,112 175,108 200,106 225,104 250,102 275,100 300,98 325,96 350,94 375,92 400,90 425,88 450,86 475,84 500,82 525,80 550,78 575,76" />
+          <!-- actual cycle times (line + dots) -->
+          <polyline fill="none" stroke="var(--chart-blue)" stroke-width="2" stroke-linejoin="round"
+            points="50,140 75,128 100,144 125,110 150,150 175,118 200,138 225,98 250,124 275,86 300,134 325,108 350,90 375,116 400,72 425,104 450,128 475,82 500,118 525,96 550,68 575,78" />
+          <g fill="var(--chart-blue)">
+            <circle cx="50"  cy="140" r="3"/><circle cx="75"  cy="128" r="3"/>
+            <circle cx="100" cy="144" r="3"/><circle cx="125" cy="110" r="3"/>
+            <circle cx="150" cy="150" r="3"/><circle cx="175" cy="118" r="3"/>
+            <circle cx="200" cy="138" r="3"/><circle cx="225" cy="98"  r="3"/>
+            <circle cx="250" cy="124" r="3"/><circle cx="275" cy="86"  r="3"/>
+            <circle cx="300" cy="134" r="3"/><circle cx="325" cy="108" r="3"/>
+            <circle cx="350" cy="90"  r="3"/><circle cx="375" cy="116" r="3"/>
+            <circle cx="400" cy="72"  r="3"/><circle cx="425" cy="104" r="3"/>
+            <circle cx="450" cy="128" r="3"/><circle cx="475" cy="82"  r="3"/>
+            <circle cx="500" cy="118" r="3"/><circle cx="525" cy="96"  r="3"/>
+            <circle cx="550" cy="68"  r="3"/><circle cx="575" cy="78"  r="3"/>
+          </g>
+          <!-- x-axis labels (sample) -->
+          <g fill="var(--text-3)" font-family="var(--font-data)" font-size="9" text-anchor="middle">
+            <text x="50"  y="200">0148</text>
+            <text x="175" y="200">0153</text>
+            <text x="300" y="200">0158</text>
+            <text x="425" y="200">0163</text>
+            <text x="575" y="200">0168</text>
+          </g>
+        </svg>
+        <div class="chart-card__legend">
+          <span><span class="lg__sw" style="background: var(--chart-blue);"></span>Cycle time</span>
+          <span><span class="lg__sw" style="background: var(--chart-purple);"></span>Rolling-10 mean</span>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card__title">Where time goes (mean stage durations)</div>
+        <div class="chart-card__sub">Stacked, last 10 deployed cycles · total mean = 7m 42s</div>
+        <svg class="chart" viewBox="0 0 320 220" preserveAspectRatio="none" role="img" aria-label="Stage breakdown chart">
+          <!-- A single horizontal stacked bar (sized by mean seconds, total 462s) -->
+          <g transform="translate(0,80)">
+            <!-- 6s preflight, 9s handoff, 11s spec, 24s reconcile, 3s branch, 48s plan, 287s implement, 72s tests, 16s pr/merge, 38s deploy, 12s handoff written -->
+            <rect x="0"   y="0" width="4"   height="40" fill="var(--chart-grey)"  />
+            <rect x="4"   y="0" width="6"   height="40" fill="var(--chart-mint)"  />
+            <rect x="10"  y="0" width="8"   height="40" fill="var(--chart-mint)"  />
+            <rect x="18"  y="0" width="17"  height="40" fill="var(--chart-yellow)"/>
+            <rect x="35"  y="0" width="2"   height="40" fill="var(--chart-grey)"  />
+            <rect x="37"  y="0" width="33"  height="40" fill="var(--chart-purple)"/>
+            <rect x="70"  y="0" width="199" height="40" fill="var(--chart-blue)"  />
+            <rect x="269" y="0" width="50"  height="40" fill="var(--chart-green)" />
+            <rect x="319" y="0" width="11"  height="40" fill="var(--chart-grey)"  />
+            <rect x="330" y="0" width="26"  height="40" fill="var(--chart-peach)" />
+            <!-- (clip to 320 — visual approximation) -->
+          </g>
+          <!-- labels under bar -->
+          <g font-family="var(--font-plain)" font-size="10" fill="var(--text-2)">
+            <text x="0"   y="140">Pre-flight  · 6s</text>
+            <text x="0"   y="156">Handoff/Spec read  · 20s</text>
+            <text x="0"   y="172">Reconcile  · 24s</text>
+            <text x="0"   y="188">Branch + Plan  · 51s</text>
+            <text x="160" y="140" >Implement  · 4m 47s</text>
+            <text x="160" y="156">Tests  · 1m 12s</text>
+            <text x="160" y="172">PR / merge  · 16s</text>
+            <text x="160" y="188">Deploy + handoff  · 50s</text>
+          </g>
+        </svg>
+        <div class="chart-card__legend">
+          <span><span class="lg__sw" style="background: var(--chart-blue);"></span>Implement</span>
+          <span><span class="lg__sw" style="background: var(--chart-green);"></span>Tests</span>
+          <span><span class="lg__sw" style="background: var(--chart-yellow);"></span>Reconcile</span>
+          <span><span class="lg__sw" style="background: var(--chart-peach);"></span>Deploy</span>
+          <span><span class="lg__sw" style="background: var(--chart-purple);"></span>Plan</span>
+          <span><span class="lg__sw" style="background: var(--chart-grey);"></span>Other</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 smaller cards: throughput per week, by type, success rate -->
+    <div class="charts-grid charts-grid--3">
+      <div class="chart-card">
+        <div class="chart-card__title">Throughput · specs deployed per week</div>
+        <div class="chart-card__sub">last 8 weeks · current week shaded</div>
+        <svg class="chart" viewBox="0 0 320 160" preserveAspectRatio="none" role="img" aria-label="Throughput bars">
+          <g>
+            <rect x="10"  y="100" width="30" height="44" fill="var(--chart-blue)"   fill-opacity="0.55"/>
+            <rect x="50"  y="90"  width="30" height="54" fill="var(--chart-blue)"   fill-opacity="0.6"/>
+            <rect x="90"  y="78"  width="30" height="66" fill="var(--chart-blue)"   fill-opacity="0.65"/>
+            <rect x="130" y="84"  width="30" height="60" fill="var(--chart-blue)"   fill-opacity="0.7"/>
+            <rect x="170" y="60"  width="30" height="84" fill="var(--chart-blue)"   fill-opacity="0.8"/>
+            <rect x="210" y="48"  width="30" height="96" fill="var(--chart-blue)"   fill-opacity="0.9"/>
+            <rect x="250" y="36"  width="30" height="108" fill="var(--chart-purple)"/>
+            <rect x="290" y="44"  width="20" height="100" fill="var(--chart-blue)"/>
+          </g>
+          <g fill="var(--text-1)" font-family="var(--font-data)" font-size="10" text-anchor="middle">
+            <text x="25"  y="96">4</text>
+            <text x="65"  y="86">5</text>
+            <text x="105" y="74">6</text>
+            <text x="145" y="80">5</text>
+            <text x="185" y="56">7</text>
+            <text x="225" y="44">9</text>
+            <text x="265" y="32">12</text>
+            <text x="300" y="40">~10</text>
+          </g>
+          <g fill="var(--text-3)" font-family="var(--font-data)" font-size="9" text-anchor="middle">
+            <text x="25"  y="158">w-7</text>
+            <text x="65"  y="158">w-6</text>
+            <text x="105" y="158">w-5</text>
+            <text x="145" y="158">w-4</text>
+            <text x="185" y="158">w-3</text>
+            <text x="225" y="158">w-2</text>
+            <text x="265" y="158">w-1</text>
+            <text x="300" y="158">now</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card__title">By type · last 30 days</div>
+        <div class="chart-card__sub">42 specs total · mean cycle by category</div>
+        <div class="bar-list" style="margin-top: 6px;">
+          <div class="bar-row">
+            <div class="bar-row__lbl">new-feature</div>
+            <div class="bar-row__track"><div class="bar-row__fill" style="width: 70%; background: var(--chart-blue);"></div></div>
+            <div class="bar-row__val">28 · 9m</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-row__lbl">bug</div>
+            <div class="bar-row__track"><div class="bar-row__fill" style="width: 30%; background: var(--chart-pink);"></div></div>
+            <div class="bar-row__val">8 · 4m</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-row__lbl">refactoring</div>
+            <div class="bar-row__track"><div class="bar-row__fill" style="width: 14%; background: var(--chart-yellow);"></div></div>
+            <div class="bar-row__val">4 · 13m</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-row__lbl">test</div>
+            <div class="bar-row__track"><div class="bar-row__fill" style="width: 7%; background: var(--chart-mint);"></div></div>
+            <div class="bar-row__val">2 · 6m</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-card__title">Success rate · last 30 days</div>
+        <div class="chart-card__sub">deployed vs failed cycles</div>
+        <svg class="chart" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Success rate donut">
+          <g transform="translate(100,80)">
+            <!-- donut: 95% deployed, 5% failed -->
+            <circle r="56" fill="none" stroke="var(--chart-pink)" stroke-width="20" />
+            <!-- arc: 95% of 2π ≈ 5.969 rad. Use stroke-dasharray trick on full circle of circumference 2π·56 ≈ 351.86. -->
+            <circle r="56" fill="none" stroke="var(--chart-green)" stroke-width="20"
+              stroke-dasharray="334.27 17.59" stroke-dashoffset="88"
+              transform="rotate(-90)" />
+            <text y="-4" text-anchor="middle" font-family="var(--font-data)" font-size="22" font-weight="600" fill="var(--text-1)">95%</text>
+            <text y="18" text-anchor="middle" font-family="var(--font-plain)" font-size="10" fill="var(--text-3)">40 of 42</text>
+          </g>
+        </svg>
+        <div class="chart-card__legend" style="justify-content: center;">
+          <span><span class="lg__sw" style="background: var(--chart-green);"></span>Deployed · 40</span>
+          <span><span class="lg__sw" style="background: var(--chart-pink);"></span>Failed · 2</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sh"><div class="sh__name">Spec authoring funnel</div><div class="sh__hint">how ideas reach deploy</div><div class="sh__rule"></div></div>
+    <section class="chart-card">
+      <svg class="chart" viewBox="0 0 800 100" preserveAspectRatio="none" role="img" aria-label="Authoring funnel">
+        <g font-family="var(--font-plain)" font-size="11" fill="var(--text-1)">
+          <!-- Drafts -->
+          <rect x="0"   y="20" width="180" height="60" fill="var(--chart-grey)" />
+          <text x="90"  y="42" text-anchor="middle" font-size="11" fill="var(--text-3)">DRAFTS</text>
+          <text x="90"  y="62" text-anchor="middle" font-size="20" font-weight="600">23</text>
+
+          <polygon points="180,20 230,40 230,60 180,80" fill="var(--surface-2)" />
+
+          <!-- Queued -->
+          <rect x="230" y="30" width="160" height="40" fill="var(--chart-mint)" />
+          <text x="310" y="50" text-anchor="middle" font-size="11" fill="var(--text-3)">QUEUED</text>
+          <text x="310" y="68" text-anchor="middle" font-size="18" font-weight="600">17</text>
+
+          <polygon points="390,30 430,42 430,58 390,70" fill="var(--surface-2)" />
+
+          <!-- In flight -->
+          <rect x="430" y="35" width="140" height="30" fill="var(--chart-blue)" />
+          <text x="500" y="52" text-anchor="middle" font-size="11" fill="var(--text-3)">IN FLIGHT</text>
+          <text x="500" y="68" text-anchor="middle" font-size="16" font-weight="600">15</text>
+
+          <polygon points="570,35 610,44 610,56 570,65" fill="var(--surface-2)" />
+
+          <!-- Deployed -->
+          <rect x="610" y="38" width="190" height="24" fill="var(--chart-green)" />
+          <text x="705" y="54" text-anchor="middle" font-size="11" fill="var(--text-3)">DEPLOYED</text>
+          <text x="705" y="74" text-anchor="middle" font-size="16" font-weight="600">14</text>
+        </g>
+      </svg>
+      <div class="chart-card__sub" style="text-align: center; margin-top: 8px;">
+        Last 30 days · 23 drafts created · 74% promoted to queue · 88% of queued shipped · 2 failed (re-tried)
+      </div>
+    </section>
+
+  </section>
+
+  <footer class="foot">
+    <span>Mockup file · <code>dashboard/mockups/dashboard-redesign-v3-horizontal.html</code></span>
+    <span>regenerate the real dashboard with <code>uv run scripts/spec_lifecycle/render_dashboard.py</code></span>
+  </footer>
+</main>
+
+<script>
+// State toggle (in-flight vs idle hero)
+document.querySelectorAll('.state-toggle button').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var state = btn.dataset.state;
+    document.querySelectorAll('.state-toggle button').forEach(function (b) { b.classList.toggle('is-on', b === btn); });
+    document.getElementById('hero-inflight').style.display = state === 'inflight' ? '' : 'none';
+    document.getElementById('hero-idle').style.display     = state === 'idle' ? '' : 'none';
+  });
+});
+
+// Tabs
+document.querySelectorAll('.tabs .tab').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var slug = b.getAttribute('data-tab');
+    document.querySelectorAll('.tabs .tab').forEach(function (x) {
+      x.setAttribute('aria-selected', x.getAttribute('data-tab') === slug ? 'true' : 'false');
+    });
+    document.querySelectorAll('.tab-panel').forEach(function (p) {
+      p.setAttribute('aria-hidden', p.getAttribute('data-panel') === slug ? 'false' : 'true');
+    });
+  });
+});
+
+// Theme toggle (light <-> dark only in this mockup)
+document.getElementById('theme-toggle').addEventListener('click', function () {
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  this.querySelector('span:last-child').textContent = next;
+  this.querySelector('span:first-child').textContent = next === 'dark' ? '☾' : '☀';
+});
+</script>
+</body>
+</html>
