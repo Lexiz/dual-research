@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>dual-research · spec dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600&family=Roboto+Serif:opsz,wght@8..144,400;8..144,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="../../design-system/assets/styles/tokens-and-primitives.css">
+  <link rel="stylesheet" href="../../design-system/assets/styles/composed-components.css">
+  <style>
+    /* Page chrome — dashboard-specific layout only; everything visual reads from the DS. */
+    body {
+      margin: 0;
+      background: var(--md-surface-dim);
+      color: var(--md-on-surface);
+      font-family: var(--md-font-plain);
+      font-feature-settings: "tnum" 1;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page { max-width: 1280px; margin: 0 auto; padding: 28px 32px 80px; }
+
+    /* Header */
+    .dh {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding-bottom: 16px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--md-outline-hair);
+    }
+    .dh__title {
+      font: 500 24px/1.2 var(--md-font-brand);
+      letter-spacing: -0.01em;
+    }
+    .dh__sub { color: var(--md-on-surface-muted); font-size: 12.5px; }
+    .dh__meta { display: flex; gap: 14px; align-items: center; color: var(--md-on-surface-faint); font-size: 12px; }
+    .dh__meta a { color: var(--md-on-surface-variant); text-decoration: none; border-bottom: 1px dotted var(--md-outline-variant); }
+    .dh__meta a:hover { color: var(--md-on-surface); }
+
+    /* Section heading */
+    .sh {
+      display: flex; align-items: baseline; gap: 12px;
+      margin: 28px 0 12px;
+    }
+    .sh__name {
+      font: 500 11px/1 var(--md-font-plain);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--md-on-surface-faint);
+    }
+    .sh__hint { color: var(--md-on-surface-decor); font-size: 11.5px; }
+    .sh__rule { flex: 1; height: 1px; background: var(--md-outline-hair); }
+
+    /* HERO — in-flight or idle callout, full-width, not absolutely positioned */
+    .hero {
+      background: var(--md-surface-3);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: 14px;
+      padding: 22px 24px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+    .hero__icon {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--p-idle) 22%, transparent);
+      color: var(--md-on-surface-variant);
+    }
+    .hero--idle .hero__icon { background: color-mix(in srgb, var(--p-idle) 22%, transparent); color: var(--md-on-surface-variant); }
+    .hero--inflight .hero__icon { background: color-mix(in srgb, var(--p-info) 24%, transparent); color: var(--p-info); }
+    .hero--inflight .hero__icon::before {
+      content: ""; position: absolute; width: 56px; height: 56px; border-radius: 50%;
+      background: color-mix(in srgb, var(--p-info) 14%, transparent);
+      animation: halo 2.2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .hero__icon { position: relative; overflow: visible; }
+    @keyframes halo {
+      0%, 100% { opacity: .35; transform: scale(1); }
+      50% { opacity: .12; transform: scale(1.15); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero__icon::before { animation: none; }
+    }
+    .hero__icon .material-symbols-outlined { font-size: 26px; font-variation-settings: 'wght' 400; }
+
+    .hero__body { min-width: 0; }
+    .hero__kicker {
+      font: 500 11px/1 var(--md-font-plain);
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--md-on-surface-faint);
+      margin-bottom: 6px;
+    }
+    .hero__title {
+      font: 500 20px/1.25 var(--md-font-brand);
+      color: var(--md-on-surface);
+      margin-bottom: 10px;
+    }
+    .hero__title a { color: inherit; text-decoration: none; }
+    .hero__title a:hover { color: var(--p-info); }
+    .hero__row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .hero__hint { color: var(--md-on-surface-muted); font-size: 13px; }
+
+    .hero__right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 200px; }
+    .hero__big { font: 500 28px/1 var(--md-font-data); letter-spacing: -0.01em; }
+    .hero__big small { font-weight: 400; font-size: 13px; color: var(--md-on-surface-faint); letter-spacing: 0; }
+    .hero__lbl { color: var(--md-on-surface-faint); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* Pipeline strip — uses .seg-track from DS, plus labels above each segment */
+    .pipe {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+      padding: 18px 22px;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: 14px;
+      margin-top: 16px;
+    }
+    .pipe__col { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+    .pipe__lbl {
+      font: 500 11px/1 var(--md-font-plain);
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--md-on-surface-faint);
+    }
+    .pipe__num { font: 500 22px/1 var(--md-font-data); }
+    .pipe__num.is-zero { color: var(--md-on-surface-decor); font-weight: 400; }
+    .pipe__bar { height: 6px; width: 100%; border-radius: 3px; background: var(--md-surface-container-highest); }
+    .pipe__bar--draft { background: color-mix(in srgb, var(--md-on-surface-faint) 35%, var(--md-surface-container-highest)); }
+    .pipe__bar--queued { background: color-mix(in srgb, var(--p-idle) 60%, var(--md-surface-container-highest)); }
+    .pipe__bar--inflight { background: var(--p-info); }
+    .pipe__bar--merged { background: color-mix(in srgb, var(--p-ok) 45%, var(--md-surface-container-highest)); }
+    .pipe__bar--deployed { background: var(--p-ok); }
+
+    /* Metrics grid */
+    .metrics {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px;
+    }
+    .metric {
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .metric__lbl {
+      font: 500 11px/1 var(--md-font-plain);
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--md-on-surface-faint);
+    }
+    .metric__val { font: 500 22px/1 var(--md-font-data); }
+    .metric__sub { font-size: 11.5px; color: var(--md-on-surface-muted); }
+    .metric__sub .delta-up { color: var(--p-ok); }
+    .metric__sub .delta-down { color: var(--p-warn); }
+    .spark { height: 26px; width: 100%; }
+
+    /* Queue table — compact, type-chip column */
+    .qtable {
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .qrow {
+      display: grid; grid-template-columns: 44px 76px 1fr 130px 100px;
+      gap: 12px; align-items: center;
+      padding: 12px 16px;
+      border-top: 1px solid var(--md-outline-hair);
+    }
+    .qrow:first-of-type { border-top: 0; }
+    .qrow--header {
+      background: var(--md-surface-container-low);
+      color: var(--md-on-surface-faint);
+      font: 500 11px/1 var(--md-font-plain);
+      letter-spacing: 0.10em; text-transform: uppercase;
+      padding: 10px 16px;
+    }
+    .qrow__pos { font: 500 13px/1 var(--md-font-data); color: var(--md-on-surface-variant); }
+    .qrow__id  { font: 500 13px/1 var(--md-font-data); color: var(--md-on-surface); }
+    .qrow__id a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--md-outline-variant); }
+    .qrow__id a:hover { color: var(--p-info); border-bottom-color: var(--p-info); }
+    .qrow__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qrow__age { color: var(--md-on-surface-muted); font-size: 12px; font-family: var(--md-font-data); text-align: right; }
+    .qrow--empty { padding: 22px 16px; color: var(--md-on-surface-faint); text-align: center; font-size: 13px; }
+
+    /* Activity feed (changelog-style) */
+    .feed { display: flex; flex-direction: column; }
+    .feed__row {
+      display: grid; grid-template-columns: 140px 28px 1fr 80px;
+      gap: 14px; align-items: baseline;
+      padding: 10px 0;
+      border-top: 1px dashed var(--md-outline-hair);
+    }
+    .feed__row:first-child { border-top: 0; }
+    .feed__ts {
+      font: 400 12px/1.2 var(--md-font-data);
+      color: var(--md-on-surface-faint);
+      letter-spacing: 0.02em;
+    }
+    .feed__step .material-symbols-outlined {
+      font-size: 18px;
+      vertical-align: middle;
+    }
+    .feed__step--ok { color: var(--p-ok); }
+    .feed__step--info { color: var(--p-info); }
+    .feed__step--warn { color: var(--p-warn); }
+    .feed__step--err { color: var(--p-err); }
+    .feed__step--neutral { color: var(--md-on-surface-faint); }
+    .feed__what { font-size: 13.5px; }
+    .feed__what a { color: var(--md-on-surface); text-decoration: none; border-bottom: 1px dotted var(--md-outline-variant); }
+    .feed__what a:hover { color: var(--p-info); border-bottom-color: var(--p-info); }
+    .feed__what .kicker {
+      display: inline-block; min-width: 80px;
+      font: 500 11px/1 var(--md-font-plain);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--md-on-surface-faint);
+      margin-right: 8px;
+    }
+    .feed__dur { color: var(--md-on-surface-faint); font-family: var(--md-font-data); font-size: 12px; text-align: right; }
+
+    /* Drafts — secondary surface, denser */
+    .drafts {
+      background: var(--md-surface-container-low);
+      border: 1px solid var(--md-outline-hair);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .draft-row {
+      display: grid; grid-template-columns: 60px 1fr 140px 100px;
+      gap: 12px; align-items: center;
+      padding: 10px 16px;
+      border-top: 1px dashed var(--md-outline-hair);
+    }
+    .draft-row:first-child { border-top: 0; }
+    .draft-row__id { font: 500 12px/1 var(--md-font-data); color: var(--md-on-surface-faint); }
+    .draft-row__title { font-size: 13px; }
+    .draft-row__title a { color: var(--md-on-surface); text-decoration: none; }
+    .draft-row__title a:hover { color: var(--p-info); }
+    .draft-row__age { color: var(--md-on-surface-faint); font-family: var(--md-font-data); font-size: 12px; text-align: right; }
+
+    /* Chip overrides (use DS .chip wherever possible). Keep small style helpers here. */
+    .chip { font-family: var(--md-font-plain); }
+    .chip-type { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10.5px; }
+
+    /* Footer note */
+    .foot {
+      margin-top: 56px;
+      padding-top: 18px;
+      border-top: 1px solid var(--md-outline-hair);
+      color: var(--md-on-surface-decor);
+      font-size: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .foot a { color: var(--md-on-surface-faint); text-decoration: none; border-bottom: 1px dotted var(--md-outline-variant); }
+
+    /* In-flight hero — when expanded, hero becomes a flex column wrapping the existing
+       top row AND a stages timeline. The top row keeps its three-column grid. */
+    .hero--inflight { display: block; }
+    .hero--inflight .hero__top {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 20px;
+      align-items: center;
+    }
+    .hero--inflight .hero__divider {
+      height: 1px;
+      background: var(--md-outline-hair);
+      margin: 22px -24px 18px;
+    }
+
+    /* Stage timeline — vertical list shown only in the in-flight hero */
+    .stages {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .stage {
+      display: grid;
+      grid-template-columns: 24px 150px 1fr 80px;
+      gap: 14px;
+      align-items: center;
+      padding: 9px 0;
+      position: relative;
+    }
+    .stage + .stage::before {
+      content: "";
+      position: absolute;
+      left: 11px;          /* center of the 24px mark column */
+      top: -1px;
+      bottom: 50%;
+      width: 2px;
+      background: var(--md-outline-hair);
+    }
+    /* Done line should be solid colored connecting two done stages */
+    .stage--done + .stage--done::before { background: color-mix(in srgb, var(--p-ok) 60%, var(--md-outline-hair)); }
+    .stage--done + .stage--curr::before { background: color-mix(in srgb, var(--p-ok) 60%, var(--md-outline-hair)); }
+    /* And bottom half of the connector for current/in-progress stages */
+    .stage::after {
+      content: "";
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      bottom: 0;
+      width: 2px;
+      background: var(--md-outline-hair);
+    }
+    .stage:last-child::after { display: none; }
+    .stage--done::after { background: color-mix(in srgb, var(--p-ok) 60%, var(--md-outline-hair)); }
+
+    .stage__mark {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: var(--md-font-plain);
+      font-size: 13px; font-weight: 500;
+      background: var(--md-surface-container-high);
+      color: var(--md-on-surface-faint);
+      z-index: 1;
+      position: relative;
+    }
+    .stage--done .stage__mark {
+      background: color-mix(in srgb, var(--p-ok) 24%, var(--md-surface-container-high));
+      color: var(--p-ok);
+    }
+    .stage--curr .stage__mark {
+      background: color-mix(in srgb, var(--p-info) 26%, var(--md-surface-container-high));
+      color: var(--p-info);
+    }
+    .stage--curr .stage__mark::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--p-info) 16%, transparent);
+      animation: halo 2.2s ease-in-out infinite;
+    }
+    .stage--queued .stage__mark { background: var(--md-surface-container); color: var(--md-on-surface-decor); }
+    .stage--fail .stage__mark   { background: color-mix(in srgb, var(--p-err) 26%, var(--md-surface-container-high)); color: var(--p-err); }
+
+    .stage__name {
+      font: 500 13.5px/1.2 var(--md-font-plain);
+      color: var(--md-on-surface);
+    }
+    .stage--queued .stage__name { color: var(--md-on-surface-faint); font-weight: 400; }
+    .stage--done .stage__name { color: var(--md-on-surface-variant); }
+    .stage__note {
+      font: 400 12.5px/1.4 var(--md-font-data);
+      color: var(--md-on-surface-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .stage--queued .stage__note { color: var(--md-on-surface-decor); }
+    .stage__dur {
+      font: 400 11.5px/1 var(--md-font-data);
+      color: var(--md-on-surface-faint);
+      text-align: right;
+      letter-spacing: 0.02em;
+    }
+    .stage--curr .stage__dur {
+      color: var(--p-info);
+      font-weight: 500;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .stage--curr .stage__mark::before { animation: none; }
+    }
+
+    /* Toggle for the preview page only (will not exist in the production build) */
+    .preview-toggle {
+      position: sticky; top: 12px; z-index: 10;
+      display: flex; gap: 6px; align-items: center;
+      padding: 6px 10px;
+      background: var(--md-surface-container-high);
+      border: 1px solid var(--md-outline);
+      border-radius: 999px;
+      box-shadow: var(--md-elev-1);
+      width: max-content;
+      margin: -12px 0 16px;
+      font-size: 12px;
+      color: var(--md-on-surface-muted);
+    }
+    .preview-toggle button {
+      background: transparent;
+      border: 0;
+      color: var(--md-on-surface-faint);
+      font: 500 12px/1 var(--md-font-plain);
+      letter-spacing: 0.04em;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .preview-toggle button[aria-pressed="true"] {
+      background: var(--md-surface-container-highest);
+      color: var(--md-on-surface);
+    }
+    .preview-toggle small { color: var(--md-on-surface-decor); margin-left: 4px; font-size: 11px; }
+
+    body[data-state="inflight"] .hero--idle { display: none; }
+    body[data-state="idle"] .hero--inflight { display: none; }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero__right { align-items: flex-start; }
+      .pipe { grid-template-columns: repeat(2, 1fr); }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .qrow, .qrow--header { grid-template-columns: 36px 70px 1fr 90px; }
+      .qrow__age { display: none; }
+      .feed__row { grid-template-columns: 110px 22px 1fr; }
+      .feed__dur { display: none; }
+      .stage { grid-template-columns: 24px 110px 1fr 60px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+
+    <!-- HEADER -->
+    <header class="dh">
+      <div>
+        <div class="dh__title">dual-research · spec dashboard</div>
+        <div class="dh__sub">read-only view of <code>specs/</code>, <code>handoffs/</code> and <code>dashboard/events/</code> at <code>main</code></div>
+      </div>
+      <div class="dh__meta">
+        <span><span class="chip tone-ok no-dot">v1.17.0 live</span></span>
+        <span>updated <time>2026-05-22 10:52 UTC</time></span>
+        <a href="https://github.com/Lexiz/dual-research">repo ↗</a>
+      </div>
+    </header>
+
+    <!-- Preview-only toggle to flip between idle and in-flight hero states.
+         Not part of the production renderer; lets us iterate on the design. -->
+    <div class="preview-toggle" role="group" aria-label="Preview state">
+      <span>preview state</span>
+      <button type="button" data-state="idle" aria-pressed="true">Idle</button>
+      <button type="button" data-state="inflight" aria-pressed="false">In flight</button>
+      <small>(production picks automatically from spec frontmatter)</small>
+    </div>
+
+    <!-- HERO · IDLE — compact, single row -->
+    <section class="hero hero--idle" aria-label="Queue status">
+      <div class="hero__icon"><span class="material-symbols-outlined">pause_circle</span></div>
+      <div class="hero__body">
+        <div class="hero__kicker">Queue · idle</div>
+        <div class="hero__title">Nothing in flight. <span class="hero__hint">Run <code>/dev-next</code> in your queue session to start the next spec.</span></div>
+        <div class="hero__row">
+          <span class="chip tone-neutral">0 in flight</span>
+          <span class="chip tone-info">0 queued</span>
+          <span class="chip tone-ok">last shipped 2m ago</span>
+        </div>
+      </div>
+      <div class="hero__right">
+        <div class="hero__big">2m <small>ago</small></div>
+        <div class="hero__lbl">last deploy · 0152</div>
+      </div>
+    </section>
+
+    <!-- HERO · IN FLIGHT — expanded; top row + stage timeline -->
+    <section class="hero hero--inflight" aria-label="Queue in flight">
+      <div class="hero__top">
+        <div class="hero__icon"><span class="material-symbols-outlined">play_circle</span></div>
+        <div class="hero__body">
+          <div class="hero__kicker">In flight · step 6 of 11 — implement</div>
+          <div class="hero__title"><a href="spec-0153.html">Spec 0153 — Summary tab v2: celebratory close-out</a></div>
+          <div class="hero__row">
+            <span class="chip chip-type tone-info no-dot">new-feature</span>
+            <span class="chip tone-neutral">branch · <code>spec/0153-summary-tab-v2</code></span>
+            <span class="chip tone-ok">2 reconcile patches applied</span>
+          </div>
+        </div>
+        <div class="hero__right">
+          <div class="hero__big">42m</div>
+          <div class="hero__lbl">elapsed · ETA 1h 35m</div>
+        </div>
+      </div>
+
+      <div class="hero__divider"></div>
+
+      <ol class="stages" aria-label="Cycle stages">
+
+        <li class="stage stage--done">
+          <span class="stage__mark"><span class="material-symbols-outlined" style="font-size:14px">check</span></span>
+          <span class="stage__name">Pre-flight</span>
+          <span class="stage__note">main clean · no open spec/* PRs · no in-flight specs</span>
+          <span class="stage__dur">3s</span>
+        </li>
+
+        <li class="stage stage--done">
+          <span class="stage__mark"><span class="material-symbols-outlined" style="font-size:14px">check</span></span>
+          <span class="stage__name">Read handoff</span>
+          <span class="stage__note">handoffs/2026-05-22-spec-0152-spec-lifecycle-system-v1.md</span>
+          <span class="stage__dur">2s</span>
+        </li>
+
+        <li class="stage stage--done">
+          <span class="stage__mark"><span class="material-symbols-outlined" style="font-size:14px">check</span></span>
+          <span class="stage__name">Read spec</span>
+          <span class="stage__note">specs/0153-summary-tab-v2.md · 625 lines · new-feature</span>
+          <span class="stage__dur">1s</span>
+        </li>
+
+        <li class="stage stage--done">
+          <span class="stage__mark"><span class="material-symbols-outlined" style="font-size:14px">check</span></span>
+          <span class="stage__name">Reconcile</span>
+          <span class="stage__note">2 mechanical patches · 0 semantic drift · user approved</span>
+          <span class="stage__dur">1m 14s</span>
+        </li>
+
+        <li class="stage stage--done">
+          <span class="stage__mark"><span class="material-symbols-outlined" style="font-size:14px">check</span></span>
+          <span class="stage__name">Branch</span>
+          <span class="stage__note">spec/0153-summary-tab-v2 from main@d07234f</span>
+          <span class="stage__dur">2s</span>
+        </li>
+
+        <li class="stage stage--curr">
+          <span class="stage__mark"></span>
+          <span class="stage__name">Implement</span>
+          <span class="stage__note">245 lines changed across 6 files · 3 commits on branch</span>
+          <span class="stage__dur">40m</span>
+        </li>
+
+        <li class="stage stage--queued">
+          <span class="stage__mark"></span>
+          <span class="stage__name">Test</span>
+          <span class="stage__note">queued · full pytest suite</span>
+          <span class="stage__dur">—</span>
+        </li>
+
+        <li class="stage stage--queued">
+          <span class="stage__mark"></span>
+          <span class="stage__name">PR</span>
+          <span class="stage__note">queued · gh pr create with summary + test plan</span>
+          <span class="stage__dur">—</span>
+        </li>
+
+        <li class="stage stage--queued">
+          <span class="stage__mark"></span>
+          <span class="stage__name">Merge</span>
+          <span class="stage__note">queued · admin squash + delete branch</span>
+          <span class="stage__dur">—</span>
+        </li>
+
+        <li class="stage stage--queued">
+          <span class="stage__mark"></span>
+          <span class="stage__name">Deploy</span>
+          <span class="stage__note">queued · fly deploy + smoke anchor run</span>
+          <span class="stage__dur">—</span>
+        </li>
+
+        <li class="stage stage--queued">
+          <span class="stage__mark"></span>
+          <span class="stage__name">Handoff</span>
+          <span class="stage__note">queued · write handoffs/ + mark deployed + flush events</span>
+          <span class="stage__dur">—</span>
+        </li>
+
+      </ol>
+    </section>
+
+    <script>
+      // Preview-only state toggle. The production renderer reads spec frontmatter
+      // and picks the right hero block server-side; this lets us iterate on the
+      // design without needing live data.
+      (function () {
+        const body = document.body;
+        const buttons = document.querySelectorAll('.preview-toggle button');
+        const initial = (location.hash || '').replace('#', '') || 'idle';
+        body.dataset.state = initial;
+        buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.state === initial)));
+        buttons.forEach(b => b.addEventListener('click', () => {
+          const s = b.dataset.state;
+          body.dataset.state = s;
+          buttons.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.state === s)));
+          history.replaceState(null, '', '#' + s);
+        }));
+      })();
+    </script>
+
+    <!-- PIPELINE strip — what's in each stage right now -->
+    <section class="pipe" aria-label="Pipeline">
+      <div class="pipe__col">
+        <div class="pipe__lbl">Drafts</div>
+        <div class="pipe__num">4</div>
+        <div class="pipe__bar pipe__bar--draft" style="width: 80%"></div>
+      </div>
+      <div class="pipe__col">
+        <div class="pipe__lbl">Queued</div>
+        <div class="pipe__num is-zero">0</div>
+        <div class="pipe__bar pipe__bar--queued" style="width: 0%"></div>
+      </div>
+      <div class="pipe__col">
+        <div class="pipe__lbl">In progress</div>
+        <div class="pipe__num is-zero">0</div>
+        <div class="pipe__bar pipe__bar--inflight" style="width: 0%"></div>
+      </div>
+      <div class="pipe__col">
+        <div class="pipe__lbl">Merged today</div>
+        <div class="pipe__num">4</div>
+        <div class="pipe__bar pipe__bar--merged" style="width: 80%"></div>
+      </div>
+      <div class="pipe__col">
+        <div class="pipe__lbl">Deployed (all)</div>
+        <div class="pipe__num">152</div>
+        <div class="pipe__bar pipe__bar--deployed" style="width: 100%"></div>
+      </div>
+    </section>
+
+    <!-- METRICS — rolling stats that contextualise the pipeline -->
+    <div class="sh"><div class="sh__name">Throughput &amp; cycle time</div><div class="sh__rule"></div></div>
+    <section class="metrics">
+      <div class="metric">
+        <div class="metric__lbl">Avg cycle time</div>
+        <div class="metric__val">1h 42m</div>
+        <div class="metric__sub">rolling 10 · <span class="delta-down">↓ 12m</span> vs prior 10</div>
+      </div>
+      <div class="metric">
+        <div class="metric__lbl">Throughput</div>
+        <div class="metric__val">4 / day</div>
+        <div class="metric__sub">last 24h · 14 / week trend</div>
+      </div>
+      <div class="metric">
+        <div class="metric__lbl">Reconcile patches</div>
+        <div class="metric__val">2 of 4</div>
+        <div class="metric__sub">50% needed handoff drift fix</div>
+      </div>
+      <div class="metric">
+        <div class="metric__lbl">Failed cycles</div>
+        <div class="metric__val">0</div>
+        <div class="metric__sub">last 30 days</div>
+      </div>
+    </section>
+
+    <!-- QUEUE — ordered, dense -->
+    <div class="sh"><div class="sh__name">Queue</div><div class="sh__hint">/dev-next picks position 1 first</div><div class="sh__rule"></div></div>
+    <section class="qtable" aria-label="Queue">
+      <div class="qrow qrow--header">
+        <div>#</div>
+        <div>Spec</div>
+        <div>Title</div>
+        <div>Type</div>
+        <div style="text-align:right">Waiting</div>
+      </div>
+      <div class="qrow qrow--empty">Queue is empty. Promote a draft with <code>/spec-promote &lt;id&gt;</code> or queue a new one with <code>/spec-queue</code>.</div>
+
+      <!--
+      Example queue rows — comment in to preview a non-empty queue:
+      -->
+      <!--
+      <div class="qrow">
+        <div class="qrow__pos">1</div>
+        <div class="qrow__id"><a href="spec-0153.html">0153</a></div>
+        <div class="qrow__title">Summary tab v2 — celebratory close-out with verdict, stats, critique outcomes, and markdown download</div>
+        <div><span class="chip chip-type tone-info no-dot">new-feature</span></div>
+        <div class="qrow__age">12m</div>
+      </div>
+      <div class="qrow">
+        <div class="qrow__pos">2</div>
+        <div class="qrow__id"><a href="spec-0154.html">0154</a></div>
+        <div class="qrow__title">Login screen v2 — animated hero, theme toggle continuity</div>
+        <div><span class="chip chip-type tone-info no-dot">new-feature</span></div>
+        <div class="qrow__age">8m</div>
+      </div>
+      -->
+    </section>
+
+    <!-- ACTIVITY FEED — the lifecycle as it happened, reverse-chronological -->
+    <div class="sh"><div class="sh__name">Recent activity</div><div class="sh__hint">last 24 hours</div><div class="sh__rule"></div></div>
+    <section class="feed" aria-label="Recent activity">
+
+      <div class="feed__row">
+        <div class="feed__ts">10:50:17 UTC</div>
+        <div class="feed__step feed__step--ok"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="feed__what"><span class="kicker">deployed</span><a href="spec-0152.html">0152 · Spec lifecycle system v1</a> · v1.17.0</div>
+        <div class="feed__dur">1h 12m</div>
+      </div>
+      <div class="feed__row">
+        <div class="feed__ts">10:48:02 UTC</div>
+        <div class="feed__step feed__step--info"><span class="material-symbols-outlined">merge</span></div>
+        <div class="feed__what"><span class="kicker">merged</span><a href="spec-0152.html">0152</a> · <a href="https://github.com/Lexiz/dual-research/pull/175">PR #175</a> · admin squash</div>
+        <div class="feed__dur">—</div>
+      </div>
+      <div class="feed__row">
+        <div class="feed__ts">09:38:00 UTC</div>
+        <div class="feed__step feed__step--neutral"><span class="material-symbols-outlined">flag_circle</span></div>
+        <div class="feed__what"><span class="kicker">in progress</span><a href="spec-0152.html">0152</a> · branch <code>spec/0152-spec-lifecycle-system-v1</code></div>
+        <div class="feed__dur">—</div>
+      </div>
+      <div class="feed__row">
+        <div class="feed__ts">09:35:14 UTC</div>
+        <div class="feed__step feed__step--info"><span class="material-symbols-outlined">add_task</span></div>
+        <div class="feed__what"><span class="kicker">queued</span><a href="spec-0152.html">0152</a> · Spec lifecycle system v1 · position 1</div>
+        <div class="feed__dur">—</div>
+      </div>
+      <div class="feed__row">
+        <div class="feed__ts">09:16:27 UTC</div>
+        <div class="feed__step feed__step--ok"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="feed__what"><span class="kicker">deployed</span><a href="spec-0151.html">0151 · Design-system parity for critique surface</a> · v1.16.0</div>
+        <div class="feed__dur">1h 24m</div>
+      </div>
+      <div class="feed__row">
+        <div class="feed__ts">02:53:03 UTC</div>
+        <div class="feed__step feed__step--ok"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="feed__what"><span class="kicker">deployed</span><a href="spec-0150.html">0150 · Legacy-shim sunset + input-bundle backfill</a> · v1.15.0</div>
+        <div class="feed__dur">1h 47m</div>
+      </div>
+      <div class="feed__row">
+        <div class="feed__ts">01:00:00 UTC</div>
+        <div class="feed__step feed__step--ok"><span class="material-symbols-outlined">check_circle</span></div>
+        <div class="feed__what"><span class="kicker">deployed</span><a href="spec-0149.html">0149 · Post-batch cleanup + Anthropic cache engagement</a> · v1.14.0</div>
+        <div class="feed__dur">1h 36m</div>
+      </div>
+
+    </section>
+
+    <!-- DRAFTS — secondary, denser, lives below the active surface -->
+    <div class="sh"><div class="sh__name">Drafts</div><div class="sh__hint">backlog · promote with <code>/spec-promote &lt;id&gt;</code></div><div class="sh__rule"></div></div>
+    <section class="drafts" aria-label="Drafts">
+      <div class="draft-row">
+        <div class="draft-row__id">001</div>
+        <div class="draft-row__title"><a href="draft-001.html">Summary tab v2 — celebratory close-out with verdict, stats, critique outcomes</a></div>
+        <div><span class="chip chip-type tone-info no-dot">new-feature</span></div>
+        <div class="draft-row__age">park · 2h</div>
+      </div>
+      <div class="draft-row">
+        <div class="draft-row__id">002</div>
+        <div class="draft-row__title"><a href="draft-002.html">Login screen v2 — animated hero, theme toggle continuity, looping chatter</a></div>
+        <div><span class="chip chip-type tone-info no-dot">new-feature</span></div>
+        <div class="draft-row__age">park · 2h</div>
+      </div>
+      <div class="draft-row">
+        <div class="draft-row__id">003</div>
+        <div class="draft-row__title"><a href="draft-003.html">Timeline refresh — align live pane with design-system reference</a></div>
+        <div><span class="chip chip-type tone-neutral no-dot">unclassified</span></div>
+        <div class="draft-row__age">park · 2h</div>
+      </div>
+      <div class="draft-row">
+        <div class="draft-row__id">004</div>
+        <div class="draft-row__title"><a href="draft-004.html">Critique pane refresh — align live pane with design-system reference</a></div>
+        <div><span class="chip chip-type tone-neutral no-dot">unclassified</span></div>
+        <div class="draft-row__age">park · 2h</div>
+      </div>
+    </section>
+
+    <!-- ALL SPECS — explicit, secondary, sortable in future -->
+    <div class="sh"><div class="sh__name">All specs</div><div class="sh__hint">152 shipped · 0 queued · 0 in flight</div><div class="sh__rule"></div></div>
+    <section class="qtable" aria-label="All specs">
+      <div class="qrow qrow--header" style="grid-template-columns: 76px 1fr 130px 100px 100px;">
+        <div>Spec</div>
+        <div>Title</div>
+        <div>Type</div>
+        <div>Status</div>
+        <div style="text-align:right">Version</div>
+      </div>
+      <div class="qrow" style="grid-template-columns: 76px 1fr 130px 100px 100px;">
+        <div class="qrow__id"><a href="spec-0152.html">0152</a></div>
+        <div class="qrow__title">Spec lifecycle system v1 — typed drafts, dev queue, dashboard, session naming</div>
+        <div><span class="chip chip-type tone-info no-dot">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">1.17.0</div>
+      </div>
+      <div class="qrow" style="grid-template-columns: 76px 1fr 130px 100px 100px;">
+        <div class="qrow__id"><a href="spec-0151.html">0151</a></div>
+        <div class="qrow__title">Design-system parity for critique surface + canonical Agent Input grouping</div>
+        <div><span class="chip chip-type tone-err no-dot">bug</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">1.16.0</div>
+      </div>
+      <div class="qrow" style="grid-template-columns: 76px 1fr 130px 100px 100px;">
+        <div class="qrow__id"><a href="spec-0150.html">0150</a></div>
+        <div class="qrow__title">Legacy-shim sunset + historical input-bundle backfill</div>
+        <div><span class="chip chip-type tone-warn no-dot">refactoring</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">1.15.0</div>
+      </div>
+      <div class="qrow" style="grid-template-columns: 76px 1fr 130px 100px 100px;">
+        <div class="qrow__id"><a href="spec-0149.html">0149</a></div>
+        <div class="qrow__title">Post-batch cleanup + Anthropic cache engagement + protocol follow-ups</div>
+        <div><span class="chip chip-type tone-info no-dot">new-feature</span></div>
+        <div><span class="chip tone-ok">deployed</span></div>
+        <div class="qrow__age">1.14.0</div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>generated by <code>scripts/spec_lifecycle/render_dashboard.py</code> · regenerated on every push to <code>main</code></span>
+      <a href="https://lexiz.github.io/dual-research/">view on GitHub Pages →</a>
+    </footer>
+
+  </main>
+</body>
+</html>
