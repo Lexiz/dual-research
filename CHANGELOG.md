@@ -10,6 +10,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.22.0] — 2026-05-22
+
+### Added
+
+- **Spec 0158 — Deferred-spec subagent in `/dev-next`** ([spec 0158](specs/0158-deferred-spec-subagent.md)). Three coordinated additions across host-side `/dev-next` and in-repo helpers.
+- `scripts/spec_lifecycle/deferrals.py` — parser for the new `## Deferred during implementation` handoff section. Exposes `parse_deferred_section(body)` and `parse_handoff_file(path)`, returning a list of `DeferredItem(title, context)` records or `[]` when the section is absent or empty. Permissive — bold/plain titles, em-dash/en-dash/hyphen separators, multi-line continuation context indented under each item.
+- `tests/spec_lifecycle/test_handoff_deferred_section_parser.py` — 7 cases covering absent section, empty section, bold titles with em-dash, plain titles with hyphen, "stops at next heading" boundary, multi-line context joining, and end-to-end file round-trip.
+- `tests/spec_lifecycle/test_dev_next_handoff_template.py` — host-bound regression test asserting the installed `~/.claude/skills/dev-next/SKILL.md` mentions the new section convention, step 25.5 subagent spawn, and step 15 deferral-tracking reminder. Skips on CI where the skill file isn't installed.
+
+### Changed
+
+- Host-side `~/.claude/skills/dev-next/SKILL.md` (not in this PR) picks up three coordinated edits: step 15b adds a "Track deferrals as you go" reminder; step 23 documents the new `## Deferred during implementation` handoff section (omitted when nothing was deferred — its absence signals the subagent should not fire); new step 25.5 parses the section and spawns a background subagent via the Agent tool when items are present; step 26 chat report mentions whether the subagent fired.
+
 ## [1.21.0] — 2026-05-22
 
 ### Added
