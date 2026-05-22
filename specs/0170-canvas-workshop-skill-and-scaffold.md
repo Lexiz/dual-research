@@ -8,7 +8,7 @@ label: new-feature
 version_bump: MINOR
 target_version: TBD
 status: queued
-queue_position: 2
+queue_position: 3
 depends_on: []
 complexity: M
 created: 2026-05-22
