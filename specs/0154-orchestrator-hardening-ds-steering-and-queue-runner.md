@@ -41,6 +41,7 @@ Spec 0152 introduced the four-skill spec workflow (`/spec-draft`, `/spec-queue`,
 - **`/dev-next/SKILL.md:80` instructs "Update CHANGELOG with an `[Unreleased]` entry"** but actual practice (`CHANGELOG.md:12-32`) writes directly under a new `## [X.Y.Z]` section per spec. Skill text and reality disagree.
 - **`/dev-next` is single-spec only** (`/dev-next/SKILL.md:9`, `:125-127`). Draining a backlog of N queued specs requires N manual invocations.
 - **Permission prompts fire repeatedly** for routine work in `~/dual-research-author/` (not in `additionalDirectories` at `~/.claude/settings.json:6-10`), for DS-rebuild scripts, and for `~/.claude/skills/` edits.
+- **Queue session goes stale on informal checks.** `/dev-next/SKILL.md:18` does `git fetch` only; local `main` never advances unless `/dev-next`'s full preflight runs (step 3 would catch the lag and halt). Informal prompts like "is the queue ready?" that read local disk return wrong answers. Discovered during 0154's own creation: the queue session reported "queue empty" while `origin/main` carried 0154's two queued commits.
 
 ## 2. Proposed change
 
@@ -76,6 +77,8 @@ Seven concrete edits across four skill files, one new skill, one new project fil
 Add explicit "do not pause before writing — invocation IS the confirmation" line at the end of step 1.
 
 ### 2.4 — `~/.claude/skills/dev-next/SKILL.md`
+
+**Step 1** (`dev-next/SKILL.md:18`): change `git fetch` to `git pull --ff-only origin main`. The current `fetch` updates remote-tracking refs but leaves local `main` stale, so any informal "is the queue ready?" prompt that reads disk without invoking `/dev-next` returns wrong answers. `--ff-only` is safe-by-default — fails noisily on divergence rather than auto-merging. Step 3's existing "up to date with `origin/main`" check then becomes a tautology (good — it should always pass after step 1).
 
 **Step 15** (`dev-next/SKILL.md:80`): two changes folded into a restructured step.
 
@@ -139,6 +142,7 @@ No frontmatter changes to existing specs. `version_bump` is now documented inlin
 - [ ] `/spec-queue` on a thread proposing a new UI component reads `design-system/SPEC.md` before writing, and the resulting spec body cites at least one DS section/primitive per proposed UI element.
 - [ ] `/spec-queue` and `/spec-promote` set `version_bump` matching the type mapping (verify on one spec per type).
 - [ ] `/dev-next` on a spec with `version_bump: MINOR` writes a new `## [X.Y.0] — YYYY-MM-DD` section in `CHANGELOG.md`, NOT under `[Unreleased]`.
+- [ ] `/dev-next` step 1 fast-forwards local `main` to `origin/main` before any other check. Verify by: (a) `git -C /Users/alexlisitzky/dual-research reset --hard HEAD~1` to put local main behind, (b) invoke `/dev-next`, (c) confirm step 1 pulls forward and step 3's up-to-date check passes without intervention.
 - [ ] `/dev-queue-run` invoked from `/Users/alexlisitzky/dual-research/` with N≥2 queued specs asks ONE confirmation, runs all sequentially, halts at first failure or empty queue.
 - [ ] `/dev-queue-run` invoked from `/Users/alexlisitzky/dual-research-author/` refuses with the same guard message shape as `/dev-next/SKILL.md:14`.
 - [ ] Editing a file under `~/.claude/skills/**` from any session does not prompt for permission.
