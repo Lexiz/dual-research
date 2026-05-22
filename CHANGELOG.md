@@ -10,6 +10,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.19.0] — 2026-05-22
+
+### Added
+
+- **Spec 0154 — Spec workflow hardening — design-system steering at spec time, run-queue-until-empty skill, project CLAUDE.md** ([spec 0154](specs/0154-orchestrator-hardening-ds-steering-and-queue-runner.md)). Folds three hardening passes into the spec lifecycle: (1) design-system steering at spec creation and at `/dev-next` step 15, so UI specs carry DS citations and UI implementations never drift from canonical tokens/primitives; (2) `/dev-queue-run`, a new host-side skill that drains the whole queue from a single greenlight, halting on first failure; (3) a project-root `CLAUDE.md` that auto-loads in every Claude Code session in this repo and encodes the design system, versioning, and spec-workflow rules.
+- `CLAUDE.md` at repo root — auto-loaded by every Claude Code session, encodes design-system rules (tokens only, dual-write components, DS citations at spec time), versioning rules (mechanical bump from spec type, new `## [X.Y.Z]` section per spec — no `[Unreleased]` accumulation), and the five-skill spec workflow pointer.
+
+### Changed
+
+- `/dev-next` step 1 changed from `git fetch` to `git pull --ff-only origin main`. The queue session's local `main` now advances on every cycle, so informal "is the queue ready?" prompts that read local disk between cycles return correct answers instead of stale state.
+- `/dev-next` step 15 restructured: (15a) DS gate fires before any frontend code lands — reads `design-system/SPEC.md`, honors DS citations the spec carries, requires tokens-only colors and dual-write of new components; (15b) version + CHANGELOG section makes each spec its own release (new `## [X.Y.Z] — YYYY-MM-DD` section, no `[Unreleased]` accumulation).
+- `/spec-queue` and `/spec-promote` stop pausing for classification confirmation — invocation IS the confirmation. Both skills now run a Scope scan + Design-system check at spec time and inline the explicit `version_bump` mechanical mapping (`breaking`→MAJOR, `new-feature`→MINOR, `bug`/`refactoring`/`test`→PATCH) so the field can't be misset.
+- `/spec-draft` step 1 adds scope-exclusion capture and a UI-scope flag, plus an explicit "do not pause — invocation IS the confirmation" rule.
+- `~/.claude/settings.json` adds `/Users/alexlisitzky/dual-research-author` to `additionalDirectories`, mirrors the dual-research `cd && *` allow family for the author worktree, and allows `Edit`/`Write` on `~/.claude/skills/**` — fewer permission prompts for routine authoring + skill-tuning work.
+- `~/dual-research-author/.claude/settings.local.json` (new) mirrors the queue worktree's project-local permissions.
+- `feedback_pause_between_specs` memory file picks up an Exception note documenting `/dev-queue-run` as the explicit opt-out from per-spec pauses; default `/dev-next` behavior unchanged.
+
 ## [1.18.0] — 2026-05-22
 
 ### Added
