@@ -12,3 +12,7 @@
 {"ts":"2026-05-22T17:50:46Z","step":"tests_green","data":{"passed":1532,"failed":0,"js_passed":9}}
 {"ts":"2026-05-22T17:51:35Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/187"}}
 {"ts":"2026-05-22T17:51:56Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/187"}}
+{"ts":"2026-05-22T17:52:25Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-22T17:55:27Z","step":"deployed","data":{"version":"1.25.0","strategy":"bluegreen","sweep":"no stale blues","cluster_machines":2,"note":"transient lease-error on initial deploy attempt; second attempt converged. Final cluster 2/2 healthy at v1.25.0."}}
+{"ts":"2026-05-22T17:55:27Z","step":"deploy_health_check_ok","data":{"endpoint":"/api/health","response":"{ok:true,version:1.25.0}"}}
+{"ts":"2026-05-22T17:56:27Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0164-timeline-pane-card-chrome-and-phase-header.md"}}

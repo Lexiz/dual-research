@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.25.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T17:08:41Z"
 started_at: "2026-05-22T17:15:00Z"
 merged_at: "2026-05-22T19:55:00Z"
-deployed_at: ""
+deployed_at: "2026-05-22T19:57:00Z"
 pr: "https://github.com/Lexiz/dual-research/pull/187"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0164-timeline-pane-card-chrome-and-phase-header.md"
 failure_step: ""
 source_session: timeline-iteration-2026-05-22
 promoted_from_draft: "003"
