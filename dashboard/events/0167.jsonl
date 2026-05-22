@@ -6,3 +6,4 @@
 {"ts":"2026-05-22T18:33:25Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"§2.1 (.fgroup → .tab-group-solid rename) deferred — existing .fgroup already has identical visual contract (lifted tile + elev-1 active). §2.2 count plumbing deferred — substantial scope. Shipping §2.3 / §2.4 / §2.5 / §2.6."}}
 {"ts":"2026-05-22T18:33:55Z","step":"in_progress","data":{}}
 {"ts":"2026-05-22T18:33:59Z","step":"branched","data":{"branch":"spec/0167-critique-pane-bar2-chrome-and-bar1-drift-chip","from":"main@a508121"}}
+{"ts":"2026-05-22T18:34:03Z","step":"implementing_started","data":{}}
