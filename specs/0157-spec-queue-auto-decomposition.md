@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.21.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: 2026-05-22T13:26:06Z
 started_at: "2026-05-22T13:50:28Z"
 merged_at: "2026-05-22T13:54:01Z"
-deployed_at: ""
+deployed_at: "2026-05-22T13:55:47Z"
 pr: "https://github.com/Lexiz/dual-research/pull/180"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0157-spec-queue-auto-decomposition.md"
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
