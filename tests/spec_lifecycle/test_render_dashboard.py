@@ -128,6 +128,58 @@ def test_assets_copied(tmp_path: Path) -> None:
     assert "--md-surface-dim" in (out / "tokens.css").read_text(encoding="utf-8")
 
 
+def test_meta_refresh_present_in_index(tmp_path: Path) -> None:
+    """Spec 0156 §2.2 — every dashboard page auto-refreshes every 60s."""
+    root = _bootstrap_repo(tmp_path)
+    specs, drafts = collect(root)
+    html = render_index(specs, drafts)
+    assert '<meta http-equiv="refresh" content="60">' in html
+
+
+def test_dashboard_live_js_script_referenced(tmp_path: Path) -> None:
+    """The hero references the live-ticker script (spec 0156 §2.3)."""
+    root = _bootstrap_repo(tmp_path)
+    specs, drafts = collect(root)
+    html = render_index(specs, drafts)
+    assert 'src="dashboard-live.js"' in html
+
+
+def test_inflight_hero_emits_live_data_attributes(tmp_path: Path) -> None:
+    """In-flight hero carries data-cycle-started-at and data-stage-started-at
+    with ISO 8601 timestamps so dashboard-live.js can rewrite the text
+    every second (spec 0156 §2.3)."""
+    root = _bootstrap_repo(tmp_path)
+    specs, drafts = collect(root)
+    html = render_index(specs, drafts)
+    # The bootstrap repo has one in-progress spec (0103) so the in-flight hero renders.
+    assert "hero--inflight" in html
+    # Cycle-started attribute appears on the hero's big number.
+    assert "data-cycle-started-at=" in html
+    # And the current stage row has the stage-started-at attribute.
+    assert "data-stage-started-at=" in html
+    # Values look like ISO 8601 timestamps (year prefix shows up).
+    import re
+
+    cycle_match = re.search(r'data-cycle-started-at="(\d{4}-\d{2}-\d{2}T[^"]+)"', html)
+    assert cycle_match is not None, "data-cycle-started-at must be an ISO 8601 timestamp"
+
+
+def test_main_writes_dashboard_live_js(tmp_path: Path) -> None:
+    """`main` writes dashboard-live.js alongside the other assets (spec 0156 §2.3)."""
+    root = _bootstrap_repo(tmp_path)
+    _bootstrap_design_system(root)
+    out = tmp_path / "site"
+
+    rc = main(["--repo-root", str(root), "--out", str(out)])
+    assert rc == 0
+    js = out / "dashboard-live.js"
+    assert js.exists()
+    content = js.read_text(encoding="utf-8")
+    assert "data-cycle-started-at" in content
+    assert "data-stage-started-at" in content
+    assert "prefers-reduced-motion" in content  # Honors the user pref.
+
+
 def test_assets_copy_missing_raises(tmp_path: Path) -> None:
     root = _bootstrap_repo(tmp_path)
     out = tmp_path / "site"

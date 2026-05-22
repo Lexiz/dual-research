@@ -10,6 +10,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-05-22
+
+### Added
+
+- **Spec 0156 — Dashboard live-ness: cycle-started anchor, auto-refresh, live elapsed ticker, deploy-pages cleanup** ([spec 0156](specs/0156-dashboard-liveness-improvements.md)). Four discrete fixes in one spec.
+- New event step `cycle_started`, emitted in `/dev-next` step 1 right after `git pull --ff-only`. It's the canonical "agent began work" marker and the cycle anchor `compute_stages` reads. Anchor preference is now `cycle_started` → `queued` → `in_progress` (legacy specs without `cycle_started` fall back to `queued`; very-legacy specs without that fall back to `in_progress`).
+- Browser auto-refresh — every dashboard page (`index.html`, `spec-NNNN.html`, `draft-NNN.html`) carries `<meta http-equiv="refresh" content="60">` so the dashboard tracks new spec events without the user reaching for ⌘R.
+- Live elapsed ticker — new `dashboard/site/dashboard-live.js` (~50 lines, no deps) increments the in-flight hero's ELAPSED display and the current stage's duration cell every second from `data-cycle-started-at` and `data-stage-started-at` attributes the server emits. Honors `prefers-reduced-motion: reduce`.
+
+### Fixed
+
+- In-flight hero's stage durations no longer clip Pre-flight / Read handoff / Read spec to 0s. The bug was: `/dev-next` step 12 emits `in_progress` after the buffered early events, so `preflight_ok_ts - in_progress_ts` went negative and got clipped to 0 (and subsequent same-second events inherited that 0). Switching the anchor to `cycle_started` (emitted in step 1, before any other event) gives Pre-flight a real positive duration.
+- `dashboard.yml` workflow no longer fails at the deploy step. The `deploy` job using `actions/deploy-pages@v4` was removed entirely — Pages-from-Actions isn't available for this private repo (the GitHub API returns 422 "Your current plan does not support GitHub Pages for this repository"), and `https://lexiz.github.io/dual-research/` was returning 404 anyway. The render output is still uploaded as a generic `dashboard-site` workflow artifact (downloadable from the run UI, 14-day retention). Restoring proper hosting for the rendered dashboard is a follow-up — flagged in the spec 0156 handoff.
+
 ## [1.19.1] — 2026-05-22
 
 ### Fixed
