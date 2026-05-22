@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: TBD
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: L
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T20:48:00Z"
 started_at: "2026-05-22T21:02:06Z"
 merged_at: "2026-05-22T21:28:31Z"
-deployed_at: ""
+deployed_at: "2026-05-22T21:40:06Z"
 pr: "https://github.com/Lexiz/dual-research/pull/194"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0177-dashboard-redesign-v3-horizontal-hero-and-metrics.md"
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
