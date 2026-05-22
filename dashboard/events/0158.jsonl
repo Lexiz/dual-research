@@ -10,3 +10,5 @@
 {"ts":"2026-05-22T14:04:16Z","step":"tests_green","data":{"passed":1500,"failed":0}}
 {"ts":"2026-05-22T14:05:02Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/181"}}
 {"ts":"2026-05-22T14:05:02Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/181"}}
+{"ts":"2026-05-22T14:07:06Z","step":"deployed","data":{"version":"1.22.0"}}
+{"ts":"2026-05-22T14:07:36Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0158-deferred-spec-subagent.md"}}
