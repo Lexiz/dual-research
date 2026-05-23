@@ -1,1 +1,8 @@
 {"ts":"2026-05-22T23:23:07Z","step":"queued","data":{"source":"deferred_from_0186"}}
+{"ts":"2026-05-23T16:17:47Z","step":"cycle_started","data":{}}
+{"ts":"2026-05-23T16:17:47Z","step":"preflight_ok","data":{"checks":["main_clean","no_open_spec_prs","no_in_flight"]}}
+{"ts":"2026-05-23T16:17:47Z","step":"handoff_read","data":{"path":"handoffs/2026-05-23-spec-0191-queue-drain-supervisor-extraction-and-tests.md"}}
+{"ts":"2026-05-23T16:17:47Z","step":"spec_read","data":{"path":"specs/0192-l-spec-checkpoint-budget-heuristic.md","lines":134,"type":"new-feature"}}
+{"ts":"2026-05-23T16:17:47Z","step":"planning_started","data":{}}
+{"ts":"2026-05-23T16:18:06Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
+{"ts":"2026-05-23T16:18:06Z","step":"in_progress","data":{}}
