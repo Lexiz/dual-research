@@ -10,6 +10,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.35.0] — 2026-05-23
+
+### Added
+
+- **Spec 0175 — Summary tab v2: celebratory close-out** ([spec 0175](specs/0175-summary-tab-v2.md)). The Critique pane's Σ Summary sub-tab is rewritten from a four-table data dump into a status-aware close-out that opens with the verdict you actually wanted at the end of a run.
+  - **Status-aware hero band** ([`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx)). Cheer line + 32 dp glyph + computed verdict (Mostly positive / Mostly negative / Mixed / Inconclusive) + explanation line. Deadlocked variant frames the hard-cap; errored variant replaces the verdict with `Incomplete` and surfaces `run.error.{where, code, detail}` verbatim. Topic line preserved in serif italic per DS §2.5.
+  - **Headline stat grid** — five auto-fit tiles (tokens burned · spent · elapsed · rounds · web searches) on the same `--md-surface-container-high` chrome spec 0168 §2.1 locked in for `.item-card`.
+  - **Head-to-head agent cards** with a 2 px provider stripe (`--p-sable` / `--p-sage`), four `SmallStat` chips, and a token-share bar across the bottom.
+  - **Deduplicated critique outcomes** — four expandable rows (Claude raised / solved · GPT raised / solved) where `resolved-both` no longer double-credits per-agent solved rows; instead the count surfaces as its own `aligned` stat in the section header. Sub-rows per-kind preview on expansion.
+  - **Auto-jump on terminal transition.** `CritiqueExplorer` watches `isTerminal` and snaps the active tab to `'summary'` when the run finishes, unless the user has manually picked a different tab during this session (tracked via a `userPickedTabRef`).
+  - **Confetti** — single ~600 ms particle burst fires once per `(run, browser)` when the verdict is `Mostly positive`. Gated by `localStorage` and `prefers-reduced-motion: reduce` (the flag is still written under reduced-motion so the gate doesn't re-try). No external library — ~50-line vanilla `<span>` + transform implementation.
+  - **Footer** — verdict-coloured filled primary `Download final document (.md)` (HEAD-probes `/api/runs/{id}/files/final.md` on mount, disables with tooltip on 404), outlined `Copy summary` (plain-text verdict + story copy via `navigator.clipboard.writeText`), right-anchored mono `run <id>` (spec 0138 §5.3 affordance).
+  - **Legacy tables preserved** behind a single `Per-round breakdown` disclosure (`SummaryKindTable` byte-identical to today).
+  - **Verdict threshold tightened** from `resolveRatio ≥ 0.70` → `≥ 0.85` for the green verdict (matches the spec 0119 §7 canonical resolution-rate framing).
+  - **`how-it-works.jsx`** ([`src/dual_research/ui/static/how-it-works.jsx`](src/dual_research/ui/static/how-it-works.jsx)) — new v1.35.0 release-notes entry documenting the v2 layout.
+  - **Test guard** ([`tests/spec0175/test_compute_summary_stats.py`](tests/spec0175/test_compute_summary_stats.py)) — pytest static-analysis assertions for the deterministic stats helper, the verdict thresholds, the `resolved-both` deduplication contract, and the consumer-wiring shape in `run-detail.jsx`.
+
 ## [1.34.3] — 2026-05-23
 
 ### Fixed

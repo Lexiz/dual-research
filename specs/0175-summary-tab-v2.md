@@ -6,17 +6,17 @@ title: Summary tab v2 — celebratory close-out with verdict, stats, critique ou
 type: new-feature
 label: new-feature
 version_bump: MINOR
-target_version: TBD
-status: in_progress
+target_version: 1.35.0
+status: merged
 queue_position: 1
 depends_on: ["0168", "0172"]
 complexity: M
 created: 2026-05-22
 queued_at: "2026-05-22T22:30:00Z"
 started_at: "2026-05-23T09:02:17Z"
-merged_at: ""
+merged_at: "2026-05-23T09:19:39Z"
 deployed_at: ""
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/202"
 handover: ""
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
