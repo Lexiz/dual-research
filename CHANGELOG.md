@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.34.2] — 2026-05-23
+
+### Fixed
+
+- **Spec 0171 — Agent Input sub-tab two-card horizontal-scroll regression** ([spec 0171](specs/0171-agent-input-single-column-with-agent-toggle.md)). The Agent Input sub-tab inside split-pane turn modals stacked two narrow `<AgentInputPane>` cards inside an already-narrow left pane via `.agent-input { display: grid; grid-template-columns: 1fr 1fr; }`. At 1500–1799 px viewports (default MacBook 14″/16″ and typical half-screen 27″) the grid stayed at `1fr 1fr` and the modal grew a horizontal scrollbar. Spec 0151 §3.1 fixed the inner card body anatomy but preserved the dual-card outer frame; this spec replaces that frame.
+  - **New single-column consumer** ([`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx)). `AgentInputSingleColumn` renders one `<PromptPiecesThreeSectionView frame="single">` driven by a canonical `.tab-group-solid` + `.tab-solid` segmented control (Claude · GPT), matching the single-pane modals' anatomy (`DocumentModal`, `PreflightResponseModal`, `InputBriefModal`). Default agent = `item.agent` when present, else `claude`; paired-turn lookup reuses the existing `buildTimeline(run)` memo.
+  - **Retired dual-pane primitives** ([`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx)). `AgentInputDualPane` (SPEC-0101) and `AgentInputPane` deleted — both had exactly one consumer site (the `sub === 'input'` branch in `NegotiateLeftPane`) and no external references.
+  - **CSS deleted from both stylesheets in lock-step** per the CLAUDE.md DS-canonical / live-copy sync rule: the `.agent-input`, `.agent-input__pane`, `.agent-input__head`, `.agent-input__body` rules and their 1499 px media query in [`src/dual_research/ui/static/components.css`](src/dual_research/ui/static/components.css) and [`design-system/assets/styles/composed-components.css`](design-system/assets/styles/composed-components.css). The §15 catalog demo in [`design-system/assets/Design System v2.html`](design-system/assets/Design System v2.html) was retired alongside the primitive it documented.
+  - **Test guard** ([`tests/spec0171/test_agent_input_single_column.py`](tests/spec0171/test_agent_input_single_column.py)). Six pytest static-analysis checks: dual-pane symbols deleted, `AgentInputSingleColumn` wired at the `sub === 'input'` site, segmented control uses the post-spec-0173 `.tab-group-solid` + `data-active` pattern, `.agent-input*` CSS removed from both stylesheets, `InputTabContent` and its `frame="single"` delegation untouched.
+
 ## [1.34.1] — 2026-05-23
 
 ### Fixed

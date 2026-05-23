@@ -287,27 +287,9 @@
   .consume__row { grid-template-columns: 60px 1fr 140px; gap: 12px; }
 }
 
-/* ── Agent input panel ──────────────────────────── */
-.agent-input {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-}
-.agent-input__pane {
-  border-radius: var(--md-shape-md);
-  border: 1px solid var(--md-outline-hair);
-  padding: 16px;
-  background: var(--md-surface-container);
-  min-height: 220px;
-  position: relative;
-}
-.agent-input__pane--a { background: color-mix(in srgb, var(--md-primary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-primary) 28%, var(--md-outline-hair)); }
-.agent-input__pane--b { background: color-mix(in srgb, var(--md-secondary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-secondary) 28%, var(--md-outline-hair)); }
-.agent-input__head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-.agent-input__body {
-  font-family: var(--md-font-data); font-size: 13px; line-height: 1.55;
-  color: var(--md-on-surface-variant); white-space: pre-wrap;
-}
-
-@media (max-width: 1499px) { .agent-input { grid-template-columns: 1fr; } }
+/* Spec 0171 — the dual-pane agent-input primitive (SPEC-0101) retired;
+   the Agent Input pane now renders single-column via the canonical
+   tab-group-solid + PromptPiecesThreeSectionView combination. */
 
 /* ── ProgressSegs (admin) ───────────────────────── */
 .seg-track {

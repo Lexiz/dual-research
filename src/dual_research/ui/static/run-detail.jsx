@@ -5308,9 +5308,10 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, 
   // sees inside a turn modal is what this agent was actually responding to:
   // counterpart's prior turn (Phase 2 r ≥ 2), counterpart's Phase 1 draft
   // (Phase 2 r1), or the Converged Draft (Phase 4). Resolves Notion issues
-  // 8 + 10. The prior Spec 0085 default ('input' → AgentInputDualPane's
-  // dual-bundle view) was confusing in a per-turn context where input vs
-  // output is the natural mental model. 'input' stays one click away.
+  // 8 + 10. The prior Spec 0085 default ('input' → the dual-bundle agent-
+  // input view, since spec 0171 collapsed to AgentInputSingleColumn) was
+  // confusing in a per-turn context where input vs output is the natural
+  // mental model. 'input' stays one click away.
   const [sub, setSub] = React.useState('original');
   // Spec 0044 D4 — when in "Original" sub-mode, track which document
   // the user has selected. Defaults to the first docTabs entry
@@ -5394,9 +5395,62 @@ function NegotiateLeftPane({ item, otherAgent, priorFilePath, docTabs, leftRef, 
         padding: '14px 16px',
       }}>
         {sub === 'original' && <LazyMarkdownBody filePath={activeDoc.path} />}
-        {sub === 'input' && <AgentInputDualPane item={item} run={run} />}
+        {sub === 'input' && <AgentInputSingleColumn item={item} run={run} />}
         {sub === 'webSearch' && <WebSearchTabContent turnKey={item.turnKey} />}
       </div>
+    </div>
+  );
+}
+
+// Spec 0171 — Agent Input pane renders as a single column with an agent
+// segmented selector at the top, instead of the spec-0101 dual-pane that
+// stacked two narrow cards inside the already-narrow split-modal left
+// pane. Anatomy matches the single-pane modals (DocumentModal,
+// PreflightResponseModal, InputBriefModal): one PromptPiecesThreeSectionView
+// at frame="single", driven by the canonical .tab-group-solid + .tab-solid
+// segmented control (spec 0173 §2.3) for agent switching.
+function AgentInputSingleColumn({ item, run }) {
+  const timeline = React.useMemo(() => buildTimeline(run), [run]);
+  const pairedTurn = React.useMemo(() => {
+    return timeline.find((t) =>
+      t.agent !== item.agent
+      && t.statsPhase === item.statsPhase
+      && Number(t.round) === Number(item.round)
+    );
+  }, [timeline, item]);
+
+  const claudeKey = item.agent === 'claude' ? item.turnKey : pairedTurn?.turnKey;
+  const gptKey = item.agent === 'gpt' ? item.turnKey : pairedTurn?.turnKey;
+
+  const initialAgent = item.agent === 'gpt' ? 'gpt' : 'claude';
+  const [selectedAgent, setSelectedAgent] = React.useState(initialAgent);
+  const selectedTurnKey = selectedAgent === 'gpt' ? gptKey : claudeKey;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="tab-group-solid" role="group" aria-label="Select agent input">
+        <button
+          type="button"
+          className="tab-solid"
+          data-active={selectedAgent === 'claude' ? 'true' : 'false'}
+          onClick={() => setSelectedAgent('claude')}
+          title="Show Claude's input bundle"
+        >
+          <i className="dot" style={{ background: 'var(--claude)' }} />
+          Claude
+        </button>
+        <button
+          type="button"
+          className="tab-solid"
+          data-active={selectedAgent === 'gpt' ? 'true' : 'false'}
+          onClick={() => setSelectedAgent('gpt')}
+          title="Show GPT's input bundle"
+        >
+          <i className="dot" style={{ background: 'var(--gpt)' }} />
+          GPT
+        </button>
+      </div>
+      <PromptPiecesThreeSectionView turnKey={selectedTurnKey} frame="single" />
     </div>
   );
 }
@@ -6051,53 +6105,6 @@ function reviewItemsFor(run, item) {
   return Array.isArray(bucket) ? bucket : [];
 }
 
-// ─────────────────── SPEC-0101 — AgentInputDualPane ──────────────────────────
-// Two-pane M3 agent-input layout showing both agents' input bundles side by
-// side. Pane A = Claude, Pane B = GPT. Each pane: AgentStrip + StatusBadge
-// in the head, collapsible input sections in the body.
-function AgentInputDualPane({ item, run }) {
-  const timeline = React.useMemo(() => buildTimeline(run), [run]);
-  const pairedTurn = React.useMemo(() => {
-    return timeline.find(t =>
-      t.agent !== item.agent &&
-      t.statsPhase === item.statsPhase &&
-      Number(t.round) === Number(item.round)
-    );
-  }, [timeline, item]);
-
-  const agentAKey = item.agent === 'claude' ? item.turnKey : pairedTurn?.turnKey;
-  const agentBKey = item.agent === 'gpt' ? item.turnKey : pairedTurn?.turnKey;
-
-  return (
-    <div className="agent-input">
-      <AgentInputPane slot="a" turnKey={agentAKey} run={run} />
-      <AgentInputPane slot="b" turnKey={agentBKey} run={run} />
-    </div>
-  );
-}
-
-// Spec 0151 §3.1 — AgentInputPane retains its per-agent card frame
-// (AgentStrip + StatusBadge) but delegates the prompt-piece body to
-// the shared three-section view. Pre-0151 this rendered each piece as
-// a flat row, diverging from every other Agent Input surface — the
-// migration brings the split-view in line with InputTabContent.
-function AgentInputPane({ slot, turnKey, run }) {
-  const agentName = slot === 'a' ? 'Claude' : 'GPT';
-  const statusLabel = run?.status || 'idle';
-
-  return (
-    <div className={`agent-input__pane agent-input__pane--${slot}`}>
-      <div className="agent-input__head">
-        <AgentStrip agent={slot} name={agentName} />
-        <StatusBadge status={statusLabel} />
-      </div>
-      <div className="agent-input__body">
-        <PromptPiecesThreeSectionView turnKey={turnKey} frame="split" />
-      </div>
-    </div>
-  );
-}
-
 // ─────────────────── Spec 0145 — Input tab + bundle rendering ───────────────
 //
 // Display names resolve via `window.DrArtifacts.displayName(id, {titleForId})`
@@ -6189,12 +6196,12 @@ function sectionFor(canonicalKey) {
   return 'derived';
 }
 
-// Spec 0151 §3.1 — shared three-section renderer used by both the
-// single-pane Input tab (InputTabContent) and the split-pane preflight
-// renderer (AgentInputPane). The `frame` prop controls only minor
-// spacing between the two contexts; the section structure, piece
-// rendering, default-open behaviour, and loading/error/empty states
-// are identical across both consumers.
+// Spec 0145 §5.4 — shared three-section renderer. Single-pane consumers
+// (InputTabContent → DocumentModal / PreflightResponseModal /
+// InputBriefModal) plus the spec-0171 AgentInputSingleColumn all call
+// it with `frame="single"`. The `frame` prop is retained as a vestigial
+// hook; only "single" is in use today (spec 0171 retired "split" along
+// with the dual-pane AgentInputPane).
 function PromptPiecesThreeSectionView({ turnKey, attachmentTitles, frame = 'single' }) {
   const { bundle, loading, error } = window.useInputBundle(turnKey);
 
@@ -6288,8 +6295,10 @@ function PromptPiecesThreeSectionView({ turnKey, attachmentTitles, frame = 'sing
 }
 
 // Spec 0145 §5.4 introduced the three-section grouping; spec 0151 §3.1
-// extracted it into PromptPiecesThreeSectionView so the split-pane
-// preflight renderer (AgentInputPane) can share the same structure.
+// extracted it into PromptPiecesThreeSectionView so the dual-pane
+// preflight renderer could share the same structure. Spec 0171 retired
+// the dual-pane consumer; InputTabContent + AgentInputSingleColumn are
+// now the only callers.
 function InputTabContent({ turnKey, attachmentTitles }) {
   return (
     <PromptPiecesThreeSectionView
