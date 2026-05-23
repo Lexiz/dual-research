@@ -8,7 +8,7 @@ label: refactoring
 version_bump: PATCH
 target_version: TBD
 status: queued
-queue_position: 5
+queue_position: 4
 depends_on: ["0186"]
 complexity: M
 created: 2026-05-23

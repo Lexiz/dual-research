@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.37.0
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0173"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T12:49:23Z"
 merged_at: "2026-05-23T12:52:51Z"
-deployed_at: ""
+deployed_at: "2026-05-23T12:58:34Z"
 pr: "https://github.com/Lexiz/dual-research/pull/217"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0188-item-card-issue-comment-bodies-via-thread-view.md"
 failure_step: ""
 source_session: deferred-from-0173
 promoted_from_draft: ""

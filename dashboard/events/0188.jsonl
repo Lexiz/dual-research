@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T12:52:14Z","step":"tests_green","data":{"passed":1690}}
 {"ts":"2026-05-23T12:52:47Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/217"}}
 {"ts":"2026-05-23T12:53:04Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/217"}}
+{"ts":"2026-05-23T12:53:49Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T12:58:34Z","step":"deployed","data":{"version":"1.37.0"}}
+{"ts":"2026-05-23T12:58:34Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T12:59:25Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0188-item-card-issue-comment-bodies-via-thread-view.md"}}
