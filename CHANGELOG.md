@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.8] — 2026-05-23
+
+### Changed
+
+- **Spec 0185 — cycle-time chart Y-axis cap is now percentile-based** ([spec 0185](specs/0185-cycle-time-chart-percentile-y-axis-cap.md)). The Metrics-tab cycle-time line chart's hard-coded 60-minute Y-axis cap is replaced with `max(p95(cycle_secs), 10m)` rounded up to the nearest nice value in `{10, 15, 20, 30, 45, 60, 90, 120}` minutes. Bootstrap repos with only sub-10m cycles still get readable headroom (the 10m floor); mature repos with long-tailed outliers clip the worst few. Three new module-level helpers in `scripts/spec_lifecycle/render_dashboard.py` — `_pick_cap`, `_nice_round_cap`, `_format_y_tick` — drive the cap selection and dynamic Y-axis labels. The five hard-coded `<text>` labels at the renderer became a loop over the nice-rounded cap; the outlier-note caption (`"Outliers > 1h …"`) is now templated against the dynamic cap (`"Outliers > {cap}m …"`). For repos sitting on the spec-0177 baseline (cycles in the 10–60m range) the nice-rounded p95 still lands at 60m, so the chart looks identical there — the change only kicks in for bootstrap repos and outlier-heavy distributions. `design-system/SPEC.md` §2.1 now documents the cap heuristic. 14 new tests in `tests/spec_lifecycle/test_render_dashboard_spec_0185.py` cover the three helpers and the three repo shapes (bootstrap / outlier / 60m baseline) called out in spec §4.
+
 ## [1.36.7] — 2026-05-23
 
 ### Added

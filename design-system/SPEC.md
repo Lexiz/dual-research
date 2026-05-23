@@ -92,6 +92,10 @@ Pastel tokens for analytical surfaces only. The spec dashboard's Metrics tab is 
 
 Contrast: dark-mode pastels target ≥ 4.5:1 against `--md-surface-container`; light-mode pastels are softer than the dark variants so they sit on cream surfaces without vibrating.
 
+#### Cycle-time chart Y-axis cap (spec 0185)
+
+The cycle-time line chart caps its Y-axis at `max(p95(cycle_secs), 10m)` rounded up to the nearest nice value in `{10, 15, 20, 30, 45, 60, 90, 120}` minutes. Bootstrap repos with only sub-10m cycles still get readable headroom; mature repos with long-tailed outliers clip the worst few. Outliers above the cap render at the top of the chart with a count annotation in the caption (e.g. *"Outliers > 20m (1) clipped to the top."*).
+
 ### 2.2 — Surfaces (M3 tonal scale)
 
 M3 expresses elevation through both **shadow** and **tonal surface tint**. The surface tier set is:

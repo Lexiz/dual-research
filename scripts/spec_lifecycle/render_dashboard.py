@@ -198,6 +198,52 @@ def _ago(then: dt.datetime | None, now: dt.datetime) -> str:
     return _humanize_seconds(int((now - then).total_seconds())) + " ago"
 
 
+def _pick_cap(cycle_secs: list[int]) -> int:
+    """Pick a Y-axis cap (in seconds) from a list of cycle durations.
+
+    Returns ``max(p95(cycle_secs), MIN_CAP_SECONDS)`` so bootstrap repos with
+    only sub-10m cycles still get readable headroom, while mature repos with
+    long-tailed outliers clip the worst few.
+    """
+    MIN_CAP_SECONDS = 10 * 60
+    if not cycle_secs:
+        return MIN_CAP_SECONDS
+    if len(cycle_secs) < 2:
+        return max(cycle_secs[0], MIN_CAP_SECONDS)
+    p95 = statistics.quantiles(cycle_secs, n=20, method="inclusive")[18]
+    return max(int(p95), MIN_CAP_SECONDS)
+
+
+def _nice_round_cap(secs: int) -> int:
+    """Round a duration (seconds) up to the next nice axis cap.
+
+    Nice values: ``{10, 15, 20, 30, 45, 60, 90, 120}`` minutes. Values larger
+    than 120m clamp to 120m so the axis labels stay readable; outliers above
+    the cap render at the top with a count annotation.
+    """
+    nice_minutes = (10, 15, 20, 30, 45, 60, 90, 120)
+    minutes = secs / 60.0
+    for n in nice_minutes:
+        if minutes <= n:
+            return n * 60
+    return nice_minutes[-1] * 60
+
+
+def _format_y_tick(cap: int, fraction: float) -> str:
+    """Format a Y-axis label at ``fraction`` of ``cap`` seconds.
+
+    Returns ``"0"`` for the zero tick and ``"{N}m"`` (or ``"{N}m {S}s"`` if a
+    nice-rounded cap leaves seconds remainder, e.g. 10m at 25% → ``2m 30s``).
+    """
+    secs = int(round(cap * fraction))
+    if secs == 0:
+        return "0"
+    minutes, remainder = divmod(secs, 60)
+    if remainder == 0:
+        return f"{minutes}m"
+    return f"{minutes}m {remainder}s"
+
+
 def _escape(value: Any) -> str:
     return html.escape(str(value if value is not None else ""))
 
@@ -857,8 +903,8 @@ def _render_metrics(
 def _render_cycle_time_chart(deployed: list[SpecRow]) -> str:
     """Spec 0177 §2.4.2 — last 22 deployed cycles. Two polylines: actual
     cycle time (chart-blue, with dot markers) and rolling-10 mean overlay
-    (chart-purple, dashed). Y-axis clipped at 60 minutes; specs > 1h are
-    plotted at the top of the chart and annotated in the caption.
+    (chart-purple, dashed). Y-axis cap is picked dynamically from the data
+    (spec 0185): max(p95, 10m) rounded up to a nice round minute value.
     """
     # Oldest-on-the-left for natural reading order.
     series = list(reversed(deployed[:22]))
@@ -872,7 +918,7 @@ def _render_cycle_time_chart(deployed: list[SpecRow]) -> str:
             '</div>'
         )
 
-    cap = 60 * 60  # 60 minutes; outliers render at the cap and are annotated.
+    cap = _nice_round_cap(_pick_cap(cycle_secs))
     outlier_count = sum(1 for v in cycle_secs if v > cap)
     plotted = [min(v, cap) for v in cycle_secs]
     # Map secs ∈ [0, cap] → y ∈ [180, 20] (inverted, top-padded for x-axis).
@@ -918,7 +964,7 @@ def _render_cycle_time_chart(deployed: list[SpecRow]) -> str:
     outlier_note = ""
     if outlier_count:
         outlier_note = (
-            f" Outliers > 1h ({outlier_count}) clipped to the top."
+            f" Outliers > {cap // 60}m ({outlier_count}) clipped to the top."
         )
 
     return (
@@ -938,12 +984,12 @@ def _render_cycle_time_chart(deployed: list[SpecRow]) -> str:
         '</g>'
         '<g fill="var(--md-on-surface-faint)" font-family="var(--md-font-data)" '
         'font-size="10" text-anchor="end">'
-        f'<text x="{pad_l - 6}" y="{pad_t + 4}">60m</text>'
-        f'<text x="{pad_l - 6}" y="{pad_t + inner_h * 0.25 + 4}">45m</text>'
-        f'<text x="{pad_l - 6}" y="{pad_t + inner_h * 0.5 + 4}">30m</text>'
-        f'<text x="{pad_l - 6}" y="{pad_t + inner_h * 0.75 + 4}">15m</text>'
-        f'<text x="{pad_l - 6}" y="{pad_t + inner_h + 4}">0</text>'
-        '</g>'
+        + "".join(
+            f'<text x="{pad_l - 6}" y="{pad_t + inner_h * (1 - f) + 4}">'
+            f'{_format_y_tick(cap, f)}</text>'
+            for f in (1.0, 0.75, 0.5, 0.25, 0.0)
+        )
+        + '</g>'
         f'<polyline fill="none" stroke="var(--chart-purple)" stroke-width="1.5" '
         f'stroke-dasharray="4,4" points="{rolling_pts}" />'
         f'<polyline fill="none" stroke="var(--chart-blue)" stroke-width="2" '
