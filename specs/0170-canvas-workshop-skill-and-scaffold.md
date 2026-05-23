@@ -8,7 +8,6 @@ label: new-feature
 version_bump: MINOR
 target_version: TBD
 status: deployed
-queue_position: 0
 depends_on: []
 complexity: M
 created: 2026-05-22

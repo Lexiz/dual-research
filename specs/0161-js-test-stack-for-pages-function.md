@@ -8,7 +8,6 @@ label: test
 version_bump: PATCH
 target_version: 1.23.1
 status: deployed
-queue_position: 1
 depends_on: []
 complexity: M
 created: 2026-05-22

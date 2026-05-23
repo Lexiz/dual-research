@@ -8,7 +8,6 @@ label: bug
 version_bump: PATCH
 target_version: TBD
 status: deployed
-queue_position: 1
 depends_on: []
 complexity: S
 created: 2026-05-23

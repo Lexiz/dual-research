@@ -8,7 +8,6 @@ label: bug
 version_bump: PATCH
 target_version: 1.19.1
 status: deployed
-queue_position: 0
 depends_on: ["0154"]
 complexity: S
 created: 2026-05-22
