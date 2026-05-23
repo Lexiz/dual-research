@@ -10,6 +10,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.42.0] — 2026-05-24
+
+### Added
+
+- **Spec 0202 — Main-commit noise reduction: queue-state file + handoff archival + event consolidation** ([spec 0202](specs/0202-main-commit-noise-queue-state-file-and-handoff-archival.md)). New-feature, MINOR bump. Three coupled accumulation problems addressed together because they share one architectural move: a single mutable state file (`dashboard/queue-state.json`) becomes the authoritative source for cycle state, and the post-deploy step in `/dev-next` becomes the natural archival hook for handoffs and (now-consolidated) events.
+
+  **New: `dashboard/queue-state.json`** — JSON document committed to `main`, keyed by spec ID (decimal-aware per spec 0199), holds `status`, timestamps, `pr`, `target_version`, `handover`, `failure_step`, and an append-only `events` list per spec. Schema version `1`. The dashboard renderer reads from this file for all cycle-mutable fields; spec frontmatter becomes a queue-time immutable snapshot.
+
+  **New module: `scripts/spec_lifecycle/queue_state.py`** — typed read/write with the same `GIT_INDEX_FILE` plumbing used by `scripts/spec_lifecycle/append_event.py`. `read_state(repo_root)`, `update_state(repo_root, spec_id, *, push_to_main, events_append, events_replace, **fields)`, `append_event_to_state(...)`. Push-to-main path uses 3-retry non-fast-forward conflict resolution; on race, re-reads `origin/main` and re-applies the caller's intent so a concurrent writer's events are preserved. CLI subcommands `set`, `append-event`, `show`.
+
+  **New module: `scripts/spec_lifecycle/archive_handoffs.py`** — `archive_old_handoffs(handoffs_dir, cap=20)` moves all but the most-recent `cap` handoffs to `handoffs/archive/YYYY-MM/` keyed by the date prefix; `cleanup_superseded_checkpoints(handoffs_dir, spec_id)` deletes `kind: in-spec-checkpoint` handoffs that match BOTH predicates (kind + spec). `protect=` parameter passed in for in-flight L-spec checkpoints. CLI: `--cap 20 --cleanup-spec NNNN`.
+
+  **New module: `scripts/spec_lifecycle/build_queue_state.py`** — one-time backfill. Reads every `specs/NNNN-*.md` (and decimal `NNNN.M-*.md`) frontmatter; reads every `dashboard/events/*.jsonl`; folds both into a new `dashboard/queue-state.json`; moves per-spec sidecars into `dashboard/events/archive/`; calls `archive_old_handoffs` against the live handoff folder. Protects in-flight L-spec checkpoint handoffs from being moved. Idempotent — re-running on an already-backfilled repo is a no-op.
+
+  **Renderer rewire** at [scripts/spec_lifecycle/render_dashboard.py](scripts/spec_lifecycle/render_dashboard.py) — `collect()` reads `queue-state.json` once and layers per-spec entries over the spec frontmatter dict for the mutable fields (`status`, `started_at`, `merged_at`, `deployed_at`, `pr`, `handover`, `failure_step`, `target_version`). Events come from `state.specs[NNNN].events` when present, else fall back to the legacy sidecar via `read_events`. Shape-immutable fields (`title`, `type`, `complexity`, `depends_on`, `version_bump`, `slug`, `label`) stay sourced from the spec frontmatter unchanged. Specs without a state-file entry fall back to frontmatter so the renderer never crashes on legacy or future-bypass cases.
+
+  **`read_events` backwards-compat shim** at [scripts/spec_lifecycle/append_event.py:221](scripts/spec_lifecycle/append_event.py:221) — now first tries `queue-state.json` (inferred from `events_dir` as `<events_dir>.parent.parent` unless `repo_root=` is passed explicitly), falls back to `<events_dir>/NNNN.jsonl` otherwise. Test fixtures that pass a bare `tmp_path` keep working through the fallback. Returning `None` internally (vs. `[]`) discriminates "no state-file entry" from "entry exists but empty."
+
+  **One-time backfill commit** consumes the 51 existing `dashboard/events/*.jsonl` sidecars (now under `dashboard/events/archive/`) and 100+ older handoffs (now under `handoffs/archive/YYYY-MM/`). `dashboard/queue-state.json` reaches `main` with entries for every spec ever queued.
+
+  **Out-of-band skill prose updates** (live under `~/.claude/skills/`, not in this repo) per spec §2.2:
+  - `spec-queue/SKILL.md` step 6 + 7 — initial queue-state entry + spec file land in ONE commit; the separate `event queued` commit is gone. Drops one commit per spec at queue time.
+  - `spec-promote/SKILL.md` step 8 — same shape as spec-queue.
+  - `dev-next/SKILL.md` — every `append_event` reference becomes `queue_state append-event`; step 12 (cycle start) calls `queue_state set --push-to-main status=in_progress started_at=$NOW` instead of writing spec frontmatter; step 18 (merge) calls `queue_state set --push-to-main status=merged pr=URL merged_at=$NOW` with no branch-side frontmatter commit; step 24 (post-deploy) calls `queue_state set status=deployed deployed_at=$NOW handover=PATH` plus the new step 24a's `archive_handoffs --cap 20 --cleanup-spec NNNN`, ALL in one commit with message `spec(NNNN): deployed vX.Y.Z + handoff + archive (k moved, j checkpoints cleaned)`. Failure paths (steps 11, 16, 21) call `queue_state set --push-to-main status=failed failure_step=<name>` with no spec frontmatter write. Pre-flight step 5 in-progress check reads from `queue-state.json` instead of disk frontmatter. Deferred-spec subagent prompt (step 25.5) updated to reference the new `/spec-queue` commit shape.
+  - `dev-queue-run/SKILL.md` step 2 — in-progress check reads from `queue-state.json`. Failure-recovery note (after the run-stops list) updated with the manual flip command: `uv run python -m scripts.spec_lifecycle.queue_state set --push-to-main NNNN status=queued failure_step=null`.
+
+  **Tests:** 4 new files, 61 new tests covering happy-path queue-state CRUD, conflict-safe push retry, monotonicity (events array cannot shrink), archive cap behavior + dry-run + skipped-non-dated-files + protected-checkpoints, cleanup-by-both-predicates discrimination, backfill round-trip + sidecar archival + handoff archival + idempotency, renderer layering of state over frontmatter + fallback to frontmatter for un-backfilled specs + decimal-ID round-trip + read_events shim for both sources.
+
+  **Migration window note:** the cycle that ships spec 0202 itself is the first cycle to write `queue-state.json` to main. After the backfill lands and merges, queue-state.json exists on main for all subsequent cycles; their branch-phase `queue_state append-event --push-to-main` calls work identically to spec 0163's previous push-to-main behavior. The spec 0202 cycle's own branch-phase events landed via the legacy `append_event` path (sidecar at `dashboard/events/0202.jsonl`) up through the backfill commit; the backfill folded them into `queue-state.json` automatically.
+
 ## [1.41.2] — 2026-05-24
 
 ### Changed

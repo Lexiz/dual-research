@@ -218,8 +218,24 @@ def _build_tree_with_temp_index(
             os.unlink(index_path)
 
 
-def read_events(events_dir: str | Path, spec_id: str) -> list[dict[str, Any]]:
-    """Read all events for a spec; returns [] if no log exists."""
+def read_events(
+    events_dir: str | Path,
+    spec_id: str,
+    *,
+    repo_root: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """Read all events for a spec; returns [] if no source exists.
+
+    Spec 0202 §2.4 — first tries ``dashboard/queue-state.json`` (inferred
+    from ``events_dir`` as ``events_dir.parent.parent`` unless ``repo_root``
+    is given explicitly), falls back to the legacy
+    ``dashboard/events/NNNN.jsonl`` sidecar otherwise. Test fixtures that
+    pass a bare ``tmp_path`` keep working through the fallback.
+    """
+    state_events = _events_from_queue_state(events_dir, spec_id, repo_root=repo_root)
+    if state_events is not None:
+        return state_events
+
     log = Path(events_dir) / f"{spec_id}.jsonl"
     if not log.exists():
         return []
@@ -234,6 +250,44 @@ def read_events(events_dir: str | Path, spec_id: str) -> list[dict[str, Any]]:
             # Skip malformed lines rather than crash the dashboard render
             continue
     return out
+
+
+def _events_from_queue_state(
+    events_dir: str | Path,
+    spec_id: str,
+    *,
+    repo_root: str | Path | None,
+) -> list[dict[str, Any]] | None:
+    """Return events from queue-state.json, or ``None`` if the spec has no entry.
+
+    Returning ``None`` (not ``[]``) means "no state-file entry exists, fall
+    back to the sidecar." An empty list means "entry exists but has no
+    events" — the sidecar is not consulted in that case.
+    """
+    if repo_root is None:
+        ed = Path(events_dir)
+        # Convention: events_dir = <repo_root>/dashboard/events. Walk up two
+        # levels to find the repo root. If the structure doesn't match, the
+        # state-file lookup will simply find nothing and the caller falls
+        # back to the sidecar — no harm done.
+        if ed.name == "events" and ed.parent.name == "dashboard":
+            repo_root = ed.parent.parent
+        else:
+            return None
+    state_path = Path(repo_root) / "dashboard" / "queue-state.json"
+    if not state_path.exists():
+        return None
+    try:
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    entry = (data.get("specs") or {}).get(spec_id)
+    if entry is None:
+        return None
+    events = entry.get("events")
+    if events is None:
+        return []
+    return list(events)
 
 
 def main(argv: list[str] | None = None) -> int:
