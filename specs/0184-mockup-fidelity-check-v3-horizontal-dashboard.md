@@ -7,7 +7,7 @@ type: test
 label: test
 version_bump: PATCH
 target_version: "1.36.7"
-status: merged
+status: deployed
 queue_position: 2
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T21:55:00Z"
 started_at: "2026-05-23T11:59:49Z"
 merged_at: "2026-05-23T12:04:36Z"
-deployed_at: ""
+deployed_at: "2026-05-23T12:09:13Z"
 pr: "https://github.com/Lexiz/dual-research/pull/214"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0184-mockup-fidelity-check-v3-horizontal-dashboard.md"
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""
