@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.9] — 2026-05-23
+
+### Changed
+
+- **Spec 0187 — DS reference §13 ItemCard examples refreshed to post-0173 anatomy** ([spec 0187](specs/0187-ds-v2-item-card-examples-refresh.md)). The Critique card §13 in `design-system/assets/Design System v2.html` was still showing the pre-0173 ItemCard chrome — `id` chip + `Sources N` chip in the head, `<em class="evidence-needed">` body banner, flat `.lc-row` lifecycle rows, all default-expanded. Live ItemCard since spec 0173 ships `[provider chip][kind chip][evidence-needed modifier?][head-spacer][lifecycle chip]`, `data-expanded="false"` default, and QuestionThread-anatomy bubbles for the expanded view. §13 now mirrors live with four example states: collapsed-resolved + expanded-resolved (Resolved Question), and collapsed-open + expanded-open (Disagreement with `evidence_required`). Stacking-order callout rewritten to reflect the new chip composition and the collapse affordance. Lede paragraph rewritten. Section-index annotated `§13 · components · NEW · spec 0144 · refreshed 0173 / 0187` so future readers see the rebase. The former third standalone "open Disagreement · with evidence-needed body banner" full-width card is removed — its purpose (showing evidence-needed) is now covered by pair 2's expanded-open example with the inline head chip. §13b QuestionThread (legacy) untouched per spec §5. No CSS / JSX edits — reference doc only catches up to live.
+
 ## [1.36.8] — 2026-05-23
 
 ### Changed
