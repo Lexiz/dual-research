@@ -21,6 +21,25 @@
   // ─── In-app release notes ─────────────────────────────────────
   const VERSION_NOTES = [
     {
+      version: '1.35.0',
+      date: '2026-05-23',
+      bump: 'MINOR',
+      specs: ['0175'],
+      summary: 'Summary tab v2 — celebratory close-out with verdict band, headline stats, head-to-head agent cards, deduplicated critique outcomes, and a markdown download.',
+      items: [
+        '<strong>Status-aware hero band.</strong> Every terminal run lands on a verdict-tinted band: cheer line + 32 dp glyph + computed verdict label (<em>Mostly positive</em> / <em>Mostly negative</em> / <em>Mixed</em> / <em>Inconclusive</em>) + an explanation line. Deadlocked runs show the hard-cap framing; errored runs replace the verdict with <em>Incomplete</em> and surface the error code + detail verbatim. Topic line keeps its serif italic treatment.',
+        '<strong>Headline stat grid.</strong> Five auto-fit tiles — tokens burned, spent, elapsed, rounds, web searches — sit on the M3 surface-container-high chrome spec 0168 §2.1 locked in. Each tile has a top-right glyph + big mono value + uppercase label + optional sub-line hint.',
+        '<strong>Head-to-head agent cards.</strong> Claude / GPT side-by-side, with 2 px provider stripe (sable / sage), four <code>SmallStat</code> chips (tokens · cost · raised · solved), and a token-share bar across the bottom.',
+        '<strong>Deduplicated critique outcomes.</strong> Four expandable rows — Claude raised, Claude solved, GPT raised, GPT solved — using the canonical <code>.tab-group-solid</code> chrome. The <code>resolved-both</code> disagreement bucket no longer double-credits to per-agent solved rows; it surfaces as its own <em>aligned</em> count in the section header. Per-row sub-rows preview the per-kind tally on expansion.',
+        '<strong>Auto-jump on terminal transition.</strong> When the run finishes mid-session, the Critique pane snaps to the Σ Summary tab — unless the user has manually picked a different tab during this session.',
+        '<strong>Celebratory confetti.</strong> A single 600 ms particle burst fires once per (run, browser) when the verdict is <em>Mostly positive</em>. Gated by <code>localStorage</code> and <code>prefers-reduced-motion: reduce</code> — the flag is still written under reduced-motion so the gate doesn\'t re-try later.',
+        '<strong>Footer download + copy.</strong> Verdict-coloured filled primary button downloads <code>final.md</code> directly from <code>/api/runs/&lt;id&gt;/files/final.md</code> (disabled with tooltip if the document is missing). Outlined secondary button copies the plain-text verdict + story copy to the clipboard. Right-aligned mono <code>run &lt;id&gt;</code>.',
+        '<strong>Legacy tables preserved.</strong> The per-phase per-kind <code>SummaryKindTable</code> rendering (spec 0046 D5) lives behind a single <em>Per-round breakdown</em> disclosure, byte-identical to today\'s render.',
+        '<strong>Verdict threshold tightened.</strong> The green-verdict resolution-ratio threshold moved from 0.70 → 0.85, so <em>Mostly positive</em> now reflects actual resolution dominance rather than borderline outcomes.',
+      ],
+      screenshots: [],
+    },
+    {
       version: '1.6.0',
       date: '2026-05-20',
       bump: 'MINOR',
