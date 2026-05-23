@@ -285,17 +285,14 @@ def _tokens_used_in_region(css: str, region_selectors: list[str]) -> set[str]:
     return tokens
 
 
-# Mockup-only shorthand aliases that don't exist in the canonical DS
-# token vocabulary (live render uses `--p-accent`, `--md-font-data`,
-# `--md-font-plain`). The mockup pre-dates the canonical naming pass.
-# Flagged as a deferral in spec 0184's handoff so a follow-up can
-# rewrite the mockup to use the canonical names — then this allowlist
-# can shrink to {}.
-_MOCKUP_SHORTHAND_ALLOWLIST = {
-    "--accent",      # canonical: --p-accent
-    "--font-data",   # canonical: --md-font-data
-    "--font-plain",  # canonical: --md-font-plain
-}
+# Spec 0197 — empty by design. The mockup was rewritten to use the
+# canonical `--p-info` / `--md-font-plain` / `--md-font-data` token
+# names so this allowlist no longer needs exceptions. The set is kept
+# as a single named extension point — if a future renaming pass
+# transiently needs to tolerate shorthand drift (e.g. mid-rename when
+# the mockup and live render briefly diverge), the entries land here.
+# The intended steady state is empty.
+_MOCKUP_SHORTHAND_ALLOWLIST: set[str] = set()
 
 
 def test_live_css_uses_every_token_the_mockup_uses_for_timeline_counters_charts() -> None:

@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.39.3] — 2026-05-23
+
+### Changed
+
+- **Spec 0197 — dashboard mockup rewritten to use canonical DS token names** ([spec 0197](specs/0197-mockup-canonical-token-vocabulary-cleanup.md)). The standalone-preview mockup at `dashboard/mockups/dashboard-redesign-v3-horizontal.html` had three non-canonical shorthand tokens (`--accent`, `--font-plain`, `--font-data`) that pre-dated the project's DS naming pass. Spec 0184's token-budget parity test tolerated them via a documented `_MOCKUP_SHORTHAND_ALLOWLIST` of three entries. Spec 0197 swaps the mockup's vocabulary to the canonical names: `var(--accent)` → `var(--p-info)` (matching the live `.counter--accent` rule), `var(--font-plain)` → `var(--md-font-plain)`, `var(--font-data)` → `var(--md-font-data)`. All three declaration lines in `:root` / `html[data-theme="light"]` updated to match. The BEM class `counter--accent` is intentionally preserved (it's a class name, not a CSS variable). The mockup's standalone preview still renders identically because the hex values + font stacks are unchanged — only the token names are. Allowlist at `tests/spec_lifecycle/test_dashboard_mockup_parity.py:294` collapses from 3 entries to `set()`; comment block rewritten to explain that the empty state is by design, kept as a single named extension point for any future renaming-pass shorthand drift. No live-render change; deployed dashboard at `https://dual-research-alex.fly.dev/` is byte-identical post-merge. Full suite: 1727 passed (same count as pre-spec).
+
 ## [1.39.2] — 2026-05-23
 
 ### Fixed
