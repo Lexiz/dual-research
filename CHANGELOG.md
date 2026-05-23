@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.34.3] — 2026-05-23
+
+### Fixed
+
+- **Spec 0172 — Issue card body shows literal `**` markdown + cryptic short-code chip** ([spec 0172](specs/0172-critique-card-drop-id-chip-and-fix-markdown-title-rendering.md)). Spec 0151 §3.4.3 introduced four sites that surfaced compound IDs and bypassed Markdown rendering on critique cards. Spec 0173 §2.5 (head ID chip) and §2.9 (DQ body `__sid` via `ItemCardThreadView` rewrite) already retired two of them; this spec finishes the job for the Issue body.
+  - **`ItemCardIssueBody` rewritten** ([`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx)). Dropped the `parseCodeId(item.id) → shortCode` chip, the manual `item.body.split('\n')` title/rest heuristic, and the surrounding `.item-card__title-row` block. The full `item.body` now routes through `<Markdown text={String(item.body)} />` — same shape `ItemCardCommentBody` already uses — so bold first lines render as real `<strong>` instead of leaking literal `**` delimiters. State signalling stays on the head's lifecycle chip (spec 0173 §2.8); the body no longer carries its own state chip.
+  - **Caller props pruned** at the `<ItemCardIssueBody>` callsite in `ItemCard` — `stateLabel` / `stateTone` are no longer forwarded since the body doesn't render them.
+  - **Dead CSS removed** ([`src/dual_research/ui/static/components.css`](src/dual_research/ui/static/components.css)). The `.item-card__sid`, `.item-card__title-row`, `.item-card__title-sep`, `.item-card__title` rule bodies are gone (verified via grep across `src/dual_research/ui/static/` and `design-system/` first; no remaining consumers). The DS-canonical `composed-components.css` never carried these classes — nothing to delete there.
+  - **Test guard** ([`tests/spec0172/test_critique_card_markdown_and_no_sid.py`](tests/spec0172/test_critique_card_markdown_and_no_sid.py)). Seven pytest static-analysis checks: no `item-card__sid` consumer in any kind, no `item-card__title-row` block, no `<code>{item.id}</code>` head chip, `ItemCardIssueBody` routes through `<Markdown text={String(item.body)} />` with no `split('\n')` / `titleLine` / `restBody` / `parseCodeId` / `shortCode` leftovers, dead CSS rules removed, DS stylesheet stays clean, `ItemCardCommentBody` keeps its reference shape.
+
 ## [1.34.2] — 2026-05-23
 
 ### Fixed
