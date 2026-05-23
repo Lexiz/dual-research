@@ -7120,7 +7120,11 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const openCarriedItems = [];
   const resolvedItems = [];
   const driftItems = [];
-  const _isOpenStatus = (s) => s === 'open' || s === 'open-new';
+  // Spec 0189 — `addressed` is a transitional state (raiser hasn't yet conceded
+  // or pushed back); counts as open until the item reaches a terminal state.
+  // Without this, statusCounts.open misses `addressed` items and the All chip's
+  // invariant (`open + resolved + drift == all`) breaks.
+  const _isOpenStatus = (s) => s === 'open' || s === 'open-new' || s === 'addressed';
   const _isResolvedStatus = (s) =>
     s === 'resolved' || s === 'answered' || // spec-0119:vocab-ok (legacy question.status value)
     (typeof s === 'string' && s.startsWith('resolved-'));
