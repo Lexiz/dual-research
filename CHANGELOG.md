@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.6] — 2026-05-23
+
+### Fixed
+
+- **Spec 0183 — authoring funnel DRAFTS bucket counts current backlog** ([spec 0183](specs/0183-authoring-funnel-drafts-count-includes-current-backlog.md)). The Metrics-tab authoring funnel's leftmost DRAFTS bucket was reading only the count of drafts that graduated to queued specs in the last 30 days; unpromoted drafts sitting under `specs/drafts/` were invisible. A repo with N parked drafts and zero recent promotions read as `0`, falsely implying no authoring activity. Threaded `drafts: list[DraftRow]` through `render_index → _render_metrics → _render_authoring_funnel` and changed the bucket count to `current_drafts + promoted_recent`. `promo_pct` denominator updated to match (conversion rate now compares queued to all drafts that existed in the window). Sub-line prose rewritten so the new semantics are explicit (`X drafts in backlog + Y promoted · Z% reached queue · …`). No DS change, no wire format change.
+
 ## [1.36.5] — 2026-05-23
 
 ### Fixed
