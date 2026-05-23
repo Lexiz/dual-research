@@ -8,7 +8,7 @@ label: new-feature
 version_bump: MINOR
 target_version: 1.26.0
 status: deployed
-queue_position: 1
+queue_position: 0
 depends_on: ["0164"]
 complexity: M
 created: 2026-05-22
