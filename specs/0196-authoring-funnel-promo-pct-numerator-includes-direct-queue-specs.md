@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.39.2
-status: merged
+status: deployed
 queue_position: 3
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T12:01:06Z"
 started_at: "2026-05-23T16:54:44Z"
 merged_at: "2026-05-23T16:57:52Z"
-deployed_at: ""
+deployed_at: "2026-05-23T17:03:05Z"
 pr: "https://github.com/Lexiz/dual-research/pull/224"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0196-authoring-funnel-promo-pct-numerator-includes-direct-queue-specs.md"
 failure_step: ""
 source_session: deferred-from-0183
 promoted_from_draft: ""

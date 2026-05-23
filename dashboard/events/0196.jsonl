@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T16:57:23Z","step":"tests_green","data":{"passed":1727}}
 {"ts":"2026-05-23T16:57:49Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/224"}}
 {"ts":"2026-05-23T16:58:08Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/224"}}
+{"ts":"2026-05-23T16:58:51Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T17:03:05Z","step":"deployed","data":{"version":"1.39.2"}}
+{"ts":"2026-05-23T17:03:05Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T17:04:02Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0196-authoring-funnel-promo-pct-numerator-includes-direct-queue-specs.md"}}
