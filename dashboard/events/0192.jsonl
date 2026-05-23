@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T16:18:06Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T16:18:06Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T16:18:08Z","step":"branched","data":{"branch":"spec/0192-l-spec-checkpoint-budget-heuristic","from":"main@22d3c6d"}}
+{"ts":"2026-05-23T16:18:11Z","step":"implementing_started","data":{}}
