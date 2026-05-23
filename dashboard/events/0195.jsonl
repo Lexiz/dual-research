@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T16:42:17Z","step":"reconcile_complete","data":{"mechanical":1,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T16:42:17Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T16:42:19Z","step":"branched","data":{"branch":"spec/0195-all-runs-zero-seconds-ago-for-no-transcript-rows","from":"main@43ad191"}}
+{"ts":"2026-05-23T16:42:23Z","step":"implementing_started","data":{}}
