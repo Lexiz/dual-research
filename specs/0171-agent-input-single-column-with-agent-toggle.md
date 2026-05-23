@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.34.2
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T20:00:00Z"
 started_at: "2026-05-23T00:21:21Z"
 merged_at: "2026-05-23T00:34:08Z"
-deployed_at: ""
+deployed_at: "2026-05-23T08:35:34Z"
 pr: "https://github.com/Lexiz/dual-research/pull/199"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0171-agent-input-single-column-with-agent-toggle.md"
 failure_step: ""
 source_session: notion-specs-2205-claude-bug-1
 promoted_from_draft: ""
