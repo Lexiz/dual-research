@@ -34,7 +34,22 @@ from typing import Any
 from .append_event import read_events
 from .frontmatter import parse
 from .pick_next_number import SPEC_ID_RE, parse_spec_id
+from .queue_state import read_state
 from .stages import STEP_LABELS, StageState, compute_stages, current_stage_label
+
+# Cycle-mutable fields layered from queue-state.json over spec frontmatter
+# (spec 0202 §2.5). Shape-immutable fields (title, type, complexity,
+# depends_on, version_bump, slug, label) keep coming from the frontmatter.
+_QUEUE_STATE_LAYERED_FIELDS = (
+    "status",
+    "started_at",
+    "merged_at",
+    "deployed_at",
+    "pr",
+    "handover",
+    "failure_step",
+    "target_version",
+)
 
 
 REPO_URL = "https://github.com/Lexiz/dual-research"
@@ -149,6 +164,12 @@ def collect(repo_root: Path) -> tuple[list[SpecRow], list[DraftRow]]:
     drafts_dir = specs_dir / "drafts"
     events_dir = repo_root / "dashboard" / "events"
 
+    # Spec 0202 §2.5 — queue-state.json is the authoritative source for
+    # cycle-mutable fields. Read it once and layer per-spec entries over
+    # the spec frontmatter dict; the existing SpecRow properties then read
+    # the layered values transparently.
+    queue_state = read_state(repo_root)
+
     specs: list[SpecRow] = []
     for entry in sorted(specs_dir.iterdir()):
         if not entry.is_file() or not entry.name.endswith(".md"):
@@ -156,8 +177,25 @@ def collect(repo_root: Path) -> tuple[list[SpecRow], list[DraftRow]]:
         if not entry.name[:4].isdigit():
             continue
         fm = parse(entry).frontmatter
-        spec_id = entry.name[:4]
-        events = read_events(events_dir, spec_id)
+        # Spec 0199 decimal IDs: derive the full ID from the filename so
+        # queue-state lookups land on the right key.
+        m = SPEC_ID_RE.match(entry.name)
+        if m:
+            parent, child = m.group(1), m.group(2)
+            full_spec_id = f"{parent}.{child}" if child else parent
+        else:
+            full_spec_id = entry.name[:4]
+        state_entry = queue_state.specs.get(full_spec_id, {})
+        for key in _QUEUE_STATE_LAYERED_FIELDS:
+            if key in state_entry and state_entry[key] is not None:
+                fm[key] = state_entry[key]
+        # Events: prefer queue-state.json, fall back to sidecar for specs
+        # with no state-file entry yet (defensive — the backfill creates
+        # entries for every existing spec).
+        if "events" in state_entry:
+            events = list(state_entry.get("events") or [])
+        else:
+            events = read_events(events_dir, full_spec_id)
         specs.append(SpecRow(fm=fm, path=entry, events=events))
 
     drafts: list[DraftRow] = []
