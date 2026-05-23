@@ -23,6 +23,11 @@ source_session: ""
 promoted_from_draft: ""
 ---
 
+<!-- DEV SPEC RULE: this body must contain NO open questions, unresolved
+items, TBD markers, or "we'll figure it out later" prose. Every decision is
+either answered here or explicitly deferred via §4 Risks or an explicit
+follow-up target in §3. -->
+
 # Spec NNNN — Tests: <area>
 
 > **Type:** test  |  **Complexity:** <S/M/L>
