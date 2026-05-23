@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.39.0] — 2026-05-23
+
+### Added
+
+- **Spec 0193 — image-based fallback filter for `scripts/sweep_stale_blues.sh`** ([spec 0193](specs/0193-stale-blue-sweep-image-based-filter.md)). Spec 0162 added the `safe_to_destroy`-tag filter to clean up stale blues after a deploy. Today's queue drain (specs 0187 → 0192) demonstrated a second failure mode on every single deploy: Fly leaves blues hanging WITHOUT the `safe_to_destroy` tag, so the tag filter prints `no stale blues` while the cluster is still oversize. The fallback runs only when the tag filter found 0 candidates AND the cluster exceeds `--expected-count`. New `get_current_release_image()` helper queries `fly releases --app … --json` for the latest `status: "complete"` release's `image_ref` (or reads a sibling `<input>.release.json` fixture in test mode). New `JQ_FALLBACK_FILTER` selects machines whose `config.image` is NOT the current release image. Four gates protect against ever destroying the only live green: (1) tag filter returned 0, (2) cluster oversize per `--expected-count`, (3) current release image determinable, (4) at least one machine matches the current image. When gate 4 fails (no green present), the fallback refuses, dumps metadata for triage, exits 0. The original spec-0162 tag filter is unchanged and runs first; the fallback is strictly additive. 6 new tests in `tests/spec0193/` (5 fixture-based scenarios + 1 invariant — script always exits 0) drive the script as a subprocess with `--input` fixtures. This fix retires the manual `fly machine destroy --force <id>` recovery step that was needed for every deploy in today's drain (memory entry [project_fly_lease_drift_recovery.md](file:///Users/alexlisitzky/.claude/projects/-Users-alexlisitzky/memory/project_fly_lease_drift_recovery.md) is now partially superseded — the fallback handles what required manual intervention before).
+
 ## [1.38.0] — 2026-05-23
 
 ### Added

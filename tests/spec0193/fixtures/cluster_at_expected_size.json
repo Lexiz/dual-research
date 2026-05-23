@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mach_only_a",
+    "name": "only-a",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v406",
+      "metadata": {"fly_release_version": "406"}
+    }
+  },
+  {
+    "id": "mach_only_b",
+    "name": "only-b",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v406",
+      "metadata": {"fly_release_version": "406"}
+    }
+  }
+]

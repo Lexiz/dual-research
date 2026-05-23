@@ -1,0 +1,38 @@
+[
+  {
+    "id": "mach_a",
+    "name": "alpha",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v500",
+      "metadata": {"fly_release_version": "500"}
+    }
+  },
+  {
+    "id": "mach_b",
+    "name": "beta",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v500",
+      "metadata": {"fly_release_version": "500"}
+    }
+  },
+  {
+    "id": "mach_c",
+    "name": "gamma",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v501",
+      "metadata": {"fly_release_version": "501"}
+    }
+  },
+  {
+    "id": "mach_d",
+    "name": "delta",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v501",
+      "metadata": {"fly_release_version": "501"}
+    }
+  }
+]

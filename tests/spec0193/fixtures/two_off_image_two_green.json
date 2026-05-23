@@ -1,0 +1,46 @@
+[
+  {
+    "id": "mach_old_a",
+    "name": "old-alpha",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v403",
+      "metadata": {
+        "fly_release_version": "403"
+      }
+    }
+  },
+  {
+    "id": "mach_old_b",
+    "name": "old-beta",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v403",
+      "metadata": {
+        "fly_release_version": "403"
+      }
+    }
+  },
+  {
+    "id": "mach_new_a",
+    "name": "new-alpha",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v406-attempt",
+      "metadata": {
+        "fly_release_version": "406"
+      }
+    }
+  },
+  {
+    "id": "mach_new_b",
+    "name": "new-beta",
+    "state": "started",
+    "config": {
+      "image": "registry.fly.io/dual-research-alex:v406-attempt",
+      "metadata": {
+        "fly_release_version": "406"
+      }
+    }
+  }
+]
