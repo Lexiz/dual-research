@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: 1.39.3
-status: merged
+status: deployed
 queue_position: 3
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T12:15:45Z"
 started_at: "2026-05-23T17:09:18Z"
 merged_at: "2026-05-23T17:13:30Z"
-deployed_at: ""
+deployed_at: "2026-05-23T17:17:36Z"
 pr: "https://github.com/Lexiz/dual-research/pull/225"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0197-mockup-canonical-token-vocabulary-cleanup.md"
 failure_step: ""
 source_session: deferred-from-0184
 promoted_from_draft: ""

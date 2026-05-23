@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T17:13:01Z","step":"tests_green","data":{"passed":1727}}
 {"ts":"2026-05-23T17:13:26Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/225"}}
 {"ts":"2026-05-23T17:13:46Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/225"}}
+{"ts":"2026-05-23T17:14:30Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T17:17:36Z","step":"deployed","data":{"version":"1.39.3"}}
+{"ts":"2026-05-23T17:17:36Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T17:18:27Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0197-mockup-canonical-token-vocabulary-cleanup.md"}}
