@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T10:30:40Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"reconciler 4 false-positives from bare-basename link display text; line offsets within tolerance, anchors findable by name"}}
 {"ts":"2026-05-23T10:30:54Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T10:31:09Z","step":"branched","data":{"branch":"spec/0180-consumption-card-v2-anatomy","from":"main@0c771a6"}}
+{"ts":"2026-05-23T10:31:13Z","step":"implementing_started","data":{}}
