@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: TBD
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:05:00Z"
 started_at: "2026-05-23T00:05:58Z"
 merged_at: "2026-05-23T00:09:28Z"
-deployed_at: ""
+deployed_at: "2026-05-23T00:15:28Z"
 pr: "https://github.com/Lexiz/dual-research/pull/198"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0194-fix-cwd-flag-in-headless-dev-next.md"
 failure_step: ""
 source_session: queue-drain-blocked-investigation
 promoted_from_draft: ""

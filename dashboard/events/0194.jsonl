@@ -12,3 +12,7 @@
 {"ts":"2026-05-23T00:08:46Z","step":"tests_green","data":{"passed":1589}}
 {"ts":"2026-05-23T00:09:24Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/198"}}
 {"ts":"2026-05-23T00:09:41Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/198"}}
+{"ts":"2026-05-23T00:10:49Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T00:15:14Z","step":"deployed","data":{"version":"1.34.1"}}
+{"ts":"2026-05-23T00:15:14Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T00:16:00Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0194-fix-cwd-flag-in-headless-dev-next.md"}}
