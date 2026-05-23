@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T22:53:19Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T22:54:10Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","notes":"reconciler reported 3 mechanical hits on ~/.claude/skills/dev-next/SKILL.md citations; verified false positive (tilde not expanded). Cited line anchors confirmed present."}}
 {"ts":"2026-05-23T22:54:40Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T22:55:02Z","step":"branched","data":{"branch":"spec/0200-fly-deploy-simplification","from":"main@cc5231b"}}
