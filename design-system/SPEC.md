@@ -393,13 +393,15 @@ The thread component lives inside the expanded state of a question / disagreemen
 
 ### 4.3 — Consumption row
 
-Three forms (spec 0100, polished by specs 0116, 0118, 0146):
+V2 anatomy (spec 0180, refining specs 0100 / 0116 / 0118 / 0146 / 0148). Two forms:
 
-**Collapsed:** header (provider icon + name + bracketed `(X.X% of 1M)` percentage, right-aligned to the bar end) → single `Total tokens` bar with `Xkt · $X.X` at the right. The percentage's closing `)` lands at the same x-coordinate as the right edge of the bar fill below it; the chevron lives at the card's right edge. Tokens and cost are not duplicated in the header — they're on the bar.
+**Collapsed:** 4-column header (`hd-id` provider icon + name · `hd-totals` `Xkt · $X.X` (total tokens · total cost) right-aligned at the bar-fill column's right edge · `stats` bracketed `(X.X% of 1M)` percentage · `chev` chevron at the card's right edge) → **two stacked bars**, `Total input` then `Total output`, both at top of card and visible in collapsed state. The two bars share a single denominator (per-card-pair scale) so the visual comparison input-vs-output is meaningful. The cache-reuse stripe overlay applies only to the input bar — cache reuse is an input-side phenomenon.
 
-**Unfolded:** collapsed view + per-phase canonical input sub-rows (spec 0118 vocabulary) including the User-prompt row, whose per-attachment sub-rows (`Chat message` + one `Attachment · {title}` per attachment from spec 0145) auto-render as indented child rows when the card is in its unfolded state — no second click required. Under the input rows: single `Output` row. Below the rows: a `.ccx-totals` block with label-left / value-right lines: `input tokens · billed`, `input cost`, `web search · N queries` (when N > 0), `total input` (bold rule above, larger value). All card-internal cost displays use one-decimal precision (`fmtCost1` — `$0.2`, `$13.5`); the run-detail footer aggregate keeps 4-decimal precision (`$13.5110`) as the audit number.
+**Unfolded:** collapsed view + (per-phase canonical input sub-rows including the User-prompt row's per-attachment children from spec 0145) → divider → input totals `.ccx-totals` block (`input tokens · billed` · `input cost` · `web search · N queries` when applicable · `total input`) → per-output sub-rows (`Reasoning` · `Response` · `Tool calls`) when the split data exists → divider → output totals `.ccx-totals.ccx-totals--output` block (`output tokens` · `output cost` · `cache savings · ×N reuse on Xkt` when applicable · `total output`). The cache-savings reuse-multiplier signal lives in the **output** totals block, not the input side (V1 / spec 0148 D12 placed it in input totals; V2 / Issue 13 relocates it). All card-internal cost displays use one-decimal precision (`fmtCost1` — `$0.2`, `$13.5`); the run-detail footer aggregate keeps 4-decimal precision (`$13.5110`) as the audit number.
 
-**Capital-T section labels.** Bar-row section headers (`Total tokens`, `Output`) are title case. The `.ccx-totals` block uses lowercase labels (`input cost`, `total input`) — title case is reserved for bar-row section headers.
+**Capital-T section labels.** Bar-row section headers (`Total input`, `Total output`) are title case. The `.ccx-totals` blocks use lowercase labels (`input cost`, `total input`, `output tokens`, `total output`) — title case is reserved for bar-row section headers.
+
+**No inline `style={{...}}` on `.ccx-bar-row`.** All grid + spacing tokens come from the `.ccx-bar-row` class (spec 0180 §3.7). Per-call inline overrides on the bar-row's grid template are forbidden — they accumulate as bespoke per-render-site values and bypass the DS contract.
 
 **Uniform across phases:** all cards share the same horizontal width across phases. Round label sits **above** the card as a small uppercase chip, not inside the header trio.
 

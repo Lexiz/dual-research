@@ -2946,12 +2946,10 @@ function SubInputRow({
   const [previewOpen, setPreviewOpen] = React.useState(false);
   return (
     <React.Fragment>
+      {/* Spec 0180 §3.7 — grid layout on the .ccx-bar-row class; only the
+          sub-row-specific offsets (left padding, opacity) stay inline. */}
       <div className="ccx-bar-row ccx-bar-row--sub" key={id} style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-        alignItems: 'center', gap: 10,
-        padding: '2px 0 2px 20px',
-        opacity: 0.85,
+        paddingLeft: 20, opacity: 0.85,
       }}>
         <span className="lbl" style={{
           fontSize: 10.5, color: 'var(--md-on-surface-faint)',
@@ -3039,8 +3037,8 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const totalTok   = tokensIn + tokensOut;
   const cost       = Number(usage.cost) || 0;
   const ctxWindow  = contextWindowFor(usage, run, agent);
-  // Spec 0118 collapsed-card: context-window percent now uses
-  // total = input + output (one bar = total tokens).
+  // Spec 0118 collapsed-card: context-window percent uses
+  // total = input + output (denominator of the bracketed header value).
   const pctOfCap   = ctxWindow > 0 ? (totalTok / ctxWindow * 100) : 0;
   const denom      = scale?.denom || 1;
   const reuse      = reuseInfo(usage);
@@ -3055,17 +3053,18 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   const queries    = Number(usage?.searchQueries) || 0;
   const hasSearches = searches > 0 || queries > 0 || searchCost > 0;
 
-  // Spec 0118: single Total tokens bar. Scale is shared per-card-pair so
-  // claude vs gpt widths remain comparable; we widen the denom slightly
-  // for the total bar so input+output fits without saturating at 100%.
+  // Spec 0180 §3.2 — two stacked bars (total-input + total-output) share
+  // a single denominator so the visual comparison is meaningful. Scale is
+  // shared per-card-pair (claude vs gpt widths stay comparable); fallback
+  // to max(totalTok, 1) when no scale denom is provided.
   const totalDenom = denom > 0 ? denom : Math.max(1, totalTok);
-  const totalPct   = totalDenom > 0 ? Math.min(100, (totalTok / totalDenom) * 100) : 0;
+  const inputPct   = totalDenom > 0 ? Math.min(100, (tokensIn  / totalDenom) * 100) : 0;
+  const outputPct  = totalDenom > 0 ? Math.min(100, (tokensOut / totalDenom) * 100) : 0;
 
-  // Reuse overlay on the total bar (cache-reuse stripe). Covers the
-  // billed-but-not-unique portion of the input — stays on the total bar
-  // only (no per-row stripes per spec 0118).
+  // Reuse overlay on the total-input bar (cache-reuse stripe). Cache reuse
+  // is an input-side phenomenon — no stripe on the output bar.
   const reusePct = reuse.reused > 0 && totalDenom > 0
-    ? Math.min(totalPct, (reuse.reused / totalDenom) * 100)
+    ? Math.min(inputPct, (reuse.reused / totalDenom) * 100)
     : 0;
 
   // Spec 0150 — legacy-vocab branch retired; events are canonical-only.
@@ -3075,7 +3074,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
   // Use billed input tokens (exact) so per-piece costs sum to inputCost.
   const billedIn = tokensIn;
 
-  // Row renderer: 3-column grid [label] [bar] [tokens · cost]
+  // Row renderer: grid layout is on the .ccx-bar-row class per spec 0180 §3.7.
   const renderInputRow = (row) => {
     const label = row.label || consumptionLabel(row.id);
     const tokens = row.tokens || 0;
@@ -3092,14 +3091,8 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
     const hasSubRows = row.id === 'user_prompt' && row.attachmentBreakdown;
     return (
       <React.Fragment key={row.id}>
-        <div className="ccx-bar-row" title={tip} style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-          alignItems: 'center', gap: 10,
-          padding: '2px 0',
-        }}>
+        <div className="ccx-bar-row" title={tip}>
           <span className="lbl" style={{
-            fontSize: 11, color: 'var(--md-on-surface-muted)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {label}
@@ -3107,10 +3100,7 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
           <div className="ccx-bar" style={{ height: 6 }}>
             <div className={`fl ${fillIn}`} style={{ width: `${piecePct}%` }} />
           </div>
-          <span className="num" style={{
-            fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
-            textAlign: 'right',
-          }}>
+          <span className="num" style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
             {fmt.tokens(tokens)}t &middot; {fmtCost1(propCost)}
           </span>
         </div>
@@ -3145,16 +3135,52 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
     );
   };
 
+  // Spec 0180 §3.4 step 6 — per-output sub-rows (Reasoning / Response /
+  // Tool calls) render inside the unfolded body, between the total-output
+  // bar (now above the gate, §3.2) and the second divider. The output
+  // header bar from V1 is gone — replaced by the always-visible
+  // total-output bar.
+  const outputBreakdown = usage.outputBreakdown || {};
+  const rTok  = Number(outputBreakdown.reasoning)  || 0;
+  const tcTok = Number(outputBreakdown.tool_calls) || 0;
+  const rsTok = Number(outputBreakdown.response)   || 0;
+  const hasOutputSplit = (rTok + tcTok) > 0 && tokensOut > 0;
+  const renderOutputSubRow = (id, label, tokens) => (
+    <SubInputRow
+      key={id}
+      id={id}
+      label={label}
+      tokens={tokens}
+      totalDenom={totalDenom}
+      billedIn={tokensOut > 0 ? tokensOut : 1}
+      inputCost={outCostUsd}
+      fillIn={fillOut}
+    />
+  );
+
+  // Spec 0180 §3.6 — cache-savings derivation, lifted out of its V1 IIFE
+  // inside the input totals so it can render in the output totals block.
+  const cacheReadTokens = Number(usage?.cacheRead ?? usage?.cache_read ?? 0) || 0;
+  const cacheSavingsUsd = Number(usage?.cacheSavingsUsd ?? usage?.cache_savings_usd ?? 0) || 0;
+  const hasCacheSavings = cacheReadTokens > 0 && cacheSavingsUsd > 0;
+  const cacheMultiplier = hasCacheSavings && tokensIn > 0
+    ? cacheReadTokens / tokensIn
+    : 0;
+
   return (
     <article className="ccx" data-tour-anchor={tourAnchor ? 'consumption-card' : undefined} onClick={onToggle} style={{ cursor: 'pointer' }}>
-      {/* Spec 0146 header: 3-column grid that mirrors the bar-row grid
-          below. The percentage at column 2 sits with its closing `)`
-          aligned to the right edge of the bar fill; the chevron at
-          column 3 sits at the card's right edge. */}
+      {/* Spec 0180 §3.1 header: 4-column grid. hd-id · hd-totals (total
+          tokens · total cost, right-aligned at bar-fill column's right
+          edge) · stats (bracketed % of context) · chev. */}
       <header className="ccx-header">
         <span className="hd-id">
           <span className={`ccx-icon ${iconClass}`}>{meta.name[0]}</span>
           <span className="nm">{meta.name}</span>
+        </span>
+        <span className="hd-totals">
+          <span className="num">{fmt.tokens(totalTok)}t</span>
+          <span className="sep">&middot;</span>
+          <span className="num">{fmtCost1(cost)}</span>
         </span>
         <span className="stats">
           ({pctOfCap.toFixed(1)}% of {_fmtCapLabel(ctxWindow)})
@@ -3166,112 +3192,51 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
         </span>
       </header>
 
-      {/* Spec 0118 Total tokens bar (single bar replaces total-in / total-out).
-          tokens · cost at the right edge. Cache stripe overlay retained. */}
-      <div className="ccx-bar-row is-total" style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-        alignItems: 'center', gap: 10,
-      }}>
-        <span className="lbl">Total tokens</span>
+      {/* Spec 0180 §3.2 — total INPUT bar (collapsed + unfolded). Reuse
+          stripe overlay retained — cache reuse is an input-side
+          phenomenon. */}
+      <div className="ccx-bar-row ccx-bar-row--total-input">
+        <span className="lbl">Total input</span>
         <div className="ccx-bar">
-          <div className={`fl ${fillIn}`} style={{ width: `${totalPct}%` }} />
+          <div className={`fl ${fillIn}`} style={{ width: `${inputPct}%` }} />
           {reuse.hasReuse && (
             <div className="reuse" style={{ left: 0, width: `${reusePct}%` }} />
           )}
         </div>
         <span className="num" style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-          {fmt.tokens(totalTok)}t &middot; {fmtCost1(cost)}
+          {fmt.tokens(tokensIn)}t &middot; {fmtCost1(inputCost)}
         </span>
       </div>
 
-      {/* Cache-reuse signal text (collapsed; spec 0051 line, retained) */}
-      {reuse.hasReuse && (
-        <div className="mono" style={{
-          fontSize: 10.5, color: 'var(--md-on-surface-faint)', paddingTop: 2,
-        }}>
-          {fmt.tokens(reuse.content)}kt seen &middot; {fmt.tokens(reuse.billed)}kt billed
-          {' '}(&times; {reuse.multiplier.toFixed(1)} token reuse)
-          {' '}&middot; {fmt.tokens(tokensOut)}t out
+      {/* Spec 0180 §3.2 — total OUTPUT bar (collapsed + unfolded). Same
+          denominator as the input bar so visual comparison is
+          meaningful. */}
+      <div className="ccx-bar-row ccx-bar-row--total-output">
+        <span className="lbl">Total output</span>
+        <div className="ccx-bar">
+          <div className={`fl ${fillOut}`} style={{ width: `${outputPct}%` }} />
         </div>
-      )}
+        <span className="num" style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+          {fmt.tokens(tokensOut)}t &middot; {fmtCost1(outCostUsd)}
+        </span>
+      </div>
 
-      {/* ── UNFOLDED SECTION (Spec 0118) ── */}
+      {/* ── UNFOLDED SECTION (Spec 0180 §3.4) ──
+          Order: per-input rows → divider → input totals → per-output
+          sub-rows → divider → output totals. Both top bars already
+          render above this gate. */}
       {expanded && (
         <React.Fragment>
-          {/* Divider between total bar and input rows */}
           <div className="ccx-divider" />
 
           {/* Per-phase input rows. Always-separate user_prompt + phase-
               specific separates + System prompt aggregate. */}
           {grouped.rows.map(renderInputRow)}
 
-          {/* Divider between inputs and output row */}
           <div className="ccx-divider" />
 
-          {/* Spec 0148 D11 — Output row. Single ``Output`` line when the
-              turn had no reasoning / no tool_calls (current behaviour).
-              When reasoning > 0, split into a header + sub-rows for
-              Reasoning / Response / Tool calls (sub-row hidden when its
-              own tokens are 0). Cost share is exact: cost-per-output-
-              token is a single rate per model, so the proportional
-              split via token shares is invoice-grade. */}
-          {(() => {
-            const breakdown = usage.outputBreakdown || {};
-            const rTok = Number(breakdown.reasoning) || 0;
-            const tcTok = Number(breakdown.tool_calls) || 0;
-            const rsTok = Number(breakdown.response) || 0;
-            const hasSplit = (rTok + tcTok) > 0 && tokensOut > 0;
-            const propCost = (n) => (tokensOut > 0 ? (n / tokensOut) * outCostUsd : 0);
-            const outputHeader = (
-              <div className="ccx-bar-row" style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)',
-                alignItems: 'center', gap: 10,
-                padding: '2px 0',
-              }}>
-                <span className="lbl" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
-                  Output
-                </span>
-                <div className="ccx-bar" style={{ height: 6 }}>
-                  <div className={`fl ${fillOut}`} style={{
-                    width: `${totalDenom > 0 ? Math.min(100, (tokensOut / totalDenom) * 100) : 0}%`,
-                  }} />
-                </div>
-                <span className="num" style={{
-                  fontSize: 11, color: 'var(--md-on-surface-muted)', whiteSpace: 'nowrap',
-                  textAlign: 'right',
-                }}>
-                  {fmt.tokens(tokensOut)}t &middot; {fmtCost1(outCostUsd)}
-                </span>
-              </div>
-            );
-            if (!hasSplit) return outputHeader;
-            const renderSub = (id, label, tokens) => (
-              <SubInputRow
-                key={id}
-                id={id}
-                label={label}
-                tokens={tokens}
-                totalDenom={totalDenom}
-                billedIn={tokensOut > 0 ? tokensOut : 1}
-                inputCost={outCostUsd}
-                fillIn={fillOut}
-              />
-            );
-            return (
-              <React.Fragment>
-                {outputHeader}
-                {rTok > 0 && renderSub('output.reasoning', 'Reasoning', rTok)}
-                {rsTok > 0 && renderSub('output.response', 'Response', rsTok)}
-                {tcTok > 0 && renderSub('output.tool_calls', 'Tool calls', tcTok)}
-              </React.Fragment>
-            );
-          })()}
-
-          {/* Spec 0146 totals block: label-left / value-right, mirroring
-              the bar-row grid. Replaces the free-text web-search mono
-              line; consolidates the per-card audit surface. */}
+          {/* Spec 0180 §3.5 — input totals block, input-only.
+              Cache-savings line moved to the output totals (§3.6). */}
           <div className="ccx-totals">
             <div className="line">
               <span className="l">input tokens &middot; billed</span>
@@ -3290,29 +3255,55 @@ function CcxCard({ usage, agent, run, scale, expanded = false, onToggle, tourAnc
                 <span className="v">{fmtCost1(searchCost)}</span>
               </div>
             )}
-            {/* Spec 0148 D12 — cache-savings line. Renders only when the
-                turn engaged cache-read (Anthropic side mostly; OpenAI's
-                Responses API cache also reports cache_read_tokens). The
-                "×N reuse on Xkt" copy follows design-system §14. */}
-            {(() => {
-              const cacheReadTokens = Number(usage?.cacheRead ?? usage?.cache_read ?? 0) || 0;
-              const cacheSavingsUsd = Number(usage?.cacheSavingsUsd ?? usage?.cache_savings_usd ?? 0) || 0;
-              if (!(cacheReadTokens > 0 && cacheSavingsUsd > 0)) return null;
-              const billed = tokensIn > 0 ? tokensIn : 1;
-              const multiplier = cacheReadTokens / billed;
-              return (
-                <div className="line">
-                  <span className="l">
-                    cache savings &middot; &times;{multiplier.toFixed(1)} reuse on{' '}
-                    {(cacheReadTokens / 1000).toFixed(1)}kt
-                  </span>
-                  <span className="v">{fmtCost1(cacheSavingsUsd)}</span>
-                </div>
-              );
-            })()}
             <div className="line is-grand">
               <span className="l">total input</span>
               <span className="v">{fmtCost1(inputCost + searchCost)}</span>
+            </div>
+          </div>
+
+          {/* Spec 0180 §3.4 step 6 — per-output sub-rows
+              (Reasoning / Response / Tool calls) when the split data
+              exists. Cost share via token-share proportional split is
+              invoice-grade since output rate is a single per-model
+              constant. */}
+          {hasOutputSplit && (
+            <React.Fragment>
+              {rTok  > 0 && renderOutputSubRow('output.reasoning',  'Reasoning', rTok)}
+              {rsTok > 0 && renderOutputSubRow('output.response',   'Response',  rsTok)}
+              {tcTok > 0 && renderOutputSubRow('output.tool_calls', 'Tool calls', tcTok)}
+            </React.Fragment>
+          )}
+
+          {hasOutputSplit && <div className="ccx-divider" />}
+
+          {/* Spec 0180 §3.6 — output totals block. Cache-savings lives
+              here per Issue 13 (cache reuse is an input-side phenomenon
+              but the V2 anatomy surfaces it on the output side as a
+              cost-savings annotation, paralleling input-side billed
+              totals). Web-search line not duplicated here — the current
+              wire format carries a single combined `searches`/`searchCost`
+              that's surfaced in the input totals block above. */}
+          <div className="ccx-totals ccx-totals--output">
+            <div className="line">
+              <span className="l">output tokens</span>
+              <span className="v">{tokensOut.toLocaleString()}</span>
+            </div>
+            <div className="line">
+              <span className="l">output cost</span>
+              <span className="v">{fmtCost1(outCostUsd)}</span>
+            </div>
+            {hasCacheSavings && (
+              <div className="line">
+                <span className="l">
+                  cache savings &middot; &times;{cacheMultiplier.toFixed(1)} reuse on{' '}
+                  {(cacheReadTokens / 1000).toFixed(1)}kt
+                </span>
+                <span className="v">{fmtCost1(cacheSavingsUsd)}</span>
+              </div>
+            )}
+            <div className="line is-grand">
+              <span className="l">total output</span>
+              <span className="v">{fmtCost1(outCostUsd)}</span>
             </div>
           </div>
         </React.Fragment>
