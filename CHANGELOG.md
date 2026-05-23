@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.4] — 2026-05-23
+
+### Changed
+
+- **Spec 0181 — run liveness check + new `abandoned` status** ([spec 0181](specs/0181-run-status-staleness-and-abandoned.md)). The All-Runs list and run-detail page now classify silent runs as `abandoned` instead of `running` once they've gone ≥ 30 minutes without an event. Catches orchestrators that died (host recycled, SIGKILL, panic) before writing a terminal event. Distinct from `errored` (which means an explicit failure with a known cause).
+  - **`derive_run_status` gains `last_event_at` + `now` parameters** + a new rule 6 (stale-with-no-terminal-signal → `abandoned`). Backward-compatible — callers that don't pass `last_event_at` keep the pre-0181 "running forever" behaviour.
+  - **All three call sites plumb the new signal**: `summarize_run` (FS-backed list) reads the transcript tail via the new `_latest_event_ts` helper; `_status_from_columns` (Supabase-backed list) reads each row's `pushed_at` column; `_finalise_status` (detail-page replay) reads the latest event ts stashed on `Run._terminal_signals.last_event_at` by `apply_event`.
+  - **`pushed_at` semantics change**: `_build_run_row` now refreshes `pushed_at` on every upsert. Previously it was set only on INSERT (table default); now it doubles as the canonical "last activity" timestamp for Supabase-backed runs. No backfill needed — the four currently-stale rows in production flip to `abandoned` the moment the deploy lands because the truth table is derived live on every read.
+  - **`RunStatus` enum + UI badge mapping**: new `"abandoned"` value in `RunStatus`; new `.md-status--abandoned` modifier (warn/amber tone, same palette as `drift` but distinct class) in both `tokens-and-primitives.css` (DS) and `components.css` (live app); `StatusBadge` gains the mapping + hover tooltip explaining the policy. No schema migration.
+  - **Threshold**: `RUN_STALE_THRESHOLD_MINUTES = 30` lives at `dual_research.ui.labels`. Module constant for now — env-driven tuning is a follow-up if operationally needed.
+
 ## [1.36.3] — 2026-05-23
 
 ### Fixed

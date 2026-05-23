@@ -71,7 +71,10 @@ function _matchesSearch(run, q) {
 }
 
 // ── Attention classification ────────────────────────────────────
-const ATTENTION_STATUSES = new Set(['errored', 'deadlocked']);
+// Spec 0181 — `abandoned` is the "needs-attention" bucket too: the
+// orchestrator died silently and the user almost certainly wants to
+// investigate or retry.
+const ATTENTION_STATUSES = new Set(['errored', 'deadlocked', 'abandoned']);
 
 function _attentionSummary(run) {
   const parts = [];
@@ -261,6 +264,9 @@ function RunListView({ runs, loading, onSelect }) {
           <Tab active={filter === 'converged'} onClick={() => handleFilter('converged')} dot filterTone="converged" count={counts.converged||0} size="sm">converged</Tab>
           <Tab active={filter === 'deadlocked'} onClick={() => handleFilter('deadlocked')} dot filterTone="deadlocked" count={counts.deadlocked||0} size="sm">deadlocked</Tab>
           <Tab active={filter === 'errored'} onClick={() => handleFilter('errored')} dot filterTone="errored" count={counts.errored||0} size="sm">errored</Tab>
+          {/* Spec 0181 — abandoned filter chip. Reuses the drift tone so
+              it visually clusters with deadlocked (both warn-amber). */}
+          <Tab active={filter === 'abandoned'} onClick={() => handleFilter('abandoned')} dot filterTone="deadlocked" count={counts.abandoned||0} size="sm">abandoned</Tab>
           <Tab active={filter === 'completed'} onClick={() => handleFilter('completed')} dot filterTone="completed" count={counts.completed||0} size="sm">completed</Tab>
         </TabGroup>
       </div>

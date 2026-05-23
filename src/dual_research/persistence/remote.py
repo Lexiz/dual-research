@@ -233,6 +233,13 @@ def _build_run_row(
         "id": run_id,
         "slug": slug,
         "created_at": created_at.isoformat(),
+        # Spec 0181 — refresh on every upsert so ``pushed_at`` doubles
+        # as the "last activity" signal for the abandoned rule in
+        # ``derive_run_status``. Previously this column was set only by
+        # the table default on INSERT, so post-spec-0032
+        # ``--push-while-running`` rows kept the original push ts and a
+        # dead orchestrator was indistinguishable from a healthy one.
+        "pushed_at": datetime.now(timezone.utc).isoformat(),
         "model_tier": model_tier,
         "claude_model": claude_model,
         "openai_model": openai_model,

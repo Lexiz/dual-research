@@ -241,6 +241,14 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
     """
     kind = event.get("event")
 
+    # Spec 0181 — stash the latest event ts so ``_finalise_status`` can
+    # feed it to ``derive_run_status``'s staleness rule. Every event
+    # counts (not just terminal ones) — the truth is "did anything
+    # arrive recently."
+    ts = event.get("ts")
+    if ts:
+        run._terminal_signals.last_event_at = ts
+
     if kind == "run_started":
         _on_run_started(run, event)
     elif kind == "phase_entered":
@@ -320,6 +328,11 @@ def summarize_run(session_dir: Path) -> RunListRow:
         hard_cap_hit=hard_cap_hit,
         run_failed=run_failed,
         run_completed_exit_code=run_completed_exit_code,
+        # Spec 0181 — staleness signal for the abandoned rule. Falls
+        # back to the dir's mtime / session-dir timestamp when no
+        # transcript exists (catches runs that crashed before writing
+        # any event — exactly the user-reported four stuck rows).
+        last_event_at=_last_activity_ts(session_dir),
     )
 
     # Spec 0039 D3 — transcript is the canonical truth; metrics.json is
@@ -977,6 +990,7 @@ def _finalise_status(run: Run) -> None:
         hard_cap_hit=sigs.hard_cap_hit,
         run_failed=sigs.run_failed,
         run_completed_exit_code=sigs.run_completed_exit_code,
+        last_event_at=sigs.last_event_at,
     )
     if sigs.run_failed and sigs.run_failed_error is not None:
         run.error = sigs.run_failed_error
@@ -1080,6 +1094,83 @@ def _earliest_event_ts(transcript_path: Path) -> str | None:
                     continue
     except OSError:
         return None
+    return None
+
+
+def _latest_event_ts(transcript_path: Path) -> str | None:
+    """Spec 0181 — ISO ts of the LAST event in the transcript.
+
+    Reads the tail of the file (~64 KB) so even multi-MB transcripts
+    are cheap. Feeds the staleness rule in ``derive_run_status`` via
+    ``summarize_run``.
+    """
+    if not transcript_path.exists():
+        return None
+    try:
+        with transcript_path.open("rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            if size == 0:
+                return None
+            tail = b""
+            chunk = 64 * 1024
+            while size > 0 and tail.count(b"\n") < 2:
+                read_n = min(chunk, size)
+                f.seek(size - read_n)
+                tail = f.read(read_n) + tail
+                size -= read_n
+            lines = [ln for ln in tail.splitlines() if ln.strip()]
+            if not lines:
+                return None
+            evt = json.loads(lines[-1])
+            return evt.get("ts")
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+
+
+_SESSION_DIR_TS_RE = re.compile(r"^(\d{8})-(\d{6})-")
+
+
+def _last_activity_ts(session_dir: Path) -> str | None:
+    """Spec 0181 — best-effort 'last activity' timestamp for a session dir.
+
+    Priority:
+    1. Last event ts in ``transcript.jsonl`` (the canonical signal).
+    2. Newest mtime among ``state.json`` + ``metrics.json`` + the dir
+       itself (catches runs that wrote state but never emitted events).
+    3. The parsed ``YYYYMMDD-HHMMSS`` prefix from the dir name
+       (creation time; the absolute floor for any run).
+
+    The first non-None value wins. A run with none of these would have
+    ``last_event_at=None`` returned to the truth table, which falls
+    through to ``running`` (backwards-compatible default).
+    """
+    ts = _latest_event_ts(session_dir / "transcript.jsonl")
+    if ts:
+        return ts
+    # Fall back to the newest mtime — captures runs that wrote
+    # state.json or metrics.json without emitting transcript events.
+    candidates = [session_dir, session_dir / "state.json", session_dir / "metrics.json"]
+    mtimes = []
+    for p in candidates:
+        try:
+            mtimes.append(p.stat().st_mtime)
+        except (OSError, FileNotFoundError):
+            continue
+    if mtimes:
+        return datetime.fromtimestamp(max(mtimes), tz=timezone.utc).isoformat()
+    # Last resort — parse the session dir name (YYYYMMDD-HHMMSS-slug).
+    m = _SESSION_DIR_TS_RE.match(session_dir.name)
+    if m:
+        date_part, time_part = m.groups()
+        try:
+            return (
+                datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
+                .replace(tzinfo=timezone.utc)
+                .isoformat()
+            )
+        except ValueError:
+            return None
     return None
 
 
