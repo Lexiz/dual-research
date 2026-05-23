@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T09:00:30Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T09:02:17Z","step":"reconcile_complete","data":{"mechanical":4,"semantic":0,"verdict":"clean","note":"mechanical hits are bare-basename link-text false positives; substantive symbols all resolve (CritiqueSummaryView@7890, CritiqueExplorer@7019, isTerminal@7025, phase-tab cluster@7352, TopLevelError@ui/models.py:349)"}}
 {"ts":"2026-05-23T09:02:29Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T09:02:38Z","step":"branched","data":{"branch":"spec/0175-summary-tab-v2","from":"main@58c96a5"}}
