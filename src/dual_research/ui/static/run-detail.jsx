@@ -1685,16 +1685,18 @@ function ItemCardDQBody({ item, transitions }) {
   );
 }
 
-// Issue body — matches `09-issue-card.png`, post-spec-0172 + 0179. Layout:
+// Issue body — matches `09-issue-card.png`, post-spec-0172 + 0179 + 0188.
+// Layout:
 //   <markdown body>                         (full item.body via <Markdown>)
 //   > quote: <anchor>                       (inline anchor, if quote)
+//   <ItemCardThreadView />                  (bubble timeline of transitions)
 //
-// Spec 0172 §3 dropped the `[shortCode] [state] — <title>` row; spec
-// 0179 §3.2 / §3.4 dropped the seen-row chip cluster (raised-by + round
-// metadata duplicated the head's lifecycle chip) and the bottom-anchor
-// blockquote (duplicated the inline anchor). The inline anchor at the
-// top of the body is now the only canonical anchor surface; the head's
-// lifecycle chip is the only raised-by + lifecycle surface.
+// Spec 0188 §2.1 routed the body through ItemCardThreadView so Issue
+// cards share the QuestionThread bubble anatomy with Question /
+// Disagreement cards (the "all four kinds threaded" §2.9 promise from
+// spec 0173). The markdown body and inline anchor stay — spec 0188
+// §2.4 explicitly kept the markdown block. The raise bubble inside the
+// thread view carries item.body as its quote (mirroring the Q/D shape).
 function ItemCardIssueBody({ item, anchorType, anchorText }) {
   return (
     <div className="item-card__body item-card__body--issue">
@@ -1704,18 +1706,21 @@ function ItemCardIssueBody({ item, anchorType, anchorText }) {
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
+      <ItemCardThreadView item={item} />
     </div>
   );
 }
 
-// Comment body — matches `10-comments-card.png`, post-spec-0179. Layout:
+// Comment body — matches `10-comments-card.png`, post-spec-0179 + 0188.
+// Layout:
 //   <markdown body>
 //   > quote: <anchor>                       (inline anchor, if quote)
+//   <ItemCardThreadView />                  (bubble timeline of transitions)
 //
-// Spec 0179 §3.3 / §3.5 dropped the seen-row chip cluster
-// ([noted by Agent] [R<N>]) and the bottom-anchor blockquote — both
-// duplicated data the head's lifecycle chip (raised-by + round) and
-// the inline anchor already carry.
+// Spec 0188 §2.2 routed the body through ItemCardThreadView for parity
+// with the other three kinds. Most Comments have only the raise
+// transition, so the timeline collapses to a single bubble; that's
+// still the canonical anatomy spec 0173 §2.9 prescribed.
 function ItemCardCommentBody({ item, anchorType, anchorText }) {
   return (
     <div className="item-card__body item-card__body--comment">
@@ -1725,6 +1730,7 @@ function ItemCardCommentBody({ item, anchorType, anchorText }) {
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
+      <ItemCardThreadView item={item} />
     </div>
   );
 }

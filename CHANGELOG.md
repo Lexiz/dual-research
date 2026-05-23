@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.37.0] — 2026-05-23
+
+### Added
+
+- **Spec 0188 — Issue + Comment cards thread through `ItemCardThreadView`** ([spec 0188](specs/0188-item-card-issue-comment-bodies-via-thread-view.md)). Closes spec 0173 §2.9's "all four kinds threaded" promise that the original implementation only kept for Question + Disagreement. `ItemCardIssueBody` and `ItemCardCommentBody` now end with `<ItemCardThreadView item={item} />`, so expanded Issue + Comment cards render the QuestionThread bubble anatomy (provider chip + round chip + verdict chip cluster per transition, styled `<blockquote>` for the reason text) — the same primitive Question / Disagreement cards have used since spec 0173. Per spec 0188 §2.4 the markdown body block above stays for both kinds (Comments lean on the markdown as their primary content; Issues lean on it for the title-line summary). The raise bubble inside the thread view will carry `item.body` as its quote, which means the body text appears twice for thin items — that's the spec's explicit reading and a follow-up spec can de-duplicate if it reads heavy in practice. No CSS or schema change; the existing `.item-card__qt-rows` / `.item-card__qt-row{--claude,--gpt}` styles already cover Issue + Comment because `ItemCardThreadView` is kind-agnostic.
+
 ## [1.36.9] — 2026-05-23
 
 ### Changed
