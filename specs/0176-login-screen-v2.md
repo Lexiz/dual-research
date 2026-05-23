@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.36.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T22:35:00Z"
 started_at: "2026-05-23T09:34:11Z"
 merged_at: "2026-05-23T09:47:45Z"
-deployed_at: ""
-pr: "https://github.com/Lexiz/dual-research/pull/204"
-handover: ""
+deployed_at: "2026-05-23T09:56:37Z"
+pr: "https://github.com/Lexiz/dual-research/pull/205"
+handover: "handoffs/2026-05-23-spec-0176-login-screen-v2.md"
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
 promoted_from_draft: "002"

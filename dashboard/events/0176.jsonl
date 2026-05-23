@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T09:44:01Z","step":"tests_green","data":{"passed":1636}}
 {"ts":"2026-05-23T09:47:41Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/204"}}
 {"ts":"2026-05-23T09:47:58Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/204"}}
+{"ts":"2026-05-23T09:54:42Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T09:56:37Z","step":"deployed","data":{"version":"1.36.0"}}
+{"ts":"2026-05-23T09:56:37Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T09:57:38Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0176-login-screen-v2.md"}}
