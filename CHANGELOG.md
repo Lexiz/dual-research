@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.5] — 2026-05-23
+
+### Fixed
+
+- **Spec 0182 — bootstrap timeline restores per-stage durations on repaint** ([spec 0182](specs/0182-bootstrap-timeline-completed-stage-durations.md)). The spec dashboard's client-side `/api/data` poll (5s cadence) was wiping the server-rendered per-stage durations on every refresh — every completed `.tl__step--done` flipped to a literal em-dash because `computeStages` in `DASHBOARD_BOOTSTRAP_JS` never walked event timestamps. Extended `computeStages` to mirror the server-side `stages.compute_stages` algorithm — anchor on `cycle_started` → `queued` → `in_progress` (in that order, matching `stages.py:225-229`); for each completed stage compute `duration_seconds = max(0, floor((ev.ts - prev_ts) / 1000))`; for the current stage compute against `Date.now()`. Added `_fmtDurSecs` (JS mirror of `_humanize_seconds`) so first-paint and repaint render the same string. `renderTimeline` now feeds `s.duration_seconds` through `_fmtDurSecs` instead of hard-coding the em-dash.
+
 ## [1.36.4] — 2026-05-23
 
 ### Changed

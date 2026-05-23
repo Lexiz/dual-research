@@ -3224,6 +3224,10 @@ DASHBOARD_BOOTSTRAP_JS = """\
   // event log. Mirrors stages.py:compute_stages but trimmed: we don't
   // compute durations (the server already rendered them and they don't
   // change often within a 5s refresh window), only done/curr/queued.
+  // Spec 0182 — computeStages now also walks event timestamps to derive
+  // per-stage duration_seconds, mirroring the server-side algorithm at
+  // stages.compute_stages. Without this, every completed stage's
+  // .tl__dur flipped to em-dash after each 5s repaint.
   function computeStages(events, failureStep) {
     var byStep = {};
     events.forEach(function (e) {
@@ -3246,14 +3250,56 @@ DASHBOARD_BOOTSTRAP_JS = """\
         if (i === 0 || STAGE_DEFS[i - 1][1] in byStep) { currIdx = i; break; }
       }
     }
+    // Anchor preference must mirror stages.py:225-229 — cycle_started
+    // first, then queued, then in_progress. Historical specs (pre
+    // spec 0156) only have in_progress; new specs have all three.
+    function _ms(iso) {
+      if (!iso) return null;
+      var t = new Date(iso).getTime();
+      return isFinite(t) ? t : null;
+    }
+    var anchorEv = byStep['cycle_started'] || byStep['queued'] || byStep['in_progress'];
+    var prevTs = anchorEv ? _ms(anchorEv.ts) : null;
+    var nowMs = Date.now();
     return STAGE_DEFS.map(function (def, i) {
       var status;
       if (def[1] in byStep) status = 'done';
       else if (failIdx !== null && i === failIdx) status = 'fail';
       else if (currIdx !== null && i === currIdx) status = 'curr';
       else status = 'queued';
-      return { name: def[0], status: status, ev: byStep[def[1]] || null };
+      var ev = byStep[def[1]] || null;
+      var duration_seconds = null;
+      if (ev) {
+        var evTs = _ms(ev.ts);
+        if (evTs != null && prevTs != null) {
+          duration_seconds = Math.max(0, Math.floor((evTs - prevTs) / 1000));
+        }
+        if (evTs != null) prevTs = evTs;
+      } else if (status === 'curr' && prevTs != null) {
+        duration_seconds = Math.max(0, Math.floor((nowMs - prevTs) / 1000));
+      }
+      return { name: def[0], status: status, ev: ev, duration_seconds: duration_seconds };
     });
+  }
+
+  // Spec 0182 — mirror server-side _humanize_seconds for stage durations.
+  // Format must match exactly so first-paint (server-rendered) and the
+  // 5s repaint (this helper) don't flicker between forms.
+  function _fmtDurSecs(secs) {
+    if (secs == null || secs < 0) return '—';
+    if (secs < 60) return secs + 's';
+    var m = Math.floor(secs / 60);
+    var s = secs % 60;
+    if (m < 60) return s === 0 ? (m + 'm') : (m + 'm ' + s + 's');
+    var h = Math.floor(m / 60);
+    m = m % 60;
+    if (h < 24) return m === 0 ? (h + 'h') : (h + 'h ' + m + 'm');
+    var d = Math.floor(h / 24);
+    h = h % 24;
+    if (d < 7) return h === 0 ? (d + 'd') : (d + 'd ' + h + 'h');
+    var w = Math.floor(d / 7);
+    d = d % 7;
+    return d === 0 ? (w + 'w') : (w + 'w ' + d + 'd');
   }
 
   function renderTimeline(states, cycleStartedIso) {
@@ -3269,11 +3315,14 @@ DASHBOARD_BOOTSTRAP_JS = """\
       if (s.status === 'curr' && cycleStartedIso) {
         attrs = ' data-stage-started-at="' + ESC(cycleStartedIso) + '"';
       }
+      // Spec 0182 — render the computed duration_seconds via _fmtDurSecs
+      // instead of the previous hard-coded em-dash. The 1s ticker keeps
+      // rewriting the curr node's text regardless of the initial value.
       return (
         '<div class="tl__step tl__step--' + s.status + '">' +
         '<div class="tl__node"></div>' +
         '<div class="tl__lbl">' + ESC(s.name) + '</div>' +
-        '<div class="tl__dur"' + attrs + '>—</div>' +
+        '<div class="tl__dur"' + attrs + '>' + _fmtDurSecs(s.duration_seconds) + '</div>' +
         '</div>'
       );
     }).join('');
