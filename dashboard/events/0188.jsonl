@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T12:49:18Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T12:49:36Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T12:49:36Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T12:49:38Z","step":"branched","data":{"branch":"spec/0188-item-card-issue-comment-bodies-via-thread-view","from":"main@6b739e6"}}
