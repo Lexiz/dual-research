@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T13:24:23Z","step":"tests_green","data":{"passed":1693}}
 {"ts":"2026-05-23T13:24:55Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/218"}}
 {"ts":"2026-05-23T13:25:12Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/218"}}
+{"ts":"2026-05-23T13:26:03Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T13:31:16Z","step":"deployed","data":{"version":"1.37.1"}}
+{"ts":"2026-05-23T13:31:16Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T13:32:39Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0189-status-counts-addressed-bucketing-bug.md"}}

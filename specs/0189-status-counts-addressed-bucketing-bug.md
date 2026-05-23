@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.37.1
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0173"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T13:00:48Z"
 merged_at: "2026-05-23T13:24:59Z"
-deployed_at: ""
+deployed_at: "2026-05-23T13:31:16Z"
 pr: "https://github.com/Lexiz/dual-research/pull/218"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0189-status-counts-addressed-bucketing-bug.md"
 failure_step: ""
 source_session: deferred-from-0173
 promoted_from_draft: ""
