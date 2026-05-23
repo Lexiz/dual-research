@@ -139,21 +139,30 @@ def test_sweep_logs_no_stale_when_filter_misses(tmp_path: Path) -> None:
     # set). The destroy summary still gets logged.
     assert proc.returncode == 0
     assert "destroyed 2/2" in proc.stdout or "no stale blues" in proc.stdout
+    # Spec 0193 renamed the diagnostic log line from "dumping metadata for
+    # filter diagnosis" to "checking image-release fallback filter" because
+    # the oversize-cluster branch now also runs the image-based fallback.
+    # Both phrases would indicate the diagnostic branch fired.
+    assert "checking image-release fallback filter" not in proc.stderr
     assert "dumping metadata for filter diagnosis" not in proc.stderr
 
 
 def test_sweep_dumps_metadata_when_filter_misses_but_cluster_oversized() -> None:
-    """When filter finds 0 stale AND cluster size > expected, dump metadata
-    to stderr. This is the diagnostic path that captures evidence the
-    NEXT time the bug fires with an unexpected tag scheme."""
+    """When filter finds 0 stale AND cluster size > expected, the oversize-
+    cluster diagnostic branch fires. Spec 0162 dumped metadata; spec 0193
+    runs the image-based fallback first and dumps only on the gate-failure
+    paths (skipped / refused / found-zero). With no sibling .release.json
+    next to this fixture, gate 3 fails and the script dumps for triage."""
     proc = _run_sweep(
         "--input", str(FIXTURE_NO_STALE_EXTRA),  # 4 machines, none tagged safe_to_destroy
         "--expected-count", "2",
     )
     assert proc.returncode == 0
     assert "no stale blues" in proc.stdout
-    # Diagnostic fired.
-    assert "dumping metadata for filter diagnosis" in proc.stderr
+    # Spec 0193 — the oversize-cluster branch now logs the image-based
+    # fallback check (which then skips because no sibling .release.json).
+    assert "checking image-release fallback filter" in proc.stderr
+    assert "could not determine current release image" in proc.stderr
     # Dump contains the suspect machines' IDs so a human can read them.
     assert "mystery-stale-cccccccccccccc" in proc.stderr
     assert "mystery-stale-dddddddddddddd" in proc.stderr
@@ -170,7 +179,9 @@ def test_sweep_no_dump_when_cluster_size_matches_expected() -> None:
     )
     assert proc.returncode == 0
     assert "no stale blues" in proc.stdout
+    # Neither the old diagnostic phrase nor the new spec-0193 phrase fires.
     assert "dumping metadata for filter diagnosis" not in proc.stderr
+    assert "checking image-release fallback filter" not in proc.stderr
 
 
 def test_sweep_input_flag_does_not_call_fly() -> None:
