@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T10:57:22Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T10:57:33Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"1 false-positive: bare-basename link display text"}}
 {"ts":"2026-05-23T10:57:42Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T10:58:00Z","step":"branched","data":{"branch":"spec/0181-run-status-staleness-and-abandoned","from":"main@0444e81"}}
