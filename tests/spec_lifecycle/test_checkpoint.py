@@ -201,23 +201,31 @@ def test_build_headless_command_shape(tmp_path: Path) -> None:
         log_path=tmp_path / "queue-drain" / "spec-0186.log",
         project_dir="/Users/alexlisitzky/dual-research",
     )
-    assert cmd == [
-        "claude",
-        "-p",
-        "/dev-next",
-        "--cwd",
-        "/Users/alexlisitzky/dual-research",
-    ]
+    assert cmd == ["claude", "-p", "/dev-next"]
+
+
+def test_build_headless_command_does_not_pass_cwd_flag(tmp_path: Path) -> None:
+    # Regression guard for spec 0194 — the installed claude CLI (v2.1.79)
+    # exits 1 on `--cwd` before reading the prompt. The cwd must be set by
+    # the caller via subprocess.Popen(cwd=...) or a shell `cd` wrapper.
+    cmd = build_headless_command(
+        spec_number="0186",
+        log_path=tmp_path / "log.txt",
+        project_dir="/some/project",
+    )
+    assert "--cwd" not in cmd
 
 
 def test_build_headless_command_accepts_path_objects(tmp_path: Path) -> None:
+    # project_dir is accepted (signature unchanged) but no longer reflected
+    # in the argv — kept for callers that thread it into Popen(cwd=...).
     project = Path("/some/project")
     cmd = build_headless_command(
         spec_number="0186",
         log_path=tmp_path / "log.txt",
         project_dir=project,
     )
-    assert cmd[-1] == str(project)
+    assert cmd == ["claude", "-p", "/dev-next"]
 
 
 @pytest.mark.parametrize(

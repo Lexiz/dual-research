@@ -134,10 +134,17 @@ def build_headless_command(
     """Build the supervisor's ``claude -p`` argv for one queue iteration.
 
     Spec 0186 §2.1 pins the contract: one queued spec → one headless
-    ``claude -p "/dev-next"`` invocation, ``--cwd`` set to the queue
-    worktree, stdout+stderr captured to ``log_path``. Keeping this in
-    one helper is the §7 mitigation against headless CLI drift — when
-    the ``claude`` arg shape changes, only this function moves.
+    ``claude -p "/dev-next"`` invocation, stdout+stderr captured to
+    ``log_path``. Keeping this in one helper is the §7 mitigation
+    against headless CLI drift — when the ``claude`` arg shape
+    changes, only this function moves.
+
+    The installed ``claude`` CLI (v2.1.79) does not accept a ``--cwd``
+    flag, so the caller is responsible for setting the subprocess
+    working directory via ``subprocess.Popen(..., cwd=...)`` or
+    ``cd <dir> && claude -p ...`` in a shell wrapper. ``project_dir``
+    stays in the signature for callers to thread through to whichever
+    cwd-pinning mechanism they use.
 
     The returned argv excludes shell-level redirection; the caller is
     responsible for routing output to ``log_path`` (e.g. via ``stdout=``
@@ -148,6 +155,4 @@ def build_headless_command(
         "claude",
         "-p",
         "/dev-next",
-        "--cwd",
-        str(project_dir),
     ]
