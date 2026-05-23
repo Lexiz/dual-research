@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T23:11:24Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T23:12:59Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T23:13:13Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T23:13:35Z","step":"branched","data":{"branch":"spec/0201-branch-and-safety-hygiene-verified-deletes-dirty-tree-refusal-pre-push-assertion","from":"main@6ed9a8f"}}
