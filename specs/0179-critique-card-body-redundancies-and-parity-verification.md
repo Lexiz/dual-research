@@ -6,17 +6,17 @@ title: "Fix: critique-card body redundancies (verdict row, bottom anchor, seen-r
 type: bug
 label: bug
 version_bump: PATCH
-target_version: TBD
-status: in_progress
+target_version: 1.36.2
+status: merged
 queue_position: 1
 depends_on: ["0172", "0173"]
 complexity: S
 created: 2026-05-22
 queued_at: "2026-05-22T22:30:00Z"
 started_at: "2026-05-23T10:11:30Z"
-merged_at: ""
+merged_at: "2026-05-23T10:17:44Z"
 deployed_at: ""
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/208"
 handover: ""
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
