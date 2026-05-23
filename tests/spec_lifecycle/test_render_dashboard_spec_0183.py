@@ -81,10 +81,15 @@ def test_authoring_funnel_drafts_bucket_sums_backlog_and_promotions():
 
 
 def test_authoring_funnel_promo_pct_uses_new_denominator():
-    # 2 current drafts + 2 recent promotions = 4 total drafts in window;
-    # 2 queued (the 2 promoted specs are status=queued in our fixture)
-    # → 50% reached queue (pre-fix this would be 100% because the old
-    # denominator was just promoted_recent=2).
+    # 2 current drafts + 2 recent promotions = 4 total drafts in window.
+    # Spec 0183 fixed the denominator (was just `promoted_recent`, now
+    # `current_drafts + promoted_recent`). Spec 0196 then fixed the
+    # numerator (was `queued_recent`, now `promoted_recent`). With this
+    # fixture the corrected math is 2 promoted / 4 total = 50%. The
+    # pre-spec-0196 math happened to also produce 50% here because all
+    # queued specs in this fixture are promoted ones (2/4 = 2/4) — the
+    # sharper guard for the numerator bug lives in
+    # test_authoring_funnel_promo_pct_excludes_direct_queue_specs below.
     drafts = [_draft("020"), _draft("021")]
     recent_iso = (NOW - dt.timedelta(days=5)).isoformat()
     specs = [
@@ -94,9 +99,68 @@ def test_authoring_funnel_promo_pct_uses_new_denominator():
     html = _render_authoring_funnel(specs, drafts, NOW)
     # Sub-line should mention "50% reached queue"
     assert "50% reached queue" in html, (
-        f"promo_pct must use (current_drafts + promoted_recent) as the "
-        f"denominator (50% in this fixture, not 100%). Sub-line was:\n"
+        f"promo_pct must use promoted_recent / (current_drafts + "
+        f"promoted_recent) (50% in this fixture). Sub-line was:\n"
         f"{html[-600:]}"
+    )
+
+
+def _direct_queue_spec(num: str, queued_at_iso: str) -> SpecRow:
+    """Spec 0196 — a spec authored directly via /spec-queue, with no
+    draft step. `promoted_from_draft` is empty; the spec lands at
+    status=queued without ever passing through the draft funnel."""
+    return SpecRow(
+        fm={
+            "kind": "dev",
+            "spec": num,
+            "status": "queued",
+            "queued_at": queued_at_iso,
+            "promoted_from_draft": "",  # the load-bearing field
+        },
+        path=Path(f"/tmp/specs/{num}-direct.md"),
+    )
+
+
+def test_authoring_funnel_promo_pct_excludes_direct_queue_specs():
+    """Spec 0196 — direct-queue specs (those authored via /spec-queue
+    without a draft) must NOT pull the promo_pct numerator up. Before
+    the fix, the numerator was `queued_recent` which counts ALL queued
+    specs in the window, including direct-queue ones — producing
+    nonsense like '538% reached queue' on the live repo.
+
+    Fixture: 1 current draft + 1 promoted spec + 5 direct-queue specs
+    in the window. Total in draft funnel: 1 backlog + 1 promoted = 2.
+    Promoted in window: 1. Expected promo_pct: 1/2 = 50%.
+
+    Pre-fix this would render `300% reached queue` (6 queued / 2 in
+    draft funnel = 300%). Post-fix: 50%.
+    """
+    drafts = [_draft("100")]
+    recent_iso = (NOW - dt.timedelta(days=7)).isoformat()
+    specs = [
+        _promoted_spec("0500", "100-promoted", recent_iso),
+        _direct_queue_spec("0501", recent_iso),
+        _direct_queue_spec("0502", recent_iso),
+        _direct_queue_spec("0503", recent_iso),
+        _direct_queue_spec("0504", recent_iso),
+        _direct_queue_spec("0505", recent_iso),
+    ]
+    html = _render_authoring_funnel(specs, drafts, NOW)
+    assert "50% reached queue" in html, (
+        f"promo_pct numerator must be `promoted_recent` (1), not "
+        f"`queued_recent` (6). Pre-fix this fixture rendered "
+        f"`300% reached queue`. Sub-line was:\n{html[-600:]}"
+    )
+    # Belt-and-suspenders: assert the broken pre-fix value is NOT present.
+    assert "300% reached queue" not in html
+    # And no other nonsense values.
+    assert "% reached queue" in html
+    import re
+    pct_match = re.search(r"(\d+)% reached queue", html)
+    assert pct_match is not None
+    assert 0 <= int(pct_match.group(1)) <= 100, (
+        f"promo_pct must be bounded in [0, 100]; got "
+        f"{pct_match.group(1)}% in sub-line."
     )
 
 
