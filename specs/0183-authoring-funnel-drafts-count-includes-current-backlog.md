@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: "1.36.6"
-status: merged
+status: deployed
 queue_position: 2
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T21:50:00Z"
 started_at: "2026-05-23T11:35:42Z"
 merged_at: "2026-05-23T11:41:27Z"
-deployed_at: ""
+deployed_at: "2026-05-23T11:56:42Z"
 pr: "https://github.com/Lexiz/dual-research/pull/213"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0183-authoring-funnel-drafts-count-includes-current-backlog.md"
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""
