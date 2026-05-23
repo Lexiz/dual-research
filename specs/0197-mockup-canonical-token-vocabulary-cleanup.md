@@ -8,7 +8,6 @@ label: refactoring
 version_bump: PATCH
 target_version: 1.39.3
 status: deployed
-queue_position: 3
 depends_on: []
 complexity: S
 created: 2026-05-23

@@ -36,23 +36,23 @@ def _write_spec(
     number: str,
     *,
     status: str = "queued",
-    queue_position: int = 1,
+    queue_position: int = 1,  # kept for back-compat; ignored post spec 0199
     slug: str = "fixture",
     started_at: str = "",
 ) -> Path:
     """Write a minimal queued-dev spec file with the right frontmatter shape.
 
-    ``current_queue`` from ``scripts.spec_lifecycle.pick_next_number`` only
-    requires ``kind: dev``, ``status: queued``, and a ``queue_position``
-    integer to surface the spec; we round it out with the fields the
-    supervisor reads (``spec``, ``slug``).
+    Spec 0199 §2.4 — `queue_position` is no longer written. `current_queue`
+    sorts by spec ID (`(parent, child)` tuple). The `queue_position` keyword
+    is kept on this helper so existing call sites continue to read clearly
+    ("position 1 first") even though the field itself is gone.
     """
+    del queue_position  # explicitly unused — keeps the kwarg for call sites.
     body = f"""---
 kind: dev
 spec: "{number}"
 slug: {slug}
 status: {status}
-queue_position: {queue_position}
 """
     if started_at:
         body += f'started_at: "{started_at}"\n'

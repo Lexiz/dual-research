@@ -20,6 +20,12 @@ from .frontmatter import parse, ParsedFile
 VALID_TYPES = {"new-feature", "bug", "refactoring", "test", "breaking"}
 VALID_STATUSES = {"queued", "in_progress", "merged", "deployed", "failed", "cancelled"}
 
+# Spec 0199 §2.1 — canonical spec-ID filename grammar. `NNNN-slug.md` or
+# `NNNN.M-slug.md`. One decimal level only; two-level decimals (`0170.1.1-x.md`)
+# are rejected with a clear error.
+SPEC_FILENAME_RE = re.compile(r"^\d{4}(?:\.\d+)?-[a-z0-9-]+\.md$")
+SPEC_FILENAME_TWO_DECIMAL_RE = re.compile(r"^\d{4}\.\d+\.\d+")
+
 DEV_REQUIRED_FRONTMATTER = {
     "kind",
     "spec",
@@ -111,6 +117,31 @@ def validate_dev_spec(path: str | Path) -> ValidationResult:
     body = parsed.body
     errors: list[str] = []
     warnings: list[str] = []
+
+    # Spec 0199 §2.1 — filename must match `NNNN[.M]-slug.md`. Two-level
+    # decimals (e.g. `0170.1.1-foo.md`) are rejected with a dedicated message
+    # so the grammar violation is unambiguous.
+    fname = Path(path).name
+    if SPEC_FILENAME_TWO_DECIMAL_RE.match(fname):
+        errors.append(
+            f"spec filename {fname!r} uses two decimal levels — only one is "
+            "permitted (spec 0199 §2.1). A deferral from `0170.1` becomes "
+            "the sibling `0170.2`, not the child `0170.1.1`."
+        )
+    elif not SPEC_FILENAME_RE.match(fname):
+        errors.append(
+            f"spec filename {fname!r} does not match canonical grammar "
+            "`NNNN[.M]-<lowercase-slug>.md` (spec 0199 §2.1)."
+        )
+
+    # Spec 0199 §2.4 — `queue_position` is deprecated. Warn (don't error) if
+    # it appears in newly-authored frontmatter so existing files aren't broken
+    # before the bulk-strip runs, but new specs are nudged off the field.
+    if "queue_position" in fm:
+        warnings.append(
+            "`queue_position` is deprecated (spec 0199 §2.4); remove from "
+            "frontmatter — queue order is intrinsic to the spec ID."
+        )
 
     # Frontmatter shape
     missing = DEV_REQUIRED_FRONTMATTER - set(fm.keys())

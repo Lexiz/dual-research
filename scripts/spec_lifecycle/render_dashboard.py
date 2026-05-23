@@ -33,6 +33,7 @@ from typing import Any
 
 from .append_event import read_events
 from .frontmatter import parse
+from .pick_next_number import SPEC_ID_RE, parse_spec_id
 from .stages import STEP_LABELS, StageState, compute_stages, current_stage_label
 
 
@@ -57,7 +58,25 @@ class SpecRow:
 
     @property
     def number(self) -> str:
-        return self.path.stem[:4]
+        """Full spec ID including optional decimal child (spec 0199 §2.1).
+
+        E.g. `"0170"` for plain integers, `"0170.1"` for decimal children.
+        Falls back to `stem[:4]` for malformed filenames so a renderer pass
+        over a junk file doesn't crash.
+        """
+        m = SPEC_ID_RE.match(self.path.name)
+        if not m:
+            return self.path.stem[:4]
+        parent, child = m.group(1), m.group(2)
+        return f"{parent}.{child}" if child else parent
+
+    @property
+    def sort_key(self) -> tuple[int, int]:
+        """`(parent, child)` ordering key — used wherever specs sort by ID."""
+        try:
+            return parse_spec_id(self.path.name)
+        except ValueError:
+            return (0, 0)
 
     @property
     def status(self) -> str:
@@ -332,9 +351,9 @@ def _feed_detail(spec: SpecRow | None, step: str, data: dict[str, Any]) -> str:
     title = _escape(spec.title) if spec else ""
 
     if step == "queued":
-        pos = data.get("queue_position") or (spec.fm.get("queue_position") if spec else None)
-        extra = f" · position {_escape(pos)}" if pos else ""
-        return f"{spec_label} · {title}{extra}"
+        # Spec 0199 §2.4 — queue order is intrinsic to the spec ID; no
+        # separate position field. The spec label already conveys the ID.
+        return f"{spec_label} · {title}"
     if step == "deployed":
         v = data.get("version")
         suffix = f" · v{_escape(v)}" if v else ""
@@ -1483,7 +1502,7 @@ def _render_queue(queued: list[SpecRow], now: dt.datetime) -> str:
         waiting = _ago(queued_ts, now) if queued_ts else "—"
         rows.append(
             f'<div class="qrow" data-pager-page="{page}"{hidden}>'
-            f'<div class="qrow__pos">{_escape(s.fm.get("queue_position", "—"))}</div>'
+            f'<div class="qrow__pos">{idx + 1}</div>'
             f'<div class="qrow__id">{_link_spec(s.number, s.number)}</div>'
             f'<div class="qrow__title">{_escape(s.title)}</div>'
             f'<div>{_type_chip(s.type)}</div>'
@@ -1626,7 +1645,7 @@ def _render_all_specs(specs: list[SpecRow]) -> str:
     )
     sorted_specs = sorted(
         [s for s in specs if (s.fm.get("kind") or "dev") == "dev"],
-        key=lambda s: int(s.number or "0"),
+        key=lambda s: s.sort_key,
         reverse=True,
     )
     for s in sorted_specs:
@@ -1761,7 +1780,8 @@ def _render_counter_cluster(specs: list[SpecRow], drafts: list[DraftRow], now: d
     }
 
     # Sub-line copy for the four plain counters.
-    next_q = sorted(queued, key=lambda s: int(s.fm.get("queue_position") or 999))
+    # Spec 0199 §2.4 — sort by spec ID, not queue_position.
+    next_q = sorted(queued, key=lambda s: s.sort_key)
     next_label = f"next is {next_q[0].number}" if next_q else "queue empty"
     inflight_label = (
         f"running · {len(inflight)} active" if inflight else "idle"
@@ -2004,9 +2024,10 @@ def render_index(
     """
     now = now or dt.datetime.now(dt.timezone.utc)
     in_flight = [s for s in specs if s.status == "in_progress"]
+    # Spec 0199 §2.4 — queue order is intrinsic to the spec ID.
     queued = sorted(
         [s for s in specs if s.status == "queued"],
-        key=lambda s: int(s.fm.get("queue_position") or 999),
+        key=lambda s: s.sort_key,
     )
     deployed_count = sum(1 for s in specs if s.status == "deployed")
 
@@ -3274,6 +3295,22 @@ DASHBOARD_BOOTSTRAP_JS = """\
     return humanizeSec(Math.floor((nowMs - t) / 1000)) + ' ago';
   }
 
+  // Spec 0199 §2.1 — parse a spec ID like "0170" or "0170.1" into a
+  // [parent, child] tuple. Used as the sort key everywhere spec IDs sort.
+  function parseSpecId(idStr) {
+    if (!idStr) return [0, 0];
+    var s = String(idStr);
+    var m = s.match(/^(\\d{4})(?:\\.(\\d+))?/);
+    if (!m) return [0, 0];
+    return [parseInt(m[1], 10), m[2] ? parseInt(m[2], 10) : 0];
+  }
+  function compareSpecId(a, b) {
+    // Ascending compare on [parent, child] tuples.
+    var ka = parseSpecId(a), kb = parseSpecId(b);
+    if (ka[0] !== kb[0]) return ka[0] - kb[0];
+    return ka[1] - kb[1];
+  }
+
   // ── Chips, type → tone (mirror Python _TYPE_TONE) ───────────────────────
   var TYPE_TONE = {
     'new-feature': 'info', 'bug': 'err', 'refactoring': 'warn',
@@ -3534,9 +3571,10 @@ DASHBOARD_BOOTSTRAP_JS = """\
   }
 
   function renderQueue(data, nowMs) {
+    // Spec 0199 §2.4 — queue order is intrinsic to the spec ID.
     var queued = data.specs
       .filter(function (s) { return s.status === 'queued'; })
-      .sort(function (a, b) { return (a.queue_position || 999) - (b.queue_position || 999); });
+      .sort(function (a, b) { return compareSpecId(a.number, b.number); });
     var header =
       '<div class="sh"><div class="sh__name">Queue</div>' +
       '<div class="sh__hint">/dev-next picks position 1 first</div>' +
@@ -3559,7 +3597,7 @@ DASHBOARD_BOOTSTRAP_JS = """\
       var waiting = ago(s.queued_at, nowMs).replace(' ago', '');
       rows.push(
         '<div class="qrow" data-pager-page="' + page + '"' + hidden + '>' +
-        '<div class="qrow__pos">' + ESC(s.queue_position) + '</div>' +
+        '<div class="qrow__pos">' + (idx + 1) + '</div>' +
         '<div class="qrow__id"><a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
         '<div class="qrow__title">' + ESC(s.title) + '</div>' +
         '<div>' + typeChip(s.type) + '</div>' +
@@ -3672,8 +3710,9 @@ DASHBOARD_BOOTSTRAP_JS = """\
   }
 
   function renderAllSpecs(data) {
+    // Spec 0199 §2.1 — tuple-aware spec-ID sort (descending here).
     var dev = (data.specs || []).slice().sort(function (a, b) {
-      return parseInt(b.number, 10) - parseInt(a.number, 10);
+      return compareSpecId(b.number, a.number);
     });
     var counts = {
       deployed: dev.filter(function (s) { return s.status === 'deployed'; }).length,
