@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: 1.37.2
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0173"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T15:52:28Z"
 merged_at: "2026-05-23T15:56:31Z"
-deployed_at: ""
+deployed_at: "2026-05-23T16:02:29Z"
 pr: "https://github.com/Lexiz/dual-research/pull/219"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0190-timeline-tabs-data-active-migration.md"
 failure_step: ""
 source_session: deferred-from-0173
 promoted_from_draft: ""
