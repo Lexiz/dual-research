@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.38.0
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0186"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T16:17:51Z"
 merged_at: "2026-05-23T16:21:24Z"
-deployed_at: ""
+deployed_at: "2026-05-23T16:26:21Z"
 pr: "https://github.com/Lexiz/dual-research/pull/221"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0192-l-spec-checkpoint-budget-heuristic.md"
 failure_step: ""
 source_session: deferred-from-0186
 promoted_from_draft: ""
