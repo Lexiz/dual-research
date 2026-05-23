@@ -10,6 +10,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.34.1] — 2026-05-23
+
+### Fixed
+
+- **Spec 0194 — `/dev-queue-run` blocked on every iteration by unsupported `--cwd` flag** ([spec 0194](specs/0194-fix-cwd-flag-in-headless-dev-next.md)). The installed `claude` CLI (v2.1.79) does not accept `--cwd`; the supervisor's per-iteration subprocess exited `RC=1` in ~1 s with `error: unknown option '--cwd'` before reading the `/dev-next` prompt, halting the drain at the very first spec. Two paired sites fixed per spec 0186 §7 (the "headless `claude -p` runtime drift" mitigation):
+  - [`scripts/spec_lifecycle/checkpoint.py:129`](scripts/spec_lifecycle/checkpoint.py) — `build_headless_command()` no longer emits `--cwd` in the argv. The `project_dir` parameter is kept in the signature for callers that thread it into `subprocess.Popen(..., cwd=...)`.
+  - [`~/.claude/skills/dev-queue-run/SKILL.md`](~/.claude/skills/dev-queue-run/SKILL.md) — Per-iteration recipe rewritten to anchor cwd via `cd /Users/alexlisitzky/dual-research && claude -p "/dev-next"` instead of the `--cwd` flag.
+  - [`tests/spec_lifecycle/test_checkpoint.py`](tests/spec_lifecycle/test_checkpoint.py) — `test_build_headless_command_shape` updated; new regression guard `test_build_headless_command_does_not_pass_cwd_flag` asserts `--cwd not in cmd`.
+
 ## [1.34.0] — 2026-05-22
 
 ### Added
