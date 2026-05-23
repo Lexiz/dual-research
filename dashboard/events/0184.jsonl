@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T11:59:42Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T11:59:50Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T12:00:01Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T12:00:13Z","step":"branched","data":{"branch":"spec/0184-mockup-fidelity-check-v3-horizontal-dashboard","from":"main@3ae4111"}}
