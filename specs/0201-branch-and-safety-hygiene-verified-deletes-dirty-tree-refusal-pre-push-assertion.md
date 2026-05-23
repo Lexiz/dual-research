@@ -7,16 +7,16 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: "1.41.2"
-status: merged
+status: deployed
 depends_on: ["0198", "0199"]
 complexity: M
 created: 2026-05-24
 queued_at: ""
 started_at: "2026-05-23T23:13:07Z"
 merged_at: "2026-05-23T23:20:01Z"
-deployed_at: ""
+deployed_at: "2026-05-23T23:24:04Z"
 pr: "https://github.com/Lexiz/dual-research/pull/229"
-handover: ""
+handover: "handoffs/2026-05-24-spec-0201-branch-and-safety-hygiene-verified-deletes-dirty-tree-refusal-pre-push-assertion.md"
 failure_step: ""
 source_session: "orchestrator-hardening-series-2026-05-23"
 promoted_from_draft: ""
