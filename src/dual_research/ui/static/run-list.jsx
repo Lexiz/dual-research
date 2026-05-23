@@ -477,7 +477,7 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
           <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>&middot; {run.rounds}</span>
         )}
       </div>
-      <span className="mono" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{fmt.relTime(run.startedAtAgo)}</span>
+      <span className="mono" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{run.startedAt || run.startedAtAgo > 0 ? fmt.relTime(run.startedAtAgo) : '—'}</span>
       <span className="mono num" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{fmt.duration(run.duration)}</span>
       <span className="mono num" style={{ fontSize: 12, color: 'var(--md-on-surface)', textAlign: 'right' }}>{fmt.cost(run.cost)}</span>
       <Icon.Chevron style={{ color: hover ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-decor)' }} />

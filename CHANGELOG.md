@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.39.1] — 2026-05-23
+
+### Fixed
+
+- **Spec 0195 — All-Runs rendered `0s ago` for rows with no transcript** ([spec 0195](specs/0195-all-runs-zero-seconds-ago-for-no-transcript-rows.md)). `summarize_run` derived `started_at` solely from `_earliest_event_ts(transcript.jsonl)`. Sessions that crashed before emitting any event (e.g. the four legacy `abandoned` rows surfaced by spec 0181) returned `started_at=None`, which `_seconds_since` coerced to `0`, which `fmt.relTime` rendered as the misleading `"0s ago"` — visually contradicting the `ABANDONED` chip on the same row and corrupting the started:desc sort. Fix is two-pronged. **Server (`src/dual_research/ui/aggregator.py:1100`):** new `_earliest_known_ts(session_dir)` helper falls back to the parsed `YYYYMMDD-HHMMSS` dir-name prefix when the transcript carries no events — the absolute floor for a run's start time, set at session-dir creation. `summarize_run` now calls the new helper instead of `_earliest_event_ts` directly. **Client (`src/dual_research/ui/static/run-list.jsx:480`):** cell renderer guards the `relTime` call — renders `"—"` when both signals (`startedAt` and `startedAtAgo > 0`) are absent. Sort order side-effect (intended): the four user-flagged abandoned rows now sort to their true ~8-day age instead of floating to the top under `started:desc`. No DS / schema / wire-format change. 4 new tests in `tests/test_run_status_staleness.py`: dir-prefix fallback, `None` when no signal, transcript first-event wins over dir prefix, empty-transcript falls back to dir prefix.
+
 ## [1.39.0] — 2026-05-23
 
 ### Added
