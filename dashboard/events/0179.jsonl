@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T10:15:51Z","step":"tests_green","data":{"passed":1643}}
 {"ts":"2026-05-23T10:17:40Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/208"}}
 {"ts":"2026-05-23T10:17:59Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/208"}}
+{"ts":"2026-05-23T10:19:00Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T10:20:57Z","step":"deployed","data":{"version":"1.36.2"}}
+{"ts":"2026-05-23T10:20:57Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T10:21:48Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0179-critique-card-body-redundancies-and-parity-verification.md"}}

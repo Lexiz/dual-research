@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.36.2
-status: merged
+status: deployed
 queue_position: 1
 depends_on: ["0172", "0173"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T22:30:00Z"
 started_at: "2026-05-23T10:11:30Z"
 merged_at: "2026-05-23T10:17:44Z"
-deployed_at: ""
-pr: "https://github.com/Lexiz/dual-research/pull/208"
-handover: ""
+deployed_at: "2026-05-23T10:20:53Z"
+pr: "https://github.com/Lexiz/dual-research/pull/209"
+handover: "handoffs/2026-05-23-spec-0179-critique-card-body-redundancies-and-parity-verification.md"
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
 promoted_from_draft: ""
