@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.37.3] — 2026-05-23
+
+### Changed
+
+- **Spec 0191 — queue-drain supervisor extracted to Python** ([spec 0191](specs/0191-queue-drain-supervisor-extraction-and-tests.md)). The `/dev-queue-run` supervisor loop — until now prose in `~/.claude/skills/dev-queue-run/SKILL.md` and therefore not unit-testable — now lives in `scripts/queue_drain_supervisor.py`. The new module exports `drain_queue(specs_dir, handoffs_dir, runs_dir, project_dir, *, spawn_command=..., now=..., quiet=False) -> DrainResult` plus a thin CLI: `uv run python -m scripts.queue_drain_supervisor --project-dir <repo>`. `DrainResult` is a frozen dataclass carrying `completed`, `failed`, `failure_log_tail`, `iterations`, `log_paths`. The injection points (`spawn_command`, `now`) make the loop testable without ever invoking `claude`. The skill body at `~/.claude/skills/dev-queue-run/SKILL.md` is rewritten to a thin wrapper: pre-flight greenlight + one CLI call + halt-on-failure surfacing — no more inlined shell `TS=…` recipe, no more `RC == 0 / RC != 0` exit-code prose, no more `tail -n 50` instruction (the supervisor prints its own failure tail). The skill body shrank from 136 → 96 lines. 10 new unit tests in `tests/spec_lifecycle/test_queue_drain_supervisor.py` cover the four canonical scenarios from spec §4 — empty queue, two-spec happy path, halt-on-failure with log-tail capture, resume-mode re-pick on checkpoint — plus mechanical assertions on argv shape, log-path isolation, the immutable result dataclass, and the `_default_now` filename-safe format. No behavior change end-to-end for `/dev-next` or for the per-spec subprocess — this is a pure restructure that makes the load-bearing supervisor logic regression-locked.
+
 ## [1.37.2] — 2026-05-23
 
 ### Changed
