@@ -6,16 +6,16 @@ title: "Branch & safety hygiene — verified deletes, dirty-tree refusal, pre-pu
 type: refactoring
 label: refactoring
 version_bump: PATCH
-target_version: TBD
-status: in_progress
+target_version: "1.41.2"
+status: merged
 depends_on: ["0198", "0199"]
 complexity: M
 created: 2026-05-24
 queued_at: ""
 started_at: "2026-05-23T23:13:07Z"
-merged_at: ""
+merged_at: "2026-05-23T23:20:01Z"
 deployed_at: ""
-pr: ""
+pr: "https://github.com/Lexiz/dual-research/pull/229"
 handover: ""
 failure_step: ""
 source_session: "orchestrator-hardening-series-2026-05-23"
