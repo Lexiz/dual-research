@@ -371,6 +371,8 @@ Two-bar header + status-grouped body. The canonical reference for this lives in 
 
 **Hover** — every card (not the section header) gains elevation-2 on hover.
 
+**ItemCard parity verification (spec 0179).** Any spec that proposes a change to `ItemCard`, its per-kind sub-renderers (`ItemCardDQBody`, `ItemCardIssueBody`, `ItemCardCommentBody`), or the `.item-card__*` CSS chrome MUST include in its PR description a **side-by-side image grid** comparing the live-app rendering of one card per kind in both collapsed and expanded states against the reference screenshots at `design-system/notion-issues/screenshots/07-question-card-duplicate.png`, `08-disagreement-card.png`, `09-issue-card.png`, `10-comments-card.png`. Eight fresh captures (4 kinds × 2 states) next to the four reference shots. PRs that cite design-system parity without embedding this grid are blocked from merge. The grid replaces verbal claims of "matches the screenshot" — the chronic failure mode this rule catches (specs 0138 / 0141 / 0144 / 0151) is specs that cited the reference screenshots in prose but did not verify the rendered output.
+
 ### 4.2 — QuestionThread
 
 The thread component lives inside the expanded state of a question / disagreement / issue / comment card. Anatomy (spec 0097):
