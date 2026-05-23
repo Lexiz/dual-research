@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.39.0
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0162"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T16:28:39Z"
 merged_at: "2026-05-23T16:34:25Z"
-deployed_at: ""
+deployed_at: "2026-05-23T16:39:52Z"
 pr: "https://github.com/Lexiz/dual-research/pull/222"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0193-stale-blue-sweep-image-based-filter.md"
 failure_step: ""
 source_session: deferred-from-0186
 promoted_from_draft: ""
