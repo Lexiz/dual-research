@@ -2825,12 +2825,13 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 8px;
 }
-/* Spec 0146 — 3-column grid mirrors .ccx-bar-row so the percentage
-   at column 2 lands above the right edge of the bar fill and the
-   chevron at column 3 lands at the card's right edge. */
+/* Spec 0180 §3.1 — 4-column grid. hd-id (mirrors bar-row label column);
+   hd-totals lands at the right edge of the 1fr filler (= bar-fill column
+   right edge below); stats sits to the right of hd-totals; chevron at
+   the card's right edge. */
 .ccx-header {
   display: grid;
-  grid-template-columns: minmax(140px, 28%) 1fr minmax(110px, max-content);
+  grid-template-columns: minmax(140px, 28%) 1fr max-content max-content;
   align-items: center;
   gap: 10px;
   padding-bottom: 4px;
@@ -2839,6 +2840,16 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   display: inline-flex; align-items: center; gap: 10px;
   min-width: 0; overflow: hidden;
 }
+/* Spec 0180 §3.1 — total tokens · total cost cluster inside the header. */
+.ccx-header .hd-totals {
+  justify-self: end;
+  display: inline-flex; gap: 6px; align-items: baseline;
+  font: var(--md-w-semi) 13px/1 var(--md-font-data);
+  color: var(--md-on-surface);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ccx-header .hd-totals .sep { color: var(--md-on-surface-faint); }
 .ccx-icon {
   width: 22px; height: 22px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -2873,14 +2884,28 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 }
 
 /* ── Bar rows + sub-rows ─────────────────────── */
+/* Spec 0180 §3.7 — grid lifted from inline-style overrides in run-detail.jsx.
+   minmax(110px, max-content) on the numeric column keeps the tokens · cost
+   block compact while allowing wider content (kt with cents) to expand. */
 .ccx-bar-row, .ccx-sub-row {
-  display: grid; grid-template-columns: 140px 1fr 100px;
-  gap: 12px; align-items: center;
+  display: grid;
+  grid-template-columns: minmax(140px, 28%) 1fr minmax(110px, max-content);
+  gap: 10px; align-items: center;
+  padding: 2px 0;
   font: var(--md-w-regular) 12px/1 var(--md-font-plain);
 }
-.ccx-bar-row.is-total { font-weight: var(--md-w-semi); color: var(--md-on-surface); }
+/* Spec 0180 §3.2 — total-input / total-output modifiers. The base class
+   carries the grid; the modifiers exist for selector hooks (test assertion,
+   future tonal tweaks). Both bars render at the top of the card so the
+   collapsed surface shows both input + output. */
+.ccx-bar-row--total-input,
+.ccx-bar-row--total-output {
+  font-weight: var(--md-w-semi);
+  color: var(--md-on-surface);
+}
+.ccx-bar-row--total-input .lbl,
+.ccx-bar-row--total-output .lbl { color: var(--md-on-surface); }
 .ccx-bar-row .lbl, .ccx-sub-row .lbl { color: var(--md-on-surface-variant); }
-.ccx-bar-row.is-total .lbl { color: var(--md-on-surface); }
 .ccx-sub-row .lbl { font-size: 12px; padding-left: 12px; }
 .ccx-bar {
   position: relative;
@@ -2949,6 +2974,9 @@ body.light .ccx-bar .reuse {
 .ccx-totals .line.is-savings .v { color: var(--p-ok); }
 .ccx-totals .line.is-grand   { padding-top: 4px; border-top: 1px solid var(--md-outline-hair); margin-top: 4px; }
 .ccx-totals .line.is-grand .v { font-size: 15px; }
+/* Spec 0180 §3.6 — output totals block. Cosmetically inherits .ccx-totals;
+   modifier exists for selector hooks and future per-side tonal tweaks. */
+.ccx-totals--output { /* inherits everything from .ccx-totals */ }
 
 /* ── Uniform pair grid (Issue 14) ────────────── */
 .cards-2up { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

@@ -6,7 +6,7 @@ title: "Fix: Consumption card V2 anatomy — split combined Total tokens bar int
 type: bug
 label: bug
 version_bump: PATCH
-target_version: 1.36.3
+target_version: "1.36.3"
 status: in_progress
 queue_position: 1
 depends_on: []

@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.3] — 2026-05-23
+
+### Fixed
+
+- **Spec 0180 — Consumption card V2 anatomy** ([spec 0180](specs/0180-consumption-card-v2-anatomy.md)). Per Notion bug-batch Issues 12 + 13. The combined `Total tokens` bar from spec 0118 is gone; the V2 anatomy carries **two stacked bars** (`Total input` + `Total output`) at the top of every card, visible in collapsed state. Both bars share a single denominator so the input/output comparison is meaningful. The card header gains an `.hd-totals` slot (total tokens · total cost) right-aligned at the bar-fill column's right edge — the bracketed `(X.X% of 1M)` continues to sit to its right.
+  - **Cache-savings line moves from input totals to output totals.** Spec 0148 D12 placed the `cache savings · ×N reuse on Xkt` line inside the input totals block; per Issue 13 that placement was wrong — the cache-reuse signal belongs in the **output** totals block as a cost-savings annotation. The line is moved, not removed; the rendering logic + copy + per-card data path are unchanged.
+  - **Output totals block added** (`.ccx-totals.ccx-totals--output`) — parallel to the existing input totals block. Carries `output tokens · output cost · cache savings · total output`. Without it, the V2 anatomy was asymmetric — input had totals, output had none.
+  - **Collapsed mono cache-reuse line dropped.** The spec 0051 retained-from-collapsed `mono` text under the bar (`Xkt seen · Ykt billed · ×N token reuse · Zt out`) is removed — the cache-savings annotation in the output totals block is the canonical surface now.
+  - **Output header bar removed from the unfolded body.** The IIFE's `outputHeader` element from spec 0148 D11 sat between per-input rows and the totals block; with the always-visible total-output bar above the gate, the header is redundant. Per-output sub-rows (`Reasoning` · `Response` · `Tool calls`) still render in the unfolded body.
+  - **Inline-style hygiene.** The repeated inline `style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 28%) 1fr minmax(110px, max-content)', alignItems: 'center', gap: 10 }}` blobs at every bar-row render site are lifted onto the `.ccx-bar-row` class itself; the same grid declaration now applies uniformly to `SubInputRow` as well. New regression test (`tests/test_consumption_card_v2.py`) locks the JSX-side invariant.
+  - **DS-side changes (CLAUDE.md two-place rule).** `.ccx-bar-row--total-input` + `.ccx-bar-row--total-output` modifiers and the `.ccx-totals--output` modifier land in both `src/dual_research/ui/static/components.css` and `design-system/assets/styles/composed-components.css`. `.ccx-header` is now a 4-column grid (hd-id · 1fr filler with hd-totals right-aligned · stats · chev). `design-system/SPEC.md` §4.3 rewritten to codify the V2 anatomy; `design-system/assets/Design System v2.html` Consumption section re-rendered to match.
+
 ## [1.36.2] — 2026-05-23
 
 ### Fixed
