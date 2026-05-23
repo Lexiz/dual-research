@@ -672,7 +672,11 @@ def _iso_week_key(d: dt.datetime) -> tuple[int, int]:
     return (iso[0], iso[1])
 
 
-def _render_metrics(specs: list[SpecRow], now: dt.datetime) -> str:
+def _render_metrics(
+    specs: list[SpecRow],
+    drafts: list[DraftRow],
+    now: dt.datetime,
+) -> str:
     """Spec 0177 §2.4 — populate the Metrics tab.
 
     Seven sub-sections, all inline SVG (no chart libraries):
@@ -823,7 +827,7 @@ def _render_metrics(specs: list[SpecRow], now: dt.datetime) -> str:
     donut_html = _render_success_donut(specs, now)
 
     # ─── §2.4.7: authoring funnel ────────────────────────────────────
-    funnel_html = _render_authoring_funnel(specs, now)
+    funnel_html = _render_authoring_funnel(specs, drafts, now)
 
     insufficient = ""
     if not cycle_times:
@@ -1218,7 +1222,11 @@ def _render_success_donut(specs: list[SpecRow], now: dt.datetime) -> str:
     )
 
 
-def _render_authoring_funnel(specs: list[SpecRow], now: dt.datetime) -> str:
+def _render_authoring_funnel(
+    specs: list[SpecRow],
+    drafts: list[DraftRow],
+    now: dt.datetime,
+) -> str:
     """Spec 0177 §2.4.7 — drafts → queued → in-flight → deployed counts
     over the last 30 days. Visually a funnel: each stage's rectangle
     shrinks toward the right.
@@ -1254,7 +1262,13 @@ def _render_authoring_funnel(specs: list[SpecRow], now: dt.datetime) -> str:
         and (t := _parse_ts(s.fm.get("deployed_at"))) is not None
         and t >= month_ago
     )
-    drafts_count = promoted_recent  # Drafts that produced queued specs.
+    # Spec 0183 — DRAFTS bucket = current backlog under specs/drafts/ +
+    # drafts that graduated to queued specs in the last 30 days. Pre-fix
+    # the bucket only counted promotions, so unpromoted backlog was
+    # invisible (a repo with 5 parked drafts + 0 recent promotions read
+    # as "0 drafts", falsely implying zero authoring activity).
+    current_drafts = len(drafts)
+    drafts_count = current_drafts + promoted_recent
     stages_data = [
         ("DRAFTS", drafts_count, "chart-grey"),
         ("QUEUED", queued_recent, "chart-mint"),
@@ -1304,11 +1318,14 @@ def _render_authoring_funnel(specs: list[SpecRow], now: dt.datetime) -> str:
             )
         cursor_x += stage_w + gap
 
+    # Spec 0183 — denominator is now total drafts that existed in the
+    # window (backlog + graduated), not just graduated. Repos with a
+    # large unpromoted backlog correctly read a lower conversion rate.
     promo_pct = int(round((queued_recent / drafts_count) * 100)) if drafts_count else 0
     ship_pct = int(round((deployed_recent / queued_recent) * 100)) if queued_recent else 0
     funnel_sub = (
-        f"Last 30 days · {drafts_count} drafts promoted · {promo_pct}% reached queue · "
-        f"{ship_pct}% of queued shipped"
+        f"Last 30 days · {current_drafts} drafts in backlog + {promoted_recent} promoted · "
+        f"{promo_pct}% reached queue · {ship_pct}% of queued shipped"
         if drafts_count
         else f"Last 30 days · {queued_recent} queued · {deployed_recent} shipped"
     )
@@ -2011,7 +2028,7 @@ def render_index(
     if shell_only:
         parts.append(_skeleton_section("metrics", "Metrics"))
     else:
-        parts.append(_wrap_region("metrics", _render_metrics(specs, now)))
+        parts.append(_wrap_region("metrics", _render_metrics(specs, drafts, now)))
     parts.append('</section>')
 
     parts.append(_render_footer())
