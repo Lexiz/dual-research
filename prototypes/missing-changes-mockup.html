@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Missing changes — Critique + Timeline · side-by-side</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Roboto+Serif:opsz,wght@8..144,300..800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" rel="stylesheet" />
+<link rel="stylesheet" href="/src/dual_research/ui/static/tokens.css" />
+<link rel="stylesheet" href="/src/dual_research/ui/static/base.css" />
+<link rel="stylesheet" href="/src/dual_research/ui/static/components.css" />
+<link rel="stylesheet" href="/src/dual_research/ui/static/theme.css" />
+<style>
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body { background: var(--md-background, #0f1115); color: var(--md-on-surface, #d9dee5); font-family: var(--md-font-plain, system-ui, sans-serif); font-size: 13.5px; line-height: 1.55; }
+  body.light { background: #f7f4ea; color: #2a2620; }
+
+  /* Workshop-style header — mirrors prototypes/critique-iteration/mockup.html */
+  header.wsh {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--md-surface-container, #14171c);
+    border-bottom: 1px solid var(--md-outline-hair, #1c1f24);
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  body.light header.wsh { background: #ece8db; border-bottom-color: #d8d2c2; }
+  .wsh__brand { font-weight: 700; font-size: 13.5px; letter-spacing: 0.02em; color: var(--md-on-surface); }
+  .wsh__brand .accent { color: var(--p-sage); }
+  .wsh__pill {
+    background: var(--md-surface-container-high); border: 1px solid var(--md-outline-hair);
+    padding: 3px 10px; border-radius: 999px; font-size: 11px;
+    color: var(--md-on-surface-faint); font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  body.light .wsh__pill { background: #e3decf; border-color: #d8d2c2; }
+  .wsh__spacer { flex: 1 1 auto; }
+  .wsh__group {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--md-surface-container-high); border: 1px solid var(--md-outline-hair);
+    border-radius: 999px; padding: 3px;
+  }
+  body.light .wsh__group { background: #e3decf; border-color: #d8d2c2; }
+  .wsh__group-label {
+    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--md-on-surface-faint);
+    padding: 4px 10px; border-radius: 999px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: transparent; border: 0; cursor: default;
+  }
+  .wsh__opt {
+    background: transparent; border: 0; color: var(--md-on-surface-faint);
+    padding: 4px 12px; border-radius: 999px; font: inherit; font-size: 11.5px; cursor: pointer;
+    transition: background 120ms, color 120ms;
+  }
+  .wsh__opt:hover { color: var(--md-on-surface); }
+  .wsh__opt.is-active {
+    background: var(--md-surface-container-low); color: var(--md-on-surface);
+    box-shadow: inset 0 0 0 1px var(--md-outline-hair);
+  }
+  body.light .wsh__opt.is-active { background: #faf7ee; box-shadow: inset 0 0 0 1px #d8d2c2; }
+  .wsh__note {
+    font-size: 11px; color: var(--md-on-surface-faint);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    width: 100%; padding-top: 2px;
+  }
+
+  /* Container — width follows body[data-width] */
+  .wrap { margin: 0 auto; padding: 32px 24px 96px; transition: max-width 180ms ease; }
+  body[data-width="narrow"]  .wrap { max-width: 1240px; }
+  body[data-width="wide"]    .wrap { max-width: 1760px; }
+  body[data-width="monitor"] .wrap { max-width: none; }
+
+  /* Width-sensitive variants — items that look different at narrow vs wide */
+  /* Hide segment count chips when narrow (mirrors live @media ≤1799px) */
+  body[data-width="narrow"] .seg .chip .seg-count { display: none; }
+  /* Hide kind-chip labels when narrow (mirrors live behaviour where Q/D/I/C lose text) */
+  body[data-width="narrow"] .kind-cluster .chip .chip-label { display: none; }
+  body[data-width="narrow"] .kind-cluster .chip { padding: 0 6px; }
+  /* Banner showing which width-mode is active */
+  body[data-width] .wrap::before {
+    content: 'viewport: ' attr(data-width-display);
+    display: none;
+  }
+  .intro { color: var(--md-on-surface-variant, #a7adb6); margin: 0 0 32px; font-size: 14px; line-height: 1.6; max-width: 720px; }
+  .intro b { color: var(--md-on-surface); }
+
+  /* Section dividers */
+  .pane-hd {
+    margin: 48px 0 24px;
+    padding-top: 24px;
+    border-top: 2px solid var(--md-outline-hair);
+  }
+  .pane-hd:first-of-type { margin-top: 0; border-top: 0; padding-top: 0; }
+  .pane-hd h2 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .pane-hd .pane-sub { color: var(--md-on-surface-faint); font-size: 12.5px; }
+
+  /* Item card */
+  .item {
+    background: var(--md-surface-container, #14171c);
+    border: 1px solid var(--md-outline-hair, #1c1f24);
+    border-radius: 14px;
+    padding: 20px 22px 22px;
+    margin: 0 0 20px;
+  }
+  body.light .item { background: #fff; border-color: #e1ddd0; }
+  .item-num { color: var(--md-on-surface-faint); font: 600 11px/1 ui-monospace, SF Mono, monospace; letter-spacing: 0.10em; text-transform: uppercase; }
+  .item h3 { margin: 4px 0 8px; font-size: 16.5px; letter-spacing: -0.005em; }
+  .item .why { color: var(--md-on-surface-variant); margin: 0 0 16px; max-width: 880px; }
+
+  /* Side-by-side grid */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .col {
+    background: var(--md-surface-container-low, #111317);
+    border: 1px solid var(--md-outline-hair);
+    border-radius: 10px;
+    padding: 14px 16px 18px;
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  body.light .col { background: #faf7ee; border-color: #ebe6d6; }
+  .col-now    { border-left: 3px solid color-mix(in srgb, var(--p-err) 65%, transparent); }
+  .col-prop   { border-left: 3px solid color-mix(in srgb, var(--p-ok) 65%, transparent); }
+  .col-doc    { border-left: 3px solid color-mix(in srgb, var(--p-info) 55%, transparent); }
+  .col-label {
+    font: 600 10.5px/1 ui-monospace, monospace;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin: 0 0 10px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .col-now  .col-label::before  { content: '●'; color: var(--p-err); }
+  .col-prop .col-label::before  { content: '●'; color: var(--p-ok); }
+  .col-doc  .col-label::before  { content: '●'; color: var(--p-info); }
+  .col-body { flex: 1; min-height: 0; }
+  .delta { margin: 14px 0 0; font-size: 11.5px; color: var(--md-on-surface-faint); border-top: 1px dashed var(--md-outline-hair); padding-top: 10px; line-height: 1.5; }
+  .delta b { color: var(--md-on-surface); }
+
+  /* Render-area styles (mimic real critique/timeline chrome) */
+  .ex { background: transparent; border-radius: 8px; padding: 6px 0; }
+
+  /* Chip primitives — mirror live look without the full chip CSS */
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 22px; padding: 0 8px;
+    background: var(--md-surface-container-high);
+    border-radius: 11px;
+    font: 500 11px/1 ui-monospace, SF Mono, monospace;
+    color: var(--md-on-surface);
+    white-space: nowrap;
+  }
+  .chip.sm { height: 20px; padding: 0 7px; font-size: 10.5px; }
+  .chip.lg { height: 24px; padding: 0 10px; }
+  .chip.tone-claude { background: color-mix(in srgb, var(--p-sable) 30%, transparent); }
+  .chip.tone-gpt    { background: color-mix(in srgb, var(--p-sage)  30%, transparent); }
+  .chip.tone-sys    { background: color-mix(in srgb, var(--p-idle)  20%, transparent); color: var(--md-on-surface); }
+  .chip.tone-info   { background: color-mix(in srgb, var(--p-info)  20%, transparent); color: var(--p-info); }
+  .chip.tone-warn   { background: color-mix(in srgb, var(--p-warn)  20%, transparent); color: var(--p-warn); }
+  .chip.tone-err    { background: color-mix(in srgb, var(--p-err)   20%, transparent); color: var(--p-err); }
+  .chip.tone-ok     { background: color-mix(in srgb, var(--p-ok)    20%, transparent); color: var(--p-ok); }
+  .chip.tone-neutral { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); }
+  .chip.tone-mono { font-family: ui-monospace, SF Mono, monospace; }
+  .chip .sep { opacity: 0.5; margin: 0 1px; }
+  .chip .ico {
+    width: 12px; height: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 3px;
+    background: var(--p-idle);
+    color: #fff;
+    font-size: 8px; line-height: 1;
+  }
+  .chip .ico.claude { background: var(--p-sable); }
+  .chip .ico.gpt { background: var(--p-sage); }
+  .chip .ico.info { background: var(--p-info); }
+  .chip .ico.sys { background: var(--p-idle); }
+  .chip .ms { font-family: 'Material Symbols Outlined'; font-size: 12px; }
+
+  /* Mini card mimicking the critique item-card */
+  .mini-card {
+    background: var(--md-surface-container-high);
+    border: 1px solid var(--md-outline-variant, #2a2e34);
+    border-radius: var(--md-shape-lg, 16px);
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  body.light .mini-card { background: #fff; border-color: #d8d2c2; }
+  .mini-card.claude-raised::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 2px;
+    background: var(--p-sable);
+  }
+  .mini-card.gpt-raised::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 2px;
+    background: var(--p-sage);
+  }
+  .mini-card__head {
+    padding: 6px 12px;
+    display: flex; align-items: center; gap: 6px;
+    min-height: 34px;
+  }
+  .mini-card__head .right { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+  .mini-card__body {
+    padding: 0 14px 12px;
+    font-family: 'Roboto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--md-on-surface);
+  }
+
+  /* LIFECYCLE overline + lc-row layout (proposed) */
+  .lc {
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--md-outline-hair);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .lc-hd {
+    font: 600 10.5px/1 ui-monospace, monospace;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--md-on-surface-faint);
+    margin: 0 0 6px;
+  }
+  .lc-row { display: flex; flex-direction: column; gap: 8px; }
+  .lc-row-chips { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .lc-row-quote {
+    margin: 0;
+    font-family: 'Roboto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--md-on-surface);
+    line-height: 1.55;
+  }
+
+  /* Bubble layout (current live) */
+  .bubble {
+    border-radius: 12px;
+    padding: 10px 12px;
+    border-left: 2px solid var(--p-sable);
+    background: color-mix(in srgb, var(--p-sable) 8%, transparent);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .bubble.gpt {
+    border-left-color: var(--p-sage);
+    background: color-mix(in srgb, var(--p-sage) 8%, transparent);
+  }
+  .bubble-hd { display: inline-flex; gap: 6px; align-items: center; }
+  .bubble-q {
+    margin: 0; font-size: 12.5px; line-height: 1.55;
+    font-family: 'Roboto Serif', Georgia, serif;
+    font-style: italic;
+  }
+  .bubble-stack { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-top: 1px solid var(--md-outline-hair); }
+
+  /* Source row */
+  .src-row {
+    background: var(--md-surface-container-low);
+    border: 1px solid var(--md-outline-hair);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+  }
+  body.light .src-row { background: #faf7ee; }
+  .src-row .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .src-row .host { color: var(--md-on-surface-faint); font: 11px ui-monospace, monospace; }
+
+  /* Bar2 filter row */
+  .bar2 {
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-hair);
+    border-radius: 999px;
+    padding: 6px 8px;
+    display: inline-flex; gap: 4px; align-items: center;
+  }
+  body.light .bar2 { background: #f0ede4; }
+  .seg {
+    display: inline-flex; background: var(--md-surface-container-high);
+    border-radius: 999px; padding: 2px;
+  }
+  .seg .chip {
+    height: 20px; padding: 0 10px; border-radius: 999px;
+    background: transparent; color: var(--md-on-surface-variant);
+    font-size: 11.5px;
+  }
+  .seg .chip[data-active="true"] {
+    background: var(--md-surface-container-highest);
+    color: var(--md-on-surface);
+  }
+
+  /* Phase header marker example */
+  .phase-marker {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    background: var(--md-surface-container);
+    border-radius: 8px;
+    font: 500 13px/1 var(--md-font-plain, system-ui);
+  }
+  .phase-marker .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--p-sable); }
+  .phase-rail {
+    display: inline-flex; gap: 2px; align-items: center;
+    padding: 4px;
+    background: var(--md-surface-container);
+    border-radius: 999px;
+  }
+  .phase-rail .ph {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 38px; height: 22px;
+    border-radius: 999px;
+    font: 600 11px/1 ui-monospace, monospace;
+    color: var(--md-on-surface-variant);
+    background: transparent;
+  }
+  .phase-rail .ph.active { background: color-mix(in srgb, var(--p-sable) 25%, transparent); color: var(--md-on-surface); }
+
+  /* Bar1 totals */
+  .bar1 {
+    display: inline-flex; gap: 14px; padding: 6px 12px;
+    background: var(--md-surface-container);
+    border-radius: 8px;
+    align-items: center;
+  }
+  body.light .bar1 { background: #f0ede4; }
+  .bar1 .stat { display: inline-flex; gap: 4px; align-items: baseline; font-size: 12px; }
+  .bar1 .stat .n { font-weight: 600; font-size: 13px; color: var(--md-on-surface); }
+  .bar1 .stat .lbl { color: var(--md-on-surface-faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .bar1 .stat.zero .n { color: var(--p-err); }
+
+  /* Group header */
+  .grp {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--md-surface-container);
+    border-radius: 8px;
+    font: 500 13px/1 var(--md-font-plain, system-ui);
+  }
+  body.light .grp { background: #f0ede4; }
+  .grp .count { color: var(--md-on-surface-faint); font: 600 11px ui-monospace, monospace; }
+  .grp .count.ok { color: var(--p-ok); }
+  .grp .count.err { color: var(--p-err); }
+
+  /* TOC */
+  .toc {
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-hair);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 0 0 32px;
+    font-size: 12.5px;
+  }
+  body.light .toc { background: #f0ede4; }
+  .toc h4 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-on-surface-faint); font-weight: 600; }
+  .toc ol { margin: 0; padding: 0 0 0 20px; column-count: 2; column-gap: 32px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: inherit; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Doc-only callout */
+  .doc-note {
+    font-size: 12.5px;
+    color: var(--md-on-surface-variant);
+    line-height: 1.6;
+  }
+  .doc-note .tag {
+    display: inline-block;
+    background: color-mix(in srgb, var(--p-info) 20%, transparent);
+    color: var(--p-info);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font: 600 10.5px/1.6 ui-monospace, monospace;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  code { font-family: ui-monospace, SF Mono, monospace; font-size: 11.5px; background: var(--md-surface-container-high); padding: 1px 5px; border-radius: 4px; }
+  body.light code { background: #e9e5d9; }
+
+  /* Stack of items (small examples that need width but not full pair side) */
+  .vstack { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .hstack { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body class="dark" data-width="wide">
+<header class="wsh">
+  <div class="wsh__brand">missing changes <span class="accent">·</span> critique + timeline</div>
+  <span class="wsh__pill">prototypes/missing-changes-mockup.html</span>
+  <span class="wsh__spacer"></span>
+  <div class="wsh__group" role="group" aria-label="Theme">
+    <span class="wsh__group-label">theme</span>
+    <button class="wsh__opt is-active" data-theme="dark" aria-pressed="true">Dark</button>
+    <button class="wsh__opt" data-theme="light" aria-pressed="false">Light</button>
+  </div>
+  <div class="wsh__group" role="group" aria-label="Monitor width">
+    <span class="wsh__group-label">width</span>
+    <button class="wsh__opt" data-width="narrow" aria-pressed="false" title="≤1799px viewport — segment counts hide, kind chips lose labels (mirrors live narrow @media)">Narrow</button>
+    <button class="wsh__opt is-active" data-width="wide" aria-pressed="true" title="≥1800px viewport — full chrome, all chip labels + counts visible">Wide</button>
+    <button class="wsh__opt" data-width="monitor" aria-pressed="false" title="No max-width clamp — uses your monitor's full width">Monitor</button>
+  </div>
+  <span class="wsh__note" id="state-note">wide · dark · 14 comparisons (9 critique + 5 timeline)</span>
+</header>
+
+<div class="wrap">
+
+  <p class="intro">
+    Every item from the two "<b>what I'd still push for</b>" lists rendered as a small side-by-side. The left side is what the live site looks like today; the right side is what the workshop locked. Where the change is documentation-only (no visible delta), the panel is blue.
+  </p>
+
+  <nav class="toc">
+    <h4>Jump to</h4>
+    <ol>
+      <li><a href="#c1">Lifecycle layout — bubbles vs flat rows</a></li>
+      <li><a href="#c2">Σ tab totals reset to 0/0/0</a></li>
+      <li><a href="#c3">"Resolved" group lumps everything together</a></li>
+      <li><a href="#c4">Lowercase merged chip vs capitalised separate chips</a></li>
+      <li><a href="#c5">Evidence-needed chip color + icon</a></li>
+      <li><a href="#c6">Gear icon on auto-resolves</a></li>
+      <li><a href="#c7">Missing 🔗 source-requested / source-provided tags</a></li>
+      <li><a href="#c8">SOURCES (N) heading</a></li>
+      <li><a href="#c9">Explicit [All] filter buttons</a></li>
+      <li><a href="#t1">Phase strip vs marker — "P0" vs "Phase 0"</a></li>
+      <li><a href="#t2">Cost-precision rules undocumented</a></li>
+      <li><a href="#t3">System chip catalog</a></li>
+      <li><a href="#t4">Activity-chip AA contrast unverified</a></li>
+      <li><a href="#t5">:has() vs data-provider decision record</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ CRITIQUE ============ -->
+  <section class="pane-hd">
+    <h2>Critique pane</h2>
+    <div class="pane-sub">9 items · ordered from biggest impact to smallest</div>
+  </section>
+
+  <!-- 1. Lifecycle layout -->
+  <article class="item" id="c1">
+    <div class="item-num">Critique · 1</div>
+    <h3>Expanded-card lifecycle — bubbles vs flat rows</h3>
+    <p class="why">Today: chunky message bubbles. Workshop intent: a quieter <code>LIFECYCLE</code> heading + flat rows with chip cluster on top and italic-serif quote underneath. The current layout buries the rhythm we settled on under heavy tinted blocks.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now (live)</div>
+        <div class="col-body">
+          <div class="mini-card claude-raised">
+            <div class="mini-card__head">
+              <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+              <span class="chip tone-warn">Disagreement</span>
+              <span class="chip tone-mono">raised · r1 · Claude</span>
+              <span class="right"><span class="chip tone-mono">capped · r4 · auto</span></span>
+            </div>
+            <div class="bubble-stack">
+              <div class="bubble">
+                <div class="bubble-hd">
+                  <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+                  <span class="chip tone-mono">R1</span>
+                  <span class="chip tone-info">raised</span>
+                </div>
+                <p class="bubble-q">"The brief frames the 'Risk shapes by candidate' section as 'context, not a prescription.' But the listed risks for Python and TypeScript are notably softer than those for Go, Rust, and JVM languages…"</p>
+              </div>
+              <div class="bubble gpt">
+                <div class="bubble-hd">
+                  <span class="chip tone-gpt"><span class="ico gpt"></span> GPT</span>
+                  <span class="chip tone-mono">R2</span>
+                  <span class="chip tone-warn">addressed</span>
+                </div>
+                <p class="bubble-q">"I accept the concern as a useful anti-anchoring rule. The risk shapes section should be treated as hypothesis prompts, not as evidence or as hidden weights…"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed (workshop)</div>
+        <div class="col-body">
+          <div class="mini-card claude-raised">
+            <div class="mini-card__head">
+              <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+              <span class="chip tone-mono">Round 1</span>
+              <span class="chip tone-warn">Disagreement</span>
+              <span class="right"><span class="chip tone-err">Capped · R4</span></span>
+            </div>
+            <section class="lc">
+              <div class="lc-hd">Lifecycle</div>
+              <div class="lc-row">
+                <div class="lc-row-chips">
+                  <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+                  <span class="chip tone-mono">R1</span>
+                  <span class="chip tone-info">raised</span>
+                </div>
+                <p class="lc-row-quote">"The brief frames the 'Risk shapes by candidate' section as 'context, not a prescription.' But the listed risks for Python and TypeScript are notably softer than those for Go, Rust, and JVM languages…"</p>
+              </div>
+              <div class="lc-row">
+                <div class="lc-row-chips">
+                  <span class="chip tone-gpt"><span class="ico gpt"></span> GPT</span>
+                  <span class="chip tone-mono">R2</span>
+                  <span class="chip tone-warn">addressed</span>
+                </div>
+                <p class="lc-row-quote">"I accept the concern as a useful anti-anchoring rule. The risk shapes section should be treated as hypothesis prompts, not as evidence or as hidden weights…"</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> the structural redesign was made deliberately by the spec author for 0173 §2.9 ("share the QuestionThread anatomy"), not by mistake. The visual chrome, rhythm, and information density all change. This is the single biggest item.</div>
+  </article>
+
+  <!-- 2. Σ totals -->
+  <article class="item" id="c2">
+    <div class="item-num">Critique · 2</div>
+    <h3>Σ Summary totals reset to 0 / 0 / 0</h3>
+    <p class="why">Click the Σ tab and the bar-1 totals zero out. The run has 38 items but the header pretends none exist. The totals should be run-wide and tab-invariant.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now (Σ tab)</div>
+        <div class="col-body">
+          <div class="bar1">
+            <span class="stat zero"><span class="n">0</span><span class="lbl">introduced</span></span>
+            <span class="stat zero"><span class="n">0</span><span class="lbl">open</span></span>
+            <span class="stat zero"><span class="n">0</span><span class="lbl">resolved</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed (Σ tab)</div>
+        <div class="col-body">
+          <div class="bar1">
+            <span class="stat"><span class="n">38</span><span class="lbl">introduced</span></span>
+            <span class="stat"><span class="n">0</span><span class="lbl">open</span></span>
+            <span class="stat"><span class="n">38</span><span class="lbl">resolved</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> drift 3.F. Workshop flagged it, no spec covered it. Pure data-binding bug — totals should aggregate the whole run, not the current phase.</div>
+  </article>
+
+  <!-- 3. Resolved split -->
+  <article class="item" id="c3">
+    <div class="item-num">Critique · 3</div>
+    <h3>"Resolved" group lumps all terminal states together</h3>
+    <p class="why">Today everything that reached a terminal state appears under one green "Resolved 13" header. But P0 has 11 truly resolved + 2 capped (timed out) — those are very different outcomes. Workshop intent: split into real sub-groups so you can see at a glance what really got resolved vs. what ran out of rounds.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="grp">Resolved <span class="count ok">13</span> <span style="color: var(--md-on-surface-faint); font-size: 11px;">(actually 11 resolved + 2 capped)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="grp">Resolved <span class="count ok">11</span></div>
+            <div class="grp">Capped <span class="count err">2</span></div>
+            <div class="grp" style="opacity: 0.5;">Acknowledged <span class="count">0</span></div>
+            <div class="grp" style="opacity: 0.5;">Withdrawn <span class="count">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> drift 3.E. Workshop proposed splitting per spec 0144 §6.3.d enumeration. Never spec'd — same "deferred-by-design" cluster as the Σ work.</div>
+  </article>
+
+  <!-- 4. Capitalised separate chips -->
+  <article class="item" id="c4">
+    <div class="item-num">Critique · 4</div>
+    <h3>Card head — lowercase merged chip vs capitalised separate chips</h3>
+    <p class="why">Today the round and state are crammed into one lowercase chip ("raised · r1 · Claude"). Workshop intent: two separate chips with proper capital letters and a wider vocabulary (Raised, Resolved, Capped, Acknowledged, Withdrawn, Addressed, etc.).</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="mini-card claude-raised"><div class="mini-card__head">
+              <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+              <span class="chip tone-warn">Disagreement</span>
+              <span class="chip tone-mono">raised · r1 · Claude</span>
+              <span class="right"><span class="chip tone-mono">resolved · r3 · GPT</span></span>
+            </div></div>
+            <div class="mini-card claude-raised"><div class="mini-card__head">
+              <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+              <span class="chip tone-warn">Disagreement</span>
+              <span class="chip tone-mono">raised · r1 · Claude</span>
+              <span class="right"><span class="chip tone-mono">capped · r4 · auto</span></span>
+            </div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="mini-card claude-raised"><div class="mini-card__head">
+              <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+              <span class="chip tone-mono">Raised · R1</span>
+              <span class="chip tone-warn">Disagreement</span>
+              <span class="right"><span class="chip tone-ok">Resolved · <span class="ico gpt"></span> R3</span></span>
+            </div></div>
+            <div class="mini-card claude-raised"><div class="mini-card__head">
+              <span class="chip tone-claude"><span class="ico claude"></span> Claude</span>
+              <span class="chip tone-mono">Raised · R1</span>
+              <span class="chip tone-warn">Disagreement</span>
+              <span class="right"><span class="chip tone-err">Capped · R4</span></span>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 7 + iter 8 + iter 8.1. Spec 0173 §2.5 merged the round chip into the lifecycle chip and dropped the title-case vocabulary down to four lowercase words. The resolver agent's brand icon (Claude/GPT) sits inside the right chip for human resolutions; orchestrator/system fallback shows no icon.</div>
+  </article>
+
+  <!-- 5. Evidence chip flavour -->
+  <article class="item" id="c5">
+    <div class="item-num">Critique · 5</div>
+    <h3>Evidence-needed chip — warning red vs info blue</h3>
+    <p class="why">The little chip that appears when a card needs a source is currently styled as a warning (orange/red with an alert triangle). Workshop intent: info blue with a link icon — because needing a source is a thing to <i>do</i>, not a thing to be warned about.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <span class="chip tone-warn"><span class="ms">warning</span> evidence needed</span>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <span class="chip tone-info"><span class="ms">link</span> evidence needed</span>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 9. Spec author for 0173 §2.7 inverted the framing. Reasonable design call but it ships a different message than the workshop locked.</div>
+  </article>
+
+  <!-- 6. Gear icon on auto-resolve -->
+  <article class="item" id="c6">
+    <div class="item-num">Critique · 6</div>
+    <h3>Auto-resolved state chip — gear icon vs nothing</h3>
+    <p class="why">When the orchestrator or system resolves an item (no human did it), the state chip currently shows a tiny gear icon. Workshop intent: no icon at all — the absence of a Claude/GPT face is itself the signal that no human did the work.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="hstack">
+            <span class="chip tone-err"><span class="ms">settings</span> capped · auto · R4</span>
+            <span class="chip tone-ok"><span class="ms">settings</span> resolved · auto · R3</span>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="hstack">
+            <span class="chip tone-err">Capped · R4</span>
+            <span class="chip tone-ok">Resolved · R3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 10. Spec 0173 §2.8 substitutes a gear; workshop said drop the icon entirely.</div>
+  </article>
+
+  <!-- 7. Source request/provided tags -->
+  <article class="item" id="c7">
+    <div class="item-num">Critique · 7</div>
+    <h3>Missing 🔗 "source requested" / "source provided" tags</h3>
+    <p class="why">Inside the lifecycle, the moments when one agent asks for a source and the other provides it should be tagged with a small link badge. Those badges are missing today — the sources section sits below the lifecycle but feels disconnected from the conversation above.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="hstack"><span class="chip tone-claude"><span class="ico claude"></span> Claude</span><span class="chip tone-mono">R1</span><span class="chip tone-info">raised</span></div>
+            <div class="hstack"><span class="chip tone-gpt"><span class="ico gpt"></span> GPT</span><span class="chip tone-mono">R2</span><span class="chip tone-warn">addressed</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="hstack"><span class="chip tone-claude"><span class="ico claude"></span> Claude</span><span class="chip tone-mono">R1</span><span class="chip tone-info">raised</span><span class="chip tone-info"><span class="ms">link</span> source requested</span></div>
+            <div class="hstack"><span class="chip tone-gpt"><span class="ico gpt"></span> GPT</span><span class="chip tone-mono">R2</span><span class="chip tone-warn">addressed</span><span class="chip tone-ok"><span class="ms">link</span> source provided</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 13a + 13b. Specced in 0168 §2.9 as a deferred sub-section; 0173 §2.10 shipped only the per-source-row meta chip, not the lifecycle modifiers.</div>
+  </article>
+
+  <!-- 8. SOURCES heading -->
+  <article class="item" id="c8">
+    <div class="item-num">Critique · 8</div>
+    <h3>Missing "SOURCES (N)" heading above the source list</h3>
+    <p class="why">Today the source rows stack directly under the lifecycle with no label between them. Workshop intent: a small uppercase "SOURCES (3)" overline marks the section, mirroring the "LIFECYCLE" overline above.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack" style="width: 100%;">
+            <div class="src-row" style="width: 100%;"><span class="ms" style="font-size: 14px;">chevron_right</span><span class="title">Risk shapes by candidate analysis</span><span class="host">example.com</span><span class="chip tone-claude sm"><span class="ico claude"></span> R2</span></div>
+            <div class="src-row" style="width: 100%;"><span class="ms" style="font-size: 14px;">chevron_right</span><span class="title">Convention-over-configuration discussion</span><span class="host">blog.acm.org</span><span class="chip tone-gpt sm"><span class="ico gpt"></span> R3</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack" style="width: 100%;">
+            <div class="lc-hd" style="margin-bottom: 4px;">Sources (2)</div>
+            <div class="src-row" style="width: 100%;"><span class="ms" style="font-size: 14px;">chevron_right</span><span class="title">Risk shapes by candidate analysis</span><span class="host">example.com</span><span class="chip tone-claude sm"><span class="ico claude"></span> R2</span></div>
+            <div class="src-row" style="width: 100%;"><span class="ms" style="font-size: 14px;">chevron_right</span><span class="title">Convention-over-configuration discussion</span><span class="host">blog.acm.org</span><span class="chip tone-gpt sm"><span class="ico gpt"></span> R3</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 12 source segment header. Specced in 0168 §2.8 (deferred); 0173 picked up the per-row attribution but not the overline header.</div>
+  </article>
+
+  <!-- 9. Explicit All -->
+  <article class="item" id="c9">
+    <div class="item-num">Critique · 9</div>
+    <h3>Explicit [All] buttons in segmented controls</h3>
+    <p class="why">Today the agent and status filters each have an explicit [All] button as the canonical reset. Workshop intent: no [All] — just click whichever filter is highlighted to clear it. Both work, but the workshop deliberately chose the cleaner model.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="seg">
+              <span class="chip" data-active="true">All <span class="seg-count">(13)</span></span>
+              <span class="chip">Claude <span class="seg-count">(6)</span></span>
+              <span class="chip">GPT <span class="seg-count">(7)</span></span>
+            </div>
+            <div class="seg">
+              <span class="chip" data-active="true">All <span class="seg-count">(13)</span></span>
+              <span class="chip">Open <span class="seg-count">(0)</span></span>
+              <span class="chip">Resolved <span class="seg-count">(13)</span></span>
+              <span class="chip">Drift <span class="seg-count">(0)</span></span>
+            </div>
+            <div class="kind-cluster hstack" style="margin-top: 4px;">
+              <span class="chip tone-info"><span class="cat-bubble" style="background: var(--p-info); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">Q</span><span class="chip-label">Questions</span><span class="seg-count">8</span></span>
+              <span class="chip tone-warn"><span class="cat-bubble" style="background: var(--p-warn); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">D</span><span class="chip-label">Disagreements</span><span class="seg-count">5</span></span>
+              <span class="chip tone-err"><span class="cat-bubble" style="background: var(--p-err); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">I</span><span class="chip-label">Issues</span><span class="seg-count">0</span></span>
+              <span class="chip tone-neutral"><span class="cat-bubble" style="background: var(--p-idle); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">C</span><span class="chip-label">Comments</span><span class="seg-count">0</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="seg">
+              <span class="chip">Claude <span class="seg-count">(6)</span></span>
+              <span class="chip">GPT <span class="seg-count">(7)</span></span>
+            </div>
+            <div class="seg">
+              <span class="chip">Open <span class="seg-count">(0)</span></span>
+              <span class="chip" data-active="true">Resolved <span class="seg-count">(13)</span></span>
+              <span class="chip">Drift <span class="seg-count">(0)</span></span>
+            </div>
+            <div class="kind-cluster hstack" style="margin-top: 4px;">
+              <span class="chip tone-info"><span class="cat-bubble" style="background: var(--p-info); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">Q</span><span class="chip-label">Questions</span><span class="seg-count">8</span></span>
+              <span class="chip tone-warn"><span class="cat-bubble" style="background: var(--p-warn); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">D</span><span class="chip-label">Disagreements</span><span class="seg-count">5</span></span>
+              <span class="chip tone-err"><span class="cat-bubble" style="background: var(--p-err); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">I</span><span class="chip-label">Issues</span><span class="seg-count">0</span></span>
+              <span class="chip tone-neutral"><span class="cat-bubble" style="background: var(--p-idle); color: #fff; width: 14px; height: 14px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700;">C</span><span class="chip-label">Comments</span><span class="seg-count">0</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 2 + iter 7.3. Spec 0167 §2.1 deliberately retained explicit [All]; workshop iter 2 dropped it. At narrow width (toggle width above to "Narrow"), the segment counts hide and the kind chips lose their labels — mirroring the live ≤1799px @media behaviour.</div>
+  </article>
+
+  <!-- ============ TIMELINE ============ -->
+  <section class="pane-hd">
+    <h2>Timeline pane</h2>
+    <div class="pane-sub">5 items · the first 3 are visible; the last 2 are documentation-only</div>
+  </section>
+
+  <!-- t1: phase rail vs marker -->
+  <article class="item" id="t1">
+    <div class="item-num">Timeline · 1</div>
+    <h3>Phase strip says "P0", in-pane marker says "Phase 0"</h3>
+    <p class="why">The small rail above the timeline uses abbreviated labels (P0, P1, P2…); the marker inside each phase header says "Phase 0", "Phase 1"… Either both should match — workshop intent was full-word labels everywhere; the rail was a silent omission.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="phase-rail">
+              <span class="ph">P0</span>
+              <span class="ph">P1</span>
+              <span class="ph active">P2</span>
+              <span class="ph">P3</span>
+              <span class="ph">P4</span>
+            </div>
+            <div class="phase-marker"><span class="dot"></span> Phase 2</div>
+            <div style="color: var(--md-on-surface-faint); font-size: 11px;">strip says P2 · marker says Phase 2 — disagrees</div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack">
+            <div class="phase-rail">
+              <span class="ph" style="min-width: 64px;">Phase 0</span>
+              <span class="ph" style="min-width: 64px;">Phase 1</span>
+              <span class="ph active" style="min-width: 64px;">Phase 2</span>
+              <span class="ph" style="min-width: 64px;">Phase 3</span>
+              <span class="ph" style="min-width: 64px;">Phase 4</span>
+            </div>
+            <div class="phase-marker"><span class="dot"></span> Phase 2</div>
+            <div style="color: var(--md-on-surface-faint); font-size: 11px;">strip + marker both say Phase 2 — consistent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> iter 1 propagation. Workshop only touched the marker (in-pane). Rail consumes <code>PHASES.short</code>; spec 0164 handoff admitted it didn't touch the rail. Either rename <code>PHASES.short</code> or codify the abbreviation as intentional.</div>
+  </article>
+
+  <!-- t2: cost precision -->
+  <article class="item" id="t2">
+    <div class="item-num">Timeline · 2</div>
+    <h3>Cost precision — three rules on one page, none documented</h3>
+    <p class="why">The same page now shows costs at three different precisions: consumption row at 1 decimal, the timeline action chip at 2 decimals, the footer at 4 decimals. None of this is wrong, but nobody wrote down which rule applies where.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now (undocumented)</div>
+        <div class="col-body">
+          <div class="vstack">
+            <span class="chip tone-neutral tone-mono">consumption row · $0.2</span>
+            <span class="chip tone-neutral tone-mono">action chip · $0.03</span>
+            <span class="chip tone-neutral tone-mono">footer aggregate · $0.0312</span>
+            <div style="color: var(--md-on-surface-faint); font-size: 11px;">no DS rule — three conventions co-exist</div>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed (documented)</div>
+        <div class="col-body">
+          <div class="vstack">
+            <span class="chip tone-neutral tone-mono">consumption row · $0.2 <span style="opacity: 0.6;">(1dp · "at-a-glance")</span></span>
+            <span class="chip tone-neutral tone-mono">action chip · $0.03 <span style="opacity: 0.6;">(2dp · sub-dollar reading)</span></span>
+            <span class="chip tone-neutral tone-mono">footer · $0.0312 <span style="opacity: 0.6;">(4dp · audit value)</span></span>
+            <div style="color: var(--md-on-surface-faint); font-size: 11px;">DS §4.4 codifies the three rules</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> NOTES.md §6 open question #2. Numbers are already correct on live; the missing piece is a one-paragraph rule in <code>design-system/SPEC.md</code> §4.4.</div>
+  </article>
+
+  <!-- t3: system chip catalog -->
+  <article class="item" id="t3">
+    <div class="item-num">Timeline · 3</div>
+    <h3>System chip coverage — only 2 of N agentless card types use it</h3>
+    <p class="why">The small "System" chip appears on the brief card and the broken-card fallback. Other agentless cards — orchestrator messages, deadlock notices, future automated events — don't have a documented contract.</p>
+    <div class="pair">
+      <div class="col col-now">
+        <div class="col-label">Now</div>
+        <div class="col-body">
+          <div class="vstack">
+            <span class="chip tone-sys"><span class="ico sys"><span class="ms" style="font-size: 8px;">settings</span></span> System</span><span style="color: var(--md-on-surface-faint); font-size: 11px;">— brief card ✓</span>
+            <span class="chip tone-sys"><span class="ico sys"><span class="ms" style="font-size: 8px;">settings</span></span> System</span> <span class="chip tone-err"><span class="ms">error</span> Could not render this turn</span><span style="color: var(--md-on-surface-faint); font-size: 11px;">— broken-card fallback ✓</span>
+            <span style="color: var(--p-warn); font-size: 11px;">orchestrator messages, deadlocks: no contract</span>
+          </div>
+        </div>
+      </div>
+      <div class="col col-prop">
+        <div class="col-label">Proposed</div>
+        <div class="col-body">
+          <div class="vstack">
+            <span class="chip tone-sys"><span class="ico sys"><span class="ms" style="font-size: 8px;">settings</span></span> System</span><span style="color: var(--md-on-surface-faint); font-size: 11px;">— brief card</span>
+            <span class="chip tone-sys"><span class="ico sys"><span class="ms" style="font-size: 8px;">settings</span></span> System</span> <span class="chip tone-err"><span class="ms">error</span> Could not render this turn</span><span style="color: var(--md-on-surface-faint); font-size: 11px;">— broken-card fallback</span>
+            <span class="chip tone-sys"><span class="ico sys"><span class="ms" style="font-size: 8px;">settings</span></span> System</span> <span class="chip tone-info">orchestrator notice</span><span style="color: var(--md-on-surface-faint); font-size: 11px;">— specced</span>
+            <span class="chip tone-sys"><span class="ico sys"><span class="ms" style="font-size: 8px;">settings</span></span> System</span> <span class="chip tone-warn">phase deadlock</span><span style="color: var(--md-on-surface-faint); font-size: 11px;">— specced</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="delta"><b>Delta:</b> NOTES.md §6 open question #3. The DS §3 / §9.2 entry needs an enumeration table so the contract is portable to future agentless cards.</div>
+  </article>
+
+  <!-- t4: AA contrast (doc) -->
+  <article class="item" id="t4">
+    <div class="item-num">Timeline · 4</div>
+    <h3>Activity-chip readability — never AA-verified</h3>
+    <p class="why">Iter 10 bumped the activity chip's background to <code>surface-container-highest</code> so it would stay visible against the new card surface. Nobody actually verified the resulting text contrast meets WCAG AA in either light or dark mode.</p>
+    <div class="col col-doc" style="grid-column: 1 / -1;">
+      <div class="col-label">Documentation only — no visible delta</div>
+      <div class="doc-note">
+        <span class="tag">docs</span>
+        <p>The chip <span class="chip tone-neutral tone-mono">round 4 · turn 7</span> sits on the bumped surface in both themes. It looks readable to the eye, and likely passes — but no test or assertion confirms it. Two ways to close this: add an automated contrast check (e.g. <code>axe-core</code>) to the test plan, or pin the token pair (<code>--md-surface-container-highest</code> background + <code>--md-on-surface-variant</code> text) in a structural test that asserts the ratio is above 4.5:1.</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- t5: :has() decision (doc) -->
+  <article class="item" id="t5">
+    <div class="item-num">Timeline · 5</div>
+    <h3><code>:has()</code> vs <code>data-provider</code> — decision record missing</h3>
+    <p class="why">The 2 px colored stripe on the left of each turn card is implemented via the CSS <code>:has()</code> selector. The workshop's NOTES.md §6 listed two valid options (<code>:has()</code> vs a <code>data-provider</code> attribute on the card root). Spec 0164 silently picked one; the rationale was never written down.</p>
+    <div class="col col-doc" style="grid-column: 1 / -1;">
+      <div class="col-label">Documentation only — no visible delta</div>
+      <div class="doc-note">
+        <span class="tag">docs</span>
+        <p>Live CSS today:</p>
+        <pre style="margin: 8px 0; padding: 12px; background: var(--md-surface-container-high); border-radius: 8px; font: 11.5px ui-monospace, monospace; overflow: auto;">.tl-thread:has(.tl-card-head &gt; .chip.tone-claude)::before { background: var(--p-sable); }
+.tl-thread:has(.tl-card-head &gt; .chip.tone-gpt)::before    { background: var(--p-sage); }
+.tl-thread:has(.tl-card-head &gt; .chip.tone-neutral:not(.mono))::before { background: var(--p-idle); }</pre>
+        <p>The choice is fine — <code>:has()</code> is supported in every browser the dual-research UI targets. The missing piece is a one-line note in <code>design-system/SPEC.md</code> §4.4 explaining: <i>"we read provider identity from the chip class, not from a card-root attribute, so JSX stays free of redundant data-X attributes. Floor: Chrome 105 / Safari 15.4 / Firefox 121."</i> Otherwise a future implementer will relitigate.</p>
+      </div>
+    </div>
+  </article>
+
+</div>
+
+<script>
+  (function(){
+    const body = document.body;
+    const note = document.getElementById('state-note');
+
+    function refresh(){
+      const theme = body.classList.contains('light') ? 'light' : 'dark';
+      const width = body.dataset.width || 'wide';
+      note.textContent = width + ' · ' + theme + ' · 14 comparisons (9 critique + 5 timeline)';
+    }
+
+    document.querySelectorAll('[data-theme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        body.classList.toggle('light', theme === 'light');
+        body.classList.toggle('dark', theme === 'dark');
+        document.documentElement.dataset.theme = theme;
+        document.querySelectorAll('[data-theme]').forEach(b => {
+          const active = b.dataset.theme === theme;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        refresh();
+      });
+    });
+
+    document.querySelectorAll('[data-width]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const w = btn.dataset.width;
+        body.dataset.width = w;
+        document.querySelectorAll('[data-width]').forEach(b => {
+          const active = b.dataset.width === w;
+          b.classList.toggle('is-active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        refresh();
+      });
+    });
+
+    refresh();
+  })();
+</script>
+</body>
+</html>

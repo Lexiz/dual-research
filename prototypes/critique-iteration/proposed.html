@@ -540,6 +540,47 @@
     line-height: 1;
   }
 </style>
+<style id="iter-2-collapse-iter12-lifecycle">
+  /* ITER 2 (re-added 2026-05-23) — collapse fix for the iter-12 lifecycle wrapper.
+     Iter-12 injects <section class="item-card__lifecycle iter12"> after the
+     head with all the LIFECYCLE header + claude/gpt rows. The original
+     workshop-collapse-affordance hide list only covers .__body, .__timeline,
+     .__lifecycle-footer, .__sources — the new wrapper was never added, so
+     collapsed cards still show the bulk of their content.
+     This rule hides the wrapper when data-expanded="false". */
+  .item-card[data-expanded="false"] > .item-card__lifecycle {
+    display: none;
+  }
+  .item-card[data-expanded="true"] > .item-card__lifecycle {
+    display: flex;
+  }
+
+  /* ITER 16 (2026-05-23, V2 revised) — alignment fixes per user direction:
+     (a) LIFECYCLE overline pinned left.
+     (b) Orchestrator/system rows left-aligned and rhythmed identically to
+         Claude / GPT rows above. Earlier V2 attempt right-aligned them; user
+         clarified they should match the lifecycle column rhythm exactly. */
+  .item-card .item-card__lifecycle-hd {
+    text-align: left;
+    align-self: flex-start;
+  }
+  .item-card .lc-row[data-actor="orchestrator"],
+  .item-card .lc-row[data-actor="system"] {
+    /* Parent .item-card__lifecycle (from live components.css, shipped via
+       spec 0173) sets align-items: center. Claude/GPT rows look left-aligned
+       only because their long wrapping quotes make .lc-row as wide as the
+       container — the centering becomes a no-op. Orchestrator rows have a
+       short quote (~one line), so the row stays narrow and gets centred.
+       align-self: stretch forces the row to span full width regardless of
+       content size, matching the visual rhythm of the Claude/GPT rows. */
+    align-self: stretch;
+    align-items: flex-start;
+  }
+  .item-card .lc-row[data-actor="orchestrator"] .lc-row-quote,
+  .item-card .lc-row[data-actor="system"] .lc-row-quote {
+    text-align: left;
+  }
+</style>
 <script>
   (function(){
     try {
@@ -1148,6 +1189,11 @@ function buildLifecycleRow(opts, doc) {
     var label = opts.actor === 'claude' ? 'Claude' : 'GPT';
     var tone = opts.actor === 'claude' ? 'tone-claude' : 'tone-gpt';
     providerHTML = `<span class="chip ${tone} no-dot lc-provider">${leadingIconForAgent(opts.actor, doc)}<span class="chip-label">${label}</span></span>`;
+  } else {
+    // Orchestrator / system / null actor — render a System badge so the row
+    // matches the [badge · round · verb] shape of the Claude/GPT rows.
+    // (Per user direction 2026-05-23: do NOT skip the badge for system rows.)
+    providerHTML = `<span class="chip tone-neutral no-dot lc-provider lc-provider--system">${leadingIconForAgent('system', doc)}<span class="chip-label">System</span></span>`;
   }
   var roundHTML = opts.round
     ? `<span class="chip tone-neutral mono no-dot lc-round"><span class="chip-label">round ${opts.round}</span></span>`
@@ -1156,9 +1202,9 @@ function buildLifecycleRow(opts, doc) {
   var verbHTML = opts.verb
     ? `<span class="chip ${verbTone} no-dot lc-verb"><span class="chip-label">${opts.verb}</span></span>`
     : '';
-  var modifierHTML = opts.modifier
-    ? `<span class="chip tone-neutral no-dot lc-modifier"><span class="chip-label">via ${opts.modifier.replace(/_/g, ' ')}</span></span>`
-    : '';
+  // ITER 16 — modifier chip ("via hard_cap" etc.) removed per user direction.
+  // The verb itself ("capped" / "withdrawn" / etc.) already conveys the outcome.
+  var modifierHTML = '';
   // ITER 13 — optional extras (source requested / source provided)
   var extrasHTML = '';
   (opts.extras || []).forEach(function(ex){
@@ -1308,15 +1354,17 @@ function initCollapseState(){
     var firstHead = s.querySelector('.source-row__head');
     if (firstHead) firstHead.setAttribute('aria-expanded', 'true');
   });
-  // ITER 15 — auto-expand the FIRST card with sources in each phase-state so
-  // the source UI is visible at the bottom of the card without any clicks.
-  // Other cards in the same phase stay collapsed so the user can see both
-  // the compact and the expanded states side-by-side.
-  document.querySelectorAll('.phase-state').forEach(function(ps){
-    var firstWithSources = ps.querySelector('.item-card:has(.item-card__sources)') ||
-      Array.from(ps.querySelectorAll('.item-card')).find(function(c){ return c.querySelector('.item-card__sources'); });
-    if (firstWithSources) firstWithSources.setAttribute('data-expanded', 'true');
-  });
+  // ITER 15 — auto-expand the FIRST card with sources in each phase-state.
+  // SUPERSEDED by user direction (2026-05-23): every card stays collapsed by
+  // default in every phase. The side-by-side collapsed/expanded view is no
+  // longer the goal; users open cards manually when they want to inspect.
+  // (Original block preserved below as a comment so the lock is auditable.)
+  //
+  //   document.querySelectorAll('.phase-state').forEach(function(ps){
+  //     var firstWithSources = ps.querySelector('.item-card:has(.item-card__sources)') ||
+  //       Array.from(ps.querySelectorAll('.item-card')).find(function(c){ return c.querySelector('.item-card__sources'); });
+  //     if (firstWithSources) firstWithSources.setAttribute('data-expanded', 'true');
+  //   });
 }
 // ITER 1 — wrap kind cluster + create agent / status segmented controls
 // + add drift-chip slot. Kind cluster wrapper is purely a flex group
