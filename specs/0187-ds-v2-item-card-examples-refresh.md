@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: 1.36.9
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0173"]
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T12:32:18Z"
 merged_at: "2026-05-23T12:39:35Z"
-deployed_at: ""
+deployed_at: "2026-05-23T12:47:35Z"
 pr: "https://github.com/Lexiz/dual-research/pull/216"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0187-ds-v2-item-card-examples-refresh.md"
 failure_step: ""
 source_session: deferred-from-0173
 promoted_from_draft: ""

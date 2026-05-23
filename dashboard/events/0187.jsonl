@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T12:38:15Z","step":"tests_green","data":{"passed":1690}}
 {"ts":"2026-05-23T12:39:28Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/216"}}
 {"ts":"2026-05-23T12:39:54Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/216"}}
+{"ts":"2026-05-23T12:41:02Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T12:47:30Z","step":"deployed","data":{"version":"1.36.9"}}
+{"ts":"2026-05-23T12:47:30Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T12:48:33Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0187-ds-v2-item-card-examples-refresh.md"}}
