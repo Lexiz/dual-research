@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T11:35:43Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T11:36:14Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T11:36:27Z","step":"branched","data":{"branch":"spec/0183-authoring-funnel-drafts-count-includes-current-backlog","from":"main@cad595e"}}
+{"ts":"2026-05-23T11:36:37Z","step":"implementing_started","data":{}}
