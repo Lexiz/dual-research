@@ -5,3 +5,4 @@
 {"ts":"2026-05-23T00:05:54Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T00:05:55Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T00:06:10Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T00:06:14Z","step":"branched","data":{"branch":"spec/0194-fix-cwd-flag-in-headless-dev-next","from":"main@f53fef0"}}
