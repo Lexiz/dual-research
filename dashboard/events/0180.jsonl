@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T10:42:45Z","step":"tests_green","data":{"passed":1649}}
 {"ts":"2026-05-23T10:49:57Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/210"}}
 {"ts":"2026-05-23T10:50:17Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/210"}}
+{"ts":"2026-05-23T10:51:00Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T10:53:23Z","step":"deployed","data":{"version":"1.36.3"}}
+{"ts":"2026-05-23T10:54:28Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T10:55:29Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0180-consumption-card-v2-anatomy.md"}}
