@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T16:06:13Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T16:06:13Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T16:06:15Z","step":"branched","data":{"branch":"spec/0191-queue-drain-supervisor-extraction-and-tests","from":"main@6d2ed5a"}}
+{"ts":"2026-05-23T16:06:19Z","step":"implementing_started","data":{}}
