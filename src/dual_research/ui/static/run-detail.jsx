@@ -1690,20 +1690,23 @@ function ItemCardDQBody({ item, transitions, stateLabel, stateTone, isTerminal }
   );
 }
 
-// Issue body — matches `09-issue-card.png`. Layout:
-//   <short code> [state] — <title>
+// Issue body — matches `09-issue-card.png`, post-spec-0172. Layout:
+//   <markdown body>                         (full item.body via <Markdown>)
 //   > quote: <anchor>                       (inline anchor, if quote)
-//   <body paragraph>
 //   [flagged by Agent] [first seen R<N>] [last seen R<M>]
 //   "<anchor>"                              (bottom blockquote)
-function ItemCardIssueBody({ item, stateLabel, stateTone, anchorType, anchorText }) {
-  const parsed = parseCodeId(item.id);
-  const shortCode = parsed.sequence != null
-    ? `${(parsed.kind || 'i')[0].toUpperCase()}-${parsed.sequence}`
-    : item.id;
-  const lines = String(item.body || '').split('\n');
-  const titleLine = lines[0] || '';
-  const restBody = lines.slice(1).join('\n').trim();
+//
+// Spec 0172 §3 dropped the prior `[shortCode] [state] — <title>` row:
+// (a) the `parseCodeId(item.id)` short-code chip leaked a cryptic
+// compound ID the product owner explicitly rejected, and (b) the
+// manual split-on-newline of `item.body` rendered the title line
+// through a plain <span>, so any `**Title**` upstream value surfaced
+// the bare `**` delimiters as text. Routing the full body through
+// <Markdown> mirrors `ItemCardCommentBody` (which already shipped
+// this way) and lets the bold first line render as a real <strong>.
+// State signalling lives in the head's lifecycle chip (spec 0173 §2.8),
+// so the body no longer carries its own state chip.
+function ItemCardIssueBody({ item, anchorType, anchorText }) {
   const transitions = item.transitions || [];
   const lastSeen = transitions.length > 0
     ? transitions[transitions.length - 1].round
@@ -1711,17 +1714,11 @@ function ItemCardIssueBody({ item, stateLabel, stateTone, anchorType, anchorText
   const firstSeen = item.raisedRound || item.raised_round;
   return (
     <div className="item-card__body item-card__body--issue">
-      <div className="item-card__title-row">
-        <strong className="item-card__sid">{shortCode}</strong>
-        <Chip tone={stateTone} size="sm">{stateLabel}</Chip>
-        <span className="item-card__title-sep">—</span>
-        <span className="item-card__title">{titleLine}</span>
-      </div>
+      {item.body && (
+        <div className="item-card__text"><Markdown text={String(item.body)} /></div>
+      )}
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
-      )}
-      {restBody && (
-        <div className="item-card__text"><Markdown text={restBody} /></div>
       )}
       <div className="item-card__seen-row">
         <Chip tone={_actorTone(item.raiser)} size="sm">
@@ -1866,11 +1863,11 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
       />
     );
   } else if (item.kind === 'issue') {
+    // Spec 0172 — stateLabel / stateTone dropped from ItemCardIssueBody;
+    // the head's lifecycle chip (spec 0173 §2.8) is the canonical state surface.
     body = (
       <ItemCardIssueBody
         item={item}
-        stateLabel={stateLabel}
-        stateTone={stateTone}
         anchorType={anchorType}
         anchorText={anchorText}
       />
