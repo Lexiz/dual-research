@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T09:14:39Z","step":"tests_green","data":{"passed":1619}}
 {"ts":"2026-05-23T09:19:36Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/202"}}
 {"ts":"2026-05-23T09:19:52Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/202"}}
+{"ts":"2026-05-23T09:21:21Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T09:23:44Z","step":"deployed","data":{"version":"1.35.0"}}
+{"ts":"2026-05-23T09:23:44Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T09:24:51Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0175-summary-tab-v2.md"}}

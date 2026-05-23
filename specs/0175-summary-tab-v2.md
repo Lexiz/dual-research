@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: 1.35.0
-status: merged
+status: deployed
 queue_position: 1
 depends_on: ["0168", "0172"]
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T22:30:00Z"
 started_at: "2026-05-23T09:02:17Z"
 merged_at: "2026-05-23T09:19:39Z"
-deployed_at: ""
-pr: "https://github.com/Lexiz/dual-research/pull/202"
-handover: ""
+deployed_at: "2026-05-23T09:23:44Z"
+pr: "https://github.com/Lexiz/dual-research/pull/203"
+handover: "handoffs/2026-05-23-spec-0175-summary-tab-v2.md"
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
 promoted_from_draft: "001"
