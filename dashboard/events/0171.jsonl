@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T00:19:13Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T00:21:17Z","step":"reconcile_complete","data":{"mechanical":7,"semantic":0,"verdict":"clean","note":"all mechanical hits are bare-basename link-text false positives; substantive symbols resolve at shifted line numbers"}}
 {"ts":"2026-05-23T00:21:29Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T00:21:46Z","step":"branched","data":{"branch":"spec/0171-agent-input-single-column-with-agent-toggle","from":"main@576c6bd"}}
