@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T09:33:10Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T09:34:11Z","step":"reconcile_complete","data":{"mechanical":12,"semantic":0,"verdict":"clean","note":"all mechanical hits are bare-basename link-text false positives; AgentDuoVisual@104, GoogleGlyph@141, LandingScreen@152, NotApprovedScreen@202, DemoRunCapsule@251, ThemeToggle@app.jsx:533 all resolve at cited lines"}}
 {"ts":"2026-05-23T09:34:23Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T09:34:32Z","step":"branched","data":{"branch":"spec/0176-login-screen-v2","from":"main@68689e2"}}
