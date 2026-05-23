@@ -4710,22 +4710,11 @@ body.light .tour-spotlight__dim {
   color: var(--md-on-surface-variant);
 }
 
-/* Verdict row (terminal only) — shown above the per-turn rows. */
-.item-card__verdict {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--md-on-surface);
-}
-.item-card__verdict-sep {
-  color: var(--md-on-surface-faint);
-}
-.item-card__verdict-text {
-  flex: 1 1 auto;
-  min-width: 0;
-}
+/* Spec 0179 §3.1 — the terminal-verdict row (`.item-card__verdict` +
+   `.item-card__verdict-sep` + `.item-card__verdict-text`) was deleted.
+   The head's lifecycle chip (spec 0173 §2.8) is the canonical state
+   surface; the resolution text rides the resolve-transition bubble
+   inside ItemCardThreadView. */
 
 /* Per-turn rows (Disagreement / Question). */
 .item-card__turns {
@@ -4797,23 +4786,12 @@ body.light .tour-spotlight__dim {
   font-size: 12.5px;
   color: var(--md-on-surface);
 }
-.item-card__seen-row {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 2px;
-}
-.item-card__anchor--bottom {
-  margin: 6px 0 0;
-  padding: 6px 10px;
-  background: var(--md-surface-container-low);
-  border-left: 2px solid var(--md-outline);
-  color: var(--md-on-surface-variant);
-  font-size: 12px;
-  font-style: italic;
-  border-radius: 2px;
-}
+/* Spec 0179 §3.4 / §3.5 — `.item-card__seen-row` retired. Raised-by +
+   round metadata lives in the head's lifecycle chip (spec 0173 §2.8). */
+
+/* Spec 0179 §3.2 / §3.3 — `.item-card__anchor--bottom` retired. The
+   inline anchor (`.item-card__quote-inline`) at the top of the body is
+   the only canonical anchor surface. */
 
 /* Terminal footer — green strip with check glyph. Replaces the
    pre-0151 muted lifecycle-footer text. */

@@ -1662,24 +1662,19 @@ function ItemCardTurnRow({ actor, round, verb, tone, text }) {
 //   id chip · [state] ........... N turns
 //   [state] — <resolution text>          (terminal only)
 //   <per-turn rows: raise + each transition>
-function ItemCardDQBody({ item, transitions, stateLabel, stateTone, isTerminal }) {
+// Spec 0179 §3.1 — terminal-verdict row deleted. The state was already
+// surfaced by the head's lifecycle chip (spec 0173 §2.8); the
+// resolution text is carried by the resolve transition's bubble inside
+// ItemCardThreadView (§2.9). The pre-0179 `.item-card__verdict` row
+// was the third repetition of the same datum per terminal card.
+function ItemCardDQBody({ item, transitions }) {
   const turnsCount = transitions.length;
-  const lastTerminal = [...transitions].reverse()
-    .find((t) => _ITEM_CARD_TERMINAL_STATES.has(t.toState || t.to_state || ''));
-  const resolutionText = (lastTerminal && (lastTerminal.reason || '')) || '';
   return (
     <div className="item-card__body item-card__body--turns">
       <div className="item-card__bmeta">
         <span style={{ flex: 1 }} />
         <span className="item-card__turn-count">{turnsCount} turn{turnsCount === 1 ? '' : 's'}</span>
       </div>
-      {isTerminal && resolutionText && (
-        <div className="item-card__verdict">
-          <Chip tone={stateTone} size="sm">{stateLabel}</Chip>
-          <span className="item-card__verdict-sep">—</span>
-          <span className="item-card__verdict-text">{resolutionText}</span>
-        </div>
-      )}
       {/* Spec 0173 §2.9 — flat ItemCardTurnRow stack replaced by the
           QuestionThread-anatomy bubble timeline. The new view carries
           the same data (agent identity, round, verb, quote) but renders
@@ -1690,28 +1685,17 @@ function ItemCardDQBody({ item, transitions, stateLabel, stateTone, isTerminal }
   );
 }
 
-// Issue body — matches `09-issue-card.png`, post-spec-0172. Layout:
+// Issue body — matches `09-issue-card.png`, post-spec-0172 + 0179. Layout:
 //   <markdown body>                         (full item.body via <Markdown>)
 //   > quote: <anchor>                       (inline anchor, if quote)
-//   [flagged by Agent] [first seen R<N>] [last seen R<M>]
-//   "<anchor>"                              (bottom blockquote)
 //
-// Spec 0172 §3 dropped the prior `[shortCode] [state] — <title>` row:
-// (a) the `parseCodeId(item.id)` short-code chip leaked a cryptic
-// compound ID the product owner explicitly rejected, and (b) the
-// manual split-on-newline of `item.body` rendered the title line
-// through a plain <span>, so any `**Title**` upstream value surfaced
-// the bare `**` delimiters as text. Routing the full body through
-// <Markdown> mirrors `ItemCardCommentBody` (which already shipped
-// this way) and lets the bold first line render as a real <strong>.
-// State signalling lives in the head's lifecycle chip (spec 0173 §2.8),
-// so the body no longer carries its own state chip.
+// Spec 0172 §3 dropped the `[shortCode] [state] — <title>` row; spec
+// 0179 §3.2 / §3.4 dropped the seen-row chip cluster (raised-by + round
+// metadata duplicated the head's lifecycle chip) and the bottom-anchor
+// blockquote (duplicated the inline anchor). The inline anchor at the
+// top of the body is now the only canonical anchor surface; the head's
+// lifecycle chip is the only raised-by + lifecycle surface.
 function ItemCardIssueBody({ item, anchorType, anchorText }) {
-  const transitions = item.transitions || [];
-  const lastSeen = transitions.length > 0
-    ? transitions[transitions.length - 1].round
-    : (item.raisedRound || item.raised_round);
-  const firstSeen = item.raisedRound || item.raised_round;
   return (
     <div className="item-card__body item-card__body--issue">
       {item.body && (
@@ -1720,28 +1704,19 @@ function ItemCardIssueBody({ item, anchorType, anchorText }) {
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
-      <div className="item-card__seen-row">
-        <Chip tone={_actorTone(item.raiser)} size="sm">
-          <i className="dot" style={{ background: `var(--${item.raiser === 'openai' ? 'gpt' : item.raiser})` }} />
-          {' '}flagged by {_actorLabel(item.raiser)}
-        </Chip>
-        <Chip tone="muted" size="sm">first seen R{firstSeen}</Chip>
-        <Chip tone="muted" size="sm">last seen R{lastSeen}</Chip>
-      </div>
-      {anchorType && anchorText && (
-        <blockquote className="item-card__anchor item-card__anchor--bottom">"{anchorText}"</blockquote>
-      )}
     </div>
   );
 }
 
-// Comment body — matches `10-comments-card.png`. Layout:
+// Comment body — matches `10-comments-card.png`, post-spec-0179. Layout:
 //   <markdown body>
 //   > quote: <anchor>                       (inline anchor, if quote)
-//   [noted by Agent] [R<N>]
-//   "<anchor>"                              (bottom blockquote)
+//
+// Spec 0179 §3.3 / §3.5 dropped the seen-row chip cluster
+// ([noted by Agent] [R<N>]) and the bottom-anchor blockquote — both
+// duplicated data the head's lifecycle chip (raised-by + round) and
+// the inline anchor already carry.
 function ItemCardCommentBody({ item, anchorType, anchorText }) {
-  const round = item.raisedRound || item.raised_round;
   return (
     <div className="item-card__body item-card__body--comment">
       {item.body && (
@@ -1749,16 +1724,6 @@ function ItemCardCommentBody({ item, anchorType, anchorText }) {
       )}
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
-      )}
-      <div className="item-card__seen-row">
-        <Chip tone={_actorTone(item.raiser)} size="sm">
-          <i className="dot" style={{ background: `var(--${item.raiser === 'openai' ? 'gpt' : item.raiser})` }} />
-          {' '}noted by {_actorLabel(item.raiser)}
-        </Chip>
-        <Chip tone="muted" size="sm">R{round}</Chip>
-      </div>
-      {anchorType && anchorText && (
-        <blockquote className="item-card__anchor item-card__anchor--bottom">"{anchorText}"</blockquote>
       )}
     </div>
   );
@@ -1853,13 +1818,13 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
   // Per-kind body
   let body;
   if (item.kind === 'disagreement' || item.kind === 'question') {
+    // Spec 0179 §3.1 — stateLabel / stateTone / isTerminal no longer forwarded;
+    // the head's lifecycle chip is the canonical state surface and ItemCardThreadView
+    // carries the resolution text via the resolve-transition bubble.
     body = (
       <ItemCardDQBody
         item={item}
         transitions={transitions}
-        stateLabel={stateLabel}
-        stateTone={stateTone}
-        isTerminal={isTerminal}
       />
     );
   } else if (item.kind === 'issue') {

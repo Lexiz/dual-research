@@ -10,6 +10,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.2] — 2026-05-23
+
+### Fixed
+
+- **Spec 0179 — critique-card body redundancies (verdict row, bottom anchor, seen-row)** ([spec 0179](specs/0179-critique-card-body-redundancies-and-parity-verification.md)). Spec 0151 §3.4's per-kind sub-renderers shipped three body-side surfaces that re-stated data the head and inline anchor already carried — the cumulative effect was the "thoroughness complaint as much as a parity complaint" the Notion bug-batch (Issues 7-10) called out.
+  - **DQ body terminal-verdict row** deleted. `.item-card__verdict` re-stated the state chip (already in the head's lifecycle chip per spec 0173 §2.8) and the resolution text (already on the resolve-transition bubble inside `ItemCardThreadView` per §2.9). All three locals (`lastTerminal`, `resolutionText`, `stateLabel` / `stateTone` / `isTerminal` props) dropped along with the row.
+  - **Bottom-anchor blockquote** deleted from `ItemCardIssueBody` and `ItemCardCommentBody`. The inline `.item-card__quote-inline` at the top of the body is now the only canonical anchor surface.
+  - **Seen-row chip cluster** deleted from `ItemCardIssueBody` (`[flagged by Agent] [first seen R<N>] [last seen R<M>]`) and `ItemCardCommentBody` (`[noted by Agent] [R<N>]`). Raised-by + lifecycle metadata is the head lifecycle chip's job per spec 0173 §2.8.
+  - **CSS hygiene** — `.item-card__verdict`, `.item-card__verdict-sep`, `.item-card__verdict-text`, `.item-card__seen-row`, `.item-card__anchor--bottom` rule bodies retired in [`src/dual_research/ui/static/components.css`](src/dual_research/ui/static/components.css). DS-canonical `composed-components.css` never carried these classes — nothing to delete there.
+
+### Changed
+
+- **`design-system/SPEC.md` §4.1 — ItemCard parity-verification gate** ([spec 0179](specs/0179-critique-card-body-redundancies-and-parity-verification.md) §3.6). Any spec that touches `ItemCard` / its sub-renderers / its `.item-card__*` CSS chrome MUST embed a side-by-side image grid in the PR description: 4 kinds × 2 states (collapsed + expanded) live captures next to the four reference screenshots at `design-system/notion-issues/screenshots/`. The rule replaces verbal "matches the screenshot" claims with rendered-output proof — the chronic failure mode shipped by specs 0138 / 0141 / 0144 / 0151.
+
+### Test guard
+
+- [`tests/test_item_card_body_redundancies.py`](tests/test_item_card_body_redundancies.py) — 5 pytest static-analysis assertions: no `className="item-card__verdict"`, no `item-card__anchor--bottom`, no `className="item-card__seen-row"` in `run-detail.jsx`; `ItemCardDQBody` keeps mounting `<ItemCardThreadView item={item} />`; `design-system/SPEC.md` carries the parity-verification gate.
+
 ## [1.36.1] — 2026-05-23
 
 ### Fixed
