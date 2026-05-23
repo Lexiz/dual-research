@@ -105,13 +105,15 @@ async function buildPayload(token) {
   const handoffBlobs = [];
   const eventBlobs = [];
 
+  // Spec 0199 §2.1 — spec IDs are `NNNN` or `NNNN.M` (one decimal level).
+  // Filenames + event sidecars + handoff names all admit the optional `.M`.
   for (const entry of tree.tree) {
     if (entry.type !== 'blob') continue;
     const p = entry.path;
-    if (/^specs\/\d{4}-[^/]+\.md$/.test(p)) specBlobs.push(entry);
+    if (/^specs\/\d{4}(?:\.\d+)?-[^/]+\.md$/.test(p)) specBlobs.push(entry);
     else if (/^specs\/drafts\/draft-\d{3}-[^/]+\.md$/.test(p)) draftBlobs.push(entry);
-    else if (/^handoffs\/\d{4}-\d{2}-\d{2}-spec-\d{4}-[^/]+\.md$/.test(p)) handoffBlobs.push(entry);
-    else if (/^dashboard\/events\/\d{4}\.jsonl$/.test(p)) eventBlobs.push(entry);
+    else if (/^handoffs\/\d{4}-\d{2}-\d{2}-spec-\d{4}(?:\.\d+)?-[^/]+\.md$/.test(p)) handoffBlobs.push(entry);
+    else if (/^dashboard\/events\/\d{4}(?:\.\d+)?\.jsonl$/.test(p)) eventBlobs.push(entry);
   }
 
   // Concatenate in a stable order so the alias-index ↔ path mapping is
@@ -129,15 +131,15 @@ async function buildPayload(token) {
     const entry = allBlobs[i];
     const text = texts[i] || '';
     const p = entry.path;
-    if (/^specs\/\d{4}-[^/]+\.md$/.test(p)) {
+    if (/^specs\/\d{4}(?:\.\d+)?-[^/]+\.md$/.test(p)) {
       specRows.push(parseFrontmatter(text, p));
     } else if (/^specs\/drafts\/draft-\d{3}-[^/]+\.md$/.test(p)) {
       draftRows.push(parseFrontmatter(text, p));
-    } else if (/^handoffs\/\d{4}-\d{2}-\d{2}-spec-\d{4}-[^/]+\.md$/.test(p)) {
+    } else if (/^handoffs\/\d{4}-\d{2}-\d{2}-spec-\d{4}(?:\.\d+)?-[^/]+\.md$/.test(p)) {
       handoffRows.push(parseFrontmatter(text, p));
-    } else if (/^dashboard\/events\/\d{4}\.jsonl$/.test(p)) {
+    } else if (/^dashboard\/events\/\d{4}(?:\.\d+)?\.jsonl$/.test(p)) {
       eventBuckets.push({
-        number: p.match(/(\d{4})\.jsonl$/)[1],
+        number: p.match(/(\d{4}(?:\.\d+)?)\.jsonl$/)[1],
         events: text.split('\n').filter(Boolean).map(safeJsonParse).filter(Boolean),
       });
     }
@@ -146,7 +148,8 @@ async function buildPayload(token) {
   const specs = specRows
     .filter((row) => row && row.fm)
     .map((row) => ({
-      number: extractNumber(row.path, /^specs\/(\d{4})-/),
+      // Spec 0199 §2.1 — capture optional decimal child in the number.
+      number: extractNumber(row.path, /^specs\/(\d{4}(?:\.\d+)?)-/),
       ...row.fm,
     }))
     .filter((s) => s.number);

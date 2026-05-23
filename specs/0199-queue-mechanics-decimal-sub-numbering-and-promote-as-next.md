@@ -6,9 +6,8 @@ title: Queue mechanics — decimal sub-numbering, promote-as-next, drop queue_po
 type: new-feature
 label: new-feature
 version_bump: MINOR
-target_version: TBD
+target_version: 1.41.0
 status: in_progress
-queue_position: 1
 depends_on: ["0198"]
 complexity: M
 created: 2026-05-23

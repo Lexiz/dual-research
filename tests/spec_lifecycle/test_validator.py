@@ -55,7 +55,7 @@ GOOD_DEV_FM = {
 
 
 def test_valid_new_feature_passes(tmp_path: Path) -> None:
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, _good_new_feature_body())
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, _good_new_feature_body())
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -63,7 +63,7 @@ def test_valid_new_feature_passes(tmp_path: Path) -> None:
 def test_missing_frontmatter_key_fails(tmp_path: Path) -> None:
     fm = dict(GOOD_DEV_FM)
     del fm["version_bump"]
-    p = _write(tmp_path / "spec.md", fm, _good_new_feature_body())
+    p = _write(tmp_path / "0156-thing.md", fm, _good_new_feature_body())
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("version_bump" in e for e in r.errors)
@@ -71,7 +71,7 @@ def test_missing_frontmatter_key_fails(tmp_path: Path) -> None:
 
 def test_insufficient_citations_fails(tmp_path: Path) -> None:
     body = "# x\n\n## 1. Context\n\nNo citations here.\n\n## 5. Risks\nlow.\n"
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("citation" in e for e in r.errors)
@@ -79,7 +79,7 @@ def test_insufficient_citations_fails(tmp_path: Path) -> None:
 
 def test_tbd_in_prose_fails(tmp_path: Path) -> None:
     body = _good_new_feature_body().replace("Refactor with helper.", "Refactor with [TBD].")
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("TBD" in e for e in r.errors)
@@ -87,14 +87,14 @@ def test_tbd_in_prose_fails(tmp_path: Path) -> None:
 
 def test_tbd_in_inline_code_is_ignored(tmp_path: Path) -> None:
     body = _good_new_feature_body() + "\n\nDocumentation note: `[TBD]` markers are forbidden.\n"
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
 
 def test_open_questions_section_fails(tmp_path: Path) -> None:
     body = _good_new_feature_body() + "\n\n## 6. Open questions\n- something\n"
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("open-questions heading" in e for e in r.errors)
@@ -118,7 +118,7 @@ def test_open_questions_section_fails(tmp_path: Path) -> None:
 )
 def test_forbidden_heading_variants_fail(tmp_path: Path, heading: str) -> None:
     body = _good_new_feature_body() + f"\n\n{heading}\n- something\n"
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok, f"heading {heading!r} should fail validation"
     assert any("open-questions heading" in e for e in r.errors), r.errors
@@ -129,7 +129,7 @@ def test_bracketed_unresolved_markers_fail(tmp_path: Path, marker: str) -> None:
     body = _good_new_feature_body().replace(
         "Refactor with helper.", f"Refactor with {marker} helper."
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("unresolved-decision markers" in e for e in r.errors), r.errors
@@ -139,7 +139,7 @@ def test_triple_question_marker_fails(tmp_path: Path) -> None:
     body = _good_new_feature_body().replace(
         "Refactor with helper.", "Refactor with ???something helper."
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("???" in e for e in r.errors), r.errors
@@ -149,7 +149,7 @@ def test_bracketed_markers_inside_backticks_pass(tmp_path: Path) -> None:
     body = _good_new_feature_body() + (
         "\n\nDocumentation: `[TBD]`, `[TODO]`, and `[FIXME]` markers are forbidden.\n"
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -209,7 +209,7 @@ def test_source_artifact_without_table_fails(tmp_path: Path) -> None:
         "## 1. Context",
         "## 1. Context\nSee `prototypes/critique-iteration/NOTES.md` for the source items.",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("source traceability table missing" in e for e in r.errors), r.errors
@@ -228,7 +228,7 @@ Source: `prototypes/critique-iteration/NOTES.md`.
 
 We need to update""",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -245,7 +245,7 @@ Source: `prototypes/critique-iteration/NOTES.md`.
 
 We need to update""",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("does not reference §2.N or §5" in e for e in r.errors), r.errors
@@ -257,7 +257,7 @@ def test_source_artifact_mention_in_section2_does_not_fire(tmp_path: Path) -> No
         "Refactor with helper.",
         "Refactor with helper. We do NOT consume `prototypes/foo/NOTES.md` here.",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -268,7 +268,7 @@ def test_source_artifact_bare_words_do_not_fire(tmp_path: Path) -> None:
         "## 1. Context\nWe need to update",
         "## 1. Context\nWe rejected the bare-word mockup heuristic. We need to update",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -284,14 +284,14 @@ def test_ui_spec_without_user_stories_fails(tmp_path: Path) -> None:
         "scripts/spec_lifecycle/append_event.py:10",
         "src/dual_research/ui/static/shared.jsx:120",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("user stories" in e.lower() for e in r.errors), r.errors
 
 
 def test_ui_spec_with_stories_and_scenarios_passes(tmp_path: Path) -> None:
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, _ui_friendly_new_feature_body(ui_paths=True))
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, _ui_friendly_new_feature_body(ui_paths=True))
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -316,7 +316,7 @@ Nothing.
 ## 5. Risks
 Low.
 """
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert r.ok, r.errors
 
@@ -332,7 +332,7 @@ def test_ui_spec_with_only_one_scenario_fails(tmp_path: Path) -> None:
         "> THEN the result is shown\n",
         "",
     )
-    p = _write(tmp_path / "spec.md", GOOD_DEV_FM, body)
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("user stories" in e.lower() for e in r.errors)
@@ -388,7 +388,7 @@ Cite `src/foo.py:10` and `src/bar.py:20`.
 ## 4. Regression-prevention test
 - [ ] does something
 """
-    p = _write(tmp_path / "spec.md", fm, body)
+    p = _write(tmp_path / "0156-thing.md", fm, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("Expected" in e for e in r.errors)
@@ -413,10 +413,53 @@ Adjacent code.
 ## 3. Stepwise migration
 - step
 """
-    p = _write(tmp_path / "spec.md", fm, body)
+    p = _write(tmp_path / "0156-thing.md", fm, body)
     r = validate_dev_spec(p)
     assert not r.ok
     assert any("new features" in e for e in r.errors)
+
+
+# ── Spec 0199 — filename grammar + queue_position deprecation ─────────────
+
+
+def test_decimal_spec_filename_passes(tmp_path: Path) -> None:
+    """Spec 0199 §2.1 — one decimal level is allowed."""
+    p = _write(tmp_path / "0156.1-thing.md", GOOD_DEV_FM, _good_new_feature_body())
+    r = validate_dev_spec(p)
+    assert r.ok, r.errors
+
+
+def test_two_level_decimal_filename_fails(tmp_path: Path) -> None:
+    """Spec 0199 §3.2 Scenario 6 — `NNNN.M.K` is rejected with a clear message."""
+    p = _write(tmp_path / "0156.1.1-thing.md", GOOD_DEV_FM, _good_new_feature_body())
+    r = validate_dev_spec(p)
+    assert not r.ok
+    assert any("two decimal levels" in e for e in r.errors)
+
+
+def test_non_canonical_filename_fails(tmp_path: Path) -> None:
+    """Spec 0199 §2.1 — filename must match `NNNN[.M]-<slug>.md`."""
+    p = _write(tmp_path / "weird-name.md", GOOD_DEV_FM, _good_new_feature_body())
+    r = validate_dev_spec(p)
+    assert not r.ok
+    assert any("canonical grammar" in e for e in r.errors)
+
+
+def test_queue_position_in_frontmatter_warns(tmp_path: Path) -> None:
+    """Spec 0199 §2.4 — `queue_position` is deprecated; warn don't error."""
+    fm = dict(GOOD_DEV_FM)
+    fm["queue_position"] = "1"
+    p = _write(tmp_path / "0156-thing.md", fm, _good_new_feature_body())
+    r = validate_dev_spec(p)
+    assert r.ok, r.errors  # warnings don't fail validation
+    assert any("queue_position" in w and "deprecated" in w for w in r.warnings)
+
+
+def test_queue_position_absent_no_warning(tmp_path: Path) -> None:
+    """Baseline — absent queue_position emits no spec-0199 warning."""
+    p = _write(tmp_path / "0156-thing.md", GOOD_DEV_FM, _good_new_feature_body())
+    r = validate_dev_spec(p)
+    assert not any("queue_position" in w for w in r.warnings)
 
 
 def test_draft_passes_minimal(tmp_path: Path) -> None:

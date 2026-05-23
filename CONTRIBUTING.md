@@ -59,10 +59,11 @@ type: new-feature | bug | refactoring | test | breaking
 label: <mirror of type>                 # kept for legacy version-bump table compat
 version_bump: MAJOR | MINOR | PATCH     # derived from type
 status: queued | in_progress | merged | deployed | failed | cancelled
-queue_position: <int, meaningful only while queued>
 target_version: X.Y.Z | TBD
 depends_on: []
 complexity: S | M | L
+# Queue order is intrinsic to the spec ID (spec 0199 §2.4). Decimal sub-specs
+# (`NNNN.M`) run immediately after their integer parent.
 created: YYYY-MM-DD                     # absolute date
 pr: ""                                 # fill in after opening the PR
 ```

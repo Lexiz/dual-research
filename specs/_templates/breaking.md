@@ -8,7 +8,6 @@ label: breaking
 version_bump: MAJOR
 target_version: TBD
 status: queued
-queue_position: 0
 depends_on: []
 complexity: S | M | L
 created: YYYY-MM-DD

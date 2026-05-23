@@ -29,7 +29,7 @@ function fixture(eventTsIsoOrSecondsAgo) {
     specs: [
       {
         number: '0001', slug: 'foo', title: 'Fixture spec', type: 'new-feature',
-        status: 'in_progress', target_version: '0.1.0', queue_position: 1,
+        status: 'in_progress', target_version: '0.1.0',
         depends_on: [], complexity: 'S', created: '2026-05-22',
         queued_at: '2026-05-22T10:00:00Z', started_at: '2026-05-22T11:00:00Z',
         merged_at: '', deployed_at: '', pr: '', handover: '',
