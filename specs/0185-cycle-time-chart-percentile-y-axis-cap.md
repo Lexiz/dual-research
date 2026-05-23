@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: 1.36.8
-status: merged
+status: deployed
 queue_position: 2
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T22:00:00Z"
 started_at: "2026-05-23T12:14:09Z"
 merged_at: "2026-05-23T12:20:22Z"
-deployed_at: ""
+deployed_at: "2026-05-23T12:30:50Z"
 pr: "https://github.com/Lexiz/dual-research/pull/215"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0185-cycle-time-chart-percentile-y-axis-cap.md"
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""

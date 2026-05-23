@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T12:19:37Z","step":"tests_green","data":{"passed":1690}}
 {"ts":"2026-05-23T12:20:16Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/215"}}
 {"ts":"2026-05-23T12:20:39Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/215"}}
+{"ts":"2026-05-23T12:27:49Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T12:30:16Z","step":"deployed","data":{"version":"1.36.8"}}
+{"ts":"2026-05-23T12:30:16Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T12:30:47Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0185-cycle-time-chart-percentile-y-axis-cap.md"}}
