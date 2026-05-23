@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.39.2] — 2026-05-23
+
+### Fixed
+
+- **Spec 0196 — authoring-funnel `promo_pct` numerator excludes direct-queue specs** ([spec 0196](specs/0196-authoring-funnel-promo-pct-numerator-includes-direct-queue-specs.md)). Metrics-tab authoring funnel sub-line read nonsense like `538% reached queue` on this repo's live dashboard, because the numerator was `queued_recent` (every queued spec in the window, including those authored direct-from-conversation via `/spec-queue`) divided by `current_drafts + promoted_recent` (only drafts that existed). A mongrel ratio of two unrelated populations. Spec 0183 corrected the denominator but inherited the wrong numerator; spec 0196 picks the matching numerator. One-symbol change at `scripts/spec_lifecycle/render_dashboard.py:1370`: `queued_recent` → `promoted_recent`. Comment block rewritten. New test `test_authoring_funnel_promo_pct_excludes_direct_queue_specs` constructs a fixture with 5 direct-queue specs + 1 promoted + 1 backlog draft and locks the corrected math (`1/(1+1) = 50%`, not the pre-fix `6/2 = 300%`); existing spec-0183 test annotated to spell out that its fixture incidentally produces the same `50%` under both the broken and fixed math, so it's not the load-bearing guard. The fix is bounded by construction now — the percentage stays in `[0, 100]`.
+
 ## [1.39.1] — 2026-05-23
 
 ### Fixed

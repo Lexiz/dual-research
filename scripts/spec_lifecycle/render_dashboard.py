@@ -1364,10 +1364,15 @@ def _render_authoring_funnel(
             )
         cursor_x += stage_w + gap
 
-    # Spec 0183 — denominator is now total drafts that existed in the
-    # window (backlog + graduated), not just graduated. Repos with a
-    # large unpromoted backlog correctly read a lower conversion rate.
-    promo_pct = int(round((queued_recent / drafts_count) * 100)) if drafts_count else 0
+    # Spec 0183 + 0196 — conversion rate of the draft funnel: of the
+    # drafts that existed in this window (current backlog + drafts that
+    # graduated to queued specs), what fraction reached the queue.
+    # Numerator is `promoted_recent`, not `queued_recent` — direct-queue
+    # specs (authored via /spec-queue without a draft step) are excluded
+    # because they never entered the draft funnel. Spec 0196 fixed the
+    # mongrel ratio that produced unbounded values (e.g. "538% reached
+    # queue") when most specs were authored direct-to-queue.
+    promo_pct = int(round((promoted_recent / drafts_count) * 100)) if drafts_count else 0
     ship_pct = int(round((deployed_recent / queued_recent) * 100)) if queued_recent else 0
     funnel_sub = (
         f"Last 30 days · {current_drafts} drafts in backlog + {promoted_recent} promoted · "
