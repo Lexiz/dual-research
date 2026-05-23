@@ -256,3 +256,72 @@ next_subsection: "2.1\""""
     path = _write_handoff(tmp_path, "2026-05-23-spec-0186-foo.md", fm)
     cp = read_checkpoint(path)
     assert isinstance(cp, CheckpointHandoff)
+
+
+# ── Spec 0192 — should_checkpoint_now ────────────────────────────────────
+
+
+from datetime import datetime, timedelta, timezone
+
+from scripts.spec_lifecycle.checkpoint import (
+    DEFAULT_SESSION_AGE_THRESHOLD,
+    should_checkpoint_now,
+)
+
+
+def _fixed_now() -> datetime:
+    """A reference 'now' so test cases construct sessions with predictable
+    ages. UTC because the helper assumes UTC throughout."""
+    return datetime(2026, 5, 23, 12, 0, 0, tzinfo=timezone.utc)
+
+
+def test_should_checkpoint_now_threshold_not_met_returns_false() -> None:
+    """A session 10 minutes old must not trigger the checkpoint. The
+    default threshold is 30 minutes; well below."""
+    now = _fixed_now()
+    started_at = now - timedelta(minutes=10)
+    assert should_checkpoint_now(started_at, now=now) is False
+
+
+def test_should_checkpoint_now_threshold_met_returns_true() -> None:
+    """A session 35 minutes old must trigger the checkpoint. Past the
+    30-minute default."""
+    now = _fixed_now()
+    started_at = now - timedelta(minutes=35)
+    assert should_checkpoint_now(started_at, now=now) is True
+
+
+def test_should_checkpoint_now_exact_threshold_boundary_returns_true() -> None:
+    """Exactly at the 30-minute boundary must return True — the predicate
+    is ``>=``, not strictly ``>``. A session that has been running for
+    exactly the threshold should checkpoint."""
+    now = _fixed_now()
+    started_at = now - timedelta(minutes=30)
+    assert should_checkpoint_now(started_at, now=now) is True
+
+
+def test_should_checkpoint_now_custom_threshold_respected() -> None:
+    """The ``threshold=`` override must let callers tune the trigger
+    without changing the helper. Used by tests + per-spec retunes."""
+    now = _fixed_now()
+    short = timedelta(minutes=5)
+    six_min = now - timedelta(minutes=6)
+    four_min = now - timedelta(minutes=4)
+    assert should_checkpoint_now(six_min, now=now, threshold=short) is True
+    assert should_checkpoint_now(four_min, now=now, threshold=short) is False
+
+
+def test_should_checkpoint_now_now_injection_overrides_wall_clock() -> None:
+    """The ``now=`` injection point must take precedence over real wall
+    clock — this is what makes the helper unit-testable."""
+    # If the helper consulted real wall clock instead of `now=`, the
+    # absurd 'now' below would not yield a 60-minute-old session.
+    far_future = datetime(2099, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    started_at = far_future - timedelta(minutes=60)
+    assert should_checkpoint_now(started_at, now=far_future) is True
+
+
+def test_should_checkpoint_now_default_threshold_constant_is_thirty_minutes() -> None:
+    """Smoke guard on the default constant. If a future spec retunes
+    this value, it should do so deliberately rather than by accident."""
+    assert DEFAULT_SESSION_AGE_THRESHOLD == timedelta(minutes=30)
