@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: 1.37.3
-status: merged
+status: deployed
 queue_position: 2
 depends_on: ["0186"]
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T00:00:00Z"
 started_at: "2026-05-23T16:06:00Z"
 merged_at: "2026-05-23T16:11:45Z"
-deployed_at: ""
+deployed_at: "2026-05-23T16:15:03Z"
 pr: "https://github.com/Lexiz/dual-research/pull/220"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0191-queue-drain-supervisor-extraction-and-tests.md"
 failure_step: ""
 source_session: deferred-from-0186
 promoted_from_draft: ""

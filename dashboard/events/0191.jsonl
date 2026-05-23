@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T16:11:00Z","step":"tests_green","data":{"passed":1710}}
 {"ts":"2026-05-23T16:11:41Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/220"}}
 {"ts":"2026-05-23T16:12:01Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/220"}}
+{"ts":"2026-05-23T16:12:50Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T16:15:03Z","step":"deployed","data":{"version":"1.37.3"}}
+{"ts":"2026-05-23T16:15:03Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T16:16:07Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0191-queue-drain-supervisor-extraction-and-tests.md"}}
