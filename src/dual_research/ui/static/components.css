@@ -1074,9 +1074,8 @@ body.light .tab-group.tabs-solid .tab.is-active,
    MacBook Pro 14" (1512 px), and the typical half-screen browser
    window on a 27" display all sit in the 1500–1799 range and need
    narrow rules. 1799 covers them; 1800+ ultrawides and full-screen
-   external monitors still get wide mode. The .agent-input and
-   .resp-grid breakpoints elsewhere stay at 1499 — they govern
-   different layouts. */
+   external monitors still get wide mode. The .resp-grid breakpoint
+   elsewhere stays at 1499 — it governs a different layout. */
 @media (max-width: 1799px) {
   .crit2 .bar2.crit-filter-row {
     gap: 4px;
@@ -1359,30 +1358,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
   outline: 2px solid color-mix(in srgb, var(--p-info) 50%, transparent);
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Agent input panel (.agent-input) — M3 two-pane tonal layout
-   SPEC-0101. Two panes, one per agent, inside the agent-input modal.
-   ───────────────────────────────────────────────────────────── */
-.agent-input {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-}
-.agent-input__pane {
-  border-radius: var(--md-shape-md);
-  border: 1px solid var(--md-outline-hair);
-  padding: 16px;
-  background: var(--md-surface-container);
-  min-height: 220px;
-  position: relative;
-}
-.agent-input__pane--a { background: color-mix(in srgb, var(--md-primary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-primary) 28%, var(--md-outline-hair)); }
-.agent-input__pane--b { background: color-mix(in srgb, var(--md-secondary) 5%, var(--md-surface-container)); border-color: color-mix(in srgb, var(--md-secondary) 28%, var(--md-outline-hair)); }
-.agent-input__head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-.agent-input__body {
-  font-family: var(--md-font-data); font-size: 13px; line-height: 1.55;
-  color: var(--md-on-surface-variant); white-space: pre-wrap;
-}
-
-@media (max-width: 1499px) { .agent-input { grid-template-columns: 1fr; } }
+/* Spec 0171 — the dual-pane agent-input primitive (SPEC-0101) retired
+   in favour of the canonical single-column AgentInputSingleColumn that
+   reuses tab-group-solid + PromptPiecesThreeSectionView. CSS deleted
+   along with the JSX consumer. */
 
 /* ─────────────────────────────────────────────────────────────
    CollapsibleSection (.cs) — generic disclosure primitive

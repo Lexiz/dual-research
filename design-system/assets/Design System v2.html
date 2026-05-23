@@ -1652,43 +1652,9 @@
         </div>
       </section>
 
-      <!-- ─────────────── §15 · Agent input panel ─────────────── -->
-      <section id="input" class="ds-section">
-        <div class="ds-section__head">
-          <h3 class="ds-section__title">Agent input panel</h3>
-          <span class="ds-section__index">§15 · components</span>
-        </div>
-        <p class="ds-section__lede">
-          Two adjacent panes, one per agent. Tonal containers with a faint agent-color outline. On compact / &lt;1500px viewports the panes stack.
-        </p>
-
-        <div class="show">
-          <div class="agent-input">
-            <div class="agent-input__pane agent-input__pane--a">
-              <div class="agent-input__head"><span class="agent-strip agent-strip--a"><span class="dot"></span>CLAUDE · A</span><span class="md-status md-status--running">running</span></div>
-              <div class="agent-input__body">[brief]
-&gt; Investigate the operational risks of running two LLMs in
-&gt; adversarial review. Output: a 2-page risk register
-&gt; with mitigations.
-
-[constraints]
-&gt; - Cite at least 6 sources, 3 peer-reviewed.
-&gt; - No claims about model internals beyond public docs.</div>
-            </div>
-            <div class="agent-input__pane agent-input__pane--b">
-              <div class="agent-input__head"><span class="agent-strip agent-strip--b"><span class="dot"></span>GPT · B</span><span class="md-status md-status--running">running</span></div>
-              <div class="agent-input__body">[brief]
-&gt; Investigate the operational risks of running two LLMs in
-&gt; adversarial review. Output: a 2-page risk register
-&gt; with mitigations.
-
-[constraints]
-&gt; - Cite at least 6 sources, 3 peer-reviewed.
-&gt; - No claims about model internals beyond public docs.</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- §15 — Agent input panel (dual-pane, SPEC-0101) retired by
+           spec 0171; the Agent Input surface now renders single-column
+           via .tab-group-solid + PromptPiecesThreeSectionView. -->
 
 
       <!-- ─────────────── §16 · Timeline pane ─────────────── -->
