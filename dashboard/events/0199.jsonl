@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T22:41:26Z","step":"tests_green","data":{"passed":1774}}
 {"ts":"2026-05-23T22:43:11Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/227"}}
 {"ts":"2026-05-23T22:43:27Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/227"}}
+{"ts":"2026-05-23T22:44:05Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T22:47:19Z","step":"deployed","data":{"version":"1.41.0"}}
+{"ts":"2026-05-23T22:47:19Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T22:48:29Z","step":"handoff_written","data":{"path":"handoffs/2026-05-24-spec-0199-queue-mechanics-decimal-sub-numbering-and-promote-as-next.md"}}
