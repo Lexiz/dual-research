@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T16:55:07Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T16:55:07Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T16:55:09Z","step":"branched","data":{"branch":"spec/0196-authoring-funnel-promo-pct-numerator-includes-direct-queue-specs","from":"main@37f39d8"}}
+{"ts":"2026-05-23T16:55:13Z","step":"implementing_started","data":{}}
