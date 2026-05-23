@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T22:23:49Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T22:24:34Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean","note":"3 out-of-repo hook citations and 1 display-text-only citation false-positived; manually verified"}}
 {"ts":"2026-05-23T22:24:48Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T22:25:08Z","step":"branched","data":{"branch":"spec/0199-queue-mechanics-decimal-sub-numbering-and-promote-as-next","from":"main@13bc89a"}}
