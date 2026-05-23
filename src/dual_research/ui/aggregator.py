@@ -311,7 +311,11 @@ def summarize_run(session_dir: Path) -> RunListRow:
     topic = _read_topic(session_dir / "brief.md")
 
     phase_int = phase_to_int(state.phase if state else "phase0")
-    started_at = _earliest_event_ts(session_dir / "transcript.jsonl")
+    # Spec 0195 — fall back to the session-dir YYYYMMDD-HHMMSS prefix when
+    # no transcript events exist yet (abandoned-before-first-event rows).
+    # Without this, summarize_run returns ``started_at=None`` and the list
+    # cell rendered ``0s ago`` for genuinely-old rows.
+    started_at = _earliest_known_ts(session_dir)
     duration = _duration_seconds(session_dir / "transcript.jsonl")
 
     final_emitted = bool(state and state.final_emitted_to)
@@ -1094,6 +1098,44 @@ def _earliest_event_ts(transcript_path: Path) -> str | None:
                     continue
     except OSError:
         return None
+    return None
+
+
+def _earliest_known_ts(session_dir: Path) -> str | None:
+    """Spec 0195 — best-effort 'when did this run start' timestamp.
+
+    Priority (mirrors ``_last_activity_ts`` below but for the earliest,
+    not latest, timestamp):
+
+    1. First event ts in ``transcript.jsonl`` (the canonical signal —
+       same as ``_earliest_event_ts`` returns directly).
+    2. Parsed ``YYYYMMDD-HHMMSS`` prefix from the session dir name (the
+       absolute floor — set at session-dir creation time, before any
+       event is emitted).
+
+    A run with neither returns ``None``, and the caller decides how to
+    render that (``run-list.jsx`` renders ``None`` as ``"—"`` after the
+    spec 0195 client-side guard).
+
+    Why no mtime fallback (unlike ``_last_activity_ts``): file mtimes
+    drift upward over time as state.json / metrics.json get written, so
+    they make a poor proxy for *start* time. The dir-name prefix is
+    fixed at creation and so is the right floor for "earliest known".
+    """
+    ts = _earliest_event_ts(session_dir / "transcript.jsonl")
+    if ts:
+        return ts
+    m = _SESSION_DIR_TS_RE.match(session_dir.name)
+    if m:
+        date_part, time_part = m.groups()
+        try:
+            return (
+                datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
+                .replace(tzinfo=timezone.utc)
+                .isoformat()
+            )
+        except ValueError:
+            return None
     return None
 
 

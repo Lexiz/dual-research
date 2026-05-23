@@ -209,3 +209,72 @@ def test_status_from_columns_no_last_event_at_is_running():
         state={},
     )
     assert status == "running"
+
+
+# ─── Spec 0195 — _earliest_known_ts + summarize_run fallback ─────────────
+
+
+def test_summarize_run_falls_back_to_session_dir_ts_for_started_at(tmp_path: Path):
+    """No transcript → started_at parsed from the YYYYMMDD-HHMMSS dir name.
+
+    Locks the spec 0195 fix: rows that never emitted any event still
+    report a sensible started_at instead of None → 0s ago.
+    """
+    from dual_research.ui import aggregator
+
+    session_dir = tmp_path / "20260101-120000-no-transcript"
+    session_dir.mkdir()
+    (session_dir / "state.json").write_text('{"phase": "phase2"}')
+
+    row = aggregator.summarize_run(session_dir)
+    assert row.started_at is not None
+    assert row.started_at.startswith("2026-01-01T12:00:00")
+    assert row.started_at_ago > 0
+
+
+def test_summarize_run_returns_none_when_no_ts_signal(tmp_path: Path):
+    """Dir name without a YYYYMMDD prefix + no transcript → started_at is None.
+
+    Frontend renders this as "—" rather than "0s ago" via the spec 0195
+    cell-level guard in run-list.jsx.
+    """
+    from dual_research.ui import aggregator
+
+    session_dir = tmp_path / "weird-name-no-ts-prefix"
+    session_dir.mkdir()
+    (session_dir / "state.json").write_text('{"phase": "phase2"}')
+
+    row = aggregator.summarize_run(session_dir)
+    assert row.started_at is None
+    assert row.started_at_ago == 0
+
+
+def test_summarize_run_prefers_transcript_first_event_over_dir_ts(tmp_path: Path):
+    """When transcript.jsonl has events, the first event's ts wins over the
+    dir-name prefix — the dir prefix is a strict fallback, not a primary."""
+    from dual_research.ui import aggregator
+
+    session_dir = tmp_path / "20260101-120000-with-events"
+    session_dir.mkdir()
+    (session_dir / "transcript.jsonl").write_text(
+        '{"ts": "2026-06-15T08:30:00+00:00", "type": "run_started"}\n'
+    )
+
+    row = aggregator.summarize_run(session_dir)
+    # First-event ts wins; not the dir-name prefix.
+    assert row.started_at is not None
+    assert row.started_at.startswith("2026-06-15T08:30:00")
+
+
+def test_earliest_known_ts_returns_dir_prefix_when_transcript_empty(tmp_path: Path):
+    """Unit-level check on the helper itself — empty transcript file (file
+    exists but no parseable lines) still falls back to the dir prefix."""
+    from dual_research.ui.aggregator import _earliest_known_ts
+
+    session_dir = tmp_path / "20260315-093015-empty-transcript"
+    session_dir.mkdir()
+    (session_dir / "transcript.jsonl").write_text("")  # exists, but empty
+
+    ts = _earliest_known_ts(session_dir)
+    assert ts is not None
+    assert ts.startswith("2026-03-15T09:30:15")
