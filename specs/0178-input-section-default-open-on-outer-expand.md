@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.36.1
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T22:00:00Z"
 started_at: "2026-05-23T09:59:41Z"
 merged_at: "2026-05-23T10:04:26Z"
-deployed_at: ""
-pr: "https://github.com/Lexiz/dual-research/pull/206"
-handover: ""
+deployed_at: "2026-05-23T10:07:38Z"
+pr: "https://github.com/Lexiz/dual-research/pull/207"
+handover: "handoffs/2026-05-23-spec-0178-input-section-default-open-on-outer-expand.md"
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
 promoted_from_draft: ""
