@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.7] — 2026-05-23
+
+### Added
+
+- **Spec 0184 — mockup fidelity check** ([spec 0184](specs/0184-mockup-fidelity-check-v3-horizontal-dashboard.md)). New test file `tests/spec_lifecycle/test_dashboard_mockup_parity.py` locks the live dashboard render against `dashboard/mockups/dashboard-redesign-v3-horizontal.html` at the structural + token level. Six assertions: hero → counters → tabs → tab-panel ordering under `.page`; exactly 11 `.tl__step` children inside `.hero`; exactly 5 counters with `.counter--accent` on the 5th; tab strip order `now / spec / history / metrics`; every `--md-*` / `--p-*` / `--chart-*` token the mockup uses for timeline/counters/chart regions appears in the live CSS; no hex color literals leak into the rendered `.hero` / `.counters` regions (CLAUDE.md tokens-only rule). Pure stdlib (`html.parser` + regex) — no new dependency. Catches reordering regressions and token drift that spec 0177's count-only tests miss.
+
 ## [1.36.6] — 2026-05-23
 
 ### Fixed
