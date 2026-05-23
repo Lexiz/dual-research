@@ -1011,10 +1011,10 @@
       <section id="itemcard" class="ds-section">
         <div class="ds-section__head">
           <h3 class="ds-section__title">Critique card · ItemCard + Sources</h3>
-          <span class="ds-section__index">§13 · components · NEW · spec 0144</span>
+          <span class="ds-section__index">§13 · components · NEW · spec 0144 · refreshed 0173 / 0187</span>
         </div>
         <p class="ds-section__lede">
-          The canonical per-card primitive for every critique item. All four kinds — <b>Question</b>, <b>Disagreement</b>, <b>Issue</b>, <b>Comment</b> — render with the same layout; only the category chip varies. Each card carries header chips, the item text, an optional <em>Evidence needed</em> helper, a vertical <b>Lifecycle</b> timeline of transitions, a terminal-state footer, and (when N&gt;0) a <b>SOURCES (N)</b> segment that itemises each consulted source the agent cited when addressing the item.
+          The canonical per-card primitive for every critique item. All four kinds — <b>Question</b>, <b>Disagreement</b>, <b>Issue</b>, <b>Comment</b> — render with the same layout; only the kind chip varies. Each card carries a tight head (provider · kind · optional inline evidence-needed · lifecycle chip), a collapsed default state, and — when expanded — a QuestionThread-anatomy bubble timeline of transitions plus the optional <b>SOURCES (N)</b> segment beneath.
         </p>
 
         <!-- ── Anatomy diagram (numbered stacking order) ── -->
@@ -1024,75 +1024,91 @@
             <div class="md-card__title">Stacking order (top → bottom)</div>
           </div>
           <ol style="margin:0; padding-left:22px; color:var(--md-on-surface-variant); line-height: 1.7;">
-            <li><b>Header chip row.</b> <span class="code">{id}</span> (mono inline, not a chip) · <b>agent</b> · <b>kind</b> · <span class="code">raised in rN</span> · <span class="code">Sources N</span> (when N&gt;0) · right-aligned <b>status</b> chip.</li>
+            <li><b>Header chip row.</b> <b>provider</b> · <b>kind</b> (with category letter Q/D/I/C bubble) · optional inline <b>evidence needed</b> modifier · head-spacer · right-aligned <b>lifecycle</b> chip carrying the raise→respond→resolve arc as a chip cluster (open: <span class="code">raised · rN · raiser-icon</span>; resolved: <span class="code">[raised rN raiser-icon] · [resolved rM resolver-icon]</span>; drift: <span class="code">raised r? · drift</span>).</li>
+            <li><b>Collapse affordance.</b> The card defaults to <span class="code">data-expanded="false"</span> — only the head renders; body, timeline, sources, footer, and lifecycle-footer are hidden until the head is clicked. The head carries <span class="code">role="button"</span> and <span class="code">aria-expanded</span> for keyboard / SR parity.</li>
             <li><b>Body.</b> Item text. When <span class="code">anchor_type !== 'none'</span>, a tinted blockquote follows.</li>
-            <li><b>Evidence-needed helper.</b> Italic line, rendered only when <span class="code">evidence_required === true</span>: <em>"Evidence needed — addresses must cite consulted sources."</em></li>
-            <li><b>Lifecycle timeline.</b> Vertical list of transitions; each row is <span class="code">round N · agent · verb</span> with the reason in muted serif italic underneath.</li>
-            <li><b>Footer.</b> Single tinted line (ok-toned by default): <span class="code">✓ {terminalState} at round N · M turns to converge</span>. Rendered in any terminal state; never on open / addressed items.</li>
+            <li><b>Expanded view.</b> Vertical stack of QuestionThread-anatomy bubbles — one bubble per transition (raise + each transition), each bubble carrying a <span class="code">[provider chip][round chip][verdict chip]</span> cluster + the reason quote inside as a styled <code>&lt;blockquote&gt;</code>. Bubble container uses 8% <span class="code">color-mix</span> provider tint + 2 px left-border (the QuestionThread anatomy reused — see <span class="code">.item-card__qt-row--{claude,gpt}</span>).</li>
+            <li><b>Footer.</b> Single tinted line (ok-toned by default): <span class="code">✓ {verb} in round N</span>. Rendered in any terminal state; never on open / addressed items.</li>
             <li><b>SOURCES (N).</b> Vertical stack of <code>&lt;SourceRow&gt;</code> instances after a dashed top border. Hidden entirely when N === 0.</li>
           </ol>
         </div>
 
-        <!-- ── Two example cards: resolved + capped ── -->
+        <!-- ── Pair 1: resolved Question · collapsed + expanded ── -->
+        <h4 class="t-title-m" style="margin: 24px 0 8px;">Resolved Question · two states</h4>
+        <p class="ds-section__lede" style="margin-bottom: 12px;">
+          Same datum (a resolved question that consumed two sources), shown collapsed and expanded. Live anchor: see <code>function ItemCard</code> in <span class="code">src/dual_research/ui/static/run-detail.jsx</span>; collapse rules at <span class="code">.item-card[data-expanded="false"]</span> in <span class="code">design-system/assets/styles/composed-components.css</span>.
+        </p>
         <div class="cards-2up">
 
-          <!-- (1) Resolved Question · with sources -->
-          <article class="crit-card is-resolved" aria-labelledby="ic-1">
-            <div class="crit-card-head">
+          <!-- (1a) Collapsed · resolved Question -->
+          <article class="crit-card is-resolved" data-raised-by="claude" data-expanded="false" aria-labelledby="ic-1a">
+            <div class="crit-card-head" role="button" tabindex="0" aria-expanded="false">
               <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
-              <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">Question</span>
-              <span class="md-chip md-chip--sm">raised in r1</span>
-              <span class="md-chip md-chip--sm">Sources&nbsp;<span style="color:var(--md-on-surface)">2</span></span>
+              <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);"><span class="ai ai-sm" style="background: color-mix(in srgb, var(--p-info) 24%, transparent); color: var(--p-info);">Q</span>Question</span>
               <span class="spacer"></span>
-              <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);"><span style="font-weight:800">✓</span>&nbsp;resolved</span>
+              <span class="md-chip md-chip--sm" style="opacity:.75;"><span class="ai ai-sm ai-a">C</span>raised r1</span>
+              <span style="color:var(--md-on-surface-faint); padding: 0 4px;">·</span>
+              <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);"><span class="ai ai-sm ai-b">G</span>resolved r2</span>
             </div>
 
-            <div class="crit-card-body" id="ic-1">
+            <div class="crit-card-body" id="ic-1a">
               Does <code>pgx/v5</code> with <code>SET LOCAL</code> RLS session context behave correctly against Azure Postgres Flexible Server's built-in PgBouncer?
-              <em class="evidence-needed">Evidence needed — addresses must cite consulted sources.</em>
             </div>
-            <div class="crit-card-id">id: Q-plan-c-02</div>
+          </article>
 
-            <div class="crit-section-title">Lifecycle</div>
-
-            <div class="lc-row">
-              <div class="lc-row-chips">
-                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
-                <span class="md-chip md-chip--sm">round 1</span>
-                <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">raised</span>
-              </div>
-              <div class="lc-row-body">
-                "Need verification — pgx pooling on Flexible Server documents <code>SET LOCAL</code> as transaction-scoped, not session-scoped. Flag as decision check 2."
-              </div>
+          <!-- (1b) Expanded · resolved Question -->
+          <article class="crit-card is-resolved" data-raised-by="claude" data-expanded="true" aria-labelledby="ic-1b">
+            <div class="crit-card-head" role="button" tabindex="0" aria-expanded="true">
+              <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+              <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);"><span class="ai ai-sm" style="background: color-mix(in srgb, var(--p-info) 24%, transparent); color: var(--p-info);">Q</span>Question</span>
+              <span class="spacer"></span>
+              <span class="md-chip md-chip--sm" style="opacity:.75;"><span class="ai ai-sm ai-a">C</span>raised r1</span>
+              <span style="color:var(--md-on-surface-faint); padding: 0 4px;">·</span>
+              <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);"><span class="ai ai-sm ai-b">G</span>resolved r2</span>
             </div>
 
-            <div class="lc-row">
-              <div class="lc-row-chips">
-                <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
-                <span class="md-chip md-chip--sm">round 2</span>
-                <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">addressed</span>
-              </div>
-              <div class="lc-row-body">
-                "Reframing: <code>SET LOCAL</code> is transaction-scoped per pg docs. PgBouncer documents plain <code>SET/RESET</code> as unsupported in transaction pooling. Protocol-level prepared plans can work if <code>max_prepared_plans</code> is non-zero."
-              </div>
+            <div class="crit-card-body" id="ic-1b">
+              Does <code>pgx/v5</code> with <code>SET LOCAL</code> RLS session context behave correctly against Azure Postgres Flexible Server's built-in PgBouncer?
             </div>
 
-            <div class="lc-row">
-              <div class="lc-row-chips">
-                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
-                <span class="md-chip md-chip--sm">round 2</span>
-                <span class="chip tone-ok no-dot" style="background: color-mix(in srgb, var(--p-ok) 16%, transparent); color: var(--p-ok);">resolved</span>
-              </div>
-              <div class="lc-row-body">
-                "Accepted. Plan now specifies <code>max_prepared_plans</code> and explicit <code>SET LOCAL ... INSIDE TX</code> guarded by pgx middleware."
-              </div>
-            </div>
+            <ol class="item-card__qt-rows">
+              <li class="item-card__qt-row item-card__qt-row--claude">
+                <div class="item-card__qt-chips">
+                  <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                  <span class="md-chip md-chip--sm">round 1</span>
+                  <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">raised</span>
+                </div>
+                <blockquote class="item-card__qt-quote">
+                  Need verification — pgx pooling on Flexible Server documents <code>SET LOCAL</code> as transaction-scoped, not session-scoped. Flag as decision check 2.
+                </blockquote>
+              </li>
 
-            <div class="lc-footer">
-              <span style="font-weight:800">✓</span>
-              <span>resolved at round 2</span>
-              <span class="sep">·</span>
-              <span class="meta">2 turns to converge</span>
+              <li class="item-card__qt-row item-card__qt-row--gpt">
+                <div class="item-card__qt-chips">
+                  <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+                  <span class="md-chip md-chip--sm">round 2</span>
+                  <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">pushed back</span>
+                </div>
+                <blockquote class="item-card__qt-quote">
+                  Reframing — <code>SET LOCAL</code> is transaction-scoped per the pg docs. PgBouncer documents plain <code>SET/RESET</code> as unsupported in transaction pooling; protocol-level prepared plans can work if <code>max_prepared_plans</code> is non-zero.
+                </blockquote>
+              </li>
+
+              <li class="item-card__qt-row item-card__qt-row--claude">
+                <div class="item-card__qt-chips">
+                  <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
+                  <span class="md-chip md-chip--sm">round 2</span>
+                  <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">conceded</span>
+                </div>
+                <blockquote class="item-card__qt-quote">
+                  Accepted. Plan now specifies <code>max_prepared_plans</code> and explicit <code>SET LOCAL … INSIDE TX</code> guarded by pgx middleware.
+                </blockquote>
+              </li>
+            </ol>
+
+            <div class="item-card__lifecycle-footer">
+              <span aria-hidden="true">✓</span>
+              answered in round 2
             </div>
 
             <div class="item-card__sources">
@@ -1128,119 +1144,59 @@
             </div>
           </article>
 
-          <!-- (2) Capped Issue · with one unverified source -->
-          <article class="crit-card is-capped" aria-labelledby="ic-2">
-            <div class="crit-card-head">
+        </div>
+
+        <!-- ── Pair 2: open Disagreement with evidence-needed · collapsed + expanded ── -->
+        <h4 class="t-title-m" style="margin: 32px 0 8px;">Open Disagreement · evidence-needed · two states</h4>
+        <p class="ds-section__lede" style="margin-bottom: 12px;">
+          Same item, two states. The <span class="code">evidence_required</span> flag surfaces as an inline warn chip in the head (no longer a body banner); the lifecycle chip carries the single-chip open form because there is no resolver yet.
+        </p>
+        <div class="cards-2up">
+
+          <!-- (2a) Collapsed · open Disagreement (evidence required) -->
+          <article class="crit-card is-open" data-raised-by="gpt" data-expanded="false" aria-labelledby="ic-2a">
+            <div class="crit-card-head" role="button" tabindex="0" aria-expanded="false">
               <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
-              <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">Issue</span>
-              <span class="md-chip md-chip--sm">raised in r3</span>
-              <span class="md-chip md-chip--sm">via ghost cap</span>
-              <span class="md-chip md-chip--sm">Sources&nbsp;<span style="color:var(--md-on-surface)">1</span></span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);"><span class="ai ai-sm" style="background: color-mix(in srgb, var(--p-warn) 26%, transparent); color: var(--p-warn);">D</span>Disagreement</span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">⚠&nbsp;evidence needed</span>
               <span class="spacer"></span>
-              <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">capped</span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);"><span class="ai ai-sm ai-b">G</span>raised · r2 · GPT</span>
             </div>
 
-            <div class="crit-card-body" id="ic-2">
-              Logical-replication slot configuration on Azure Postgres Flex does not survive a failover — the proposed CDC strategy assumes slot persistence that the platform doesn't guarantee.
-            </div>
-            <div class="crit-card-id">id: I-cdc-g-04</div>
-
-            <div class="crit-section-title">Lifecycle</div>
-
-            <div class="lc-row">
-              <div class="lc-row-chips">
-                <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
-                <span class="md-chip md-chip--sm">round 3</span>
-                <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">raised</span>
-              </div>
-              <div class="lc-row-body">
-                "Flex Server's primary-failover docs do not list logical-replication slots among preserved objects. Need a backup CDC strategy or this is a P0 risk."
-              </div>
-            </div>
-
-            <div class="lc-row">
-              <div class="lc-row-chips">
-                <span class="md-chip md-chip--filter-a md-chip--sm"><span class="ai ai-sm ai-a">C</span>Claude</span>
-                <span class="md-chip md-chip--sm">round 4</span>
-                <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">addressed</span>
-              </div>
-              <div class="lc-row-body">
-                "Acknowledge the risk; propose Debezium fallback. Need to verify behaviour on a planned-failover dry-run before promoting the plan."
-              </div>
-            </div>
-
-            <div class="lc-row">
-              <div class="lc-row-chips">
-                <span class="md-chip md-chip--sm">round 5</span>
-                <span class="chip tone-err no-dot" style="background: color-mix(in srgb, var(--p-err) 16%, transparent); color: var(--p-err);">capped</span>
-                <span class="md-chip md-chip--sm">via ghost cap</span>
-              </div>
-              <div class="lc-row-body">
-                "Closeout budget exhausted before mutual ack. Issue recorded; downstream owner notified."
-              </div>
-            </div>
-
-            <div class="lc-footer">
-              <span style="font-weight:800">⊘</span>
-              <span>capped at round 5</span>
-              <span class="sep">·</span>
-              <span class="meta">closeout exhausted · 2 turns to converge</span>
-            </div>
-
-            <div class="item-card__sources">
-              <div class="item-card__sources-hd">Sources <span class="count">(1)</span></div>
-
-              <div class="source-row is-unverified" data-open="true">
-                <div class="source-row__head">
-                  <span class="source-row__chev">▶</span>
-                  <span class="source-row__title">Azure Postgres Flex — failover behaviour</span>
-                  <span class="source-row__host">learn.microsoft.com</span>
-                  <span class="right">
-                    <span class="chip-unverified" title="evidence_event_id did not match any tool event in this turn's audit">⚠ unverified</span>
-                  </span>
-                </div>
-                <div class="source-row__body">
-                  <div class="source-row__field"><span class="source-row__label">url</span><a class="source-row__url" href="#" onclick="return false">https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-high-availability</a></div>
-                  <div class="source-row__field"><span class="source-row__label">search query</span>"<i>Azure Postgres Flexible Server failover replication slot persistence</i>"</div>
-                  <div class="source-row__field"><span class="source-row__label">fetched</span>2026-05-21 · 02:14 UTC</div>
-                  <div class="source-row__field"><span class="source-row__label">unverified reason</span><span style="color: var(--p-warn)">evidence_event_id_fabricated</span> — the cited handle <span class="code">search_4</span> did not match any tool event in this turn's audit.</div>
-                  <div class="source-row__excerpt">"During a failover event, server-side state including replication slots may not survive without explicit configuration. Customers using logical decoding for change data capture should review the high-availability and disaster-recovery guidance for their workload."</div>
-                </div>
-              </div>
+            <div class="crit-card-body" id="ic-2a">
+              The proposed CDC outbox-poll interval (5 s) is too high for the agreed P95-latency target of 3 s end-to-end. Either tighten the poll or reframe the target.
             </div>
           </article>
 
-        </div>
-
-        <!-- ── Open card · full width · with Evidence-needed but no sources yet ── -->
-        <article class="crit-card is-open" aria-labelledby="ic-3" style="margin-top:16px;">
-          <div class="crit-card-head">
-            <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
-            <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">Disagreement</span>
-            <span class="md-chip md-chip--sm">raised in r2</span>
-            <span class="spacer"></span>
-            <span class="chip tone-info no-dot" style="background: color-mix(in srgb, var(--p-info) 16%, transparent); color: var(--p-info);">open · awaiting Claude</span>
-          </div>
-
-          <div class="crit-card-body" id="ic-3">
-            The proposed CDC outbox-poll interval (5 s) is too high for the agreed P95-latency target of 3 s end-to-end. Either tighten the poll or reframe the target.
-            <em class="evidence-needed">Evidence needed — addresses must cite consulted sources.</em>
-          </div>
-          <div class="crit-card-id">id: D-cdc-g-01</div>
-
-          <div class="crit-section-title">Lifecycle</div>
-
-          <div class="lc-row">
-            <div class="lc-row-chips">
+          <!-- (2b) Expanded · open Disagreement (evidence required) -->
+          <article class="crit-card is-open" data-raised-by="gpt" data-expanded="true" aria-labelledby="ic-2b">
+            <div class="crit-card-head" role="button" tabindex="0" aria-expanded="true">
               <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
-              <span class="md-chip md-chip--sm">round 2</span>
-              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">raised</span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);"><span class="ai ai-sm" style="background: color-mix(in srgb, var(--p-warn) 26%, transparent); color: var(--p-warn);">D</span>Disagreement</span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">⚠&nbsp;evidence needed</span>
+              <span class="spacer"></span>
+              <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);"><span class="ai ai-sm ai-b">G</span>raised · r2 · GPT</span>
             </div>
-            <div class="lc-row-body">
-              "5 s poll · 3 s P95 target → arithmetic doesn't close. Sources needed to back the 5 s number — current plan cites none."
+
+            <div class="crit-card-body" id="ic-2b">
+              The proposed CDC outbox-poll interval (5 s) is too high for the agreed P95-latency target of 3 s end-to-end. Either tighten the poll or reframe the target.
             </div>
-          </div>
-        </article>
+
+            <ol class="item-card__qt-rows">
+              <li class="item-card__qt-row item-card__qt-row--gpt">
+                <div class="item-card__qt-chips">
+                  <span class="md-chip md-chip--selected md-chip--sm"><span class="ai ai-sm ai-b">G</span>GPT</span>
+                  <span class="md-chip md-chip--sm">round 2</span>
+                  <span class="chip tone-warn no-dot" style="background: color-mix(in srgb, var(--p-warn) 18%, transparent); color: var(--p-warn);">raised</span>
+                </div>
+                <blockquote class="item-card__qt-quote">
+                  5 s poll · 3 s P95 target → arithmetic doesn't close. Sources needed to back the 5 s number — current plan cites none.
+                </blockquote>
+              </li>
+            </ol>
+          </article>
+
+        </div>
 
         <!-- ── SourceRow detail · collapsed vs expanded ── -->
         <div style="margin-top: 32px;">
