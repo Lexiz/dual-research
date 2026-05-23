@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.37.1] — 2026-05-23
+
+### Fixed
+
+- **Spec 0189 — critique-pane status counts now bucket `addressed` items into Open** ([spec 0189](specs/0189-status-counts-addressed-bucketing-bug.md)). Spec 0173 §2.4's bar-2 status segments (`All · Open · Resolved · Drift`) were under-counting: the `_isOpenStatus` predicate at `src/dual_research/ui/static/run-detail.jsx:7123` matched only `'open' | 'open-new'`, while the item-state machine emits `'addressed'` for mid-arc items (the actor has responded but the raiser hasn't yet conceded / pushed back). Those `addressed` items showed in the All count but fell out of every per-state count, visibly breaking the `All == Open + Resolved + Drift` arithmetic invariant. One-line widen: `_isOpenStatus` now also matches `'addressed'`. Routing decision per spec §3 — `addressed` is "still open from the raiser's POV" until the item reaches a terminal state; calling it Resolved would be wrong. The change also incidentally silences `pushItem`'s "unknown item.status" console warning for `addressed` items (they previously fell through to the warning + default-open-bucket fallback). 3 new structural tests in `tests/spec0189/` pin the fix.
+
 ## [1.37.0] — 2026-05-23
 
 ### Added
