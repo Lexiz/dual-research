@@ -81,10 +81,13 @@ JQ_FALLBACK_FILTER='.[] | select(.config.image != $CURRENT_IMG) | .id'
 
 # Spec 0193 — return the image string Fly currently considers the live
 # release, or empty on failure. In live mode this calls `fly releases
-# --app "$APP" --json` and picks the most recent release with status
-# "complete". In test mode (--input given) it reads a sibling
-# `.release.json` file next to the input fixture; the fixture must
-# carry `{"image_ref": "…"}` at top level.
+# --app "$APP" --json` and picks the most recent release whose status is
+# "running" (the active rollout) or "complete" (the last successful
+# release). Fly's JSON shape uses PascalCase keys (`Status`, `ImageRef`,
+# `CreatedAt`) as of v0.4.54.
+# In test mode (--input given) it reads a sibling `.release.json` file
+# next to the input fixture; the fixture must carry `{"image_ref": "…"}`
+# at top level (lowercase, since fixtures are hand-authored).
 get_current_release_image() {
   if [[ -n "$INPUT_FILE" ]]; then
     local release_file="${INPUT_FILE%.json}.release.json"
@@ -93,7 +96,7 @@ get_current_release_image() {
     fi
   else
     fly releases --app "$APP" --json 2>/dev/null | \
-      jq -r '[.[] | select(.status == "complete")] | sort_by(.created_at) | last | .image_ref // empty' 2>/dev/null
+      jq -r '[.[] | select(.Status == "running" or .Status == "complete")] | sort_by(.CreatedAt) | last | .ImageRef // empty' 2>/dev/null
   fi
 }
 
