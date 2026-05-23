@@ -6,14 +6,14 @@ title: "Tests: pixel + structural fidelity check of the live dashboard against `
 type: test
 label: test
 version_bump: PATCH
-target_version: TBD
-status: queued
+target_version: "1.36.7"
+status: in_progress
 queue_position: 2
 depends_on: []
 complexity: S
 created: 2026-05-22
 queued_at: "2026-05-22T21:55:00Z"
-started_at: ""
+started_at: "2026-05-23T11:59:49Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
