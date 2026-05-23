@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T15:52:08Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T15:52:42Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T15:52:42Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T15:52:44Z","step":"branched","data":{"branch":"spec/0190-timeline-tabs-data-active-migration","from":"main@a6770e0"}}
