@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T17:09:09Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T17:10:09Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T17:10:09Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T17:10:11Z","step":"branched","data":{"branch":"spec/0197-mockup-canonical-token-vocabulary-cleanup","from":"main@42208a4"}}
