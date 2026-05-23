@@ -7040,7 +7040,16 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   const [kindFilter, setKindFilter] = React.useState('all');
   const [agentFilter, setAgentFilter] = React.useState('all');
   const [statusFilter, setStatusFilter] = React.useState('all');
-  React.useEffect(() => { setSelectedPhase(initial); setKindFilter('all'); setAgentFilter('all'); setStatusFilter('all'); }, [run.id, initial]);
+  // Spec 0175 §2.5 — auto-jump to summary on `running → terminal` transition,
+  // unless the user has manually picked a different tab during this session.
+  const userPickedTabRef = React.useRef(false);
+  const wasTerminalRef = React.useRef(isTerminal);
+  React.useEffect(() => {
+    setSelectedPhase(initial);
+    setKindFilter('all'); setAgentFilter('all'); setStatusFilter('all');
+    userPickedTabRef.current = false;
+    wasTerminalRef.current = isTerminal;
+  }, [run.id, initial, isTerminal]);
   React.useEffect(() => {
     if (kindFilter === 'all') return;
     const allowed = PHASE_CHIP_ALLOWLIST[selectedPhase] || [];
@@ -7052,6 +7061,21 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   React.useEffect(() => {
     if (selectedPhase === 'summary' && !isTerminal) setSelectedPhase(initial);
   }, [isTerminal, selectedPhase, initial]);
+  // Spec 0175 §2.5 — fires once when isTerminal flips false → true, if the
+  // user hasn't manually picked a non-summary tab during this session.
+  React.useEffect(() => {
+    if (!wasTerminalRef.current && isTerminal && !userPickedTabRef.current) {
+      setSelectedPhase('summary');
+    }
+    wasTerminalRef.current = isTerminal;
+  }, [isTerminal]);
+
+  // Spec 0175 §2.5 — picking any tab suppresses the auto-jump for the
+  // rest of this session (until run.id changes).
+  const pickPhase = React.useCallback((phase) => {
+    userPickedTabRef.current = true;
+    setSelectedPhase(phase);
+  }, []);
 
   // Spec 0119 §8.1 + Q2 — cross-pane jump: a click on a timeline turn
   // card's category chip dispatches `dr-critique-jump` with
@@ -7350,25 +7374,28 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
         <span className="ttl">Critique</span>
         <span className="vbar"></span>
         <div className="phase-tabs">
+          {/* Spec 0175 \u00A72.5 \u2014 onClick goes through pickPhase so the
+              auto-jump-to-summary effect knows the user has chosen
+              a tab in this session. */}
           <button
             className={`phase-tab${selectedPhase === 0 ? ' is-active' : ''}`}
-            onClick={() => setSelectedPhase(0)}>
+            onClick={() => pickPhase(0)}>
             <span className="pcode">P0</span><span className="pname">Brief</span>
           </button>
           <button
             className={`phase-tab${selectedPhase === 2 ? ' is-active' : ''}`}
-            onClick={() => setSelectedPhase(2)}>
+            onClick={() => pickPhase(2)}>
             <span className="pcode">P2</span><span className="pname">Negotiate</span>
           </button>
           <button
             className={`phase-tab${selectedPhase === 4 ? ' is-active' : ''}`}
-            onClick={() => setSelectedPhase(4)}>
+            onClick={() => pickPhase(4)}>
             <span className="pcode">P4</span><span className="pname">Review</span>
           </button>
           {isTerminal && (
             <button
               className={`phase-tab${selectedPhase === 'summary' ? ' is-active' : ''}`}
-              onClick={() => setSelectedPhase('summary')}>
+              onClick={() => pickPhase('summary')}>
               <span className="sigma">{'\u03A3'}</span><span className="pname">Summary</span>
             </button>
           )}
@@ -7887,9 +7914,468 @@ const KIND_PLURAL = {
   comment: 'Comments',
 };
 
+// Spec 0175 §2.10 — kind dot palette aliases used by CritiqueBreakdown
+// sub-rows. The four hues match the canonical M3-aligned chip tones
+// (DS SPEC §3 — Chip; spec 0167 §2.5).
+const _KIND_DOT = {
+  question: COLORS.info,
+  disagreement: COLORS.warn,
+  issue: COLORS.err,
+  comment: 'var(--md-on-surface-muted)',
+};
+
+// Spec 0175 §2.3 — pure helper: derive every number the Summary tab
+// renders from the run snapshot. Pure function, no DOM / context
+// access — covered by tests/spec0175/test_compute_summary_stats.py.
+function _computeSummaryStats(run, questions, disagreements, issues, comments) {
+  const claudeAgent = (run && run.agents && run.agents.claude) || {};
+  const gptAgent    = (run && run.agents && run.agents.gpt)    || {};
+  const cTok = (claudeAgent.tokens?.in || 0) + (claudeAgent.tokens?.out || 0);
+  const gTok = (gptAgent.tokens?.in    || 0) + (gptAgent.tokens?.out    || 0);
+  const totalTokens = cTok + gTok;
+  const cCost = claudeAgent.cost || 0;
+  const gCost = gptAgent.cost    || 0;
+  const totalCost = cCost + gCost;
+
+  const timings = (run && run.phaseTimings) || {};
+  let elapsedTotal = 0;
+  for (const v of Object.values(timings)) {
+    if (typeof v === 'number' && v > 0) elapsedTotal += v;
+  }
+
+  const totalItems = questions.length + disagreements.length + issues.length;
+  const totalComments = comments.length;
+  const totalRaised = totalItems + totalComments;
+
+  const resolvedQ = questions.filter((q) => q.status !== 'open').length;
+  const resolvedD = disagreements.filter((d) => (d.status || '').startsWith('resolved')).length;
+  const resolvedI = issues.filter((i) => i.status === 'resolved').length;
+  const totalResolved = resolvedQ + resolvedD + resolvedI;
+  const resolveRatio = totalItems > 0 ? totalResolved / totalItems : 1;
+
+  // Per-agent tally (spec 0175 §2.3). The `'both'` closer (resolved-both)
+  // is NOT credited to either per-agent solved row — it's surfaced
+  // separately as `mutualAligned`.
+  const raised = {
+    claude: { question: 0, disagreement: 0, issue: 0, comment: 0 },
+    gpt:    { question: 0, disagreement: 0, issue: 0, comment: 0 },
+  };
+  const solved = {
+    claude: { question: 0, disagreement: 0, issue: 0 },
+    gpt:    { question: 0, disagreement: 0, issue: 0 },
+  };
+
+  const _creditRaise = (item, kind) => {
+    const r = item.raisedBy;
+    if (r === 'claude' || r === 'both') raised.claude[kind]++;
+    if (r === 'gpt' || r === 'both')    raised.gpt[kind]++;
+  };
+  const _creditSolve = (closer, kind) => {
+    if (closer === 'claude') solved.claude[kind]++;
+    else if (closer === 'gpt') solved.gpt[kind]++;
+    // closer === 'both' → counted in mutualAligned only (below).
+  };
+
+  questions.forEach((q) => {
+    _creditRaise(q, 'question');
+    if (q.status !== 'open' && q.answeredBy) _creditSolve(q.answeredBy, 'question');
+  });
+
+  // Spec 0119 §7 — `resolved-claude` = Claude yielded, `resolved-gpt` = GPT yielded,
+  // `resolved-both` = mutual alignment.
+  let mutualAligned = 0;
+  disagreements.forEach((d) => {
+    _creditRaise(d, 'disagreement');
+    const s = d.status || '';
+    if (s === 'resolved-claude') _creditSolve('claude', 'disagreement');
+    else if (s === 'resolved-gpt') _creditSolve('gpt', 'disagreement');
+    else if (s === 'resolved-both') mutualAligned++;
+  });
+
+  issues.forEach((i) => {
+    _creditRaise(i, 'issue');
+    if (i.status === 'resolved' && i.raisedBy) _creditSolve(i.raisedBy, 'issue');
+  });
+
+  comments.forEach((c) => _creditRaise(c, 'comment'));
+
+  const claudeRaisedTotal = raised.claude.question + raised.claude.disagreement + raised.claude.issue + raised.claude.comment;
+  const gptRaisedTotal    = raised.gpt.question    + raised.gpt.disagreement    + raised.gpt.issue    + raised.gpt.comment;
+  const claudeSolvedTotal = solved.claude.question + solved.claude.disagreement + solved.claude.issue;
+  const gptSolvedTotal    = solved.gpt.question    + solved.gpt.disagreement    + solved.gpt.issue;
+
+  // Drift count from phase ledgers (existing logic).
+  const ledgers = (run && run.phaseLedgers) || {};
+  let driftCount = 0;
+  for (const phaseId of Object.keys(ledgers)) {
+    for (const entry of (ledgers[phaseId] || [])) {
+      if ((entry.ghostedRounds || 0) > 0) driftCount++;
+    }
+  }
+  const driftRatio = totalItems > 0 ? driftCount / totalItems : 0;
+
+  // Verdict — spec 0175 §2.2 tightens the green threshold from 0.7 → 0.85.
+  let verdict;
+  if (totalItems === 0) verdict = 'Inconclusive';
+  else if (resolveRatio >= 0.85 && driftRatio < 0.2) verdict = 'Mostly positive';
+  else if (resolveRatio < 0.40 || driftRatio >= 0.40) verdict = 'Mostly negative';
+  else verdict = 'Mixed';
+
+  // Round count: max round across items, falling back to run.round.current.
+  const roundFromItems = [...questions, ...disagreements, ...issues, ...comments]
+    .map((it) => Number(it.raisedRound || it.raised_round || 0))
+    .reduce((m, v) => (v > m ? v : m), 0);
+  const currentRound = run?.round?.current || 0;
+  const roundCount = Math.max(roundFromItems, currentRound);
+
+  return {
+    cTok, gTok, totalTokens,
+    cCost, gCost, totalCost,
+    elapsedTotal,
+    roundCount,
+    totalItems, totalComments, totalRaised,
+    totalResolved, resolveRatio,
+    driftCount, driftRatio,
+    verdict,
+    mutualAligned,
+    raised, solved,
+    claudeRaisedTotal, gptRaisedTotal,
+    claudeSolvedTotal, gptSolvedTotal,
+  };
+}
+
+// Spec 0175 §2.7 — web-search stat: queries + URLs retrieved across all
+// turns. SearchIndexContext.summary is a Map<turnKey, { queries: N, consulted: M, … }>.
+function _computeWebSearchStats(searchSummary) {
+  if (!searchSummary || typeof searchSummary.values !== 'function') {
+    return { queries: 0, consulted: 0, hasAny: false };
+  }
+  let queries = 0;
+  let consulted = 0;
+  for (const entry of searchSummary.values()) {
+    queries += (entry?.queries || 0);
+    consulted += (entry?.consulted || 0);
+  }
+  return { queries, consulted, hasAny: queries > 0 || consulted > 0 };
+}
+
+// Spec 0175 §2.4 — verdict tone lookup. Resolved at runtime so the
+// status-aware hero (errored variant) can override the computed verdict.
+function _pickVerdictTone(verdict, runStatus) {
+  if (runStatus === 'errored') {
+    return { key: 'errored', color: COLORS.err, label: 'Incomplete' };
+  }
+  if (verdict === 'Mostly positive') return { key: 'positive', color: COLORS.ok,   label: 'Mostly positive' };
+  if (verdict === 'Mostly negative') return { key: 'negative', color: COLORS.warn, label: 'Mostly negative' };
+  if (verdict === 'Mixed')           return { key: 'mixed',    color: COLORS.info, label: 'Mixed' };
+  return { key: 'inconclusive', color: 'var(--md-on-surface-muted)', label: 'Inconclusive' };
+}
+
+// Spec 0175 §2.4 — hero variant copy. Returns the cheer line, glyph
+// name, and explanation line for each terminal status.
+function _pickHeroVariant(run, stats) {
+  const status = run?.status;
+  if (status === 'deadlocked') {
+    const hardCap = run?.round?.hard || run?.round?.total || stats.roundCount;
+    return {
+      cheer: 'Run deadlocked · ran out of rounds',
+      glyph: 'pause',
+      glyphColor: COLORS.warn,
+      explanation: `Hit the hard cap of ${hardCap} rounds with ${stats.totalItems - stats.totalResolved} items still open.`,
+    };
+  }
+  if (status === 'errored') {
+    const err = run?.error || {};
+    const where = err.where || 'unknown phase';
+    return {
+      cheer: `Run errored at ${where}`,
+      glyph: 'alert',
+      glyphColor: COLORS.err,
+      explanation: err.detail || 'No further detail.',
+      code: err.code || null,
+    };
+  }
+  // completed / converged
+  if (stats.totalItems === 0) {
+    return {
+      cheer: 'Run complete',
+      glyph: 'help-circle',
+      glyphColor: 'var(--md-on-surface-muted)',
+      explanation: 'No critique items were raised in this run.',
+    };
+  }
+  if (stats.driftCount > 0) {
+    return {
+      cheer: 'Run complete · with some loose ends',
+      glyph: 'compare',
+      glyphColor: COLORS.warn,
+      explanation: `${Math.round(stats.resolveRatio * 100)}% of critique items resolved · ${stats.driftCount} drifted`,
+    };
+  }
+  if (stats.verdict === 'Mostly positive') {
+    return {
+      cheer: 'Run complete · nice work',
+      glyph: 'shimmer',
+      glyphColor: COLORS.ok,
+      explanation: `${Math.round(stats.resolveRatio * 100)}% of critique items resolved`,
+    };
+  }
+  if (stats.verdict === 'Mostly negative') {
+    return {
+      cheer: 'Run complete · plenty to chew on',
+      glyph: 'alert-circle',
+      glyphColor: COLORS.warn,
+      explanation: `${Math.round(stats.resolveRatio * 100)}% of critique items resolved`,
+    };
+  }
+  return {
+    cheer: 'Run complete',
+    glyph: 'compare',
+    glyphColor: COLORS.info,
+    explanation: `${Math.round(stats.resolveRatio * 100)}% of critique items resolved`,
+  };
+}
+
+// Spec 0175 §2.6 — small, dependency-free confetti burst. ~600 ms,
+// compositor-only transforms, respects prefers-reduced-motion (skipped
+// in caller). Returns a cleanup function.
+function _fireConfetti(originRect) {
+  if (typeof document === 'undefined') return () => {};
+  const N = 80;
+  const palette = ['var(--p-sage)', 'var(--p-sable)', 'var(--md-surface)'];
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:9999;';
+  document.body.appendChild(container);
+  const cx = originRect ? (originRect.left + originRect.width / 2) : (window.innerWidth / 2);
+  const cy = originRect ? (originRect.top + originRect.height / 2) : (window.innerHeight / 3);
+  for (let i = 0; i < N; i++) {
+    const piece = document.createElement('span');
+    const angle = (Math.PI * 2 * i) / N + Math.random() * 0.2;
+    const dist = 60 + Math.random() * 140;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist + 40; // bias slightly downward
+    const sz = 5 + Math.random() * 5;
+    const c = palette[i % palette.length];
+    piece.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;background:${c};border-radius:50%;transition:transform 600ms cubic-bezier(.2,.7,.2,1), opacity 600ms ease-out;opacity:1;will-change:transform,opacity;`;
+    container.appendChild(piece);
+    // Force layout, then animate.
+    requestAnimationFrame(() => {
+      piece.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.random() * 360}deg)`;
+      piece.style.opacity = '0';
+    });
+  }
+  const timer = window.setTimeout(() => {
+    if (container.parentNode) container.parentNode.removeChild(container);
+  }, 750);
+  return () => {
+    window.clearTimeout(timer);
+    if (container.parentNode) container.parentNode.removeChild(container);
+  };
+}
+
+// Spec 0175 §2.7 — single tile inside the headline stat grid. Uses the
+// M3 --md-surface-container-high chrome that spec 0168 §2.1 locked in
+// for the .item-card primitive.
+function StatTile({ icon, label, value, hint }) {
+  return (
+    <div className="summary-stat-tile" style={{
+      position: 'relative',
+      padding: '14px 16px',
+      background: 'var(--md-surface-container-high)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
+      minHeight: 78,
+      display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2,
+    }}>
+      {icon && (
+        <span aria-hidden="true" style={{
+          position: 'absolute', top: 10, right: 10,
+          opacity: 0.6, color: 'var(--md-on-surface-variant)',
+          display: 'inline-flex',
+        }}>
+          <Mdi name={icon} size={16} />
+        </span>
+      )}
+      <div className="mono num" style={{
+        fontSize: 22, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)',
+        fontVariantNumeric: 'tabular-nums', lineHeight: 1.1,
+      }}>{value}</div>
+      <div className="mono" style={{
+        fontSize: 10.5, color: 'var(--md-on-surface-muted)',
+        letterSpacing: '0.06em', textTransform: 'uppercase',
+      }}>{label}</div>
+      {hint && (
+        <div className="mono" style={{
+          fontSize: 11, color: 'var(--md-on-surface-faint)',
+          fontVariantNumeric: 'tabular-nums', marginTop: 2,
+        }}>{hint}</div>
+      )}
+    </div>
+  );
+}
+
+// Spec 0175 §2.1 — head-to-head per-agent card. Provider stripe via the
+// 2 px --p-sable/--p-sage left border (same pattern spec 0168 §2.1
+// introduced for `.item-card`).
+function AgentSummaryCard({ agent, stats }) {
+  const isClaude = agent === 'claude';
+  const meta = AGENT_META[isClaude ? 'claude' : 'gpt'];
+  const tokens = isClaude ? stats.cTok : stats.gTok;
+  const cost   = isClaude ? stats.cCost : stats.gCost;
+  const tokenShare = stats.totalTokens > 0 ? tokens / stats.totalTokens : 0;
+  const raisedTotal = isClaude ? stats.claudeRaisedTotal : stats.gptRaisedTotal;
+  const solvedTotal = isClaude ? stats.claudeSolvedTotal : stats.gptSolvedTotal;
+  const stripeColor = isClaude ? 'var(--p-sable)' : 'var(--p-sage)';
+  return (
+    <div className="summary-agent-card" style={{
+      position: 'relative',
+      padding: '14px 16px',
+      background: 'var(--md-surface-container-high)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
+      borderLeft: `2px solid ${stripeColor}`,
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <AgentIcon agent={agent} size={20} variant="ghost" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)' }}>{meta.name}</span>
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-faint)' }}>{meta.model}</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
+        <SmallStat label="tokens" value={fmt.tokens(tokens)} color="var(--md-on-surface)" />
+        <SmallStat label="cost" value={fmt.costShort(cost)} color="var(--md-on-surface)" />
+        <SmallStat label="raised" value={String(raisedTotal)} color={COLORS.warn} />
+        <SmallStat label="solved" value={String(solvedTotal)} color={COLORS.ok} />
+      </div>
+      <div style={{
+        height: 4, borderRadius: 2,
+        background: 'var(--md-surface-container)',
+        overflow: 'hidden',
+      }} aria-hidden="true">
+        <div style={{
+          width: `${Math.round(tokenShare * 100)}%`,
+          height: '100%', background: stripeColor,
+          transition: 'width var(--md-dur-short-3, 150ms) var(--md-easing-standard, ease)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// Spec 0175 §2.3 — Critique outcomes breakdown. Four expandable rows
+// (claude raised / claude solved / gpt raised / gpt solved) with kind
+// sub-rows. Per-row state via React.useState; per-kind sub-row colors
+// from _KIND_DOT.
+function CritiqueBreakdownRow({ agent, side, count, breakdown }) {
+  const [open, setOpen] = React.useState(false);
+  const isRaised = side === 'raised';
+  const meta = AGENT_META[agent === 'claude' ? 'claude' : 'gpt'];
+  const actionGlyph = isRaised ? 'arrow-up' : 'check';
+  const actionColor = isRaised ? COLORS.warn : COLORS.ok;
+  const actionLabel = isRaised ? 'critique raised' : 'critique solved';
+  const kindsForSide = isRaised
+    ? ['question', 'disagreement', 'issue', 'comment']
+    : ['question', 'disagreement', 'issue'];
+  return (
+    <div style={{
+      borderTop: '1px solid var(--md-outline-hair)',
+    }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          width: '100%', padding: '10px 12px',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          textAlign: 'left',
+          color: 'var(--md-on-surface)',
+        }}
+      >
+        <Mdi
+          name="chevron-right"
+          size={14}
+          style={{
+            transition: 'transform var(--md-dur-short-3, 150ms) var(--md-easing-standard, ease)',
+            transform: open ? 'rotate(90deg)' : 'rotate(0)',
+            color: 'var(--md-on-surface-muted)',
+          }}
+        />
+        <AgentIcon agent={agent} size={16} variant="ghost" />
+        <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)' }}>{meta.name}</span>
+        <Dot color={actionColor} size={6} />
+        <Mdi name={actionGlyph} size={12} color={actionColor} />
+        <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)' }}>{actionLabel}</span>
+        <span style={{ flex: 1 }} />
+        <span className="mono num" style={{
+          fontSize: 15, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface)',
+          fontVariantNumeric: 'tabular-nums',
+        }}>{count}</span>
+      </button>
+      {open && (
+        <div style={{
+          padding: '4px 12px 12px 38px',
+          display: 'flex', flexDirection: 'column', gap: 4,
+          fontFamily: 'var(--md-font-data)', fontSize: 11.5,
+          color: 'var(--md-on-surface-variant)',
+        }}>
+          {kindsForSide.map((kind) => (
+            <div key={kind} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Dot color={_KIND_DOT[kind]} size={6} />
+              <span style={{ flex: 1 }}>{KIND_PLURAL[kind] || kind}</span>
+              <span className="mono num" style={{
+                color: (breakdown[kind] || 0) > 0 ? 'var(--md-on-surface)' : 'var(--md-on-surface-faint)',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{breakdown[kind] || 0}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CritiqueBreakdown({ stats }) {
+  return (
+    <section style={{
+      background: 'var(--md-surface-container-high)',
+      border: '1px solid var(--md-outline-hair)',
+      borderRadius: 'var(--md-shape-md)',
+      overflow: 'hidden',
+    }}>
+      <header style={{
+        display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
+        padding: '12px 14px',
+      }}>
+        <Mdi name="list" size={14} color="var(--md-on-surface-muted)" />
+        <span className="mono" style={{
+          fontSize: 11, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>Critique outcomes</span>
+        <span style={{ flex: 1 }} />
+        <span className="mono" style={{ fontSize: 11.5, color: 'var(--md-on-surface-faint)' }}>
+          <span style={{ color: 'var(--md-on-surface)' }}>{stats.totalRaised}</span>{' raised · '}
+          <span style={{ color: COLORS.ok }}>{stats.claudeSolvedTotal + stats.gptSolvedTotal}</span>{' solved · '}
+          <span
+            style={{ color: COLORS.info }}
+            title="Disagreements both agents shifted on — neither yielded."
+          >{stats.mutualAligned}</span>{' aligned'}
+        </span>
+      </header>
+      <CritiqueBreakdownRow agent="claude" side="raised" count={stats.claudeRaisedTotal} breakdown={stats.raised.claude} />
+      <CritiqueBreakdownRow agent="claude" side="solved" count={stats.claudeSolvedTotal} breakdown={stats.solved.claude} />
+      <CritiqueBreakdownRow agent="gpt"    side="raised" count={stats.gptRaisedTotal}    breakdown={stats.raised.gpt} />
+      <CritiqueBreakdownRow agent="gpt"    side="solved" count={stats.gptSolvedTotal}    breakdown={stats.solved.gpt} />
+    </section>
+  );
+}
+
 function CritiqueSummaryView({ run, questions, disagreements }) {
   const issues = Array.isArray(run?.issues) ? run.issues : [];
   const comments = Array.isArray(run?.comments) ? run.comments : [];
+  const ctx = React.useContext(SearchIndexContext);
 
   // Per spec 0046 D5 + PHASE_CHIP_ALLOWLIST — only render kinds the
   // phase actually emits, so Phase 2 doesn't get an empty Issues
@@ -8000,87 +8486,145 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
     return { question: best, turns, threadStatus, footer, ghostedRounds: bestGhost };
   }, [questions, run]);
 
-  // SPEC-0072 D7-D10 — three-sentence summary copy generation.
+  // Spec 0175 §2.2 — all derived stats in one memo.
+  const stats = React.useMemo(
+    () => _computeSummaryStats(run, questions, disagreements, issues, comments),
+    [run, questions, disagreements, issues, comments],
+  );
+  const verdictTone = _pickVerdictTone(stats.verdict, run?.status);
+  const heroVariant = _pickHeroVariant(run, stats);
+  const webStats = React.useMemo(() => _computeWebSearchStats(ctx?.summary), [ctx?.summary]);
+
+  // Spec 0175 §2.7 — story copy. The verdict line that used to be the
+  // first sentence is now surfaced by the hero band, so this memo keeps
+  // only the qualitative + drift sentences (spec 0072 D7-D10 shape).
   const summaryCopy = React.useMemo(() => {
     const totalQ = questions.length;
-    const resolvedQ = questions.filter(q => q.status !== 'open').length;
+    const resolvedQ = questions.filter((q) => q.status !== 'open').length;
     const totalD = disagreements.length;
-    const resolvedD = disagreements.filter(d => (d.status || '').startsWith('resolved')).length;
+    const resolvedD = disagreements.filter((d) => (d.status || '').startsWith('resolved')).length;
     const totalI = issues.length;
-    const resolvedI = issues.filter(i => i.status !== 'open').length;
+    const resolvedI = issues.filter((i) => i.status !== 'open').length;
     const totalC = comments.length;
 
-    const totalItems = totalQ + totalD + totalI;
-    const totalResolved = resolvedQ + resolvedD + resolvedI;
-    const resolveRatio = totalItems > 0 ? totalResolved / totalItems : 1;
-
-    // Count drift items across all phases.
-    const ledgers = (run && run.phaseLedgers) || {};
-    let driftCount = 0;
-    for (const phaseId of Object.keys(ledgers)) {
-      for (const entry of ledgers[phaseId]) {
-        if (entry.ghostedRounds > 0) driftCount++;
-      }
-    }
-    const driftRatio = totalItems > 0 ? driftCount / totalItems : 0;
-
-    // D9: sentiment verdict vocabulary.
-    let verdict;
-    if (totalItems === 0) {
-      verdict = 'Inconclusive';
-    } else if (resolveRatio >= 0.7 && driftRatio < 0.2) {
-      verdict = 'Mostly positive';
-    } else if (resolveRatio < 0.4 || driftRatio >= 0.4) {
-      verdict = 'Mostly negative';
-    } else {
-      verdict = 'Mixed';
-    }
-
-    // Sentence 1: sentiment verdict.
-    const s1Parts = [`**${verdict}**`];
-    if (totalItems > 0) {
-      const pct = Math.round(resolveRatio * 100);
-      s1Parts.push(` \u2014 ${pct}% of critique items resolved across both agents.`);
-    } else {
-      s1Parts.push(' \u2014 no critique items were raised in this run.');
-    }
-    const sentence1 = s1Parts.join('');
-
-    // Sentence 2: qualitative line. Spec 0119 §7/§8 — canonical
-    // resolution verb is 'resolved' across all kinds; legacy
-    // 'answered'/'noted' phrasing retired.
     const qualParts = [];
     if (totalQ > 0) qualParts.push(`${totalQ} question${totalQ !== 1 ? 's' : ''} raised (${resolvedQ} resolved)`);
     if (totalD > 0) qualParts.push(`${totalD} disagreement${totalD !== 1 ? 's' : ''} raised (${resolvedD} resolved)`);
     if (totalI > 0) qualParts.push(`${totalI} issue${totalI !== 1 ? 's' : ''} flagged (${resolvedI} resolved)`);
     if (totalC > 0) qualParts.push(`${totalC} comment${totalC !== 1 ? 's' : ''} raised`);
     const sentence2 = qualParts.length > 0 ? qualParts.join(', ') + '.' : '';
-
-    // Sentence 3: drift note if any.
-    const sentence3 = driftCount > 0
-      ? `${driftCount} item${driftCount !== 1 ? 's' : ''} drifted without response for multiple rounds.`
+    const sentence3 = stats.driftCount > 0
+      ? `${stats.driftCount} item${stats.driftCount !== 1 ? 's' : ''} drifted without response for multiple rounds.`
       : '';
+    return [sentence2, sentence3].filter(Boolean).join(' ');
+  }, [questions, disagreements, issues, comments, stats.driftCount]);
 
-    return [sentence1, sentence2, sentence3].filter(Boolean).join(' ');
-  }, [questions, disagreements, issues, comments, run]);
+  // Spec 0175 §2.8 — HEAD probe for the final-document download.
+  const [finalDocAvailable, setFinalDocAvailable] = React.useState(true);
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!run?.id) { setFinalDocAvailable(false); return; }
+    fetch(`/api/runs/${encodeURIComponent(run.id)}/files/final.md`, { method: 'HEAD' })
+      .then((r) => { if (!cancelled) setFinalDocAvailable(r.ok); })
+      .catch(() => { if (!cancelled) setFinalDocAvailable(false); });
+    return () => { cancelled = true; };
+  }, [run?.id]);
+
+  const [showTables, setShowTables] = React.useState(false);
+
+  // Spec 0175 §2.8 — copy summary as plain text.
+  const [copied, setCopied] = React.useState(false);
+  const handleCopy = React.useCallback(() => {
+    const plain = String(summaryCopy || '').replace(/\*\*/g, '');
+    const verdictLine = heroVariant.cheer + ' — ' + verdictTone.label + '. ';
+    const out = (verdictLine + plain).trim();
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(out).then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1400);
+      }).catch(() => { /* clipboard denied — ignore */ });
+    }
+  }, [summaryCopy, heroVariant.cheer, verdictTone.label]);
+
+  // Spec 0175 §2.6 — confetti, gated by verdict + per-run localStorage flag.
+  const verdictGlyphRef = React.useRef(null);
+  React.useEffect(() => {
+    if (verdictTone.key !== 'positive') return;
+    if (!run?.id) return;
+    const key = 'dr-confetti-' + run.id;
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    if (window.localStorage.getItem(key) === '1') return;
+    window.localStorage.setItem(key, '1');
+    const mq = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    if (mq && mq.matches) return;
+    const rect = verdictGlyphRef.current && verdictGlyphRef.current.getBoundingClientRect
+      ? verdictGlyphRef.current.getBoundingClientRect() : null;
+    const cleanup = _fireConfetti(rect);
+    return cleanup;
+  }, [verdictTone.key, run?.id]);
+
+  // Spec 0175 §2.4 — deadlocked runs promote the highest-leverage thread.
+  const showLeveragePre  = run?.status === 'deadlocked' && highestLeverageThread;
+  const showLeveragePost = run?.status !== 'deadlocked' && highestLeverageThread;
+
+  const heroBg = (verdictTone.key === 'inconclusive')
+    ? 'var(--md-surface-container-low)'
+    : verdictTone.color + '1A';
+  const heroBorder = (verdictTone.key === 'inconclusive')
+    ? 'var(--md-outline-hair)'
+    : verdictTone.color + '55';
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: 'var(--md-surface)' }}>
-      <div style={{ padding: '16px 24px 28px' }}>
-        {/* SPEC-0072 D7-D10 — three-sentence summary */}
-        {summaryCopy && (
-          <div style={{ marginBottom: 20, fontSize: 13, lineHeight: 1.6, color: 'var(--md-on-surface-variant)' }}>
-            <Markdown text={summaryCopy} />
+      <div style={{ maxWidth: 980, margin: '0 auto', padding: '16px 24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* HERO BAND — spec 0175 §2.4 */}
+        <section style={{
+          background: heroBg,
+          border: `1px solid ${heroBorder}`,
+          borderRadius: 'var(--md-shape-md)',
+          padding: '18px 20px',
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Mdi name="check-bold" size={12} color={verdictTone.color} />
+            <span style={{ fontSize: 12.5, color: verdictTone.color, fontWeight: 'var(--md-w-semi)' }}>{heroVariant.cheer}</span>
           </div>
-        )}
-        {/* SPEC-0057 D6 — highest-leverage thread as opening artifact */}
-        {highestLeverageThread && (
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <span ref={verdictGlyphRef} aria-hidden="true" style={{ display: 'inline-flex' }}>
+              <Mdi name={heroVariant.glyph} size={32} color={heroVariant.glyphColor} />
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: 22, fontWeight: 'var(--md-w-semi)', color: verdictTone.color, lineHeight: 1.1 }}>{verdictTone.label}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--md-on-surface-variant)' }}>{heroVariant.explanation}</span>
+              {heroVariant.code && (
+                <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2 }}>code: {heroVariant.code}</span>
+              )}
+            </div>
+          </div>
+          {run?.topic && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, maxWidth: 760, marginTop: 2 }}>
+              <span aria-hidden="true" style={{ opacity: 0.55, color: 'var(--md-on-surface-muted)', display: 'inline-flex', paddingTop: 2 }}>
+                <Mdi name="format-quote" size={14} />
+              </span>
+              <span style={{
+                fontFamily: 'var(--md-font-brand)', fontStyle: 'italic',
+                fontSize: 14, lineHeight: 1.45, color: 'var(--md-on-surface-variant)',
+              }}>{run.topic}</span>
+            </div>
+          )}
+        </section>
+
+        {/* HIGHEST-LEVERAGE — promoted on deadlock */}
+        {showLeveragePre && (
+          <section>
             <div style={{
               fontSize: 11, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
               letterSpacing: '0.06em', textTransform: 'uppercase',
               marginBottom: 8,
+              display: 'flex', alignItems: 'center', gap: 6,
             }}>
+              <Mdi name="alert-circle" size={14} color={COLORS.warn} />
               Highest-leverage open item
             </div>
             <QuestionThread
@@ -8093,16 +8637,198 @@ function CritiqueSummaryView({ run, questions, disagreements }) {
               turns={highestLeverageThread.turns}
               footer={highestLeverageThread.footer}
             />
-          </div>
+          </section>
         )}
-        <div style={{
-          fontSize: 11.5, color: 'var(--md-on-surface-faint)', lineHeight: 1.55, marginBottom: 16,
+
+        {/* STAT GRID — spec 0175 §2.7 */}
+        <section style={{
+          display: 'grid', gap: 10,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
         }}>
-          Post-mortem aggregate of the critique journey, split per round and per model.
-          Click a phase tab above to drill into the individual cards.
-        </div>
-        {renderPhase('Phase 2 — Negotiate', 2)}
-        {renderPhase('Phase 4 — Review', 4)}
+          <StatTile
+            icon="lightning"
+            label="tokens burned"
+            value={fmt.tokens(stats.totalTokens)}
+            hint={stats.totalTokens > 0 ? `${fmt.tokens(stats.cTok)} + ${fmt.tokens(stats.gTok)}` : null}
+          />
+          <StatTile
+            icon="currency-usd"
+            label="spent"
+            value={fmt.costShort(stats.totalCost)}
+            hint={stats.totalCost > 0 ? `${fmt.costShort(stats.cCost)} · ${fmt.costShort(stats.gCost)}` : null}
+          />
+          <StatTile
+            icon="timer"
+            label="elapsed"
+            value={stats.elapsedTotal > 0 ? fmt.duration(stats.elapsedTotal) : '—'}
+          />
+          <StatTile
+            icon="history"
+            label="rounds"
+            value={stats.roundCount > 0 ? `R${stats.roundCount}` : '—'}
+            hint={stats.totalItems > 0 ? `${stats.totalItems} items debated` : null}
+          />
+          <StatTile
+            icon="magnify"
+            label="web searches"
+            value={webStats.hasAny ? String(webStats.queries) : '—'}
+            hint={webStats.hasAny ? `${webStats.consulted} URLs retrieved` : null}
+          />
+        </section>
+
+        {/* STORY BLOCK */}
+        {summaryCopy && (
+          <section style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            padding: '12px 14px',
+            background: 'var(--md-surface-container-low)',
+            border: '1px solid var(--md-outline-hair)',
+            borderLeft: `3px solid ${verdictTone.color}`,
+            borderRadius: 'var(--md-shape-sm)',
+          }}>
+            <span aria-hidden="true" style={{ display: 'inline-flex', color: verdictTone.color, opacity: 0.7, paddingTop: 2 }}>
+              <Mdi name="format-quote" size={20} />
+            </span>
+            <div style={{ flex: 1, fontSize: 13, lineHeight: 1.6, color: 'var(--md-on-surface-variant)' }}>
+              <Markdown text={summaryCopy} />
+            </div>
+          </section>
+        )}
+
+        {/* HEAD-TO-HEAD AGENT CARDS */}
+        <section style={{
+          display: 'grid', gap: 10,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        }}>
+          <AgentSummaryCard agent="claude" stats={stats} />
+          <AgentSummaryCard agent="gpt"    stats={stats} />
+        </section>
+
+        {/* CRITIQUE OUTCOMES */}
+        {stats.totalRaised > 0 && (
+          <CritiqueBreakdown stats={stats} />
+        )}
+
+        {/* HIGHEST-LEVERAGE — default position */}
+        {showLeveragePost && (
+          <section>
+            <div style={{
+              fontSize: 11, fontWeight: 'var(--md-w-semi)', color: 'var(--md-on-surface-muted)',
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              marginBottom: 8,
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <Mdi name="alert-circle" size={14} color={COLORS.warn} />
+              Highest-leverage open item
+            </div>
+            <QuestionThread
+              id={highestLeverageThread.question.id}
+              kind="question"
+              status={highestLeverageThread.threadStatus}
+              raisedBy={highestLeverageThread.question.raisedBy}
+              raisedRound={highestLeverageThread.question.raisedRound}
+              phase={highestLeverageThread.question.phase}
+              turns={highestLeverageThread.turns}
+              footer={highestLeverageThread.footer}
+            />
+          </section>
+        )}
+
+        {/* PER-ROUND DRILL-DOWN — legacy tables, collapsed by default */}
+        <section>
+          <button
+            type="button"
+            aria-expanded={showTables}
+            onClick={() => setShowTables((v) => !v)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              width: '100%', padding: '10px 12px',
+              background: 'var(--md-surface-container-low)',
+              border: '1px solid var(--md-outline-hair)',
+              borderRadius: 'var(--md-shape-sm)',
+              cursor: 'pointer',
+              color: 'var(--md-on-surface)',
+            }}
+          >
+            <Mdi
+              name="chevron-right"
+              size={14}
+              style={{
+                transition: 'transform var(--md-dur-short-3, 150ms) var(--md-easing-standard, ease)',
+                transform: showTables ? 'rotate(90deg)' : 'rotate(0)',
+                color: 'var(--md-on-surface-muted)',
+              }}
+            />
+            <Mdi name="chart-line" size={14} color="var(--md-on-surface-muted)" />
+            <span style={{ fontSize: 12.5, fontWeight: 'var(--md-w-semi)' }}>Per-round breakdown</span>
+            <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-faint)' }}>raised / resolved by round, per model</span>
+          </button>
+          {showTables && (
+            <div style={{ padding: '14px 4px 0' }}>
+              {renderPhase('Phase 2 — Negotiate', 2)}
+              {renderPhase('Phase 4 — Review', 4)}
+            </div>
+          )}
+        </section>
+
+        {/* FOOTER */}
+        <footer style={{
+          display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+          paddingTop: 14,
+          borderTop: '1px solid var(--md-outline-hair)',
+        }}>
+          <a
+            href={finalDocAvailable ? `/api/runs/${encodeURIComponent(run?.id || '')}/files/final.md` : undefined}
+            download={finalDocAvailable ? 'final.md' : undefined}
+            aria-disabled={!finalDocAvailable}
+            title={finalDocAvailable ? undefined : 'No final document was produced for this run.'}
+            className="md-btn md-btn--filled"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '0 18px', height: 36,
+              // Spec 0175 §3.3 — verdict-tone base hexes (`#6fb380` etc.)
+              // fail AA at 4.5:1 against white. Darken via `color-mix` to
+              // ~70 % verdict + 30 % black, which yields ~5:1+ in both
+              // themes (the bg is the same hex in dark + light).
+              background: verdictTone.key === 'inconclusive'
+                ? 'var(--md-surface-container)'
+                : `color-mix(in srgb, ${verdictTone.color} 70%, #000000)`,
+              color: verdictTone.key === 'inconclusive' ? 'var(--md-on-surface)' : '#ffffff',
+              border: 'none',
+              borderRadius: 'var(--md-shape-full)',
+              fontWeight: 'var(--md-w-semi)', fontSize: 13,
+              cursor: finalDocAvailable ? 'pointer' : 'not-allowed',
+              opacity: finalDocAvailable ? 1 : 0.5,
+              pointerEvents: finalDocAvailable ? 'auto' : 'none',
+              textDecoration: 'none',
+            }}
+          >
+            <Mdi name="download" size={14} color="currentColor" />
+            Download final document (.md)
+          </a>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="md-btn md-btn--outlined"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '0 16px', height: 36,
+              background: 'transparent',
+              color: 'var(--md-on-surface)',
+              border: '1px solid var(--md-outline)',
+              borderRadius: 'var(--md-shape-full)',
+              fontWeight: 'var(--md-w-semi)', fontSize: 13,
+              cursor: 'pointer',
+            }}
+          >
+            <Mdi name={copied ? 'check' : 'content-copy'} size={14} color="currentColor" />
+            {copied ? 'Copied!' : 'Copy summary'}
+          </button>
+          <span style={{ flex: 1 }} />
+          <span className="mono" style={{ fontSize: 11, color: 'var(--md-on-surface-muted)' }}>
+            run {run?.id || '—'}
+          </span>
+        </footer>
       </div>
     </div>
   );
