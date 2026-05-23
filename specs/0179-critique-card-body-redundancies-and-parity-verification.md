@@ -8,7 +8,7 @@ label: bug
 version_bump: PATCH
 target_version: TBD
 status: queued
-queue_position: 5
+queue_position: 4
 depends_on: ["0172", "0173"]
 complexity: S
 created: 2026-05-22

@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.34.3
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T20:30:00Z"
 started_at: "2026-05-23T08:39:01Z"
 merged_at: "2026-05-23T08:45:39Z"
-deployed_at: ""
-pr: "https://github.com/Lexiz/dual-research/pull/200"
-handover: ""
+deployed_at: "2026-05-23T08:50:26Z"
+pr: "https://github.com/Lexiz/dual-research/pull/201"
+handover: "handoffs/2026-05-23-spec-0172-critique-card-drop-id-chip-and-fix-markdown-title-rendering.md"
 failure_step: ""
 source_session: notion-specs-2205-claude-bug-2
 promoted_from_draft: ""

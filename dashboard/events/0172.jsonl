@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T08:43:13Z","step":"tests_green","data":{"passed":1602}}
 {"ts":"2026-05-23T08:45:30Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/200"}}
 {"ts":"2026-05-23T08:45:50Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/200"}}
+{"ts":"2026-05-23T08:48:43Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T08:50:26Z","step":"deployed","data":{"version":"1.34.3"}}
+{"ts":"2026-05-23T08:50:26Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T08:51:08Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0172-critique-card-drop-id-chip-and-fix-markdown-title-rendering.md"}}
