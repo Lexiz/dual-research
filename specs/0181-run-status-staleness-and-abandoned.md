@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: "1.36.4"
-status: merged
+status: deployed
 queue_position: 2
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T23:25:00Z"
 started_at: "2026-05-23T10:57:34Z"
 merged_at: "2026-05-23T11:12:56Z"
-deployed_at: ""
+deployed_at: "2026-05-23T11:16:26Z"
 pr: "https://github.com/Lexiz/dual-research/pull/211"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0181-run-status-staleness-and-abandoned.md"
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
 promoted_from_draft: ""
