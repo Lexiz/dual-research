@@ -21,9 +21,23 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+def _stringify(value: Any) -> Any:
+    """Coerce YAML-parsed dates/datetimes into ISO-format strings.
+
+    PyYAML returns ``datetime.date`` / ``datetime.datetime`` for ``YYYY-MM-DD``
+    and ``YYYY-MM-DDTHH:MM:SSZ`` literals; the JSON serialiser doesn't
+    handle them. Round-tripping through ``isoformat`` gives us the same
+    text shape the rest of the system uses."""
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value.tzinfo is None else value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
 
 from scripts.spec_lifecycle.archive_handoffs import archive_old_handoffs, _active_checkpoint_paths
 from scripts.spec_lifecycle.frontmatter import parse as parse_frontmatter
@@ -97,7 +111,7 @@ def build_state_from_repo(repo_root: Path) -> QueueState:
                 v = fm.get(key)
                 if v in (None, ""):
                     continue
-                entry_state[key] = v
+                entry_state[key] = _stringify(v)
             entry_state.setdefault("events", [])
             state.specs[spec_id] = entry_state
 
