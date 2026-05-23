@@ -23,6 +23,11 @@ source_session: ""
 promoted_from_draft: ""
 ---
 
+<!-- DEV SPEC RULE: this body must contain NO open questions, unresolved
+items, TBD markers, or "we'll figure it out later" prose. Every decision is
+either answered here or explicitly deferred via §5 Out of scope with a
+named follow-up target. -->
+
 # Spec NNNN — <title>
 
 > **Type:** new-feature  |  **Complexity:** <S/M/L>  |  **Depends on:** <list or —>
@@ -39,9 +44,33 @@ Why now? Problem statement. Current state — cite specific files and lines that
 
 Concrete implementation: file paths, function/component signatures, schema deltas, new endpoints. Cite ≥ 2 file:line locations. A future reader should be able to read this section and understand the full scope of the change.
 
-## 3. UX / Behavior
+## 3. User stories & acceptance criteria
 
-Omit if not user-facing. If included: before/after, explicit user flows, screenshot links if any.
+### 3.1 — User stories
+
+REQUIRED for any spec that touches files under `src/dual_research/ui/` or `design-system/`. Format:
+
+> As a `<role>`, I want `<goal>`, so that `<outcome>`.
+
+At least one story per user-visible feature. Roles: `researcher`, `dev`, `viewer`, `admin`, `unauthenticated visitor`.
+
+### 3.2 — Acceptance scenarios (BDD)
+
+REQUIRED for any UI-touching spec. ≥ 2 scenarios per spec. Format:
+
+> **Scenario 1:** `<short name>`
+> GIVEN `<precondition observable in the DOM or app state>`
+> WHEN `<user action: click, type, navigate, hover>`
+> THEN `<observable result: element visible, attribute set, text content matches, network call fires>`
+
+> **Scenario 2:** `<short name>`
+> GIVEN `<another precondition>`
+> WHEN `<another user action>`
+> THEN `<another observable result>`
+
+Each scenario must be expressible as a Playwright test. The validator regex-matches `/GIVEN.+\n.*WHEN.+\n.*THEN.+/i` and requires ≥ 2 hits.
+
+For non-UI specs, this section is optional — document before/after, explicit user flows, or screenshot links if helpful.
 
 ## 4. Data / Schema deltas
 

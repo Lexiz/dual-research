@@ -23,6 +23,11 @@ source_session: ""
 promoted_from_draft: ""
 ---
 
+<!-- DEV SPEC RULE: this body must contain NO open questions, unresolved
+items, TBD markers, or "we'll figure it out later" prose. Every decision is
+either answered here or explicitly deferred via §5 Out of scope with a
+named follow-up target. -->
+
 # Spec NNNN — Fix: <symptom>
 
 > **Type:** bug  |  **Severity:** <P0/P1/P2>  |  **Affects:** <versions / surfaces>
@@ -52,20 +57,46 @@ What's wrong and why. Cite ≥ 1 file:line location.
 
 Concrete change — exact code, diff sketch, or pseudocode pointing at the file(s) to edit.
 
-## 4. Regression-prevention test
+## 4. User stories & acceptance criteria
+
+REQUIRED for UI bug fixes (any spec that touches files under `src/dual_research/ui/` or `design-system/`). Optional otherwise — the §5 Regression-prevention test below is the load-bearing gate for non-UI bugs.
+
+### 4.1 — User stories
+
+> As a `<role>`, I want `<goal>`, so that `<outcome>`.
+
+At least one story per user-visible regression. Roles: `researcher`, `dev`, `viewer`, `admin`, `unauthenticated visitor`.
+
+### 4.2 — Acceptance scenarios (BDD)
+
+REQUIRED for any UI-touching bug spec. ≥ 2 scenarios per spec. Format:
+
+> **Scenario 1:** `<short name>`
+> GIVEN `<precondition observable in the DOM or app state>`
+> WHEN `<user action: click, type, navigate, hover>`
+> THEN `<observable result: element visible, attribute set, text content matches, network call fires>`
+
+> **Scenario 2:** `<short name>`
+> GIVEN `<another precondition>`
+> WHEN `<another user action>`
+> THEN `<another observable result>`
+
+Each scenario must be expressible as a Playwright test. The validator regex-matches `/GIVEN.+\n.*WHEN.+\n.*THEN.+/i` and requires ≥ 2 hits.
+
+## 5. Regression-prevention test
 
 A test that fails before this fix and passes after.
 
 - [ ] Test: <name / what it asserts / failure mode it locks in>
 
-## 5. Blast radius
+## 6. Blast radius
 
 What else uses this code path? Why this fix doesn't break adjacent callers.
 
-## 6. Out of scope
+## 7. Out of scope
 
 Adjacent issues we noticed but won't fix here.
 
-## 7. Risks
+## 8. Risks
 
 What could go wrong with the fix itself.
