@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T09:59:04Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T09:59:41Z","step":"reconcile_complete","data":{"mechanical":3,"semantic":0,"verdict":"clean","note":"all three substantive sites resolve (isDefaultCollapsed@6116, InputSection callsite@6282, InputSection signature@6350, inner CollapsibleSection@6365)"}}
 {"ts":"2026-05-23T09:59:57Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T10:00:06Z","step":"branched","data":{"branch":"spec/0178-input-section-default-open-on-outer-expand","from":"main@61b47da"}}
