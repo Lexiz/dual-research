@@ -6,3 +6,4 @@
 {"ts":"2026-05-23T12:13:54Z","step":"planning_started","data":{}}
 {"ts":"2026-05-23T12:14:01Z","step":"reconcile_complete","data":{"mechanical":0,"semantic":0,"verdict":"clean"}}
 {"ts":"2026-05-23T12:14:15Z","step":"in_progress","data":{}}
+{"ts":"2026-05-23T12:14:38Z","step":"branched","data":{"branch":"spec/0185-cycle-time-chart-percentile-y-axis-cap","from":"main@add8250"}}
