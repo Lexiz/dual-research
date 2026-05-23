@@ -10,6 +10,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.0] — 2026-05-23
+
+### Added
+
+- **Spec 0176 — Login screen v2** ([spec 0176](specs/0176-login-screen-v2.md)). The pre-auth `LandingScreen` is rewritten end-to-end: animated agent-duo hero, serif "Dual‑research" title, two-color punchline (`Two minds.` · `One document.`), pre-login theme toggle with a continuity-preserving X coordinate, and a looping Claude ↔ ChatGPT chatter band that replaces the old `DemoRunCapsule`.
+  - **`LoginHero`** ([`src/dual_research/ui/static/auth.jsx`](src/dual_research/ui/static/auth.jsx)) — 320×140 SVG with counter-rotating brand glyphs, dashed arcs carrying sable / sage pulses on a 5 s loop, and a document fading in at midpoint. All colors from `--agent-*` / `--md-*` tokens.
+  - **`LoginTopBar`** — fixed 64 dp top bar (mirrors `.md-appbar` chrome), right-aligned cluster of a serif-italic mood label (`Let there be light` / `Turn it off, it's burning my eyes`), the extracted `ThemeToggle` with `activeBg="transparent"`, and a 48 px invisible spacer reserving the post-login `AvatarMenu` X coordinate. The theme-pill carries a `mix-blend-mode` pulse wash (screen in dark, multiply in light) on a 3.6 s cycle, scoped to the pill via `overflow: hidden; isolation: isolate;`.
+  - **`LoginChatter`** — Claude / ChatGPT two-column conversation loop with typewriter cadence, thinking dots, blinking caret, and 20 lines of banter + 4 four-line meta-loop interludes that periodically acknowledge the loop. Visibility-aware pause (`document.visibilitychange`); right-edge alignment math computes the GPT column's right offset from the rendered first-line right edge of the support paragraph (`Range.selectNodeContents`).
+  - **Entrance stagger** — every major element rises into place on load with a 700 ms `cubic-bezier(0.2, 0, 0, 1)` opacity + translateY-from-8px, staggered hero / title / punchline / support / sign-in / fineprint / chatter at 0 → 480 ms.
+  - **Theme persistence** — login screen mirrors `app.jsx`'s `localStorage['dr.theme']` read/write, so the theme carries through OAuth sign-in with no flicker. `NotApprovedScreen` now mounts the same `LoginTopBar` (same continuity argument).
+  - **Reduced-motion** (DS §1 principle #10) suspends the hero motion wrapper, dot-bounce, caret blink, entrance stagger, and theme-pill pulse; the chatter loop still runs (text appears instantly, fades become opacity-0/1 with no transition).
+
+### Changed
+
+- **`ThemeToggle` extracted to a shared module.** Spec 0024's compact dual-icon theme-toggle pill, formerly inlined in `app.jsx`, now lives in [`src/dual_research/ui/static/theme-toggle.jsx`](src/dual_research/ui/static/theme-toggle.jsx) (loaded before `auth.jsx` in `index.html`). New optional `activeBg` prop overrides the active-segment background (default = `var(--md-surface)`, login passes `"transparent"`). `ThemeIconBtn`, `SunIcon`, `MoonIcon` extracted in the same move.
+
+### Removed
+
+- **`DemoRunCapsule()` + `window.DemoRunCapsule`** ([`src/dual_research/ui/static/auth.jsx`](src/dual_research/ui/static/auth.jsx)). The chatter is the new "demo of what dual-research does"; the old read-only mini-render is gone. Repo-grep confirms zero remaining external consumers.
+- **`src/dual_research/ui/static/demo-run.json`** — the fixture the capsule fetched is deleted.
+
+### Test guard
+
+- [`tests/spec0176/test_login_screen_v2.py`](tests/spec0176/test_login_screen_v2.py) — 16 pytest static-analysis assertions covering theme-toggle extraction + load order, `LoginHero` / `LoginTopBar` / `LoginChatter` shape, banter content, `LandingScreen` + `NotApprovedScreen` compositions, deletions, kept primitives, CSS surfaces, and the CLAUDE.md tokens-only-for-color rule (Google brand `#fff` / `#dadce0` / `#3c4043` whitelisted; decorative `mix-blend-mode` wash overlays exempt per spec §2.11 footnote).
+
 ## [1.35.0] — 2026-05-23
 
 ### Added
