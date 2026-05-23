@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T21:55:31Z","step":"tests_green","data":{"passed":1754}}
 {"ts":"2026-05-23T21:56:28Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/226"}}
 {"ts":"2026-05-23T21:56:48Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/226"}}
+{"ts":"2026-05-23T21:58:27Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T22:02:57Z","step":"deployed","data":{"version":"1.40.0"}}
+{"ts":"2026-05-23T22:02:57Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T22:04:33Z","step":"handoff_written","data":{"path":"handoffs/2026-05-24-spec-0198-dev-spec-quality-guardrails.md"}}

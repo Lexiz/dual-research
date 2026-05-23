@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: TBD
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T21:33:29Z"
 started_at: "2026-05-23T21:44:03Z"
 merged_at: "2026-05-23T21:56:37Z"
-deployed_at: ""
+deployed_at: "2026-05-23T22:04:17Z"
 pr: "https://github.com/Lexiz/dual-research/pull/226"
-handover: ""
+handover: handoffs/2026-05-24-spec-0198-dev-spec-quality-guardrails.md
 failure_step: ""
 source_session: promoted-from-draft-001
 promoted_from_draft: "001"
