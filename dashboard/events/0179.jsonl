@@ -7,3 +7,4 @@
 {"ts":"2026-05-23T10:11:30Z","step":"reconcile_complete","data":{"mechanical":5,"semantic":0,"verdict":"clean","note":"all substantive sites resolve at shifted lines (DQ verdict@1676-1682, Issue seen-row@1723-1730, Issue bottom anchor@1731-1733, Comment seen-row@1753-1759, Comment bottom anchor@1760-1762). Note: spec 0173 already rewrote ItemCardDQBody to use ItemCardThreadView instead of ItemCardTurnRow, so the §4 test that asserts <ItemCardTurnRow text={t.reason} is stale and needs adapting"}}
 {"ts":"2026-05-23T10:11:45Z","step":"in_progress","data":{}}
 {"ts":"2026-05-23T10:11:49Z","step":"branched","data":{"branch":"spec/0179-critique-card-body-redundancies","from":"main@HEAD"}}
+{"ts":"2026-05-23T10:11:53Z","step":"implementing_started","data":{}}
