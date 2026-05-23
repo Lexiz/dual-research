@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.36.1] — 2026-05-23
+
+### Fixed
+
+- **Spec 0178 — Agent Input three-section panel reveals empty body on first chevron click** ([spec 0178](specs/0178-input-section-default-open-on-outer-expand.md)). Two nested collapse layers (spec 0145 §5.4's outer `InputSectionGroup` + spec 0085's per-piece inner `CollapsibleSection`) created a two-click reveal bug: opening the outer **System prompt** or **Derived inputs** section showed only per-piece header rows with hidden bodies, because `isDefaultCollapsed(key)` defaulted `system.*` and `prior_turns.*` keys to collapsed at the inner level. The user perceived "clicked and got nothing." Fix flattens the inner default:
+  - Deleted the `isDefaultCollapsed` helper from [`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx).
+  - Dropped the `defaultCollapsed` prop from the `<InputSection>` callsite and the `InputSection` signature.
+  - Set the inner `<CollapsibleSection>` to `defaultOpen={true}` unconditionally.
+  - Per-piece chevrons remain present for user-initiated folding; only the inner *default* state changed.
+  - Test guard: [`tests/test_input_section_default_open.py`](tests/test_input_section_default_open.py) — two pytest assertions that lock the helper deletion and the unconditional `defaultOpen={true}`.
+
 ## [1.36.0] — 2026-05-23
 
 ### Added

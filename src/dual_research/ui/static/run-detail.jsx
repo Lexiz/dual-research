@@ -6108,15 +6108,12 @@ function reviewItemsFor(run, item) {
 // against the canonical artifact registry. Spec 0150 retired the read-shim;
 // every bundle now arrives canonical-keyed (historical runs were backfilled).
 
-// A piece is collapsed-by-default when it's bulk methodology text the
-// reader rarely cares about. Today: system templates and prior-turn
-// transcripts. Heuristic — `key.startsWith('system.')` covers all task
-// instructions; `key.startsWith('prior_turns.')` covers the historical
-// negotiation / preflight / review threads.
-function isDefaultCollapsed(canonicalKey) {
-  if (typeof canonicalKey !== 'string') return false;
-  return canonicalKey.startsWith('system.') || canonicalKey.startsWith('prior_turns.');
-}
+// Spec 0178 — the per-piece default-collapse heuristic (spec 0085) was
+// retired. With spec 0145 §5.4's outer InputSectionGroup gating the bulk
+// system / prior-turn text, a second inner collapse default only created
+// a "clicked but got nothing" two-click reveal bug. Inner per-piece
+// chevrons stay present for user-initiated folding; their default state
+// is now unconditionally open.
 
 function isSystemPiece(canonicalKey) {
   return typeof canonicalKey === 'string' && canonicalKey.startsWith('system.');
@@ -6279,7 +6276,6 @@ function PromptPiecesThreeSectionView({ turnKey, attachmentTitles, frame = 'sing
                 key={key}
                 piece={key}
                 text={pieces[key] || ''}
-                defaultCollapsed={isDefaultCollapsed(key)}
                 isAgentDefault={isSystemPiece(key) && systemSource === 'agent-default'}
                 attachmentTitles={attachmentTitles}
               />
@@ -6347,7 +6343,7 @@ function InputSectionGroup({ label, defaultOpen, itemCount, children }) {
 // per-run recorded prompt), prepend a small italic caveat inside the
 // body so the user knows the displayed text may differ from what the
 // historical run actually used.
-function InputSection({ piece, text, defaultCollapsed, isAgentDefault, attachmentTitles }) {
+function InputSection({ piece, text, isAgentDefault, attachmentTitles }) {
   // Spec 0145 — resolve the row label via the canonical-ID registry.
   // Attachment IDs need a `titleForId` map so the template
   // `Attachment · {title}` substitutes the human-readable name from
@@ -6362,7 +6358,7 @@ function InputSection({ piece, text, defaultCollapsed, isAgentDefault, attachmen
   return (
     <div className="agent-input-entry">
       <CollapsibleSection
-        defaultOpen={!defaultCollapsed}
+        defaultOpen={true}
         renderTitle={({ open }) => (
           <>
             <span className="cs-chevron" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
