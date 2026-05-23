@@ -7,13 +7,12 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: TBD
-status: queued
-queue_position: 2
+status: in_progress
 depends_on: ["0198"]
 complexity: M
 created: 2026-05-24
 queued_at: "2026-05-23T22:24:29Z"
-started_at: ""
+started_at: "2026-05-23T22:54:17Z"
 merged_at: ""
 deployed_at: ""
 pr: ""
