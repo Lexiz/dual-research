@@ -7,7 +7,7 @@ type: bug
 label: bug
 version_bump: PATCH
 target_version: 1.39.1
-status: merged
+status: deployed
 queue_position: 2
 depends_on: []
 complexity: S
@@ -15,9 +15,9 @@ created: 2026-05-23
 queued_at: "2026-05-23T11:19:40Z"
 started_at: "2026-05-23T16:42:02Z"
 merged_at: "2026-05-23T16:45:37Z"
-deployed_at: ""
+deployed_at: "2026-05-23T16:52:03Z"
 pr: "https://github.com/Lexiz/dual-research/pull/223"
-handover: ""
+handover: "handoffs/2026-05-23-spec-0195-all-runs-zero-seconds-ago-for-no-transcript-rows.md"
 failure_step: ""
 source_session: deferred-from-spec-0181
 promoted_from_draft: ""
