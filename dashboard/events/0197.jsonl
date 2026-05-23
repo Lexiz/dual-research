@@ -9,3 +9,4 @@
 {"ts":"2026-05-23T17:10:11Z","step":"branched","data":{"branch":"spec/0197-mockup-canonical-token-vocabulary-cleanup","from":"main@42208a4"}}
 {"ts":"2026-05-23T17:10:15Z","step":"implementing_started","data":{}}
 {"ts":"2026-05-23T17:12:21Z","step":"implement_complete","data":{"files_changed":5,"commits":0}}
+{"ts":"2026-05-23T17:12:25Z","step":"tests_started","data":{}}
