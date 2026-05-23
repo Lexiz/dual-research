@@ -12,3 +12,7 @@
 {"ts":"2026-05-22T23:47:59Z","step":"tests_green","data":{"passed":1588}}
 {"ts":"2026-05-22T23:49:30Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/197"}}
 {"ts":"2026-05-22T23:49:58Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/197"}}
+{"ts":"2026-05-22T23:53:29Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-22T23:58:54Z","step":"deployed","data":{"version":"1.34.0"}}
+{"ts":"2026-05-22T23:58:54Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-22T23:59:36Z","step":"handoff_written","data":{"path":"handoffs/2026-05-22-spec-0170-canvas-workshop-skill-and-scaffold.md"}}

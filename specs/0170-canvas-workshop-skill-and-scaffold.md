@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: TBD
-status: merged
+status: deployed
 queue_position: 1
 depends_on: []
 complexity: M
@@ -15,9 +15,9 @@ created: 2026-05-22
 queued_at: "2026-05-22T17:08:41Z"
 started_at: "2026-05-22T23:30:37Z"
 merged_at: "2026-05-22T23:49:40Z"
-deployed_at: ""
+deployed_at: "2026-05-22T23:58:57Z"
 pr: "https://github.com/Lexiz/dual-research/pull/197"
-handover: ""
+handover: "handoffs/2026-05-22-spec-0170-canvas-workshop-skill-and-scaffold.md"
 failure_step: ""
 source_session: canvas-skill-design-2026-05-22
 promoted_from_draft: ""
