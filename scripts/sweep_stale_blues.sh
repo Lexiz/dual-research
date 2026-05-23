@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
-# Destroys Fly machines whose metadata carries fly_bluegreen_deployment_tag:
-# "safe_to_destroy". Fly sets this tag itself on machines its orchestrator
-# has already decided are eligible for destroy — so this script is safe by
-# construction: it can never hit a live green, only stale blues Fly itself
-# marked for cleanup.
+# Sweeps Fly machines that the live cluster shouldn't be carrying — either
+# stale blues from a bluegreen rollout the destroy-lease failed to clean
+# up (the historical case, spec 0162), or any machine not on the current
+# release image (the spec-0193 image-based fallback, which is the primary
+# recovery path under rolling — see spec 0200).
+#
+# The tag-based primary filter still selects on
+# fly_bluegreen_deployment_tag == "safe_to_destroy". Under bluegreen Fly
+# sets this tag on machines its orchestrator has already decided are
+# eligible for destroy — so the filter is safe by construction: it can
+# never hit a live green, only stale blues Fly itself marked for cleanup.
+# Under rolling (spec 0200) the tag is no longer set on new deploys, so
+# this filter finds zero candidates on a healthy rolling cluster — that
+# is the expected/healthy state, and the script logs
+# `sweep: no stale blues on …` and exits 0.
 #
 # Spec 0162 — added to work around an upstream Fly orchestrator bug where
 # the destroy-lease for blues fails to acquire after a bluegreen rollout
@@ -23,7 +33,10 @@
 # definitionally superseded. Four gates must hold before any fallback
 # destroy fires (see §2.1 of the spec for the cascade) — the strictest
 # being that AT LEAST ONE machine must be on the current release image,
-# so the fallback can never zero the cluster.
+# so the fallback can never zero the cluster. Under spec 0200 (rolling)
+# this image-based fallback is the *primary* mechanism for cleaning up
+# any machine the rolling replace didn't fully cycle; the tag-based
+# primary stays for backward compatibility with any pre-0200 zombies.
 #
 # Usage:
 #   scripts/sweep_stale_blues.sh

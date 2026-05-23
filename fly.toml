@@ -11,14 +11,22 @@
 app = "dual-research-alex"
 primary_region = "iad"
 
-# Spec 0159 — bluegreen replaces the default rolling deploy. New machines
-# boot fully and pass health checks before old machines terminate. Far more
-# forgiving than rolling on 2 machines — a slow boot can't strand a
-# half-rolled deploy because the old machines stay up until the new ones are
-# observably healthy. Mitigates the 9-in-a-row machines-API mid-rolling
-# timeout pattern (handoffs 2026-05-22-spec-0141…0150,0153,0156).
+# Spec 0200 — rolling replaces bluegreen. Bluegreen (spec 0159) reduced
+# cold-boot timeouts but exposed a worse failure mode: the destroy-lease on
+# the old "blue" cohort races with parallel `flyctl` sessions, leaving
+# zombie machines that accumulate across deploys (see
+# project_fly_lease_drift_recovery and handoffs 0187/0188/0189). Rolling
+# replaces machines one at a time, in place, with no parallel cohort and
+# no destroy-cohort lease, structurally eliminating the lease race.
+#
+# Cold-boot regression risk from rolling is bounded by the 90s grace
+# period below (calibrated in spec 0159 for shared-cpu-1x:512MB) and
+# `min_machines_running = 1`, which keeps one machine serving while the
+# other rolls. Pairs with `/dev-next` step 21's no-retry rule (spec 0200
+# §2.2): on any non-zero `fly deploy` exit the orchestrator diagnoses
+# with `fly status` before halting — it NEVER auto-retries `fly deploy`.
 [deploy]
-  strategy = "bluegreen"
+  strategy = "rolling"
 
 [build]
   dockerfile = "Dockerfile"

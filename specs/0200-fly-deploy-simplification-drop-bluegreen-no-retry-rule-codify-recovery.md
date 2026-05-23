@@ -6,7 +6,7 @@ title: Fly deploy simplification — drop bluegreen, no-retry-on-failure rule, c
 type: refactoring
 label: refactoring
 version_bump: PATCH
-target_version: TBD
+target_version: "1.41.1"
 status: in_progress
 depends_on: ["0198"]
 complexity: M
