@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.38.0] — 2026-05-23
+
+### Added
+
+- **Spec 0192 — L-spec checkpoint trigger predicate (`should_checkpoint_now`)** ([spec 0192](specs/0192-l-spec-checkpoint-budget-heuristic.md)). Spec 0186 §2.2 shipped the L-spec checkpoint cadence (per top-level `## 2.N`) and the checkpoint handoff artefact, but explicitly deferred the trigger heuristic — "simple", "no token-counter infra", "session age or coarse signal" was all the deferral text said. Spec 0192 picks wall-clock session age. New helper `should_checkpoint_now(session_started_at, *, now=None, threshold=DEFAULT_SESSION_AGE_THRESHOLD) -> bool` lives at `scripts/spec_lifecycle/checkpoint.py:154` (after `build_headless_command`); returns True when the session has been running ≥ 30 minutes (the `>=` boundary means True at exactly the threshold value). `DEFAULT_SESSION_AGE_THRESHOLD = timedelta(minutes=30)` is the deterministic starting point — re-tune after the first real L-spec drain produces evidence. `~/.claude/skills/dev-next/SKILL.md` step 15-CP rewritten to call the predicate after each completed `## 2.N` instead of hand-waving about "context pressure". Pure helper, no Claude-internal probes, no token counter. 6 new unit tests in `tests/spec_lifecycle/test_checkpoint.py` cover threshold-not-met / threshold-met / exact-boundary / custom-threshold / `now=` injection / default-constant guard.
+
 ## [1.37.3] — 2026-05-23
 
 ### Changed

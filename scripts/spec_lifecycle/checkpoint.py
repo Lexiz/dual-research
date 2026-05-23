@@ -29,6 +29,7 @@ interface for the two new artefacts:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -156,3 +157,46 @@ def build_headless_command(
         "-p",
         "/dev-next",
     ]
+
+
+# Spec 0192 §2 — first calibrated threshold for the L-spec checkpoint
+# trigger. Re-evaluate after the first real L-spec drain produces evidence
+# of where the agent actually starts degrading. Tune up if drains routinely
+# fit in one session; tune down if the agent reports compaction warnings
+# before this fires.
+DEFAULT_SESSION_AGE_THRESHOLD = timedelta(minutes=30)
+
+
+def should_checkpoint_now(
+    session_started_at: datetime,
+    *,
+    now: datetime | None = None,
+    threshold: timedelta = DEFAULT_SESSION_AGE_THRESHOLD,
+) -> bool:
+    """Return ``True`` when the L-spec session has been running long enough
+    that the per-``## 2.N`` checkpoint cadence should halt cleanly.
+
+    The signal is wall-clock session age. No token-counter dependency,
+    no Claude-internal probe — spec 0186 §5 explicitly banned both. Spec
+    0192 picks wall-clock age as the deterministic starting heuristic.
+
+    ``session_started_at`` is the timestamp the session began. The skill
+    body reads it from the spec frontmatter's ``started_at`` field (set
+    at ``/dev-next`` step 12 when the spec flips to ``in_progress``).
+    Under resume mode the caller substitutes the timestamp of the most
+    recent ``resume_started`` event in the spec's sidecar log, so the
+    helper measures the *current* session's age rather than the
+    cumulative cycle.
+
+    The ``>=`` comparison means the predicate is True at the exact
+    threshold boundary, not strictly after. That matters for tests that
+    construct a session aged exactly the threshold value.
+
+    Spec 0186 §7 calls out that this heuristic may be wrong in either
+    direction. Tuning happens in a follow-up if real drains show the
+    threshold mis-firing — the predicate signature is stable; only the
+    default changes.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+    return (now - session_started_at) >= threshold
