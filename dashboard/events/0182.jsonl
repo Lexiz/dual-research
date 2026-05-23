@@ -13,3 +13,7 @@
 {"ts":"2026-05-23T11:23:49Z","step":"tests_green","data":{"passed":1665}}
 {"ts":"2026-05-23T11:24:48Z","step":"pr_opened","data":{"url":"https://github.com/Lexiz/dual-research/pull/212"}}
 {"ts":"2026-05-23T11:25:00Z","step":"merged","data":{"pr":"https://github.com/Lexiz/dual-research/pull/212"}}
+{"ts":"2026-05-23T11:26:10Z","step":"deploy_started","data":{}}
+{"ts":"2026-05-23T11:28:00Z","step":"deployed","data":{"version":"1.36.5"}}
+{"ts":"2026-05-23T11:29:59Z","step":"deploy_health_check_ok","data":{}}
+{"ts":"2026-05-23T11:30:32Z","step":"handoff_written","data":{"path":"handoffs/2026-05-23-spec-0182-bootstrap-timeline-completed-stage-durations.md"}}
