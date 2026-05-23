@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.37.2] — 2026-05-23
+
+### Changed
+
+- **Spec 0190 — TimelineTabs `Tab variant="solid"` finishes the `data-active` migration** ([spec 0190](specs/0190-timeline-tabs-data-active-migration.md)). Closes the dual-selector debt spec 0173 §2.3 left in place. The `variant === 'solid'` branch in `src/dual_research/ui/static/shared.jsx:1086` no longer emits the legacy `'is-active'` className; active state is signalled solely by `data-active={active ? 'true' : undefined}` — matching how bar-2 status / agent segments in run-detail.jsx have emitted active state since 0173. Both `src/dual_research/ui/static/components.css:2194` and `design-system/assets/styles/composed-components.css:779` drop the `.tab-solid.is-active,` arm of the dual selector, leaving the canonical `.tab-solid[data-active="true"]` as the sole active-state rule. `design-system/SPEC.md` §11 (Critique pane) note updated to record the completed migration. `TimelineTabs` itself needed no edits — it threads through the `Tab` component's `active` prop, which now maps to `data-active` internally. Other `Tab` variants (`kind`, `phase`, `md-btn--text`, default `tab`) keep their `is-active` className per spec §5 — they target separate CSS selectors and are out of scope. 7 new structural tests in `tests/spec0190/` pin the migration.
+
 ## [1.37.1] — 2026-05-23
 
 ### Fixed

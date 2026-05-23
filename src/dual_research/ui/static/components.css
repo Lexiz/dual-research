@@ -2186,12 +2186,10 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   font: var(--md-w-medium) 11px/1 var(--md-font-plain);
   color: var(--md-on-surface-variant);
 }
-/* Spec 0173 §2.3 — `[data-active="true"]` attribute selector replaces
-   the prior `.is-active` class modifier on bar-2 segmented controls.
-   `.is-active` retained so other call sites (the timeline TimelineTabs
-   uses the same .tab-solid primitive via TabGroup variant="solid") keep
-   working until they migrate. */
-.tab-solid.is-active,
+/* Spec 0173 §2.3 + 0190 — `[data-active="true"]` attribute selector is
+   the sole canonical active-state selector on `.tab-solid`. Spec 0190
+   completed the migration of the `<Tab variant="solid">` branch in
+   shared.jsx; the legacy dual-selector form (className-based) is gone. */
 .tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 

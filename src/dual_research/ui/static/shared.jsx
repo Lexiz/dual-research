@@ -1084,10 +1084,16 @@ function Tab({ active, onClick, size = 'md', icon, children, count, disabled, do
     );
   }
   if (variant === 'solid') {
+    // Spec 0190 — finished the spec 0173 §2.3 `[data-active]` migration.
+    // The button no longer emits the legacy `is-active` className; active
+    // state is signalled solely via the `data-active="true"` attribute,
+    // matching how bar-2 status / agent segments in run-detail.jsx have
+    // emitted active state since spec 0173.
     return (
       <button type="button" role="tab" aria-selected={active ? 'true' : 'false'}
               onClick={onClick} disabled={disabled}
-              className={_cn('tab-solid', active && 'is-active', className)}>
+              data-active={active ? 'true' : undefined}
+              className={_cn('tab-solid', className)}>
         {dot && <i className="dot" />}
         {icon && <Mdi name={icon} size={14} />}
         <span>{children}</span>
