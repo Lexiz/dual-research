@@ -464,6 +464,10 @@ html, body {
 .md-status--converged { color: var(--p-ok);    background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
 .md-status--drift     { color: var(--p-warn);  background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
 .md-status--errored   { color: var(--p-err);   background: color-mix(in srgb, var(--p-err) 16%, transparent); }
+/* Spec 0181 — orchestrator went silent without writing a terminal
+   event. Warn tone (amber), distinct from errored (red — explicit
+   failure) and shares the warn palette with drift (deadlocked). */
+.md-status--abandoned { color: var(--p-warn);  background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
 .md-status--idle      { color: var(--p-idle);  background: color-mix(in srgb, var(--p-idle) 24%, transparent); }
 .md-status--queued    { color: var(--md-on-surface-faint); background: var(--md-surface-container-high); }
 

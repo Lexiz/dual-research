@@ -1017,7 +1017,7 @@ def _supabase_list_runs(client: Any) -> list[RunListRow]:
     res = (
         client.table("runs")
         .select(
-            "id,slug,created_at,phase_reached,exit_code,duration_ms,"
+            "id,slug,created_at,pushed_at,phase_reached,exit_code,duration_ms,"
             "total_cost_usd,state,metrics"
         )
         .order("created_at", desc=True)
@@ -1054,6 +1054,11 @@ def _supabase_list_runs(client: Any) -> list[RunListRow]:
             phase_reached=phase_str,
             exit_code=r.get("exit_code"),
             state=r.get("state") or {},
+            # Spec 0181 — orchestrator's last upsert ts is the canonical
+            # "last activity" proxy for Supabase-backed runs (cheaper
+            # than a per-row events.MAX(ts) JOIN). Drives the abandoned
+            # rule in derive_run_status.
+            last_event_at=r.get("pushed_at"),
         )
         out.append(
             RunListRow(
@@ -1072,23 +1077,27 @@ def _supabase_list_runs(client: Any) -> list[RunListRow]:
     return out
 
 
-def _status_from_columns(*, phase_reached: str, exit_code: int | None, state: dict) -> str:
+def _status_from_columns(
+    *,
+    phase_reached: str,
+    exit_code: int | None,
+    state: dict,
+    last_event_at: str | None = None,
+) -> str:
     """Map pushed-run columns onto the UI's status enum.
 
-    Pushed runs are by definition completed (push happens post-run), so we
-    only really see done / errored / deadlocked here.
+    Spec 0032's ``--push-while-running`` writes the row mid-flight, so
+    Supabase-backed runs are NOT necessarily completed at read time. The
+    ``last_event_at`` parameter (typically the row's ``pushed_at``)
+    drives the spec-0181 staleness check inside ``derive_run_status``,
+    distinguishing healthy in-flight runs from orchestrators that died
+    before writing a terminal event.
 
     Spec 0136 — passes the raw ``exit_code`` through to
     ``derive_run_status`` so the unified truth table's silent-exit
     defence branch (``exit_code == 0`` + not done → ``deadlocked``)
     fires for Supabase-backed runs the same way it fires for the
-    disk-backed path. Pre-spec the helper folded the exit code into
-    derived ``run_failed`` / ``hard_cap_hit`` booleans before calling
-    ``derive_run_status``, which discarded the ``exit_code == 0`` +
-    not-done signal and left the All-Runs list reading ``running``
-    forever for any pushed run that exited cleanly without reaching
-    ``done`` — exactly the pattern the user surfaced on the hosted
-    DVS-backend and LLM-vs-human-grading rows.
+    disk-backed path.
     """
     final_emitted = bool(state.get("final_emitted_to"))
     return derive_run_status(
@@ -1097,6 +1106,7 @@ def _status_from_columns(*, phase_reached: str, exit_code: int | None, state: di
         hard_cap_hit=exit_code == 51,
         run_failed=False,  # truth table derives this from exit_code now
         run_completed_exit_code=exit_code,
+        last_event_at=last_event_at,
     )
 
 

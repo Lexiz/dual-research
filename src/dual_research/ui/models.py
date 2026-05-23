@@ -25,6 +25,10 @@ RunStatus = Literal[
     "errored",
     "completed",
     "idle",
+    # Spec 0181 — orchestrator stopped emitting events for ≥
+    # RUN_STALE_THRESHOLD_MINUTES (30) with no terminal signal. Distinct
+    # from "errored" (which means an explicit failure with a known cause).
+    "abandoned",
 ]
 
 # Per-agent activity states (AgentState.status).
@@ -762,6 +766,9 @@ class TerminalSignals:
     hard_cap_hit: bool = False
     final_emitted: bool = False
     run_failed_error: "TopLevelError | None" = None
+    # Spec 0181 — ts of the most recent event seen during replay /
+    # apply_event. Feeds the staleness rule in ``derive_run_status``.
+    last_event_at: str | None = None
 
 
 # ─── RunListRow ───────────────────────────────────────────────────────────────

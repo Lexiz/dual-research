@@ -171,14 +171,18 @@ function ErrorChip({ label = 'Could not render this turn' }) {
 }
 
 // SPEC-0093 — StatusBadge now emits M3 `.md-status` class names.
-// Maps every known status string to one of the six M3 status pill
+// Maps every known status string to one of the seven M3 status pill
 // modifiers. Prop API unchanged — callers pass `status="running"` etc.
+// Spec 0181 — new `abandoned` modifier (amber/warn tone, distinct from
+// `errored`) for runs whose orchestrator went silent without writing
+// a terminal event.
 const _STATUS_TO_M3 = {
   running:    'running',
   converged:  'converged',
   completed:  'converged',
   deadlocked: 'drift',
   errored:    'errored',
+  abandoned:  'abandoned',
   idle:       'idle',
   queued:     'queued',
   thinking:   'running',
@@ -187,11 +191,21 @@ const _STATUS_TO_M3 = {
   reviewing:  'running',
   waiting:    'idle',
 };
+// Spec 0181 — human-readable labels per status. Keep title-case where
+// the existing convention used title-case (the prior code passed the
+// status string as the badge text verbatim, so most statuses render
+// lowercase; ``abandoned`` follows that convention).
+const _STATUS_LABEL = {
+  abandoned: 'abandoned',
+};
 function StatusBadge({ status, label }) {
   const m3 = _STATUS_TO_M3[status] || 'idle';
-  const text = label || status || 'idle';
+  const text = label || _STATUS_LABEL[status] || status || 'idle';
+  const title = status === 'abandoned'
+    ? 'Run stopped emitting events for over 30 minutes with no terminal signal. The orchestrator process likely crashed or was killed before writing a terminal event.'
+    : undefined;
   return (
-    <span className={`md-status md-status--${m3}`}>
+    <span className={`md-status md-status--${m3}`} title={title}>
       {text}
     </span>
   );

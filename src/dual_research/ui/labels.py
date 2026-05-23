@@ -8,9 +8,17 @@ UI vocabulary.
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dual_research.ui.models import AgentStatus
+
+# Spec 0181 — staleness threshold for the ``abandoned`` rule in
+# ``derive_run_status``. A run whose last event is older than this with
+# no terminal signal flips from ``running`` to ``abandoned``. Module
+# constant (not env-driven) — the 30 min default is the longest
+# legitimate idle gap inside a healthy run.
+RUN_STALE_THRESHOLD_MINUTES = 30
 
 # ─── Agent label translation ──────────────────────────────────────────────────
 
@@ -117,6 +125,8 @@ def derive_run_status(
     hard_cap_hit: bool,
     run_failed: bool,
     run_completed_exit_code: int | None = None,
+    last_event_at: str | None = None,
+    now: datetime | None = None,
 ) -> str:
     """Single source of truth for ``Run.status``.
 
@@ -145,7 +155,14 @@ def derive_run_status(
        ``dr_run._drive_interaction_phase`` predicate fix (also spec
        0136) this branch is unreachable for new runs, but it stays as
        defence-in-depth so existing on-disk transcripts render correctly.
-    6. else → ``running``.
+    6. Spec 0181 — ``last_event_at`` provided AND
+       ``(now - last_event_at) > RUN_STALE_THRESHOLD_MINUTES`` AND no
+       terminal signal fired above → ``abandoned``. Catches orchestrators
+       that died (host recycled, SIGKILL, panic) before writing a
+       terminal event. ``last_event_at=None`` skips this rule entirely
+       (backward-compatible — callers that don't plumb a timestamp keep
+       the pre-0181 "running forever" behaviour).
+    7. else → ``running``.
 
     Exit-code constants live in ``orchestrator/run.py``. The magic
     numbers ``2``, ``51``, ``52`` are kept inline here to avoid the
@@ -160,7 +177,8 @@ def derive_run_status(
     # orchestrator codes (EXIT_RUNTIME=2, EXIT_PROTOCOL_PARSE_FAILURE=52)
     # plus less-structured signals like exit code 1 from a Python
     # uncaught exception or an external SIGTERM. ``None`` (terminal
-    # event never fired) falls through to the "running" branch.
+    # event never fired) falls through to the "running" / "abandoned"
+    # rules below.
     if run_completed_exit_code is not None and run_completed_exit_code not in (0, 51):
         return "errored"
     if hard_cap_hit or run_completed_exit_code == 51:
@@ -169,4 +187,15 @@ def derive_run_status(
         return "completed"
     if run_completed_exit_code == 0:
         return "deadlocked"
+    if last_event_at is not None:
+        try:
+            ts = datetime.fromisoformat(last_event_at.replace("Z", "+00:00"))
+        except (ValueError, TypeError, AttributeError):
+            ts = None
+        if ts is not None:
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            current = now if now is not None else datetime.now(timezone.utc)
+            if current - ts > timedelta(minutes=RUN_STALE_THRESHOLD_MINUTES):
+                return "abandoned"
     return "running"

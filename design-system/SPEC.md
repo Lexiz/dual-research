@@ -326,7 +326,7 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 | **Icon button** | `.md-icon-btn` | — | 40 × 40 dp circular icon-only action. State layer overlay. |
 | **Chip** | `.md-chip`, `.md-chip--{selected,filter-a,sm}` | `<Chip>` (see § 9 Badge governance) | Assist · filter · input · suggestion. 32 dp height (24 dp sm), `--md-shape-sm` corners, label-large type. **Every chip on every surface uses this primitive.** |
 | **SourceRow** | `.source-row`, `.source-row.is-unverified` | `<SourceRow>` | Spec 0144 — per-evidence-record collapsible row inside a critique card. Collapsed: ▶ chevron + title + host badge + optional `⚠ unverified` chip. Expanded: URL link · fetched-at · search-query · content-excerpt (bounded scroll above 800 chars). One instance per record; multiple per card. The `⚠ unverified` chip slot uses `.md-chip--sm` + the warn tone and renders only when `record.unverified === true`. |
-| **Status pill** | `.md-status`, `.md-status--{running,converged,drift,errored,idle,queued}` | `<StatusBadge>` | 22 dp height, pill, leading 6 dp dot in currentColor. Six states. Tinted via `color-mix` from the base palette. |
+| **Status pill** | `.md-status`, `.md-status--{running,converged,drift,errored,abandoned,idle,queued}` | `<StatusBadge>` | 22 dp height, pill, leading 6 dp dot in currentColor. Seven states (spec 0181 adds `abandoned` — warn tone, distinct from `errored`, for runs whose orchestrator went silent for ≥ 30 min without a terminal event). Tinted via `color-mix` from the base palette. |
 | **Switch** | `.md-switch` | — | 52 × 32 dp, M3 thumb-grows-on-on. Rare (read-only). |
 | **Segmented buttons** | `.md-seg`, `.md-seg__opt` | `<TabGroup variant="solid">` (CSS class compat) | Pill container with inset divider lines. M3 secondary-container on selected. Used for phase tabs, kind filters, agent filters, status filters. |
 | **Card** | `.md-card`, `.md-card--{elevated,filled,outlined,tonal-a,tonal-b}` | `<Card>` | Four base variants + two agent-tonal (primary-container / secondary-container). `--md-shape-md` (12 dp). Card header (`.md-card__hd`), title (`.md-card__title`), support (`.md-card__support`). |
@@ -666,6 +666,7 @@ Render order inside the chip: leading slot → label → value → add → sub �
 | Categories | Questions · Disagreements · Issues · Comments | Claim · Claims · OQ · BD · OI · QCR1 |
 | Lifecycle | raised · addressed · resolved · acknowledged · withdrawn · capped · "raised again" | conceded · answered · noted · accepted · non_blocking_limitation |
 | Turn status | running · agreed (preceded by ✓) · queued · bare ✓ for completed | repair · NEGOTIATING · REVIEWING · APPROVED · BRIEF_OK · drafting · thinking |
+| Run status (spec 0181) | running · converged · deadlocked · errored · completed · idle · abandoned | (none — `abandoned` joined the canonical set for runs whose orchestrator went silent ≥ `RUN_STALE_THRESHOLD_MINUTES` without writing a terminal event) |
 | Modifier | "via hard cap" · "via ghost cap" · "⊘ N capped" · "↻ closeout" · "⚠ unverified" · "⚠ ledger drift" | "ghosted N rounds" · run-wide drift |
 | Error (spec 0166 §2.2) | "Could not render this turn" · "Turn data missing" · "Agent timed out" · "Empty turn received" | `[object object]` · raw exception messages · stack traces · error codes |
 
