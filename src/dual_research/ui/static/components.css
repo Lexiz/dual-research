@@ -2733,9 +2733,15 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   background: var(--md-surface-container-high);
   border-bottom: 1px solid var(--md-outline-hair);
 }
-/* Head / body / actions own their padding (the card is 0-padded now). */
+/* Head / body / actions own their padding (the card is 0-padded now).
+   Spec 0204 §2.1 — workshop iter-5 lock: padding 6px 12px (head clientHeight
+   ≈ 34 px on chip-only content) + explicit gap: 6px on the scoped selector
+   so the default .tl-card-head gap isn't accidentally overridden by future
+   cascade churn. Applies to both collapsed and is-open-expanded states —
+   the expanded-card lift comes from the body, not from a head-padding bump. */
 .qthread.tl-thread > .tl-card-head {
-  padding: 10px 12px;
+  padding: 6px 12px;
+  gap: 6px;
 }
 .qthread.tl-thread .qt-head {
   gap: 8px;

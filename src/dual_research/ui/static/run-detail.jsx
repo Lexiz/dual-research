@@ -147,8 +147,11 @@ function RunDetailHeader({ run, errorCount, showErrors, onToggleErrors, onJumpTo
 // Timeline pane headers (Claude in `.tl__head`, GPT in `.tl__tabs`).
 // `className="in-header"` lets `components.css` swap the `.as-timeline`
 // 460–720 px width contract for content-natural sizing + tight padding.
-// Cost renders at 2 decimals (fmt.costShort) — 4-digit precision is noise
-// at this surface; the top-bar CostBadge keeps the precise figure.
+// Cost renders at 2 decimals via fmtCost2 — 4-digit precision is noise at
+// this surface and the top-bar CostBadge keeps the precise figure. Spec
+// 0204 §2.3: fmtCost2 (not fmt.costShort) so sub-cent values render as
+// `<$0.01` instead of silently rounding to `$0.00` — same semantics that
+// the expanded turn-card cost chip (line ~1344) already uses.
 function TimelineAgentPill({ agent, run, className = 'in-header' }) {
   const meta = AGENT_META[agent];
   const ag = run.agents?.[agent] || {};
@@ -182,7 +185,7 @@ function TimelineAgentPill({ agent, run, className = 'in-header' }) {
       model={modelId}
       tokens={totalTokens}
       cost={cost}
-      costFormatter={fmt.costShort}
+      costFormatter={fmtCost2}
       right={activityRight}
       // Spec 0138 §5.1 — append `is-live` when the agent is mid-round so
       // the `.as.in-header.is-live::before` gradient sweep (added in the
@@ -813,11 +816,19 @@ function PhaseRail({ run }) {
 // unfold), Issue 16 (REPAIR-round explainer).
 function Timeline({ run, highlightedTurnKeys }) {
   const items = React.useMemo(() => buildTimeline(run), [run]);
+  // Spec 0204 §2.2 — split inline-expansion from modal-open. `expandedId`
+  // drives the `.is-open-expanded` class + `data-expanded` attribute on the
+  // card; `openId` drives the <ArtifactModal /> mount. The two are
+  // independent so a head click unfolds in place without yanking the user
+  // into the modal, and the "Open full view" button is the only path to
+  // the modal.
+  const [expandedId, setExpandedId] = React.useState(null);
   const [openId, setOpenId] = React.useState(null);
   const [tab, setTab] = React.useState('conversation'); // 'conversation' | 'consumption'
 
-  // Reset open card + active tab when navigating between runs.
+  // Reset open card + expanded card + active tab when navigating between runs.
   React.useEffect(() => {
+    setExpandedId(null);
     setOpenId(null);
     setTab('conversation');
   }, [run.id]);
@@ -931,8 +942,9 @@ function Timeline({ run, highlightedTurnKeys }) {
                             key={item.id}
                             item={item}
                             run={run}
-                            isOpen={openId === item.id}
-                            onToggle={() => setOpenId(openId === item.id ? null : item.id)}
+                            isOpen={expandedId === item.id}
+                            onToggle={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                            onOpenModal={() => setOpenId(item.id)}
                           />
                         ))}
                       </div>
@@ -1140,7 +1152,7 @@ function _violationsForTurnCard(violations, phase, round, agent) {
   );
 }
 
-function TlTurnRow({ item, run, isOpen, onToggle }) {
+function TlTurnRow({ item, run, isOpen, onToggle, onOpenModal }) {
   const agent = item.agent || null;
   const agentSlot = agent === 'gpt' ? 'b' : agent === 'claude' ? 'a' : null;
   const agentName = agent ? (AGENT_META[agent]?.name || agent) : null;
@@ -1230,6 +1242,7 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
   return (
     <article
       className={_cn('qthread', 'tl-thread', `is-${cardStatusCss}`, isOpen && 'is-open-expanded')}
+      data-expanded={isOpen ? 'true' : 'false'}
       onClick={onToggle}
       tabIndex={0}
       role="button"
@@ -1330,7 +1343,11 @@ function TlTurnRow({ item, run, isOpen, onToggle }) {
             {repairExplainer || summary || gist || '—'}
           </div>
           <div className="tl-thread__actions">
-            <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+            {/* Spec 0204 §2.2 — button opens the modal only; it no longer
+                toggles the inline expansion state. The card stays expanded
+                so the user can return from the modal to the same inline
+                context. */}
+            <button className="md-btn md-btn--tonal md-btn--sm" onClick={(e) => { e.stopPropagation(); onOpenModal(); }}>
               Open full view
             </button>
             <span style={{ flex: 1 }}></span>
