@@ -30,7 +30,7 @@ Five skills drive the spec lifecycle. Use them — do not improvise.
 - `/spec-draft` — park an idea. Writes `specs/drafts/draft-NNN-<slug>.md` from the author worktree. Drafts may carry unresolved questions.
 - `/spec-queue` — turn the current authoring conversation into a queued dev spec. Classifies type, runs the validator, commits `specs/NNNN-<slug>.md` with `status: queued` to `main`. No branch.
 - `/spec-promote <id>` — promote a draft into a queued dev spec. Walks unresolved questions, restructures into the type template, validates, commits.
-- `/dev-next` — drive **one** queued dev spec end-to-end from the queue session at `/Users/alexlisitzky/dual-research/`. Pre-flight → reconcile → branch → implement → tests → PR → admin squash-merge → fly deploy → handoff.
+- `/dev-next` — drive **one** queued dev spec end-to-end from the queue session at `/Users/alexlisitzky/dual-research/`. Pre-flight → reconcile → branch → implement → tests → PR → admin squash-merge → watch GH Actions deploy → handoff. Deploys to `dual-research-alex.fly.dev` are driven by `.github/workflows/deploy.yml` on push-to-main; `/dev-next` watches the GH Actions run rather than invoking `flyctl` locally (spec 0211).
 - `/dev-queue-run` — drive **the whole queue** sequentially from the same queue session. Single confirmation at start, halts on first failure.
 
 Two-worktree split:
