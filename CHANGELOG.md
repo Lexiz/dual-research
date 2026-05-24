@@ -10,6 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.43.2] — 2026-05-24
+
+### Fixed
+
+- **Spec 0203.2 — Cycle-mutable status readers: overlay `queue-state.json` in `current_queue` AND `queue_drain_supervisor`** ([spec 0203.2](specs/0203.2-current-queue-stale-frontmatter-queue-state-overlay.md)). Bug fix, PATCH bump. Three sites in the orchestrator pipeline read `status` from frozen on-disk spec frontmatter without consulting `dashboard/queue-state.json`, even though spec 0202 §2.1 made queue-state authoritative for live cycle-mutable state. Post-0202, frontmatter `status` is always `queued` on disk — so the three sites were each silently broken in their own way.
+
+  **§3.1 — `current_queue` overlays queue-state before filtering.** [`scripts/spec_lifecycle/pick_next_number.py:130-146`](scripts/spec_lifecycle/pick_next_number.py) now reads `dashboard/queue-state.json` via `read_state(repo_root)` and prefers its `status` over frontmatter when present. Pre-fix the picker kept returning long-finished specs as the queue head (observed live during spec 0203.1's `/dev-next` cycle when `current_queue()` handed back spec 0203 — `deployed` — as rank 1). Defensive fallback to frontmatter when `queue-state.json` is missing or has no entry for the spec.
+
+  **§3.3 — `_read_spec_status` overlays queue-state.** [`scripts/queue_drain_supervisor.py:141-160`](scripts/queue_drain_supervisor.py) now does the same overlay. Pre-fix this function always returned `"queued"` post-0202, making the supervisor's between-iterations resume-detection branch dead code — checkpointed L-specs would have been silently orphaned inside `/dev-queue-run`. Has not bitten in production because no L-spec has been drained through the supervisor yet (spec 0203 used interactive `/dev-next`).
+
+  **§3.4 — `_find_resume_target` overlays queue-state.** [`scripts/queue_drain_supervisor.py:312-334`](scripts/queue_drain_supervisor.py) now filters by live status. Pre-fix this function unconditionally returned `None`, making the supervisor's pre-flight resume scan a no-op. Same regression family as §3.3; same re-activation gain.
+
+  **Tests.** Added [`tests/spec_lifecycle/test_current_queue_queue_state_overlay.py`](tests/spec_lifecycle/test_current_queue_queue_state_overlay.py) (5 cases: deployed-drops, in-progress/merged-drops, missing-queue-state fallback, happy path preservation, decimal-child lookup) and [`tests/spec_lifecycle/test_queue_drain_supervisor_queue_state_overlay.py`](tests/spec_lifecycle/test_queue_drain_supervisor_queue_state_overlay.py) (8 cases covering both supervisor helpers including the no-checkpoint and decimal-ID variants).
+
+  **Scope expansion note.** The deferred-spec subagent originally scoped 0203.2 to `current_queue` only. An operator-driven audit of every reader of cycle-mutable status across `scripts/`, `functions/`, `tests/`, `src/dual_research/`, and `.github/workflows/` surfaced the two supervisor offenders; folded into this spec to ship all three fixes in one pass per operator instruction (no follow-up tickets). draft-001 (event-flush contract) remains explicitly out of scope — different bug shape, decoupled from picker/supervisor correctness.
+
 ## [1.43.1] — 2026-05-24
 
 ### Fixed

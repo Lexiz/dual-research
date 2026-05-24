@@ -133,14 +133,26 @@ def current_queue(specs_dir: str | Path) -> list[tuple[str, dict]]:
     Spec 0199 §2.1 — sorted by `parse_spec_id(filename)` ascending. The
     returned key is the spec ID string (e.g. `"0170"`, `"0170.1"`), not the
     legacy `queue_position` integer.
+
+    Spec 0203.2 §3.1 — frontmatter `status` is frozen at queue time per
+    spec 0202 §2.1; live cycle-mutable status lives in
+    `dashboard/queue-state.json`. Overlay the queue-state entry before
+    filtering so finished specs drop out. Mirrors the renderer pattern in
+    `scripts/spec_lifecycle/render_dashboard.py` and `functions/api/data.js`.
     """
     from .frontmatter import parse
+    from .queue_state import read_state
+
+    repo_root = Path(specs_dir).parent
+    queue_state = read_state(repo_root)
 
     items: list[tuple[tuple[int, int], str, dict]] = []
     for parent, child, entry in _scan_spec_ids(specs_dir):
         fm = parse(entry).frontmatter
-        if fm.get("kind") == "dev" and fm.get("status") == "queued":
-            spec_id = format_spec_id(parent, child)
+        spec_id = format_spec_id(parent, child)
+        state_entry = queue_state.specs.get(spec_id, {})
+        live_status = state_entry.get("status") or fm.get("status")
+        if fm.get("kind") == "dev" and live_status == "queued":
             items.append(((parent, child), spec_id, fm))
     items.sort(key=lambda t: t[0])
     return [(spec_id, fm) for _, spec_id, fm in items]
