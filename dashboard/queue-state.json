@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:27:39Z",
+  "updated_at": "2026-05-24T12:27:42Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8633,6 +8633,17 @@
           "step": "merged",
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/241"
+          }
+        },
+        {
+          "ts": "2026-05-24T12:27:42Z",
+          "step": "failed",
+          "data": {
+            "reason": "fly deploy lease conflict — matrix case 3 (only old-version machines present, new image never reached production)",
+            "case": "3",
+            "old_image": "deployment-01KSCZ0FWR13SBMHFAWWHGD1WJ",
+            "attempted_image": "deployment-01KSCZ332A3H08E9TVKXXVRQ2S",
+            "lease_holder": "tokens.fly.io"
           }
         }
       ],
