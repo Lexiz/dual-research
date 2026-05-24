@@ -732,3 +732,55 @@ The deprecated v1 spec is preserved at [`_archive/v1/SPEC.md`](_archive/v1/SPEC.
 
 - **Diagram skill palette alignment.** ~~The vendored diagram skill at [`skills/diagram/`](skills/diagram/) uses a cream-and-indigo visual language independent of the dual-research palette (sable + sage). This is intentional today — the skill produces general-purpose architecture diagrams, not in-app UI. If we want the skill output to share visual DNA with the app, a follow-up spec aligns it to the M3 palette.~~ **Status:** done as of spec 0133 — the diagram skill became mode-aware (v2.0.0). The existing cream + indigo design system was preserved as **Pixel mode** (default, general-purpose, subject-agnostic) and a new **Material mode** was added alongside, modeled on this design system. Both modes ship light + dark variants; mode is part of the filename (`<slug>.<mode>.{light,dark}.svg`). The `diagrams/how-it-works/` set was regenerated in Material mode as part of the same spec. See [`skills/diagram/SKILL.md`](skills/diagram/SKILL.md) and [`skills/diagram/references/material/foundations.html`](skills/diagram/references/material/foundations.html) for the Material design system spec.
 - **Responsive density gap** (laptop 1512 px vs. wide ≥ 2200 px) — original audit at [`audits/2026-05-18-responsive-audit/`](audits/2026-05-18-responsive-audit/). Partially addressed by `body.compact` + the 1500 px breakpoint introduced in spec 0092 + further by spec 0124. Watch for outstanding regressions at specific viewport widths.
+
+---
+
+## 13 — UI test doctrine (spec 0206)
+
+UI surfaces in this project — every JSX file under [`src/dual_research/ui/static/`](../src/dual_research/ui/static/) and every CSS file under that path plus [`design-system/assets/styles/`](assets/styles/) — are guarded by **source-pattern tests**, not DOM-rendering tests. This section is the canonical answer to the recurring question *"Playwright or source-pattern?"* that surfaced in spec 0172, again in spec 0205 (deferred at `handoffs/2026-05-24-spec-0205-fix-p4-critique-card-five-visual-regressions.md:45`), and would otherwise re-litigate per UI spec.
+
+### 13.1 — Why source-pattern (not Playwright / DOM)
+
+The JSX in [`src/dual_research/ui/static/run-detail.jsx`](../src/dual_research/ui/static/run-detail.jsx) and its siblings is loaded in the browser via an in-page Babel transform ([`@babel/standalone`](../src/dual_research/ui/static/index.html)) at runtime — there is no webpack / esbuild build step, no Node-importable module shape, only the source text. A DOM-rendering harness would require:
+
+- Playwright (or Selenium / Pyppeteer) infrastructure, browser downloads in CI, per-test fixture-run startup.
+- A flake budget (every DOM-rendering harness pays one).
+- A custom Babel-in-Node pre-pass to evaluate the JSX, OR a real fixture server boot per test.
+
+The cost is disproportionate to the value when the file structure makes source-pattern tests sufficient. Source-pattern tests have caught every UI regression they were written for ([spec 0172](../specs/0172-issue-card-body-markdown-and-no-sid.md), spec 0179, spec 0205) without false positives, and they run inside `uv run pytest tests/ -q` in milliseconds with zero external dependencies.
+
+The runtime cross-check that source-pattern tests cannot do — *does the rendered DOM actually look right?* — is provided by the **Claude Preview MCP** during `/dev-next` step 14, captured as a screenshot in the PR description. For `ItemCard`-touching specs, the **8-capture parity grid** mandated by spec 0179 is the canonical visual verification ([`design-system/notion-issues/screenshots/`](notion-issues/screenshots/) reference set).
+
+### 13.2 — Canonical static-pattern shape
+
+One **test pair** per anatomical contract:
+
+- A positive regex on the post-fix shape (the anatomy the spec just landed).
+- An antipodal-absence regex on the pre-fix shape (the bug the spec just removed).
+
+The pair makes the test bidirectional: it fails if the fix gets ripped out *and* fails if the bug shape re-appears. Single-side checks (positive only OR absence only) are weaker — a positive-only test will still pass if the spec adds duplicate-wrapped scaffolding that doesn't displace the pre-fix shape; an absence-only test will still pass after a wholesale file deletion.
+
+**File location:** [`tests/test_spec_NNNN_<surface>.py`](../tests/) for spec-scoped guards. Historical specs may live at `tests/spec0172/...` or `tests/spec0190/...`; new files use the flat naming convention. Pure stdlib + the project helper at [`tests/_ui_pattern_helpers.py`](../tests/_ui_pattern_helpers.py) — no pytest fixtures except for shared state across many tests, no external test runner.
+
+**Helper idiom:**
+
+```python
+from tests._ui_pattern_helpers import (
+    assert_jsx_contains, assert_jsx_lacks, read_repo_text,
+)
+
+jsx = read_repo_text("src", "dual_research", "ui", "static", "run-detail.jsx")
+assert_jsx_contains(jsx, r'Mdi name="link-variant"', msg="…")
+assert_jsx_lacks(jsx, r'<Tab variant="kind">', msg="…")
+```
+
+[`assert_jsx_contains`](../tests/_ui_pattern_helpers.py) returns the match so the captured groups can be passed back into a second `assert_jsx_contains` (scope the search, then assert inside the captured region). [`assert_jsx_lacks`](../tests/_ui_pattern_helpers.py) surfaces the matched snippet on failure so the regression is visible in test output.
+
+**Worked example** — Bug 3 of spec 0205, the `mdi:link-variant` glyph parity across the segment header and the ReviewCard Sources chip:
+
+- [`tests/test_spec_0205_critique_card.py::test_sources_segment_header_carries_canonical_glyph`](../tests/test_spec_0205_critique_card.py) — scopes the search to the `.item-card__sources-hd` JSX, then asserts the glyph attribute inside the captured group. One pair of helpers, two anatomical checks.
+- [`tests/test_spec_0205_critique_card.py::test_reviewcard_sources_chip_carries_same_glyph`](../tests/test_spec_0205_critique_card.py) — same shape, applied to the ReviewCard Sources chip. Both surfaces share one glyph, so one test per surface.
+
+### 13.3 — DOM/Playwright is out of scope
+
+Standing up a Playwright harness is **not in scope** for the current architecture. The cost/value trade-off in §13.1 is the decision; the explicit trigger to revisit is: *if the JSX runtime moves off babel-in-page to a real build (webpack / esbuild / vite), DOM tests become cheap and the doctrine here gets a follow-up spec.* Until then, specs that propose Playwright-shaped test paths (typically `tests/ui/test_<surface>.py`) will be flagged by [`scripts/spec_lifecycle/validator.py`](../scripts/spec_lifecycle/validator.py) with a warning pointing back to this section.
