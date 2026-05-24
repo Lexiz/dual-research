@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:40:52Z",
+  "updated_at": "2026-05-24T02:40:56Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7822,6 +7822,11 @@
             "lines": 323,
             "type": "bug"
           }
+        },
+        {
+          "ts": "2026-05-24T02:40:56Z",
+          "step": "planning_started",
+          "data": {}
         }
       ]
     }
