@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T00:49:59Z",
+  "updated_at": "2026-05-24T00:50:10Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7564,6 +7564,14 @@
           "ts": "2026-05-24T00:49:59Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T00:50:10Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0203-critique-v2-live-promotion",
+            "from": "main@a6f3245"
+          }
         }
       ],
       "started_at": "2026-05-24T00:49:56Z"
