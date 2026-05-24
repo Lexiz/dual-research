@@ -10,6 +10,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.0] — 2026-05-24
+
+### Changed
+
+- **Spec 0204 — Timeline pane V2 → live promotion (T1 + T2.a + T2.b)** ([spec 0204](specs/0204-timeline-v2-live-promotion.md)). New-feature MINOR bump promoting three workshop-locked behaviours from `prototypes/timeline-iteration/` into the live app. All three deltas land in the same commit per the design-system same-commit invariant.
+
+  **T1 — collapsed card head 42 px → 34 px.** `.qthread.tl-thread > .tl-card-head` shrinks from `padding: 10px 12px` to `padding: 6px 12px` with explicit `gap: 6px` pinned on the scoped selector (so future cascade churn can't drift the workshop iter-5 value). Mirrored in `design-system/assets/styles/composed-components.css` in the same commit. Expanded-state head padding inherits the same value — the expansion lift comes from the body, not the head.
+
+  **T2.a — split inline-expand from modal-open.** `RunDetail` now carries two independent state variables: `expandedId` drives `.is-open-expanded` + a new `data-expanded` attribute on the card `<article>`; `openId` drives `<ArtifactModal />` mount. The card-head click toggles inline expansion only; the modal is opened exclusively by the "Open full view" button inside the expanded `.tl-thread__actions` row. The `useEffect` that resets state on run change now resets both. Keyboard parity: Enter/Space on the card head still toggles inline expansion (no modal); Tab + Enter on the "Open full view" button opens the modal.
+
+  **T2.b — `TimelineAgentPill` cost precision parity.** The agent strip's `costFormatter` swaps from `fmt.costShort` to `fmtCost2`, so sub-cent values like `$0.003` render as `<$0.01` instead of silently rounding to `$0.00`. Matches the semantics already used by the expanded turn-card cost chip. `fmt.costShort` stays in place at the Summary tab and run-list aggregate, which are intentionally outside this spec's scope.
+
+  **DS gate.** `design-system/SPEC.md` §4.4 Timeline pane updated with the 34 px collapsed-card target, the explicit click-vs-modal separation, and the keyboard parity statement so the DS reference stays the source of truth.
+
 ## [1.43.2] — 2026-05-24
 
 ### Fixed

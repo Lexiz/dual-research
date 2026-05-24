@@ -1734,9 +1734,13 @@ body.light .ccx-bar .reuse {
   background: var(--md-surface-container-high);
   border-bottom: 1px solid var(--md-outline-hair);
 }
-/* Head/body/actions own their padding since .tl-thread is now 0-padded. */
+/* Head/body/actions own their padding since .tl-thread is now 0-padded.
+   Spec 0204 §2.1 — workshop iter-5 lock: padding 6px 12px → 34 px nominal
+   collapsed head; explicit gap: 6px so the scoped selector pins the value
+   regardless of future cascade churn. */
 .tl-thread > .tl-card-head {
-  padding: 10px 12px;
+  padding: 6px 12px;
+  gap: 6px;
 }
 .tl-thread > .tl-thread__body {
   padding: 10px 12px 0;

@@ -419,6 +419,10 @@ Header chrome only — body is built from existing primitives. `.tl-phase` is a 
 
 **Phase pane gutter** (spec 0164). Both `.tl-phase__hd` and `.tl-phase__body` inset 16 px from the pane edges (`padding: 12px 16px` and `8px 16px 12px` respectively). Inter-card spacing is `gap: 6px` on the body.
 
+**Collapsed card head height** (spec 0204 §2.1). `.tl-thread > .tl-card-head` carries `padding: 6px 12px` and explicit `gap: 6px` (matches the default `.tl-card-head` value; pinned on the scoped selector so future cascade churn can't drift it). Nominal collapsed clientHeight on chip-only content ≈ 34 px (chips 22 px + 12 px total vertical padding). The expanded-card lift comes from the body, not from a head-padding bump, so the same padding applies to both `.tl-thread` and `.tl-thread.is-open-expanded > .tl-card-head`.
+
+**Click semantics: inline expand vs. modal open** (spec 0204 §2.2). The card head click toggles inline expansion only — it sets `.is-open-expanded` on the card and `data-expanded="true"` on the `<article>`. The `<ArtifactModal />` only mounts when the user clicks the "Open full view" button inside the expanded `.tl-thread__actions` row. The two states are independent: clicking the button while the card is expanded keeps the card expanded; closing the modal does not collapse the card. Keyboard parity: Enter/Space on the card head toggles inline expansion; Tab into the expanded card's "Open full view" button + Enter opens the modal.
+
 **Phase indicators** (spec 0099) render outside the timeline column as a vertical rail. One marker per visible phase header, anchored to the header's vertical centre. Markers for phases with no data are hidden, not greyed.
 
 **Turn card chrome** (spec 0164 §2.4). Filled M3 card on `--md-surface-container-high`, `1px solid --md-outline-variant`, 16 dp radius (`--md-shape-lg`). Card itself owns no padding — head / body / actions own theirs. **Provider stripe** (2 px left border, via native CSS `:has()`):
