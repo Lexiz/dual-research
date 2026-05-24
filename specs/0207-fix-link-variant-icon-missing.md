@@ -46,9 +46,9 @@ promoted_from_draft: ""
 
 ## 2. Root cause hypothesis
 
-The `Mdi` primitive at [src/dual_research/ui/static/icons.jsx:100-112](src/dual_research/ui/static/icons.jsx) looks up `name` in the `ICONS` dictionary defined at [icons.jsx:14-97](src/dual_research/ui/static/icons.jsx). When the lookup misses, the component intentionally renders an outlined square as a "loud" fallback ([icons.jsx:103-108](src/dual_research/ui/static/icons.jsx)) so missing icons are visible during development rather than silently absent.
+The `Mdi` primitive at [src/dual_research/ui/static/icons.jsx:100-112](src/dual_research/ui/static/icons.jsx) looks up `name` in the `ICONS` dictionary defined at [src/dual_research/ui/static/icons.jsx:14-97](src/dual_research/ui/static/icons.jsx). When the lookup misses, the component intentionally renders an outlined square as a "loud" fallback ([src/dual_research/ui/static/icons.jsx:103-108](src/dual_research/ui/static/icons.jsx)) so missing icons are visible during development rather than silently absent.
 
-`link-variant` was never added to the `ICONS` dictionary. The dictionary contains a `link` key at [icons.jsx:54](src/dual_research/ui/static/icons.jsx) whose SVG path data is in fact the MDI **link-variant** artwork (a single chain link at 45°), but the key name does not match the lookup string the call sites use, so every `<Mdi name="link-variant" />` invocation falls through to the placeholder rect.
+`link-variant` was never added to the `ICONS` dictionary. The dictionary contains a `link` key at [src/dual_research/ui/static/icons.jsx:54](src/dual_research/ui/static/icons.jsx) whose SVG path data is in fact the MDI **link-variant** artwork (a single chain link at 45°), but the key name does not match the lookup string the call sites use, so every `<Mdi name="link-variant" />` invocation falls through to the placeholder rect.
 
 Call sites currently affected — every one of them renders a blank rounded square instead of the canonical sources glyph:
 
@@ -62,7 +62,7 @@ The DS specification at [design-system/SPEC.md:501](design-system/SPEC.md) and [
 
 ## 3. Fix
 
-Add a `link-variant` entry to the `ICONS` dictionary in [src/dual_research/ui/static/icons.jsx](src/dual_research/ui/static/icons.jsx), placed in the existing "Content / docs" section next to the current `'link'` entry around [icons.jsx:54](src/dual_research/ui/static/icons.jsx). Use the canonical MDI 7.x `link-variant` SVG path (the same single-chain-link artwork that is currently — confusingly — stored under the `'link'` key):
+Add a `link-variant` entry to the `ICONS` dictionary in [src/dual_research/ui/static/icons.jsx](src/dual_research/ui/static/icons.jsx), placed in the existing "Content / docs" section next to the current `'link'` entry around [src/dual_research/ui/static/icons.jsx:54](src/dual_research/ui/static/icons.jsx). Use the canonical MDI 7.x `link-variant` SVG path (the same single-chain-link artwork that is currently — confusingly — stored under the `'link'` key):
 
 ```js
   'link-variant':    'M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76V7.76L12.71,4.22C14.66,2.27 17.83,2.27 19.78,4.22C21.73,6.17 21.73,9.34 19.78,11.29L18.29,12.78C18.3,11.96 18.17,11.14 17.89,10.36L18.36,9.88C19.54,8.71 19.54,6.81 18.36,5.64C17.19,4.46 15.29,4.46 14.12,5.64L10.59,9.17C9.41,10.34 9.41,12.24 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24V16.24L11.29,19.78C9.34,21.73 6.17,21.73 4.22,19.78C2.27,17.83 2.27,14.66 4.22,12.71L5.71,11.22C5.7,12.04 5.83,12.86 6.11,13.65L5.64,14.12C4.46,15.29 4.46,17.19 5.64,18.36C6.81,19.54 8.71,19.54 9.88,18.36L13.41,14.83C14.59,13.66 14.59,11.76 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z', // link-variant
@@ -99,7 +99,7 @@ The `'link'` key is intentionally left alone. Its current path data is link-vari
 > **Scenario 3:** No remaining placeholder-rect Mdi fallbacks in the critique surface
 > GIVEN any run-detail view with at least one critique card visible
 > WHEN the run-detail view finishes rendering
-> THEN no `<svg>` inside any element with class beginning `item-card__` contains a child `<rect>` with attributes `x="4" y="4" width="16" height="16"` (the Mdi fallback signature from [icons.jsx:106](src/dual_research/ui/static/icons.jsx)).
+> THEN no `<svg>` inside any element with class beginning `item-card__` contains a child `<rect>` with attributes `x="4" y="4" width="16" height="16"` (the Mdi fallback signature from [src/dual_research/ui/static/icons.jsx:106](src/dual_research/ui/static/icons.jsx)).
 
 ## 5. Regression-prevention test
 
@@ -121,7 +121,7 @@ CSS for the affected chips (tone-info, icon-only, evidence-chip className) is al
 
 ## 7. Out of scope
 
-- **Renaming the existing `'link'` key.** The path data stored under `'link'` at [icons.jsx:54](src/dual_research/ui/static/icons.jsx) is actually link-variant artwork. Grep confirms no call site reads `'link'` today, but normalising the key name (or adding the proper "two interlocked rings" MDI `link` artwork) is a separate DS-cleanup concern. Deferred to a follow-up dev spec to be drafted post-merge if the duplicate-artwork ambiguity ever causes confusion.
+- **Renaming the existing `'link'` key.** The path data stored under `'link'` at [src/dual_research/ui/static/icons.jsx:54](src/dual_research/ui/static/icons.jsx) is actually link-variant artwork. Grep confirms no call site reads `'link'` today, but normalising the key name (or adding the proper "two interlocked rings" MDI `link` artwork) is a separate DS-cleanup concern. Deferred to a follow-up dev spec to be drafted post-merge if the duplicate-artwork ambiguity ever causes confusion.
 
 - **Sweeping the entire `src/dual_research/ui/static/*.jsx` tree for other `<Mdi name="X" />` call sites whose `X` is missing from the registry.** The §5 regression test will surface any such case by failing CI, at which point each missing icon gets added as part of routine maintenance. No proactive audit in this spec.
 
@@ -131,8 +131,8 @@ CSS for the affected chips (tone-info, icon-only, evidence-chip className) is al
 
 ## 8. Risks
 
-- **Risk: the canonical MDI link-variant path I'm copying in §3 contains a typo I introduced when retyping it.** Mitigation: the path is identical to the existing `'link'` entry at [icons.jsx:54](src/dual_research/ui/static/icons.jsx), so the implementer can copy-paste the value rather than retype it from the MDI source. The regression test in §5 also verifies the value is non-empty.
+- **Risk: the canonical MDI link-variant path I'm copying in §3 contains a typo I introduced when retyping it.** Mitigation: the path is identical to the existing `'link'` entry at [src/dual_research/ui/static/icons.jsx:54](src/dual_research/ui/static/icons.jsx), so the implementer can copy-paste the value rather than retype it from the MDI source. The regression test in §5 also verifies the value is non-empty.
 
 - **Risk: a future MDI library upgrade redraws `link-variant` and ours drifts.** Mitigation: low impact — the glyph is a single chain link, semantically stable; visual drift would be cosmetic at worst. No mitigation in this spec.
 
-- **Risk: the empty rect placeholder was actually intentional in some other surface — removing it everywhere might surprise.** Mitigation: the fix does not remove the fallback. The fallback at [icons.jsx:103-108](src/dual_research/ui/static/icons.jsx) still fires for any future missing icon name. Only the specific name `link-variant` begins resolving correctly.
+- **Risk: the empty rect placeholder was actually intentional in some other surface — removing it everywhere might surprise.** Mitigation: the fix does not remove the fallback. The fallback at [src/dual_research/ui/static/icons.jsx:103-108](src/dual_research/ui/static/icons.jsx) still fires for any future missing icon name. Only the specific name `link-variant` begins resolving correctly.
