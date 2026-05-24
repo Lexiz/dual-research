@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:40:48Z",
+  "updated_at": "2026-05-24T02:40:52Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7812,6 +7812,15 @@
           "step": "handoff_read",
           "data": {
             "path": "handoffs/2026-05-24-spec-0203.1-dashboard-queue-state-parity-and-l-spec-event-vocab.md"
+          }
+        },
+        {
+          "ts": "2026-05-24T02:40:52Z",
+          "step": "spec_read",
+          "data": {
+            "path": "specs/0203.2-current-queue-stale-frontmatter-queue-state-overlay.md",
+            "lines": 323,
+            "type": "bug"
           }
         }
       ]
