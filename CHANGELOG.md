@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.9] — 2026-05-24
+
+### Changed
+
+- **Spec 0210 — `/dev-next` worktree cross-conflict on main checkout** ([spec 0210](specs/0210-dev-next-worktree-cross-conflict-on-main-checkout.md)). PATCH refactor: the queue worktree at `/Users/alexlisitzky/dual-research/` no longer holds the `main` ref locally. It now operates from a detached HEAD at `origin/main`, cuts feature branches off that HEAD during `/dev-next`, and re-detaches at `origin/main` after each merge. The post-deploy commit (queue state + handoff + archive) lands on `origin/main` via a new `push-files-to-main` helper that uses the same `GIT_INDEX_FILE` plumbing as the existing `_push_state_to_main` — multi-file payloads with deletion support, atomic in one commit, no working-tree checkout required.
+  - **Public API:** [`scripts.spec_lifecycle.queue_state.push_files_to_main(payload, commit_message, repo_dir)`](scripts/spec_lifecycle/queue_state.py) — payload is a list of `(rel_path, content|None)` tuples; `None` content deletes the path. Companion helper [`_resync_detached_head_to_origin_main`](scripts/spec_lifecycle/queue_state.py) advances a detached HEAD to the new `origin/main` SHA after a successful push (no-op on a branch ref).
+  - **CLI:** `uv run python -m scripts.spec_lifecycle.queue_state push-files-to-main --message MSG --file PATH [--file PATH...] [--delete PATH...]` — reads files from disk relative to `--repo-root`, builds the multi-file commit via plumbing, resyncs the detached HEAD automatically (`--no-resync` to opt out).
+  - **`/dev-next` skill:** step 19 now appends `git fetch --quiet origin && git checkout --detach origin/main` after the verified-delete block; step 20 (`git checkout main && git pull`) is deleted; step 21 (was step 21 — `fly deploy`) runs from the detached HEAD; step 24 (now step 23 after renumbering) uses `push-files-to-main` instead of `git add … && git commit && git push origin main`. Steps 21–27 renumbered to 20–26. Cross-references updated throughout.
+  - **`CLAUDE.md`:** the two-worktree prose now documents the queue worktree's detached-HEAD invariant explicitly. The author worktree's "stays on `main`" guarantee is unchanged.
+  - **Regression tests:** [`tests/spec_lifecycle/test_push_files_to_main.py`](tests/spec_lifecycle/test_push_files_to_main.py) exercises the multi-file push, deletion case, non-fast-forward retry, and detached-HEAD resync via a bare-remote round-trip. [`tests/test_dev_next_no_main_checkout.py`](tests/test_dev_next_no_main_checkout.py) source-pattern test forbids bare `git checkout main` in the skill body and asserts the detached-HEAD invariant prose is present.
+
 ## [1.44.8] — 2026-05-24
 
 ### Fixed
