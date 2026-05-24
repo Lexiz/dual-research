@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:27:18Z",
+  "updated_at": "2026-05-24T11:30:28Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8097,7 +8097,7 @@
       "handover": "handoffs/2026-05-24-spec-0203.2-current-queue-stale-frontmatter-queue-state-overlay.md"
     },
     "0206": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-24T04:03:00Z",
       "events": [
         {
@@ -8156,11 +8156,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/238"
           }
+        },
+        {
+          "ts": "2026-05-24T11:28:12Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T11:29:28Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.5"
+          }
+        },
+        {
+          "ts": "2026-05-24T11:29:28Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T11:30:23Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0206-playwright-vs-source-pattern-canonicalize-jsx-test-doctrine.md"
+          }
         }
       ],
       "started_at": "2026-05-24T11:15:09Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/238",
-      "merged_at": "2026-05-24T11:27:14Z"
+      "merged_at": "2026-05-24T11:27:14Z",
+      "deployed_at": "2026-05-24T11:30:27Z",
+      "handover": "handoffs/2026-05-24-spec-0206-playwright-vs-source-pattern-canonicalize-jsx-test-doctrine.md"
     },
     "0205.1": {
       "status": "deployed",
