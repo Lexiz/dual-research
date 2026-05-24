@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:38:30Z",
+  "updated_at": "2026-05-24T10:38:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8177,6 +8177,14 @@
             "live_version": "1.44.2",
             "target_version": "1.44.3",
             "matrix_case": 3
+          }
+        },
+        {
+          "ts": "2026-05-24T10:38:34Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.3",
+            "recovery": "lease_expired_release_v646_landed_naturally"
           }
         }
       ],
