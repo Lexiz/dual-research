@@ -7433,10 +7433,9 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
   // Spec 0151 §3.4.1 — the previous KIND_TABS descriptor + its private
   // helpers (`_phaseItemsForCount`, `_itemCountByKind`, `_displayCount`,
   // formerly used to munge "Label (N)" strings) are removed. The
-  // kind-filter row is now rendered inline below via
-  // <TabGroup variant="kind-tabs"> + <Tab variant="kind" count={…}>,
-  // which surfaces the count as a separate visual token per the
-  // design-system target (count appears next to the label, not inside it).
+  // kind-filter row is rendered inline below as four Chip primitives
+  // inside a .kind-chip-row wrapper (spec 0205 Bug 4); the count rides
+  // in each Chip's value slot as a separate visual token.
 
   // Render a collapsible crit-group section
   const renderGroup = (title, items, tone, countClass, collapsed) => {
@@ -7531,17 +7530,20 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 
       {/* BAR 2 — Spec 0151 §3.4.1 — design-system parity. Layout per
           design-system/notion-issues/screenshots/02-critique-target.png:
-          [kind-tabs row]  [agent .tab-group-solid] [state .tab-group-solid]
-          The kind-tab row uses .kind-tabs / .kind-tab CSS already
-          present in components.css; the agent and state filters use
-          the canonical .tab-group-solid segmented control (renamed
-          from .fgroup by spec 0173 §2.3, with `[data-active="true"]`
-          attribute state replacing `.is-active` class). Pre-0151 this
-          row used <Chip> for everything with label-embedded count
-          strings (`Issues (3)`) — superseded so counts render as
-          separate tokens per the target. Spec 0173 §2.4 adds
-          per-segment counts on every button (incl. All and Drift at 0,
-          chip-stability rule from spec 0167 §2.2). */}
+          [kind chip row]  [agent .tab-group-solid] [state .tab-group-solid]
+          The kind row uses the .kind-chip-row wrapper with four
+          Chip primitives (spec 0205 Bug 4 migration; spec 0205.2
+          removed the original segmented-control CSS that briefly
+          survived alongside); the agent and state filters use the
+          canonical
+          .tab-group-solid segmented control (renamed from .fgroup by
+          spec 0173 §2.3, with `[data-active="true"]` attribute state
+          replacing `.is-active` class). Pre-0151 this row used <Chip>
+          for everything with label-embedded count strings
+          (`Issues (3)`) — superseded so counts render as separate
+          tokens per the target. Spec 0173 §2.4 adds per-segment counts
+          on every button (incl. All and Drift at 0, chip-stability
+          rule from spec 0167 §2.2). */}
       {!isSummary && (
         <header className="bar2 crit-filter-row">
           {/* Spec 0167 §2.5 / §2.6 — kind-cluster order locked to
@@ -7552,14 +7554,15 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
               `.crit-totals` is the run-wide global; the kind cluster
               shows per-kind phase counts only.
 
-              Spec 0205 Bug 4 — switched from `<Tab variant="kind">` /
-              `<TabGroup variant="kind-tabs">` (plain segmented buttons,
-              monochrome) to the kind `<Chip>` primitive used on
-              card heads, so filter and card carry one visual
-              vocabulary: per-kind brand tone (info/warn/err/idle)
-              + Q/D/I/C category bubble + trailing count. _ITEM_KIND_*
-              constants at L1521-L1530 stay the single source of truth
-              for tone/letter/label across both surfaces. */}
+              Spec 0205 Bug 4 — switched from the legacy plain
+              segmented-button tabs (monochrome) to the kind `<Chip>`
+              primitive used on card heads, so filter and card carry
+              one visual vocabulary: per-kind brand tone
+              (info/warn/err/idle) + Q/D/I/C category bubble + trailing
+              count. _ITEM_KIND_* constants at L1521-L1530 stay the
+              single source of truth for tone/letter/label across both
+              surfaces. Spec 0205.2 then removed the dead JSX variants
+              and CSS rules that briefly survived the migration. */}
           <div className="kind-chip-row" role="group" aria-label="Filter by item kind">
             {['questions', 'disagreements', 'issues', 'comments'].map((kind) => {
               const singular = kind.slice(0, -1);
