@@ -1091,6 +1091,15 @@ body.light .tab-group.tabs-solid .tab.is-active,
   .crit2 .bar2.crit-filter-row .chip[data-kind-filter] .chip-label {
     display: none;
   }
+  /* Spec 0203 §2.3 — kind tabs migrated to `.kind-tab` (spec 0151
+     §3.4.1); the legacy `.chip[data-kind-filter] .chip-label` rule
+     above is dead code today. Mirror the label-drop on the live
+     class so narrow-mode actually hides the kind labels per
+     BDD Scenario 3. */
+  .crit2 .bar2 .kind-tab .chip-label,
+  .crit2 .bar2 .kind-tab > span:not(.chip-value):not(.cat-bubble):not(.chip-leading-icon) {
+    display: none;
+  }
   .crit2 .bar2.crit-filter-row .crit-filter-spacer {
     width: 6px; flex: 0 0 6px;
   }
@@ -4559,23 +4568,47 @@ body.light .tour-spotlight__dim {
   padding: 6px 12px;
   min-height: 0;
 }
-/* Spec 0173 §2.5 — spacer pushes the lifecycle chip (and any trailing
-   chips) to the right edge of the head. Replaces the prior
-   `margin-left: auto` on the sources chip (which was dropped). */
+/* Spec 0173 §2.5 — spacer pushes any trailing chip (now the state chip
+   per spec 0203 §2.5) to the right edge of the head. The state chip
+   itself also carries margin-left: auto as a belt-and-suspenders for
+   wrap-edge cases. */
 .item-card__head-spacer { flex: 1; min-width: 0; }
 
-/* Spec 0173 §2.6 + §2.8 — lifecycle chip cluster (resolved variant
-   uses a `raised · resolved` two-chip composition; open / drift use a
-   single chip and skip the cluster wrapper). */
-.item-card__lifecycle {
+/* Spec 0203 §2.5 (V2 iter-7/8/10) — explicit round + state chips
+   replace the legacy composite `.item-card__lifecycle` cluster.
+   Capitalisation lives in CSS (text-transform on the chip-label) so
+   the JSX label can stay lowercase and `R<N>` keeps its case. */
+.item-card__head [data-chip-role="round"] .chip-label,
+.item-card__head [data-chip-role="state"] .chip-label {
+  text-transform: capitalize;
+}
+.item-card__head [data-chip-role="state"] { margin-left: auto; }
+.item-card__head .chip .chip-sep {
+  display: inline-block;
+  margin: 0 4px;
+  opacity: 0.4;
+  font-weight: 400;
+}
+.item-card__head [data-chip-role="state"] .state-actor {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  vertical-align: middle;
+  cursor: help;
 }
-.item-card__lifecycle-sep {
-  color: var(--md-on-surface-variant);
-  font-size: 11px;
-  user-select: none;
+.item-card__head [data-chip-role="state"] .state-actor .chip-leading-icon {
+  display: inline-flex;
+  align-items: center;
+}
+/* Spec 0203 §2.7 — icon-only evidence-needed chip. Small (28×28 px)
+   blue pill with a native browser tooltip on hover. Replaces the
+   legacy full-text warn-toned "evidence needed" chip. */
+.item-card__head .chip.evidence-chip {
+  cursor: help;
+  padding: 0 6px;
+  height: 22px;
+  min-width: 22px;
+  align-items: center;
+  justify-content: center;
 }
 .item-card__body {
   color: var(--md-on-surface);
@@ -4599,50 +4632,69 @@ body.light .tour-spotlight__dim {
    once nothing in the tree references the class. */
 .item-card__evidence-needed { display: none; }
 
-/* Spec 0173 §2.9 — expanded-view thread bubbles. Each transition
-   (raised, pushback, conceded, resolved) renders as a tonal-tinted
-   message bubble carrying the agent identity, round, verdict pill,
-   and the quote inside. Mirrors QuestionThread `.lc-row` anatomy
-   from shared.jsx, scoped under `.item-card` so the rules don't
-   collide with the Critique pane's primary bubble timeline. */
-.item-card__qt-rows {
+/* Spec 0203 §2.6 — expanded-view LIFECYCLE section. Replaces the
+   §2.9 `.item-card__qt-*` thread bubbles. Anatomy:
+     <section .item-card__lifecycle-section>
+       <div .item-card__lifecycle-section-hd> LIFECYCLE
+       <div .lc-rows>
+         <div .lc-row data-actor=…>
+           <div .lc-row-chips> [provider][round][verb][extras?]
+           <div .lc-row-quote> italic serif quote
+   V2.A — the wrapper class is `.item-card__lifecycle-section`, NOT
+   `.item-card__lifecycle` (which was the legacy head-cluster wrapper,
+   removed in §2.5). V2.C — align-items: stretch on .lc-rows and
+   align-self: stretch on .lc-row keep each row's chip cluster
+   left-aligned regardless of quote length. */
+.item-card__lifecycle-section {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--md-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.item-card__lifecycle-section-hd {
+  font-family: var(--md-font-data, ui-monospace, monospace);
+  font-weight: 600;
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+}
+.item-card__lifecycle-section .lc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: stretch;
+}
+.item-card__lifecycle-section .lc-row {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 8px 0 0;
-  padding: 0;
+  align-self: stretch;
 }
-.item-card__qt-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: var(--md-shape-sm);
-  background: var(--md-surface-container-low);
-  border-left: 2px solid var(--md-outline-hair);
-}
-.item-card__qt-row--claude {
-  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container-low));
-  border-left-color: var(--p-sable);
-}
-.item-card__qt-row--gpt {
-  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container-low));
-  border-left-color: var(--p-sage);
-}
-.item-card__qt-chips {
-  display: flex;
-  flex-wrap: wrap;
+.item-card__lifecycle-section .lc-row-chips {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.item-card__qt-quote {
+.item-card__lifecycle-section .lc-row-quote {
   margin: 0;
   padding: 0;
   color: var(--md-on-surface);
-  font-family: var(--md-font-brand, var(--md-font-plain));
+  font-family: var(--md-font-brand, "Roboto Serif", Georgia, serif);
   font-style: italic;
   font-size: 13px;
   line-height: 1.55;
+}
+/* Tint the provider chip inside lc-rows the same way the head does,
+   so the lifecycle stack reads as one continuous provider thread. */
+.item-card__lifecycle-section .lc-row-chips .chip.tone-claude {
+  background: color-mix(in srgb, var(--p-sable) 30%, transparent);
+}
+.item-card__lifecycle-section .lc-row-chips .chip.tone-gpt {
+  background: color-mix(in srgb, var(--p-sage) 30%, transparent);
 }
 .item-card__timeline {
   display: flex;
@@ -4720,7 +4772,8 @@ body.light .tour-spotlight__dim {
 .item-card[data-expanded="false"] .item-card__timeline,
 .item-card[data-expanded="false"] .item-card__sources,
 .item-card[data-expanded="false"] .item-card__footer,
-.item-card[data-expanded="false"] .item-card__lifecycle-footer {
+.item-card[data-expanded="false"] .item-card__lifecycle-footer,
+.item-card[data-expanded="false"] .item-card__lifecycle-section {
   display: none;
 }
 .item-card[data-expanded="false"] .item-card__head { cursor: pointer; }

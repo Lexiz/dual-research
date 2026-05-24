@@ -1404,16 +1404,30 @@ function SourceRow({ record, provider, round, defaultExpanded = false }) {
        : record.raisedInRound != null ? record.raisedInRound
        : record.raised_in_round != null ? record.raised_in_round
        : null);
+  // Spec 0203 §2.8 — attribution chip per iter-13/iter-14: mono +
+  // `R<N>` (capital R) + native tooltip "Provided by <Agent> in round
+  // <N>". Provider's brand square renders inline via leadingIcon.
   const attrAgent = _resolveAgent(attrProvider);
+  const attrAgentName = attrAgent === 'gpt' ? 'GPT' : attrAgent === 'claude' ? 'Claude' : null;
   const attributionChip = (attrAgent && attrRound != null) ? (
     <Chip
       tone={attrAgent === 'gpt' ? 'gpt' : 'claude'}
+      mono
       size="sm"
+      className="source-meta-chip"
       leadingIcon={<AgentIcon agent={attrAgent} size={10} />}
-      label={`r${attrRound}`}
+      label={`R${attrRound}`}
+      title={`Provided by ${attrAgentName} in round ${attrRound}`}
     />
   ) : (attrProvider === 'auto' || attrProvider === 'orchestrator' || attrProvider === 'system') && attrRound != null ? (
-    <Chip tone="neutral" noDot size="sm" label={`auto · r${attrRound}`} />
+    <Chip
+      tone="neutral"
+      mono
+      size="sm"
+      className="source-meta-chip"
+      label={`Auto · R${attrRound}`}
+      title={`Auto-attributed in round ${attrRound}`}
+    />
   ) : null;
 
   return (
@@ -1492,7 +1506,7 @@ const _ITEM_KIND_LABEL = {
   issue: 'Issue', comment: 'Comment',
 };
 const _ITEM_KIND_TONE = {
-  question: 'info', disagreement: 'warn', issue: 'err', comment: 'muted',
+  question: 'info', disagreement: 'warn', issue: 'err', comment: 'idle',
 };
 const _ITEM_KIND_LETTER = {
   question: 'Q', disagreement: 'D', issue: 'I', comment: 'C',
@@ -1508,72 +1522,121 @@ function _resolveAgent(actor) {
   return null;
 }
 
-// Spec 0173 §2.9 — ItemCardThreadView. Renders the raise → respond →
-// resolve arc as tonal-tinted message bubbles, mirroring the
-// QuestionThread anatomy from design-system/SPEC.md §4.2 (canonical
-// `.qthread` `.lc-row` chip-cluster + indented quote body). The first
-// bubble is always the "raised" turn (with item.body as the quote);
-// subsequent bubbles come from `item.transitions` in chronological
-// order. Verdict tone follows the existing `_verbTone` mapping.
-function ItemCardThreadView({ item }) {
+// Spec 0203 §2.6 — ItemCardLifecycleSection. Replaces ItemCardThreadView
+// inside ItemCardDQBody / ItemCardIssueBody / ItemCardCommentBody.
+// Emits a `LIFECYCLE` overline header + a stack of `.lc-row` entries
+// (chip cluster on top, italic-serif quote beneath). The raise row is
+// synthesized from item.body + raisedBy; subsequent rows come from
+// item.transitions in chronological order. Orchestrator-actor rows
+// skip the provider chip (matches V2 iter-12 + the prototype at
+// prototypes/critique-iteration/proposed.html). Per V2.A this uses
+// `.item-card__lifecycle-section` to avoid collision with the legacy
+// `.item-card__lifecycle` head-cluster class (removed in §2.5).
+function ItemCardLifecycleSection({ item }) {
   const transitions = item.transitions || [];
-  const raisedAgent = _resolveAgent(item.raisedBy || item.raiser);
+  const raisedActor = item.raisedBy || item.raiser || null;
+  const raisedAgent = _resolveAgent(raisedActor);
   const raisedRound = item.raisedRound || item.raised_round || item.roundFirstSeen || item.openedRound || null;
   const raisedQuote = item.body || '';
-  const turns = [];
-  if (raisedAgent || raisedRound != null || raisedQuote) {
-    turns.push({
-      agent: raisedAgent,
+  const evidenceList = item.evidence || item.sources || item.references || [];
+  const hasEvidence = Array.isArray(evidenceList) && evidenceList.length > 0;
+
+  const rows = [];
+  if (raisedAgent || raisedActor || raisedRound != null || raisedQuote) {
+    rows.push({
+      actor: raisedAgent || raisedActor || 'orchestrator',
+      providerAgent: raisedAgent,
       round: raisedRound,
       verb: 'raised',
-      tone: 'muted',
-      text: raisedQuote,
+      verbTone: 'info',
+      quote: raisedQuote,
+      isRaise: true,
     });
   }
   for (const t of transitions) {
+    const actorAgent = _resolveAgent(t.actor);
     const verb = _transitionVerb(t);
-    turns.push({
-      agent: _resolveAgent(t.actor),
+    rows.push({
+      actor: actorAgent || (t.actor || 'orchestrator'),
+      providerAgent: actorAgent,
       round: t.round,
       verb,
-      tone: _verbTone(verb),
-      text: t.reason || '',
+      verbTone: _verbTone(verb) === 'error' ? 'err' : _verbTone(verb),
+      quote: t.reason || '',
+      isRaise: false,
     });
   }
-  if (turns.length === 0) return null;
+  if (rows.length === 0) return null;
+
+  // Spec 0203 §2.7 — inject extras chips into lifecycle rows.
+  // - Raise row: [source requested] when item.evidenceRequired is true.
+  // - First Claude / GPT transition: [source provided] when the card
+  //   carries ≥ 1 evidence record. We mark "first agent transition"
+  //   at row-build time so the render loop can check it cheaply.
+  let firstAgentTransitionIdx = -1;
+  for (let i = 0; i < rows.length; i += 1) {
+    const r = rows[i];
+    if (!r.isRaise && (r.providerAgent === 'claude' || r.providerAgent === 'gpt')) {
+      firstAgentTransitionIdx = i;
+      break;
+    }
+  }
+
   return (
-    <ol className="item-card__qt-rows" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {turns.map((t, i) => {
-        const agentName = t.agent === 'gpt' ? 'GPT' : t.agent === 'claude' ? 'Claude' : 'System';
-        return (
-          <li key={i} className={`item-card__qt-row item-card__qt-row--${t.agent || 'system'}`}>
-            <div className="item-card__qt-chips">
-              {t.agent ? (
-                <Chip
-                  tone={t.agent === 'gpt' ? 'gpt' : 'claude'}
-                  size="sm"
-                  leadingIcon={<AgentIcon agent={t.agent} size={10} />}
-                  label={agentName}
-                />
-              ) : (
-                <SystemChip />
-              )}
-              {t.round != null && (
-                <Chip mono size="sm" tone="neutral" label={`round ${t.round}`} />
-              )}
-              {t.verb && (
-                <Chip size="sm" tone={t.tone === 'error' ? 'err' : t.tone} label={t.verb} />
+    <section className="item-card__lifecycle-section">
+      <div className="item-card__lifecycle-section-hd">LIFECYCLE</div>
+      <div className="lc-rows">
+        {rows.map((r, i) => {
+          const showSourceRequested = r.isRaise && item.evidenceRequired === true;
+          const showSourceProvided = i === firstAgentTransitionIdx && hasEvidence;
+          return (
+            <div key={i} className="lc-row" data-actor={r.actor}>
+              <div className="lc-row-chips">
+                {r.providerAgent ? (
+                  <Chip
+                    tone={r.providerAgent === 'gpt' ? 'gpt' : 'claude'}
+                    size="sm"
+                    leadingIcon={<AgentIcon agent={r.providerAgent} size={10} />}
+                    label={r.providerAgent === 'gpt' ? 'GPT' : 'Claude'}
+                  />
+                ) : null}
+                {r.round != null && (
+                  <Chip mono size="sm" tone="neutral" label={`round ${r.round}`} />
+                )}
+                {r.verb && (
+                  <Chip size="sm" tone={r.verbTone} label={r.verb} />
+                )}
+                {showSourceRequested && (
+                  <Chip
+                    size="sm"
+                    tone="info"
+                    className="lc-extra"
+                    data-extra="source-requested"
+                    leadingIcon={<Mdi name="link-variant" size={11} />}
+                    label="source requested"
+                  />
+                )}
+                {showSourceProvided && (
+                  <Chip
+                    size="sm"
+                    tone="ok"
+                    className="lc-extra"
+                    data-extra="source-provided"
+                    leadingIcon={<Mdi name="link-variant" size={11} />}
+                    label="source provided"
+                  />
+                )}
+              </div>
+              {r.quote && (
+                <div className="lc-row-quote">
+                  {typeof r.quote === 'string' ? <Markdown text={r.quote} /> : r.quote}
+                </div>
               )}
             </div>
-            {t.text && (
-              <blockquote className="item-card__qt-quote">
-                {typeof t.text === 'string' ? <Markdown text={t.text} /> : t.text}
-              </blockquote>
-            )}
-          </li>
-        );
-      })}
-    </ol>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1675,12 +1738,7 @@ function ItemCardDQBody({ item, transitions }) {
         <span style={{ flex: 1 }} />
         <span className="item-card__turn-count">{turnsCount} turn{turnsCount === 1 ? '' : 's'}</span>
       </div>
-      {/* Spec 0173 §2.9 — flat ItemCardTurnRow stack replaced by the
-          QuestionThread-anatomy bubble timeline. The new view carries
-          the same data (agent identity, round, verb, quote) but renders
-          each transition as a tonal-tinted message bubble keyed off
-          provider, mirroring `.lc-row` from shared.jsx::QuestionThread. */}
-      <ItemCardThreadView item={item} />
+      <ItemCardLifecycleSection item={item} />
     </div>
   );
 }
@@ -1706,7 +1764,7 @@ function ItemCardIssueBody({ item, anchorType, anchorText }) {
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
-      <ItemCardThreadView item={item} />
+      <ItemCardLifecycleSection item={item} />
     </div>
   );
 }
@@ -1730,7 +1788,7 @@ function ItemCardCommentBody({ item, anchorType, anchorText }) {
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
-      <ItemCardThreadView item={item} />
+      <ItemCardLifecycleSection item={item} />
     </div>
   );
 }
@@ -1866,11 +1924,12 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
     );
   }
 
-  // Spec 0173 §2.5 + §2.6 + §2.7 + §2.8 — rebuilt head composition.
-  // `[provider chip] [kind chip] [evidence-needed modifier?] [lifecycle chip — right-aligned]`.
-  // The ID chip and the standalone sources chip are dropped (per §2.5
-  // and the deferred 0168 §2.3 covered by spec 0172). The state chip
-  // is subsumed by the lifecycle chip per §2.8.
+  // Spec 0203 §2.5 — rebuilt head composition (V2 iter-7/8/10).
+  // Left-to-right: [provider][round][kind][evidence-needed?]<spacer/>[state].
+  // The composite lifecycleChip cluster is replaced by two explicit chips:
+  // a mono "Raised · R<N>" round chip and a tone-mapped state chip
+  // ("<Verb> · <resolver icon?> · R<N>"). CSS handles capitalisation and
+  // right-alignment via [data-chip-role="round"|"state"] selectors.
   const providerChip = raisedByAgent ? (
     <Chip
       tone={raisedByAgent === 'gpt' ? 'gpt' : 'claude'}
@@ -1880,61 +1939,83 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
     />
   ) : <SystemChip />;
 
-  const kindChip = (
-    <Chip tone={kindTone} size="sm" categoryBubble={kindLetter} label={kindLabel} />
-  );
-
-  const evidenceModifierChip = evidenceRequired ? (
+  const roundChip = raisedRound != null ? (
     <Chip
-      tone="warn"
+      tone="neutral"
+      mono
       size="sm"
-      leadingIcon={<Mdi name="alert" size={12} />}
-      label="evidence needed"
+      data-chip-role="round"
+      label={<>raised<span className="chip-sep" aria-hidden="true">·</span>R{raisedRound}</>}
     />
   ) : null;
 
-  // Lifecycle chip — composite arc. Drift: err tone, raised + drift
-  // narrative. Resolved: ok-toned cluster of two micro-chips (raised
-  // by · resolved by). Open: kind-toned single chip with raised
-  // provenance. Auto-resolve uses SystemChip leading icon per §2.8.
-  let lifecycleChip;
+  const kindChip = (
+    <Chip tone={kindTone} size="sm" data-chip-role="kind" categoryBubble={kindLetter} label={kindLabel} />
+  );
+
+  // Spec 0203 §2.7 — evidence-needed signal: tone-info icon-only chip
+  // with a native tooltip carrying the full sentence. Replaces the
+  // legacy warn-toned full-text chip ("evidence needed").
+  const evidenceModifierChip = evidenceRequired ? (
+    <Chip
+      tone="info"
+      size="sm"
+      iconOnly
+      data-chip-role="evidence"
+      className="evidence-chip"
+      leadingIcon={<Mdi name="link-variant" size={12} />}
+      title="Evidence needed — addresses must cite consulted sources."
+      ariaLabel="Evidence needed"
+    />
+  ) : null;
+
+  // State chip — terminal/drift only. Open/addressed cards skip the
+  // state chip; their status is conveyed by the kind chip's tone and
+  // the absence of a terminal verb. Per iter-10, the resolver brand
+  // icon renders inline (between verb and round) only when the
+  // resolver is Claude or GPT; orchestrator/system resolutions
+  // (isAutoResolve === true) fall back to the verb + round only.
+  let stateChip = null;
   if (isDrift) {
-    lifecycleChip = (
+    stateChip = (
       <Chip
         tone="err"
         size="sm"
-        leadingIcon={raisedByAgent ? <AgentIcon agent={raisedByAgent} size={10} /> : null}
-        label={`raised r${raisedRound || '?'} · drift`}
+        data-chip-role="state"
+        label="drift"
       />
     );
   } else if (isTerminal) {
-    lifecycleChip = (
-      <span className="item-card__lifecycle">
-        <Chip
-          tone="muted"
-          size="sm"
-          leadingIcon={raisedByAgent ? <AgentIcon agent={raisedByAgent} size={10} /> : null}
-          label={`raised r${raisedRound || '?'}`}
-        />
-        <span className="item-card__lifecycle-sep" aria-hidden="true">·</span>
-        <Chip
-          tone="ok"
-          size="sm"
-          leadingIcon={isAutoResolve
-            ? <Mdi name="cog-outline" size={10} />
-            : <AgentIcon agent={resolvedByAgent} size={10} />}
-          label={`resolved r${resolvedRound || '?'}${isAutoResolve ? ' · auto' : ''}`}
-        />
-      </span>
-    );
-  } else {
-    const agentSuffix = raisedByAgent === 'gpt' ? ' · GPT' : raisedByAgent === 'claude' ? ' · Claude' : '';
-    lifecycleChip = (
+    const verb = (_FOOTER_VERBS[item.kind] || {})[stateLabel] || stateLabel;
+    const stateTone = stateLabel === 'capped' ? 'err'
+                    : stateLabel === 'acknowledged' ? 'warn'
+                    : stateLabel === 'withdrawn' ? 'idle'
+                    : 'ok';
+    const showActorIcon = !isAutoResolve && (resolvedByAgent === 'claude' || resolvedByAgent === 'gpt');
+    stateChip = (
       <Chip
-        tone={kindTone}
+        tone={stateTone}
         size="sm"
-        leadingIcon={raisedByAgent ? <AgentIcon agent={raisedByAgent} size={10} /> : null}
-        label={`raised · r${raisedRound || '?'}${agentSuffix}`}
+        data-chip-role="state"
+        label={
+          <>
+            {verb}
+            {showActorIcon && (
+              <>
+                <span className="chip-sep" aria-hidden="true">·</span>
+                <span className="state-actor" title={resolvedByAgent === 'gpt' ? 'GPT' : 'Claude'} aria-label={resolvedByAgent === 'gpt' ? 'GPT' : 'Claude'}>
+                  <span className="chip-leading-icon" aria-hidden="true"><AgentIcon agent={resolvedByAgent} size={10} /></span>
+                </span>
+              </>
+            )}
+            {resolvedRound != null && (
+              <>
+                <span className="chip-sep" aria-hidden="true">·</span>
+                R{resolvedRound}
+              </>
+            )}
+          </>
+        }
       />
     );
   }
@@ -1976,10 +2057,11 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
         onKeyDown={onHeadKey}
       >
         {providerChip}
+        {roundChip}
         {kindChip}
         {evidenceModifierChip}
         <span className="item-card__head-spacer" aria-hidden="true" />
-        {lifecycleChip}
+        {stateChip}
       </header>
       {body}
       {lifecycleFooter}
