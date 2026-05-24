@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:54:19Z",
+  "updated_at": "2026-05-24T02:59:41Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7658,7 +7658,7 @@
       "handover": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md"
     },
     "0204": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T00:29:09Z",
       "events": [
         {
@@ -7666,7 +7666,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T02:59:41Z"
     },
     "0203.1": {
       "status": "deployed",
