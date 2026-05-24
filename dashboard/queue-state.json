@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:41:50Z",
+  "updated_at": "2026-05-24T02:42:08Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7842,6 +7842,14 @@
           "ts": "2026-05-24T02:41:50Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T02:42:08Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0203.2-current-queue-stale-frontmatter-queue-state-overlay",
+            "from": "main@f2f5e9e"
+          }
         }
       ],
       "started_at": "2026-05-24T02:41:46Z"
