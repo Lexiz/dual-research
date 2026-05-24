@@ -1055,8 +1055,33 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 /* Spec 0203 §2.3 — same backstop on the kind cluster itself; its inline
    flex defaults to nowrap but the !important guards against future
-   ancestor rules that try to wrap it. */
-.crit2 .bar2 .kind-tabs { flex-wrap: nowrap !important; }
+   ancestor rules that try to wrap it. Spec 0205 Bug 4 — `.kind-tabs`
+   was retired in favour of the `.kind-chip-row` wrapper holding four
+   kind `<Chip>` primitives; both selectors stay listed because the
+   narrow-mode label-collapse rule below still targets the old
+   `.kind-tab` markup for any pre-0205 surface that hasn't migrated. */
+.crit2 .bar2 .kind-tabs,
+.crit2 .bar2 .kind-chip-row { flex-wrap: nowrap !important; }
+/* Spec 0205 Bug 4 — filter-row kind chips share the same Chip
+   primitive as card heads, with an active state lift via the
+   data-active attribute (info/warn/err/idle tone fills come from
+   the tone- class). On click, data-active toggles; idle chips show
+   the bubble + label + count without the lift. */
+.crit2 .bar2 .kind-chip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.crit2 .bar2 .kind-chip-row .chip[data-active="false"] {
+  opacity: 0.72;
+}
+.crit2 .bar2 .kind-chip-row .chip[data-active="true"] {
+  box-shadow: var(--md-elev-1);
+  opacity: 1;
+}
+.crit2 .bar2 .kind-chip-row .chip:hover {
+  opacity: 1;
+}
 .crit-filter-spacer {
   width: 12px; height: 1px; flex: 0 0 12px;
 }
@@ -1091,13 +1116,16 @@ body.light .tab-group.tabs-solid .tab.is-active,
   .crit2 .bar2.crit-filter-row .chip[data-kind-filter] .chip-label {
     display: none;
   }
-  /* Spec 0203 §2.3 — kind tabs migrated to `.kind-tab` (spec 0151
-     §3.4.1); the legacy `.chip[data-kind-filter] .chip-label` rule
-     above is dead code today. Mirror the label-drop on the live
-     class so narrow-mode actually hides the kind labels per
-     BDD Scenario 3. */
+  /* Spec 0203 §2.3 / Spec 0205 Bug 4 — kind chips migrated from
+     `.kind-tab` to the Chip primitive inside `.kind-chip-row`. Drop
+     the label in narrow mode so the cat-bubble + count carry the
+     identity (bubble Q/D/I/C is unambiguous). The .kind-tab rule
+     stays for any legacy surface that hasn't migrated. */
   .crit2 .bar2 .kind-tab .chip-label,
   .crit2 .bar2 .kind-tab > span:not(.chip-value):not(.cat-bubble):not(.chip-leading-icon) {
+    display: none;
+  }
+  .crit2 .bar2 .kind-chip-row .chip[data-kind] .chip-label {
     display: none;
   }
   .crit2 .bar2.crit-filter-row .crit-filter-spacer {
@@ -4734,18 +4762,25 @@ body.light .tour-spotlight__dim {
   padding-top: 8px;
   border-top: 1px dashed var(--md-outline-hair);
 }
+/* Spec 0205 Bug 1 + Bug 3 — Sources segment indents inside the card
+   chrome (matches the head's 12 px and lifecycle's 16 px interior
+   gutter) and the header carries the canonical link-variant glyph. */
 .item-card__sources {
   margin-top: 4px;
-  padding-top: 10px;
+  padding: 10px 16px 14px;
   border-top: 1px dashed var(--md-outline-hair);
 }
 .item-card__sources-hd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--md-on-surface-variant);
   margin-bottom: 8px;
 }
+.item-card__sources-hd svg { display: block; }
 .item-card__sources-chip {
   border: 0;
   background: var(--md-surface-container-low);
@@ -4891,8 +4926,11 @@ body.light .tour-spotlight__dim {
    manual `[shortCode] [state] — <title>` row that surfaced literal
    `**` delimiters) are dead and removed. State signalling lives on
    the head's lifecycle chip (spec 0173 §2.8). */
+/* Spec 0205 Bug 2 — inline anchor blockquote sits below the lifecycle
+   section. Aligns with the section's 16 px interior gutter so the two
+   blocks share one indentation rather than fighting the card chrome. */
 .item-card__quote-inline {
-  margin: 0;
+  margin: 0 16px 14px;
   padding: 4px 0 4px 10px;
   border-left: 2px solid var(--md-outline-hair);
   font-size: 12px;
@@ -4979,29 +5017,56 @@ body.light .tour-spotlight__dim {
   padding-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
+/* Spec 0205 Bug 1 — label · value rows. Label sits left as a
+   t-overline-style header (uppercase, faint), value flows to the
+   right of it. The row uses a two-column grid so values align even
+   when labels wrap. */
 .source-row__field {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) 1fr;
+  gap: 10px;
+  align-items: baseline;
   font-size: 12px;
   color: var(--md-on-surface-variant);
-  margin: 2px 0;
+  margin: 0;
   word-break: break-word;
+}
+.source-row__field > a,
+.source-row__field > span,
+.source-row__field > code {
+  min-width: 0;
 }
 .source-row__label {
   color: var(--md-on-surface-faint);
-  font-size: 11px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 .source-row__excerpt-wrap {
   margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+/* Spec 0205 Bug 1 — content excerpt rendered as a tinted blockquote
+   with a brand-toned left border, matching the reference shot in
+   design-system/notion-issues/screenshots/. Pre-0205 it was a <pre>
+   block which read as raw debug output. */
 .source-row__excerpt {
   white-space: pre-wrap;
   font-size: 11.5px;
-  padding: 6px 8px;
-  background: var(--md-surface);
-  border-radius: 4px;
-  margin: 2px 0 0;
+  padding: 8px 12px;
+  background: var(--md-surface-container-low);
+  border-left: 2px solid var(--md-outline);
+  border-radius: 0 4px 4px 0;
+  margin: 0;
   color: var(--md-on-surface);
+  font-family: var(--md-font-brand, "Roboto Serif", Georgia, serif);
+  font-style: italic;
+  line-height: 1.5;
 }
 .source-row.is-unverified {
   border-color: var(--md-tone-warn-border, #b8860b66);

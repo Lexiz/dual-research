@@ -723,7 +723,20 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
   opacity: 0.55;
 }
 
-/* Kind tabs (Bar 2) */
+/* Spec 0205 Bug 4 — kind filter chips (Bar 2). Migrated from the
+   legacy `.kind-tab` segmented control to the shared Chip primitive
+   so filter and card heads carry one visual vocabulary: per-kind
+   brand tone (info/warn/err/idle) + Q/D/I/C category bubble +
+   trailing count. The `.kind-tab` rules below stay for any legacy
+   surface that hasn't migrated. */
+.kind-chip-row {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.kind-chip-row .chip[data-active="false"] { opacity: 0.72; }
+.kind-chip-row .chip[data-active="true"]  { box-shadow: var(--md-elev-1); opacity: 1; }
+.kind-chip-row .chip:hover { opacity: 1; }
+
+/* Kind tabs (Bar 2) — legacy */
 .kind-tabs { display: inline-flex; gap: 2px; }
 .kind-tab {
   display: inline-flex; align-items: center; gap: 8px;
@@ -2299,6 +2312,19 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   background: color-mix(in srgb, var(--p-sage) 30%, transparent);
 }
 
+/* Spec 0205 Bug 2 — inline anchor blockquote for Issue / Comment
+   bodies. Sits below the lifecycle section (lifecycle leads); the
+   16 px lateral margin keeps it aligned with the lifecycle's
+   interior gutter so the two blocks share one indentation. */
+.item-card__quote-inline {
+  margin: 0 16px 14px;
+  padding: 4px 0 4px 10px;
+  border-left: 2px solid var(--md-outline-hair);
+  font: var(--md-w-regular) 12px/1.5 var(--md-font-plain);
+  color: var(--md-on-surface-variant);
+  white-space: pre-wrap;
+}
+
 .crit-card-id {
   font: var(--md-w-regular) 10.5px/1.2 var(--md-font-data);
   color: var(--md-on-surface-faint);
@@ -2356,17 +2382,22 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
 .crit-card.is-drift        .lc-footer { background: color-mix(in srgb, var(--p-err)  14%, var(--md-surface-container-high)); color: var(--p-err); }
 
 /* ── SOURCES segment (per-card) ───────────────────── */
+/* Spec 0205 Bug 1 + Bug 3 — segment indents inside the card chrome
+   (16 px interior gutter to match the lifecycle section) and the
+   header carries the canonical link-variant glyph. */
 .item-card__sources {
   margin-top: 14px;
-  padding-top: 10px;
+  padding: 10px 16px 14px;
   border-top: 1px dashed var(--md-outline-hair);
 }
 .item-card__sources-hd {
+  display: inline-flex; align-items: center; gap: 6px;
   font: var(--md-w-medium) 11px/1 var(--md-font-plain);
   letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--md-on-surface-variant);
   margin-bottom: 8px;
 }
+.item-card__sources-hd svg { display: block; }
 .item-card__sources-hd .count {
   text-transform: none; letter-spacing: 0;
   color: var(--md-on-surface-faint);
@@ -2417,28 +2448,45 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   display: flex; flex-direction: column; gap: 6px;
 }
 .source-row[data-open="false"] .source-row__body { display: none; }
+/* Spec 0205 Bug 1 — URL · FETCHED · SEARCH QUERY rows render as a
+   two-column grid (t-overline label · value) so values align even
+   when labels wrap. The content-excerpt below uses a tinted
+   blockquote with a brand-toned left border. */
 .source-row__field {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) 1fr;
+  gap: 10px;
+  align-items: baseline;
   font: var(--md-w-regular) 12px/1.4 var(--md-font-plain);
   color: var(--md-on-surface-variant);
+  word-break: break-word;
 }
+.source-row__field > a,
+.source-row__field > span,
+.source-row__field > code { min-width: 0; }
 .source-row__label {
-  font: var(--md-w-medium) 10.5px/1 var(--md-font-plain);
-  letter-spacing: 0.06em; text-transform: uppercase;
+  font: var(--md-w-semi) 10.5px/1 var(--md-font-plain);
+  letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--md-on-surface-faint);
-  margin-right: 6px;
 }
 .source-row__url {
   font-family: var(--md-font-data); font-size: 11.5px;
   color: var(--p-info); word-break: break-all;
 }
+.source-row__excerpt-wrap {
+  margin-top: 4px;
+  display: flex; flex-direction: column; gap: 4px;
+}
 .source-row__excerpt {
   font: italic var(--md-w-regular) 11.5px/1.5 var(--md-font-brand);
-  color: var(--md-on-surface-variant);
-  padding: 8px 10px;
-  background: var(--md-surface);
-  border-radius: var(--md-shape-xs);
-  max-height: 160px; overflow-y: auto;
-  margin-top: 2px;
+  color: var(--md-on-surface);
+  padding: 8px 12px;
+  background: var(--md-surface-container-low);
+  border-left: 2px solid var(--md-outline);
+  border-radius: 0 var(--md-shape-xs) var(--md-shape-xs) 0;
+  max-height: 200px; overflow-y: auto;
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 /* Unverified state — warn-tinted border + small chip on the row. */

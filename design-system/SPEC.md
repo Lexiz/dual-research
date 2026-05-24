@@ -342,7 +342,7 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 | **Divider** | `.md-divider`, `.md-divider--inset` | — | Hairline, optional inset. |
 | **AgentStrip** | `.as` | `<AgentStrip>` | Equal-width agent identifier with model, tokens, cost, status. Both pills share width via `flex: 1 1 0`. Compact 4 px vertical padding. Inside `.tl__head` / `.tl__tabs` (the `.in-header` variant), the strip carries an 8 % `color-mix` tonal background matching the provider (spec 0164 §2.5). |
 | **Timeline card** | `.tl-thread` (always rendered as `.qthread.tl-thread`) | — (JSX inline in `run-detail.jsx`) | Filled M3 card for one turn row in the timeline pane (spec 0164 §2.4). Surface-container-high background, outline-variant border, 16 dp radius. Four states (rest / hover / expanded-rest / expanded-hover) — hover lifts to `--md-elev-1`, expanded to `--md-elev-2`. Provider stripe via native CSS `:has()` against the card-head identity chip: 2 px sable for Claude, sage for GPT, idle grey for System cards. `overflow: hidden` clips the expanded body's bottom corners during the lift transition. |
-| **SystemChip** | `.chip.tone-neutral.no-dot` (with `.chip-leading-icon`) | `<SystemChip>` | Agentless identity chip — the canonical leading chip on cards where no AI agent owns the turn (Phase 0 brief, future orchestrator status messages, render-error fallback). Anatomy mirrors `<AgentIcon>`: a 12×12 `--p-idle`-coloured square containing the Material `settings` gear at 8×8. Label `System`. Background inside `.tl-card-head` scopes to 20 % `color-mix` of `--p-idle` (spec 0165 §2.2 / 0166 §2.1). |
+| **SystemChip** | `.chip.tone-neutral.no-dot` (with `.chip-leading-icon`) | `<SystemChip>` | Agentless identity chip — the canonical leading chip on cards where no AI agent owns the turn (Phase 0 brief, future orchestrator status messages, render-error fallback). Anatomy mirrors `<AgentIcon>`: a 12×12 `--p-idle`-coloured square containing the Material `settings` gear at 8×8. Label `System`. Background inside `.tl-card-head` scopes to 20 % `color-mix` of `--p-idle` (spec 0165 §2.2 / 0166 §2.1). **Reserved scope (spec 0205 Bug 5):** never used as a fallback identity on critique-item cards (P3 ReviewCard, P4 ItemCard). Critique items are always raised by Claude or GPT; a missing `raisedBy` / `raiser` field on a critique item is a data-layer regression, not a license to render `System`. The fallback in that case is an `err`-toned `Unknown raiser` chip plus a `console.warn` so the regression surfaces. |
 | **ErrorChip** | `.chip.tone-err.no-dot` (with `.chip-leading-icon`) | `<ErrorChip label="…">` | Canonical "couldn't render" chip — sits in place of an activity chip when the data layer hands the renderer something it can't stringify. Inherits the standard `.chip.tone-err` background + text colours (no scoped override). The `label` prop must be one of the canonical phrases in §9.5 (defaults to `"Could not render this turn"`); the same string is mirrored to `aria-label`. Anatomy: filled error-circle SVG at 12×12 in `currentColor` + text label. Spec 0166 §2.2. |
 | **CollapsibleSection** | `.cs-*` | `<CollapsibleSection>` | Generic disclosure primitive. Rotating chevron + count chip. Persists open/closed to `localStorage`. Used inside critique pane sections, How-It-Works sections, timeline phase groups. |
 | **QuoteCallout** | `.quote-callout` | `<QuoteCallout>` | Styled callout for quote fields on critique cards. Left border tinted by agent + serif italic + muted bg. |
@@ -496,13 +496,14 @@ Behaviors: ESC closes, scrim-click closes, focus trap, body overflow lock, theme
 
 ### 4.7 — Sources segment
 
-Spec 0144. The per-evidence-record stack rendered immediately after the lifecycle footer on every critique card.
+Spec 0144. The per-evidence-record stack rendered immediately after the lifecycle on every critique card (spec 0205 — promoted ahead of the terminal footer in the Issue / Comment stacking order; see §4.8).
 
-- **Label.** `Sources (N)` in `t-overline` style — 11 px uppercase, 0.06 em letter-spacing, `--md-on-surface-variant`.
+- **Label.** `Sources (N)` in `t-overline` style — 11 px uppercase, 0.06 em letter-spacing, `--md-on-surface-variant`. **Spec 0205** — preceded by an `mdi:link-variant` glyph (the canonical sources family glyph, matching the head's evidence-required chip and the lifecycle's `source-requested` / `source-provided` chips). Same glyph in every Sources surface across the app (P3 ReviewCard's head Chip, P4 ItemCard's segment header) so evidence-bearing surfaces read as one visual vocabulary.
 - **Separator.** Dashed top border (`1px dashed var(--md-outline-hair)`) above the label.
-- **Body.** Vertical stack of `<SourceRow>` instances, one per evidence record.
+- **Interior gutter.** **Spec 0205** — the segment carries its own `padding-inline` (16 px, matching the lifecycle section's interior gutter) so the SourceRow stack indents inside the card chrome rather than going full-bleed. The card frame itself remains `padding: 0` per spec 0203 §2.4; per-section padding is the canonical pattern.
+- **Body.** Vertical stack of `<SourceRow>` instances, one per evidence record. **Spec 0205** — each expanded row renders URL · FETCHED · SEARCH QUERY as `(t-overline label) · value` two-column rows; CONTENT EXCERPT renders as a tinted `<blockquote>` with `--md-surface-container-low` background + `--md-outline` brand-toned left border, italic-serif typography matching the lifecycle quote. Pre-0205 the excerpt was a `<pre>` block which read as raw debug output.
 - **Empty-state behaviour.** When `N === 0`, **hide the entire segment** (no label, no border, no empty list). A SOURCES segment showing `(0)` on an item that never had source data would be misleading; the segment's presence is itself a signal.
-- **Sources N header chip.** The card header carries a `Sources {N}` chip (when N > 0) that, on click, scrolls the SOURCES segment into view inside the card. Per-card-jump dispatch — consistent with the resolution of spec 0144 open-question #2.
+- **Sources N header chip.** Carried only on the P3 ReviewCard's head (`Chip tone="neutral" leadingIcon={Mdi link-variant} label="Sources" value={N}`). The P4 ItemCard head does NOT carry a Sources chip (retired in spec 0203's V2 rewrite); P4 surfaces sources only via the segment in the expanded card body.
 - **Unverified chip placement.** The `⚠ unverified` chip lives **on the offending source row**, not on the card. A card with 3 sources where only 1 is flagged would mislead with a card-level chip. See spec 0144 open-question #3.
 
 Canonical visual reference: [`audits/2026-05-19-badge-governance-iter3/mockup.html`](audits/2026-05-19-badge-governance-iter3/mockup.html).
@@ -511,16 +512,17 @@ Canonical visual reference: [`audits/2026-05-19-badge-governance-iter3/mockup.ht
 
 Spec 0144. **All four critique-item kinds (Question, Disagreement, Issue, Comment) render with the same card primitive (`<ItemCard>` in `run-detail.jsx`).** This is the §1 invariant that closes B08 (Phase 4 cards missing Issue/Comment patches) and B14 (per-card sources) on the same primitive.
 
-The stacking order, top to bottom:
+The stacking order, top to bottom (spec 0205 — promoted lifecycle ahead of body for Issue / Comment kinds so the raise row's chip cluster + body-as-quote lead the expanded surface; Q/D bodies already led with lifecycle pre-0205):
 
-1. **Header chip row.** `{id}` (mono) · kind · state · `raised by X` · `round N` · `Sources N` (only when N>0; clicking jumps the SOURCES segment).
-2. **Body.** Item text. When `anchor_type !== 'none'`, a tinted blockquote follows.
-3. **Evidence-needed helper.** Italic single line, rendered only when `evidence_required === true`: *Evidence needed — addresses must cite consulted sources.*
-4. **Lifecycle timeline.** Vertical list of transitions; each row is `Round N — from → **to** (via) · by Actor` with the reason underneath in a muted block.
-5. **Footer.** Single dashed-top line: `✓ {terminalState} at round N · M turns to converge`. Rendered when the item is in any terminal state (`resolved` / `acknowledged` / `withdrawn` / `capped`); never rendered when the item is still `open` or `addressed`.
-6. **SOURCES (N).** The §4.7 segment.
+1. **Header chip row.** Provider (Claude / GPT brand chip — never `System` for critique items per spec 0205 Bug 5; `System` is reserved for the Phase 0 brief card in §4.4) · `raised · R<N>` · kind (`Chip` with `categoryBubble` Q/D/I/C and tone info/warn/err/idle) · evidence-needed icon-only chip · spacer · state chip.
+2. **Lifecycle section.** Vertical list of rows; each row is `[provider chip] [round chip] [verb chip] [extras?]` with the reason / raise-quote underneath as italic-serif text. The raise row carries `item.body` as its quote (so a standalone Markdown body block above the lifecycle is redundant — spec 0205 Bug 2).
+3. **Inline anchor blockquote** (Issue / Comment only, when `anchor_type === 'quote'` and `anchorText` is non-empty). A short `> quote: …` line aligned with the lifecycle's interior gutter — spec 0205 Bug 2.
+4. **Footer.** Single dashed-top line: `✓ {terminalState} at round N`. Rendered when the item is in any terminal state (`resolved` / `acknowledged` / `withdrawn` / `capped`); never rendered when the item is still `open` or `addressed`.
+5. **SOURCES (N).** The §4.7 segment.
 
 Only the category chip in (1) varies between kinds. **No kind-specific card variant exists.** The legacy `<QuestionThread>` is retained as a fallback for pre-0114 archived runs (whose items have no `transitions` array) — see [§ 9.5 — Legacy critique renderer](#95--legacy-critique-renderer-pre-0114) if added later; until pre-0114 runs roll out of relevance, the fallback path stays alive.
+
+**Bar 2 kind filter row** (spec 0205 Bug 4) — uses the same `Chip` primitive as the head's kind chip, not the legacy `<Tab variant="kind">` segmented control. Filter chips carry per-kind brand tone (info / warn / err / idle), Q/D/I/C `categoryBubble`, label, and trailing count `value`. `data-active="true"` lifts the chip via `--md-elev-1`; inactive chips dim to opacity 0.72. The single source of truth for tone / letter / label is `_ITEM_KIND_TONE` / `_ITEM_KIND_LETTER` / `_ITEM_KIND_LABEL` in `run-detail.jsx`, shared with the head chip so the filter and card vocabulary stay locked in step. The legacy `.kind-tab` / `.kind-tabs` CSS rules survive for any pre-0205 surface that hasn't migrated.
 
 ---
 

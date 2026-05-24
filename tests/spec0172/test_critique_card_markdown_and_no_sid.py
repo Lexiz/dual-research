@@ -81,10 +81,13 @@ def test_no_head_id_chip(jsx: str) -> None:
     )
 
 
-def test_issue_body_renders_full_markdown(jsx: str) -> None:
-    """`ItemCardIssueBody` must route the full `item.body` through `<Markdown>`,
-    same as `ItemCardCommentBody`, instead of the spec-0151 manual
-    `split('\\n')` heuristic that produced literal `**`."""
+def test_issue_body_does_not_split_on_newline(jsx: str) -> None:
+    """`ItemCardIssueBody` must not carry the spec-0151 manual
+    `split('\\n')` / `titleLine` / `restBody` / `shortCode` heuristic
+    that produced literal `**` for bold-prefixed bodies. The body is
+    rendered via `<ItemCardLifecycleSection />` (spec 0205 Bug 2 — the
+    lifecycle's raise row carries `item.body` as its quote, so the
+    standalone Markdown block above it was a duplicate)."""
     match = re.search(
         r"function ItemCardIssueBody\([^)]*\)\s*\{(?P<body>.*?)\n\}\n",
         jsx,
@@ -93,23 +96,17 @@ def test_issue_body_renders_full_markdown(jsx: str) -> None:
     assert match is not None, "ItemCardIssueBody function body not located"
     fn_body = match.group("body")
 
-    # The split-on-newline / titleLine / restBody heuristic is gone.
+    # The split-on-newline / titleLine / restBody heuristic stays out.
     assert "split('\\n')" not in fn_body, (
-        "ItemCardIssueBody still splits item.body on '\\n' — spec 0172 drops "
-        "the manual title-line heuristic in favour of <Markdown>"
+        "ItemCardIssueBody still splits item.body on '\\n' — spec 0172 dropped "
+        "the manual title-line heuristic; spec 0205 keeps it out"
     )
     assert "titleLine" not in fn_body
     assert "restBody" not in fn_body
-
-    # The body is routed through <Markdown> against item.body directly.
-    md_call = re.search(
-        r"<Markdown\s+text=\{\s*String\(item\.body\)\s*\}", fn_body
-    ) or re.search(
-        r"<Markdown\s+text=\{\s*item\.body\s*(?:\|\| '')?\s*\}", fn_body
-    )
-    assert md_call is not None, (
-        "ItemCardIssueBody must invoke <Markdown text={String(item.body)} /> "
-        "(or item.body || '') — the same shape ItemCardCommentBody uses"
+    # Lifecycle section is the body renderer post-spec-0205.
+    assert "ItemCardLifecycleSection" in fn_body, (
+        "ItemCardIssueBody must render <ItemCardLifecycleSection /> as the "
+        "body (spec 0205 Bug 2 — lifecycle leads)"
     )
 
     # The shortCode derivation that produced the `__sid` chip is gone.
@@ -148,11 +145,12 @@ def test_composed_css_clean(composed_css: str) -> None:
         )
 
 
-def test_comment_body_unchanged_shape(jsx: str) -> None:
-    """`ItemCardCommentBody` (the consumer that already shipped the
-    Markdown-render shape spec 0172 adopts) must keep delegating body
-    rendering to `<Markdown>` with `String(item.body)` — that's the
-    reference shape for the Issue body fix."""
+def test_comment_body_lifecycle_leads(jsx: str) -> None:
+    """`ItemCardCommentBody` matches `ItemCardIssueBody`'s shape post-spec-0205
+    (Bug 2): body renders via `<ItemCardLifecycleSection />`; the standalone
+    `<Markdown text={String(item.body)}/>` block is gone (lifecycle's raise
+    row already carries `item.body` as its quote, so the standalone block
+    was a duplicate)."""
     match = re.search(
         r"function ItemCardCommentBody\([^)]*\)\s*\{(?P<body>.*?)\n\}\n",
         jsx,
@@ -160,6 +158,12 @@ def test_comment_body_unchanged_shape(jsx: str) -> None:
     )
     assert match is not None, "ItemCardCommentBody function body not located"
     fn_body = match.group("body")
-    assert "<Markdown" in fn_body and "String(item.body)" in fn_body, (
-        "ItemCardCommentBody no longer delegates to <Markdown text={String(item.body)} />"
+    assert "ItemCardLifecycleSection" in fn_body, (
+        "ItemCardCommentBody must render <ItemCardLifecycleSection /> as the "
+        "body (spec 0205 Bug 2 — lifecycle leads)"
+    )
+    assert "<Markdown text={String(item.body)}" not in fn_body, (
+        "ItemCardCommentBody still has a standalone <Markdown text={String(item.body)}/> "
+        "block above lifecycle (spec 0205 Bug 2 — lifecycle's raise row "
+        "already carries item.body; standalone block is a duplicate)"
     )
