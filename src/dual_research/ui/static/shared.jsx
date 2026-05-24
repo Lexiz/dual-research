@@ -1045,7 +1045,7 @@ function OpenAIMonogram() {
 // ─── SPEC-0053 / SPEC-0095 — Tab + TabGroup ───────────────────
 // TabGroup variant: undefined (bordered pill), 'line', 'solid',
 //   'md-tabs' (M3 primary tabs), 'tab-group-solid' (M3 segmented pill),
-//   'phase-tabs', 'kind-tabs'.
+//   'phase-tabs'.
 // Tab variant (SPEC-0095): undefined (v1 bordered pill), 'primary' (M3
 //   md-tab), 'solid' (tab-solid), 'phase' (phase-tab),
 //   'chrome' (md-btn--text for app-bar use).
@@ -1060,12 +1060,10 @@ function TabGroup({ children, className, variant }) {
     : variant === 'md-tabs' ? null
     : variant === 'tab-group-solid' ? null
     : variant === 'phase-tabs' ? null
-    : variant === 'kind-tabs' ? null
     : null;
   const baseClass = variant === 'md-tabs' ? 'md-tabs'
     : variant === 'tab-group-solid' ? 'tab-group-solid'
     : variant === 'phase-tabs' ? 'phase-tabs'
-    : variant === 'kind-tabs' ? 'kind-tabs'
     : 'tab-group';
   return (
     <div className={_cn(baseClass, variantClass, className)} role="tablist">
