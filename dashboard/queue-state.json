@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:05:05Z",
+  "updated_at": "2026-05-24T10:05:09Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8128,6 +8128,11 @@
             "branch": "spec/0205.1-itemcard-parity-grid-refresh-and-retroactive-attachment",
             "from": "main@9a9a2ea"
           }
+        },
+        {
+          "ts": "2026-05-24T10:05:09Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-24T10:04:38Z"
