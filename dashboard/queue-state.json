@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:49:07Z",
+  "updated_at": "2026-05-24T10:49:11Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8228,6 +8228,11 @@
             "branch": "spec/0205.2-remove-dead-kind-tab-kind-tabs-css-and-jsx-variant-branches",
             "from": "main@8aa7b86"
           }
+        },
+        {
+          "ts": "2026-05-24T10:49:11Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-24T10:48:47Z"
