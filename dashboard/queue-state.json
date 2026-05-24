@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:33:43Z",
+  "updated_at": "2026-05-24T13:42:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8872,6 +8872,11 @@
       "merged_at": "2026-05-24T13:27:22Z",
       "deployed_at": "2026-05-24T13:33:43Z",
       "handover": "handoffs/2026-05-24-spec-0211-delegate-fly-deploy-to-github-actions.md"
+    },
+    "0211.1": {
+      "status": "queued",
+      "queued_at": "2026-05-24T13:38:00Z",
+      "events": []
     }
   }
 }
