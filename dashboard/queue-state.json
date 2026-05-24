@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:37:01Z",
+  "updated_at": "2026-05-24T11:37:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8401,6 +8401,11 @@
             "branch": "spec/0207-fix-link-variant-icon-missing",
             "from": "main@05350f9"
           }
+        },
+        {
+          "ts": "2026-05-24T11:37:05Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-24T11:36:43Z"
