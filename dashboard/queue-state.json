@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T01:56:06Z",
+  "updated_at": "2026-05-24T01:58:01Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7689,6 +7689,14 @@
           "ts": "2026-05-24T01:56:06Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T01:58:01Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0203.1-dashboard-queue-state-parity-and-l-spec-event-vocab",
+            "from": "main@b1816f4"
+          }
         }
       ],
       "started_at": "2026-05-24T01:56:02Z"
