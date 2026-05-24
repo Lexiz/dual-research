@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:09:54Z",
+  "updated_at": "2026-05-24T13:14:10Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8683,7 +8683,7 @@
       "handover": "handoffs/2026-05-24-spec-0209-cs-body-hidden-when-open.md"
     },
     "0210": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-24T11:13:17Z",
       "events": [
         {
@@ -8742,11 +8742,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/242"
           }
+        },
+        {
+          "ts": "2026-05-24T13:11:42Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T13:13:12Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.9"
+          }
+        },
+        {
+          "ts": "2026-05-24T13:13:12Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T13:14:04Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0210-dev-next-worktree-cross-conflict-on-main-checkout.md"
+          }
         }
       ],
       "started_at": "2026-05-24T12:51:36Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/242",
-      "merged_at": "2026-05-24T13:09:50Z"
+      "merged_at": "2026-05-24T13:09:50Z",
+      "deployed_at": "2026-05-24T13:14:10Z",
+      "handover": "handoffs/2026-05-24-spec-0210-dev-next-worktree-cross-conflict-on-main-checkout.md"
     },
     "0211": {
       "status": "queued",
