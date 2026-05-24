@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:44:04Z",
+  "updated_at": "2026-05-24T11:48:12Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8473,7 +8473,7 @@
       "handover": "handoffs/2026-05-24-spec-0207-fix-link-variant-icon-missing.md"
     },
     "0208": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T10:37:56Z",
       "events": [
         {
@@ -8481,7 +8481,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T11:48:12Z"
     },
     "0209": {
       "status": "queued",
