@@ -73,7 +73,7 @@
         '<strong>Changelog tab rewritten</strong> with per-entry CollapsibleSection + Card, bump chip (MAJOR/MINOR/PATCH), spec-link button, and a screenshot grid (the three newest entries embed before/after PNGs of the surface each spec affected).',
         '<strong>Backfilled the three missing changelog entries</strong>: v1.3.0 (spec 0118 — consumption + cost), v1.4.0 (spec 0119 — badge governance), v1.4.1 (spec 0120 — turn-modal items panel).',
         '<strong>Retired ~1,500 lines of dead-code JSX</strong> from how-it-works.jsx: <code>PhaseStrip</code>, <code>NegotiationRoundDiagram</code>, <code>ContextGrowthBars</code>, <code>ChatLifecycle</code>, <code>LifecycleRow</code>, <code>CallBox</code>, <code>TldrCards</code>, <code>ComparePanel</code>, <code>Section</code>, <code>Legend</code>, <code>Tk</code>, <code>AgentDisc</code>, <code>ProtocolOverviewMap</code>, <code>ProtocolOverviewFold</code>, the old <code>ReleaseNote</code> and <code>ChangelogEntry</code>. The legacy <code>deep-research-pipeline.{light,dark}.svg</code> remains in <code>/diagrams/</code> but is no longer referenced.',
-        '<strong>Three new CSS utilities</strong> in components.css under a spec-0121 block: <code>.hiw-note</code> (info/warn/err/ok-toned callout), <code>.hiw-table</code> (styled prose table), <code>.hiw-code</code> (block code), plus the structural <code>.hiw-*</code> / <code>.changelog-*</code> / <code>.cs-section</code> / <code>.cl-filter-row</code> classes.',
+        '<strong>Three new CSS utilities</strong> in components.css under a spec-0121 block: <code>.hiw-note</code> (info/warn/err/ok-toned callout), <code>.hiw-table</code> (styled prose table), <code>.hiw-code</code> (block code), plus the structural <code>.hiw-*</code> / <code>.changelog-*</code> / <code>.hiw-cs-section</code> / <code>.cl-filter-row</code> classes.',
         '<strong>Backend untouched.</strong> Pure frontend documentation surface; no edits to <code>contract/</code>, <code>orchestrator/</code>, <code>protocol/</code>, <code>events/</code>, or any other JSX file. Cache-bust <code>?v=0120b → ?v=0121a</code>.',
       ],
       // Spec 0126 — earlier screenshot paths 404'd because no PNGs were
@@ -611,10 +611,10 @@
     return (
       <section
         id={id}
-        className={'hiw-sec cs-section' + (open ? ' is-open' : '')}
+        className={'hiw-sec hiw-cs-section' + (open ? ' is-open' : '')}
       >
         <div
-          className="cs-header"
+          className="hiw-cs-header"
           role="button"
           tabIndex={0}
           aria-expanded={open}
@@ -626,12 +626,12 @@
             }
           }}
         >
-          <span className="cs-chevron" aria-hidden="true">▶</span>
-          <span className="cs-title">
+          <span className="hiw-cs-chevron" aria-hidden="true">▶</span>
+          <span className="hiw-cs-title">
             {renderTitle ? renderTitle() : title}
           </span>
         </div>
-        <div className="cs-body">{open ? children : null}</div>
+        <div className="hiw-cs-body">{open ? children : null}</div>
       </section>
     );
   }
