@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:44:21Z",
+  "updated_at": "2026-05-24T10:48:47Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8208,7 +8208,7 @@
       "handover": "handoffs/2026-05-24-spec-0205.1-itemcard-parity-grid-refresh-and-retroactive-attachment.md"
     },
     "0205.2": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T04:03:00Z",
       "events": [
         {
@@ -8216,7 +8216,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T10:48:47Z"
     },
     "0207": {
       "status": "queued",
