@@ -3671,32 +3671,34 @@ body.light .tour-overlay__mask {
 }
 .dr-modal-close:hover { background: var(--md-surface-container); color: var(--md-on-surface); }
 
-/* ── Collapsible section (CSS-only — JS toggles .is-open) ─── */
-.cs-section {
+/* ── Collapsible section (how-it-works only — namespaced via spec 0209
+   to avoid colliding with the canonical .cs-* DS disclosure primitive
+   at lines ~1400). JS toggles .is-open. ────────────────────────── */
+.hiw-cs-section {
   border-top: 1px solid var(--md-outline-hair);
   padding-top: var(--s-5);
 }
-.cs-section:first-child { border-top: none; padding-top: 0; }
-.cs-header {
+.hiw-cs-section:first-child { border-top: none; padding-top: 0; }
+.hiw-cs-header {
   display: flex; align-items: center; gap: var(--s-3);
   cursor: pointer; user-select: none;
   padding: var(--s-2) 0;
 }
-.cs-chevron {
+.hiw-cs-chevron {
   width: 16px; height: 16px;
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--md-on-surface-faint);
   transition: transform var(--m-fast) var(--ease);
 }
-.cs-section.is-open .cs-chevron { transform: rotate(90deg); }
-.cs-title {
+.hiw-cs-section.is-open .hiw-cs-chevron { transform: rotate(90deg); }
+.hiw-cs-title {
   font-size: var(--md-title-m-size); font-weight: var(--md-w-semi);
   color: var(--md-on-surface);
   display: flex; align-items: center; gap: var(--s-3);
   flex: 1;
 }
-.cs-body { padding: var(--s-3) 0 var(--s-5) 28px; display: none; }
-.cs-section.is-open .cs-body { display: block; }
+.hiw-cs-body { padding: var(--s-3) 0 var(--s-5) 28px; display: none; }
+.hiw-cs-section.is-open .hiw-cs-body { display: block; }
 
 /* ── Lede + section-title-cluster ──────────────────────────── */
 .lede {
