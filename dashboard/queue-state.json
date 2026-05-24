@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T00:50:14Z",
+  "updated_at": "2026-05-24T01:15:36Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7577,6 +7577,21 @@
           "ts": "2026-05-24T00:50:14Z",
           "step": "implementing_started",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T01:15:36Z",
+          "step": "checkpoint_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md",
+            "next_subsection": "2.5",
+            "completed_subsections": [
+              "2.1",
+              "2.2",
+              "2.3",
+              "2.4",
+              "2.8"
+            ]
+          }
         }
       ],
       "started_at": "2026-05-24T00:49:56Z"
