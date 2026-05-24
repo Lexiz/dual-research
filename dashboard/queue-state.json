@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:11:58Z",
+  "updated_at": "2026-05-24T12:12:02Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8595,6 +8595,11 @@
             "branch": "spec/0209-cs-body-hidden-when-open",
             "from": "main@f25effa"
           }
+        },
+        {
+          "ts": "2026-05-24T12:12:02Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-24T12:11:41Z"
