@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:33:58Z",
+  "updated_at": "2026-05-24T10:34:02Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8166,6 +8166,17 @@
           "step": "merged",
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/236"
+          }
+        },
+        {
+          "ts": "2026-05-24T10:34:02Z",
+          "step": "failed",
+          "data": {
+            "step": "deploy",
+            "reason": "fly_lease_drift_v644_release_failed",
+            "live_version": "1.44.2",
+            "target_version": "1.44.3",
+            "matrix_case": 3
           }
         }
       ],
