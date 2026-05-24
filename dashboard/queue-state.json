@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:13:23Z",
+  "updated_at": "2026-05-24T11:15:09Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8097,7 +8097,7 @@
       "handover": "handoffs/2026-05-24-spec-0203.2-current-queue-stale-frontmatter-queue-state-overlay.md"
     },
     "0206": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T04:03:00Z",
       "events": [
         {
@@ -8105,7 +8105,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T11:15:09Z"
     },
     "0205.1": {
       "status": "deployed",
