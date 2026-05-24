@@ -10,6 +10,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.43.1] — 2026-05-24
+
+### Fixed
+
+- **Spec 0203.1 — Dashboard live API + L-spec event vocab parity with `queue-state.json`** ([spec 0203.1](specs/0203.1-dashboard-queue-state-parity-and-l-spec-event-vocab.md)). Bug fix, PATCH bump. The live dashboard at `https://dr-dashboard.pages.dev` was showing the in-flight spec as frozen at its queue-time status with zero events after spec 0202 made `dashboard/queue-state.json` authoritative (the Cloudflare Pages Function still read frontmatter + sidecars), and after spec 0186/0192 added `checkpoint_written` / `resume_started` events that the dashboard's stage vocabulary rejected as "unknown."
+
+  **§3.1 — Cloudflare Pages Function teaches itself queue-state.json.** [`functions/api/data.js`](functions/api/data.js) now fetches `dashboard/queue-state.json` in the same GraphQL batch as the other blobs (one extra aliased field, still 2 subrequests total per spec 0174). After parse, cycle-mutable fields (`status`, `started_at`, `merged_at`, `deployed_at`, `pr`, `handover`, `failure_step`, `target_version`, `queued_at`) are layered over the frozen frontmatter snapshot via the new `QUEUE_STATE_LAYERED_FIELDS` mirror of `_QUEUE_STATE_LAYERED_FIELDS` in `render_dashboard.py`. The events map prefers `queueState.specs[id].events` over the legacy sidecar bucket, with sidecar fallback for any pre-0202 spec. New top-level `queue_state_updated_at` field plumbs the freshness anchor through. Defensive: malformed queue-state.json logs and falls back to the legacy path rather than 502'ing.
+
+  **§3.2 — `stages.py` vocabulary additions.** Added `checkpoint_written`, `resume_started`, and `promoted_as_next` to `TOLERATED_NON_STAGE_STEPS` and `STEP_LABELS` (with labels "checkpoint" / "resuming" / "promoted as next"). Build-time warnings of the form `warning: spec NNNN has unknown event steps: ['checkpoint_written']` no longer fire.
+
+  **§3.3 — Feed icons + kickers + details for the new events.** [`render_dashboard.py`](scripts/spec_lifecycle/render_dashboard.py) — `_FEED_STEP_ICON` gets `bookmark_added` (checkpoint), `replay` (resume), `arrow_upward` (promoted). `_FEED_KICKER` gets the matching one-word labels. `_feed_detail` gains three new branches: checkpoint shows `§<next> · <done> done`; resume reads the most-recent checkpoint via the new `_latest_checkpoint_subsection` helper and shows `resumed at §<next>`; promoted shows `was <prior_id>`.
+
+  **§3.4 — L-spec sub-progress chip on the in-flight hero.** `_render_hero_inflight` now injects a chip between "currently · …" and the staleness chip when the in-flight spec is `in_progress` and has at least one `checkpoint_written` event. Chip text: `§<next> · <N> subsections done`. Carries `data-checkpoint-next` and `data-checkpoint-done` attributes so the bootstrap can update the chip in place without a re-paint. A multi-hour L-spec like 0203 no longer looks frozen.
+
+  **§3.5 — Bootstrap JS parity.** `DASHBOARD_BOOTSTRAP_JS` — `STEP_LABELS` gets the three new entries. Added `FEED_STEP_ICON` + `FEED_KICKER` mirror tables (previously the bootstrap rendered every feed row with a neutral icon + raw step name, wiping the rich server-rendered first paint at the 5s repaint). Added a `feedDetail` builder that mirrors `_feed_detail` end-to-end. `renderHeroInflight` mirrors §3.4's chip-injection branch.
+
+  **Tests.** [`functions/api/data.test.js`](functions/api/data.test.js) — two new cases: layering + `queue_state_updated_at` round-trip; defensive fallback when queue-state.json is malformed. New [`tests/spec_lifecycle/test_stages_spec_0203_1.py`](tests/spec_lifecycle/test_stages_spec_0203_1.py) for the tolerated-step + step-label additions. New [`tests/spec_lifecycle/test_render_dashboard_spec_0203_1.py`](tests/spec_lifecycle/test_render_dashboard_spec_0203_1.py) for the L-spec hero chip, the new feed-detail branches, and the bootstrap mirror table assertions.
+
 ## [1.43.0] — 2026-05-24
 
 ### Added
