@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T01:23:51Z",
+  "updated_at": "2026-05-24T01:24:18Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7602,6 +7602,14 @@
               "no_open_spec_prs",
               "resume_target_matched"
             ]
+          }
+        },
+        {
+          "ts": "2026-05-24T01:24:18Z",
+          "step": "resume_started",
+          "data": {
+            "from_checkpoint": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md",
+            "next_subsection": "2.5"
           }
         }
       ],
