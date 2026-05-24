@@ -1055,12 +1055,10 @@ body.light .tab-group.tabs-solid .tab.is-active,
 }
 /* Spec 0203 §2.3 — same backstop on the kind cluster itself; its inline
    flex defaults to nowrap but the !important guards against future
-   ancestor rules that try to wrap it. Spec 0205 Bug 4 — `.kind-tabs`
-   was retired in favour of the `.kind-chip-row` wrapper holding four
-   kind `<Chip>` primitives; both selectors stay listed because the
-   narrow-mode label-collapse rule below still targets the old
-   `.kind-tab` markup for any pre-0205 surface that hasn't migrated. */
-.crit2 .bar2 .kind-tabs,
+   ancestor rules that try to wrap it. Spec 0205 Bug 4 migrated the
+   markup to `.kind-chip-row` holding four kind `<Chip>` primitives;
+   spec 0205.2 removed the legacy segmented-control selector from this
+   nowrap backstop. */
 .crit2 .bar2 .kind-chip-row { flex-wrap: nowrap !important; }
 /* Spec 0205 Bug 4 — filter-row kind chips share the same Chip
    primitive as card heads, with an active state lift via the
@@ -1116,15 +1114,12 @@ body.light .tab-group.tabs-solid .tab.is-active,
   .crit2 .bar2.crit-filter-row .chip[data-kind-filter] .chip-label {
     display: none;
   }
-  /* Spec 0203 §2.3 / Spec 0205 Bug 4 — kind chips migrated from
-     `.kind-tab` to the Chip primitive inside `.kind-chip-row`. Drop
-     the label in narrow mode so the cat-bubble + count carry the
-     identity (bubble Q/D/I/C is unambiguous). The .kind-tab rule
-     stays for any legacy surface that hasn't migrated. */
-  .crit2 .bar2 .kind-tab .chip-label,
-  .crit2 .bar2 .kind-tab > span:not(.chip-value):not(.cat-bubble):not(.chip-leading-icon) {
-    display: none;
-  }
+  /* Spec 0203 §2.3 / Spec 0205 Bug 4 — kind chips migrated from the
+     legacy segmented control to the Chip primitive inside
+     `.kind-chip-row`. Drop the label in narrow mode so the cat-bubble
+     + count carry the identity (bubble Q/D/I/C is unambiguous).
+     Spec 0205.2 removed the legacy collapse rule that paralleled this
+     one. */
   .crit2 .bar2 .kind-chip-row .chip[data-kind] .chip-label {
     display: none;
   }
@@ -2302,42 +2297,6 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
   outline-offset: 2px;
 }
 
-/* ── Kind tabs (.kind-tab) ───────────────────────────────── */
-.kind-tabs { display: inline-flex; gap: 2px; }
-.kind-tab {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 32px; padding: 0 12px;
-  background: transparent; border: 0; cursor: pointer;
-  border-radius: var(--md-shape-sm);
-  color: var(--md-on-surface-variant);
-  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
-  position: relative;
-}
-.kind-tab::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: currentColor; opacity: 0;
-  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
-}
-.kind-tab:hover::before { opacity: var(--md-state-hover); }
-.kind-tab.is-active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
-.kind-tab.is-zero  { color: var(--md-on-surface-faint); opacity: 0.55; }
-.kind-tab .ct {
-  font: var(--md-w-semi) 11px/1 var(--md-font-data);
-  background: var(--md-surface-container-high);
-  color: var(--md-on-surface-variant);
-  padding: 4px 6px;
-  border-radius: var(--md-shape-xs);
-  min-width: 18px; text-align: center;
-}
-.kind-tab .ct.is-info { background: color-mix(in srgb, var(--p-info) 22%, transparent); color: var(--p-info); }
-.kind-tab .ct.is-warn { background: color-mix(in srgb, var(--p-warn) 22%, transparent); color: var(--p-warn); }
-.kind-tab .ct.is-err  { background: color-mix(in srgb, var(--p-err)  22%, transparent); color: var(--p-err); }
-.kind-tab.is-active .ct { background: rgba(0,0,0,0.18); color: inherit; }
-.kind-tab:focus-visible {
-  outline: 2px solid var(--md-primary);
-  outline-offset: 2px;
-}
-
 /* Spec 0173 §2.3 — the legacy `.fgroup` / `.fgroup .ft` filter group
    block lived here until v1.32.0. Bar-2 critique-pane filters now use
    the canonical `.tab-group-solid` + `.tab-solid` primitives above
@@ -2351,8 +2310,7 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
 @media (prefers-reduced-motion: reduce) {
   .md-tab::before,
   .md-tab[aria-selected="true"]::after,
-  .phase-tab::before,
-  .kind-tab::before {
+  .phase-tab::before {
     transition: none;
   }
 }

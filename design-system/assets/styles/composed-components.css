@@ -723,50 +723,19 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
   opacity: 0.55;
 }
 
-/* Spec 0205 Bug 4 — kind filter chips (Bar 2). Migrated from the
-   legacy `.kind-tab` segmented control to the shared Chip primitive
-   so filter and card heads carry one visual vocabulary: per-kind
-   brand tone (info/warn/err/idle) + Q/D/I/C category bubble +
-   trailing count. The `.kind-tab` rules below stay for any legacy
-   surface that hasn't migrated. */
+/* Spec 0205 Bug 4 — kind filter chips (Bar 2). Use the shared Chip
+   primitive so filter and card heads carry one visual vocabulary:
+   per-kind brand tone (info/warn/err/idle) + Q/D/I/C category bubble +
+   trailing count. Spec 0205.2 removed the legacy segmented-control
+   rules that previously survived alongside this block for "any
+   pre-0205 surface that hasn't migrated" — no such surface ever
+   existed. */
 .kind-chip-row {
   display: inline-flex; align-items: center; gap: 6px;
 }
 .kind-chip-row .chip[data-active="false"] { opacity: 0.72; }
 .kind-chip-row .chip[data-active="true"]  { box-shadow: var(--md-elev-1); opacity: 1; }
 .kind-chip-row .chip:hover { opacity: 1; }
-
-/* Kind tabs (Bar 2) — legacy */
-.kind-tabs { display: inline-flex; gap: 2px; }
-.kind-tab {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 32px; padding: 0 12px;
-  background: transparent; border: 0; cursor: pointer;
-  border-radius: var(--md-shape-sm);
-  color: var(--md-on-surface-variant);
-  font: var(--md-w-medium) 12px/1 var(--md-font-plain);
-  position: relative;
-}
-.kind-tab::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: currentColor; opacity: 0;
-  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
-}
-.kind-tab:hover::before { opacity: var(--md-state-hover); }
-.kind-tab.is-active { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
-.kind-tab.is-zero  { color: var(--md-on-surface-faint); opacity: 0.55; }
-.kind-tab .ct {
-  font: var(--md-w-semi) 11px/1 var(--md-font-data);
-  background: var(--md-surface-container-high);
-  color: var(--md-on-surface-variant);
-  padding: 4px 6px;
-  border-radius: var(--md-shape-xs);
-  min-width: 18px; text-align: center;
-}
-.kind-tab .ct.is-info { background: color-mix(in srgb, var(--p-info) 22%, transparent); color: var(--p-info); }
-.kind-tab .ct.is-warn { background: color-mix(in srgb, var(--p-warn) 22%, transparent); color: var(--p-warn); }
-.kind-tab .ct.is-err  { background: color-mix(in srgb, var(--p-err)  22%, transparent); color: var(--p-err); }
-.kind-tab.is-active .ct { background: rgba(0,0,0,0.18); color: inherit; }
 
 /* Tab-group · solid (agent/status segments) */
 .tab-group-solid {
@@ -822,11 +791,9 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
   /* Spec 0203 §2.3 — drop the kind label at narrow viewports so the
      bar2 filter cluster stays on one row. Mirrors live's rule at
      `components.css` (the legacy `.chip[data-kind-filter]` selector
-     targets a class no element carries anymore). */
-  .kind-tab .chip-label,
-  .kind-tab > span:not(.chip-value):not(.cat-bubble):not(.chip-leading-icon) {
-    display: none;
-  }
+     targets a class no element carries anymore). Spec 0205.2 removed
+     the legacy parallel rule for the segmented-control surface that
+     lived here. */
 }
 
 /* Critique item card · short form (for header demos) */
