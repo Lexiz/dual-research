@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T00:29:15Z",
+  "updated_at": "2026-05-24T00:49:56Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -1514,7 +1514,7 @@
             "version": "1.22.1",
             "strategy": "bluegreen",
             "timeout": false,
-            "note": "clean deploy \u2014 9-in-a-row pattern broken"
+            "note": "clean deploy — 9-in-a-row pattern broken"
           }
         },
         {
@@ -1748,7 +1748,7 @@
           "data": {
             "version": "1.23.1",
             "strategy": "bluegreen",
-            "note": "green machines healthy and serving v1.23.1; blue cleanup deferred due to Fly lease-lock \u2014 2 old v273 machines still running, proxy routes to v278"
+            "note": "green machines healthy and serving v1.23.1; blue cleanup deferred due to Fly lease-lock — 2 old v273 machines still running, proxy routes to v278"
           }
         },
         {
@@ -1869,7 +1869,7 @@
             "strategy": "bluegreen",
             "sweep": "no stale blues",
             "cluster_machines": 2,
-            "note": "clean bluegreen \u2014 Fly self-destroyed blues this round, sweep was a no-op"
+            "note": "clean bluegreen — Fly self-destroyed blues this round, sweep was a no-op"
           }
         },
         {
@@ -2210,7 +2210,7 @@
             "mechanical": 0,
             "semantic": 0,
             "verdict": "clean",
-            "note": "\u00a72.1 stale relative to current state \u2014 tokens.css and tokens-and-primitives.css already carry the light-mode overrides at lines 339/342 and 204/207 respectively. Skipping the no-op part; rest of spec applies as written."
+            "note": "§2.1 stale relative to current state — tokens.css and tokens-and-primitives.css already carry the light-mode overrides at lines 339/342 and 204/207 respectively. Skipping the no-op part; rest of spec applies as written."
           }
         },
         {
@@ -2363,7 +2363,7 @@
             "mechanical": 0,
             "semantic": 0,
             "verdict": "clean",
-            "note": "\u00a72.5 dot-color/pulse change skipped \u2014 would regress spec 0138 brand-identity wiring already in production at run-detail.jsx:193. Elev-2 lift (\u00a72.6) and missing pulse-info keyframe still applied."
+            "note": "§2.5 dot-color/pulse change skipped — would regress spec 0138 brand-identity wiring already in production at run-detail.jsx:193. Elev-2 lift (§2.6) and missing pulse-info keyframe still applied."
           }
         },
         {
@@ -2507,7 +2507,7 @@
             "mechanical": 0,
             "semantic": 0,
             "verdict": "clean",
-            "note": "\u00a72.1 (.fgroup \u2192 .tab-group-solid rename) deferred \u2014 existing .fgroup already has identical visual contract (lifted tile + elev-1 active). \u00a72.2 count plumbing deferred \u2014 substantial scope. Shipping \u00a72.3 / \u00a72.4 / \u00a72.5 / \u00a72.6."
+            "note": "§2.1 (.fgroup → .tab-group-solid rename) deferred — existing .fgroup already has identical visual contract (lifted tile + elev-1 active). §2.2 count plumbing deferred — substantial scope. Shipping §2.3 / §2.4 / §2.5 / §2.6."
           }
         },
         {
@@ -2577,7 +2577,7 @@
             "strategy": "bluegreen",
             "sweep": "no stale blues",
             "cluster_machines": 2,
-            "note": "clean first-attempt deploy \u2014 no lease errors this round."
+            "note": "clean first-attempt deploy — no lease errors this round."
           }
         },
         {
@@ -2651,7 +2651,7 @@
             "mechanical": 0,
             "semantic": 0,
             "verdict": "clean",
-            "note": "L-complexity spec \u2014 shipping \u00a72.1 (M3 frame catch-up) only this cycle. \u00a72.2\u2013\u00a72.9 (head rebuild, lifecycle view, sources attribution, collapse affordance, etc.) deferred to follow-up spec."
+            "note": "L-complexity spec — shipping §2.1 (M3 frame catch-up) only this cycle. §2.2–§2.9 (head rebuild, lifecycle view, sources attribution, collapse affordance, etc.) deferred to follow-up spec."
           }
         },
         {
@@ -2800,14 +2800,14 @@
             "mechanical": 18,
             "semantic": 0,
             "verdict": "clean-after-canonicalize",
-            "note": "18 render_dashboard.py:NNN cite shortenings \u2014 all resolve to scripts/spec_lifecycle/render_dashboard.py. Skipping canonical-text patches since not implementing this cycle."
+            "note": "18 render_dashboard.py:NNN cite shortenings — all resolve to scripts/spec_lifecycle/render_dashboard.py. Skipping canonical-text patches since not implementing this cycle."
           }
         },
         {
           "ts": "2026-05-22T19:05:03Z",
           "step": "paused_by_drain",
           "data": {
-            "reason": "spec scope is L-grade despite M tag \u2014 full rewrite of render_index() + DASHBOARD_BOOTSTRAP_JS + DASHBOARD_CSS + theme shim + tabs + total-elapsed banner + metrics chart + filter/search/pagination. Deserves a dedicated session, not a queue-drain partial. Pre-flight buffer is local-only (no in_progress commit); spec stays queue_position:1, status:queued on origin/main."
+            "reason": "spec scope is L-grade despite M tag — full rewrite of render_index() + DASHBOARD_BOOTSTRAP_JS + DASHBOARD_CSS + theme shim + tabs + total-elapsed banner + metrics chart + filter/search/pagination. Deserves a dedicated session, not a queue-drain partial. Pre-flight buffer is local-only (no in_progress commit); spec stays queue_position:1, status:queued on origin/main."
           }
         },
         {
@@ -2817,7 +2817,7 @@
             "mechanical": 18,
             "semantic": 0,
             "verdict": "tolerated",
-            "note": "18 line citations are bare basename (render_dashboard.py:NNN) \u2014 unambiguous since only scripts/spec_lifecycle/render_dashboard.py matches. Functionally clean; line numbers will rotate as the file is rewritten anyway. Skipping canonical-path patches."
+            "note": "18 line citations are bare basename (render_dashboard.py:NNN) — unambiguous since only scripts/spec_lifecycle/render_dashboard.py matches. Functionally clean; line numbers will rotate as the file is rewritten anyway. Skipping canonical-path patches."
           }
         },
         {
@@ -2886,7 +2886,7 @@
             "version": "1.30.0",
             "strategy": "bluegreen",
             "cluster_machines": 4,
-            "note": "5 lease-error attempts before convergence \u2014 same Fly orchestrator bug as previous deploys. Cluster is 4 machines (2 pairs of new images); LB serves 1.30.0."
+            "note": "5 lease-error attempts before convergence — same Fly orchestrator bug as previous deploys. Cluster is 4 machines (2 pairs of new images); LB serves 1.30.0."
           }
         },
         {
@@ -3239,7 +3239,7 @@
             "mechanical": 5,
             "semantic": 0,
             "verdict": "clean",
-            "note": "2 of 4 spec-prescribed sites (head ID chip, DQ body __sid) already retired by spec 0173 \u00a72.5/\u00a72.9; Issue body title-row + __sid remain; mechanical hits are bare-basename link-text false positives"
+            "note": "2 of 4 spec-prescribed sites (head ID chip, DQ body __sid) already retired by spec 0173 §2.5/§2.9; Issue body title-row + __sid remain; mechanical hits are bare-basename link-text false positives"
           }
         },
         {
@@ -3483,7 +3483,7 @@
           "data": {
             "source": "dashboard-refresh-investigation",
             "insert_position": 1,
-            "reason": "users perceive dashboard as static \u2014 /api/data 502s on Cloudflare subrequest limit"
+            "reason": "users perceive dashboard as static — /api/data 502s on Cloudflare subrequest limit"
           }
         },
         {
@@ -3956,7 +3956,7 @@
             "mechanical": 0,
             "semantic": 0,
             "verdict": "clean",
-            "note": "11 bare-basename citations to render_dashboard.py \u2014 URL paths and line numbers all verified correct"
+            "note": "11 bare-basename citations to render_dashboard.py — URL paths and line numbers all verified correct"
           }
         },
         {
@@ -4237,7 +4237,7 @@
             "mechanical": 5,
             "semantic": 0,
             "verdict": "clean",
-            "note": "all substantive sites resolve at shifted lines (DQ verdict@1676-1682, Issue seen-row@1723-1730, Issue bottom anchor@1731-1733, Comment seen-row@1753-1759, Comment bottom anchor@1760-1762). Note: spec 0173 already rewrote ItemCardDQBody to use ItemCardThreadView instead of ItemCardTurnRow, so the \u00a74 test that asserts <ItemCardTurnRow text={t.reason} is stale and needs adapting"
+            "note": "all substantive sites resolve at shifted lines (DQ verdict@1676-1682, Issue seen-row@1723-1730, Issue bottom anchor@1731-1733, Comment seen-row@1753-1759, Comment bottom anchor@1760-1762). Note: spec 0173 already rewrote ItemCardDQBody to use ItemCardThreadView instead of ItemCardTurnRow, so the §4 test that asserts <ItemCardTurnRow text={t.reason} is stale and needs adapting"
           }
         },
         {
@@ -7552,7 +7552,7 @@
       "handover": "handoffs/2026-05-24-spec-0202-main-commit-noise-queue-state-file-and-handoff-archival.md"
     },
     "0203": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T00:26:05Z",
       "events": [
         {
@@ -7560,7 +7560,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T00:49:56Z"
     },
     "0204": {
       "status": "queued",
