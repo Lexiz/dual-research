@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T01:47:01Z",
+  "updated_at": "2026-05-24T01:51:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7552,7 +7552,7 @@
       "handover": "handoffs/2026-05-24-spec-0202-main-commit-noise-queue-state-file-and-handoff-archival.md"
     },
     "0203": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-24T00:26:05Z",
       "events": [
         {
@@ -7618,11 +7618,44 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/231"
           }
+        },
+        {
+          "ts": "2026-05-24T01:47:49Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T01:49:35Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.43.0"
+          }
+        },
+        {
+          "ts": "2026-05-24T01:50:42Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T01:51:51Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md"
+          }
+        },
+        {
+          "ts": "2026-05-24T01:51:57Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.43.0"
+          }
         }
       ],
       "started_at": "2026-05-24T00:49:56Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/231",
-      "merged_at": "2026-05-24T01:46:57Z"
+      "merged_at": "2026-05-24T01:46:57Z",
+      "deployed_at": "2026-05-24T01:51:57Z",
+      "handover": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md"
     },
     "0204": {
       "status": "queued",
