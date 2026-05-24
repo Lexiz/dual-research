@@ -123,6 +123,7 @@ Each step independently shippable / revertable.
 - **Removing `/dev-next` step 1's `git pull --ff-only origin main`.** That step runs at cycle start to advance the local `main` ref so disk-read prompts between cycles see the current queue. Under the new mechanism the queue worktree no longer holds a local `main` — but step 1's `git pull` is benign (no-op when the local ref doesn't exist; the underlying `git fetch` is still useful). Replacing step 1 with a bare `git fetch origin` is a follow-up; this spec keeps step 1 unchanged for review minimality. (Deferred to: future cleanup spec.)
 - **Touching `/dev-queue-run`.** That skill drives `/dev-next` end-to-end across multiple specs; its own logic doesn't take main-side checkouts. The fix here cascades automatically when `/dev-next` is fixed. No edits to `~/.claude/skills/dev-queue-run/SKILL.md`.
 - **Backfilling the fix to historical handoffs.** The 0205.2 handoff stays as-is — it documents the failure mode this spec closes.
+- **Removing the local `fly deploy` invocation in `/dev-next` step 21.** This spec's worktree restructure is a prerequisite for that change (the deploy-race fix is simpler once the queue worktree never holds `main`), but the deploy-race itself is closed in follow-up spec 0211. Doing both in one spec would conflate two reviewable concerns and inflate the diff. (Deferred to: spec 0211 — `delegate-fly-deploy-to-github-actions`.)
 
 ## 6. Risks
 
