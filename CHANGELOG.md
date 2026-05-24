@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.10] — 2026-05-24
+
+### Changed
+
+- **Spec 0211 — delegate `/dev-next`'s fly deploy to GitHub Actions** ([spec 0211](specs/0211-delegate-fly-deploy-to-github-actions.md)). PATCH refactor: `/dev-next` step 20 no longer runs `fly deploy` locally. The merge push at step 19 fires `.github/workflows/deploy.yml`; step 20 now polls for the run row, then `gh run watch --exit-status` until it resolves. On success the version is captured from `dual_research.__version__` and `deployed` is emitted; on failure the run URL plus `gh run view --log-failed` tail are surfaced and the spec is flipped to `status: failed, failure_step: deploy` — no retry, no fallback local deploy.
+  - **`.github/workflows/deploy.yml`:** gains a `Sweep stale blue machines` step that runs `bash scripts/sweep_stale_blues.sh || true` after `flyctl deploy --remote-only`. The sweep moves with the deploy from the local skill into CI; same script, same `|| true` no-fail semantics.
+  - **`/dev-next` skill:** step 4 now also verifies `gh auth status` carries the `repo` + `workflow` scopes needed for `gh run watch` on private repos. Step 20's prior five-case `fly status` matrix and post-deploy sweep block are deleted entirely — they existed only to recover from the local-vs-CI deploy race that this spec eliminates. The skill's frontmatter description and the standing-rules block at the end are updated to mention "watching the GH Actions deploy" rather than `fly deploy`.
+  - **`CLAUDE.md`:** the `/dev-next` bullet now notes that deploys are driven by `.github/workflows/deploy.yml` on push-to-main.
+  - **Regression test:** [`tests/test_spec_0211_no_local_fly_deploy.py`](tests/test_spec_0211_no_local_fly_deploy.py) — pure-stdlib source-pattern test that scans `~/.claude/skills/dev-next/SKILL.md` and asserts no executable bash line invokes `fly deploy` or `scripts/sweep_stale_blues.sh`, and that the case-1–5 matrix prose is gone. Skips when the skill file is absent locally.
+  - **Memory bookkeeping (outside this commit):** the implementing cycle marks `project_fly_lease_drift_recovery.md` and `feedback_fly_deploy_cd.md` as obsolete-as-of-0211. Both memories are retained for historical context.
+
 ## [1.44.9] — 2026-05-24
 
 ### Changed
