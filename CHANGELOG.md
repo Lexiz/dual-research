@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.6] — 2026-05-24
+
+### Fixed
+
+- **Spec 0207 — link-variant icon missing from ICONS registry** ([spec 0207](specs/0207-fix-link-variant-icon-missing.md)). Bug PATCH that restores the canonical chain-link glyph on every evidence/sources surface.
+  - **Added `'link-variant'` key to the ICONS dict** at [src/dual_research/ui/static/icons.jsx:55](src/dual_research/ui/static/icons.jsx). The five existing `<Mdi name="link-variant" />` call sites — P4 ItemCard head evidence-needed chip, P4 ItemCard sources segment header, P3 ReviewCard head Sources chip, and two lifecycle-footer call sites (`source-requested` / `source-provided`) — were falling through to the open-square placeholder rect at [icons.jsx:103-108](src/dual_research/ui/static/icons.jsx) because the key was never registered. SVG path is the canonical MDI 7.x `link-variant` artwork (a single chain link at 45°), copied verbatim from the existing `'link'` key which already stored the same path data under a confusingly-named slot (the `'link'` key is intentionally left alone per spec §7 — no call site reads it).
+  - **Regression tests at `tests/test_spec_0207_icon_registry.py`** following spec 0206's UI test doctrine (canonical path `tests/test_spec_NNNN_<surface>.py`, not `tests/ui/`). Two tests: (1) the `'link-variant':` key resolves to a non-empty SVG path; (2) every `<Mdi name="..." />` invocation across the static JSX tree references a key present in ICONS — generalising the regression so any future caller using an un-registered name fails CI instead of reaching production as a blank rounded square.
+
 ## [1.44.5] — 2026-05-24
 
 ### Added
