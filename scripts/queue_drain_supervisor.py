@@ -139,24 +139,35 @@ def _read_log_tail(log_path: Path, n: int = DEFAULT_FAILURE_TAIL_LINES) -> str:
 
 
 def _read_spec_status(specs_dir: Path, spec_number: str) -> str | None:
-    """Return the on-disk ``status`` for ``spec_number``, or ``None`` if the
+    """Return the live ``status`` for ``spec_number``, or ``None`` if the
     spec file isn't present.
+
+    Spec 0203.2 §3.3 — frontmatter ``status`` is frozen at queue time per
+    spec 0202 §2.1; live cycle-mutable status lives in
+    ``dashboard/queue-state.json``. Read from queue-state when present,
+    fall back to frontmatter when it's missing (defensive: matches the
+    overlay pattern in ``render_dashboard.py`` and ``functions/api/data.js``).
 
     Used between iterations to detect resume mode: if the supervisor just
     spawned ``/dev-next`` on spec NNNN and the spec is still
     ``in_progress`` afterwards, the iteration must have written a
     checkpoint handoff — so the next iteration should re-pick the same spec
     via ``find_active_checkpoint`` rather than advance to the next queue
-    position.
+    position. Pre-0203.2 this read frozen frontmatter and always returned
+    ``"queued"``, making the resume-detection branch dead code.
     """
     from scripts.spec_lifecycle.frontmatter import parse
+    from scripts.spec_lifecycle.queue_state import read_state
 
     for entry in specs_dir.iterdir():
         if not entry.is_file() or not entry.name.endswith(".md"):
             continue
         if not entry.name.startswith(f"{spec_number}-"):
             continue
-        return parse(entry).frontmatter.get("status")
+        fm_status = parse(entry).frontmatter.get("status")
+        state = read_state(specs_dir.parent)
+        live_status = state.specs.get(spec_number, {}).get("status")
+        return live_status if live_status else fm_status
     return None
 
 
@@ -312,22 +323,30 @@ def drain_queue(
 def _find_resume_target(handoffs_path: Path, specs_path: Path) -> str | None:
     """Return the spec number that should resume, if any.
 
-    Walks all specs whose status is ``in_progress`` and checks each for an
-    active checkpoint handoff. Returns the first match (in practice there is
-    at most one; the ``/dev-next`` pre-flight halts on multiples).
+    Spec 0203.2 §3.4 — walks all specs whose **live** status is
+    ``in_progress`` (per ``dashboard/queue-state.json``; spec 0202 §2.1
+    froze frontmatter ``status`` at queue time and would always read
+    ``queued``) and checks each for an active checkpoint handoff. Returns
+    the first match (in practice there is at most one; the ``/dev-next``
+    pre-flight halts on multiples). Pre-0203.2 this filtered by frontmatter
+    ``status`` and unconditionally returned ``None``, making the
+    supervisor's pre-flight resume scan a no-op.
     """
     from scripts.spec_lifecycle.frontmatter import parse
+    from scripts.spec_lifecycle.queue_state import read_state
 
+    state = read_state(specs_path.parent)
     for entry in sorted(specs_path.iterdir()):
         if not entry.is_file() or not entry.name.endswith(".md"):
             continue
         fm = parse(entry).frontmatter
         if fm.get("kind") != "dev":
             continue
-        if fm.get("status") != "in_progress":
-            continue
         spec_number = str(fm.get("spec") or "").strip()
         if not spec_number:
+            continue
+        live_status = state.specs.get(spec_number, {}).get("status") or fm.get("status")
+        if live_status != "in_progress":
             continue
         if find_active_checkpoint(handoffs_path, spec_number, "in_progress"):
             return spec_number
