@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:28:50Z",
+  "updated_at": "2026-05-24T13:31:10Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8839,6 +8839,13 @@
           "ts": "2026-05-24T13:28:50Z",
           "step": "deploy_started",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T13:31:10Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.10"
+          }
         }
       ],
       "started_at": "2026-05-24T13:17:47Z",
