@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:09:41Z",
+  "updated_at": "2026-05-24T13:09:50Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8683,7 +8683,7 @@
       "handover": "handoffs/2026-05-24-spec-0209-cs-body-hidden-when-open.md"
     },
     "0210": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-24T11:13:17Z",
       "events": [
         {
@@ -8737,7 +8737,9 @@
           }
         }
       ],
-      "started_at": "2026-05-24T12:51:36Z"
+      "started_at": "2026-05-24T12:51:36Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/242",
+      "merged_at": "2026-05-24T13:09:50Z"
     },
     "0211": {
       "status": "queued",
