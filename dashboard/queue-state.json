@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T01:46:57Z",
+  "updated_at": "2026-05-24T01:47:01Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7610,6 +7610,13 @@
           "data": {
             "from_checkpoint": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md",
             "next_subsection": "2.5"
+          }
+        },
+        {
+          "ts": "2026-05-24T01:47:01Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/231"
           }
         }
       ],
