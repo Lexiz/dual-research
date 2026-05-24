@@ -1474,30 +1474,37 @@ function SourceRow({ record, provider, round, defaultExpanded = false }) {
       </div>
       {open && (
         <div className="source-row__body">
+          {/* Spec 0205 Bug 1 — restructured to URL · FETCHED · SEARCH
+              QUERY rows (label in t-overline, value alongside) plus a
+              CONTENT EXCERPT rendered as <blockquote> with the DS
+              surface-tint background + brand-toned left border. The
+              prior pre block looked like raw debug output; the
+              blockquote matches the reference layout from
+              design-system/notion-issues/screenshots/. */}
           {record.url && (
             <div className="source-row__field">
-              <span className="source-row__label">URL:</span>{' '}
+              <span className="source-row__label">URL</span>
               <a href={record.url} target="_blank" rel="noopener noreferrer">{record.url}</a>
             </div>
           )}
           {(record.fetchedAt || record.fetched_at) && (
             <div className="source-row__field">
-              <span className="source-row__label">Fetched:</span>{' '}
-              {record.fetchedAt || record.fetched_at}
+              <span className="source-row__label">Fetched</span>
+              <span>{record.fetchedAt || record.fetched_at}</span>
             </div>
           )}
           {(record.searchQuery || record.search_query) && (
             <div className="source-row__field">
-              <span className="source-row__label">Search query:</span>{' '}
+              <span className="source-row__label">Search query</span>
               <code>{record.searchQuery || record.search_query}</code>
             </div>
           )}
           {excerpt && (
             <div className="source-row__excerpt-wrap">
-              <div className="source-row__label">Content excerpt:</div>
-              <pre className="source-row__excerpt" style={excerptStyle || undefined}>
+              <div className="source-row__label">Content excerpt</div>
+              <blockquote className="source-row__excerpt" style={excerptStyle || undefined}>
                 {excerpt}
-              </pre>
+              </blockquote>
             </div>
           )}
         </div>
@@ -1760,52 +1767,38 @@ function ItemCardDQBody({ item, transitions }) {
   );
 }
 
-// Issue body — matches `09-issue-card.png`, post-spec-0172 + 0179 + 0188.
+// Issue body — matches `09-issue-card.png`, post-spec-0205.
 // Layout:
-//   <markdown body>                         (full item.body via <Markdown>)
-//   > quote: <anchor>                       (inline anchor, if quote)
-//   <ItemCardThreadView />                  (bubble timeline of transitions)
+//   <ItemCardLifecycleSection />            (lifecycle leads — raise row carries item.body)
+//   > quote: <anchor>                       (inline anchor, if quote — below lifecycle)
 //
-// Spec 0188 §2.1 routed the body through ItemCardThreadView so Issue
-// cards share the QuestionThread bubble anatomy with Question /
-// Disagreement cards (the "all four kinds threaded" §2.9 promise from
-// spec 0173). The markdown body and inline anchor stay — spec 0188
-// §2.4 explicitly kept the markdown block. The raise bubble inside the
-// thread view carries item.body as its quote (mirroring the Q/D shape).
+// Spec 0205 Bug 2 — the standalone `<Markdown text={item.body}/>`
+// block was a duplicate: ItemCardLifecycleSection already renders
+// item.body inside the raise row's quote slot (see _resolveAgent
+// call site at L1554 + lc-row-quote at L1647). Lifecycle leads;
+// the inline anchor blockquote (a different field — the quoted span
+// the item attaches to in the source draft) sits below it.
 function ItemCardIssueBody({ item, anchorType, anchorText }) {
   return (
     <div className="item-card__body item-card__body--issue">
-      {item.body && (
-        <div className="item-card__text"><Markdown text={String(item.body)} /></div>
-      )}
+      <ItemCardLifecycleSection item={item} />
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
-      <ItemCardLifecycleSection item={item} />
     </div>
   );
 }
 
-// Comment body — matches `10-comments-card.png`, post-spec-0179 + 0188.
-// Layout:
-//   <markdown body>
-//   > quote: <anchor>                       (inline anchor, if quote)
-//   <ItemCardThreadView />                  (bubble timeline of transitions)
-//
-// Spec 0188 §2.2 routed the body through ItemCardThreadView for parity
-// with the other three kinds. Most Comments have only the raise
-// transition, so the timeline collapses to a single bubble; that's
-// still the canonical anatomy spec 0173 §2.9 prescribed.
+// Comment body — matches `10-comments-card.png`, post-spec-0205.
+// Layout: identical to Issue body — lifecycle leads, inline anchor
+// blockquote below when applicable.
 function ItemCardCommentBody({ item, anchorType, anchorText }) {
   return (
     <div className="item-card__body item-card__body--comment">
-      {item.body && (
-        <div className="item-card__text"><Markdown text={String(item.body)} /></div>
-      )}
+      <ItemCardLifecycleSection item={item} />
       {anchorType === 'quote' && anchorText && (
         <blockquote className="item-card__quote-inline">quote: {anchorText}</blockquote>
       )}
-      <ItemCardLifecycleSection item={item} />
     </div>
   );
 }
@@ -1846,7 +1839,12 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
 
   // Spec 0173 §2.6 + §2.8 — derive lifecycle data once, reuse across
   // the head chip and the (future) expanded-view scaffolding.
-  const raisedByAgent = _resolveAgent(item.raisedBy);
+  // Spec 0205 Bug 5 — read both `raisedBy` (typed-list wire) and
+  // `raiser` (unified Item wire from run.phaseStats.items). ItemCard's
+  // item argument comes from the unified shape, which camelizes
+  // `raiser` to `raiser`, not `raisedBy`. The lifecycle section already
+  // checks both at L1554; the head was missing the alias.
+  const raisedByAgent = _resolveAgent(item.raisedBy || item.raiser);
   const raisedRound = item.raisedRound || item.raised_round || item.roundFirstSeen || item.openedRound || null;
   const lastTerminalT = isTerminal
     ? [...transitions].reverse().find((t) => _ITEM_CARD_TERMINAL_STATES.has(t.toState || t.to_state || ''))
@@ -1947,14 +1945,35 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
   // a mono "Raised · R<N>" round chip and a tone-mapped state chip
   // ("<Verb> · <resolver icon?> · R<N>"). CSS handles capitalisation and
   // right-alignment via [data-chip-role="round"|"state"] selectors.
-  const providerChip = raisedByAgent ? (
-    <Chip
-      tone={raisedByAgent === 'gpt' ? 'gpt' : 'claude'}
-      size="sm"
-      leadingIcon={<AgentIcon agent={raisedByAgent} size={10} />}
-      label={raisedByAgent === 'gpt' ? 'GPT' : 'Claude'}
-    />
-  ) : <SystemChip />;
+  // Spec 0205 Bug 5 — critique items must always carry a provider
+  // raiser. `<SystemChip />` is reserved for the orchestrator's
+  // Phase 0 brief card (DS SPEC §4.4); rendering it here falsely
+  // attributes a critique raise to the orchestrator. The fallback
+  // surfaces an err-toned "Unknown raiser" chip + console.warn so
+  // future regressions are loud.
+  let providerChip;
+  if (raisedByAgent) {
+    providerChip = (
+      <Chip
+        tone={raisedByAgent === 'gpt' ? 'gpt' : 'claude'}
+        size="sm"
+        leadingIcon={<AgentIcon agent={raisedByAgent} size={10} />}
+        label={raisedByAgent === 'gpt' ? 'GPT' : 'Claude'}
+      />
+    );
+  } else {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('critique item missing raisedBy/raiser', item.id);
+    }
+    providerChip = (
+      <Chip
+        tone="err"
+        size="sm"
+        leadingIcon={<Mdi name="alert-circle" size={10} />}
+        label="Unknown raiser"
+      />
+    );
+  }
 
   const roundChip = raisedRound != null ? (
     <Chip
@@ -2084,7 +2103,15 @@ function ItemCard({ item, onHighlight, isDrift = false }) {
       {lifecycleFooter}
       {evidence.length > 0 && (
         <div className="item-card__sources">
-          <div className="item-card__sources-hd">Sources ({evidence.length})</div>
+          {/* Spec 0205 Bug 3 — segment header gains a canonical
+              sources glyph (`mdi:link-variant`, matching the
+              evidence-required head chip + lifecycle source-requested
+              / source-provided chips so the sources family reads as
+              one visual idiom). DS SPEC §4.7 documents the glyph. */}
+          <div className="item-card__sources-hd">
+            <Mdi name="link-variant" size={11} />
+            <span>Sources ({evidence.length})</span>
+          </div>
           {evidence.map((rec, i) => (
             <SourceRow key={i} record={rec} defaultExpanded={i === 0} />
           ))}
@@ -5986,7 +6013,12 @@ function ReviewCard({ item, panelKind, color, raiser, raisedRound, active, onCli
           <Chip mono tone="neutral" label={`raised in r${raisedRound}`} />
         )}
         {evidence.length > 0 && (
-          <Chip tone="neutral" label="Sources" value={evidence.length} />
+          <Chip
+            tone="neutral"
+            leadingIcon={<Mdi name="link-variant" size={11} />}
+            label="Sources"
+            value={evidence.length}
+          />
         )}
         {!hasAnchor && (
           <Chip mono tone="idle" label="no anchor" />
@@ -7518,33 +7550,34 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
               chip = "show all categories". Clicking an active chip
               deselects it (toggles kindFilter back to 'all'). The bar-1
               `.crit-totals` is the run-wide global; the kind cluster
-              shows per-kind phase counts only. */}
-          <TabGroup variant="kind-tabs">
-            <Tab
-              variant="kind"
-              active={kindFilter === 'questions'}
-              count={kindCounts.questions || 0}
-              onClick={() => setKindFilter(kindFilter === 'questions' ? 'all' : 'questions')}
-            >Questions</Tab>
-            <Tab
-              variant="kind"
-              active={kindFilter === 'disagreements'}
-              count={kindCounts.disagreements || 0}
-              onClick={() => setKindFilter(kindFilter === 'disagreements' ? 'all' : 'disagreements')}
-            >Disagreements</Tab>
-            <Tab
-              variant="kind"
-              active={kindFilter === 'issues'}
-              count={kindCounts.issues || 0}
-              onClick={() => setKindFilter(kindFilter === 'issues' ? 'all' : 'issues')}
-            >Issues</Tab>
-            <Tab
-              variant="kind"
-              active={kindFilter === 'comments'}
-              count={kindCounts.comments || 0}
-              onClick={() => setKindFilter(kindFilter === 'comments' ? 'all' : 'comments')}
-            >Comments</Tab>
-          </TabGroup>
+              shows per-kind phase counts only.
+
+              Spec 0205 Bug 4 — switched from `<Tab variant="kind">` /
+              `<TabGroup variant="kind-tabs">` (plain segmented buttons,
+              monochrome) to the kind `<Chip>` primitive used on
+              card heads, so filter and card carry one visual
+              vocabulary: per-kind brand tone (info/warn/err/idle)
+              + Q/D/I/C category bubble + trailing count. _ITEM_KIND_*
+              constants at L1521-L1530 stay the single source of truth
+              for tone/letter/label across both surfaces. */}
+          <div className="kind-chip-row" role="group" aria-label="Filter by item kind">
+            {['questions', 'disagreements', 'issues', 'comments'].map((kind) => {
+              const singular = kind.slice(0, -1);
+              return (
+                <Chip
+                  key={kind}
+                  tone={_ITEM_KIND_TONE[singular]}
+                  size="sm"
+                  categoryBubble={_ITEM_KIND_LETTER[singular]}
+                  label={_ITEM_KIND_LABEL[singular] + 's'}
+                  value={kindCounts[kind] || 0}
+                  data-active={kindFilter === kind ? 'true' : 'false'}
+                  data-kind={kind}
+                  onClick={() => setKindFilter(kindFilter === kind ? 'all' : kind)}
+                />
+              );
+            })}
+          </div>
 
           <span className="crit-filter-spacer" aria-hidden="true" />
 

@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.2] — 2026-05-24
+
+### Fixed
+
+- **Spec 0205 — P4 critique card: five visual regressions** ([spec 0205](specs/0205-fix-p4-critique-card-five-visual-regressions.md)). Bug-fix PATCH bundle on the P4 ItemCard surface.
+  - **Bug 1 — Sources segment indents + reference layout.** `.item-card__sources` now carries `padding: 10px 16px 14px` so the segment sits inside the card chrome rather than going full-bleed. Inside `SourceRow`, the expanded body renders URL · FETCHED · SEARCH QUERY as `(t-overline label) · value` two-column rows; CONTENT EXCERPT renders as a tinted `<blockquote>` with `--md-surface-container-low` background + `--md-outline` brand-toned left border and italic-serif typography (pre-0205 it was a `<pre>` block that read as raw debug output). Mirrored in both `src/dual_research/ui/static/components.css` and `design-system/assets/styles/composed-components.css`.
+  - **Bug 2 — Lifecycle leads Issue / Comment bodies.** `ItemCardIssueBody` and `ItemCardCommentBody` no longer render `<Markdown text={item.body}/>` as a standalone block above the lifecycle. `ItemCardLifecycleSection` already carries `item.body` inside the raise row's quote slot, so the standalone block was a duplicate. The inline anchor blockquote (`.item-card__quote-inline`) now sits below the lifecycle section with `margin: 0 16px 14px` to align with the lifecycle's interior gutter.
+  - **Bug 3 — Canonical sources glyph.** `.item-card__sources-hd` segment header and the P3 `ReviewCard` head's `Sources` chip both gain a leading `mdi:link-variant` glyph — the canonical sources family glyph already used by the head's evidence-required chip and the lifecycle's `source-requested` / `source-provided` chips, so evidence-bearing surfaces read as one visual vocabulary. Documented in [`design-system/SPEC.md`](design-system/SPEC.md) §4.7.
+  - **Bug 4 — Kind filter chips use the Chip primitive.** Bar 2 critique-pane kind filter row swapped from `<TabGroup variant="kind-tabs">` + four `<Tab variant="kind">` segmented buttons to four `<Chip>` instances inside a new `.kind-chip-row` wrapper. Filter and card head now share one visual vocabulary: per-kind brand tone (`info` / `warn` / `err` / `idle`), Q/D/I/C `categoryBubble`, `label`, and trailing count `value`. `data-active="true"` lifts the active chip via `--md-elev-1`; clicking the active chip deselects (toggles `kindFilter` back to `'all'`). `_ITEM_KIND_TONE` / `_ITEM_KIND_LETTER` / `_ITEM_KIND_LABEL` stay the single source of truth. The legacy `.kind-tab` / `.kind-tabs` CSS and `variant="kind"` / `variant="kind-tabs"` JSX branches stay for any pre-0205 surface that hasn't migrated.
+  - **Bug 5 — Provider raiser on every critique card.** `ItemCard` reads both `item.raisedBy` (typed-list wire) and `item.raiser` (unified `Item` wire from `run.phaseStats.items`) when resolving the leading provider chip — the unified-Item shape camelizes `raiser` to `raiser`, not `raisedBy`, which is why every card was falling through to the `SystemChip` fallback. The fallback itself is no longer `<SystemChip />` (reserved for the Phase 0 brief card per DS §4.4); a missing raiser on a critique item now surfaces an `err`-toned `Unknown raiser` chip plus a `console.warn` so future regressions are loud. Documented in DS §4.8 + the `SystemChip` row of the `Identity` primitives table.
+
 ## [1.44.1] — 2026-05-24
 
 ### Added
