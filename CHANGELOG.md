@@ -10,6 +10,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.43.0] — 2026-05-24
+
+### Added
+
+- **Spec 0203 — Critique V2 → live promotion (C1–C8 + V2.A/B/C)** ([spec 0203](specs/0203-critique-v2-live-promotion.md)). New-feature, MINOR bump. Eight collapsed-card and expanded-card upgrades from the `prototypes/critique-iteration/proposed.html` iteration land on the live Critique pane. Both `src/dual_research/ui/static/components.css` AND `design-system/assets/styles/composed-components.css` are kept in lockstep (the DS/live drift risk called out in spec 0203 §7).
+
+  **C1 — Resolved unfolded by default** (landed in checkpoint 1). [`run-detail.jsx:7780`](src/dual_research/ui/static/run-detail.jsx) — `renderGroup('Resolved', resolvedItems, 'ok', 'is-ok', false)`. The "≥ 1 resolved item" guard is upstream (`renderGroup` returns null when empty).
+
+  **C2 — Wide filter header** (landed in checkpoint 1). [`run-detail.jsx:7452-7530`](src/dual_research/ui/static/run-detail.jsx#L7452) — dropped "All" buttons (active-chip-click toggles back to `all`); `data-group="agent"|"status"` on the segments; swapped `.dot` for `.chip-leading-icon` carrying `<AgentIcon>`; wrapped labels in explicit `.chip-label` spans. CSS at [`components.css:2194`](src/dual_research/ui/static/components.css#L2194) + DS mirror.
+
+  **C3 — Narrow filter header** (landed in checkpoint 1; dead-code follow-up landed in §2.5). `nowrap !important` backstops on `.crit2 .bar2.crit-filter-row` and `.crit2 .bar2 .kind-tabs`. The legacy `.chip[data-kind-filter] .chip-label` rule is now correctly mirrored on `.kind-tab` (the actual live class — spec 0151 §3.4.1 migrated it) so narrow-mode kind labels actually drop per BDD Scenario 3.
+
+  **C4 — Collapsed card height ≈ 36 px** (landed in checkpoint 1). [`components.css:4518`](src/dual_research/ui/static/components.css#L4518) — `.item-card` padding `0`; `.item-card__head` adds `padding: 6px 12px; min-height: 0` so the head owns the card's vertical chrome.
+
+  **C5 — Collapsed head pattern + System fallback**. [`run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx) — composite `lifecycleChip` cluster replaced by explicit chips. Head emits, left → right: `[Provider] [Raised · R<N>] [Kind] [evidence?]` + spacer + `[<Verb> · <resolver icon?> · R<N>]` right-aligned via `[data-chip-role="state"] { margin-left: auto }`. CSS `text-transform: capitalize` on `[data-chip-role="round"|"state"] .chip-label`. `_resolveAgent` already returns `null` for orchestrator / system actors, triggering the existing `<SystemChip />` branch — no fix needed.
+
+  **C6 — Expanded card body: LIFECYCLE overline + `.lc-row` stack**. New component `ItemCardLifecycleSection` replaces `ItemCardThreadView` in `ItemCardDQBody` / `ItemCardIssueBody` / `ItemCardCommentBody`. Section anatomy: `<section class="item-card__lifecycle-section">` → `LIFECYCLE` overline + `<div class="lc-rows">` containing `<div class="lc-row" data-actor="…">` rows (chip cluster on top, italic-serif quote beneath). Orchestrator actors skip the provider chip. V2.A — new wrapper class avoids the legacy `.item-card__lifecycle` head-cluster name (removed alongside the composite chip). V2.C — `align-items: stretch` on `.lc-rows` + `align-self: stretch` on `.lc-row` keep each row's chip cluster left-aligned regardless of quote length.
+
+  **C7 — Source-request signal**. Head's `evidenceModifierChip` rewritten from `tone="warn"` + full-text "evidence needed" to `tone="info"` + `iconOnly` + `<Mdi name="link-variant" />` + native `title` tooltip ("Evidence needed — addresses must cite consulted sources."). Lifecycle rows inject `[source requested]` on the raise row when `item.evidenceRequired === true` and `[source provided]` on the first Claude/GPT transition when the card carries ≥ 1 evidence record. CSS adds `.evidence-chip` sizing (22 px square, `cursor: help`).
+
+  **C8 — Sources segment chrome** (CSS landed in checkpoint 1; JSX refinement landed in §2.5). `.source-row__title { max-width: 280px; … }` ellipsis; `.source-row__attribution { margin-left: auto }` parks attribution at the right edge. The attribution chip itself now ships per iter-13: `mono` + `R<N>` (capital) + native `title="Provided by <Agent> in round <N>"`.
+
+### Changed
+
+- `_ITEM_KIND_TONE.comment` from `muted` → `idle` so the Comment kind chip matches the V2 vocabulary (info / warn / err / idle).
+- `ItemCardThreadView` removed entirely; the `.item-card__qt-*` CSS scaffolding in both `components.css` and `composed-components.css` is replaced by the new `.item-card__lifecycle-section` rules.
+- Legacy `.item-card__lifecycle` + `.item-card__lifecycle-sep` head-cluster CSS removed — the composite chip is gone and the class name is repurposed (with the `-section` suffix) by C6.
+- Collapse rule extended: `.item-card[data-expanded="false"] .item-card__lifecycle-section { display: none }` mirrors the existing hide list (live + DS).
+
 ## [1.42.0] — 2026-05-24
 
 ### Added

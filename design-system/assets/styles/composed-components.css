@@ -777,6 +777,17 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
    shared.jsx; the legacy dual-selector form (className-based) is gone. */
 .tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Spec 0203 §2.2 (C2) — agent-segment brand icon. The bar-2 agent
+   filter now emits .chip-leading-icon with <AgentIcon /> inside each
+   .tab-solid instead of the legacy .dot. Sized to match
+   .chip .chip-leading-icon (12×12). */
+.tab-solid .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+/* Spec 0203 §2.2 — labels ride in an explicit .chip-label span. */
+.tab-solid .chip-label { display: inline; }
 
 /* Spec 0173 §2.4 — per-segment count token. The bare number sits
    inside `.chip-value`; parens are produced via ::before/::after
@@ -795,6 +806,14 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
 .tab-solid .chip-value::after  { content: ")"; margin-left: 1px; }
 @media (max-width: 1799px) {
   .tab-solid .chip-value { display: none; }
+  /* Spec 0203 §2.3 — drop the kind label at narrow viewports so the
+     bar2 filter cluster stays on one row. Mirrors live's rule at
+     `components.css` (the legacy `.chip[data-kind-filter]` selector
+     targets a class no element carries anymore). */
+  .kind-tab .chip-label,
+  .kind-tab > span:not(.chip-value):not(.cat-bubble):not(.chip-leading-icon) {
+    display: none;
+  }
 }
 
 /* Critique item card · short form (for header demos) */
@@ -2097,13 +2116,25 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   background: var(--md-surface-container-high);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--md-shape-lg);
-  padding: 14px 16px;
+  /* Spec 0203 §2.4 (C4) — collapsed-card height matches timeline
+     .tl-thread (~36 px). Frame padding is zero; the head owns its own
+     padding (6 px 12 px) per .item-card__head rule below. Per-card
+     spacing comes from .crit-group__body's 6 px gap, not per-card
+     margin. */
+  padding: 0;
   margin: 0;
   color: var(--md-on-surface);
   overflow: hidden;
   transition: background     var(--md-dur-short-3) var(--md-easing-standard),
               box-shadow     var(--md-dur-short-3) var(--md-easing-standard),
               border-color   var(--md-dur-short-3) var(--md-easing-standard);
+}
+/* Spec 0203 §2.4 — head padding inverts the previous outer padding so
+   the collapsed-card head clocks in at ~36 px (timeline parity). */
+.crit-card .crit-card-head,
+.item-card .item-card__head {
+  padding: 6px 12px;
+  min-height: 0;
 }
 .crit-card:hover,
 .item-card:hover {
@@ -2130,6 +2161,52 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   margin-bottom: 10px;
 }
 .crit-card-head .spacer { flex: 1; min-width: 8px; }
+
+/* Spec 0203 §2.5 (V2 iter-7/8/10) — explicit round + state chips in
+   the head replace the legacy composite `.item-card__lifecycle`
+   cluster (which only ever existed in the live app; DS examples now
+   render the same `[provider][round][kind][...][state]` shape).
+   Capitalisation lives in CSS so JSX labels stay lowercase and `R<N>`
+   keeps its case. */
+.crit-card-head [data-chip-role="round"] .chip-label,
+.crit-card-head [data-chip-role="state"] .chip-label,
+.item-card__head [data-chip-role="round"] .chip-label,
+.item-card__head [data-chip-role="state"] .chip-label {
+  text-transform: capitalize;
+}
+.crit-card-head [data-chip-role="state"],
+.item-card__head [data-chip-role="state"] { margin-left: auto; }
+.crit-card-head .chip .chip-sep,
+.item-card__head .chip .chip-sep {
+  display: inline-block;
+  margin: 0 4px;
+  opacity: 0.4;
+  font-weight: 400;
+}
+.crit-card-head [data-chip-role="state"] .state-actor,
+.item-card__head [data-chip-role="state"] .state-actor {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  cursor: help;
+}
+.crit-card-head [data-chip-role="state"] .state-actor .chip-leading-icon,
+.item-card__head [data-chip-role="state"] .state-actor .chip-leading-icon {
+  display: inline-flex;
+  align-items: center;
+}
+/* Spec 0203 §2.7 — icon-only evidence-needed chip. Small blue pill
+   with a native browser tooltip on hover; replaces the legacy
+   full-text warn-toned chip. */
+.crit-card-head .chip.evidence-chip,
+.item-card__head .chip.evidence-chip {
+  cursor: help;
+  padding: 0 6px;
+  height: 22px;
+  min-width: 22px;
+  align-items: center;
+  justify-content: center;
+}
 
 .crit-card-body {
   font: var(--md-w-regular) 13.5px/1.55 var(--md-font-plain);
@@ -2159,11 +2236,13 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
 .crit-card[data-expanded="false"] .item-card__sources,
 .crit-card[data-expanded="false"] .item-card__footer,
 .crit-card[data-expanded="false"] .item-card__lifecycle-footer,
+.crit-card[data-expanded="false"] .item-card__lifecycle-section,
 .item-card[data-expanded="false"] .item-card__body,
 .item-card[data-expanded="false"] .item-card__timeline,
 .item-card[data-expanded="false"] .item-card__sources,
 .item-card[data-expanded="false"] .item-card__footer,
-.item-card[data-expanded="false"] .item-card__lifecycle-footer {
+.item-card[data-expanded="false"] .item-card__lifecycle-footer,
+.item-card[data-expanded="false"] .item-card__lifecycle-section {
   display: none;
 }
 .crit-card[data-expanded="false"] .crit-card-head,
@@ -2175,36 +2254,45 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   border-radius: var(--md-shape-xs);
 }
 
-/* Spec 0173 §2.9 — expanded-view thread bubbles (QuestionThread anatomy
-   reused for ItemCard). Each transition (raised, pushback, conceded,
-   resolved) renders as a tonal-tinted message bubble carrying agent
-   identity, round, verdict pill, quote. */
-.item-card__qt-rows {
+/* Spec 0203 §2.6 — expanded-view LIFECYCLE section. Replaces the
+   §2.9 `.item-card__qt-*` thread bubbles. Same data, new anatomy:
+   `LIFECYCLE` overline header + `.lc-row` stack (chip cluster on top,
+   italic-serif quote beneath). V2.A — wrapper is
+   `.item-card__lifecycle-section`, NOT `.item-card__lifecycle` (the
+   latter was the legacy head-cluster, removed in §2.5). V2.C —
+   align-items: stretch and align-self: stretch keep each row's
+   chip cluster left-aligned regardless of quote length. */
+.item-card__lifecycle-section {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--md-outline-variant);
+  display: flex; flex-direction: column; gap: 18px;
+}
+.item-card__lifecycle-section-hd {
+  font: 600 10.5px/1 var(--md-font-data, ui-monospace, monospace);
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+}
+.item-card__lifecycle-section .lc-rows {
+  display: flex; flex-direction: column; gap: 18px;
+  align-items: stretch;
+}
+.item-card__lifecycle-section .lc-row {
   display: flex; flex-direction: column; gap: 8px;
-  margin: 8px 0 0; padding: 0;
+  align-self: stretch;
 }
-.item-card__qt-row {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 8px 10px;
-  border-radius: var(--md-shape-sm);
-  background: var(--md-surface-container-low);
-  border-left: 2px solid var(--md-outline-hair);
+.item-card__lifecycle-section .lc-row-chips {
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
-.item-card__qt-row--claude {
-  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container-low));
-  border-left-color: var(--p-sable);
-}
-.item-card__qt-row--gpt {
-  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container-low));
-  border-left-color: var(--p-sage);
-}
-.item-card__qt-chips {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-}
-.item-card__qt-quote {
+.item-card__lifecycle-section .lc-row-quote {
   margin: 0; padding: 0;
   color: var(--md-on-surface);
   font: italic var(--md-w-regular) 13px/1.55 var(--md-font-brand, var(--md-font-plain));
+}
+.item-card__lifecycle-section .lc-row-chips .chip.tone-claude {
+  background: color-mix(in srgb, var(--p-sable) 30%, transparent);
+}
+.item-card__lifecycle-section .lc-row-chips .chip.tone-gpt {
+  background: color-mix(in srgb, var(--p-sage) 30%, transparent);
 }
 
 .crit-card-id {
@@ -2304,12 +2392,21 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
 .source-row__title {
   color: var(--md-on-surface);
   font: var(--md-w-medium) 12.5px/1.3 var(--md-font-plain);
+  /* Spec 0203 §2.8 (C8) — cap long titles so the attribution chip can
+     right-align without being pushed off-canvas. */
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .source-row__host {
   color: var(--md-on-surface-faint);
   font: var(--md-w-regular) 11px/1 var(--md-font-plain);
 }
 .source-row__head .right { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+/* Spec 0203 §2.8 (C8) — right-align the attribution chip slot. */
+.source-row__attribution { display: inline-flex; align-items: center; flex-shrink: 0; margin-left: auto; }
 
 .source-row__body {
   padding-top: 8px;

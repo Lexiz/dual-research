@@ -59,13 +59,14 @@ def test_item_card_no_seen_row():
     )
 
 
-def test_item_card_dq_thread_view_preserved():
-    """Adapted from spec §4's fourth test. The pre-0173 plumbing
-    (`<ItemCardTurnRow text={t.reason}>`) is no longer the canonical
-    resolution-text surface — spec 0173 §2.9 moved that responsibility to
-    `<ItemCardThreadView item={item} />`. We lock the new surface so a
-    future PR that drops the thread view doesn't accidentally take the
-    resolution text with it."""
+def test_item_card_dq_lifecycle_section_preserved():
+    """Adapted from spec §4's fourth test, refreshed for spec 0203 §2.6.
+    The pre-0173 `<ItemCardTurnRow>` stack became `<ItemCardThreadView>`
+    in spec 0173 §2.9; spec 0203 §2.6 replaced that with
+    `<ItemCardLifecycleSection>` (LIFECYCLE overline + `.lc-row` stack)
+    so all four kinds (Q / D / I / C) render the same expanded anatomy.
+    We lock the current surface so a future PR that drops it doesn't
+    take the resolution text with it."""
     text = _read()
     m = re.search(
         r"function\s+ItemCardDQBody\b.*?(?=\nfunction\s+\w+)",
@@ -73,10 +74,10 @@ def test_item_card_dq_thread_view_preserved():
     )
     assert m is not None, "ItemCardDQBody body span not found"
     body = m.group(0)
-    assert re.search(r"<ItemCardThreadView\s+item=\{item\}", body), (
-        "ItemCardDQBody must still mount <ItemCardThreadView item={item} /> "
-        "after spec 0179 dropped the verdict row — the thread view is the "
-        "canonical resolution-text surface (spec 0173 §2.9). If it's gone, "
+    assert re.search(r"<ItemCardLifecycleSection\s+item=\{item\}", body), (
+        "ItemCardDQBody must still mount <ItemCardLifecycleSection item={item} /> "
+        "after spec 0203 §2.6 replaced ItemCardThreadView — the lifecycle "
+        "section is the canonical resolution-text surface. If it's gone, "
         "the resolution text disappears entirely from terminal D/Q cards."
     )
 

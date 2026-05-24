@@ -1045,11 +1045,18 @@ body.light .tab-group.tabs-solid .tab.is-active,
    rule at line ~1870 (which sets flex-wrap: wrap + padding: 10px 20px). */
 .crit2 .bar2.crit-filter-row {
   display: flex; align-items: center; gap: 8px;
-  flex-wrap: nowrap;
+  /* Spec 0203 §2.3 (C3) — !important is the load-bearing backstop: a
+     downstream override was previously pushing the right cluster off
+     the viewport edge (Notion audit, Issue 3). The bar must never wrap. */
+  flex-wrap: nowrap !important;
   padding: 10px 14px;
   min-height: 55px;
   border-bottom: 1px solid var(--md-outline-hair);
 }
+/* Spec 0203 §2.3 — same backstop on the kind cluster itself; its inline
+   flex defaults to nowrap but the !important guards against future
+   ancestor rules that try to wrap it. */
+.crit2 .bar2 .kind-tabs { flex-wrap: nowrap !important; }
 .crit-filter-spacer {
   width: 12px; height: 1px; flex: 0 0 12px;
 }
@@ -1082,6 +1089,15 @@ body.light .tab-group.tabs-solid .tab.is-active,
     padding: 10px 10px;
   }
   .crit2 .bar2.crit-filter-row .chip[data-kind-filter] .chip-label {
+    display: none;
+  }
+  /* Spec 0203 §2.3 — kind tabs migrated to `.kind-tab` (spec 0151
+     §3.4.1); the legacy `.chip[data-kind-filter] .chip-label` rule
+     above is dead code today. Mirror the label-drop on the live
+     class so narrow-mode actually hides the kind labels per
+     BDD Scenario 3. */
+  .crit2 .bar2 .kind-tab .chip-label,
+  .crit2 .bar2 .kind-tab > span:not(.chip-value):not(.cat-bubble):not(.chip-leading-icon) {
     display: none;
   }
   .crit2 .bar2.crit-filter-row .crit-filter-spacer {
@@ -2192,6 +2208,18 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
    shared.jsx; the legacy dual-selector form (className-based) is gone. */
 .tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Spec 0203 §2.2 (C2) — agent-segment brand icon. The bar-2 agent
+   filter now emits .chip-leading-icon with <AgentIcon /> inside each
+   .tab-solid instead of the legacy .dot, matching the timeline-pane
+   convention. Sized to match .chip .chip-leading-icon (12×12). */
+.tab-solid .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+/* Spec 0203 §2.2 — labels now ride in an explicit .chip-label span
+   inside .tab-solid (was bare text). Inherits font from parent. */
+.tab-solid .chip-label { display: inline; }
 
 /* Spec 0173 §2.4 — per-segment count token. The bare number sits
    inside `.chip-value`; parens are produced via ::before/::after
@@ -4500,7 +4528,11 @@ body.light .tour-spotlight__dim {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
+  /* Spec 0203 §2.4 (C4) — collapsed-card height matches timeline
+     .tl-thread (~36 px). Frame padding is zero; the head owns its own
+     padding (6 px 12 px) per the next rule. Per-card spacing comes from
+     .crit-group__body's 6 px gap below, not per-card margin. */
+  padding: 0;
   background: var(--md-surface-container-high);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--md-shape-lg);
@@ -4530,24 +4562,53 @@ body.light .tour-spotlight__dim {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  /* Spec 0203 §2.4 (C4) — head owns the card's padding now that the
+     frame is padding:0. 6 px vertical × 12 px horizontal puts the
+     collapsed-card head at the same ~36 px height as timeline cards. */
+  padding: 6px 12px;
+  min-height: 0;
 }
-/* Spec 0173 §2.5 — spacer pushes the lifecycle chip (and any trailing
-   chips) to the right edge of the head. Replaces the prior
-   `margin-left: auto` on the sources chip (which was dropped). */
+/* Spec 0173 §2.5 — spacer pushes any trailing chip (now the state chip
+   per spec 0203 §2.5) to the right edge of the head. The state chip
+   itself also carries margin-left: auto as a belt-and-suspenders for
+   wrap-edge cases. */
 .item-card__head-spacer { flex: 1; min-width: 0; }
 
-/* Spec 0173 §2.6 + §2.8 — lifecycle chip cluster (resolved variant
-   uses a `raised · resolved` two-chip composition; open / drift use a
-   single chip and skip the cluster wrapper). */
-.item-card__lifecycle {
+/* Spec 0203 §2.5 (V2 iter-7/8/10) — explicit round + state chips
+   replace the legacy composite `.item-card__lifecycle` cluster.
+   Capitalisation lives in CSS (text-transform on the chip-label) so
+   the JSX label can stay lowercase and `R<N>` keeps its case. */
+.item-card__head [data-chip-role="round"] .chip-label,
+.item-card__head [data-chip-role="state"] .chip-label {
+  text-transform: capitalize;
+}
+.item-card__head [data-chip-role="state"] { margin-left: auto; }
+.item-card__head .chip .chip-sep {
+  display: inline-block;
+  margin: 0 4px;
+  opacity: 0.4;
+  font-weight: 400;
+}
+.item-card__head [data-chip-role="state"] .state-actor {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  vertical-align: middle;
+  cursor: help;
 }
-.item-card__lifecycle-sep {
-  color: var(--md-on-surface-variant);
-  font-size: 11px;
-  user-select: none;
+.item-card__head [data-chip-role="state"] .state-actor .chip-leading-icon {
+  display: inline-flex;
+  align-items: center;
+}
+/* Spec 0203 §2.7 — icon-only evidence-needed chip. Small (28×28 px)
+   blue pill with a native browser tooltip on hover. Replaces the
+   legacy full-text warn-toned "evidence needed" chip. */
+.item-card__head .chip.evidence-chip {
+  cursor: help;
+  padding: 0 6px;
+  height: 22px;
+  min-width: 22px;
+  align-items: center;
+  justify-content: center;
 }
 .item-card__body {
   color: var(--md-on-surface);
@@ -4571,50 +4632,69 @@ body.light .tour-spotlight__dim {
    once nothing in the tree references the class. */
 .item-card__evidence-needed { display: none; }
 
-/* Spec 0173 §2.9 — expanded-view thread bubbles. Each transition
-   (raised, pushback, conceded, resolved) renders as a tonal-tinted
-   message bubble carrying the agent identity, round, verdict pill,
-   and the quote inside. Mirrors QuestionThread `.lc-row` anatomy
-   from shared.jsx, scoped under `.item-card` so the rules don't
-   collide with the Critique pane's primary bubble timeline. */
-.item-card__qt-rows {
+/* Spec 0203 §2.6 — expanded-view LIFECYCLE section. Replaces the
+   §2.9 `.item-card__qt-*` thread bubbles. Anatomy:
+     <section .item-card__lifecycle-section>
+       <div .item-card__lifecycle-section-hd> LIFECYCLE
+       <div .lc-rows>
+         <div .lc-row data-actor=…>
+           <div .lc-row-chips> [provider][round][verb][extras?]
+           <div .lc-row-quote> italic serif quote
+   V2.A — the wrapper class is `.item-card__lifecycle-section`, NOT
+   `.item-card__lifecycle` (which was the legacy head-cluster wrapper,
+   removed in §2.5). V2.C — align-items: stretch on .lc-rows and
+   align-self: stretch on .lc-row keep each row's chip cluster
+   left-aligned regardless of quote length. */
+.item-card__lifecycle-section {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--md-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.item-card__lifecycle-section-hd {
+  font-family: var(--md-font-data, ui-monospace, monospace);
+  font-weight: 600;
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+}
+.item-card__lifecycle-section .lc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: stretch;
+}
+.item-card__lifecycle-section .lc-row {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 8px 0 0;
-  padding: 0;
+  align-self: stretch;
 }
-.item-card__qt-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: var(--md-shape-sm);
-  background: var(--md-surface-container-low);
-  border-left: 2px solid var(--md-outline-hair);
-}
-.item-card__qt-row--claude {
-  background: color-mix(in srgb, var(--p-sable) 8%, var(--md-surface-container-low));
-  border-left-color: var(--p-sable);
-}
-.item-card__qt-row--gpt {
-  background: color-mix(in srgb, var(--p-sage) 8%, var(--md-surface-container-low));
-  border-left-color: var(--p-sage);
-}
-.item-card__qt-chips {
-  display: flex;
-  flex-wrap: wrap;
+.item-card__lifecycle-section .lc-row-chips {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.item-card__qt-quote {
+.item-card__lifecycle-section .lc-row-quote {
   margin: 0;
   padding: 0;
   color: var(--md-on-surface);
-  font-family: var(--md-font-brand, var(--md-font-plain));
+  font-family: var(--md-font-brand, "Roboto Serif", Georgia, serif);
   font-style: italic;
   font-size: 13px;
   line-height: 1.55;
+}
+/* Tint the provider chip inside lc-rows the same way the head does,
+   so the lifecycle stack reads as one continuous provider thread. */
+.item-card__lifecycle-section .lc-row-chips .chip.tone-claude {
+  background: color-mix(in srgb, var(--p-sable) 30%, transparent);
+}
+.item-card__lifecycle-section .lc-row-chips .chip.tone-gpt {
+  background: color-mix(in srgb, var(--p-sage) 30%, transparent);
 }
 .item-card__timeline {
   display: flex;
@@ -4692,7 +4772,8 @@ body.light .tour-spotlight__dim {
 .item-card[data-expanded="false"] .item-card__timeline,
 .item-card[data-expanded="false"] .item-card__sources,
 .item-card[data-expanded="false"] .item-card__footer,
-.item-card[data-expanded="false"] .item-card__lifecycle-footer {
+.item-card[data-expanded="false"] .item-card__lifecycle-footer,
+.item-card[data-expanded="false"] .item-card__lifecycle-section {
   display: none;
 }
 .item-card[data-expanded="false"] .item-card__head { cursor: pointer; }
@@ -4865,7 +4946,11 @@ body.light .tour-spotlight__dim {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
+  /* Spec 0203 §2.8 (C8) — cap title at 280 px so long URLs/titles
+     truncate predictably instead of pushing the host + attribution
+     chip off-screen. The attribution chip's margin-left:auto then
+     parks itself at the right edge. */
+  max-width: 280px;
   min-width: 0;
 }
 .source-row__host {
@@ -4879,6 +4964,10 @@ body.light .tour-spotlight__dim {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  /* Spec 0203 §2.8 (C8) — right-align the attribution chip; the title
+     above caps at 280 px so this chip is pushed to the far edge with
+     the host badge trailing it. */
+  margin-left: auto;
 }
 .source-row__body {
   padding-top: 8px;
