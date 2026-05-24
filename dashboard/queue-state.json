@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:41:06Z",
+  "updated_at": "2026-05-24T10:44:21Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8203,7 +8203,9 @@
       "started_at": "2026-05-24T10:04:38Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/236",
       "merged_at": "2026-05-24T10:27:59Z",
-      "failure_step": ""
+      "failure_step": "",
+      "deployed_at": "2026-05-24T10:44:21Z",
+      "handover": "handoffs/2026-05-24-spec-0205.1-itemcard-parity-grid-refresh-and-retroactive-attachment.md"
     },
     "0205.2": {
       "status": "queued",
