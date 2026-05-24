@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:40:02Z",
+  "updated_at": "2026-05-24T02:40:48Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7805,6 +7805,13 @@
               "no_in_flight",
               "manual_bypass_of_broken_picker"
             ]
+          }
+        },
+        {
+          "ts": "2026-05-24T02:40:48Z",
+          "step": "handoff_read",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0203.1-dashboard-queue-state-parity-and-l-spec-event-vocab.md"
           }
         }
       ]
