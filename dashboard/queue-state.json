@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:39:59Z",
+  "updated_at": "2026-05-24T11:40:51Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8381,7 +8381,7 @@
       "handover": "handoffs/2026-05-24-spec-0205.2-remove-dead-kind-tab-kind-tabs-css-and-jsx-variant-branches.md"
     },
     "0207": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-24T10:01:33Z",
       "events": [
         {
@@ -8426,9 +8426,25 @@
           "data": {
             "passed": 1872
           }
+        },
+        {
+          "ts": "2026-05-24T11:40:44Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/239"
+          }
+        },
+        {
+          "ts": "2026-05-24T11:40:51Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/239"
+          }
         }
       ],
-      "started_at": "2026-05-24T11:36:43Z"
+      "started_at": "2026-05-24T11:36:43Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/239",
+      "merged_at": "2026-05-24T11:40:47Z"
     },
     "0208": {
       "status": "queued",
