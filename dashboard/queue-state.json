@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:48:10Z",
+  "updated_at": "2026-05-24T02:48:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7782,7 +7782,7 @@
       ]
     },
     "0203.2": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-24T02:30:00Z",
       "events": [
         {
@@ -7876,7 +7876,9 @@
           }
         }
       ],
-      "started_at": "2026-05-24T02:41:46Z"
+      "started_at": "2026-05-24T02:41:46Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/233",
+      "merged_at": "2026-05-24T02:48:13Z"
     }
   }
 }
