@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:18:08Z",
+  "updated_at": "2026-05-24T13:18:12Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8795,6 +8795,11 @@
             "branch": "spec/0211-delegate-fly-deploy-to-github-actions",
             "from": "main@e8b1c8c"
           }
+        },
+        {
+          "ts": "2026-05-24T13:18:12Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-24T13:17:47Z"
