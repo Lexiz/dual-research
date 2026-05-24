@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:08:34Z",
+  "updated_at": "2026-05-24T12:11:41Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8575,7 +8575,7 @@
       "handover": "handoffs/2026-05-24-spec-0208-provider-chip-dim-in-critique-promote-tone-to-base.md"
     },
     "0209": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T10:50:02Z",
       "events": [
         {
@@ -8583,7 +8583,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T12:11:41Z"
     },
     "0210": {
       "status": "queued",
