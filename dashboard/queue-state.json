@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:56:39Z",
+  "updated_at": "2026-05-24T12:01:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8473,7 +8473,7 @@
       "handover": "handoffs/2026-05-24-spec-0207-fix-link-variant-icon-missing.md"
     },
     "0208": {
-      "status": "merged",
+      "status": "failed",
       "queued_at": "2026-05-24T10:37:56Z",
       "events": [
         {
@@ -8536,7 +8536,8 @@
       ],
       "started_at": "2026-05-24T11:48:12Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/240",
-      "merged_at": "2026-05-24T11:56:35Z"
+      "merged_at": "2026-05-24T11:56:35Z",
+      "failure_step": "deploy"
     },
     "0209": {
       "status": "queued",
