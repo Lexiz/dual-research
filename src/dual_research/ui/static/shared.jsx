@@ -1047,8 +1047,10 @@ function OpenAIMonogram() {
 //   'md-tabs' (M3 primary tabs), 'tab-group-solid' (M3 segmented pill),
 //   'phase-tabs', 'kind-tabs'.
 // Tab variant (SPEC-0095): undefined (v1 bordered pill), 'primary' (M3
-//   md-tab), 'solid' (tab-solid), 'kind' (kind-tab), 'phase' (phase-tab),
+//   md-tab), 'solid' (tab-solid), 'phase' (phase-tab),
 //   'chrome' (md-btn--text for app-bar use).
+// Spec 0205.2 — the 'kind' (kind-tab) variant was retired; the Bar 2
+// kind filter row migrated to the shared Chip primitive in spec 0205 Bug 4.
 // Spec 0173 §2.3 — the legacy 'fgroup' variant was dropped; the bar-2
 // critique-pane filters now render as inline `.tab-group-solid` with
 // `.tab-solid[data-active]` buttons directly in run-detail.jsx.
@@ -1097,17 +1099,6 @@ function Tab({ active, onClick, size = 'md', icon, children, count, disabled, do
         {dot && <i className="dot" />}
         {icon && <Mdi name={icon} size={14} />}
         <span>{children}</span>
-      </button>
-    );
-  }
-  if (variant === 'kind') {
-    return (
-      <button type="button" role="tab" aria-selected={active ? 'true' : 'false'}
-              onClick={onClick} disabled={disabled}
-              className={_cn('kind-tab', active && 'is-active', count === 0 && 'is-zero', className)}>
-        {icon && <Mdi name={icon} size={14} />}
-        <span>{children}</span>
-        {count != null && <span className="ct">{count}</span>}
       </button>
     );
   }
