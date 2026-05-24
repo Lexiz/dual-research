@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:47:20Z",
+  "updated_at": "2026-05-24T12:51:36Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8683,7 +8683,7 @@
       "handover": "handoffs/2026-05-24-spec-0209-cs-body-hidden-when-open.md"
     },
     "0210": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T11:13:17Z",
       "events": [
         {
@@ -8691,7 +8691,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T12:51:36Z"
     },
     "0211": {
       "status": "queued",
