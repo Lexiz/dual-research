@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:30:28Z",
+  "updated_at": "2026-05-24T11:36:43Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8381,7 +8381,7 @@
       "handover": "handoffs/2026-05-24-spec-0205.2-remove-dead-kind-tab-kind-tabs-css-and-jsx-variant-branches.md"
     },
     "0207": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T10:01:33Z",
       "events": [
         {
@@ -8389,7 +8389,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-24T11:36:43Z"
     },
     "0208": {
       "status": "queued",
