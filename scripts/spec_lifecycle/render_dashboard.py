@@ -362,6 +362,10 @@ _FEED_STEP_ICON = {
     "failed": ("error", "err"),
     "reconcile_failed": ("error", "err"),
     "tests_failed": ("error", "err"),
+    # Spec 0203.1 §3.3 — L-spec checkpoint cadence + queue promotion.
+    "checkpoint_written": ("bookmark_added", "info"),
+    "resume_started": ("replay", "info"),
+    "promoted_as_next": ("arrow_upward", "info"),
 }
 
 _FEED_KICKER = {
@@ -381,7 +385,28 @@ _FEED_KICKER = {
     "failed": "failed",
     "reconcile_failed": "reconcile failed",
     "tests_failed": "tests failed",
+    "checkpoint_written": "checkpoint",
+    "resume_started": "resumed",
+    "promoted_as_next": "promoted as next",
 }
+
+
+def _latest_checkpoint_subsection(spec: "SpecRow | None") -> str | None:
+    """Return the most recent `checkpoint_written` event's `next_subsection`.
+
+    Used by feed and hero rendering to display "resumed at §2.5" for a
+    `resume_started` event whose own payload is empty.
+    """
+    if spec is None:
+        return None
+    for ev in reversed(spec.events or []):
+        if ev.get("step") != "checkpoint_written":
+            continue
+        data = ev.get("data") or {}
+        sub = data.get("next_subsection")
+        if sub:
+            return str(sub)
+    return None
 
 
 def _feed_detail(spec: SpecRow | None, step: str, data: dict[str, Any]) -> str:
@@ -444,6 +469,16 @@ def _feed_detail(spec: SpecRow | None, step: str, data: dict[str, Any]) -> str:
         if commits is not None:
             return f"{spec_label} · {_escape(commits)} commits"
         return spec_label
+    if step == "checkpoint_written":
+        sub = data.get("next_subsection") or "?"
+        done_n = len(data.get("completed_subsections") or [])
+        return f"{spec_label} · §{_escape(sub)} · {done_n} done"
+    if step == "resume_started":
+        sub = _latest_checkpoint_subsection(spec) or "?"
+        return f"{spec_label} · resumed at §{_escape(sub)}"
+    if step == "promoted_as_next":
+        was = data.get("was") or "?"
+        return f"{spec_label} · was {_escape(was)}"
     return spec_label
 
 
@@ -603,6 +638,23 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         chips.append(
             f'<span class="chip tone-info">currently · {_escape(current_step_label)}</span>'
         )
+    # Spec 0203.1 §3.4 — L-spec sub-progress chip. Surface the most recent
+    # checkpoint's `next_subsection` so a multi-hour L-spec doesn't appear
+    # frozen on "implement" with no indication of `§2.N` progress.
+    if spec.status == "in_progress":
+        cp_ev = next(
+            (e for e in reversed(spec.events) if e.get("step") == "checkpoint_written"),
+            None,
+        )
+        if cp_ev:
+            cp_data = cp_ev.get("data") or {}
+            next_sub = cp_data.get("next_subsection") or "?"
+            done_n = len(cp_data.get("completed_subsections") or [])
+            chips.append(
+                f'<span class="chip tone-info" data-checkpoint-next="{_escape(next_sub)}" '
+                f'data-checkpoint-done="{done_n}">'
+                f'§{_escape(next_sub)} · {done_n} subsections done</span>'
+            )
     # Spec 0163 §2.4 — staleness chip, ticked by dashboard-live.js. Server-rendered
     # tone matches what the JS will compute at first paint (avoids a flash).
     if latest_event_ts:
@@ -3271,8 +3323,142 @@ DASHBOARD_BOOTSTRAP_JS = """\
     'deploy_started': 'deploying',
     'deployed': 'deployed',
     'deploy_health_check_ok': 'health check ok',
-    'handoff_written': 'handoff written'
+    'handoff_written': 'handoff written',
+    'checkpoint_written': 'checkpoint',
+    'resume_started': 'resuming',
+    'promoted_as_next': 'promoted as next'
   };
+
+  // Spec 0203.1 §3.5 — feed icon + kicker mirror tables. Must stay in
+  // lock-step with _FEED_STEP_ICON / _FEED_KICKER in this same file
+  // (Python side). Before 0203.1 the bootstrap feed rendered neutral
+  // icons with raw step names; the server-rendered first paint already
+  // had rich rows, so a 5s repaint wiped the icons. Adding these tables
+  // brings the live feed to first-paint parity AND surfaces the new
+  // checkpoint/resume/promotion events with their dedicated glyphs.
+  var FEED_STEP_ICON = {
+    'queued':             ['add_task',      'info'],
+    'in_progress':        ['flag_circle',   'neutral'],
+    'preflight_ok':       ['flag_circle',   'neutral'],
+    'handoff_read':       ['flag_circle',   'neutral'],
+    'spec_read':          ['flag_circle',   'neutral'],
+    'branched':           ['flag_circle',   'neutral'],
+    'reconcile_complete': ['rule',          'ok'],
+    'implement_complete': ['rule',          'ok'],
+    'tests_green':        ['task_alt',      'ok'],
+    'pr_opened':          ['merge',         'info'],
+    'merged':             ['merge',         'info'],
+    'deployed':           ['check_circle',  'ok'],
+    'handoff_written':    ['bookmark',      'info'],
+    'failed':             ['error',         'err'],
+    'reconcile_failed':   ['error',         'err'],
+    'tests_failed':       ['error',         'err'],
+    'checkpoint_written': ['bookmark_added','info'],
+    'resume_started':     ['replay',        'info'],
+    'promoted_as_next':   ['arrow_upward',  'info']
+  };
+  var FEED_KICKER = {
+    'queued': 'queued',
+    'in_progress': 'in progress',
+    'preflight_ok': 'pre-flight',
+    'handoff_read': 'read handoff',
+    'spec_read': 'read spec',
+    'branched': 'branched',
+    'reconcile_complete': 'reconcile',
+    'implement_complete': 'implement',
+    'tests_green': 'tests green',
+    'pr_opened': 'pr opened',
+    'merged': 'merged',
+    'deployed': 'deployed',
+    'handoff_written': 'handoff written',
+    'failed': 'failed',
+    'reconcile_failed': 'reconcile failed',
+    'tests_failed': 'tests failed',
+    'checkpoint_written': 'checkpoint',
+    'resume_started': 'resumed',
+    'promoted_as_next': 'promoted as next'
+  };
+  // Look up the most recent `checkpoint_written` event for a spec and
+  // return its `next_subsection` payload, or null if none exists. Used
+  // by feedDetail (`resume_started` branch) and renderHeroInflight.
+  function latestCheckpointSubsection(events) {
+    if (!events || !events.length) return null;
+    for (var i = events.length - 1; i >= 0; i--) {
+      if (events[i].step !== 'checkpoint_written') continue;
+      var d = events[i].data || {};
+      if (d.next_subsection) return String(d.next_subsection);
+    }
+    return null;
+  }
+  // Spec 0203.1 §3.5 — feed-detail builder mirrors Python `_feed_detail`.
+  // Returns inner-HTML for the right column of one feed row. The caller
+  // is responsible for escaping any unsafe strings via ESC.
+  function feedDetail(spec, step, data, events) {
+    var label = spec
+      ? '<a href="spec-' + ESC(spec.number) + '.html">' + ESC(spec.number) + '</a>'
+      : '';
+    var title = spec ? ESC(spec.title || '') : '';
+    data = data || {};
+    if (step === 'queued')              return label + ' · ' + title;
+    if (step === 'in_progress')         return label + ' · ' + title;
+    if (step === 'deployed') {
+      var v = data.version;
+      return label + ' · ' + title + (v ? ' · v' + ESC(v) : '');
+    }
+    if (step === 'merged') {
+      var pr = data.pr || (spec && spec.pr) || '';
+      if (pr) {
+        var m = String(pr).match(/\\/pull\\/(\\d+)/);
+        var prLabel = m ? 'PR #' + m[1] : 'PR';
+        return label + ' · <a href="' + ESC(pr) + '">' + ESC(prLabel) + '</a> · admin squash';
+      }
+      return label + ' · admin squash';
+    }
+    if (step === 'pr_opened') {
+      var url = data.url || (spec && spec.pr) || '';
+      if (url) return label + ' · <a href="' + ESC(url) + '">' + ESC(url) + '</a>';
+      return label;
+    }
+    if (step === 'branched') {
+      var branch = data.branch || '';
+      if (branch) return label + ' · branch <code>' + ESC(branch) + '</code>';
+      return label;
+    }
+    if (step === 'reconcile_complete') {
+      var verdict = data.verdict || 'clean';
+      var mech = data.mechanical == null ? 0 : data.mechanical;
+      return label + ' · ' + ESC(verdict) + ' · ' + ESC(mech) + ' patches';
+    }
+    if (step === 'tests_green') {
+      if (data.passed != null) return label + ' · ' + ESC(data.passed) + ' passed';
+      return label + ' · all green';
+    }
+    if (step === 'handoff_written') {
+      return data.path ? label + ' · ' + ESC(data.path) : label;
+    }
+    if (step === 'handoff_read')   return label + ' · prior handoff read';
+    if (step === 'spec_read')      return label + ' · spec parsed';
+    if (step === 'preflight_ok')   return label + ' · pre-flight clean';
+    if (step === 'failed' || step === 'reconcile_failed' || step === 'tests_failed') {
+      return data.reason ? label + ' · ' + ESC(data.reason) : label;
+    }
+    if (step === 'implement_complete') {
+      return data.commits != null ? label + ' · ' + ESC(data.commits) + ' commits' : label;
+    }
+    if (step === 'checkpoint_written') {
+      var sub = data.next_subsection || '?';
+      var done = (data.completed_subsections || []).length;
+      return label + ' · §' + ESC(sub) + ' · ' + done + ' done';
+    }
+    if (step === 'resume_started') {
+      var resumedSub = latestCheckpointSubsection(events) || '?';
+      return label + ' · resumed at §' + ESC(resumedSub);
+    }
+    if (step === 'promoted_as_next') {
+      return label + ' · was ' + ESC(data.was || '?');
+    }
+    return label;
+  }
 
   // Spec 0177 §2.2 — STAGE_DEFS must mirror STAGES in
   // scripts/spec_lifecycle/stages.py. Each entry is [name, completedStep].
@@ -3574,6 +3760,25 @@ DASHBOARD_BOOTSTRAP_JS = """\
     if (currentLabel) {
       chips.push('<span class="chip tone-info">currently · ' + ESC(currentLabel) + '</span>');
     }
+    // Spec 0203.1 §3.4 / §3.5 — L-spec sub-progress chip mirrors the
+    // server-side branch in _render_hero_inflight. Drives "§2.5 · 5
+    // subsections done" so a multi-hour L-spec doesn't appear frozen.
+    if (spec.status === 'in_progress') {
+      var cpEv = null;
+      for (var ci = events.length - 1; ci >= 0; ci--) {
+        if (events[ci].step === 'checkpoint_written') { cpEv = events[ci]; break; }
+      }
+      if (cpEv) {
+        var cpData = cpEv.data || {};
+        var nextSub = cpData.next_subsection || '?';
+        var doneN = (cpData.completed_subsections || []).length;
+        chips.push(
+          '<span class="chip tone-info" data-checkpoint-next="' + ESC(nextSub) +
+          '" data-checkpoint-done="' + doneN + '">' +
+          '§' + ESC(nextSub) + ' · ' + doneN + ' subsections done</span>'
+        );
+      }
+    }
     // Spec 0163 §2.4 — staleness chip ticked every second by dashboard-live.js.
     if (latestTs) {
       var ageSec = Math.max(0, Math.floor((nowMs - Date.parse(latestTs)) / 1000));
@@ -3680,15 +3885,22 @@ DASHBOARD_BOOTSTRAP_JS = """\
       var mm = String(d.getUTCMinutes()).padStart(2, '0');
       var ss = String(d.getUTCSeconds()).padStart(2, '0');
       var step = r.ev.step || '';
-      var specLink = r.spec
-        ? '<a href="spec-' + ESC(r.spec.number) + '.html">' + ESC(r.spec.number) + '</a>'
-        : '';
-      var detail = r.spec ? specLink + ' · ' + ESC(r.spec.title) : ESC(step);
+      // Spec 0203.1 §3.5 — mirror server-side _FEED_STEP_ICON / _FEED_KICKER
+      // so the bootstrap repaint preserves the rich first-paint rows
+      // instead of degrading every event to a neutral chip with the
+      // raw step name.
+      var iconEntry = FEED_STEP_ICON[step] || ['circle', 'neutral'];
+      var icon = iconEntry[0];
+      var tone = iconEntry[1];
+      var kicker = FEED_KICKER[step] || step.replace(/_/g, ' ');
+      var specEvents = r.spec ? ((data.events && data.events[r.spec.number]) || []) : [];
+      var detail = feedDetail(r.spec, step, r.ev.data || {}, specEvents);
       return (
         '<div class="feed__row" data-pager-page="' + page + '"' + hidden + '>' +
         '<div class="feed__ts">' + hh + ':' + mm + ':' + ss + ' UTC</div>' +
-        '<div class="feed__step feed__step--neutral"></div>' +
-        '<div class="feed__what"><span class="kicker">' + ESC(step.replace(/_/g, ' ')) + '</span>' +
+        '<div class="feed__step feed__step--' + tone + '">' +
+        '<span class="material-symbols-outlined">' + ESC(icon) + '</span></div>' +
+        '<div class="feed__what"><span class="kicker">' + ESC(kicker) + '</span>' +
         detail + '</div><div class="feed__dur">—</div></div>'
       );
     });

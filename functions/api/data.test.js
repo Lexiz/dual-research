@@ -34,6 +34,17 @@ const TREE_BODY = {
   ],
 };
 
+// Spec 0203.1 §3.1 — TREE_BODY variant that includes queue-state.json so
+// the layering + events-merge paths can be exercised end-to-end.
+const TREE_BODY_WITH_QUEUE_STATE = {
+  tree: [
+    { path: 'specs/0001-foo.md', sha: 'sha-0001-spec', type: 'blob' },
+    { path: 'specs/0002-bar.md', sha: 'sha-0002-spec', type: 'blob' },
+    { path: 'dashboard/events/0001.jsonl', sha: 'sha-0001-events', type: 'blob' },
+    { path: 'dashboard/queue-state.json', sha: 'sha-queue-state', type: 'blob' },
+  ],
+};
+
 // Paths that pass the data.js category regexes, in the same order data.js
 // concatenates them (specs, drafts, handoffs, events). The GraphQL mock
 // produces `f0..fN` aliases keyed off this order.
@@ -43,6 +54,48 @@ const FIXTURE_BLOB_PATHS = [
   'dashboard/events/0001.jsonl',
 ];
 
+// Spec 0203.1 §3.1 — queue-state.json is appended LAST to allBlobs in
+// data.js so existing alias indices stay stable.
+const FIXTURE_BLOB_PATHS_WITH_QUEUE_STATE = [
+  'specs/0001-foo.md',
+  'specs/0002-bar.md',
+  'dashboard/events/0001.jsonl',
+  'dashboard/queue-state.json',
+];
+
+const QUEUE_STATE_FIXTURE = {
+  version: 1,
+  updated_at: '2026-05-24T01:55:00Z',
+  specs: {
+    // Spec 0001 — frontmatter is frozen at 'in_progress' (per fixture),
+    // queue-state flips it to 'deployed' and adds deployed_at + pr.
+    '0001': {
+      status: 'deployed',
+      queued_at: '2026-01-01T00:00:00Z',
+      started_at: '2026-01-01T00:00:10Z',
+      deployed_at: '2026-01-01T01:00:00Z',
+      pr: 'https://example/pr/1',
+      events: [
+        { ts: '2026-01-01T00:00:00Z', step: 'queued', data: {} },
+        { ts: '2026-01-01T00:00:10Z', step: 'in_progress', data: {} },
+        // Spec 0203.1 §3.2 — these step names must round-trip through
+        // the response unchanged for the dashboard's vocab to render
+        // them correctly.
+        { ts: '2026-01-01T00:30:00Z', step: 'checkpoint_written',
+          data: { next_subsection: '2.5', completed_subsections: ['2.1', '2.2'] } },
+        { ts: '2026-01-01T01:00:00Z', step: 'deployed', data: { version: '0.1.0' } },
+      ],
+    },
+    '0002': {
+      status: 'queued',
+      queued_at: '2026-01-02T00:00:00Z',
+      events: [
+        { ts: '2026-01-02T00:00:00Z', step: 'queued', data: {} },
+      ],
+    },
+  },
+};
+
 function readFixture(rel) {
   return readFileSync(resolve(FIX_ROOT, rel), 'utf-8');
 }
@@ -51,6 +104,7 @@ function textForPath(path) {
   if (path === 'specs/0001-foo.md') return readFixture('specs/0001-foo.md');
   if (path === 'specs/0002-bar.md') return readFixture('specs/0002-bar.md');
   if (path === 'dashboard/events/0001.jsonl') return readFixture('events/0001.jsonl');
+  if (path === 'dashboard/queue-state.json') return JSON.stringify(QUEUE_STATE_FIXTURE);
   throw new Error(`unexpected blob path: ${path}`);
 }
 
@@ -70,10 +124,12 @@ function jsonResponse(body, status = 200) {
 }
 
 function makeFetchMock(overrides = {}) {
+  const treesBody = overrides.treesBody || TREE_BODY;
+  const blobPaths = overrides.blobPaths || FIXTURE_BLOB_PATHS;
   return vi.fn(async (url, init) => {
     const u = String(url);
     if (overrides.trees && u.includes('/git/trees/')) return overrides.trees;
-    if (u.includes('/git/trees/')) return jsonResponse(TREE_BODY);
+    if (u.includes('/git/trees/')) return jsonResponse(treesBody);
     if (overrides.graphql && u.endsWith('/graphql')) return overrides.graphql;
     if (u.endsWith('/graphql')) {
       // Sanity: the request should be a POST with a JSON body containing
@@ -82,7 +138,7 @@ function makeFetchMock(overrides = {}) {
       if (!init || init.method !== 'POST') {
         throw new Error('graphql call must be a POST');
       }
-      return graphqlResponseFor(FIXTURE_BLOB_PATHS);
+      return graphqlResponseFor(blobPaths);
     }
     throw new Error(`fetch mock got unexpected URL: ${u}`);
   });
@@ -219,5 +275,82 @@ describe('Pages Function /api/data', () => {
     expect(res.status).toBe(502);
     const body = await res.json();
     expect(body.error).toMatch(/GITHUB_TOKEN/);
+  });
+
+  // Spec 0203.1 §3.1 — queue-state.json fetch + layering regression test.
+  it('layers queue-state.json over frontmatter and exposes queue_state_updated_at', async () => {
+    const cacheStub = makeCachesStub();
+    globalThis.caches = { default: cacheStub };
+    const fetchMock = makeFetchMock({
+      treesBody: TREE_BODY_WITH_QUEUE_STATE,
+      blobPaths: FIXTURE_BLOB_PATHS_WITH_QUEUE_STATE,
+    });
+    globalThis.fetch = fetchMock;
+
+    const res = await onRequest(makeContext({ cache: cacheStub }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    // Cycle-mutable fields from queue-state.json win over frozen frontmatter.
+    const spec0001 = body.specs.find((s) => s.number === '0001');
+    expect(spec0001).toBeTruthy();
+    expect(spec0001.status).toBe('deployed');             // queue-state wins
+    expect(spec0001.pr).toBe('https://example/pr/1');     // queue-state added
+    expect(spec0001.deployed_at).toBe('2026-01-01T01:00:00Z');
+
+    // Shape-immutable fields from frontmatter survive the merge.
+    expect(spec0001.slug).toBe('foo');
+    expect(spec0001.type).toBe('new-feature');
+
+    // Events: queue-state.json wins over the legacy sidecar bucket. The
+    // sidecar fixture has 1 event; the queue-state entry has 4. The
+    // `checkpoint_written` step must round-trip unchanged.
+    expect(body.events['0001']).toHaveLength(4);
+    const stepNames = body.events['0001'].map((e) => e.step);
+    expect(stepNames).toContain('checkpoint_written');
+
+    // Response envelope carries the queue-state freshness anchor.
+    expect(body.queue_state_updated_at).toBe('2026-05-24T01:55:00Z');
+
+    // Still exactly 2 subrequests — queue-state.json rides the same
+    // GraphQL batch (one more aliased field), not a new REST call.
+    expect(fetchMock.mock.calls.length).toBe(2);
+  });
+
+  // Spec 0203.1 §3.1 — defensive: malformed queue-state.json must NOT
+  // 502 the API; the response should fall back to the legacy path.
+  it('falls back gracefully when queue-state.json is malformed', async () => {
+    const cacheStub = makeCachesStub();
+    globalThis.caches = { default: cacheStub };
+    const fetchMock = vi.fn(async (url, init) => {
+      const u = String(url);
+      if (u.includes('/git/trees/')) return jsonResponse(TREE_BODY_WITH_QUEUE_STATE);
+      if (u.endsWith('/graphql')) {
+        // Build a GraphQL response that returns valid JSON for the spec
+        // and event blobs, but garbage for queue-state.json.
+        const repository = {};
+        FIXTURE_BLOB_PATHS_WITH_QUEUE_STATE.forEach((p, i) => {
+          const text = p === 'dashboard/queue-state.json'
+            ? '{not valid json'
+            : textForPath(p);
+          repository[`f${i}`] = { text, isBinary: false };
+        });
+        return jsonResponse({ data: { repository } });
+      }
+      throw new Error(`fetch mock got unexpected URL: ${u}`);
+    });
+    globalThis.fetch = fetchMock;
+
+    const res = await onRequest(makeContext({ cache: cacheStub }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    // Fallback: spec 0001 keeps its frontmatter status (in_progress per
+    // the fixture) since queue-state didn't parse; events come from the
+    // sidecar bucket (1 entry).
+    const spec0001 = body.specs.find((s) => s.number === '0001');
+    expect(spec0001.status).toBe('in_progress');
+    expect(body.events['0001']).toHaveLength(1);
+    expect(body.queue_state_updated_at).toBeNull();
   });
 });

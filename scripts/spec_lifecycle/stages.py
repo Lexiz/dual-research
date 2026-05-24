@@ -49,6 +49,14 @@ TOLERATED_NON_STAGE_STEPS: frozenset[str] = frozenset(
         "tests_started",
         "deploy_started",
         "deploy_health_check_ok",
+        # Spec 0186 / 0192 — L-spec checkpoint cadence: a session may halt
+        # mid-implement and a later session resumes from the recorded
+        # subsection. Neither event anchors a canonical stage.
+        "checkpoint_written",
+        "resume_started",
+        # Spec 0199 — `/spec-next` re-IDs a queued spec as a decimal child
+        # of the in-flight spec; the emitted event marks the renaming.
+        "promoted_as_next",
     }
 )
 
@@ -75,6 +83,9 @@ STEP_LABELS: dict[str, str] = {
     "deployed": "deployed",
     "deploy_health_check_ok": "health check ok",
     "handoff_written": "handoff written",
+    "checkpoint_written": "checkpoint",
+    "resume_started": "resuming",
+    "promoted_as_next": "promoted as next",
 }
 
 

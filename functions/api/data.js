@@ -21,13 +21,21 @@
  * read from the `GITHUB_TOKEN` env var. The same PAT works for both REST and
  * GraphQL.
  *
+ * Spec 0203.1 — `dashboard/queue-state.json` is the authoritative source
+ * for cycle-mutable per-spec state (status, started_at, events). Layered
+ * over the frozen frontmatter snapshot here so live readers see the
+ * in-flight spec's real status and event stream, not its queue-time
+ * snapshot. Legacy sidecar fallback retained for any spec without a
+ * queue-state entry.
+ *
  * Response shape:
  *   {
- *     generated_at:  ISO 8601 string,
- *     specs:         Array<{ number, slug, title, type, status, ... }>,
- *     drafts:        Array<{ draft_id, slug, title, type, created, status }>,
- *     handoffs:      Array<{ spec, date, version, pr }>,
- *     events:        Record<spec_number, Array<{ ts, step, data }>>,
+ *     generated_at:           ISO 8601 string,
+ *     specs:                  Array<{ number, slug, title, type, status, ... }>,
+ *     drafts:                 Array<{ draft_id, slug, title, type, created, status }>,
+ *     handoffs:               Array<{ spec, date, version, pr }>,
+ *     events:                 Record<spec_number, Array<{ ts, step, data }>>,
+ *     queue_state_updated_at: ISO 8601 string | null,
  *   }
  *
  * Errors return `{ error: <message>, generated_at: null }` with status 502;
@@ -44,6 +52,23 @@ const CACHE_SWR = 60;
 // aliased fields. At today's repo size (~160 files) this is one batch; at
 // 1000 files it's three.
 const GRAPHQL_BATCH_SIZE = 400;
+
+// Spec 0203.1 §3.1 — fields that are layered from queue-state.json over the
+// frozen spec frontmatter snapshot. Must stay in lock-step with
+// _QUEUE_STATE_LAYERED_FIELDS in scripts/spec_lifecycle/render_dashboard.py.
+const QUEUE_STATE_LAYERED_FIELDS = [
+  'status',
+  'started_at',
+  'merged_at',
+  'deployed_at',
+  'pr',
+  'handover',
+  'failure_step',
+  'target_version',
+  'queued_at',
+];
+
+const QUEUE_STATE_PATH = 'dashboard/queue-state.json';
 
 export async function onRequest(context) {
   const { env, request } = context;
@@ -104,6 +129,11 @@ async function buildPayload(token) {
   const draftBlobs = [];
   const handoffBlobs = [];
   const eventBlobs = [];
+  // Spec 0203.1 §3.1 — queue-state.json is the authoritative source for
+  // cycle-mutable per-spec state (status, events, timestamps) post-0202.
+  // Appended LAST to `allBlobs` so the existing four-shape regex dispatch
+  // loop keeps its deterministic indices.
+  let queueStateBlob = null;
 
   // Spec 0199 §2.1 — spec IDs are `NNNN` or `NNNN.M` (one decimal level).
   // Filenames + event sidecars + handoff names all admit the optional `.M`.
@@ -114,18 +144,23 @@ async function buildPayload(token) {
     else if (/^specs\/drafts\/draft-\d{3}-[^/]+\.md$/.test(p)) draftBlobs.push(entry);
     else if (/^handoffs\/\d{4}-\d{2}-\d{2}-spec-\d{4}(?:\.\d+)?-[^/]+\.md$/.test(p)) handoffBlobs.push(entry);
     else if (/^dashboard\/events\/\d{4}(?:\.\d+)?\.jsonl$/.test(p)) eventBlobs.push(entry);
+    else if (p === QUEUE_STATE_PATH) queueStateBlob = entry;
   }
 
   // Concatenate in a stable order so the alias-index ↔ path mapping is
   // deterministic across batches. Categories are reconstructed at parse
-  // time from path regexes (same as the filtering above).
+  // time from path regexes (same as the filtering above). queue-state.json
+  // is appended last so existing alias indices for the four legacy shapes
+  // stay stable; the parse loop below handles it via path equality.
   const allBlobs = [...specBlobs, ...draftBlobs, ...handoffBlobs, ...eventBlobs];
+  if (queueStateBlob) allBlobs.push(queueStateBlob);
   const texts = await fetchAllBlobTextsViaGraphQL(allBlobs, token);
 
   const specRows = [];
   const draftRows = [];
   const handoffRows = [];
   const eventBuckets = [];
+  let queueState = null;
 
   for (let i = 0; i < allBlobs.length; i++) {
     const entry = allBlobs[i];
@@ -142,16 +177,37 @@ async function buildPayload(token) {
         number: p.match(/(\d{4}(?:\.\d+)?)\.jsonl$/)[1],
         events: text.split('\n').filter(Boolean).map(safeJsonParse).filter(Boolean),
       });
+    } else if (p === QUEUE_STATE_PATH) {
+      // Spec 0203.1 §3.1 — defensive parse. A malformed queue-state.json
+      // must not 502 the whole API; fall back to legacy frontmatter +
+      // sidecar path (queueState stays null, layering skipped).
+      try {
+        queueState = JSON.parse(text);
+      } catch (e) {
+        queueState = null;
+      }
     }
   }
 
   const specs = specRows
     .filter((row) => row && row.fm)
-    .map((row) => ({
+    .map((row) => {
       // Spec 0199 §2.1 — capture optional decimal child in the number.
-      number: extractNumber(row.path, /^specs\/(\d{4}(?:\.\d+)?)-/),
-      ...row.fm,
-    }))
+      const number = extractNumber(row.path, /^specs\/(\d{4}(?:\.\d+)?)-/);
+      const spec = { number, ...row.fm };
+      // Spec 0203.1 §3.1 — layer cycle-mutable fields from queue-state.json
+      // over the (post-0202 frozen) frontmatter snapshot. Mirrors the
+      // server-side renderer at scripts/spec_lifecycle/render_dashboard.py.
+      const stateEntry = queueState && queueState.specs && queueState.specs[number];
+      if (stateEntry) {
+        for (const key of QUEUE_STATE_LAYERED_FIELDS) {
+          if (stateEntry[key] !== undefined && stateEntry[key] !== null) {
+            spec[key] = stateEntry[key];
+          }
+        }
+      }
+      return spec;
+    })
     .filter((s) => s.number);
 
   const drafts = draftRows
@@ -166,9 +222,20 @@ async function buildPayload(token) {
     .filter((row) => row && row.fm)
     .map((row) => row.fm);
 
+  // Spec 0203.1 §3.1 — events map: prefer queue-state.json's per-spec
+  // `events` array, fall back to the legacy sidecar bucket. Preserves
+  // backwards compat for any pre-0202 spec that still has sidecars but
+  // no queue-state entry.
   const events = {};
   for (const bucket of eventBuckets) {
     events[bucket.number] = bucket.events;
+  }
+  if (queueState && queueState.specs) {
+    for (const [num, entry] of Object.entries(queueState.specs)) {
+      if (Array.isArray(entry && entry.events)) {
+        events[num] = entry.events;
+      }
+    }
   }
 
   return {
@@ -177,6 +244,7 @@ async function buildPayload(token) {
     drafts,
     handoffs,
     events,
+    queue_state_updated_at: (queueState && queueState.updated_at) || null,
   };
 }
 
