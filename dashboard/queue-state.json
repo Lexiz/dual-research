@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:41:36Z",
+  "updated_at": "2026-05-24T02:41:46Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7782,7 +7782,7 @@
       ]
     },
     "0203.2": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T02:30:00Z",
       "events": [
         {
@@ -7838,7 +7838,8 @@
             "note": "mechanical-drift was bare basename in code-block comment; canonical citations already use full path"
           }
         }
-      ]
+      ],
+      "started_at": "2026-05-24T02:41:46Z"
     }
   }
 }
