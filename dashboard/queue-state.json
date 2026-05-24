@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T10:38:37Z",
+  "updated_at": "2026-05-24T10:41:06Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8191,6 +8191,13 @@
           "ts": "2026-05-24T10:38:37Z",
           "step": "deploy_health_check_ok",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T10:41:06Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0205.1-itemcard-parity-grid-refresh-and-retroactive-attachment.md"
+          }
         }
       ],
       "started_at": "2026-05-24T10:04:38Z",
