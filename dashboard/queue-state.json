@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:27:42Z",
+  "updated_at": "2026-05-24T12:34:36Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8575,7 +8575,7 @@
       "handover": "handoffs/2026-05-24-spec-0208-provider-chip-dim-in-critique-promote-tone-to-base.md"
     },
     "0209": {
-      "status": "failed",
+      "status": "deployed",
       "queued_at": "2026-05-24T10:50:02Z",
       "events": [
         {
@@ -8645,12 +8645,42 @@
             "attempted_image": "deployment-01KSCZ332A3H08E9TVKXXVRQ2S",
             "lease_holder": "tokens.fly.io"
           }
+        },
+        {
+          "ts": "2026-05-24T12:34:36Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T12:34:36Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.8",
+            "note": "deployed after lease-conflict retry (matrix case 3 over-triggered) — see feedback_fly_deploy_cd memory"
+          }
+        },
+        {
+          "ts": "2026-05-24T12:34:36Z",
+          "step": "deploy_health_check_ok",
+          "data": {
+            "sweep": "no stale blues",
+            "prod_smoke": "hiw-cs-* live, .cs-body unscoped rule absent, modern primitive intact"
+          }
+        },
+        {
+          "ts": "2026-05-24T12:34:36Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0209-cs-body-hidden-when-open.md"
+          }
         }
       ],
       "started_at": "2026-05-24T12:11:41Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/241",
       "merged_at": "2026-05-24T12:23:11Z",
-      "failure_step": "deploy"
+      "failure_step": "",
+      "deployed_at": "2026-05-24T12:34:35Z",
+      "handover": "handoffs/2026-05-24-spec-0209-cs-body-hidden-when-open.md"
     },
     "0210": {
       "status": "queued",
