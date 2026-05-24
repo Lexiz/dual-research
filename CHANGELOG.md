@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.7] — 2026-05-24
+
+### Fixed
+
+- **Spec 0208 — provider chip dim in critique; promote tone-claude/gpt override into the base Chip primitive** ([spec 0208](specs/0208-provider-chip-dim-in-critique-promote-tone-to-base.md)). Bug PATCH that fixes a structural DS regression — the 30 % `color-mix` tint and light-mode text token that made identity chips legible were scoped to `.tl-card-head` and `.item-card__lifecycle-section .lc-row-chips`, leaving the critique card head, the DS gallery, and the how-it-works pane on the unreadable 8 %-rgba defaults.
+  - **Base chip rule now carries the readable treatment.** [`.chip.tone-claude` / `.chip.tone-gpt`](src/dual_research/ui/static/components.css:144) — and the new DS-side mirrors in [`composed-components.css`](design-system/assets/styles/composed-components.css:570) — render `color-mix(in srgb, var(--p-sable | --p-sage) 30%, transparent)` over the surface, matching every other tone's `color-mix` pattern at [components.css:137-142](src/dual_research/ui/static/components.css:137). The 8 %-rgba `--claude-bg` / `--gpt-bg` alias tokens stay defined and stay in use by non-chip callsites (`.sci__msg`, `compare.jsx` draft panels, `AGENT_META.bg`); only the chip rule decouples from them.
+  - **Light-mode text backstop promoted globally** to `body.light .chip.tone-claude` / `body.light .chip.tone-gpt`, reading `--md-on-primary-container` / `--md-on-secondary-container` from `tokens-and-primitives.css`. Spec 0165's defensive hex backstop (`#3b2810` / `#0a322d`) is gone — the rule is now the canonical one, so token drift would break the design system uniformly rather than just the timeline.
+  - **Redundant scoped overrides deleted.** `.tl-card-head .chip.tone-{claude,gpt}` and `.item-card__lifecycle-section .lc-row-chips .chip.tone-{claude,gpt}` and their light-mode backstops removed from both [`components.css`](src/dual_research/ui/static/components.css) and [`composed-components.css`](design-system/assets/styles/composed-components.css) — the base rule now provides the same treatment. The two surviving `.tl-card-head` overrides (`tone-neutral:not(.mono)` for the System chip, `tone-neutral.mono` for the activity badge) are kept — they govern System / activity tones, not identity tones.
+  - **Design-system SPEC.md updated.** [§4.4](design-system/SPEC.md) chip-polish table shrinks to the two System-only rows; [§3 Primitives](design-system/SPEC.md) adds a structural rule ("identity chips render the same on every surface; per-container overrides for identity tones are forbidden"); the §2.6 light-mode-backstop paragraph is rewritten to point at the global rule.
+  - **Regression tests at [`tests/test_spec_0208_chip_identity_tones.py`](tests/test_spec_0208_chip_identity_tones.py)** following spec 0206's UI source-pattern test doctrine. Asserts: (a) the base chip rule carries the new `color-mix(... var(--p-{sable,sage}) 30%, transparent)` shape in both stylesheets; (b) no scoped identity-tone overrides remain outside the base; (c) the global light-mode backstop is present; (d) no hex backstop (`#3b2810` / `#0a322d`) remains in either stylesheet; (e) the §4.4 chip-polish table no longer lists `.chip.tone-claude` / `.chip.tone-gpt`.
+
 ## [1.44.6] — 2026-05-24
 
 ### Fixed
