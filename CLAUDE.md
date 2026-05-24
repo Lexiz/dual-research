@@ -36,7 +36,7 @@ Five skills drive the spec lifecycle. Use them — do not improvise.
 Two-worktree split:
 
 - **Authoring worktree** at `/Users/alexlisitzky/dual-research-author/` — where `/spec-draft`, `/spec-queue`, `/spec-promote` run. Stays on `main`.
-- **Queue worktree** (this checkout) at `/Users/alexlisitzky/dual-research/` — where `/dev-next` and `/dev-queue-run` run. Cuts feature branches.
+- **Queue worktree** (this checkout) at `/Users/alexlisitzky/dual-research/` — where `/dev-next` and `/dev-queue-run` run. Operates from a detached HEAD at `origin/main`; cuts feature branches off that HEAD during `/dev-next`. Never holds the `main` ref locally — all main-side writes (queue state, handoffs, archive) go through the push-via-plumbing helper in `scripts/spec_lifecycle/queue_state.py` (spec 0210).
 
 `/dev-next` and `/dev-queue-run` refuse to run from the authoring worktree; the spec-creation skills refuse to run from the queue worktree.
 

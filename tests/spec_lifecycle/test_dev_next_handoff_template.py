@@ -1,9 +1,12 @@
 """Regression test for spec 0158 — `/dev-next` handoff template mentions deferrals.
 
-The skill text at ``~/.claude/skills/dev-next/SKILL.md`` step 23 must explain
+The skill text at ``~/.claude/skills/dev-next/SKILL.md`` step 22 must explain
 the ``## Deferred during implementation`` convention so the implementing
-agent surfaces deferrals in the handoff. Without that prompt, the step 25.5
+agent surfaces deferrals in the handoff. Without that prompt, the step 24.5
 subagent has nothing to read.
+
+Step numbers shifted in spec 0210 (step 20's `git checkout main && git pull`
+was deleted; everything after renumbered −1).
 
 This is a host-bound test: it reads the installed skill file. CI runners
 don't have ``~/.claude/skills/``, so the test skips there. Locally it runs
@@ -25,22 +28,22 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_skill_mentions_deferred_section() -> None:
-    """Step 23 (handoff write) should describe the ``## Deferred during implementation`` section."""
+    """Step 22 (handoff write) should describe the ``## Deferred during implementation`` section."""
     text = SKILL_PATH.read_text(encoding="utf-8")
     assert "## Deferred during implementation" in text, (
         "dev-next SKILL.md should mention the `## Deferred during implementation` "
-        "section as part of step 23's handoff template (spec 0158)."
+        "section as part of step 22's handoff template (spec 0158)."
     )
 
 
-def test_skill_mentions_step_25_5_subagent() -> None:
-    """A 25.5 step (between session-title restamp and chat report) should describe
+def test_skill_mentions_deferred_subagent_step() -> None:
+    """A 24.5 step (between session-title restamp and chat report) should describe
     the deferred-spec subagent spawn (spec 0158)."""
     text = SKILL_PATH.read_text(encoding="utf-8")
     # Look for the step number prefix and the subagent description.
-    assert "25.5" in text, "dev-next SKILL.md should add a step 25.5 (spec 0158)"
+    assert "24.5" in text, "dev-next SKILL.md should add a step 24.5 (spec 0158)"
     assert "deferred-spec subagent" in text.lower() or "subagent" in text.lower(), (
-        "step 25.5 should mention the deferred-spec subagent"
+        "step 24.5 should mention the deferred-spec subagent"
     )
 
 

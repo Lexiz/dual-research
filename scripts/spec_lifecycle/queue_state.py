@@ -265,6 +265,92 @@ def append_event_to_state(
 
 # --- Git plumbing for push-to-main ------------------------------------------
 
+# Payload entry: ``(rel_path, content)`` where ``content`` is UTF-8 text to
+# write at that path, or ``None`` to delete the path from the resulting tree.
+PayloadEntry = tuple[str, str | None]
+
+
+def push_files_to_main(
+    payload: list[PayloadEntry],
+    commit_message: str,
+    repo_dir: str | Path,
+    *,
+    retries: int = DEFAULT_PUSH_RETRIES,
+) -> bool:
+    """Push multiple file additions/updates/deletions to ``origin/main``.
+
+    ``payload`` is a list of ``(rel_path, content)`` tuples. ``content=None``
+    removes the path from the resulting tree; ``content=str`` writes UTF-8
+    text at the path. The push uses the same ``GIT_INDEX_FILE`` plumbing as
+    :func:`_push_state_to_main`, so the queue worktree never needs to hold
+    ``main`` locally — it can run from any HEAD, including a detached one.
+
+    The caller is responsible for the local working tree; this function does
+    not mirror writes locally. For callers running from a detached HEAD,
+    follow with :func:`_resync_detached_head_to_origin_main` to advance the
+    detached HEAD and refresh the index.
+
+    Returns ``True`` on success, ``False`` after all retries failed (caller
+    decides whether to halt). On non-fast-forward, retries rebuild the tree
+    on top of the new ``origin/main`` and republish — the static payload
+    means each retry produces an identical commit content; only the parent
+    SHA changes.
+    """
+    last_err: str | None = None
+    for attempt in range(retries):
+        try:
+            _git(["fetch", "--quiet", "origin", "main"], repo_dir)
+            entries = _hash_payload(payload, repo_dir)
+            new_tree = _build_tree_multi(entries, repo_dir)
+            commit_sha = _git(
+                ["commit-tree", new_tree, "-p", "origin/main", "-m", commit_message],
+                repo_dir,
+            ).stdout.strip()
+            push = _git(
+                ["push", "origin", f"{commit_sha}:refs/heads/main"],
+                repo_dir,
+                check=False,
+            )
+            if push.returncode == 0:
+                return True
+            err_text = (push.stderr or push.stdout or "").lower()
+            if "non-fast-forward" in err_text or "rejected" in err_text:
+                last_err = f"non-fast-forward on attempt {attempt + 1}"
+                continue
+            last_err = (push.stderr or push.stdout or "").strip() or "unknown push failure"
+            break
+        except subprocess.CalledProcessError as e:
+            last_err = str(e)
+            break
+
+    sys.stderr.write(f"warning: push_files_to_main failed: {last_err}\n")
+    return False
+
+
+def _resync_detached_head_to_origin_main(repo_dir: str | Path) -> bool:
+    """Advance a detached HEAD to the current ``origin/main`` SHA.
+
+    Used after :func:`push_files_to_main` to leave the queue worktree in
+    sync with the just-pushed ``origin/main``. The working tree files are
+    assumed to already match the pushed content (because the caller just
+    pushed them); only HEAD and the index need to be advanced. No working
+    tree files are touched.
+
+    Returns ``True`` if HEAD was detached and got resynced, ``False`` if
+    HEAD is on a branch (in which case advancing the branch pointer would
+    be destructive — caller should not be on a branch when calling this).
+    """
+    res = _git(["symbolic-ref", "-q", "HEAD"], repo_dir, check=False)
+    if res.returncode == 0:
+        # HEAD is on a branch — don't touch the branch ref.
+        return False
+    _git(["fetch", "--quiet", "origin", "main"], repo_dir)
+    new_sha = _git(["rev-parse", "origin/main"], repo_dir).stdout.strip()
+    _git(["update-ref", "--no-deref", "HEAD", new_sha], repo_dir)
+    _git(["read-tree", "HEAD"], repo_dir)
+    return True
+
+
 def _push_state_to_main(
     *,
     rel_path: str,
@@ -302,10 +388,8 @@ def _push_state_to_main(
             new_state = apply_update(origin_state)
             content = _serialise(new_state)
             last_content = content
-            blob_sha = _git(
-                ["hash-object", "-w", "--stdin"], repo_dir, input=content
-            ).stdout.strip()
-            new_tree = _build_tree_with_temp_index(rel_path, blob_sha, repo_dir)
+            entries = _hash_payload([(rel_path, content)], repo_dir)
+            new_tree = _build_tree_multi(entries, repo_dir)
             msg = f"spec({spec_id}): queue-state update"
             commit_sha = _git(
                 ["commit-tree", new_tree, "-p", "origin/main", "-m", msg], repo_dir
@@ -350,14 +434,35 @@ def _git(
     )
 
 
-def _build_tree_with_temp_index(
-    rel_path: str, blob_sha: str, repo_dir: str | Path
-) -> str:
-    """Mirror of :func:`append_event._build_tree_with_temp_index`.
+def _hash_payload(
+    payload: list[PayloadEntry], repo_dir: str | Path
+) -> list[tuple[str, str | None]]:
+    """Hash text content into blobs and return ``(rel_path, blob_sha|None)`` entries."""
+    out: list[tuple[str, str | None]] = []
+    for rel_path, content in payload:
+        if content is None:
+            out.append((rel_path, None))
+        else:
+            blob_sha = _git(
+                ["hash-object", "-w", "--stdin"], repo_dir, input=content
+            ).stdout.strip()
+            out.append((rel_path, blob_sha))
+    return out
 
-    Kept locally rather than imported to avoid coupling the queue-state
-    module to the append-event module's internals — both call the same
-    git plumbing but they're independent callers.
+
+def _build_tree_multi(
+    entries: list[tuple[str, str | None]], repo_dir: str | Path
+) -> str:
+    """Build a tree based on ``origin/main`` with the given entries applied.
+
+    Each entry is ``(rel_path, blob_sha|None)``: a blob SHA writes that
+    blob at the path; ``None`` removes the path. Multiple entries land
+    in one tree write, so the resulting commit captures the entire
+    payload atomically.
+
+    Used by both :func:`_push_state_to_main` (single-entry payload) and
+    :func:`push_files_to_main` (multi-entry). Mirrors
+    :func:`append_event._build_tree_with_temp_index` but accepts a list.
     """
     fd, index_path = tempfile.mkstemp(suffix=".index")
     os.close(fd)
@@ -369,13 +474,20 @@ def _build_tree_with_temp_index(
             ["git", "read-tree", "origin/main"],
             cwd=cwd, env=env, capture_output=True, text=True, check=True,
         )
-        subprocess.run(
-            [
-                "git", "update-index", "--add", "--cacheinfo",
-                f"100644,{blob_sha},{rel_path}",
-            ],
-            cwd=cwd, env=env, capture_output=True, text=True, check=True,
-        )
+        for rel_path, blob_sha in entries:
+            if blob_sha is None:
+                subprocess.run(
+                    ["git", "update-index", "--force-remove", rel_path],
+                    cwd=cwd, env=env, capture_output=True, text=True, check=True,
+                )
+            else:
+                subprocess.run(
+                    [
+                        "git", "update-index", "--add", "--cacheinfo",
+                        f"100644,{blob_sha},{rel_path}",
+                    ],
+                    cwd=cwd, env=env, capture_output=True, text=True, check=True,
+                )
         return subprocess.run(
             ["git", "write-tree"],
             cwd=cwd, env=env, capture_output=True, text=True, check=True,
@@ -443,6 +555,30 @@ def main(argv: list[str] | None = None) -> int:
     show_p.add_argument("spec_id", nargs="?", default=None)
     show_p.add_argument("--repo-root", default=".")
 
+    push_files_p = sub.add_parser(
+        "push-files-to-main",
+        help="Push multiple file additions/updates/deletions to origin/main "
+             "via git plumbing. Works from any HEAD, including detached.",
+    )
+    push_files_p.add_argument(
+        "--message", required=True, help="Commit message."
+    )
+    push_files_p.add_argument(
+        "--file", action="append", default=[], dest="files",
+        help="Path to a file to add or update (read from disk relative to "
+             "--repo-root). Repeatable.",
+    )
+    push_files_p.add_argument(
+        "--delete", action="append", default=[], dest="deletes",
+        help="Path to remove from origin/main. Repeatable.",
+    )
+    push_files_p.add_argument("--repo-root", default=".")
+    push_files_p.add_argument(
+        "--no-resync", action="store_true",
+        help="Skip the detached-HEAD resync after a successful push. "
+             "Default: resync if HEAD is detached.",
+    )
+
     args = parser.parse_args(argv)
 
     if args.cmd == "set":
@@ -479,6 +615,35 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"no entry for {args.spec_id}", file=sys.stderr)
                 return 1
             print(json.dumps(entry, indent=2))
+        return 0
+    if args.cmd == "push-files-to-main":
+        repo_root = Path(args.repo_root).resolve()
+        if not args.files and not args.deletes:
+            raise SystemExit(
+                "queue_state push-files-to-main: need at least one --file or --delete"
+            )
+        payload: list[PayloadEntry] = []
+        for f in args.files:
+            full = repo_root / f
+            if not full.exists():
+                raise SystemExit(
+                    f"queue_state push-files-to-main: --file {f!r} not found at {full}"
+                )
+            payload.append((f, full.read_text(encoding="utf-8")))
+        for d in args.deletes:
+            payload.append((d, None))
+        ok = push_files_to_main(payload, args.message, repo_root)
+        if not ok:
+            raise SystemExit(
+                "queue_state push-files-to-main: push to origin/main failed"
+            )
+        resynced = False
+        if not args.no_resync:
+            resynced = _resync_detached_head_to_origin_main(repo_root)
+        suffix = " (resynced detached HEAD)" if resynced else ""
+        n_add = len(args.files)
+        n_del = len(args.deletes)
+        print(f"pushed {n_add} file(s) + {n_del} delete(s) to origin/main{suffix}")
         return 0
     return 1
 
