@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.3] — 2026-05-24
+
+### Changed
+
+- **Spec 0205.1 — ItemCard parity grid refresh + retroactive attachment** ([spec 0205.1](specs/0205.1-itemcard-parity-grid-refresh-and-retroactive-attachment.md)). Test-only PATCH: assets + DS prose, no runtime code change.
+  - **Refreshed the four ItemCard reference screenshots** under `design-system/notion-issues/screenshots/` (`07-question-card-duplicate.png`, `08-disagreement-card.png`, `09-issue-card.png`, `10-comments-card.png`) against the post-spec-0205 anatomy (v1.44.2, canonical run `20260521-010637-dvs-backend-language-choice`). Pre-refresh references showed the pre-spec-0203 head + pre-spec-0205 body shape (standalone `<Markdown text={item.body}/>` block above lifecycle, `<pre>` excerpt, no `mdi:link-variant` glyph) — a faithful parity grid against those references would have over-flagged the intentional anatomy departures as regressions.
+  - **Added `design-system/notion-issues/screenshots/REFERENCES.md`** as the per-reference index recording capture date, app version, canonical run ID, and the last anatomy-shifting spec for each PNG. Future ItemCard-touching specs MUST refresh the PNGs AND bump the corresponding row in this index.
+  - **Extended [`design-system/SPEC.md`](design-system/SPEC.md) §4.1** with a "Reference baseline currency" callout (pointing at `REFERENCES.md`) and a "Post-spec-0205 anatomy snapshot" enumerating the three departures the new references encode (lifecycle leads Issue + Comment, `<blockquote>` excerpt + label · value grid SourceRow, `mdi:link-variant` glyph on both sources surfaces).
+  - **Retroactive parity-grid comment** posted to spec 0205's [PR #235](https://github.com/Lexiz/dual-research/pull/235) embedding the 4-kinds × 2-states grid that the merge-time PR description omitted (the gap flagged at [`handoffs/2026-05-24-spec-0205-fix-p4-critique-card-five-visual-regressions.md`](handoffs/2026-05-24-spec-0205-fix-p4-critique-card-five-visual-regressions.md):47), with a pointer to this PR for the full evidence.
+
 ## [1.44.2] — 2026-05-24
 
 ### Fixed
