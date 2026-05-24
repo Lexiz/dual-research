@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:27:14Z",
+  "updated_at": "2026-05-24T13:27:22Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8775,7 +8775,7 @@
       "handover": "handoffs/2026-05-24-spec-0210-dev-next-worktree-cross-conflict-on-main-checkout.md"
     },
     "0211": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-24T12:47:20Z",
       "events": [
         {
@@ -8829,7 +8829,9 @@
           }
         }
       ],
-      "started_at": "2026-05-24T13:17:47Z"
+      "started_at": "2026-05-24T13:17:47Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/243",
+      "merged_at": "2026-05-24T13:27:22Z"
     }
   }
 }
