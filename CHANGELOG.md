@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.5] — 2026-05-24
+
+### Added
+
+- **Spec 0206 — canonical UI test doctrine + shared source-pattern helpers** ([spec 0206](specs/0206-playwright-vs-source-pattern-canonicalize-the-jsx-loaded-via-babel-test-doctrine.md)). Test PATCH: documentation + helper module + validator nudge, no runtime code change.
+  - **New `tests/_ui_pattern_helpers.py` module** — three functions (`read_repo_text`, `assert_jsx_contains`, `assert_jsx_lacks`) that collapse the source-pattern test boilerplate (read JSX/CSS as text, regex-assert post-fix shape present + pre-fix shape absent) into a single canonical idiom. `assert_jsx_contains` returns the match so callers can scope a search and then assert inside the captured region.
+  - **`design-system/SPEC.md` §13 — "UI test doctrine (spec 0206)"** — documents why source-pattern (not Playwright / DOM) is canonical for the JSX-loaded-via-babel runtime, the canonical static-pattern shape (one test pair per anatomical contract — positive + antipodal-absence), the Claude Preview MCP screenshot as the runtime cross-check (with spec 0179's 8-capture parity grid mandatory for ItemCard-touching specs), and the explicit trigger that would revisit the decision (if the runtime moves off `@babel/standalone` to a real build).
+  - **`CLAUDE.md` "## Tests" section** — extended with a one-line UI doctrine summary linking to the DS §13 prose, so future spec authors find the canonical answer without re-deriving it.
+  - **Validator warning for non-canonical `tests/ui/*.py` paths** in `scripts/spec_lifecycle/validator.py` — `type: test` / `type: bug` specs that reference the Playwright-convention path under `tests/ui/` get a warning (not error) pointing at DS §13. Catches the silent substitution that happened in spec 0205 (`tests/ui/test_p4_critique_card.py` named in §5; `tests/test_spec_0205_critique_card.py` actually shipped) at queue time.
+  - **Back-ported two existing source-pattern test files** to use the new helper as the canonical idiom: `tests/test_spec_0205_critique_card.py` (8 tests) and `tests/spec0172/test_critique_card_markdown_and_no_sid.py` (7 tests). Bug 3 of spec 0205 (the `mdi:link-variant` glyph parity) is the worked example referenced from DS §13 — scope-then-assert inside the captured group, two anatomical checks per test. 15 tests pass pre- and post-back-port; no assertion semantics change.
+
 ## [1.44.4] — 2026-05-24
 
 ### Removed

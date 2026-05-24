@@ -82,6 +82,12 @@ TRACE_ROW_SECTION_OK_RE = re.compile(
     r"§\s*(?:2\.\d+|5\b|out\s+of\s+scope)",
     re.IGNORECASE,
 )
+# Spec 0206 §2.2 — non-canonical UI-test path under `tests/ui/` (the Playwright
+# convention). Per `design-system/SPEC.md` §13, source-pattern tests live at
+# `tests/test_spec_NNNN_<surface>.py`; the `tests/ui/` directory does not exist
+# in the repo. Warning, not error.
+NON_CANONICAL_UI_TEST_PATH_RE = re.compile(r"\btests/ui/[\w\-]+\.py\b")
+
 # Spec 0198 §2.3 — UI specs need user stories + BDD acceptance criteria.
 UI_PATH_RE = re.compile(r"(?:src/dual_research/ui/|design-system/assets/)")
 USER_STORY_RE = re.compile(
@@ -212,6 +218,11 @@ def validate_dev_spec(path: str | Path) -> ValidationResult:
     # Spec 0198 §2.3 — UI specs require user stories + BDD scenarios.
     errors.extend(_check_user_stories_for_ui_specs(body))
 
+    # Spec 0206 §2.2 step 5 — warn on non-canonical `tests/ui/` paths in
+    # test / bug specs (the Playwright convention; canonical is source-pattern
+    # at `tests/test_spec_NNNN_<surface>.py`).
+    warnings.extend(_check_ui_test_path_convention(spec_type, body))
+
     # Dangling questions (heuristic: lines ending in `?`) — warning only.
     # Strip code spans first to avoid false positives from inline doc text.
     danglers = [
@@ -315,6 +326,26 @@ def _extract_traceability_rows(body: str) -> list[dict[str, str]]:
             return rows
         i += 1
     return rows
+
+
+def _check_ui_test_path_convention(spec_type: str | None, body: str) -> list[str]:
+    """Spec 0206 §2.2 step 5 — `type: test` / `type: bug` specs that name a
+    regression-prevention test path under ``tests/ui/`` get a warning. The
+    canonical doctrine is source-pattern tests at
+    ``tests/test_spec_NNNN_<surface>.py`` — see ``design-system/SPEC.md`` §13.
+    """
+    if spec_type not in {"test", "bug"}:
+        return []
+    matches = sorted(set(NON_CANONICAL_UI_TEST_PATH_RE.findall(body)))
+    if not matches:
+        return []
+    preview = ", ".join(matches[:3]) + (", …" if len(matches) > 3 else "")
+    return [
+        f"non-canonical UI-test path(s) referenced: {preview}. "
+        f"`tests/ui/` is the Playwright convention; the canonical project "
+        f"pattern is source-pattern tests at `tests/test_spec_NNNN_<surface>.py` "
+        f"— see `design-system/SPEC.md` §13 (spec 0206)."
+    ]
 
 
 def _check_user_stories_for_ui_specs(body: str) -> list[str]:
