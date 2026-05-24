@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T03:12:04Z",
+  "updated_at": "2026-05-24T03:12:08Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7716,6 +7716,23 @@
           "step": "merged",
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/234"
+          }
+        },
+        {
+          "ts": "2026-05-24T03:12:08Z",
+          "step": "failed",
+          "data": {
+            "step": "deploy",
+            "reason": "lease_held_by_prior_token",
+            "matrix_case": 3,
+            "image_built": "deployment-01KSBZ9ESKQD5BB750G7VAV96V",
+            "running_machine": "2870421c037148@deployment-01KSBZ64A6HXJ4ZADMGG9MBH67",
+            "stopped_machine": "2873d39cd92438@deployment-01KSBZ7SHB05X0B9W3VPYRXEP8",
+            "lease_holder": "89f4c34c-532e-5ae3-939f-02646a1c5aae@tokens.fly.io",
+            "lease_expires_at": [
+              "2026-05-24T03:10:09Z",
+              "2026-05-24T03:11:10Z"
+            ]
           }
         }
       ],
