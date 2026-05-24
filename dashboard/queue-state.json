@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T02:39:58Z",
+  "updated_at": "2026-05-24T02:40:02Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7794,6 +7794,18 @@
           "ts": "2026-05-24T02:39:58Z",
           "step": "cycle_started",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T02:40:02Z",
+          "step": "preflight_ok",
+          "data": {
+            "checks": [
+              "main_clean",
+              "no_open_spec_prs",
+              "no_in_flight",
+              "manual_bypass_of_broken_picker"
+            ]
+          }
         }
       ]
     }
