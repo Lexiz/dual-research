@@ -28,6 +28,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RUN_DETAIL_JSX = REPO_ROOT / "src" / "dual_research" / "ui" / "static" / "run-detail.jsx"
+SHARED_JSX = REPO_ROOT / "src" / "dual_research" / "ui" / "static" / "shared.jsx"
 COMPONENTS_CSS = REPO_ROOT / "src" / "dual_research" / "ui" / "static" / "components.css"
 DS_COMPOSED_CSS = REPO_ROOT / "design-system" / "assets" / "styles" / "composed-components.css"
 
@@ -170,8 +171,9 @@ def test_reviewcard_sources_chip_carries_same_glyph() -> None:
 def test_kind_filter_row_uses_chip_primitive_not_tabs() -> None:
     """Bar 2 kind filter row must render four `<Chip>` instances inside a
     `.kind-chip-row` wrapper. The legacy `<TabGroup variant="kind-tabs">` +
-    `<Tab variant="kind">` markup must not appear at any call site (only in
-    the dead-code shared.jsx branches kept for legacy callers)."""
+    `<Tab variant="kind">` markup must not appear at any call site, AND
+    the variant *definitions* in shared.jsx must be gone too
+    (Spec 0205.2 — dead-code removal)."""
     jsx = _read(RUN_DETAIL_JSX)
 
     # Live call sites must NOT use the legacy variant=…  attributes.
@@ -185,6 +187,21 @@ def test_kind_filter_row_uses_chip_primitive_not_tabs() -> None:
     assert 'variant="kind"' not in code_only, (
         "Bar 2 kind filter row still emits <Tab variant=\"kind\"> at a live "
         "call site (Spec 0205 Bug 4 — must use Chip primitive)"
+    )
+
+    # Spec 0205.2 — variant *definitions* in shared.jsx must be gone.
+    shared = _read(SHARED_JSX)
+    shared_code = re.sub(r"/\*[\s\S]*?\*/", "", shared)
+    shared_code = re.sub(r"//.*?(\r?\n)", r"\1", shared_code)
+    assert "variant === 'kind-tabs'" not in shared_code, (
+        "shared.jsx still carries a TabGroup branch for variant === "
+        "'kind-tabs' (Spec 0205.2 — variant definition should be gone, "
+        "not just the call sites)"
+    )
+    assert "variant === 'kind'" not in shared_code, (
+        "shared.jsx still carries a Tab branch for variant === 'kind' "
+        "(Spec 0205.2 — variant definition should be gone, not just the "
+        "call sites)"
     )
 
     # The new wrapper must exist with the four kinds + Chip + categoryBubble.

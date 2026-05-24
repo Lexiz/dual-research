@@ -52,9 +52,13 @@ def composed_src() -> str:
 def _variant_solid_branch(src: str) -> str:
     """Extract the body of the `if (variant === 'solid') { return ( … ); }`
     branch in shared.jsx so the assertions only look at that branch (not the
-    other variants which still use `is-active`)."""
+    other variants which still use `is-active`).
+
+    Spec 0205.2 removed the `variant === 'kind'` branch that previously
+    delimited the end of the solid branch; the next branch is now
+    `variant === 'phase'`."""
     match = re.search(
-        r"if\s*\(\s*variant\s*===\s*'solid'\s*\)\s*\{(.*?)\}\s*if\s*\(\s*variant\s*===\s*'kind'",
+        r"if\s*\(\s*variant\s*===\s*'solid'\s*\)\s*\{(.*?)\}\s*if\s*\(\s*variant\s*===\s*'phase'",
         src,
         flags=re.DOTALL,
     )
@@ -87,10 +91,13 @@ def test_solid_branch_does_not_emit_is_active(shared_src: str) -> None:
 
 
 def test_other_variants_still_use_is_active(shared_src: str) -> None:
-    """Spec 0190 §5: other Tab variants (`kind`, `phase`, `md-btn--text`, the
-    default `.tab`) keep their `is-active` className — they target separate
-    CSS selectors and are out of scope. This guard catches an accidental
-    sweep that drops `is-active` from those branches too."""
+    """Spec 0190 §5: other Tab variants (`phase`, `chrome`, the default
+    `.tab`) keep their `is-active` className — they target separate CSS
+    selectors and are out of scope. This guard catches an accidental
+    sweep that drops `is-active` from those branches too.
+
+    Spec 0205.2 removed the `'kind'` variant from the list above; the
+    surviving branches are `phase`, `chrome`, and the default."""
     # The remaining `is-active` uses live in branches AFTER the solid branch.
     # We look at the entire file minus the solid branch and confirm at least
     # one `'is-active'` survives.
@@ -98,7 +105,7 @@ def test_other_variants_still_use_is_active(shared_src: str) -> None:
     rest = shared_src.replace(branch, "")
     assert "'is-active'" in rest, (
         "No `is-active` className references remain in shared.jsx. Spec 0190 "
-        "§5 expected the kind / phase / default Tab variants to keep their "
+        "§5 expected the phase / chrome / default Tab variants to keep their "
         "`is-active` modifier — did this spec accidentally sweep them too?"
     )
 

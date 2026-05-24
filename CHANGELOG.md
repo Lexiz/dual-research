@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.4] — 2026-05-24
+
+### Removed
+
+- **Spec 0205.2 — dead `.kind-tab` / `.kind-tabs` CSS + `shared.jsx` variant branches** ([spec 0205.2](specs/0205.2-remove-dead-kind-tab-kind-tabs-css-and-jsx-variant-branches.md)). Refactoring PATCH that completes the spec 0205 Bug 4 migration by removing the dead-code surfaces the bugfix PR intentionally scoped out.
+  - **Removed `Tab` variant `'kind'` branch** at `src/dual_research/ui/static/shared.jsx`. The `kind-tab` segmented button has had zero call sites in `src/dual_research/ui/static/` since spec 0205 Bug 4 migrated the Bar 2 filter row to the shared `Chip` primitive. Comment block updated to drop `'kind'` from the documented `Tab` variants list.
+  - **Removed `TabGroup` variant `'kind-tabs'` arms** at `src/dual_research/ui/static/shared.jsx`. Same zero-call-site verification — the `'kind-tabs'` wrapper existed only to host the now-retired `Tab variant="kind"` buttons. Comment block updated to drop `'kind-tabs'` from the documented `TabGroup` variants list.
+  - **Removed the main `.kind-tabs` / `.kind-tab` CSS rule block** from `src/dual_research/ui/static/components.css` (~52 lines), plus the `.kind-tab::before` selector in the reduced-motion `@media` block and the narrow-mode label-collapse selectors that targeted `.kind-tab` markup. Same removals mirrored in `design-system/assets/styles/composed-components.css` per the CLAUDE.md DS-sync rule (~30 lines).
+  - **Stripped the DS prose hedge** in [`design-system/SPEC.md`](design-system/SPEC.md) §4.8 Bar 2 paragraph that claimed the legacy segmented-control CSS rules "survive for any pre-0205 surface that hasn't migrated" — no such surface ever existed, and the rules no longer survive in any case.
+  - **Scrubbed three stale comment blocks** in `run-detail.jsx` that referenced the legacy JSX variants and CSS selectors by literal name. The historical migration context (spec 0151 → 0205 → 0205.2) stays in prose form so future readers can follow the chain.
+  - **Extended `tests/test_spec_0205_critique_card.py::test_kind_filter_row_uses_chip_primitive_not_tabs`** to also assert that the `variant === 'kind'` / `variant === 'kind-tabs'` definitions are absent from `shared.jsx`, not just absent from `run-detail.jsx` call sites. No behavior change.
+
 ## [1.44.3] — 2026-05-24
 
 ### Changed
