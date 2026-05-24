@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T03:07:34Z",
+  "updated_at": "2026-05-24T03:12:04Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7658,7 +7658,7 @@
       "handover": "handoffs/2026-05-24-spec-0203-critique-v2-live-promotion.md"
     },
     "0204": {
-      "status": "merged",
+      "status": "failed",
       "queued_at": "2026-05-24T00:29:09Z",
       "events": [
         {
@@ -7721,7 +7721,8 @@
       ],
       "started_at": "2026-05-24T02:59:41Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/234",
-      "merged_at": "2026-05-24T03:07:31Z"
+      "merged_at": "2026-05-24T03:07:31Z",
+      "failure_step": "deploy"
     },
     "0203.1": {
       "status": "deployed",
