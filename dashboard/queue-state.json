@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:48:16Z",
+  "updated_at": "2026-05-24T11:48:32Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8485,6 +8485,14 @@
           "ts": "2026-05-24T11:48:16Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T11:48:32Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0208-provider-chip-dim-in-critique-promote-tone-to-base",
+            "from": "main@db4ff6c"
+          }
         }
       ],
       "started_at": "2026-05-24T11:48:12Z"
