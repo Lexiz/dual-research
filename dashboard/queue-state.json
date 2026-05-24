@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T01:31:32Z",
+  "updated_at": "2026-05-24T01:32:25Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7634,6 +7634,14 @@
           "ts": "2026-05-24T01:28:32Z",
           "step": "queued",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T01:32:25Z",
+          "step": "promoted_as_next",
+          "data": {
+            "was": "0205",
+            "cascade": 0
+          }
         }
       ]
     }
