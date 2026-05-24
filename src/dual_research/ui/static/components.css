@@ -1045,11 +1045,18 @@ body.light .tab-group.tabs-solid .tab.is-active,
    rule at line ~1870 (which sets flex-wrap: wrap + padding: 10px 20px). */
 .crit2 .bar2.crit-filter-row {
   display: flex; align-items: center; gap: 8px;
-  flex-wrap: nowrap;
+  /* Spec 0203 §2.3 (C3) — !important is the load-bearing backstop: a
+     downstream override was previously pushing the right cluster off
+     the viewport edge (Notion audit, Issue 3). The bar must never wrap. */
+  flex-wrap: nowrap !important;
   padding: 10px 14px;
   min-height: 55px;
   border-bottom: 1px solid var(--md-outline-hair);
 }
+/* Spec 0203 §2.3 — same backstop on the kind cluster itself; its inline
+   flex defaults to nowrap but the !important guards against future
+   ancestor rules that try to wrap it. */
+.crit2 .bar2 .kind-tabs { flex-wrap: nowrap !important; }
 .crit-filter-spacer {
   width: 12px; height: 1px; flex: 0 0 12px;
 }
@@ -2192,6 +2199,18 @@ body.light .md-dialog__scrim { background: rgba(20,23,28,0.30); }
    shared.jsx; the legacy dual-selector form (className-based) is gone. */
 .tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Spec 0203 §2.2 (C2) — agent-segment brand icon. The bar-2 agent
+   filter now emits .chip-leading-icon with <AgentIcon /> inside each
+   .tab-solid instead of the legacy .dot, matching the timeline-pane
+   convention. Sized to match .chip .chip-leading-icon (12×12). */
+.tab-solid .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+/* Spec 0203 §2.2 — labels now ride in an explicit .chip-label span
+   inside .tab-solid (was bare text). Inherits font from parent. */
+.tab-solid .chip-label { display: inline; }
 
 /* Spec 0173 §2.4 — per-segment count token. The bare number sits
    inside `.chip-value`; parens are produced via ::before/::after
@@ -4500,7 +4519,11 @@ body.light .tour-spotlight__dim {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
+  /* Spec 0203 §2.4 (C4) — collapsed-card height matches timeline
+     .tl-thread (~36 px). Frame padding is zero; the head owns its own
+     padding (6 px 12 px) per the next rule. Per-card spacing comes from
+     .crit-group__body's 6 px gap below, not per-card margin. */
+  padding: 0;
   background: var(--md-surface-container-high);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--md-shape-lg);
@@ -4530,6 +4553,11 @@ body.light .tour-spotlight__dim {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  /* Spec 0203 §2.4 (C4) — head owns the card's padding now that the
+     frame is padding:0. 6 px vertical × 12 px horizontal puts the
+     collapsed-card head at the same ~36 px height as timeline cards. */
+  padding: 6px 12px;
+  min-height: 0;
 }
 /* Spec 0173 §2.5 — spacer pushes the lifecycle chip (and any trailing
    chips) to the right edge of the head. Replaces the prior
@@ -4865,7 +4893,11 @@ body.light .tour-spotlight__dim {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
+  /* Spec 0203 §2.8 (C8) — cap title at 280 px so long URLs/titles
+     truncate predictably instead of pushing the host + attribution
+     chip off-screen. The attribution chip's margin-left:auto then
+     parks itself at the right edge. */
+  max-width: 280px;
   min-width: 0;
 }
 .source-row__host {
@@ -4879,6 +4911,10 @@ body.light .tour-spotlight__dim {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  /* Spec 0203 §2.8 (C8) — right-align the attribution chip; the title
+     above caps at 280 px so this chip is pushed to the far edge with
+     the host badge trailing it. */
+  margin-left: auto;
 }
 .source-row__body {
   padding-top: 8px;

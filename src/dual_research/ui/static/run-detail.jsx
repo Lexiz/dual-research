@@ -7449,72 +7449,61 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
 
           <span className="crit-filter-spacer" aria-hidden="true" />
 
-          {/* Agent segment — [All N] [• Claude N] [• GPT N] */}
-          <div className="tab-group-solid" role="group" aria-label="Filter by raising agent">
-            <button
-              type="button"
-              className="tab-solid"
-              data-active={agentFilter === 'all' ? 'true' : 'false'}
-              onClick={() => setAgentFilter('all')}
-              title="Show items raised by any agent"
-            >
-              All
-              <span className="chip-value">{agentCounts.all}</span>
-            </button>
+          {/* Spec 0203 §2.2 (C2) — Agent segment.
+              - "All" button dropped: no active chip = "show all agents".
+                Clicking an active chip deselects (toggles back to 'all').
+              - data-group="agent" on the wrapper so §2.3 narrow rules and
+                §2.2 brand-icon rules can target this segment specifically.
+              - Identity moved from .dot to .chip-leading-icon containing
+                <AgentIcon /> so the live brand SVGs render (sunburst /
+                rosette) per BDD Scenario 2. */}
+          <div className="tab-group-solid" role="group" aria-label="Filter by raising agent" data-group="agent">
             <button
               type="button"
               className="tab-solid"
               data-active={agentFilter === 'claude' ? 'true' : 'false'}
-              onClick={() => setAgentFilter('claude')}
+              onClick={() => setAgentFilter(agentFilter === 'claude' ? 'all' : 'claude')}
               title="Show only items raised by Claude"
             >
-              <i className="dot" style={{ background: 'var(--claude)' }} />
-              Claude
+              <span className="chip-leading-icon"><AgentIcon agent="claude" size={12} /></span>
+              <span className="chip-label">Claude</span>
               <span className="chip-value">{agentCounts.claude}</span>
             </button>
             <button
               type="button"
               className="tab-solid"
               data-active={agentFilter === 'gpt' ? 'true' : 'false'}
-              onClick={() => setAgentFilter('gpt')}
+              onClick={() => setAgentFilter(agentFilter === 'gpt' ? 'all' : 'gpt')}
               title="Show only items raised by GPT"
             >
-              <i className="dot" style={{ background: 'var(--gpt)' }} />
-              GPT
+              <span className="chip-leading-icon"><AgentIcon agent="gpt" size={12} /></span>
+              <span className="chip-label">GPT</span>
               <span className="chip-value">{agentCounts.gpt}</span>
             </button>
           </div>
 
-          {/* State segment — [All N] [Open N] [Resolved N] [Drift N?] */}
-          <div className="tab-group-solid" role="group" aria-label="Filter by item state">
-            <button
-              type="button"
-              className="tab-solid"
-              data-active={statusFilter === 'all' ? 'true' : 'false'}
-              onClick={() => setStatusFilter('all')}
-              title="Show items in any state"
-            >
-              All
-              <span className="chip-value">{statusCounts.all}</span>
-            </button>
+          {/* Spec 0203 §2.2 (C2) — State segment.
+              - "All" button dropped; no active chip = "show all states".
+              - data-group="status" wrapper attribute for narrow rules. */}
+          <div className="tab-group-solid" role="group" aria-label="Filter by item state" data-group="status">
             <button
               type="button"
               className="tab-solid"
               data-active={statusFilter === 'open' ? 'true' : 'false'}
-              onClick={() => setStatusFilter('open')}
+              onClick={() => setStatusFilter(statusFilter === 'open' ? 'all' : 'open')}
               title="Show only open items"
             >
-              Open
+              <span className="chip-label">Open</span>
               <span className="chip-value">{statusCounts.open}</span>
             </button>
             <button
               type="button"
               className="tab-solid"
               data-active={statusFilter === 'resolved' ? 'true' : 'false'}
-              onClick={() => setStatusFilter('resolved')}
+              onClick={() => setStatusFilter(statusFilter === 'resolved' ? 'all' : 'resolved')}
               title="Show only resolved items"
             >
-              Resolved
+              <span className="chip-label">Resolved</span>
               <span className="chip-value">{statusCounts.resolved}</span>
             </button>
             {kindFilter !== 'questions' && (
@@ -7522,10 +7511,10 @@ function CritiqueExplorer({ run, onHighlightTurns }) {
                 type="button"
                 className="tab-solid"
                 data-active={statusFilter === 'drift' ? 'true' : 'false'}
-                onClick={() => setStatusFilter('drift')}
+                onClick={() => setStatusFilter(statusFilter === 'drift' ? 'all' : 'drift')}
                 title="Show only items with ledger drift"
               >
-                Drift
+                <span className="chip-label">Drift</span>
                 <span className="chip-value">{statusCounts.drift}</span>
               </button>
             )}
@@ -7777,7 +7766,10 @@ function CritiquePhaseContent({ run, phaseId, openNewItems, openCarriedItems, re
     <div className="crit2__body">
       {renderGroup('Open \u00b7 new this round', openNewItems, 'info', 'is-info', false)}
       {renderGroup('Open \u00b7 carried over', openCarriedItems, 'warn', 'is-warn', false)}
-      {renderGroup('Resolved', resolvedItems, 'ok', 'is-ok', true)}
+      {/* Spec 0203 §2.1 (C1) — Resolved group starts unfolded by default
+          in P0/P2/P4. renderGroup returns null when items.length === 0, so
+          the "≥ 1 resolved item" condition is already enforced upstream. */}
+      {renderGroup('Resolved', resolvedItems, 'ok', 'is-ok', false)}
       {renderGroup('Drift', driftItems, 'err', 'is-err', true)}
     </div>
   );

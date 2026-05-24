@@ -777,6 +777,17 @@ body.light .qt-pill { background: rgba(255,255,255,0.45); }
    shared.jsx; the legacy dual-selector form (className-based) is gone. */
 .tab-solid[data-active="true"] { background: var(--md-surface); color: var(--md-on-surface); box-shadow: var(--md-elev-1); }
 .tab-solid .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Spec 0203 §2.2 (C2) — agent-segment brand icon. The bar-2 agent
+   filter now emits .chip-leading-icon with <AgentIcon /> inside each
+   .tab-solid instead of the legacy .dot. Sized to match
+   .chip .chip-leading-icon (12×12). */
+.tab-solid .chip-leading-icon {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+}
+/* Spec 0203 §2.2 — labels ride in an explicit .chip-label span. */
+.tab-solid .chip-label { display: inline; }
 
 /* Spec 0173 §2.4 — per-segment count token. The bare number sits
    inside `.chip-value`; parens are produced via ::before/::after
@@ -2097,13 +2108,25 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
   background: var(--md-surface-container-high);
   border: 1px solid var(--md-outline-variant);
   border-radius: var(--md-shape-lg);
-  padding: 14px 16px;
+  /* Spec 0203 §2.4 (C4) — collapsed-card height matches timeline
+     .tl-thread (~36 px). Frame padding is zero; the head owns its own
+     padding (6 px 12 px) per .item-card__head rule below. Per-card
+     spacing comes from .crit-group__body's 6 px gap, not per-card
+     margin. */
+  padding: 0;
   margin: 0;
   color: var(--md-on-surface);
   overflow: hidden;
   transition: background     var(--md-dur-short-3) var(--md-easing-standard),
               box-shadow     var(--md-dur-short-3) var(--md-easing-standard),
               border-color   var(--md-dur-short-3) var(--md-easing-standard);
+}
+/* Spec 0203 §2.4 — head padding inverts the previous outer padding so
+   the collapsed-card head clocks in at ~36 px (timeline parity). */
+.crit-card .crit-card-head,
+.item-card .item-card__head {
+  padding: 6px 12px;
+  min-height: 0;
 }
 .crit-card:hover,
 .item-card:hover {
@@ -2304,12 +2327,21 @@ body.light .tl-card-head .chip.tone-gpt .chip-label {
 .source-row__title {
   color: var(--md-on-surface);
   font: var(--md-w-medium) 12.5px/1.3 var(--md-font-plain);
+  /* Spec 0203 §2.8 (C8) — cap long titles so the attribution chip can
+     right-align without being pushed off-canvas. */
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 .source-row__host {
   color: var(--md-on-surface-faint);
   font: var(--md-w-regular) 11px/1 var(--md-font-plain);
 }
 .source-row__head .right { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; }
+/* Spec 0203 §2.8 (C8) — right-align the attribution chip slot. */
+.source-row__attribution { display: inline-flex; align-items: center; flex-shrink: 0; margin-left: auto; }
 
 .source-row__body {
   padding-top: 8px;
