@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:01:08Z",
+  "updated_at": "2026-05-24T12:08:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8473,7 +8473,7 @@
       "handover": "handoffs/2026-05-24-spec-0207-fix-link-variant-icon-missing.md"
     },
     "0208": {
-      "status": "failed",
+      "status": "deployed",
       "queued_at": "2026-05-24T10:37:56Z",
       "events": [
         {
@@ -8541,12 +8541,38 @@
             "reason": "lease-drift on both machines; new image 01KSCXJJYD26EEEZFX3M8RHGRJ is not live anywhere",
             "matrix_case": 3
           }
+        },
+        {
+          "ts": "2026-05-24T12:08:33Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T12:08:33Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.7"
+          }
+        },
+        {
+          "ts": "2026-05-24T12:08:33Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-24T12:08:33Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0208-provider-chip-dim-in-critique-promote-tone-to-base.md"
+          }
         }
       ],
       "started_at": "2026-05-24T11:48:12Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/240",
       "merged_at": "2026-05-24T11:56:35Z",
-      "failure_step": "deploy"
+      "failure_step": "",
+      "deployed_at": "2026-05-24T12:08:34Z",
+      "handover": "handoffs/2026-05-24-spec-0208-provider-chip-dim-in-critique-promote-tone-to-base.md"
     },
     "0209": {
       "status": "queued",
