@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.1] — 2026-05-24
+
+### Added
+
+- **`/dr-run-assess` skill** — diagnostic scorecard for a dual-research run on the backend-language-choice briefing. Scores six axes (F outcome + A–E + G diagnostics), diffs against the anchor run `20260521-010637-dvs-backend-language-choice`, attributes any F weakness to a specific diagnostic axis, and recommends the prompt or briefing section to tune on the next run. Companion to `/dual-research-run` — fire a run with one, grade it with the other. Project-local at `.claude/skills/dr-run-assess/SKILL.md`. Non-spec manual tooling addition (Claude-only artifact; does not change the deployed app).
+
 ## [1.44.0] — 2026-05-24
 
 ### Changed
