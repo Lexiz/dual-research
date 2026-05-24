@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T13:31:30Z",
+  "updated_at": "2026-05-24T13:32:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8851,6 +8851,13 @@
           "ts": "2026-05-24T13:31:30Z",
           "step": "deploy_health_check_ok",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T13:32:34Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-24-spec-0211-delegate-fly-deploy-to-github-actions.md"
+          }
         }
       ],
       "started_at": "2026-05-24T13:17:47Z",
