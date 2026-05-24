@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:01:05Z",
+  "updated_at": "2026-05-24T12:01:08Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8531,6 +8531,15 @@
           "step": "merged",
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/240"
+          }
+        },
+        {
+          "ts": "2026-05-24T12:01:08Z",
+          "step": "failed",
+          "data": {
+            "step": "deploy",
+            "reason": "lease-drift on both machines; new image 01KSCXJJYD26EEEZFX3M8RHGRJ is not live anywhere",
+            "matrix_case": 3
           }
         }
       ],
