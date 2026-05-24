@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T12:51:53Z",
+  "updated_at": "2026-05-24T12:51:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8703,6 +8703,11 @@
             "branch": "spec/0210-dev-next-worktree-cross-conflict-on-main-checkout",
             "from": "main@b9388de"
           }
+        },
+        {
+          "ts": "2026-05-24T12:51:57Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-24T12:51:36Z"
