@@ -141,8 +141,8 @@
 .chip.tone-err         { color: var(--err);     background: color-mix(in srgb, var(--err) 18%, transparent);  border-color: transparent; }
 .chip.tone-idle        { color: var(--idle);    background: color-mix(in srgb, var(--idle) 28%, transparent); border-color: transparent; }
 .chip.tone-muted       { color: var(--md-on-surface-faint);    background: var(--md-surface-container); border-color: transparent; }
-.chip.tone-claude      { color: var(--claude);  background: var(--claude-bg); border-color: transparent; }
-.chip.tone-gpt         { color: var(--gpt);     background: var(--gpt-bg);    border-color: transparent; }
+.chip.tone-claude      { color: var(--claude);  background: color-mix(in srgb, var(--p-sable) 30%, transparent); border-color: transparent; }
+.chip.tone-gpt         { color: var(--gpt);     background: color-mix(in srgb, var(--p-sage)  30%, transparent); border-color: transparent; }
 .chip.tone-neutral     { color: var(--md-on-surface-variant);    background: var(--md-surface-container-high); border-color: transparent; }
 
 /* Auto leading-dot for status tones only. Identity tones
@@ -506,12 +506,6 @@ button.chip:focus-visible {
    brighter than the card's surface-container-high. Without this the
    activity chip vanishes against the card.
    ───────────────────────────────────────────────────────────── */
-.tl-card-head .chip.tone-claude {
-  background: color-mix(in srgb, var(--p-sable) 30%, transparent);
-}
-.tl-card-head .chip.tone-gpt {
-  background: color-mix(in srgb, var(--p-sage) 30%, transparent);
-}
 .tl-card-head .chip.tone-neutral:not(.mono) {
   background: color-mix(in srgb, var(--p-idle) 20%, transparent);
   color: var(--md-on-surface);
@@ -539,20 +533,21 @@ button.chip:focus-visible {
 .tl-phase__chips .chip.tone-idle  .cat-bubble { background: color-mix(in srgb, var(--p-idle) 70%, transparent); }
 
 /* ─────────────────────────────────────────────────────────────
-   Light-mode chip-text backstop (spec 0165 §2.6)
+   Light-mode identity-chip text colour (spec 0208 §3.2)
 
-   Defensive overlay scoped to `.tl-card-head`. The same hex values
-   the token override at tokens.css:339/342 produces, declared
-   explicitly here so timeline chips stay readable if a future change
-   drifts the --md-on-{primary,secondary}-container light values again.
+   Promoted globally from the spec 0165 `.tl-card-head`-scoped
+   backstop. Identity chips (`.chip.tone-claude` / `.chip.tone-gpt`)
+   carry the canonical `--md-on-{primary,secondary}-container` token
+   in light mode on every surface — base rule + every consumer reads
+   the same value rather than each surface re-declaring it.
    ───────────────────────────────────────────────────────────── */
-body.light .tl-card-head .chip.tone-claude,
-body.light .tl-card-head .chip.tone-claude .chip-label {
-  color: #3b2810;
+body.light .chip.tone-claude,
+body.light .chip.tone-claude .chip-label {
+  color: var(--md-on-primary-container);
 }
-body.light .tl-card-head .chip.tone-gpt,
-body.light .tl-card-head .chip.tone-gpt .chip-label {
-  color: #0a322d;
+body.light .chip.tone-gpt,
+body.light .chip.tone-gpt .chip-label {
+  color: var(--md-on-secondary-container);
 }
 
 /* Spec 0164 §2.6 — narrow-view strip equalisation.
@@ -4679,14 +4674,6 @@ body.light .tour-spotlight__dim {
   font-style: italic;
   font-size: 13px;
   line-height: 1.55;
-}
-/* Tint the provider chip inside lc-rows the same way the head does,
-   so the lifecycle stack reads as one continuous provider thread. */
-.item-card__lifecycle-section .lc-row-chips .chip.tone-claude {
-  background: color-mix(in srgb, var(--p-sable) 30%, transparent);
-}
-.item-card__lifecycle-section .lc-row-chips .chip.tone-gpt {
-  background: color-mix(in srgb, var(--p-sage) 30%, transparent);
 }
 .item-card__timeline {
   display: flex;

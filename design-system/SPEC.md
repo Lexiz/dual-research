@@ -351,6 +351,8 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 
 The full rendered catalog lives at `assets/Design System v2.html` and at the live `/#/language` page.
 
+**Identity-chip rendering rule** (spec 0208). `<Chip tone="claude">` and `<Chip tone="gpt">` render identically on every surface. The base rule at `.chip.tone-claude` / `.chip.tone-gpt` carries the canonical 30 % `color-mix` tint over `--p-sable` / `--p-sage`; light-mode text colour comes from `--md-on-primary-container` / `--md-on-secondary-container` globally. **Per-container overrides for identity tones are forbidden** — if a future surface renders an identity chip unreadably, the fix is to revisit the base rule (and the surface's tonal contrast), not to add a scoped override. The two surviving `.tl-card-head` chip overrides (System / activity-mono) are System-only tones, not identity tones.
+
 ---
 
 ## 4 — Composed components
@@ -455,16 +457,14 @@ Status colors (`is-open` / `is-resolved` / `is-drift`) inherited from `.qthread`
 
 **Responsive — narrow viewport ≤ 1799 px** (spec 0164 §2.6). Both `.as.in-header` instances inside `.rdvc__pane` (`.tl__head .as.in-header` + `.tl__tabs .as.in-header`) cap to 320 px and right-align to the same column. Without this, `.tl__tabs` (whose leading content is wider than `.tl__head`'s) overflows the pane edge by ~33 px at 1280 px viewport. The `.as-activity` text inside the capped strip falls back to `text-overflow: ellipsis` if it doesn't fit.
 
-**Chip polish inside `.tl-card-head`** (spec 0165 §2.2–§2.3, §2.6). The M3 card surface from spec 0164 (`--md-surface-container-high`) swallows the chip primitive's tonal-container backgrounds, so timeline-card chips need scoped overrides. All rules below scope to `.tl-card-head` only — the global `.chip.tone-*` rules and the critique pane stay unchanged.
+**Chip polish inside `.tl-card-head`** (spec 0165 §2.2–§2.3, narrowed by spec 0208). Identity chips (`.chip.tone-claude` / `.chip.tone-gpt`) render the same on every surface — see the Chip primitive note below § 3. The two rows that remain scoped to `.tl-card-head` are the System / activity-mono variants, which are timeline-specific affordances:
 
 | Chip | Background | Text |
 |---|---|---|
-| `.chip.tone-claude` (Claude identity) | `color-mix(in srgb, var(--p-sable) 30%, transparent)` | inherits (default chip text colour) |
-| `.chip.tone-gpt` (GPT identity) | `color-mix(in srgb, var(--p-sage) 30%, transparent)` | inherits |
 | `.chip.tone-neutral:not(.mono)` (System identity) | `color-mix(in srgb, var(--p-idle) 20%, transparent)` — held at 20 % (vs. 30 %) because the idle palette is itself dimmer; 30 % reads too prominent | forced `var(--md-on-surface)` (neutral, not branded) |
 | `.chip.tone-neutral.mono` (activity badge — `turn N` / `brief` / `plan` / `draft`) | `var(--md-surface-container-highest)` — one tier brighter than the card surface | inherits |
 
-Light-mode chip-text backstop (spec 0165 §2.6). `body.light .tl-card-head .chip.tone-claude` and its `.chip-label` child carry an explicit `#3b2810` text colour; the `.tone-gpt` equivalents carry `#0a322d`. These match the canonical `--md-on-primary-container` / `--md-on-secondary-container` light values declared in `tokens-and-primitives.css` — they're declared as scoped backstops so timeline chips stay readable if a future change drifts the tokens again.
+Light-mode identity-chip text colour (spec 0208 §3.2). `body.light .chip.tone-claude` / `body.light .chip.tone-gpt` carry `--md-on-primary-container` / `--md-on-secondary-container` respectively — declared globally, not scoped to `.tl-card-head`, so every surface that hosts an identity chip reads the same token. The spec 0165 defensive hex backstop is gone: token drift would now break the design system uniformly rather than just the timeline.
 
 **Phase-header category bubble dim** (spec 0165 §2.4). Inside `.tl-phase__chips`, the `.cat-bubble` (Q / D / I / C knockout-white letter on a brand-tone fill) drops to 70 % alpha so the bubble doesn't dominate the chip's 18 %-tinted background. Letter remains knockout-white and legible on all four tones (info / warn / err / idle). Scoped to `.tl-phase__chips` so the critique-pane kind cluster (same `.cat-bubble` primitive, different visual budget) keeps its 100 % saturation.
 
