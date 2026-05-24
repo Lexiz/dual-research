@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T01:32:25Z",
+  "updated_at": "2026-05-24T01:46:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -7552,7 +7552,7 @@
       "handover": "handoffs/2026-05-24-spec-0202-main-commit-noise-queue-state-file-and-handoff-archival.md"
     },
     "0203": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-24T00:26:05Z",
       "events": [
         {
@@ -7613,7 +7613,9 @@
           }
         }
       ],
-      "started_at": "2026-05-24T00:49:56Z"
+      "started_at": "2026-05-24T00:49:56Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/231",
+      "merged_at": "2026-05-24T01:46:57Z"
     },
     "0204": {
       "status": "queued",
