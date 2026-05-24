@@ -1,6 +1,6 @@
 ---
 kind: dev
-spec: "0203"
+spec: "0204"
 slug: timeline-v2-live-promotion
 title: Timeline pane V2 — promote workshop lock to live (T1 card height, T2.a click/modal split, T2.b cost precision parity)
 type: new-feature
@@ -27,7 +27,7 @@ items, TBD markers, or "we'll figure it out later" prose. Every decision is
 either answered here or explicitly deferred via §5 Out of scope with a
 named follow-up target. -->
 
-# Spec 0203 — Timeline pane V2 → live promotion (T1 card height, T2.a click/modal split, T2.b cost precision parity)
+# Spec 0204 — Timeline pane V2 → live promotion (T1 card height, T2.a click/modal split, T2.b cost precision parity)
 
 > **Type:** new-feature  |  **Complexity:** M  |  **Depends on:** 0164, 0165, 0166, 0173
 > **Bump:** MINOR — promotes a user-visible behaviour set (cards unfold in place; explicit "Open full view" opens the modal; consistent 2-decimal cost rendering across the timeline pane) plus a small pixel-target correction on collapsed card height.
@@ -235,4 +235,4 @@ None. All three deltas are presentation-layer (CSS + JSX) and do not change the 
 - **T1 over-shrink in unusual content.** If a turn's identity chip stack overflows the 22 px nominal height (e.g. a card with both a violation chip and a long activity label), the 6 px vertical padding may visually cramp. Mitigation: `.tl-card-head` uses `display: flex; align-items: center` so taller content auto-expands the head; the 34 px is the *minimum* height for chip-only content, not a fixed cap.
 - **T2.b `fmtCost2` import wiring.** `fmtCost2` is defined at [run-detail.jsx:2720](../src/dual_research/ui/static/run-detail.jsx#L2720) and `TimelineAgentPill` is defined at [line 152](../src/dual_research/ui/static/run-detail.jsx#L152) — both in the same file, so no import wiring needed. Mitigation: the spec implementer must NOT lift `fmtCost2` into `shared.jsx` as a "cleanup" — that's out of scope and risks circular dep with the run-list / dashboard surfaces.
 - **DS/live drift.** Standard same-commit hazard. Mitigation: §6's first test-plan checkbox.
-- **Race with parallel critique-V2 spec.** Critique V2 (sibling, drafted in parallel) and this spec both expect to occupy the next dev number. The `/spec-queue` retry loop handles the push-race — if critique lands first as 0203, this spec auto-recomputes and commits as 0204. No coordination needed beyond letting the retry fire.
+- **Race with parallel critique-V2 spec (resolved at queue time).** Critique V2 landed as 0203 just before this push and this timeline spec was originally committed as 0203 too (the `/spec-queue` push fast-forwarded over critique's commit instead of triggering the retry loop). Renumbered to 0204 in a follow-up commit on `main`. `/dev-next` picks 0203 (critique) first, then 0204 (timeline). No file-level conflict expected between the two specs — different selectors / components.

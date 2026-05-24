@@ -1,6 +1,6 @@
 # Timeline pane V2 — canonical snapshot (2026-05-24)
 
-> **Purpose.** Canonical reference for the V2 timeline-pane state that spec [0203](../../specs/0203-timeline-v2-live-promotion.md) promotes from workshop to live. Freezes (a) the user-flagged issues against the live app (T1, T2.a, T2.b), (b) the shipped-audit for the 13 iter-locked design changes from [NOTES.md](./NOTES.md) §1, (c) the shipped-audit for drift items 3.A–3.G, (d) what stays out of scope, (e) the file list the promotion commit touches.
+> **Purpose.** Canonical reference for the V2 timeline-pane state that spec [0204](../../specs/0204-timeline-v2-live-promotion.md) promotes from workshop to live. Freezes (a) the user-flagged issues against the live app (T1, T2.a, T2.b), (b) the shipped-audit for the 13 iter-locked design changes from [NOTES.md](./NOTES.md) §1, (c) the shipped-audit for drift items 3.A–3.G, (d) what stays out of scope, (e) the file list the promotion commit touches.
 >
 > **Pixel target** is [`proposed.html`](./proposed.html) (workshop CSS stack iter-1→iter-13).
 > **Diff target** is [`live.html`](./live.html) (verbatim live-app dump from 2026-05-22).
@@ -17,7 +17,7 @@ The workshop at [`prototypes/timeline-iteration/`](./) ran 13 iterations on 2026
 - [spec 0166](../../specs/0166-timeline-pane-system-error-chips-and-live-state.md) — System + Error chip primitives (iter 3), live-state agent-strip wiring (iter 11/12), turn-render data-layer fix (3.F).
 - [spec 0173](../../specs/0173-drain-deferrals-from-0166-0167-0168.md) — `.activity-dot` pulse-info wiring (iter 11 §2.2.3 dot pulse) + other deferred items.
 
-The user audited the live app against the workshop state on 2026-05-23 ([Notion page](https://www.notion.so/36999f3e507f8083b551f2c8fcbe46d3), Timeline section) and reported the timeline pane "is actually implemented pretty well … except for two things." This snapshot collapses the Notion audit + the per-iter shipped-audit + drift-status into a single index spec 0203 can cite verbatim.
+The user audited the live app against the workshop state on 2026-05-23 ([Notion page](https://www.notion.so/36999f3e507f8083b551f2c8fcbe46d3), Timeline section) and reported the timeline pane "is actually implemented pretty well … except for two things." This snapshot collapses the Notion audit + the per-iter shipped-audit + drift-status into a single index spec 0204 can cite verbatim.
 
 The Notion timeline section enumerates two issues — **T1** (collapsed card height) and **T2** (click behaviour + cost precision). T2 has two distinct sub-issues so the snapshot disambiguates: **T2.a** (click should unfold in-place, not open the modal) and **T2.b** (turn-card cost rounded to two decimals after the comma).
 
@@ -58,7 +58,7 @@ Each iter from [NOTES.md §1](./NOTES.md) verified against current code on 2026-
 | 12 | `box-shadow: var(--md-elev-2)` on `.as.in-header.is-live` | 0166 §3 | [components.css:631-635](../../src/dual_research/ui/static/components.css#L631) `.as.in-header.is-live { box-shadow: var(--md-elev-2) }` | ✓ |
 | 13 | Narrow-view (≤ 1799 px) agent-strip equalisation — both `.as.in-header` capped at 320 px | 0164 §2.5 | [components.css:561-587](../../src/dual_research/ui/static/components.css#L561) `@media (max-width: 1799px) .tl__head .as.in-header, .tl__tabs .as.in-header { width: 320px; max-width: 320px; flex: 0 0 320px; margin-left: auto }` | ✓ |
 
-**Bottom line.** All 13 ship-eligible iters are shipped. No iter needs re-shipping in spec 0203. The promotion delta is exactly T1 + T2.a + T2.b (plus the cascading DS-mirror updates per [CLAUDE.md](../../CLAUDE.md#design-system) §Design system).
+**Bottom line.** All 13 ship-eligible iters are shipped. No iter needs re-shipping in spec 0204. The promotion delta is exactly T1 + T2.a + T2.b (plus the cascading DS-mirror updates per [CLAUDE.md](../../CLAUDE.md#design-system) §Design system).
 
 ---
 
@@ -74,17 +74,17 @@ Each drift item from [NOTES.md §3](./NOTES.md) verified against current code on
 | 3.D | Phase header pcode redundant with marker | 0164 §2.2 | [components.css:2604](../../src/dual_research/ui/static/components.css#L2604) — pcode removed, comment in place | ✓ |
 | 3.E | Cost precision drift | 0165 §2.5 | [run-detail.jsx:2720](../../src/dual_research/ui/static/run-detail.jsx#L2720) `fmtCost2` helper + [run-detail.jsx:1344](../../src/dual_research/ui/static/run-detail.jsx#L1344) call-site. **Note:** T2.b extends this further into the TimelineAgentPill at [run-detail.jsx:185](../../src/dual_research/ui/static/run-detail.jsx#L185) — partial coverage from 0165 is the lever T2.b pulls. | ✓ (expanded-card chip) + extended by T2.b (agent strip) |
 | 3.F | `turn [object object]` rendering bug | 0166 §2.3 + §2.4 | [run-detail.jsx:1255-1267](../../src/dual_research/ui/static/run-detail.jsx#L1255) defensive `activityLabelError` branch → `<SystemChip /> + <ErrorChip />` | ✓ |
-| 3.G | `Design System v2.html` §16 doesn't reflect the live timeline | — | Not shipped in 0164/0165/0166/0173 — [`design-system/assets/Design System v2.html`](../../design-system/assets/Design%20System%20v2.html) §16 still renders the pre-marker / pre-chip-cluster anatomy. | ⚠ deferred — out of scope for spec 0203; tracked for a follow-up DS-catch-up spec. |
+| 3.G | `Design System v2.html` §16 doesn't reflect the live timeline | — | Not shipped in 0164/0165/0166/0173 — [`design-system/assets/Design System v2.html`](../../design-system/assets/Design%20System%20v2.html) §16 still renders the pre-marker / pre-chip-cluster anatomy. | ⚠ deferred — out of scope for spec 0204; tracked for a follow-up DS-catch-up spec. |
 
-**Bottom line.** Six of seven drift items shipped cleanly. 3.G (DS §16 catch-up) is acknowledged unshipped and deferred per [§5](#5-deliberately-deferred-not-in-scope-for-spec-0203) — it doesn't block spec 0203 since the user-facing pixels read off `composed-components.css` + `components.css`, not the rendered HTML reference.
+**Bottom line.** Six of seven drift items shipped cleanly. 3.G (DS §16 catch-up) is acknowledged unshipped and deferred per [§5](#5-deliberately-deferred-not-in-scope-for-spec-0204) — it doesn't block spec 0204 since the user-facing pixels read off `composed-components.css` + `components.css`, not the rendered HTML reference.
 
 ---
 
-## 5. Deliberately deferred (NOT in scope for spec 0203)
+## 5. Deliberately deferred (NOT in scope for spec 0204)
 
 Per the user's promotion brief on 2026-05-24:
 
-- **Drift 3.G** — `Design System v2.html` §16 still renders pre-marker / pre-chip-cluster anatomy. Out of scope for the V2-promotion spec; tracked for a follow-up DS-catch-up spec (no number assigned yet; expect to draft post-merge of 0203 and the parallel critique-V2 promotion 0203 critique sibling).
+- **Drift 3.G** — `Design System v2.html` §16 still renders pre-marker / pre-chip-cluster anatomy. Out of scope for the V2-promotion spec; tracked for a follow-up DS-catch-up spec (no number assigned yet; expect to draft post-merge of 0204 timeline and the parallel critique-V2 promotion at 0203).
 - **Iter 4b** — workshop-only side-by-side wrapper; never ships.
 - **Critique pane** — covered by the parallel spec authoring in [`prototypes/critique-iteration/`](../critique-iteration/) (sibling V2-SNAPSHOT.md drives the critique promotion).
 - **Canvas skill regeneration logic** — separate spec (the next one in the series).
@@ -111,6 +111,6 @@ Per [`CLAUDE.md`](../../CLAUDE.md) §Design system: DS authoritative copy and li
 - [`prototypes/timeline-iteration/proposed.html`](./proposed.html) — pixel target (workshop CSS stack)
 - [`prototypes/timeline-iteration/live.html`](./live.html) — diff target (live-app dump 2026-05-22)
 - Notion: [Critique & Timeline](https://www.notion.so/36999f3e507f8083b551f2c8fcbe46d3) (the T1/T2 source, Timeline section)
-- [`design-system/SPEC.md`](../../design-system/SPEC.md) — DS sections cited by spec 0203 (§3 primitives, §4.4 Timeline pane, §9 badge governance)
+- [`design-system/SPEC.md`](../../design-system/SPEC.md) — DS sections cited by spec 0204 (§3 primitives, §4.4 Timeline pane, §9 badge governance)
 - Prior shipping specs: [0164](../../specs/0164-timeline-pane-card-chrome-and-phase-header.md), [0165](../../specs/0165-timeline-pane-chip-polish-and-token-drift.md), [0166](../../specs/0166-timeline-pane-system-error-chips-and-live-state.md), [0173](../../specs/0173-drain-deferrals-from-0166-0167-0168.md)
 - Parallel critique-V2 promotion: [`prototypes/critique-iteration/V2-SNAPSHOT.md`](../critique-iteration/V2-SNAPSHOT.md) (no file-level conflict expected — different selectors/components)
