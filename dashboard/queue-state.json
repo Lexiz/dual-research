@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-24T11:15:13Z",
+  "updated_at": "2026-05-24T11:16:47Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8109,6 +8109,14 @@
           "ts": "2026-05-24T11:15:13Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-24T11:16:47Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0206-playwright-vs-source-pattern-canonicalize-jsx-test-doctrine",
+            "from": "main@9e7adfd"
+          }
         }
       ],
       "started_at": "2026-05-24T11:15:09Z"
