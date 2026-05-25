@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:32:13Z",
+  "updated_at": "2026-05-25T09:32:15Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9029,6 +9029,14 @@
             "watched_run_conclusion": "cancelled",
             "actual_deploy_run": "26393367291",
             "note": "merge-commit run cancelled by concurrency policy; latest queue-state push run succeeded and deployed"
+          }
+        },
+        {
+          "ts": "2026-05-25T09:32:15Z",
+          "step": "deploy_health_check_ok",
+          "data": {
+            "endpoint": "/api/health",
+            "version": "1.44.14"
           }
         }
       ],
