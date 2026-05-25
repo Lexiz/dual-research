@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T11:34:08Z",
+  "updated_at": "2026-05-25T11:34:15Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9321,7 +9321,7 @@
       "handover": "handoffs/2026-05-25-spec-0212.1-test-explicit-cleanup-ordering-invariant.md"
     },
     "0213": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-25T11:10:06Z",
       "events": [
         {
@@ -9376,7 +9376,9 @@
           }
         }
       ],
-      "started_at": "2026-05-25T11:14:38Z"
+      "started_at": "2026-05-25T11:14:38Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/249",
+      "merged_at": "2026-05-25T11:34:15Z"
     }
   }
 }
