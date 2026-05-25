@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T12:35:02Z",
+  "updated_at": "2026-05-25T12:41:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9414,7 +9414,7 @@
       "handover": "handoffs/2026-05-25-spec-0213-dashboard-match-orchestrator-after-0212.md"
     },
     "0214": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-25T12:04:21Z",
       "events": [
         {
@@ -9475,11 +9475,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/250"
           }
+        },
+        {
+          "ts": "2026-05-25T12:35:27Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T12:40:08Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.19"
+          }
+        },
+        {
+          "ts": "2026-05-25T12:40:16Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T12:41:01Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-25-spec-0214-drop-phase4-agent-emitted-hash-gate.md"
+          }
         }
       ],
       "started_at": "2026-05-25T12:22:55Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/250",
-      "merged_at": "2026-05-25T12:34:59Z"
+      "merged_at": "2026-05-25T12:34:59Z",
+      "deployed_at": "2026-05-25T12:41:05Z",
+      "handover": "handoffs/2026-05-25-spec-0214-drop-phase4-agent-emitted-hash-gate.md"
     },
     "0215": {
       "status": "queued",
