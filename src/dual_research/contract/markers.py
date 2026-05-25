@@ -194,10 +194,6 @@ DRAFT_VERSION_RE = re.compile(
     r"^\s*draft_version:\s*v?(\d+)\s*$",
     re.MULTILINE | re.IGNORECASE,
 )
-DRAFT_HASH_RE = re.compile(
-    r"^\s*draft_hash:\s*([0-9a-fA-F]+)\s*$",
-    re.MULTILINE,
-)
 DRAFTER_RE = re.compile(_LEAD + r"DRAFTER:\s*`?([a-z]+)`?", re.MULTILINE)
 
 

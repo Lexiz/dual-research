@@ -9,10 +9,13 @@ Templates here are reference layouts the prompts include; the parser
 extracts the artifact body verbatim from each agent's turn and hashes
 it. The actual hashing is normalization → SHA-256, lowercase hex.
 
-Phase 4's artifact also carries the draft's content hash; the parser
-verifies both agents agreed to the same ``draft_version`` and same
-``draft_hash``, and the orchestrator cross-checks that the drafter did
-not revise the draft in this round.
+Phase 4's artifact carries only the ``draft_version`` pointer; the
+orchestrator owns the canonical draft on disk and cross-checks both
+agents agreed on the same version (matching ``ctx.state.draft_round``)
+and that the drafter did not revise the draft in this round. The
+orchestrator records its own ``canonical_hash`` of the on-disk draft
+on ``Phase4Complete.draft_file_sha256`` for provenance — agents do
+not echo a hash (spec 0214).
 """
 
 from __future__ import annotations
@@ -94,7 +97,6 @@ AGREED_DRAFT_ACCEPTANCE_TEMPLATE = """\
 ### AGREED_DRAFT_ACCEPTANCE
 
 draft_version: v<N>
-draft_hash: <SHA-256 hex of the draft file content>
 endorsement: |
   <one sentence on why this draft satisfies the brief>
 """
@@ -111,11 +113,13 @@ ARTIFACT_HEADING: dict[int, str] = {
 
 
 def hash_draft_content(text: str) -> str:
-    """Hash the on-disk draft content for phase 4's ``draft_hash``.
+    """Hash the on-disk draft content for ``Phase4Complete.draft_file_sha256``.
 
     Uses the same normalization as the artifact hash so a draft that
     differs only in trailing-newline / smart-quote substitution still
-    matches.
+    matches. Spec 0214: agents no longer echo this hash; the orchestrator
+    computes it once at convergence and records it on the
+    ``Phase4Complete`` event for provenance.
     """
     return canonical_hash(text)
 

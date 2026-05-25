@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Iterable
 
 from dual_research.agents.base import AgentCall
-from dual_research.contract.artifacts import canonical_hash
+from dual_research.contract.artifacts import canonical_hash, hash_draft_content
 from dual_research.contract.caps import caps_for
 from dual_research.contract.categories import Category
 from dual_research.contract.evidence import validate_all_evidence
@@ -758,6 +758,43 @@ def _render_for_extract(parsed) -> str:
     return f"## Phase artifact\n\n{parsed.phase_artifact}\n"
 
 
+def _compute_draft_sha_if_present(ctx: SessionContext) -> str | None:
+    """Spec 0214 — orchestrator-side provenance for ``Phase4Complete``.
+
+    Reads the on-disk draft for ``ctx.state.draft_round`` and returns
+    its ``canonical_hash``. Returns ``None`` when no draft file exists
+    for the final round (hard-cap / artifact-promotion paths with no
+    draft yet on disk).
+    """
+    draft_path = current_draft_path(ctx.session, ctx.state.draft_round)
+    if not draft_path.exists():
+        return None
+    return hash_draft_content(draft_path.read_text(encoding="utf-8"))
+
+
+def phase4_version_gate(parsed_a, parsed_b, *, ctx_draft_round: int) -> bool:
+    """Spec 0214 — phase-4 convergence gate (orchestrator-owned versioning).
+
+    Returns ``True`` iff both agents emit an ``AGREED_DRAFT_ACCEPTANCE``
+    block carrying the same ``draft_version`` AND that version equals
+    ``ctx_draft_round``. The second clause anchors the gate against
+    orchestrator-tracked state, so a same-round revise-then-AGREE
+    (drafter bumps version to ``N+1`` and emits AGREED with
+    ``draft_version: v<N+1>`` before the orchestrator advances the
+    pointer) is rejected. Replaces the agent-emitted SHA-256 gate that
+    deadlocked on agents' inability to replicate ``canonical_hash``.
+    """
+    ta = _render_for_extract(parsed_a)
+    tb = _render_for_extract(parsed_b)
+    acc_a = extract_agreed_draft_acceptance(ta)
+    acc_b = extract_agreed_draft_acceptance(tb)
+    if acc_a is None or acc_b is None:
+        return False
+    ver_a, _ = acc_a
+    ver_b, _ = acc_b
+    return ver_a == ver_b == ctx_draft_round
+
+
 def _capture_agreed_interpretation(
     ctx: SessionContext,
     phase: DeepResearchPhase,
@@ -1388,16 +1425,10 @@ async def run_dr_phase4(
         )
         return prompt, bundle, pieces
 
-    def _phase4_artifact_hash_match(a, b) -> bool:
-        ta = _render_for_extract(a)
-        tb = _render_for_extract(b)
-        acc_a = extract_agreed_draft_acceptance(ta)
-        acc_b = extract_agreed_draft_acceptance(tb)
-        if acc_a is None or acc_b is None:
-            return False
-        ver_a, hash_a, _ = acc_a
-        ver_b, hash_b, _ = acc_b
-        return ver_a == ver_b and hash_a == hash_b
+    def _phase4_artifact_version_match(a, b) -> bool:
+        return phase4_version_gate(
+            a, b, ctx_draft_round=ctx.state.draft_round,
+        )
 
     print("\n[phase 4] review-draft — Deep Research protocol\n", flush=True)
 
@@ -1409,7 +1440,7 @@ async def run_dr_phase4(
         soft_cap=soft_cap,
         hard_cap=hard_cap,
         build_round_prompt=_build,
-        artifact_hash_match=_phase4_artifact_hash_match,
+        artifact_hash_match=_phase4_artifact_version_match,
         on_revised_draft=_on_revised_draft,
         claude_agent=claude_agent,
         openai_agent=openai_agent,
@@ -1419,11 +1450,15 @@ async def run_dr_phase4(
     ctx.session.save_state(ctx.state)
 
     approved = result.converged and not result.via_hard_cap
+    # Spec 0214: orchestrator records its own canonical SHA of the
+    # on-disk draft for provenance; agents no longer echo a hash.
+    draft_file_sha256 = _compute_draft_sha_if_present(ctx)
     await event_bus.publish(Phase4Complete(
         rounds=result.rounds,
         approved=approved,
         final_draft_round=ctx.state.draft_round,
         revisions=revisions_count,
+        draft_file_sha256=draft_file_sha256,
     ))
     ctx.transcript.write(
         "phase4_complete",
@@ -1431,6 +1466,7 @@ async def run_dr_phase4(
         approved=approved,
         final_draft_round=ctx.state.draft_round,
         revisions=revisions_count,
+        draft_file_sha256=draft_file_sha256,
     )
 
     last_claude_path = ctx.session.phase_dir("phase4") / turn_filename(

@@ -528,6 +528,9 @@ ADDRESSED_DISAGREEMENTS: 0
 
 
 def test_extract_agreed_draft_acceptance():
+    # Spec 0214: the draft_hash line is gone from the template. The parser
+    # returns (draft_version, endorsement); orchestrator provenance lives
+    # on Phase4Complete.draft_file_sha256.
     text = """\
 ## Stance
 .
@@ -546,7 +549,6 @@ def test_extract_agreed_draft_acceptance():
 ### AGREED_DRAFT_ACCEPTANCE
 
 draft_version: v7
-draft_hash: ab12cd34ef56
 endorsement: |
   This draft satisfies the brief.
 
@@ -568,9 +570,8 @@ ADDRESSED_COMMENTS: 0
 """
     accept = extract_agreed_draft_acceptance(text)
     assert accept is not None
-    version, digest, endorsement = accept
+    version, endorsement = accept
     assert version == 7
-    assert digest == "ab12cd34ef56"
     assert endorsement == "This draft satisfies the brief."
 
 
