@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:12:00Z",
+  "updated_at": "2026-05-25T09:17:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8960,9 +8960,10 @@
       "handover": "handoffs/2026-05-25-spec-0211.1-ci-sweep-flyctl-not-fly-binary.md"
     },
     "0211.2": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-24T13:38:00Z",
-      "events": []
+      "events": [],
+      "started_at": "2026-05-25T09:17:13Z"
     }
   }
 }
