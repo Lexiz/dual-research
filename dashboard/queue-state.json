@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T12:22:55Z",
+  "updated_at": "2026-05-25T12:22:58Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9423,6 +9423,11 @@
           "data": {
             "promoted_from_draft": "002"
           }
+        },
+        {
+          "ts": "2026-05-25T12:22:58Z",
+          "step": "in_progress",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T12:22:55Z"
