@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T08:48:14Z",
+  "updated_at": "2026-05-25T08:48:17Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8889,6 +8889,11 @@
             "branch": "spec/0211.1-ci-sweep-flyctl-not-fly-binary",
             "from": "main@3be95e9"
           }
+        },
+        {
+          "ts": "2026-05-25T08:48:17Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T08:47:48Z"
