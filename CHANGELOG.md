@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.22] — 2026-05-25
+
+### Fixed
+
+- **Phase-2 / phase-4 ledger reconstructors now honor `STATUS.RESOLVED_THIS_TURN` / `WITHDRAWN_THIS_TURN` ([spec 0217](specs/0217-ledger-status-block-authoritative-for-closures.md)):** the per-kind reconstructors at [src/dual_research/ui/disagreements.py](src/dual_research/ui/disagreements.py) and [src/dual_research/ui/questions.py](src/dual_research/ui/questions.py) used to recognise closures only via section-tail scanning (`## Resolved or non-blocking differences` or per-item `D-N: label — status: resolved`). When agents started ratifying via the `## Ratifying my own items` / `### RESOLVE D-N` block shape, closures became invisible to the ledger even though the agents' `STATUS.RESOLVED_THIS_TURN: [...]` arrays were correct. Phase 2 then ran three extra administrative-closeout rounds (`20260525-135006-backend-language-choice` burned ~2h vs. the spec'd 20–30 min). Both reconstructors now run a STATUS pass per turn: `RESOLVED_THIS_TURN` / `WITHDRAWN_THIS_TURN` are the canonical closure channel; section-tail scanning stays as a legacy fallback; STATUS wins on conflict. By symmetry, `RAISED_THIS_TURN` seeds minimal entries when the legacy body-section parser produced none (necessary for the new `### RAISE` block protocol where item IDs only appear in STATUS). Composite IDs (`D-plan-c-01`, `Q-plan-c-02`) match through a canonical-form helper that zero-pads numeric tails and lowercases composite tails; the spurious-ID mitigation (§8) drops STATUS-listed IDs that were never `raised` in any prior round. `### RESOLVE D-N` blocks are explicitly NOT parsed (§3.4 — STATUS stays the canonical channel; no third parsing grammar). Phase-4 coverage is automatic — `build_phase_ledger` at [src/dual_research/ledger/build.py](src/dual_research/ledger/build.py) reuses the same reconstructors. Seven new tests at [tests/test_spec_0217_ledger_status_authoritative.py](tests/test_spec_0217_ledger_status_authoritative.py) cover STATUS-only closure / legacy-section-tail / STATUS-wins-on-conflict for both reconstructors plus a hermetic replay against rounds 1–3 of the smoking-gun session (fixture under [tests/fixtures/spec_0217/](tests/fixtures/spec_0217/)) — locks in that all 5 D-items (`D-plan-c-01..05`) and 2 Q-items (`Q-plan-c-01..02`) close by round 3, not at the round-5 hard cap.
+
 ## [1.44.21] — 2026-05-25
 
 ### Fixed

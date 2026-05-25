@@ -30,6 +30,12 @@ import re
 from dataclasses import replace
 from pathlib import Path
 
+from dual_research.contract.markers import (
+    RAISED_THIS_TURN_RE,
+    RESOLVED_THIS_TURN_RE,
+    WITHDRAWN_THIS_TURN_RE,
+    list_ids,
+)
 from dual_research.protocol.parse import extract_fenced_section
 from dual_research.ui.labels import ui_agent
 from dual_research.ui.models import Disagreement, ProgressionStep
@@ -103,6 +109,85 @@ _SIBLING_SECTION_NAMES = (
 
 # Phase 2/4 round file pattern: "round-NN-{agent}.md" (no .malformed)
 _ROUND_FILE_RE = re.compile(r"^round-(\d+)-(claude|openai)\.md$")
+
+
+# ─── Spec 0217 — STATUS as the canonical closure channel ──────────────────────
+#
+# The protocol's ``STATUS`` footer carries the machine-readable ledger-ops
+# (``RAISED_THIS_TURN`` / ``RESOLVED_THIS_TURN`` / ``WITHDRAWN_THIS_TURN``).
+# Pre-0217 the reconstructor consulted only the body sections
+# (``## Substantive disagreements I'm holding`` and siblings). When agents
+# moved closure prose to ``## Ratifying my own items`` blocks the closures
+# became invisible to the ledger even though the STATUS lists were correct.
+# The fix below makes STATUS authoritative; section-tail scanning stays as a
+# legacy fallback. On conflict, STATUS wins.
+#
+# By symmetry — the spec's principle is that STATUS is canonical — the same
+# pass also seeds minimal entries from ``RAISED_THIS_TURN`` when no body
+# section produced one. Without this, a session that uses the new RAISE-block
+# grammar exclusively (the smoking-gun session in spec 0217 §1) would surface
+# zero items, and the closure pass would have nothing to flip.
+
+
+def _canonical_id(raw: str) -> str:
+    """Normalize a ``D-N`` / ``Q-N`` identifier for cross-source matching.
+
+    Numeric-only tails are zero-padded to match the body-section parser's
+    ``d-NN`` output (so ``D-1`` and ``d-01`` collapse to the same key).
+    Composite tails (``D-plan-c-01``) are lowercased but kept structurally
+    intact so the STATUS channel and the body-section channel can refer to
+    the same item without false collisions.
+    """
+    s = (raw or "").strip()
+    if not s:
+        return s
+    m = re.fullmatch(r"([A-Za-z]+)-(.+)", s)
+    if not m:
+        return s.lower()
+    prefix = m.group(1).lower()
+    rest = m.group(2)
+    if re.fullmatch(r"\d+", rest):
+        return f"{prefix}-{int(rest):02d}"
+    return f"{prefix}-{rest.lower()}"
+
+
+def _status_array(text: str, pat: "re.Pattern[str]") -> list[str]:
+    """Extract one STATUS-footer action array (`[a, b, c]`) into IDs."""
+    m = pat.search(text)
+    if not m:
+        return []
+    return list_ids(m.group("ids"))
+
+
+def _status_d_ids(text: str, pat: "re.Pattern[str]") -> list[str]:
+    """Canonical D-prefixed IDs from a STATUS action array. Q-IDs are
+    silently dropped — they're handled by the question reconstructor."""
+    out: list[str] = []
+    for raw in _status_array(text, pat):
+        canon = _canonical_id(raw)
+        if canon.startswith("d-"):
+            out.append(canon)
+    return out
+
+
+_STUB_FIELDS = {
+    "label": "",
+    "status": "open",
+    "point": "",
+    "my_position": "",
+    "other_position": "",
+    "why": "",
+    "materiality": "",
+    "resolution_note": None,
+}
+
+
+def _stub_entry(d_id: str, *, status: str = "open") -> dict:
+    """A minimal entry dict — used to seed timeline entries from STATUS
+    when no body section produced one for this round / agent."""
+    entry = {"id": d_id, **_STUB_FIELDS}
+    entry["status"] = status
+    return entry
 
 
 # ─── Parsing one agent's section ──────────────────────────────────────────────
@@ -336,7 +421,14 @@ def _read_round_file(path: Path) -> list[dict]:
     if not path.exists():
         return []
     text = path.read_text(encoding="utf-8")
+    return _parse_round_text(text)
 
+
+def _parse_round_text(text: str) -> list[dict]:
+    """Body-section pass — extract D-N entries from the three legacy section
+    headers. Kept separate from ``_read_round_file`` so callers that already
+    have the file text (e.g. ``reconstruct`` for the STATUS pass) don't have
+    to re-read the file."""
     collected: dict[str, dict] = {}
     for name in (_DISAGREEMENT_SECTION_NAME, *_SIBLING_SECTION_NAMES):
         section = extract_fenced_section(text, name)
@@ -470,15 +562,52 @@ def reconstruct(session_dir: Path, *, phase: int) -> list[Disagreement]:
     # Per-D-N timeline:
     #   { d_id: [(round_num, {ui_agent: entry, ...}), ...] }
     timeline: dict[str, list[tuple[int, dict[str, dict]]]] = {}
+    # IDs that have been raised in any prior round (any agent). Spec 0217 §8 —
+    # STATUS closure only flips entries previously seen `raised`; spurious
+    # IDs are silently dropped.
+    raised_ever: set[str] = set()
 
     for rnd in rounds:
-        per_agent: dict[str, dict] = {}
+        per_agent: dict[str, dict[str, dict]] = {}
         for backend_ag in ("claude", "openai"):
-            entries = _read_round_file(phase_dir / f"round-{rnd:02d}-{backend_ag}.md")
-            for entry in entries:
-                ui_ag = ui_agent(backend_ag)
-                per_agent.setdefault(entry["id"], {})  # ensure entry exists
-                per_agent[entry["id"]][ui_ag] = entry
+            path = phase_dir / f"round-{rnd:02d}-{backend_ag}.md"
+            if not path.exists():
+                continue
+            text = path.read_text(encoding="utf-8")
+            ui_ag = ui_agent(backend_ag)
+
+            # ─── Body-section pass (legacy fallback) ──────────────────
+            for entry in _parse_round_text(text):
+                d_id = _canonical_id(entry["id"])
+                entry["id"] = d_id
+                per_agent.setdefault(d_id, {})[ui_ag] = entry
+                raised_ever.add(d_id)
+
+            # ─── Spec 0217 STATUS pass — RAISED seeds, RESOLVED/WITHDRAWN closes ──
+            raised_ids = _status_d_ids(text, RAISED_THIS_TURN_RE)
+            resolved_ids = _status_d_ids(text, RESOLVED_THIS_TURN_RE)
+            withdrawn_ids = _status_d_ids(text, WITHDRAWN_THIS_TURN_RE)
+
+            # STATUS.RAISED — seed minimal entries for IDs not produced by
+            # the body pass. The raiser is the agent who wrote this turn.
+            for d_id in raised_ids:
+                raised_ever.add(d_id)
+                if ui_ag not in per_agent.get(d_id, {}):
+                    per_agent.setdefault(d_id, {})[ui_ag] = _stub_entry(d_id)
+
+            # STATUS.RESOLVED / WITHDRAWN — flip to resolved at this turn's
+            # round. STATUS wins on conflict with body-section state (§3.3).
+            # Filter to IDs we've seen `raised` somewhere already (§8).
+            for d_id in resolved_ids + withdrawn_ids:
+                if d_id not in raised_ever:
+                    # Spurious — silently drop. (A debug log line would land here.)
+                    continue
+                entry = per_agent.get(d_id, {}).get(ui_ag)
+                if entry is None:
+                    entry = _stub_entry(d_id, status="resolved")
+                    per_agent.setdefault(d_id, {})[ui_ag] = entry
+                else:
+                    entry["status"] = "resolved"
 
         for d_id, agents_view in per_agent.items():
             timeline.setdefault(d_id, []).append((rnd, agents_view))
