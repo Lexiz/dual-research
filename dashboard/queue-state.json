@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T11:37:56Z",
+  "updated_at": "2026-05-25T12:04:25Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9412,6 +9412,19 @@
       "merged_at": "2026-05-25T11:34:15Z",
       "deployed_at": "2026-05-25T11:37:56Z",
       "handover": "handoffs/2026-05-25-spec-0213-dashboard-match-orchestrator-after-0212.md"
+    },
+    "0214": {
+      "status": "queued",
+      "queued_at": "2026-05-25T12:04:21Z",
+      "events": [
+        {
+          "ts": "2026-05-25T12:04:25Z",
+          "step": "queued",
+          "data": {
+            "promoted_from_draft": "002"
+          }
+        }
+      ]
     }
   }
 }
