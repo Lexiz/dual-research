@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:11:57Z",
+  "updated_at": "2026-05-25T09:12:00Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8940,6 +8940,15 @@
           "data": {
             "run_url": "https://github.com/Lexiz/dual-research/actions/runs/26392225284",
             "reason": "resolver_breaks_input_mode_tests"
+          }
+        },
+        {
+          "ts": "2026-05-25T09:12:00Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.12",
+            "hotfix": true,
+            "hotfix_commit": "998af20"
           }
         }
       ],
