@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T16:03:05Z",
+  "updated_at": "2026-05-25T16:03:08Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9818,6 +9818,11 @@
             "branch": "spec/0217.1-openai-status-raised-canonical-ids",
             "from": "main@116fcf6"
           }
+        },
+        {
+          "ts": "2026-05-25T16:03:08Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T16:02:12Z"
