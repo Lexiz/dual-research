@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:19:00Z",
+  "updated_at": "2026-05-25T09:19:02Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8975,6 +8975,11 @@
             "branch": "spec/0211.2-merge-sha-capture-race-with-post-merge-pushes",
             "from": "main@43c6800"
           }
+        },
+        {
+          "ts": "2026-05-25T09:19:02Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T09:17:13Z"
