@@ -23,9 +23,60 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from dual_research.contract.markers import (
+    RAISED_THIS_TURN_RE,
+    RESOLVED_THIS_TURN_RE,
+    WITHDRAWN_THIS_TURN_RE,
+    list_ids,
+)
 from dual_research.protocol.parse import extract_review_items
 from dual_research.ui.labels import ui_agent
 from dual_research.ui.models import Question
+
+
+# ─── Spec 0217 — STATUS as the canonical closure channel ──────────────────────
+#
+# Mirrors ``ui/disagreements.py``. Questions raised via STATUS.RAISED_THIS_TURN
+# get minimal stub entries when the positional ``## Open questions for X``
+# extractor produced nothing for them. STATUS.RESOLVED_THIS_TURN and
+# STATUS.WITHDRAWN_THIS_TURN flip matching Questions to ``answered`` —
+# regardless of whether a matching answer block exists in
+# ``## Answers to <other>'s open questions``. The positional + verbatim-text
+# answer-matching path stays intact as a legacy fallback. On conflict,
+# STATUS wins.
+
+
+def _canonical_id(raw: str) -> str:
+    """Normalize a Q-N identifier for cross-source matching.
+
+    Numeric-only tails are zero-padded; composite tails are lowercased but
+    kept structurally intact. See the mirror helper in ``ui/disagreements.py``
+    for the rationale.
+    """
+    s = (raw or "").strip()
+    if not s:
+        return s
+    m = re.fullmatch(r"([A-Za-z]+)-(.+)", s)
+    if not m:
+        return s.lower()
+    prefix = m.group(1).lower()
+    rest = m.group(2)
+    if re.fullmatch(r"\d+", rest):
+        return f"{prefix}-{int(rest):02d}"
+    return f"{prefix}-{rest.lower()}"
+
+
+def _status_q_ids(text: str, pat: "re.Pattern[str]") -> list[str]:
+    """Canonical Q-prefixed IDs from a STATUS action array."""
+    m = pat.search(text)
+    if not m:
+        return []
+    out: list[str] = []
+    for raw in list_ids(m.group("ids")):
+        canon = _canonical_id(raw)
+        if canon.startswith("q-"):
+            out.append(canon)
+    return out
 
 
 # Round-file naming convention. Same regex as in ``ui/disagreements.py``.
@@ -305,8 +356,11 @@ def reconstruct_questions(session_dir: Path, *, phase: int) -> list[Question]:
 
     # Build the question objects first (no answer linkage yet).
     out: list[Question] = []
-    # qid → Question for ID-based lookup during answer matching.
-    by_id: dict[str, Question] = {}
+    # by_canon[canonical_id] = Question — used for cross-source matching
+    # (positional / STATUS / answer-block head IDs). The Question's stored
+    # ``id`` keeps its original casing (e.g. ``Q-c-r1-01``) for backward
+    # compat with downstream serializers; only the lookup key is canonical.
+    by_canon: dict[str, Question] = {}
     for round_n in sorted(rounds):
         per_agent = rounds[round_n]
         for backend_agent in ("claude", "openai"):
@@ -330,7 +384,71 @@ def reconstruct_questions(session_dir: Path, *, phase: int) -> list[Question]:
                     raised_turn_key=_turn_key(phase, round_n, ui_raiser),
                 )
                 out.append(q)
-                by_id[qid] = q
+                by_canon[_canonical_id(qid)] = q
+
+    # ─── Spec 0217 STATUS pass — RAISED seeds, RESOLVED/WITHDRAWN closes ──
+    # Iterate rounds chronologically so STATUS-RAISED in round R can be
+    # closed by STATUS-RESOLVED in round R+1 within the same pass.
+    raised_ever: set[str] = set(by_canon.keys())
+    for round_n in sorted(rounds):
+        per_agent = rounds[round_n]
+        for backend_agent in ("claude", "openai"):
+            entry = per_agent.get(backend_agent)
+            if not entry:
+                continue
+            text, _ = entry
+            ui_raiser = ui_agent(backend_agent)
+            turn_key = _turn_key(phase, round_n, ui_raiser)
+
+            raised_qs = _status_q_ids(text, RAISED_THIS_TURN_RE)
+            resolved_qs = _status_q_ids(text, RESOLVED_THIS_TURN_RE)
+            withdrawn_qs = _status_q_ids(text, WITHDRAWN_THIS_TURN_RE)
+
+            # STATUS.RAISED — seed minimal stubs for IDs the positional
+            # extractor missed (typical for the new RAISE-block protocol
+            # where Q-IDs only appear in STATUS arrays).
+            for qid_canon in raised_qs:
+                if qid_canon in by_canon:
+                    continue
+                stub = Question(
+                    id=qid_canon,
+                    phase=phase,
+                    raised_round=round_n,
+                    raised_by=ui_raiser,
+                    status="open",
+                    body="",
+                    quote=None,
+                    after=None,
+                    block_id=None,
+                    raised_turn_key=turn_key,
+                )
+                out.append(stub)
+                by_canon[qid_canon] = stub
+                raised_ever.add(qid_canon)
+
+            # STATUS.RESOLVED / WITHDRAWN — flip matching question to
+            # ``answered`` at this round. STATUS wins on conflict; the
+            # positional path's earlier match (if any) is preserved but
+            # the closure round is moved up to this turn if STATUS
+            # closes earlier.
+            for qid_canon in resolved_qs + withdrawn_qs:
+                if qid_canon not in raised_ever:
+                    # Spurious — silently drop (§8 mitigation).
+                    continue
+                q = by_canon.get(qid_canon)
+                if q is None:
+                    continue
+                if q.status == "answered" and q.answered_round is not None \
+                        and q.answered_round <= round_n:
+                    # Already closed at an earlier or equal round; keep
+                    # the earlier closure semantics.
+                    continue
+                q.status = "answered"
+                q.answered_round = round_n
+                q.answered_by = ui_raiser
+                q.answered_turn_key = turn_key
+                if not q.match:
+                    q.match = "positional"
 
     # Walk every (round, agent) AGAIN to link answers. The answer for
     # Q raised by agent X in round R may appear in any of agent (NOT X)'s
@@ -356,7 +474,7 @@ def reconstruct_questions(session_dir: Path, *, phase: int) -> list[Question]:
             positional_blocks: list[tuple[int, str]] = []
             for idx, (head_id, body_text) in enumerate(answer_blocks):
                 if head_id is not None and head_id.startswith("Q-"):
-                    q = by_id.get(head_id)
+                    q = by_canon.get(_canonical_id(head_id))
                     if q is None or q.status == "answered":
                         # Either unknown ID (shouldn't happen if agents
                         # use the standing-items section) OR already
@@ -407,7 +525,7 @@ def reconstruct_questions(session_dir: Path, *, phase: int) -> list[Question]:
                     still_open: list[Question] = []
                     for idx, _ in enumerate(raiser_questions, start=1):
                         qid = f"Q-{_raiser_initial(ui_agent(other_backend))}-r{candidate_round}-{idx:02d}"
-                        q = by_id.get(qid)
+                        q = by_canon.get(_canonical_id(qid))
                         if q is not None and q.status == "open":
                             still_open.append(q)
                     for (block_idx, body_text), q in zip(positional_blocks, still_open):
