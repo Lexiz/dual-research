@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T12:22:58Z",
+  "updated_at": "2026-05-25T12:23:10Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9428,6 +9428,14 @@
           "ts": "2026-05-25T12:22:58Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-25T12:23:10Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0214-drop-phase4-agent-emitted-hash-gate",
+            "from": "main@ecd322a"
+          }
         }
       ],
       "started_at": "2026-05-25T12:22:55Z"
