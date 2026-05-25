@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:48:06Z",
+  "updated_at": "2026-05-25T09:48:21Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9061,6 +9061,14 @@
           "ts": "2026-05-25T09:48:06Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-25T09:48:21Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0211.3-deploy-concurrency-cancels-merge-commit-run",
+            "from": "main@5b43bca"
+          }
         }
       ],
       "started_at": "2026-05-25T09:48:04Z"
