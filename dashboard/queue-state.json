@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T15:38:32Z",
+  "updated_at": "2026-05-25T15:38:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9706,7 +9706,7 @@
       "handover": "handoffs/2026-05-25-spec-0216-raiser-self-address-observability.md"
     },
     "0217": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-25T15:11:22Z",
       "events": [
         {
@@ -9760,7 +9760,9 @@
           }
         }
       ],
-      "started_at": "2026-05-25T15:18:58Z"
+      "started_at": "2026-05-25T15:18:58Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/253",
+      "merged_at": "2026-05-25T15:38:34Z"
     }
   }
 }
