@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.12] — 2026-05-25
+
+### Fixed
+
+- **Hotfix for spec 0211.1 — gate the `FLY_BIN` resolver behind `--input` test mode** ([spec 0211.1](specs/0211.1-ci-sweep-flyctl-not-fly-binary.md)). The 1.44.11 cycle placed the resolver at script-top, before the `[[ -n "$INPUT_FILE" ]]` short-circuit, so the existing `tests/scripts/test_sweep_stale_blues_filter.py` + `tests/spec0193/test_sweep_image_fallback.py` suites (which invoke the script with `--input fixture.json` on the CI runner that carries neither `flyctl` nor `fly`) hit the resolver's "neither on PATH" `exit 0` and broke. The fix moves the resolver inside the `else` branch of the input-file check — live-mode-only, matching the spec's §2 behavior-preservation guarantee that test mode bypasses the resolver path entirely. CI test job (deploy.yml run [`26392225284`](https://github.com/Lexiz/dual-research/actions/runs/26392225284)) reproduced and verified locally via `PATH="$(dirname $(command -v bash)):/usr/bin:/bin" uv run pytest …` — 1903/1903 green with `flyctl`/`fly` stripped from PATH.
+
 ## [1.44.11] — 2026-05-25
 
 ### Fixed

@@ -67,19 +67,6 @@ while (( $# > 0 )); do
   esac
 done
 
-# Resolve the Fly CLI binary name. CI runners carry `flyctl` (installed
-# by superfly/flyctl-actions/setup-flyctl); operator shells typically
-# carry both `flyctl` and `fly`. Prefer `flyctl` for parity with the
-# CI execution context that spec 0211 made authoritative.
-if command -v flyctl >/dev/null 2>&1; then
-    FLY_BIN="flyctl"
-elif command -v fly >/dev/null 2>&1; then
-    FLY_BIN="fly"
-else
-    echo "sweep: neither flyctl nor fly on PATH — skipping sweep" >&2
-    exit 0
-fi
-
 # Read machine state — from --input file when testing, otherwise call Fly.
 if [[ -n "$INPUT_FILE" ]]; then
   if ! machines_json="$(cat "$INPUT_FILE" 2>/dev/null)"; then
@@ -87,6 +74,19 @@ if [[ -n "$INPUT_FILE" ]]; then
     exit 0
   fi
 else
+  # Resolve the Fly CLI binary name (live mode only — --input test mode
+  # bypasses every Fly invocation). CI runners carry `flyctl` (installed
+  # by superfly/flyctl-actions/setup-flyctl); operator shells typically
+  # carry both `flyctl` and `fly`. Prefer `flyctl` for parity with the
+  # CI execution context that spec 0211 made authoritative.
+  if command -v flyctl >/dev/null 2>&1; then
+      FLY_BIN="flyctl"
+  elif command -v fly >/dev/null 2>&1; then
+      FLY_BIN="fly"
+  else
+      echo "sweep: neither flyctl nor fly on PATH — skipping sweep" >&2
+      exit 0
+  fi
   if ! machines_json="$("$FLY_BIN" machine list --app "$APP" --json 2>/dev/null)"; then
     echo "sweep: fly machine list failed for app=$APP" >&2
     exit 0
