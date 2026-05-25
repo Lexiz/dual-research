@@ -170,7 +170,7 @@ Per §7 of the spec:
 
 ## Deferred during implementation
 
-- **OpenAI-side raise-channel hygiene.** The smoking-gun session's
+- **OpenAI-side raise-channel hygiene** — the smoking-gun session's
   `round-01-openai.md` STATUS block emits `RAISED_THIS_TURN` as a
   multi-line array of descriptive strings (`"disagreement: Go #1 vs
   C# #1"`) rather than canonical IDs (`D-plan-g-01`). Result: the 5
