@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.20] — 2026-05-25
+
+### Fixed
+
+- **In-round partner blindness in `list_turns` ([spec 0215](specs/0215-fix-in-round-partner-blindness.md)):** every interaction phase (0, 2, 4) runs agents sequentially within a round, but `list_turns(up_to_round=N)` was dropping both agents' round-N files via a strict `r >= up_to_round` filter at [src/dual_research/orchestrator/_turns.py](src/dual_research/orchestrator/_turns.py). The second-to-execute agent never saw its partner's freshly-written turn until the *next* round, silently delaying convergence by one full round in every phase — observed in the local `20260521-010637-dvs-backend-language-choice` run where OpenAI cited an `open` blocker that Claude had RESOLVED on disk milliseconds before. Added an opt-in `for_agent: str | None = None` parameter to `list_turns`; when set, the same-round filter switches from "drop both" to "drop only the agent's own file". The three `_build` call sites in [src/dual_research/orchestrator/dr_run.py](src/dual_research/orchestrator/dr_run.py) (phase 0 r1, phase 2 r1, phase 4 r1) now pass `for_agent=agent_name`, so each agent sees its partner's same-round turn but never its own. Default behaviour for callers that don't opt in is unchanged — the legacy `phase2.py` / `phase4.py` build paths (parallel-execution, prompts built upfront) continue to drop both same-round files. New unit tests at [tests/orchestrator/test_turns.py](tests/orchestrator/test_turns.py) cover the four for_agent branches (include partner, exclude own, default-preserves-legacy, strictly-future-always-excluded); fixture-driven regression test at [tests/orchestrator/test_spec_0215_in_round_partner_visibility.py](tests/orchestrator/test_spec_0215_in_round_partner_visibility.py) locks that the actual failing scenario (phase-2 round-5 OpenAI prompt) now includes Claude's round-5 RESOLVE content.
+
 ## [1.44.19] — 2026-05-25
 
 ### Fixed

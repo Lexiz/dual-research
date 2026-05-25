@@ -646,6 +646,7 @@ async def run_dr_phase0(
         else:
             prior = list_turns(
                 ctx.session, phase="phase0", up_to_round=round,
+                for_agent=agent_name,
             )
             caps = caps_for(0)
             prompt = input_negotiation_prompt_v2(
@@ -1001,6 +1002,7 @@ async def run_dr_phase2(
         else:
             prior = list_turns(
                 ctx.session, phase="phase2", up_to_round=round,
+                for_agent=agent_name,
             )
             prompt = plan_negotiation_round_n_prompt_v2(
                 brief_content=brief_content,
@@ -1375,6 +1377,7 @@ async def run_dr_phase4(
         else:
             prior_turns = list_turns(
                 ctx.session, phase="phase4", up_to_round=round,
+                for_agent=agent_name,
             )
             prompt = review_round_n_prompt_v2(
                 brief_content=brief_content,
