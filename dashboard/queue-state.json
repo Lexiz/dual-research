@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T23:36:33Z",
+  "updated_at": "2026-05-25T23:36:45Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9890,7 +9890,7 @@
       "handover": "handoffs/2026-05-25-spec-0217.1-openai-status-raised-canonical-ids.md"
     },
     "0218": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-25T22:33:53Z",
       "events": [
         {
@@ -9953,7 +9953,9 @@
           }
         }
       ],
-      "started_at": "2026-05-25T23:18:56Z"
+      "started_at": "2026-05-25T23:18:56Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/255",
+      "merged_at": "2026-05-25T23:36:45Z"
     }
   }
 }
