@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T10:48:41Z",
+  "updated_at": "2026-05-25T10:53:43Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9242,7 +9242,7 @@
       "handover": "handoffs/2026-05-25-spec-0212-gh-pr-merge-delete-branch-author-worktree-collision.md"
     },
     "0212.1": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-25T10:32:58Z",
       "events": [
         {
@@ -9288,11 +9288,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/248"
           }
+        },
+        {
+          "ts": "2026-05-25T10:49:12Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T10:52:52Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.17"
+          }
+        },
+        {
+          "ts": "2026-05-25T10:52:52Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T10:53:33Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-25-spec-0212.1-test-explicit-cleanup-ordering-invariant.md"
+          }
         }
       ],
       "started_at": "2026-05-25T10:43:31Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/248",
-      "merged_at": "2026-05-25T10:48:39Z"
+      "merged_at": "2026-05-25T10:48:39Z",
+      "deployed_at": "2026-05-25T10:53:43Z",
+      "handover": "handoffs/2026-05-25-spec-0212.1-test-explicit-cleanup-ordering-invariant.md"
     }
   }
 }
