@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T13:27:28Z",
+  "updated_at": "2026-05-25T15:11:22Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9704,6 +9704,17 @@
       "merged_at": "2026-05-25T13:18:14Z",
       "deployed_at": "2026-05-25T13:27:28Z",
       "handover": "handoffs/2026-05-25-spec-0216-raiser-self-address-observability.md"
+    },
+    "0217": {
+      "status": "queued",
+      "queued_at": "2026-05-25T15:11:22Z",
+      "events": [
+        {
+          "ts": "2026-05-25T15:11:22Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
