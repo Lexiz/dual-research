@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T15:49:21Z",
+  "updated_at": "2026-05-25T15:52:46Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9796,6 +9796,17 @@
       "merged_at": "2026-05-25T15:38:34Z",
       "deployed_at": "2026-05-25T15:49:21Z",
       "handover": "handoffs/2026-05-25-spec-0217-ledger-status-block-authoritative-for-closures.md"
+    },
+    "0217.1": {
+      "status": "queued",
+      "queued_at": "2026-05-25T15:52:46Z",
+      "events": [
+        {
+          "ts": "2026-05-25T15:52:46Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
