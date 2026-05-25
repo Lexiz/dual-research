@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.16] — 2026-05-25
+
+### Changed
+
+- **Spec 0212 — `/dev-next` post-merge race window closed at source** ([spec 0212](specs/0212-gh-pr-merge-delete-branch-author-worktree-collision.md)). PATCH refactor to the `/dev-next` skill body at `~/.claude/skills/dev-next/SKILL.md`. Two structural fixes share the post-merge window between step 19's `gh pr merge` and step 20's `gh run watch`. **(a)** Step 19 drops `--delete-branch` from the merge call (which used to run `git checkout main` internally, colliding with the author worktree at `/Users/alexlisitzky/dual-research-author/` that holds `main` per `CLAUDE.md`'s two-worktree split) and replaces it with an explicit `git push origin --delete "$BRANCH"` + `git branch -D "$BRANCH"` block immediately after the `MERGE_SHA` capture and before the spec-0201 verified-delete block — closes the recurring author-worktree warning recorded across the 0211.1 / 0211.2 / 0211.3 cycle handoffs. **(b)** Every happy-path event between merge and step 23 (`deploy_started`, `deployed`, pivot-path `deploy_pivoted`, `deploy_health_check_ok`, `handoff_written`) drops `--push-to-main` and is flushed atomically in step 23's existing `push-files-to-main` call — no new commits land on `origin/main` between merge and `gh run watch` returning, so the `deploy-main` concurrency-group queue-collapse condition cannot trigger. The spec-0211.3 pivot block stays in place as a defensive regression-detector (its comment updated to cite spec 0212); if it ever fires, a `--push-to-main` regression has leaked into the post-merge window and the buffered `deploy_pivoted` event will surface it on the dashboard. Failure-path emissions (`set status=failed`, `append-event failed`) retain `--push-to-main` because the cycle halts immediately after them with no step 23 to flush. New source-pattern test at `tests/test_spec_0212_post_merge_doctrine.py` locks the structure (no `--delete-branch` in step 19; `gh pr merge --admin --squash` + `git push origin --delete` both present in step 19; `spec 0212` breadcrumb in step 19; `deploy_started` / `deployed` local-only in step 20; failure-path `--push-to-main` retained in step 20).
+
 ## [1.44.15] — 2026-05-25
 
 ### Changed
