@@ -48,6 +48,58 @@ def test_list_turns_up_to_round_filters(tmp_path: Path) -> None:
     assert [(t.round, t.agent) for t in turns] == [(1, "claude"), (1, "openai")]
 
 
+def _seed_two_rounds(tmp_path: Path) -> SessionDirectory:
+    sess = SessionDirectory(root=tmp_path).ensure()
+    p2 = sess.phase_dir("phase2")
+    (p2 / "round-01-claude.md").write_text("c1")
+    (p2 / "round-01-openai.md").write_text("o1")
+    (p2 / "round-02-claude.md").write_text("c2")
+    (p2 / "round-02-openai.md").write_text("o2")
+    return sess
+
+
+def test_list_turns_for_agent_includes_partners_same_round_turn(tmp_path: Path) -> None:
+    sess = _seed_two_rounds(tmp_path)
+    turns = list_turns(sess, phase="phase2", up_to_round=2, for_agent="openai")
+    assert [(t.round, t.agent) for t in turns] == [
+        (1, "claude"),
+        (1, "openai"),
+        (2, "claude"),
+    ]
+
+
+def test_list_turns_for_agent_excludes_own_same_round_turn(tmp_path: Path) -> None:
+    sess = _seed_two_rounds(tmp_path)
+    turns = list_turns(sess, phase="phase2", up_to_round=2, for_agent="claude")
+    assert [(t.round, t.agent) for t in turns] == [
+        (1, "claude"),
+        (1, "openai"),
+        (2, "openai"),
+    ]
+
+
+def test_list_turns_default_for_agent_preserves_legacy_semantics(tmp_path: Path) -> None:
+    sess = _seed_two_rounds(tmp_path)
+    turns = list_turns(sess, phase="phase2", up_to_round=2)
+    assert [(t.round, t.agent) for t in turns] == [(1, "claude"), (1, "openai")]
+
+
+def test_list_turns_strictly_future_rounds_always_excluded(tmp_path: Path) -> None:
+    sess = SessionDirectory(root=tmp_path).ensure()
+    p2 = sess.phase_dir("phase2")
+    (p2 / "round-01-claude.md").write_text("c1")
+    (p2 / "round-01-openai.md").write_text("o1")
+    (p2 / "round-02-claude.md").write_text("c2")
+    (p2 / "round-02-openai.md").write_text("o2")
+    (p2 / "round-03-claude.md").write_text("c3")
+    (p2 / "round-03-openai.md").write_text("o3")
+    turns = list_turns(sess, phase="phase2", up_to_round=2, for_agent="openai")
+    rounds = {t.round for t in turns}
+    assert 3 not in rounds
+    turns_no_agent = list_turns(sess, phase="phase2", up_to_round=2)
+    assert {t.round for t in turns_no_agent} == {1}
+
+
 def test_next_malformed_n(tmp_path: Path) -> None:
     sess = SessionDirectory(root=tmp_path).ensure()
     p2 = sess.phase_dir("phase2")
