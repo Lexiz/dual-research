@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T08:55:00Z",
+  "updated_at": "2026-05-25T08:56:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8874,7 +8874,7 @@
       "handover": "handoffs/2026-05-24-spec-0211-delegate-fly-deploy-to-github-actions.md"
     },
     "0211.1": {
-      "status": "merged",
+      "status": "failed",
       "queued_at": "2026-05-24T13:38:00Z",
       "events": [
         {
@@ -8937,7 +8937,8 @@
       ],
       "started_at": "2026-05-25T08:47:48Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/244",
-      "merged_at": "2026-05-25T08:53:32Z"
+      "merged_at": "2026-05-25T08:53:32Z",
+      "failure_step": "deploy"
     },
     "0211.2": {
       "status": "queued",
