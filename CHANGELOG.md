@@ -10,6 +10,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.11] — 2026-05-25
+
+### Fixed
+
+- **Spec 0211.1 — make `scripts/sweep_stale_blues.sh` work under CI** ([spec 0211.1](specs/0211.1-ci-sweep-flyctl-not-fly-binary.md)). PATCH refactor: the post-deploy sweep step in `.github/workflows/deploy.yml` (added under [spec 0211](specs/0211-delegate-fly-deploy-to-github-actions.md)) now actually runs. Previously the step's first invocation `fly machine list --app …` failed immediately with `command not found` — the CI runner's `superfly/flyctl-actions/setup-flyctl@master` installs `flyctl` but no `fly` alias — and the script logged the generic `sweep: fly machine list failed for app=dual-research-alex` before exiting 0. The `|| true` kept the step non-fatal but the verification criterion in spec 0211 §3 step 1 went unmet, and the spec-0193 image-based fallback was structurally unreachable from CI.
+  - **`scripts/sweep_stale_blues.sh`:** new `FLY_BIN` resolver block after the argument-parsing loop probes `flyctl` first (parity with the CI execution context spec 0211 made authoritative) and falls back to `fly` for operator-local shells. Every Fly CLI invocation site — `machine list` (primary tag filter), `releases` (spec-0193 fallback's release lookup), and `machine destroy` ×2 (primary + fallback destroy loops) — now uses `"$FLY_BIN"`. A new dedicated skip log (`sweep: neither flyctl nor fly on PATH — skipping sweep`) distinguishes the "no binary" path from a genuine Fly API failure.
+  - **`.github/workflows/deploy.yml`:** unchanged. The fix lives entirely in the script, keeping the workflow file the operator-readable single source of truth for "what CI runs after the deploy".
+  - **Regression test:** [`tests/test_spec_0211_1_sweep_uses_resolved_fly_bin.py`](tests/test_spec_0211_1_sweep_uses_resolved_fly_bin.py) — pure-stdlib source-pattern test asserting (a) no bare `fly machine|releases` invocation outside comments, (b) the `FLY_BIN` resolver block exists and probes both binary names, (c) ≥ 4 `"$FLY_BIN"` invocation sites cover machine list + machine destroy ×2 + releases.
+
 ## [1.44.10] — 2026-05-24
 
 ### Changed
