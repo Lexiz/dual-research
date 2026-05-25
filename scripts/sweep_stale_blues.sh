@@ -67,6 +67,19 @@ while (( $# > 0 )); do
   esac
 done
 
+# Resolve the Fly CLI binary name. CI runners carry `flyctl` (installed
+# by superfly/flyctl-actions/setup-flyctl); operator shells typically
+# carry both `flyctl` and `fly`. Prefer `flyctl` for parity with the
+# CI execution context that spec 0211 made authoritative.
+if command -v flyctl >/dev/null 2>&1; then
+    FLY_BIN="flyctl"
+elif command -v fly >/dev/null 2>&1; then
+    FLY_BIN="fly"
+else
+    echo "sweep: neither flyctl nor fly on PATH — skipping sweep" >&2
+    exit 0
+fi
+
 # Read machine state — from --input file when testing, otherwise call Fly.
 if [[ -n "$INPUT_FILE" ]]; then
   if ! machines_json="$(cat "$INPUT_FILE" 2>/dev/null)"; then
@@ -74,7 +87,7 @@ if [[ -n "$INPUT_FILE" ]]; then
     exit 0
   fi
 else
-  if ! machines_json="$(fly machine list --app "$APP" --json 2>/dev/null)"; then
+  if ! machines_json="$("$FLY_BIN" machine list --app "$APP" --json 2>/dev/null)"; then
     echo "sweep: fly machine list failed for app=$APP" >&2
     exit 0
   fi
@@ -108,7 +121,7 @@ get_current_release_image() {
       jq -r '.image_ref // empty' "$release_file" 2>/dev/null
     fi
   else
-    fly releases --app "$APP" --json 2>/dev/null | \
+    "$FLY_BIN" releases --app "$APP" --json 2>/dev/null | \
       jq -r '[.[] | select(.Status == "running" or .Status == "complete")] | sort_by(.CreatedAt) | last | .ImageRef // empty' 2>/dev/null
   fi
 }
@@ -166,7 +179,7 @@ if (( total == 0 )); then
     fallback_failed=0
     if [[ -z "$INPUT_FILE" ]]; then
       for id in "${fallback_stale[@]}"; do
-        if ! fly machine destroy --app "$APP" --force "$id" >/dev/null 2>&1; then
+        if ! "$FLY_BIN" machine destroy --app "$APP" --force "$id" >/dev/null 2>&1; then
           fallback_failed=$((fallback_failed + 1))
           echo "sweep: fallback destroy failed for $id" >&2
         fi
@@ -181,7 +194,7 @@ fi
 failed=0
 if [[ -z "$INPUT_FILE" ]]; then
   for id in "${stale[@]}"; do
-    if ! fly machine destroy --app "$APP" --force "$id" >/dev/null 2>&1; then
+    if ! "$FLY_BIN" machine destroy --app "$APP" --force "$id" >/dev/null 2>&1; then
       failed=$((failed + 1))
       echo "sweep: destroy failed for $id" >&2
     fi
