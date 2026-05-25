@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.21] — 2026-05-25
+
+### Fixed
+
+- **Silent raiser self-ADDRESS drop now emits `ProtocolViolation` ([spec 0216](specs/0216-raiser-self-address-observability.md)):** when an agent ADDRESSes an item it itself raised (protocol-forbidden — only the other agent's items can be addressed), the orchestrator was silently dropping the block at [src/dual_research/orchestrator/deep_research.py](src/dual_research/orchestrator/deep_research.py) with no event emitted, leaving the misuse invisible to the dashboard and transcript. Now emits `ProtocolViolation(violation_code="raiser_self_address", item_id=…, from_state=…)` while preserving the existing drop semantics (the item's state is unchanged — same `continue`, same downstream behaviour). Field shape mirrors the peer `terminal_state_re_address` violation a few lines below. The Ratifying-section instructions for all three interaction phases (0/2/4) at [src/dual_research/protocol/prompts.py](src/dual_research/protocol/prompts.py) gained an explicit "Do NOT use ADDRESS here; ADDRESS is reserved for the other agent's items" clarification — additive text inside the existing parenthesised instruction blocks, no structural-marker change. Doc-comment on `ProtocolViolation` in [src/dual_research/events/types.py](src/dual_research/events/types.py) updated to enumerate both codes in use today (`terminal_state_re_address` + the new `raiser_self_address`). New regression tests at [tests/orchestrator/test_spec_0216_raiser_self_address.py](tests/orchestrator/test_spec_0216_raiser_self_address.py) cover the violation-emission paths for `open` and `addressed` source states, a replay test against the actual failing turn from the `20260521-010637-dvs-backend-language-choice` run (fixture committed under [tests/fixtures/raiser_self_address_replay/](tests/fixtures/raiser_self_address_replay/)), and two negatives that lock the gate didn't widen (other-agent ADDRESS still transitions normally; raiser RESOLVE/WITHDRAW still ratifies clean).
+
 ## [1.44.20] — 2026-05-25
 
 ### Fixed

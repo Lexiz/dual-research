@@ -504,10 +504,16 @@ class ProtocolViolation(Event):
     """Spec 0141 — the orchestrator dropped a block that would have
     violated the item-state invariant.
 
-    Today this fires for exactly one case: an ADDRESS block targeting an
-    item already in a terminal state (resolved / acknowledged /
-    withdrawn / capped). Future invariants reuse the same event with a
-    different ``violation_code``.
+    Codes in use today:
+    - ``terminal_state_re_address`` (spec 0141): ADDRESS block targeting
+      an item already in a terminal state (resolved / acknowledged /
+      withdrawn / capped).
+    - ``raiser_self_address`` (spec 0216): ADDRESS block whose ``item_id``
+      matches an item the same agent raised. Protocol-forbidden — only
+      the *other* agent's items can be addressed.
+
+    Future invariants reuse the same event with a different
+    ``violation_code``.
 
     Anchor-run smoking gun (20260521-010637-dvs-backend-language-choice,
     item ``D-plan-g-01``): r2.1 claude addressed; r2.2 openai RESOLVED;
