@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:24:56Z",
+  "updated_at": "2026-05-25T09:32:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9019,6 +9019,17 @@
           "ts": "2026-05-25T09:24:56Z",
           "step": "deploy_started",
           "data": {}
+        },
+        {
+          "ts": "2026-05-25T09:32:13Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.14",
+            "watched_run": "26393346324",
+            "watched_run_conclusion": "cancelled",
+            "actual_deploy_run": "26393367291",
+            "note": "merge-commit run cancelled by concurrency policy; latest queue-state push run succeeded and deployed"
+          }
         }
       ],
       "started_at": "2026-05-25T09:17:13Z",
