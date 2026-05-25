@@ -106,10 +106,19 @@ def test_anchor_run_replay_records_at_least_one_protocol_violation():
         "expected at least one ProtocolViolation on the anchor run "
         "(D-plan-g-01 re-address at seq 137)"
     )
-    # Every violation today is terminal-state re-address.
-    assert all(
-        v.get("violation_code") == "terminal_state_re_address"
-        for v in protocol_violations
+    # The B02 smoking gun is terminal_state_re_address. Spec 0216 added a
+    # second code (raiser_self_address) that also surfaces on this anchor
+    # run wherever an agent re-ADDRESSes its own item. Both are valid;
+    # the assertion is that the codes in use are drawn from the known set,
+    # and that at least one terminal_state_re_address is present (the B02
+    # invariant this test guards).
+    known_codes = {"terminal_state_re_address", "raiser_self_address"}
+    seen_codes = {v.get("violation_code") for v in protocol_violations}
+    assert seen_codes <= known_codes, (
+        f"unexpected violation_code on anchor run: {seen_codes - known_codes}"
+    )
+    assert "terminal_state_re_address" in seen_codes, (
+        "expected at least one terminal_state_re_address (B02 smoking gun)"
     )
     # The smoking-gun item must be among the flagged ids.
     flagged_ids = {v.get("item_id") for v in protocol_violations}

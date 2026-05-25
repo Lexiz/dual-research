@@ -1631,7 +1631,9 @@ Produce a turn with the canonical section structure.
 ## Ratifying my own items
 (For every one of your raised items currently in `addressed` state,
  emit RESOLVE, ACKNOWLEDGE, WITHDRAW, or a counter-argument that flips
- it back to open. Silent skipping is rejected.)
+ it back to open. Silent skipping is rejected. Do NOT use ADDRESS here;
+ ADDRESS is reserved for the other agent's items in the "Addressing
+ items raised against me" section above.)
 
 ## New items I'm raising
 (RAISE blocks for genuinely new questions or disagreements. Do not
@@ -1848,7 +1850,9 @@ Produce a turn with the canonical section structure.
 
 ## Ratifying my own items
 (For every item you raised that's in `addressed` state: RESOLVE,
- ACKNOWLEDGE, WITHDRAW, or counter-argument. No silent skips.)
+ ACKNOWLEDGE, WITHDRAW, or counter-argument. No silent skips. Do NOT
+ use ADDRESS here; ADDRESS is reserved for the other agent's items in
+ the "Addressing items raised against me" section above.)
 
 ## New items I'm raising
 (Only genuinely new items.)
@@ -2117,7 +2121,9 @@ Produce a turn with the canonical section structure.
 
 ## Ratifying my own items
 (RESOLVE / ACKNOWLEDGE / WITHDRAW / counter-argument for every one of
- your items in `addressed` state.)
+ your items in `addressed` state. Do NOT use ADDRESS here; ADDRESS is
+ reserved for the other agent's items in the "Addressing items raised
+ against me" section above.)
 
 ## New items I'm raising
 (Only genuinely new items.)

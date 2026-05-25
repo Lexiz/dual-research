@@ -377,7 +377,20 @@ class DeepResearchPhase:
                     # the validator already flagged it as malformed.
                     continue
                 if ent.raiser == agent:
-                    # An agent cannot ADDRESS their own item; ignore.
+                    # Spec 0216 — an agent cannot ADDRESS their own item.
+                    # Drop semantics unchanged; surface the misuse as a
+                    # ProtocolViolation so the misuse appears on the
+                    # dashboard and in the transcript instead of being
+                    # silently swallowed.
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="raiser_self_address",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                    ))
                     continue
                 if is_terminal(ent.current_state):
                     # Spec 0141 — terminal states are absorbing. A late-
