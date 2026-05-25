@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:57:20Z",
+  "updated_at": "2026-05-25T09:57:28Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9054,7 +9054,7 @@
       "handover": "handoffs/2026-05-25-spec-0211.2-merge-sha-capture-race-with-post-merge-pushes.md"
     },
     "0211.3": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-25T09:41:44Z",
       "events": [
         {
@@ -9132,11 +9132,20 @@
           "data": {
             "path": "handoffs/2026-05-25-spec-0211.3-deploy-concurrency-cancels-merge-commit-run.md"
           }
+        },
+        {
+          "ts": "2026-05-25T09:57:28Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.15"
+          }
         }
       ],
       "started_at": "2026-05-25T09:48:04Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/246",
-      "merged_at": "2026-05-25T09:53:22Z"
+      "merged_at": "2026-05-25T09:53:22Z",
+      "deployed_at": "2026-05-25T09:57:28Z",
+      "handover": "handoffs/2026-05-25-spec-0211.3-deploy-concurrency-cancels-merge-commit-run.md"
     },
     "0212": {
       "status": "queued",
