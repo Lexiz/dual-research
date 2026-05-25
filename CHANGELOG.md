@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.15] — 2026-05-25
+
+### Changed
+
+- **Spec 0211.3 — `/dev-next` step 20 auto-pivots on `deploy-main` concurrency cancellation** ([spec 0211.3](specs/0211.3-deploy-concurrency-cancels-merge-commit-run.md)). PATCH refactor to the `/dev-next` skill body at `~/.claude/skills/dev-next/SKILL.md`. Previously a `cancelled` exit status from `gh run watch` halted the cycle, even when the cancellation was caused by `.github/workflows/deploy.yml`'s `concurrency.group: deploy-main` collapsing the pending-run queue (a known consequence of `cancel-in-progress: false` — only the in-flight job is protected; ≥ 2 newer queued runs cancel older pending ones). The squash-merge commit's deploy run is the most-likely victim because `/dev-next` emits multiple `--push-to-main` queue-state writes immediately after step 19's merge. Step 20 now wraps `gh run watch` in `set +e` / `WATCH_RC=$?` / `set -e` to capture the exit status, calls `gh run view --json conclusion` when non-zero, and on `cancelled` re-queries `git ls-remote origin main` for the surviving deploy.yml run (the concurrency policy's collapse rule guarantees the most-recent waiter survives, and queue-state-only commits ship image-identical Docker layers). A new `deploy_pivoted` event records both run IDs to `dashboard/events/NNNN.jsonl`. Other failure conclusions (`failure`, `timed_out`, `startup_failure`) still halt with `failure_step: deploy` as before. New source-pattern test at `tests/test_spec_0211_3_concurrency_pivot.py` locks the structure (`WATCH_RC` capture in step 20; `git ls-remote origin main` and `cancelled` tokens in step 20; `spec 0211.3` breadcrumb in step 20).
+
 ## [1.44.14] — 2026-05-25
 
 ### Changed
