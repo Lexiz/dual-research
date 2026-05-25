@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.23] — 2026-05-25
+
+### Fixed
+
+- **STATUS action arrays in interaction-phase prompts now declare a canonical-ID-only contract ([spec 0217.1](specs/0217.1-openai-status-raised-canonical-ids.md)):** the STATUS-footer placeholders in [src/dual_research/protocol/prompts.py](src/dual_research/protocol/prompts.py) used permissive phrasing (`RAISED_THIS_TURN: [list of IDs the orchestrator will assign]` for round-1 footers, and the bare `RAISED_THIS_TURN: [...]` ellipsis everywhere else), which let agents substitute descriptive prose for canonical IDs. The smoking-gun case is openai's round-1 STATUS array in the `20260525-135006-backend-language-choice` session — captured verbatim at [tests/fixtures/spec_0217/phase2/round-01-openai.md:81](tests/fixtures/spec_0217/phase2/round-01-openai.md:81) — where the array carried multi-line description strings ("disagreement: Go #1 vs C# #1", …) instead of `D-plan-g-01`-style IDs. Spec 0217's STATUS-pass at [src/dual_research/ui/disagreements.py:587-610](src/dual_research/ui/disagreements.py:587) parses canonical IDs and silently drops non-ID entries (per §8's spurious-ID mitigation), so the openai-side negotiation never reached the reconstructed ledger. Fix: (1) tighten every placeholder in the inline round-1 footers (phase 0 / phase 2 / phase 4) plus the shared `_status_footer_for_phase` helper to `[<canonical-id>, ...]`; (2) add a centralised callout constant (`_STATUS_ARRAY_CONTRACT_CALLOUT` + a round-1 variant that explains the orchestrator assigns IDs from `### RAISE` blocks) that prints inline above every `## Status` block in the four round-1/round-N interaction prompts (phase 2 + phase 4). The reconstructor is unchanged — the fix lives at the protocol-contract layer per spec 0217's handoff §3.4 ("path (a) is the structurally correct fix — STATUS arrays should be ID-only by contract"). Three new tests at [tests/test_spec_0217_1_status_array_contract.py](tests/test_spec_0217_1_status_array_contract.py) pin the post-fix shape (substring `IDs only` present) and the antipodal absence of the pre-fix placeholders. Existing spec-0217 suite continues to pass unchanged — the round-01-openai descriptive-string fixture stays as-is and continues to be silently dropped, but new sessions will produce canonical IDs naturally once agents read the tightened contract.
+
 ## [1.44.22] — 2026-05-25
 
 ### Fixed

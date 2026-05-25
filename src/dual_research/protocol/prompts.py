@@ -1405,6 +1405,35 @@ already on the ledger.
 """
 
 
+# Spec 0217.1 §3.3 — STATUS array contract callout. The STATUS action arrays
+# are the canonical ledger-op channel; the reconstructor's STATUS-pass at
+# src/dual_research/ui/disagreements.py canonicalizes IDs and silently drops
+# anything that isn't an ID. The wording below appears inline above every
+# round-1 / round-N `## Status` block so agents stop substituting descriptive
+# strings for canonical IDs (the round-01-openai descriptive-string fixture
+# captured at tests/fixtures/spec_0217/phase2/round-01-openai.md:81 is the
+# canonical counter-example).
+_STATUS_ARRAY_CONTRACT_CALLOUT = (
+    "The STATUS action arrays carry **canonical IDs only** — `D-<slug>` for "
+    "disagreements and `Q-<slug>` for questions, exactly as they appear in "
+    "the `### RAISE` / `### ADDRESS` / `### RESOLVE` blocks elsewhere in this "
+    "turn. Do NOT substitute descriptive prose, quoted strings, or multi-line "
+    "natural-language descriptions for IDs. The orchestrator parses these "
+    "arrays as the canonical ledger-op channel; non-ID entries are silently "
+    "dropped."
+)
+
+# Round-1 variant — agents in round 1 raise items for the first time, so the
+# orchestrator assigns canonical IDs based on the `### RAISE` blocks above
+# rather than the agent picking them. Same core rule, plus a one-sentence
+# clarification on the surrounding prose (per spec 0217.1 §3.3).
+_STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1 = (
+    _STATUS_ARRAY_CONTRACT_CALLOUT
+    + " (In round 1 the orchestrator assigns canonical IDs based on your "
+    "`### RAISE` blocks above; emit those IDs in `RAISED_THIS_TURN`.)"
+)
+
+
 def _status_footer_for_phase(phase: int) -> str:
     """Return the canonical status-footer template for ``phase``.
 
@@ -1413,11 +1442,11 @@ def _status_footer_for_phase(phase: int) -> str:
     """
     base = [
         "STATUS: IN_PROGRESS | AGREED",
-        "RAISED_THIS_TURN: [...]",
-        "ADDRESSED_THIS_TURN: [...]",
-        "RESOLVED_THIS_TURN: [...]",
-        "ACKNOWLEDGED_THIS_TURN: [...]",
-        "WITHDRAWN_THIS_TURN: [...]",
+        "RAISED_THIS_TURN: [<canonical-id>, ...]",
+        "ADDRESSED_THIS_TURN: [<canonical-id>, ...]",
+        "RESOLVED_THIS_TURN: [<canonical-id>, ...]",
+        "ACKNOWLEDGED_THIS_TURN: [<canonical-id>, ...]",
+        "WITHDRAWN_THIS_TURN: [<canonical-id>, ...]",
         "OPEN_QUESTIONS: <int>",
         "OPEN_DISAGREEMENTS: <int>",
     ]
@@ -1566,7 +1595,7 @@ Section breakdown for THIS round:
 
 ## Status
 STATUS: IN_PROGRESS
-RAISED_THIS_TURN: [list of IDs the orchestrator will assign]
+RAISED_THIS_TURN: [<canonical-id>, ...]
 ADDRESSED_THIS_TURN: []
 RESOLVED_THIS_TURN: []
 ACKNOWLEDGED_THIS_TURN: []
@@ -1781,9 +1810,11 @@ Produce a turn with the canonical section structure.
  final document, not every wording quibble. If you cannot state how
  resolving an item would change the final document, drop it.)
 
+{_STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1}
+
 ## Status
 STATUS: IN_PROGRESS
-RAISED_THIS_TURN: [...]
+RAISED_THIS_TURN: [<canonical-id>, ...]
 ADDRESSED_THIS_TURN: []
 RESOLVED_THIS_TURN: []
 ACKNOWLEDGED_THIS_TURN: []
@@ -1874,6 +1905,8 @@ Produce a turn with the canonical section structure.
 
 #### Drafter
 DRAFTER: claude | openai
+
+{_STATUS_ARRAY_CONTRACT_CALLOUT}
 
 ## Status
 {_status_footer_for_phase(2)}\
@@ -2036,9 +2069,11 @@ Produce a turn with the canonical section structure.
 (RAISE blocks. Anchor with > quote: or > after: when applicable.
  evidence_required flag per item.)
 
+""" + _STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1 + """
+
 ## Status
 STATUS: IN_PROGRESS
-RAISED_THIS_TURN: [...]
+RAISED_THIS_TURN: [<canonical-id>, ...]
 ADDRESSED_THIS_TURN: []
 RESOLVED_THIS_TURN: []
 ACKNOWLEDGED_THIS_TURN: []
@@ -2138,6 +2173,8 @@ Produce a turn with the canonical section structure.
 draft_version: v<N>
 endorsement: |
   <one sentence on why this draft satisfies the brief>
+
+{_STATUS_ARRAY_CONTRACT_CALLOUT}
 
 ## Status
 {_status_footer_for_phase(4)}\
