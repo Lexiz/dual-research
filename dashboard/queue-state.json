@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T11:10:06Z",
+  "updated_at": "2026-05-25T11:14:38Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9321,7 +9321,7 @@
       "handover": "handoffs/2026-05-25-spec-0212.1-test-explicit-cleanup-ordering-invariant.md"
     },
     "0213": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-25T11:10:06Z",
       "events": [
         {
@@ -9329,7 +9329,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-25T11:14:38Z"
     }
   }
 }
