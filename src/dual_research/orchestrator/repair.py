@@ -12,11 +12,26 @@ from dual_research.persistence import Metrics, SessionDirectory, Transcript
 from dual_research.persistence.state import write_atomic
 from dual_research.protocol import (
     ParsedTurn,
+    ParsedTurnV2,
     ProtocolParseError,
+    extract_revised_draft_deltas,
     parse_turn,
+    parse_turn_v2,
     repair_prompt,
 )
 from dual_research.protocol.prompts import repair_input_bundle
+
+
+# Spec 0218 §3.3 — `finish_reason in {"max_tokens", "length"}` is a synthetic
+# parse failure. A truncated turn whose tail bytes happen to look like a valid
+# STATUS block is still untrustworthy; the canonical guarantee is that no
+# truncated turn ever lands as canonical without going through repair.
+_TRUNCATED_FINISH_REASONS = frozenset({"max_tokens", "length"})
+_TRUNCATED_ERROR = "truncated_by_max_tokens"
+
+
+def _is_truncated_finish(finish_reason: str | None) -> bool:
+    return finish_reason is not None and finish_reason.lower() in _TRUNCATED_FINISH_REASONS
 
 
 # Spec 0036: repair turns sometimes need to replay the canonical plan +
@@ -87,6 +102,7 @@ async def parse_with_repair(
     event_bus: EventBus,
     metrics: Metrics,
     out_path: Path,
+    finish_reason: str | None = None,
 ) -> tuple[str, ParsedTurn]:
     """Parse + validate. On malformed: invoke repair once if budget permits.
 
@@ -95,10 +111,17 @@ async def parse_with_repair(
     this function, after consecutive_failures reaches 2).
 
     Raises ProtocolParseError on the second consecutive failure for the agent.
+
+    Spec 0218 §3.3 — when ``finish_reason`` is ``"max_tokens"`` or
+    ``"length"``, the turn is treated as malformed regardless of body
+    shape and routed through the same repair flow.
     """
     parsed = parse_turn(text)
     first_errors: list[str] | None = None
+    truncated = _is_truncated_finish(finish_reason)
     try:
+        if truncated:
+            raise ProtocolParseError(agent.label, [_TRUNCATED_ERROR])
         validator(parsed, agent.label)
         tracker.reset_consecutive(agent.label)
         return text, parsed
@@ -179,3 +202,152 @@ async def parse_with_repair(
         # Repair did not produce a valid turn either. Leave it; next round's
         # validation will trip consecutive_failures = 2 and abort.
         return repaired_result.text, new_parsed
+
+
+# Spec 0218 §3.3 — v2 sibling. dr_run.py uses parse_turn_v2; the legacy v1
+# parse_with_repair is still wired into phase4.py (dead code at the moment
+# but kept for the dedicated tests). The two functions share RepairTracker
+# semantics and the same one-shot-per-phase budget.
+
+ValidatorV2 = Callable[[ParsedTurnV2, str, str], None]
+
+
+def _assert_v2_well_formed_turn(
+    parsed: ParsedTurnV2, raw_text: str, agent: str
+) -> None:
+    """Default v2 validator for the dr_run.py path (spec 0218 §3.3).
+
+    Asserts:
+      - `## Status` block is present (`parsed.status is not None`).
+      - If the turn carries a non-empty `## Revised draft` section, the
+        body parses as section-delta operations (spec 0218 §3.2). Legacy
+        full-prose `## Revised draft` bodies — i.e. no `### REPLACE_*` /
+        `### APPEND_*` / `### DELETE_*` / `### REPLACE_DRAFT_FULL`
+        sub-heading — raise `ProtocolParseError(
+        "revised_draft_body_missing_delta_op")` via the extractor.
+    """
+    errs: list[str] = []
+    if parsed.status is None:
+        errs.append("missing STATUS:")
+    if parsed.revised_draft is not None and parsed.revised_draft.strip():
+        try:
+            extract_revised_draft_deltas(raw_text)
+        except ProtocolParseError as e:
+            errs.extend(e.errors)
+    if errs:
+        raise ProtocolParseError(agent, errs)
+
+
+async def parse_v2_with_repair(
+    *,
+    agent: AgentCall,
+    text: str,
+    phase: int,
+    round: int,
+    tracker: RepairTracker,
+    session: SessionDirectory,
+    session_phase: str,
+    transcript: Transcript,
+    event_bus: EventBus,
+    metrics: Metrics,
+    out_path: Path,
+    finish_reason: str | None = None,
+    validator: ValidatorV2 | None = None,
+) -> tuple[str, ParsedTurnV2]:
+    """Parse + validate a v2-protocol turn. On malformed, invoke repair once.
+
+    Spec 0218 §3.3 — same one-shot-per-phase repair semantics as the v1
+    `parse_with_repair`. Returns ``(final_text, parsed_v2)``. The canonical
+    write is the responsibility of the caller, who writes ``final_text`` to
+    the canonical turn path AFTER this function returns.
+
+    When ``finish_reason in {"max_tokens", "length"}`` the turn is treated
+    as malformed regardless of body shape — a truncated turn whose tail
+    bytes happen to look like a valid STATUS block is still untrustworthy.
+    """
+    val = validator or _assert_v2_well_formed_turn
+    truncated = _is_truncated_finish(finish_reason)
+    parsed = parse_turn_v2(text)
+    first_errors: list[str] | None = None
+    try:
+        if truncated:
+            raise ProtocolParseError(agent.label, [_TRUNCATED_ERROR])
+        val(parsed, text, agent.label)
+        tracker.reset_consecutive(agent.label)
+        return text, parsed
+    except ProtocolParseError as e:
+        first_errors = list(e.errors)
+
+    failures = tracker.record_failure(agent.label)
+    if failures >= 2:
+        raise ProtocolParseError(agent.label, first_errors or ["unknown"])
+
+    if not tracker.has_budget(agent.label):
+        transcript.write(
+            "repair_skipped_budget_exhausted",
+            agent=agent.label,
+            phase=phase,
+            round=round,
+            errors=first_errors,
+        )
+        return text, parsed
+
+    # Save malformed text to audit trail, then invoke repair turn.
+    n = next_malformed_n(session, phase=session_phase, round=round, agent=agent.label)
+    malformed_path = out_path.parent / f"{out_path.stem}.malformed-{n}.md"
+    write_atomic(malformed_path, text)
+
+    tracker.spend(agent.label)
+    await event_bus.publish(
+        RepairInvoked(
+            agent=agent.label,
+            phase=phase,
+            round=round,
+            errors=first_errors or [],
+            budget_remaining=tracker.budget[agent.label],
+        )
+    )
+    transcript.write(
+        "repair_invoked",
+        agent=agent.label,
+        phase=phase,
+        round=round,
+        errors=first_errors,
+        malformed_path=str(malformed_path),
+        budget_remaining=tracker.budget[agent.label],
+    )
+
+    prompt = repair_prompt(
+        agent_name=agent.label,
+        phase=phase,
+        errors=first_errors or [],
+        malformed_content=text,
+    )
+    repair_bundle = repair_input_bundle(
+        agent_name=agent.label,
+        phase=phase,
+        errors=first_errors or [],
+        malformed_content=text,
+    )
+    repaired_result = await run_one_call(
+        agent=agent,
+        prompt=prompt,
+        label=f"phase{phase}-r{round}-{agent.label}-repair",
+        phase=f"phase{phase}",
+        metrics=metrics,
+        transcript=transcript,
+        event_bus=event_bus,
+        stream_to=None,
+        max_output_tokens=REPAIR_MAX_OUTPUT_TOKENS,
+        prompt_bundle=repair_bundle,
+    )
+    repaired_text = repaired_result.text
+    new_parsed = parse_turn_v2(repaired_text)
+    try:
+        val(new_parsed, repaired_text, agent.label)
+        tracker.reset_consecutive(agent.label)
+    except ProtocolParseError:
+        # Repair did not converge. Leave it; the next round's validation
+        # will trip consecutive_failures = 2 and abort with exit 52.
+        pass
+    return repaired_text, new_parsed

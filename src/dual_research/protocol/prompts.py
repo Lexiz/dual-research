@@ -1434,6 +1434,21 @@ _STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1 = (
 )
 
 
+# Spec 0218 §3.1 — STATUS-first ordering callout. Rendered in the lead-in
+# prose of every negotiation / review prompt above the section list, so the
+# agents understand WHY STATUS sits near the top rather than the end. STATUS
+# is the smallest, most load-bearing block in the response; everything else
+# is recoverable from priors if the wire truncates.
+_STATUS_FIRST_ORDERING_CALLOUT = (
+    "The `## Status` block sits near the top of your turn — immediately "
+    "after `## Stance` — so that it always lands even if your revised "
+    "draft or your raises run long. Treat it as a hard pre-commit: "
+    "populate the action arrays with the canonical IDs (or planned IDs, "
+    "in round 1) for everything you are about to RAISE, ADDRESS, RESOLVE, "
+    "ACKNOWLEDGE, or WITHDRAW in the body below."
+)
+
+
 def _status_footer_for_phase(phase: int) -> str:
     """Return the canonical status-footer template for ``phase``.
 
@@ -1578,20 +1593,14 @@ AGREED_INTERPRETATION block.
 ## Output
 
 Produce a turn with the canonical section structure (see preamble).
+{_STATUS_FIRST_ORDERING_CALLOUT}
+
 Section breakdown for THIS round:
 
 ## Stance
 (2–4 sentences: your reading of the task and the posture you're taking.)
 
-## Addressing items raised against me
-(none — first round)
-
-## Ratifying my own items
-(none — first round)
-
-## New items I'm raising
-(RAISE blocks for each question and disagreement you have about the
- brief. Be specific, anchor with > quote: when possible.)
+{_STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1}
 
 ## Status
 STATUS: IN_PROGRESS
@@ -1604,6 +1613,16 @@ OPEN_QUESTIONS: <int>
 OPEN_DISAGREEMENTS: <int>
 ADDRESSED_QUESTIONS: 0
 ADDRESSED_DISAGREEMENTS: 0
+
+## Addressing items raised against me
+(none — first round)
+
+## Ratifying my own items
+(none — first round)
+
+## New items I'm raising
+(RAISE blocks for each question and disagreement you have about the
+ brief. Be specific, anchor with > quote: when possible.)
 
 (No phase artifact block at round 1 — phase 0 cannot converge in round 1.)
 """
@@ -1647,9 +1666,15 @@ and your AGREED_INTERPRETATION blocks hash-match.
 ## Output
 
 Produce a turn with the canonical section structure.
+{_STATUS_FIRST_ORDERING_CALLOUT}
 
 ## Stance
 (2–4 sentences summarizing your position this round.)
+
+{_STATUS_ARRAY_CONTRACT_CALLOUT}
+
+## Status
+{_status_footer_for_phase(0)}
 
 ## Addressing items raised against me
 (ADDRESS block per currently-open item from {other_name} pointed at you.
@@ -1685,9 +1710,6 @@ Produce a turn with the canonical section structure.
 #### Carry-forward items
 - [<id>] <terminal-state>: <body> — <one-line rationale for carrying forward>
 (or "(none)")
-
-## Status
-{_status_footer_for_phase(0)}\
 """
 
 
@@ -1794,21 +1816,11 @@ Your job this round:
 ## Output
 
 Produce a turn with the canonical section structure.
+{_STATUS_FIRST_ORDERING_CALLOUT}
 
 ## Stance
 (2–4 sentences: where you and {other_name} agree, where you differ,
  what you think the biggest open questions are.)
-
-## Addressing items raised against me
-(none — first round)
-
-## Ratifying my own items
-(none — first round)
-
-## New items I'm raising
-(RAISE blocks. Do not flood; raise items that materially affect the
- final document, not every wording quibble. If you cannot state how
- resolving an item would change the final document, drop it.)
 
 {_STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1}
 
@@ -1823,6 +1835,17 @@ OPEN_QUESTIONS: <int>
 OPEN_DISAGREEMENTS: <int>
 ADDRESSED_QUESTIONS: 0
 ADDRESSED_DISAGREEMENTS: 0
+
+## Addressing items raised against me
+(none — first round)
+
+## Ratifying my own items
+(none — first round)
+
+## New items I'm raising
+(RAISE blocks. Do not flood; raise items that materially affect the
+ final document, not every wording quibble. If you cannot state how
+ resolving an item would change the final document, drop it.)
 """
 
 
@@ -1871,8 +1894,14 @@ same DRAFTER.
 ## Output
 
 Produce a turn with the canonical section structure.
+{_STATUS_FIRST_ORDERING_CALLOUT}
 
 ## Stance
+
+{_STATUS_ARRAY_CONTRACT_CALLOUT}
+
+## Status
+{_status_footer_for_phase(2)}
 
 ## Addressing items raised against me
 (ADDRESS blocks for every {other_name} item pointed at you in `open`
@@ -1905,11 +1934,6 @@ Produce a turn with the canonical section structure.
 
 #### Drafter
 DRAFTER: claude | openai
-
-{_STATUS_ARRAY_CONTRACT_CALLOUT}
-
-## Status
-{_status_footer_for_phase(2)}\
 """
 
 
@@ -2054,20 +2078,11 @@ comment. Raise items you genuinely consider material:
 ## Output
 
 Produce a turn with the canonical section structure.
+""" + _STATUS_FIRST_ORDERING_CALLOUT + """
 
 ## Stance
 (2–4 sentences: your overall reaction to the draft. The UI uses this
  as the timeline-card TL;DR.)
-
-## Addressing items raised against me
-(none — first round of this phase)
-
-## Ratifying my own items
-(none — first round)
-
-## New items I'm raising
-(RAISE blocks. Anchor with > quote: or > after: when applicable.
- evidence_required flag per item.)
 
 """ + _STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1 + """
 
@@ -2086,6 +2101,16 @@ ADDRESSED_QUESTIONS: 0
 ADDRESSED_DISAGREEMENTS: 0
 ADDRESSED_ISSUES: 0
 ADDRESSED_COMMENTS: 0
+
+## Addressing items raised against me
+(none — first round of this phase)
+
+## Ratifying my own items
+(none — first round)
+
+## New items I'm raising
+(RAISE blocks. Anchor with > quote: or > after: when applicable.
+ evidence_required flag per item.)
 """
 
 
@@ -2126,12 +2151,46 @@ draft in this round.
 
 If you are the DRAFTER and the other agent's prior turn raised
 substantive items, you may revise the draft in this turn by emitting
-a "## Revised draft" section with the full revised content. The
-orchestrator detects this and advances the draft version pointer. The
-REVIEWER never modifies the draft.
+a `## Revised draft` section in the Output below. Spec 0218 §3.2 — the
+revised-draft body is a sequence of **section-delta operation blocks**,
+not a full inline re-emit. Inside the `Revised draft` section, use:
 
-If you are the REVIEWER, write "(reviewer — no draft edits)" in the
-revision-note slot below.
+    ### REPLACE_SECTION <heading>
+        <new body for the matching `## <heading>` section in the current draft>
+
+    ### APPEND_SECTION <heading>
+        <new section body to append at the end of the draft>
+
+    ### DELETE_SECTION <heading>
+
+    ### REPLACE_DRAFT_FULL
+        <full new draft body — escape hatch for structural rewrites that
+         touch more than half the sections>
+
+**Hard rules — both load-bearing:**
+
+1. **OMIT the `Revised draft` section entirely** on any round where
+   the prior round did not contain substantive reviewer feedback you
+   intend to address by editing the draft. Re-emitting an unchanged
+   draft (or restating the same content under a fresh `REPLACE_SECTION`)
+   is a protocol violation.
+2. **`### REPLACE_DRAFT_FULL` is the only path that allows a full draft
+   re-emit.** Use it only when a structural rewrite genuinely touches
+   more than half the sections. Otherwise enumerate per-section
+   operations — `### REPLACE_SECTION` for edits, `### APPEND_SECTION`
+   for adds, `### DELETE_SECTION` for removals. Plain prose under
+   `Revised draft` (no `### REPLACE_*` / `### APPEND_*` /
+   `### DELETE_*` / `### REPLACE_DRAFT_FULL` sub-heading) is rejected
+   as a malformed turn and routed to repair.
+
+The orchestrator applies the deltas against the current `draft-vN.md`
+on disk to produce `draft-v(N+1).md`. Heading match is case-insensitive
+trim-equal; a `### REPLACE_SECTION <heading>` referencing a heading not
+present in the draft is promoted to `APPEND_SECTION` with a logged
+protocol-violation event.
+
+The REVIEWER never modifies the draft — write
+"(reviewer — no draft edits)" in the revision-note slot below.
 
 {_OPERATION_BLOCK_REFERENCE}
 
@@ -2146,8 +2205,14 @@ revision-note slot below.
 ## Output
 
 Produce a turn with the canonical section structure.
+{_STATUS_FIRST_ORDERING_CALLOUT}
 
 ## Stance
+
+{_STATUS_ARRAY_CONTRACT_CALLOUT}
+
+## Status
+{_status_footer_for_phase(4)}
 
 ## Addressing items raised against me
 (ADDRESS blocks for every {other_name} item in `open` state pointed at
@@ -2164,7 +2229,11 @@ Produce a turn with the canonical section structure.
 (Only genuinely new items.)
 
 ## Revised draft         ← drafter only, if any revisions
-(Full revised draft content. Reviewer writes "(reviewer — no draft edits)".)
+(Section-delta operation blocks per spec 0218 §3.2 — `### REPLACE_SECTION`
+ / `### APPEND_SECTION` / `### DELETE_SECTION`, or `### REPLACE_DRAFT_FULL`
+ for structural rewrites. OMIT this section entirely if you have no
+ substantive draft edits this round. Reviewer writes
+ "(reviewer — no draft edits)".)
 
 ## Phase artifact         ← only when emitting STATUS: AGREED
 
@@ -2173,9 +2242,4 @@ Produce a turn with the canonical section structure.
 draft_version: v<N>
 endorsement: |
   <one sentence on why this draft satisfies the brief>
-
-{_STATUS_ARRAY_CONTRACT_CALLOUT}
-
-## Status
-{_status_footer_for_phase(4)}\
 """
