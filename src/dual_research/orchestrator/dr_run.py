@@ -71,6 +71,7 @@ from dual_research.orchestrator.deep_research import (
     LedgerEntryV2,
     PhaseRunResult,
 )
+from dual_research.orchestrator.repair import RepairTracker, parse_v2_with_repair
 from dual_research.orchestrator.phase0 import Phase0Outcome
 from dual_research.orchestrator.phase1 import Phase1Outcome
 from dual_research.orchestrator.phase2 import Phase2Outcome
@@ -101,7 +102,14 @@ from dual_research.protocol.prompts import (
 )
 
 
-_TURN_MAX_OUTPUT_TOKENS = 8192
+# Spec 0218 §3.4 — bumped from 8192 to 16384. With the section-delta
+# drafter contract (§3.2) in place this is overkill for the typical
+# round (responses run ~2–4K tokens), but it is defense-in-depth for
+# rounds that legitimately use `### REPLACE_DRAFT_FULL` or a single
+# very large `### REPLACE_SECTION`. The Anthropic `claude-sonnet-4-6`
+# default API cap is 8192; the matching `output-128k-2025-02-19` beta
+# header is added in [src/dual_research/agents/anthropic_agent.py].
+_TURN_MAX_OUTPUT_TOKENS = 16384
 _DRAFT_MAX_OUTPUT_TOKENS = 16384
 
 
@@ -222,6 +230,10 @@ async def _drive_interaction_phase(
     openai_agent: AgentCall,
 ) -> tuple[PhaseRunResult, DeepResearchPhase]:
     """Run an interaction phase end-to-end using DeepResearchPhase + real agents."""
+    # Spec 0218 §3.3 — per-phase repair tracker. One-shot repair budget per
+    # agent; second consecutive malformed turn aborts the run with exit 52.
+    repair_tracker = RepairTracker()
+
     # Spec 0144 §6.1.b — wire the production evidence validator. The
     # 4-arg signature lets apply_turn pass the per-turn ``tool_events``
     # list directly, so the validator never has to reach back into the
@@ -306,26 +318,44 @@ async def _drive_interaction_phase(
                 prompt_bundle=bundle,
             )
             turn_path = phase_dir / turn_filename(round=round_no, agent=agent_name)
-            write_atomic(turn_path, result.text)
 
-            # Phase 4 drafter-revision detection happens before parse so
-            # the revised draft is written to disk before convergence
-            # check considers it.
+            # Spec 0218 §3.3 — validator + one-shot repair between the
+            # agent call and the canonical write. The canonical turn file
+            # is ONLY written after parse_v2_with_repair returns clean text;
+            # the original (possibly truncated) text is saved to
+            # ``<turn>.malformed-<n>.md`` by the repair flow when triggered.
+            _finish_reason = (result.extras or {}).get("stop_reason") \
+                or (result.extras or {}).get("finish_reason")
+            final_text, parsed = await parse_v2_with_repair(
+                agent=agent_call,
+                text=result.text,
+                phase=phase_int,
+                round=round_no,
+                tracker=repair_tracker,
+                session=ctx.session,
+                session_phase=phase_label,
+                transcript=ctx.transcript,
+                event_bus=event_bus,
+                metrics=ctx.metrics,
+                out_path=turn_path,
+                finish_reason=str(_finish_reason) if _finish_reason is not None else None,
+            )
+            write_atomic(turn_path, final_text)
+
+            # Phase 4 drafter-revision detection happens before apply_turn so
+            # the revised draft is written to disk before the convergence
+            # check considers it. Spec 0218 §3.2 — the drafter's revised-draft
+            # body is parsed as section-delta ops applied against the prior
+            # `draft-vN.md`; legacy full-prose bodies were rejected by the
+            # validator above and routed through repair.
             if on_revised_draft is not None and agent_name == ctx.state.drafter:
-                # Spec 0140 — use the inclusive extractor so the
-                # draft body retains its own ``## N. Section`` headings.
-                # The strict extractor truncated at the first sub-heading,
-                # producing 76-byte stub drafts on the anchor run.
-                revised = extract_revised_draft_inclusive(result.text)
-                if revised:
-                    await on_revised_draft(
-                        ctx=ctx,
-                        event_bus=event_bus,
-                        round=round_no,
-                        revised_text=revised,
-                    )
+                await on_revised_draft(
+                    ctx=ctx,
+                    event_bus=event_bus,
+                    round=round_no,
+                    revised_text=final_text,
+                )
 
-            parsed = parse_turn_v2(result.text)
             if agent_name == "claude":
                 parsed_claude = parsed
             else:
@@ -335,8 +365,6 @@ async def _drive_interaction_phase(
             # finish_reason + output_tokens into apply_turn so an empty
             # negotiate / review turn can be attributed to ``max_tokens``
             # vs a genuinely empty model output.
-            _finish_reason = (result.extras or {}).get("stop_reason") \
-                or (result.extras or {}).get("finish_reason")
             _output_tokens = int(getattr(result.usage, "output_tokens", 0) or 0)
             # Spec 0144 §6.1.b — the search audit for this turn was
             # persisted by ``_on_turn_searches`` immediately after
@@ -354,7 +382,7 @@ async def _drive_interaction_phase(
                 Path(ctx.transcript.path).parent, audit_turn_key,
             )
             r, t, v, e = phase.apply_turn(
-                text=result.text,
+                text=final_text,
                 parsed=parsed,
                 agent=agent_name,
                 round=round_no,
@@ -1340,17 +1368,50 @@ async def run_dr_phase4(
     revisions_count = 0
 
     async def _on_revised_draft(*, ctx, event_bus, round, revised_text):
+        """Spec 0218 §3.2 — section-delta application.
+
+        ``revised_text`` is the full repaired turn text (canonical bytes
+        from the drafter, post-`parse_v2_with_repair`). The body of
+        `## Revised draft` is parsed into a `RevisedDraftPayload` and
+        applied against the prior `draft-vN.md` to produce
+        `draft-v(N+1).md`. Returning the legacy full-prose body shape was
+        already rejected by the validator chain and routed to repair, so
+        by the time we reach this point the body is either delta-ops or
+        a `REPLACE_DRAFT_FULL` escape-hatch.
+        """
         nonlocal revisions_count
-        revisions_count += 1
+        from dual_research.protocol import (
+            apply_revised_draft_deltas,
+            extract_revised_draft_deltas,
+        )
+
+        payload = extract_revised_draft_deltas(revised_text)
+        if payload is None:
+            return
+
         new_round = ctx.state.draft_round + 1
+        prior_path = current_draft_path(ctx.session, ctx.state.draft_round)
+        prior_draft = prior_path.read_text(encoding="utf-8")
+        new_draft, violations = apply_revised_draft_deltas(
+            prior_draft=prior_draft, payload=payload,
+        )
+
+        revisions_count += 1
         new_path = ctx.session.phase_dir("phase4") / f"draft-v{new_round}.md"
-        write_atomic(new_path, revised_text)
+        write_atomic(new_path, new_draft)
         ctx.state.draft_round = new_round
         ctx.session.save_state(ctx.state)
+        for v in violations:
+            ctx.transcript.write(
+                "revised_draft_delta_violation",
+                phase="phase4",
+                round=round,
+                violation=v,
+            )
         await event_bus.publish(Phase4DraftRevised(
             round=round,
             new_draft_round=new_round,
-            new_draft_chars=len(revised_text),
+            new_draft_chars=len(new_draft),
         ))
 
     def _build(*, agent_name, round, is_closeout_round, standing_items, closeout_request, ctx):

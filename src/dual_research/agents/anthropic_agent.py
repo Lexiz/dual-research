@@ -47,6 +47,13 @@ WEB_SEARCH_TOOL = {
 # ``ephemeral_1h_input_tokens``) so we can price each tier exactly.
 EXTENDED_CACHE_TTL_BETA = "extended-cache-ttl-2025-04-11"
 
+# Spec 0218 §3.4 — unlock 16K+ output tokens on Claude. Without this beta
+# header the API caps responses at 8192 output tokens regardless of the
+# `max_tokens` request value, which is the root cause of the phase-4
+# STATUS-truncation regression. The beta only affects the output cap;
+# cache + input semantics are unchanged.
+OUTPUT_128K_BETA = "output-128k-2025-02-19"
+
 
 class ClaudeAgent:
     provider = "anthropic"
@@ -57,12 +64,13 @@ class ClaudeAgent:
             raise ValueError(f"ClaudeAgent requires an anthropic ModelSpec, got provider={spec.provider!r}")
         self._spec = spec
         headers = dict(spec.extra_headers) if spec.extra_headers else {}
-        if cache_enabled():
-            # Merge cache beta into existing anthropic-beta header if present.
-            existing = headers.get("anthropic-beta", "")
-            betas = [b.strip() for b in existing.split(",") if b.strip()]
-            if EXTENDED_CACHE_TTL_BETA not in betas:
-                betas.append(EXTENDED_CACHE_TTL_BETA)
+        existing = headers.get("anthropic-beta", "")
+        betas = [b.strip() for b in existing.split(",") if b.strip()]
+        if cache_enabled() and EXTENDED_CACHE_TTL_BETA not in betas:
+            betas.append(EXTENDED_CACHE_TTL_BETA)
+        if OUTPUT_128K_BETA not in betas:
+            betas.append(OUTPUT_128K_BETA)
+        if betas:
             headers["anthropic-beta"] = ",".join(betas)
         self._client = AsyncAnthropic(
             api_key=api_key,

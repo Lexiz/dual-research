@@ -414,6 +414,252 @@ def extract_revised_draft_inclusive(turn_text: str) -> str | None:
     return _strip_horizontal_rules(body)
 
 
+# ─── Spec 0218 §3.2 — Section-delta drafter contract ──────────────────────────
+
+# Operation kinds for the section-delta revised-draft body. Each block is a
+# `### REPLACE_SECTION <heading>` / `### APPEND_SECTION <heading>` /
+# `### DELETE_SECTION <heading>` / `### REPLACE_DRAFT_FULL` sub-heading inside
+# the drafter's `## Revised draft` section. The orchestrator applies these
+# against the current `draft-vN.md` to produce `draft-v(N+1).md`.
+
+@dataclass(frozen=True)
+class ReplaceSectionOp:
+    heading: str
+    body: str
+
+
+@dataclass(frozen=True)
+class AppendSectionOp:
+    heading: str
+    body: str
+
+
+@dataclass(frozen=True)
+class DeleteSectionOp:
+    heading: str
+
+
+@dataclass(frozen=True)
+class ReplaceDraftFullOp:
+    body: str
+
+
+DraftDeltaOp = ReplaceSectionOp | AppendSectionOp | DeleteSectionOp | ReplaceDraftFullOp
+
+
+@dataclass(frozen=True)
+class RevisedDraftFull:
+    """Legacy / escape-hatch shape — body is the full new draft text.
+
+    Today reachable only via `### REPLACE_DRAFT_FULL` per spec 0218 §3.2;
+    legacy full-prose `## Revised draft` bodies raise `ProtocolParseError
+    ("revised_draft_body_missing_delta_op")` and route through repair.
+    """
+
+    content: str
+
+
+@dataclass(frozen=True)
+class RevisedDraftDeltas:
+    """The new shape — a sequence of section-delta operations."""
+
+    ops: tuple[DraftDeltaOp, ...]
+
+
+RevisedDraftPayload = RevisedDraftFull | RevisedDraftDeltas
+
+
+_REVISED_DRAFT_DELTA_HEADING_RE = re.compile(
+    r"^###\s+(REPLACE_SECTION|APPEND_SECTION|DELETE_SECTION|REPLACE_DRAFT_FULL)\b(.*)$",
+    re.MULTILINE,
+)
+
+
+def extract_revised_draft_deltas(turn_text: str) -> RevisedDraftPayload | None:
+    """Parse the drafter's `## Revised draft` body as section-delta ops.
+
+    Returns:
+      - ``None`` — `## Revised draft` heading absent or body is empty
+        after stripping horizontal rules / whitespace.
+      - ``RevisedDraftDeltas(ops=...)`` — body contains one or more
+        ``### REPLACE_SECTION`` / ``### APPEND_SECTION`` /
+        ``### DELETE_SECTION`` blocks.
+      - ``RevisedDraftFull(content=...)`` — body contains a single
+        ``### REPLACE_DRAFT_FULL`` block (the escape hatch).
+
+    Raises ``ProtocolParseError("revised_draft_body_missing_delta_op")``
+    when the body is non-empty but contains NO delta-op sub-headings
+    (i.e. legacy full-draft prose shape). The orchestrator routes this
+    through the existing parse_with_repair flow.
+
+    Multiple ``### REPLACE_DRAFT_FULL`` blocks: last-writer-wins.
+    Mixed `### REPLACE_SECTION` + `### REPLACE_DRAFT_FULL`: full re-emit
+    wins (the escape hatch is exclusive — no point applying deltas on
+    top of a wholesale replacement).
+    """
+    from dual_research.protocol.errors import ProtocolParseError
+
+    body = extract_revised_draft_inclusive(turn_text)
+    if body is None or not body.strip():
+        return None
+
+    matches = list(_REVISED_DRAFT_DELTA_HEADING_RE.finditer(body))
+    if not matches:
+        # Body is present but carries no delta-op sub-heading — legacy
+        # full-prose shape. Reject and route through repair.
+        raise ProtocolParseError(
+            "drafter", ["revised_draft_body_missing_delta_op"]
+        )
+
+    ops: list[DraftDeltaOp] = []
+    full_replacement: ReplaceDraftFullOp | None = None
+
+    for i, m in enumerate(matches):
+        kind = m.group(1)
+        rest = (m.group(2) or "").strip()
+        block_start = m.end()
+        block_end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        block_body = body[block_start:block_end].strip()
+
+        if kind == "REPLACE_DRAFT_FULL":
+            # last-writer-wins across multiple REPLACE_DRAFT_FULL blocks.
+            full_replacement = ReplaceDraftFullOp(body=block_body)
+        elif kind == "REPLACE_SECTION":
+            if not rest:
+                # Heading argument missing — skip; the application layer
+                # treats heading-less ops as no-ops.
+                continue
+            ops.append(ReplaceSectionOp(heading=rest, body=block_body))
+        elif kind == "APPEND_SECTION":
+            if not rest:
+                continue
+            ops.append(AppendSectionOp(heading=rest, body=block_body))
+        elif kind == "DELETE_SECTION":
+            if not rest:
+                continue
+            ops.append(DeleteSectionOp(heading=rest))
+
+    if full_replacement is not None:
+        # The escape hatch is exclusive — return RevisedDraftFull with
+        # the last REPLACE_DRAFT_FULL body. Any per-section ops in the
+        # same turn are dropped (the drafter chose the escape hatch).
+        return RevisedDraftFull(content=full_replacement.body)
+
+    return RevisedDraftDeltas(ops=tuple(ops))
+
+
+# Heading normaliser for section matching. Case-insensitive, trim-equal —
+# also strips a leading numeric prefix ("1. Summary" → "summary") so the
+# drafter can write `### REPLACE_SECTION Summary` against `## 1. Summary`.
+def _normalise_section_heading(heading: str) -> str:
+    h = heading.strip().lower()
+    # Strip leading "<digit>." or "<digit>.<digit>" prefix.
+    h = re.sub(r"^\d+(?:\.\d+)*\.?\s*", "", h)
+    return h
+
+
+_DRAFT_SECTION_HEADING_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
+
+
+def apply_revised_draft_deltas(
+    *,
+    prior_draft: str,
+    payload: RevisedDraftPayload,
+) -> tuple[str, list[str]]:
+    """Apply a `RevisedDraftPayload` to ``prior_draft``, returning the new draft.
+
+    Returns ``(new_draft_text, violations)`` where ``violations`` is a list
+    of human-readable strings describing protocol-violation events the
+    orchestrator should publish (e.g. ``REPLACE_SECTION`` promoted to
+    ``APPEND_SECTION`` because no matching heading exists; two
+    ``REPLACE_SECTION`` blocks for the same heading in one turn).
+
+    Semantics (spec 0218 §3.2):
+      - ``ReplaceDraftFullOp``: replace the entire draft.
+      - ``ReplaceSectionOp``: replace the body of the matching ``## <h>``
+        section. Heading match is case-insensitive trim-equal with
+        numeric-prefix tolerance. Missing heading → promote to APPEND.
+      - ``AppendSectionOp``: append a new ``## <h>`` section at the end.
+      - ``DeleteSectionOp``: remove the matching section. Missing heading
+        is a violation (recorded) but not an error.
+      - Two ``ReplaceSectionOp`` for the same heading: apply in order,
+        last-writer-wins, record a violation.
+    """
+    violations: list[str] = []
+
+    if isinstance(payload, RevisedDraftFull):
+        return payload.content, violations
+
+    # Slice the prior draft into (heading_text, body) tuples in document
+    # order. The pre-first-heading prelude (if any) is captured as a
+    # special-cased "" heading at index 0.
+    matches = list(_DRAFT_SECTION_HEADING_RE.finditer(prior_draft))
+    sections: list[tuple[str, str]] = []
+    if not matches:
+        # No `## ` headings — treat the whole document as a single
+        # untitled prelude; per-section ops will all promote to APPEND.
+        prelude = prior_draft
+        sections = []
+    else:
+        prelude = prior_draft[: matches[0].start()]
+        for i, m in enumerate(matches):
+            heading_line = m.group(0).rstrip()
+            heading_text = m.group(1).strip()
+            body_start = m.end()
+            body_end = matches[i + 1].start() if i + 1 < len(matches) else len(prior_draft)
+            body = prior_draft[body_start:body_end]
+            sections.append((heading_text, body))
+
+    seen_replace: dict[str, int] = {}
+    for op in payload.ops:
+        if isinstance(op, ReplaceSectionOp):
+            target = _normalise_section_heading(op.heading)
+            idx: int | None = None
+            for i, (h, _) in enumerate(sections):
+                if _normalise_section_heading(h) == target:
+                    idx = i
+                    break
+            if idx is None:
+                violations.append(
+                    f"REPLACE_SECTION {op.heading!r} promoted to APPEND "
+                    "(no matching heading in prior draft)"
+                )
+                sections.append((op.heading, "\n" + op.body + "\n"))
+            else:
+                if target in seen_replace:
+                    violations.append(
+                        f"REPLACE_SECTION {op.heading!r} appears twice in "
+                        "one turn — last-writer-wins"
+                    )
+                seen_replace[target] = idx
+                sections[idx] = (sections[idx][0], "\n" + op.body + "\n")
+        elif isinstance(op, AppendSectionOp):
+            sections.append((op.heading, "\n" + op.body + "\n"))
+        elif isinstance(op, DeleteSectionOp):
+            target = _normalise_section_heading(op.heading)
+            idx = None
+            for i, (h, _) in enumerate(sections):
+                if _normalise_section_heading(h) == target:
+                    idx = i
+                    break
+            if idx is None:
+                violations.append(
+                    f"DELETE_SECTION {op.heading!r} — no matching heading"
+                )
+            else:
+                sections.pop(idx)
+
+    rendered_parts: list[str] = []
+    if prelude:
+        rendered_parts.append(prelude.rstrip("\n"))
+    for heading_text, body in sections:
+        rendered_parts.append(f"## {heading_text}".rstrip())
+        rendered_parts.append(body.rstrip("\n"))
+
+    new_text = "\n\n".join(p for p in rendered_parts if p) + "\n"
+    return new_text, violations
+
+
 # ─── Summary extraction (spec 0025) ────────────────────────────────────────────
 
 
