@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.14] — 2026-05-25
+
+### Changed
+
+- **Spec 0211.2 — `/dev-next` captures `MERGE_SHA` at merge time** ([spec 0211.2](specs/0211.2-merge-sha-capture-race-with-post-merge-pushes.md)). PATCH refactor to the `/dev-next` skill body at `~/.claude/skills/dev-next/SKILL.md`. Previously step 20 derived `MERGE_SHA="$(git rev-parse origin/main)"` after step 19's re-detach, so any `--push-to-main` call that landed a queue-state commit between merge and step 20 advanced `origin/main` past the squash-merge — the watched deploy.yml run was for the subsequent queue-state commit, not the merge commit itself. Step 19 now invokes `gh pr view "$PR_NUM" --json mergeCommit --jq '.mergeCommit.oid'` immediately after `gh pr merge` returns, before the verified-delete + re-detach + any further `--push-to-main` calls can drift `origin/main`. Step 20 reads the captured value. Handoff `pr`/run-watched references in `/dev-next` cycles now point at the squash-merge commit's deploy run, not a subsequent queue-state commit's run. New source-pattern test at `tests/test_spec_0211_2_merge_sha_captured_at_merge_time.py` locks the structure (no `git rev-parse origin/main` in step 20; `gh pr view ... mergeCommit` in step 19; `spec 0211.2` breadcrumb in step 19).
+
 ## [1.44.13] — 2026-05-25
 
 ### Changed
