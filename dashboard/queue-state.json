@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:56:27Z",
+  "updated_at": "2026-05-25T09:57:20Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9125,6 +9125,13 @@
           "ts": "2026-05-25T09:56:27Z",
           "step": "deploy_health_check_ok",
           "data": {}
+        },
+        {
+          "ts": "2026-05-25T09:57:20Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-25-spec-0211.3-deploy-concurrency-cancels-merge-commit-run.md"
+          }
         }
       ],
       "started_at": "2026-05-25T09:48:04Z",
