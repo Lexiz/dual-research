@@ -48,3 +48,13 @@ supabase/.temp/
 # opt-in via `make test-js`; never committed.
 node_modules/
 package-lock.json
+
+# Parallel-session scratch: ideation/investigation .md files dropped at
+# the repo root by other Claude sessions are local-only. Tracked root
+# .md files (CHANGELOG, CLAUDE, CONTRIBUTING, README) are explicit
+# exceptions; anything else at the root is by-default scratch.
+/*.md
+!/CHANGELOG.md
+!/CLAUDE.md
+!/CONTRIBUTING.md
+!/README.md
