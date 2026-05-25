@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T10:43:53Z",
+  "updated_at": "2026-05-25T10:43:56Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9257,6 +9257,11 @@
             "branch": "spec/0212.1-test-explicit-cleanup-ordering-invariant",
             "from": "main@b31816d"
           }
+        },
+        {
+          "ts": "2026-05-25T10:43:56Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T10:43:31Z"
