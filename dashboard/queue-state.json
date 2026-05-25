@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T10:21:38Z",
+  "updated_at": "2026-05-25T10:29:12Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9148,7 +9148,7 @@
       "handover": "handoffs/2026-05-25-spec-0211.3-deploy-concurrency-cancels-merge-commit-run.md"
     },
     "0212": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-25T09:42:30Z",
       "events": [
         {
@@ -9202,11 +9202,44 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/247"
           }
+        },
+        {
+          "ts": "2026-05-25T10:24:22Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T10:27:48Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.16"
+          }
+        },
+        {
+          "ts": "2026-05-25T10:28:07Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T10:29:00Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-25-spec-0212-gh-pr-merge-delete-branch-author-worktree-collision.md"
+          }
+        },
+        {
+          "ts": "2026-05-25T10:29:12Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.16"
+          }
         }
       ],
       "started_at": "2026-05-25T10:12:56Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/247",
-      "merged_at": "2026-05-25T10:21:36Z"
+      "merged_at": "2026-05-25T10:21:36Z",
+      "deployed_at": "2026-05-25T10:29:11Z",
+      "handover": "handoffs/2026-05-25-spec-0212-gh-pr-merge-delete-branch-author-worktree-collision.md"
     }
   }
 }
