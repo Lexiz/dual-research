@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T15:19:15Z",
+  "updated_at": "2026-05-25T15:19:17Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9726,6 +9726,11 @@
             "branch": "spec/0217-ledger-status-block-authoritative-for-closures",
             "from": "main@9e95370"
           }
+        },
+        {
+          "ts": "2026-05-25T15:19:17Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T15:18:58Z"
