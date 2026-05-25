@@ -181,9 +181,9 @@ def test_idle_vs_inflight_hero(tmp_path: Path) -> None:
 
     inflight_html = render_index(specs, drafts)
     assert "hero--inflight" in inflight_html
-    # Spec 0177 §2.2 — eleven stages now render as horizontal `tl__step` nodes
-    # (was a vertical `<ol class="stages">`).
-    assert inflight_html.count('class="tl__step tl__step--') == 11
+    # Spec 0213 §2.1 — seven honest span rows (was 11 single-event rows).
+    # The horizontal `tl__step` node anatomy from spec 0177 §2.2 is preserved.
+    assert inflight_html.count('class="tl__step tl__step--') == 7
     # The new timeline wrapper sits beneath the hero divider.
     assert 'class="tl" aria-label="Cycle stages"' in inflight_html
 

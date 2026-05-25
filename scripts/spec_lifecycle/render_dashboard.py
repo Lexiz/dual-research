@@ -310,6 +310,57 @@ def _link_spec(spec_id: str, body: str | None = None) -> str:
     return f'<a href="spec-{_escape(spec_id)}.html">{inner}</a>'
 
 
+# Spec 0213 §2.4 — decimal sub-spec visual treatment. `SpecRow.number`
+# of the form `"0211.3"` parses to (parent, child); the chip and indent
+# only attach when child > 0. The chip uses the existing `chip.tone-neutral
+# .no-dot` primitive from design-system/SPEC.md §6 (Chip) — a glyph
+# prefix on a neutral chip, not a new component. Indent uses a per-surface
+# `--sub-spec` modifier so each parent BEM root keeps ownership of its
+# CSS (.qrow--sub-spec, .hero__title--sub-spec).
+_SUB_SPEC_CHIP_TONE = "tone-neutral"
+
+
+def _parent_id_for_decimal(spec_id: str) -> str | None:
+    """Return the integer parent ID if `spec_id` is a decimal sub-spec
+    like ``"0211.3"``; ``None`` otherwise. Used by the chip + indent
+    affordances per spec 0213 §2.4."""
+    if not spec_id or "." not in spec_id:
+        return None
+    parent, _, child = spec_id.partition(".")
+    if not (parent.isdigit() and child.isdigit() and int(child) > 0):
+        return None
+    return parent
+
+
+def _sub_spec_chip(spec_id: str) -> str:
+    """Emit a `↳ {parent_id}` chip for decimal sub-specs, or empty string
+    otherwise. Tone-neutral, no dot — the same chip primitive surfaces
+    everywhere a sub-spec ID is rendered (hero, History list, per-spec
+    page H1)."""
+    parent = _parent_id_for_decimal(spec_id)
+    if parent is None:
+        return ""
+    return (
+        f'<span class="chip {_SUB_SPEC_CHIP_TONE} no-dot chip-sub-spec">'
+        f'↳ {_link_spec(parent, parent)}</span>'
+    )
+
+
+def _sub_spec_modifier(spec_id: str, base: str) -> str:
+    """Return ``base`` extended with a `<root>--sub-spec` modifier when
+    `spec_id` is a decimal sub-spec, or ``base`` unchanged otherwise.
+
+    The modifier is derived from the FIRST class in ``base`` (the BEM
+    root), so ``base="qrow qrow--history"`` → ``"qrow qrow--history qrow--sub-spec"``.
+    The single ``--sub-spec`` modifier carries the ~16px left-padding rule
+    in DASHBOARD_CSS regardless of which surface the base lives in.
+    """
+    if _parent_id_for_decimal(spec_id) is None:
+        return base
+    root = base.split()[0]
+    return f"{base} {root}--sub-spec"
+
+
 def _link_draft(draft_id: str, body: str | None = None) -> str:
     inner = _escape(body) if body is not None else _escape(draft_id)
     return f'<a href="draft-{_escape(draft_id)}.html">{inner}</a>'
@@ -689,7 +740,12 @@ def _render_hero_inflight(spec: SpecRow, all_specs: list[SpecRow], now: dt.datet
         '<div class="hero__icon"><span class="material-symbols-outlined">play_circle</span></div>'
         '<div class="hero__body">'
         f'<div class="hero__kicker">{_escape(step_label)}</div>'
-        f'<div class="hero__title">{_link_spec(spec.number, f"Spec {spec.number} — {spec.title}")}</div>'
+        # Spec 0213 §2.4 — decimal sub-specs get a `↳ <parent>` chip + a
+        # left-indent on the title via the `--sub-spec` modifier. Integer
+        # specs render unchanged.
+        f'<div class="{_sub_spec_modifier(spec.number, "hero__title")}">'
+        f'{_sub_spec_chip(spec.number)}'
+        f'{_link_spec(spec.number, f"Spec {spec.number} — {spec.title}")}</div>'
         f'<div class="hero__row">{"".join(chips)}</div>'
         '</div>'
         '<div class="hero__right">'
@@ -778,18 +834,21 @@ def _render_pipeline(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datet
 # ── Metrics row ────────────────────────────────────────────────────────────
 
 
-# Spec 0177 §2.4.3 — stage groups for the stacked-bar mean-durations
-# chart. We collapse the 11 raw stages into 7 buckets so the bar reads
-# at a glance. The order matches the chart legend in the mockup.
+# Spec 0213 §2.3 — stage groups for the stacked-bar mean-durations chart.
+# Aligned 1:1 with the 7 timeline rows in stages.STAGES: same labels, same
+# order, same `(start_event, end_event)` pairs. The
+# `test_stage_groups_match_stages` consistency assertion makes drift a CI
+# failure — keep these two tables in lockstep when /dev-next event vocab
+# changes.
 _STAGE_GROUPS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    # (legend label, chart-token, list of "from_step → to_step" pairs that map into this bucket)
-    ("Pre-flight", "chart-grey",   ("cycle_started→preflight_ok",)),
-    ("Read & plan", "chart-mint",  ("preflight_ok→handoff_read", "handoff_read→spec_read", "spec_read→planning_started")),
-    ("Reconcile",   "chart-yellow",("planning_started→reconcile_complete", "spec_read→reconcile_complete")),
-    ("Implement",   "chart-blue",  ("reconcile_complete→implement_complete", "branched→implement_complete", "in_progress→implement_complete")),
-    ("Tests",       "chart-green", ("implement_complete→tests_green", "tests_started→tests_green")),
-    ("PR + merge",  "chart-purple",("tests_green→pr_opened", "pr_opened→merged")),
-    ("Deploy",      "chart-peach", ("merged→deployed", "deploy_started→deployed", "deployed→deploy_health_check_ok")),
+    # (legend label, chart-token, ("start_event→end_event",) — single pair per bucket post 0213)
+    ("Pre-flight",  "chart-grey",   ("cycle_started→preflight_ok",)),
+    ("Read & plan", "chart-mint",   ("handoff_read→reconcile_complete",)),
+    ("Implement",   "chart-blue",   ("branched→implement_complete",)),
+    ("Test",        "chart-green",  ("tests_started→tests_green",)),
+    ("Ship",        "chart-purple", ("pr_opened→merged",)),
+    ("Deploy",      "chart-peach",  ("merged→deployed",)),
+    ("Handoff",     "chart-yellow", ("deployed→handoff_written",)),
 )
 
 
@@ -1741,9 +1800,11 @@ def _render_all_specs(specs: list[SpecRow]) -> str:
     for s in sorted_specs:
         lifetime = _humanize_seconds(_spec_lifetime_seconds(s))
         cycle = _humanize_seconds(s.cycle_seconds)
+        # Spec 0213 §2.4 — decimal sub-specs get `qrow--sub-spec` + a chip.
+        row_class = _sub_spec_modifier(s.number, "qrow qrow--history")
         rows.append(
-            '<div class="qrow qrow--history">'
-            f'<div class="qrow__id">{_link_spec(s.number, s.number)}</div>'
+            f'<div class="{row_class}">'
+            f'<div class="qrow__id">{_sub_spec_chip(s.number)}{_link_spec(s.number, s.number)}</div>'
             f'<div class="qrow__title">{_escape(s.title)}</div>'
             f'<div>{_type_chip(s.type)}</div>'
             f'<div>{_status_chip(s.status)}</div>'
@@ -2276,7 +2337,11 @@ def render_spec_page(s: SpecRow) -> str:
     parts.append(_html_head(f"Spec {s.number} — {s.title}"))
     parts.append('<body><main class="page">')
     parts.append('<p><a href="index.html">← back to dashboard</a></p>')
-    parts.append(f'<h1>Spec {_escape(s.number)} — {_escape(s.title)}</h1>')
+    # Spec 0213 §2.4 / §6 — the per-spec page also surfaces the `↳ <parent>`
+    # chip (chip only, no indent; the page has no siblings to indent against).
+    parts.append(
+        f'<h1>{_sub_spec_chip(s.number)}Spec {_escape(s.number)} — {_escape(s.title)}</h1>'
+    )
     parts.append('<div class="sh"><div class="sh__name">Frontmatter</div><div class="sh__rule"></div></div>')
     parts.append('<section class="qtable"><div class="qrow qrow--header" style="grid-template-columns: 200px 1fr;">'
                  '<div>Field</div><div>Value</div></div>')
@@ -2436,6 +2501,22 @@ body {
 }
 .hero__title a { color: inherit; text-decoration: none; }
 .hero__title a:hover { color: var(--p-info); }
+
+/* Spec 0213 §2.4 — decimal sub-spec affordance. The `--sub-spec` row
+   modifier carries a ~16px left-indent so a child spec reads as visually
+   subordinate to its parent. The chip primitive is the existing
+   .chip.tone-neutral.no-dot (design-system/SPEC.md §6 Chip) — `.chip-sub-spec`
+   is a slot for spacing the chip from the spec ID, not a new chip variant.
+   The chip + indent appear together: indent on the row container, chip
+   inside the spec ID cell. The per-spec page H1 carries only the chip
+   (the page has no sibling rows to indent against).  */
+.hero__title--sub-spec,
+.qrow--sub-spec .qrow__id { padding-left: 16px; }
+/* History rows are `.qrow.qrow--history`, so the BEM-root modifier
+   `.qrow--sub-spec` covers both queue-style and history-style rows when
+   they pick up the sub-spec affordance. */
+.chip-sub-spec { margin-right: 8px; }
+.chip-sub-spec a { color: inherit; text-decoration: none; }
 .hero__row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .hero__hint { color: var(--md-on-surface-muted); font-size: 13px; }
 .hero__right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 200px; }
@@ -3460,23 +3541,24 @@ DASHBOARD_BOOTSTRAP_JS = """\
     return label;
   }
 
-  // Spec 0177 §2.2 — STAGE_DEFS must mirror STAGES in
-  // scripts/spec_lifecycle/stages.py. Each entry is [name, completedStep].
-  // The bootstrap re-implements compute_stages so the horizontal timeline
-  // survives the 5s /api/data refresh (previously the timeline was server-
-  // rendered only, then wiped on first bootstrap repaint).
+  // Spec 0213 §2.1 / §2.3 — STAGE_DEFS must mirror STAGES in
+  // scripts/spec_lifecycle/stages.py. Each entry is
+  // [name, start_event, end_event] — seven honest spans, one
+  // (start_event, end_event) pair each. Drift = the 5s /api/data repaint
+  // disagrees with the server-rendered first paint.
+  //
+  // Spec 0212 buffer-events doctrine: Deploy + Handoff rows necessarily
+  // tick at the same /api/data refresh because the post-merge events
+  // flush atomically at /dev-next step 23. This is correct behavior, not
+  // a bug — do not try to interleave them.
   var STAGE_DEFS = [
-    ['Pre-flight',   'preflight_ok'],
-    ['Read handoff', 'handoff_read'],
-    ['Read spec',    'spec_read'],
-    ['Reconcile',    'reconcile_complete'],
-    ['Branch',       'branched'],
-    ['Implement',    'implement_complete'],
-    ['Test',         'tests_green'],
-    ['PR',           'pr_opened'],
-    ['Merge',        'merged'],
-    ['Deploy',       'deployed'],
-    ['Handoff',      'handoff_written']
+    ['Pre-flight',  'cycle_started', 'preflight_ok'],
+    ['Read & plan', 'handoff_read',  'reconcile_complete'],
+    ['Implement',   'branched',      'implement_complete'],
+    ['Test',        'tests_started', 'tests_green'],
+    ['Ship',        'pr_opened',     'merged'],
+    ['Deploy',      'merged',        'deployed'],
+    ['Handoff',     'deployed',      'handoff_written']
   ];
 
   // Spec 0177 §2.6 pager state. Page index per section name; consulted
@@ -3535,6 +3617,31 @@ DASHBOARD_BOOTSTRAP_JS = """\
     return ka[1] - kb[1];
   }
 
+  // Spec 0213 §2.4 — decimal sub-spec affordances. Mirror the Python
+  // helpers at scripts/spec_lifecycle/render_dashboard._sub_spec_chip and
+  // ._sub_spec_modifier so first paint (server) and 5s repaint (client)
+  // produce byte-identical chrome.
+  function subSpecParent(idStr) {
+    if (!idStr || String(idStr).indexOf('.') === -1) return null;
+    var parts = String(idStr).split('.');
+    if (parts.length !== 2) return null;
+    var parent = parts[0], child = parts[1];
+    if (!/^\\d+$/.test(parent) || !/^\\d+$/.test(child)) return null;
+    if (parseInt(child, 10) <= 0) return null;
+    return parent;
+  }
+  function subSpecChip(idStr) {
+    var parent = subSpecParent(idStr);
+    if (parent === null) return '';
+    return '<span class="chip tone-neutral no-dot chip-sub-spec">↳ ' +
+      '<a href="spec-' + ESC(parent) + '.html">' + ESC(parent) + '</a></span>';
+  }
+  function subSpecModifier(idStr, base) {
+    if (subSpecParent(idStr) === null) return base;
+    var root = base.split(' ')[0];
+    return base + ' ' + root + '--sub-spec';
+  }
+
   // ── Chips, type → tone (mirror Python _TYPE_TONE) ───────────────────────
   var TYPE_TONE = {
     'new-feature': 'info', 'bug': 'err', 'refactoring': 'warn',
@@ -3549,14 +3656,16 @@ DASHBOARD_BOOTSTRAP_JS = """\
     return '<span class="chip tone-' + tone + '">' + ESC(status || '—') + '</span>';
   }
 
-  // Spec 0177 §2.2 — compute stage states for an in-flight spec from its
-  // event log. Mirrors stages.py:compute_stages but trimmed: we don't
-  // compute durations (the server already rendered them and they don't
-  // change often within a 5s refresh window), only done/curr/queued.
-  // Spec 0182 — computeStages now also walks event timestamps to derive
-  // per-stage duration_seconds, mirroring the server-side algorithm at
-  // stages.compute_stages. Without this, every completed stage's
-  // .tl__dur flipped to em-dash after each 5s repaint.
+  // Spec 0213 §2.2 — compute stage states for an in-flight spec from its
+  // event log. Mirrors stages.py:compute_stages — seven spans, each
+  // measured as (end_event.ts - start_event.ts). The legacy fallback (a
+  // stage missing its start_event uses the prior row's end_event ts)
+  // keeps historical specs showing non-zero durations.
+  //
+  // Without this mirror, the 5s /api/data repaint flips completed
+  // stages' durations back to em-dash (spec 0182's old failure mode for
+  // the pre-span model — fixed there for the cumulative chain, re-fixed
+  // here for spans).
   function computeStages(events, failureStep) {
     var byStep = {};
     events.forEach(function (e) {
@@ -3565,49 +3674,61 @@ DASHBOARD_BOOTSTRAP_JS = """\
     });
     var failIdx = null;
     if (failureStep) {
-      var key = String(failureStep).toLowerCase().replace(/[ -]/g, '_');
+      var key = String(failureStep).toLowerCase().replace(/[ -]/g, '_').replace('&', 'and');
       for (var fi = 0; fi < STAGE_DEFS.length; fi++) {
-        if (key === STAGE_DEFS[fi][0].toLowerCase().replace(/[ -]/g, '_')) {
-          failIdx = fi; break;
-        }
+        var stageKey = STAGE_DEFS[fi][0].toLowerCase().replace(/[ -]/g, '_').replace('&', 'and');
+        if (key === stageKey) { failIdx = fi; break; }
       }
     }
+    // Current stage = lowest-index row whose end_event hasn't fired,
+    // where the prior row's end_event has (or i === 0).
     var currIdx = null;
     if (failIdx === null) {
       for (var i = 0; i < STAGE_DEFS.length; i++) {
-        if (STAGE_DEFS[i][1] in byStep) continue;
-        if (i === 0 || STAGE_DEFS[i - 1][1] in byStep) { currIdx = i; break; }
+        if (STAGE_DEFS[i][2] in byStep) continue;
+        if (i === 0 || STAGE_DEFS[i - 1][2] in byStep) { currIdx = i; break; }
       }
     }
-    // Anchor preference must mirror stages.py:225-229 — cycle_started
-    // first, then queued, then in_progress. Historical specs (pre
-    // spec 0156) only have in_progress; new specs have all three.
+    // Cycle anchor — same preference order as stages.py: cycle_started
+    // → queued → in_progress. Used as Pre-flight's start_event by
+    // definition and as the legacy fallback for any row missing its
+    // start_event.
     function _ms(iso) {
       if (!iso) return null;
       var t = new Date(iso).getTime();
       return isFinite(t) ? t : null;
     }
     var anchorEv = byStep['cycle_started'] || byStep['queued'] || byStep['in_progress'];
-    var prevTs = anchorEv ? _ms(anchorEv.ts) : null;
+    var cycleAnchorTs = anchorEv ? _ms(anchorEv.ts) : null;
     var nowMs = Date.now();
+    var prevEndTs = cycleAnchorTs;
     return STAGE_DEFS.map(function (def, i) {
+      var startKey = def[1], endKey = def[2];
+      var endEv = byStep[endKey] || null;
       var status;
-      if (def[1] in byStep) status = 'done';
+      if (endEv) status = 'done';
       else if (failIdx !== null && i === failIdx) status = 'fail';
       else if (currIdx !== null && i === currIdx) status = 'curr';
       else status = 'queued';
-      var ev = byStep[def[1]] || null;
+      // Start anchor priority: own start_event → prior row's end_event
+      // (legacy fallback) → cycle anchor (Pre-flight only).
+      var startEv = byStep[startKey] || null;
+      var startTs = null;
+      if (startEv) startTs = _ms(startEv.ts);
+      else if (i === 0) startTs = cycleAnchorTs;
+      else startTs = prevEndTs;
       var duration_seconds = null;
-      if (ev) {
-        var evTs = _ms(ev.ts);
-        if (evTs != null && prevTs != null) {
-          duration_seconds = Math.max(0, Math.floor((evTs - prevTs) / 1000));
+      var endTs = null;
+      if (endEv) {
+        endTs = _ms(endEv.ts);
+        if (endTs != null && startTs != null) {
+          duration_seconds = Math.max(0, Math.floor((endTs - startTs) / 1000));
         }
-        if (evTs != null) prevTs = evTs;
-      } else if (status === 'curr' && prevTs != null) {
-        duration_seconds = Math.max(0, Math.floor((nowMs - prevTs) / 1000));
+      } else if (status === 'curr' && startTs != null) {
+        duration_seconds = Math.max(0, Math.floor((nowMs - startTs) / 1000));
       }
-      return { name: def[0], status: status, ev: ev, duration_seconds: duration_seconds };
+      if (endTs != null) prevEndTs = endTs;
+      return { name: def[0], status: status, ev: endEv, duration_seconds: duration_seconds };
     });
   }
 
@@ -3799,7 +3920,10 @@ DASHBOARD_BOOTSTRAP_JS = """\
       '<div class="hero__icon"><span class="material-symbols-outlined">play_circle</span></div>' +
       '<div class="hero__body">' +
       '<div class="hero__kicker">In flight — ' + ESC(spec.slug) + '</div>' +
-      '<div class="hero__title"><a href="spec-' + ESC(spec.number) + '.html">Spec ' +
+      // Spec 0213 §2.4 — decimal sub-spec chip + indent on the hero title.
+      '<div class="' + subSpecModifier(spec.number, 'hero__title') + '">' +
+      subSpecChip(spec.number) +
+      '<a href="spec-' + ESC(spec.number) + '.html">Spec ' +
       ESC(spec.number) + ' — ' + ESC(spec.title) + '</a></div>' +
       '<div class="hero__row">' + chips.join('') + '</div>' +
       '</div>' +
@@ -3981,9 +4105,12 @@ DASHBOARD_BOOTSTRAP_JS = """\
     dev.forEach(function (s) {
       var lifetime = humanizeSec(specLifetimeSeconds(s));
       var cycle = humanizeSec(specCycleSeconds(s));
+      // Spec 0213 §2.4 — decimal sub-spec affordance on history rows.
+      var rowClass = subSpecModifier(s.number, 'qrow qrow--history');
       rows.push(
-        '<div class="qrow qrow--history">' +
-        '<div class="qrow__id"><a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
+        '<div class="' + rowClass + '">' +
+        '<div class="qrow__id">' + subSpecChip(s.number) +
+        '<a href="spec-' + ESC(s.number) + '.html">' + ESC(s.number) + '</a></div>' +
         '<div class="qrow__title">' + ESC(s.title) + '</div>' +
         '<div>' + typeChip(s.type) + '</div>' +
         '<div>' + statusChip(s.status) + '</div>' +
