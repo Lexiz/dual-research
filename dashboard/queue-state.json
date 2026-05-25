@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T10:29:12Z",
+  "updated_at": "2026-05-25T10:34:09Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9240,6 +9240,11 @@
       "merged_at": "2026-05-25T10:21:36Z",
       "deployed_at": "2026-05-25T10:29:11Z",
       "handover": "handoffs/2026-05-25-spec-0212-gh-pr-merge-delete-branch-author-worktree-collision.md"
+    },
+    "0212.1": {
+      "status": "queued",
+      "queued_at": "2026-05-25T10:32:58Z",
+      "events": []
     }
   }
 }
