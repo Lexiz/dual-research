@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T11:14:59Z",
+  "updated_at": "2026-05-25T11:34:17Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9321,7 +9321,7 @@
       "handover": "handoffs/2026-05-25-spec-0212.1-test-explicit-cleanup-ordering-invariant.md"
     },
     "0213": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-25T11:10:06Z",
       "events": [
         {
@@ -9346,9 +9346,46 @@
           "ts": "2026-05-25T11:14:59Z",
           "step": "implementing_started",
           "data": {}
+        },
+        {
+          "ts": "2026-05-25T11:31:59Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 13,
+            "new_files": 3,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-25T11:32:02Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T11:32:37Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 1935
+          }
+        },
+        {
+          "ts": "2026-05-25T11:34:08Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/249"
+          }
+        },
+        {
+          "ts": "2026-05-25T11:34:17Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/249"
+          }
         }
       ],
-      "started_at": "2026-05-25T11:14:38Z"
+      "started_at": "2026-05-25T11:14:38Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/249",
+      "merged_at": "2026-05-25T11:34:15Z"
     }
   }
 }
