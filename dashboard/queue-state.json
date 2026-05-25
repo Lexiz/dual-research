@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:24:10Z",
+  "updated_at": "2026-05-25T09:24:17Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -8960,7 +8960,7 @@
       "handover": "handoffs/2026-05-25-spec-0211.1-ci-sweep-flyctl-not-fly-binary.md"
     },
     "0211.2": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-24T13:38:00Z",
       "events": [
         {
@@ -9009,7 +9009,9 @@
           }
         }
       ],
-      "started_at": "2026-05-25T09:17:13Z"
+      "started_at": "2026-05-25T09:17:13Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/245",
+      "merged_at": "2026-05-25T09:24:17Z"
     }
   }
 }
