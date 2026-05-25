@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:42:30Z",
+  "updated_at": "2026-05-25T09:48:04Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9054,9 +9054,10 @@
       "handover": "handoffs/2026-05-25-spec-0211.2-merge-sha-capture-race-with-post-merge-pushes.md"
     },
     "0211.3": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-25T09:41:44Z",
-      "events": []
+      "events": [],
+      "started_at": "2026-05-25T09:48:04Z"
     },
     "0212": {
       "status": "queued",
