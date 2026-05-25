@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T23:18:58Z",
+  "updated_at": "2026-05-25T23:19:12Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9911,6 +9911,14 @@
           "ts": "2026-05-25T23:18:58Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-25T23:19:12Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0218-phase4-status-survives-truncation",
+            "from": "main@a5b1bed"
+          }
         }
       ],
       "started_at": "2026-05-25T23:18:56Z"
