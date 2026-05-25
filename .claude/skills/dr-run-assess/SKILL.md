@@ -53,6 +53,16 @@ scores are fixed at 5/5 across every axis until a future run beats it. If
 this run scores above anchor on any axis, flag it in the verdict and
 recommend promoting the anchor in the next assessment.
 
+**Brief-version caveat.** The anchor run used the *Partner Vetting*
+briefing (an earlier, brand-named version). Current runs use the *Generic*
+briefing (`36699f3e-507f-81e8-b6a4-ee77f6232fef`), which is the same
+briefing with brand names removed (Partner Vetting / Trimble / TTC / Mario /
+ARC). The two briefs are semantically identical on criteria, candidates,
+biases, and constraints — so axis-by-axis diff remains meaningful. The
+prior anchor run already generalised "Partner Vetting" to "DVS" in its
+output, indicating the agents were treating it as generic. If a future
+run on the Generic brief clearly beats anchor on F, promote it.
+
 ## Inputs to load
 
 From `runs/<id>/`:

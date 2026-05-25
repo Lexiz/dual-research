@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.13] — 2026-05-25
+
+### Changed
+
+- **`/dr-run-assess` skill — switch active briefing to the Generic version.** Production runs now point at the Generic backend-language-choice briefing (`36699f3e-507f-81e8-b6a4-ee77f6232fef`) instead of the brand-named Partner Vetting version (`36399f3e-507f-81e1-a96d-d3d61aba7141`). The two briefs are semantically identical on criteria, candidates, biases, and constraints — only brand names (Partner Vetting / Trimble / TTC / Mario / ARC) are removed. Skill anchor reference adds a brief-version caveat so the anchor-vs-current axis diff stays interpretable. Rubric and six-axis scoring are unchanged. Companion Notion edit: "Expected output shape" section added to the Generic brief (mirrors the section already on the Partner Vetting brief). Non-spec manual tooling edit.
+
 ## [1.44.12] — 2026-05-25
 
 ### Fixed
