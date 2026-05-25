@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.44.17] — 2026-05-25
+
+### Added
+
+- **Spec 0212.1 — Lock the spec 0212 explicit-cleanup ordering invariant** ([spec 0212.1](specs/0212.1-test-explicit-cleanup-ordering-invariant.md)). PATCH test-only addition. New assertion `test_step_19_re_detach_precedes_branch_delete` in [tests/test_spec_0212_post_merge_doctrine.py](tests/test_spec_0212_post_merge_doctrine.py) locks the load-bearing ordering inside step 19's explicit-cleanup block of `~/.claude/skills/dev-next/SKILL.md`: the first `git checkout --detach` line index must be strictly less than the first `git branch -D "$BRANCH"` line index. The spec 0212 cycle live-discovered that `git branch -D` on a still-checked-out branch is refused by git (`cannot delete branch ... used by worktree at ...`) and folded the re-detach inline above the deletes; the existing 0212 source-pattern tests assert presence of both primitives but not their order. The new test catches two regression vectors that pass the existing suite: a re-shuffle that moves the detach below the delete, and a silent removal of the re-detach line that also breaks the spec-0210 baseline-pose contract. Pure stdlib, same `_step_block` helper as the existing five assertions, sub-millisecond runtime.
+
 ## [1.44.16] — 2026-05-25
 
 ### Changed

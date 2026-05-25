@@ -147,6 +147,54 @@ def test_step_20_happy_path_deployed_is_local_only() -> None:
     )
 
 
+def test_step_19_re_detach_precedes_branch_delete() -> None:
+    """Step 19's explicit-cleanup block must run `git checkout --detach -f
+    origin/main` BEFORE `git branch -D "$BRANCH"`. `git branch -D` on a
+    branch that is still checked out in the current worktree is refused by
+    git ("cannot delete branch ... used by worktree at ..."); the spec 0212
+    cycle live-discovered this with the detach AFTER the by-name delete and
+    folded the re-detach into the cleanup block in the correct order.
+
+    A future re-shuffle of step 19 that moves the detach back below the
+    delete — or drops the detach line altogether — re-introduces the
+    collision AND breaks the spec-0210 baseline-pose contract (the queue
+    worktree must be detached at `origin/main` between cycles)."""
+    body = _skill_body()
+    block = _step_block(body, 19)
+    lines = block.split("\n")
+    # Anchor at start-of-line (allow leading whitespace) so that prose mentions
+    # like `\`git branch -D "$BRANCH"\` fails when ...` inside the surrounding
+    # explanatory text do not match — only executable shell lines do.
+    detach_pattern = re.compile(r"^\s*git\s+checkout\s+--detach")
+    delete_pattern = re.compile(r'^\s*git\s+branch\s+-D\s+"\$BRANCH"')
+    detach_idx: int | None = next(
+        (i for i, ln in enumerate(lines) if detach_pattern.search(ln)),
+        None,
+    )
+    delete_idx: int | None = next(
+        (i for i, ln in enumerate(lines) if delete_pattern.search(ln)),
+        None,
+    )
+    assert detach_idx is not None, (
+        "step 19 of dev-next SKILL.md must contain `git checkout --detach` "
+        "in the explicit-cleanup block — spec 0212 folded the spec-0210 "
+        "re-detach into step 19. Dropping it breaks the baseline-pose "
+        "contract AND re-introduces the `git branch -D` worktree collision."
+    )
+    assert delete_idx is not None, (
+        'step 19 of dev-next SKILL.md must contain `git branch -D "$BRANCH"` '
+        "as the local-branch cleanup half of the spec-0212 explicit block."
+    )
+    assert detach_idx < delete_idx, (
+        f"step 19 ordering violation: `git checkout --detach` (line "
+        f"{detach_idx} of block) must precede `git branch -D \"$BRANCH\"` "
+        f"(line {delete_idx} of block). With the delete first, git refuses "
+        "the by-name delete because the queue worktree at "
+        "`/Users/alexlisitzky/dual-research/` is still checked out on the "
+        "spec branch (live-discovered during the spec 0212 cycle)."
+    )
+
+
 def test_step_20_failure_paths_keep_push_to_main() -> None:
     """Step 20's failure-path emissions MUST keep `--push-to-main` — the
     cycle exits after them, so there is no step 23 to flush the buffer.
