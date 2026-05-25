@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T23:36:47Z",
+  "updated_at": "2026-05-25T23:45:39Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9890,7 +9890,7 @@
       "handover": "handoffs/2026-05-25-spec-0217.1-openai-status-raised-canonical-ids.md"
     },
     "0218": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-25T22:33:53Z",
       "events": [
         {
@@ -9958,11 +9958,39 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/255"
           }
+        },
+        {
+          "ts": "2026-05-25T23:37:16Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T23:44:10Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.24"
+          }
+        },
+        {
+          "ts": "2026-05-25T23:44:32Z",
+          "step": "deploy_health_check_ok",
+          "data": {
+            "http_root": 200
+          }
+        },
+        {
+          "ts": "2026-05-25T23:45:34Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
+          }
         }
       ],
       "started_at": "2026-05-25T23:18:56Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/255",
-      "merged_at": "2026-05-25T23:36:45Z"
+      "merged_at": "2026-05-25T23:36:45Z",
+      "deployed_at": "2026-05-25T23:45:39Z",
+      "handover": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
     }
   }
 }
