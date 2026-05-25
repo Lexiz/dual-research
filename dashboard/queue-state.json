@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T13:11:12Z",
+  "updated_at": "2026-05-25T13:11:14Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9631,6 +9631,11 @@
             "branch": "spec/0216-raiser-self-address-observability",
             "from": "main@404e98d"
           }
+        },
+        {
+          "ts": "2026-05-25T13:11:14Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T13:10:57Z"
