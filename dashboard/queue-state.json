@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T13:18:17Z",
+  "updated_at": "2026-05-25T13:27:28Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9609,7 +9609,7 @@
       "handover": "handoffs/2026-05-25-spec-0215-fix-in-round-partner-blindness.md"
     },
     "0216": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-25T12:09:46Z",
       "events": [
         {
@@ -9670,11 +9670,40 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/252"
           }
+        },
+        {
+          "ts": "2026-05-25T13:18:44Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-25T13:25:49Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.21"
+          }
+        },
+        {
+          "ts": "2026-05-25T13:26:42Z",
+          "step": "deploy_health_check_ok",
+          "data": {
+            "endpoint": "https://dual-research-alex.fly.dev/",
+            "http_status": 200
+          }
+        },
+        {
+          "ts": "2026-05-25T13:27:22Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-25-spec-0216-raiser-self-address-observability.md"
+          }
         }
       ],
       "started_at": "2026-05-25T13:10:57Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/252",
-      "merged_at": "2026-05-25T13:18:14Z"
+      "merged_at": "2026-05-25T13:18:14Z",
+      "deployed_at": "2026-05-25T13:27:28Z",
+      "handover": "handoffs/2026-05-25-spec-0216-raiser-self-address-observability.md"
     }
   }
 }
