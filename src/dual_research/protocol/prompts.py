@@ -2081,8 +2081,9 @@ You are agent "{agent_name}", acting as {role}. The draft is by
 
 Phase 4 converges when both of you emit STATUS: AGREED in the same
 round, all items are terminal, your AGREED_DRAFT_ACCEPTANCE blocks
-match (same draft_version, same draft_hash), and the drafter has not
-revised the draft in this round.
+agree on the same draft_version (the orchestrator anchors the version
+pointer to the on-disk draft), and the drafter has not revised the
+draft in this round.
 
 If you are the DRAFTER and the other agent's prior turn raised
 substantive items, you may revise the draft in this turn by emitting
@@ -2129,7 +2130,6 @@ Produce a turn with the canonical section structure.
 ### AGREED_DRAFT_ACCEPTANCE
 
 draft_version: v<N>
-draft_hash: <SHA-256 hex of the draft file content>
 endorsement: |
   <one sentence on why this draft satisfies the brief>
 

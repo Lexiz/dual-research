@@ -402,6 +402,10 @@ class Phase4Complete(Event):
     # Spec 0089 § B: set when Phase 4 converged via the stuck-AGREED
     # (stuck-APPROVED) escape valve.
     via_stuck_agreed: bool = False
+    # Spec 0214: orchestrator-computed canonical_hash (smart-quote-folded,
+    # whitespace-collapsed SHA-256) of the on-disk draft at the converged
+    # round. ``None`` when no draft file is on disk for the final round.
+    draft_file_sha256: str | None = None
     kind: str = "phase4_complete"
 
 

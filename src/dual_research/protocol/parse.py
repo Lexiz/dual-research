@@ -13,7 +13,6 @@ from dual_research.contract.markers import (
     ADDRESSED_DISAGREEMENTS_RE,
     ADDRESSED_ISSUES_RE,
     ADDRESSED_QUESTIONS_RE,
-    DRAFT_HASH_RE,
     DRAFT_VERSION_RE,
     EVIDENCE_EVENT_ID_RE,
     EVIDENCE_FETCHED_AT_RE,
@@ -1475,11 +1474,13 @@ def extract_agreed_plan_body(turn_text: str) -> str | None:
     return artifact[m.end():].strip() or None
 
 
-def extract_agreed_draft_acceptance(turn_text: str) -> tuple[int, str, str] | None:
-    """Return ``(draft_version, draft_hash, endorsement)`` from ``### AGREED_DRAFT_ACCEPTANCE``.
+def extract_agreed_draft_acceptance(turn_text: str) -> tuple[int, str] | None:
+    """Return ``(draft_version, endorsement)`` from ``### AGREED_DRAFT_ACCEPTANCE``.
 
     Phase 4 acceptance block. Returns ``None`` when the section is
-    absent. Missing fields default to ``(0, "", "")`` per field.
+    absent. Missing fields default to ``(0, "")`` per field. Spec 0214
+    dropped the agent-emitted ``draft_hash`` field — the orchestrator
+    owns provenance via ``Phase4Complete.draft_file_sha256``.
     """
     artifact = _extract_section_body(turn_text, SECTION_PHASE_ARTIFACT_RE)
     if not artifact:
@@ -1489,11 +1490,9 @@ def extract_agreed_draft_acceptance(turn_text: str) -> tuple[int, str, str] | No
         return None
     body = artifact[m.end():]
     ver_m = DRAFT_VERSION_RE.search(body)
-    hash_m = DRAFT_HASH_RE.search(body)
     endorsement = _parse_field_block_scalar(body, "endorsement")
     version = int(ver_m.group(1)) if ver_m else 0
-    digest = hash_m.group(1).lower() if hash_m else ""
-    return version, digest, endorsement.strip()
+    return version, endorsement.strip()
 
 
 def extract_drafter_from_agreed_plan(agreed_plan_body: str) -> str | None:
