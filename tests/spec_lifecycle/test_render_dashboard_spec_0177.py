@@ -98,9 +98,10 @@ def test_counter_row_has_five_counters_with_accent(tmp_path: Path) -> None:
     assert "Avg cycle (last 10)" in html
 
 
-def test_inflight_render_has_tl_with_at_least_10_steps(tmp_path: Path) -> None:
-    """Spec 0177 §6 — in-flight render contains `<div class="tl">` with
-    ≥ 10 `tl__step` children (the canonical 11 stages)."""
+def test_inflight_render_has_tl_with_seven_steps(tmp_path: Path) -> None:
+    """Spec 0177 §6 + spec 0213 §2.1 — in-flight render contains
+    `<div class="tl">` with exactly 7 `tl__step` children (the canonical
+    span rows after spec 0213's collapse from 11 → 7)."""
     root = _bootstrap_repo(tmp_path)
     _spec(root / "specs", "0151", status="in_progress",
           started_at="2026-05-22T10:00:00Z")
@@ -110,7 +111,7 @@ def test_inflight_render_has_tl_with_at_least_10_steps(tmp_path: Path) -> None:
     specs, drafts = collect(root)
     html = render_index(specs, drafts)
     assert '<div class="tl" aria-label="Cycle stages">' in html
-    assert html.count('class="tl__step tl__step--') >= 10
+    assert html.count('class="tl__step tl__step--') == 7
 
 
 def test_history_grid_has_lifetime_and_cycle_headers(tmp_path: Path) -> None:

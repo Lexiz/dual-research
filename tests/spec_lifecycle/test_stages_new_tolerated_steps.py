@@ -1,28 +1,45 @@
-"""Spec 0163 — the five new informational step names don't trip stage logic."""
+"""Spec 0163 — informational step names don't trip stage logic.
+
+Spec 0213 update: ``tests_started`` graduated from "tolerated informational
+marker" to "Test row's start_event" once stages moved to the span model.
+It still doesn't trip ``unknown_events`` (known_steps covers it), so the
+end-to-end contract holds — only the categorisation moved.
+"""
 
 from __future__ import annotations
 
 import datetime as dt
 
 from scripts.spec_lifecycle.stages import (
+    STAGES,
     STEP_LABELS,
     TOLERATED_NON_STAGE_STEPS,
     compute_stages,
 )
 
 
-NEW_STEPS = (
+# These remain informational — they don't anchor a span and they don't
+# fire failure events. Pure markers that should not trip unknown_events.
+INFORMATIONAL_TOLERATED_STEPS = (
     "planning_started",
     "implementing_started",
-    "tests_started",
     "deploy_started",
     "deploy_health_check_ok",
 )
 
 
-def test_new_steps_are_tolerated() -> None:
-    for step in NEW_STEPS:
+def test_informational_steps_are_tolerated() -> None:
+    for step in INFORMATIONAL_TOLERATED_STEPS:
         assert step in TOLERATED_NON_STAGE_STEPS, step
+
+
+def test_tests_started_is_now_a_stage_start_event() -> None:
+    """Spec 0213 — `tests_started` anchors the Test row's start. It's no
+    longer in TOLERATED_NON_STAGE_STEPS but it IS the Test stage's
+    start_event, so unknown_events still won't include it."""
+    assert "tests_started" not in TOLERATED_NON_STAGE_STEPS
+    test_row = next(s for s in STAGES if s.name == "Test")
+    assert test_row.start_event == "tests_started"
 
 
 def test_compute_stages_does_not_flag_new_steps_as_unknown() -> None:

@@ -5,8 +5,9 @@ browser, no js2py) so they run inside the existing
 ``uv run pytest tests/ -q`` flow without new dependencies.
 
 1. **Structural-parity** — the mockup's hero → counters → tabs → panels
-   ordering, the 11-step timeline inside the hero, the 5-counter row
-   with `.counter--accent` at slot 5, and the tab strip's button order
+   ordering, the seven-step timeline inside the hero (spec 0213 §2.1
+   collapsed the previous 11-row anatomy), the 5-counter row with
+   `.counter--accent` at slot 5, and the tab strip's button order
    must all appear in the live render. Subsequence match (not exact) so
    the live render's region-swap wrapper divs are tolerated.
 
@@ -167,11 +168,14 @@ def test_live_dashboard_has_hero_then_counters_then_tab_panels(tmp_path: Path) -
     )
 
 
-def test_live_dashboard_timeline_has_11_steps_inside_hero(tmp_path: Path) -> None:
-    """Mockup's `.tl` lives inside `.hero` (line 560) with exactly 11
-    `.tl__step` children (one per /dev-next stage). Spec 0177's existing
-    test only counts the steps anywhere — this asserts they're nested
-    inside `.hero`."""
+def test_live_dashboard_timeline_has_seven_steps_inside_hero(tmp_path: Path) -> None:
+    """Spec 0213 §2.1 — `.tl` lives inside `.hero` with exactly 7
+    `.tl__step` children (one per honest span: Pre-flight, Read & plan,
+    Implement, Test, Ship, Deploy, Handoff). Spec 0177's existing test
+    only counts the steps anywhere — this asserts they're nested inside
+    `.hero`. The mockup at dashboard/mockups/dashboard-redesign-v3-horizontal.html
+    shipped with 11 single-event rows; updated in spec 0213 to the new
+    span anatomy."""
     html = _render_inflight_fixture(tmp_path)
     nodes = _extract_structure(html)
 
@@ -194,8 +198,8 @@ def test_live_dashboard_timeline_has_11_steps_inside_hero(tmp_path: Path) -> Non
             steps.append(i)
 
     assert tl_idx > hero_idx, ".tl must live inside .hero (mockup line 560)"
-    assert len(steps) == 11, (
-        f"Mockup defines exactly 11 .tl__step nodes (one per /dev-next stage); "
+    assert len(steps) == 7, (
+        f"Spec 0213 defines exactly 7 .tl__step nodes (one per honest span); "
         f"live render has {len(steps)}. Mismatch fails the structural contract."
     )
 

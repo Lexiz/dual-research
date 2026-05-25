@@ -556,10 +556,10 @@ svg.chart { width: 100%; display: block; }
       </div>
     </div>
     <div class="hero__divider"></div>
-    <!-- Horizontal timeline -->
+    <!-- Horizontal timeline — spec 0213 §2.1: seven honest spans. -->
     <div class="tl" aria-label="Cycle stages">
       <div class="tl__rail"></div>
-      <div class="tl__rail-done" style="width: calc((6/10) * (100% - 28px));"></div>
+      <div class="tl__rail-done" style="width: calc((2/7) * (100% - 28px));"></div>
       <div class="tl__steps">
         <div class="tl__step tl__step--done">
           <div class="tl__node"></div>
@@ -568,28 +568,8 @@ svg.chart { width: 100%; display: block; }
         </div>
         <div class="tl__step tl__step--done">
           <div class="tl__node"></div>
-          <div class="tl__lbl">Read handoff</div>
-          <div class="tl__dur">8s</div>
-        </div>
-        <div class="tl__step tl__step--done">
-          <div class="tl__node"></div>
-          <div class="tl__lbl">Read spec</div>
-          <div class="tl__dur">11s</div>
-        </div>
-        <div class="tl__step tl__step--done">
-          <div class="tl__node"></div>
-          <div class="tl__lbl">Reconcile</div>
-          <div class="tl__dur">22s</div>
-        </div>
-        <div class="tl__step tl__step--done">
-          <div class="tl__node"></div>
-          <div class="tl__lbl">Branch</div>
-          <div class="tl__dur">2s</div>
-        </div>
-        <div class="tl__step tl__step--done">
-          <div class="tl__node"></div>
-          <div class="tl__lbl">Plan</div>
-          <div class="tl__dur">48s</div>
+          <div class="tl__lbl">Read &amp; plan</div>
+          <div class="tl__dur">41s</div>
         </div>
         <div class="tl__step tl__step--curr">
           <div class="tl__node"></div>
@@ -598,12 +578,12 @@ svg.chart { width: 100%; display: block; }
         </div>
         <div class="tl__step tl__step--queued">
           <div class="tl__node"></div>
-          <div class="tl__lbl">Tests</div>
+          <div class="tl__lbl">Test</div>
           <div class="tl__dur">—</div>
         </div>
         <div class="tl__step tl__step--queued">
           <div class="tl__node"></div>
-          <div class="tl__lbl">PR / merge</div>
+          <div class="tl__lbl">Ship</div>
           <div class="tl__dur">—</div>
         </div>
         <div class="tl__step tl__step--queued">
