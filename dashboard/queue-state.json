@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T12:54:15Z",
+  "updated_at": "2026-05-25T12:54:17Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9508,7 +9508,7 @@
       "handover": "handoffs/2026-05-25-spec-0214-drop-phase4-agent-emitted-hash-gate.md"
     },
     "0215": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-25T12:06:55Z",
       "events": [
         {
@@ -9564,7 +9564,9 @@
           }
         }
       ],
-      "started_at": "2026-05-25T12:49:19Z"
+      "started_at": "2026-05-25T12:49:19Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/251",
+      "merged_at": "2026-05-25T12:54:17Z"
     },
     "0216": {
       "status": "queued",
