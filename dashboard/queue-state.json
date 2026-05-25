@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T13:02:42Z",
+  "updated_at": "2026-05-25T13:10:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9609,7 +9609,7 @@
       "handover": "handoffs/2026-05-25-spec-0215-fix-in-round-partner-blindness.md"
     },
     "0216": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-25T12:09:46Z",
       "events": [
         {
@@ -9619,7 +9619,8 @@
             "promoted_from_draft": "004"
           }
         }
-      ]
+      ],
+      "started_at": "2026-05-25T13:10:57Z"
     }
   }
 }
