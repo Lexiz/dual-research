@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T12:49:35Z",
+  "updated_at": "2026-05-25T12:49:37Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9530,6 +9530,11 @@
             "branch": "spec/0215-fix-in-round-partner-blindness",
             "from": "main@6b68683"
           }
+        },
+        {
+          "ts": "2026-05-25T12:49:37Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-25T12:49:19Z"
