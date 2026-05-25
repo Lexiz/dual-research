@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T13:18:12Z",
+  "updated_at": "2026-05-25T13:18:15Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9609,7 +9609,7 @@
       "handover": "handoffs/2026-05-25-spec-0215-fix-in-round-partner-blindness.md"
     },
     "0216": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-25T12:09:46Z",
       "events": [
         {
@@ -9665,7 +9665,9 @@
           }
         }
       ],
-      "started_at": "2026-05-25T13:10:57Z"
+      "started_at": "2026-05-25T13:10:57Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/252",
+      "merged_at": "2026-05-25T13:18:14Z"
     }
   }
 }
