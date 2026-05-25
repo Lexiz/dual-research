@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T09:32:15Z",
+  "updated_at": "2026-05-25T09:33:11Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9037,6 +9037,13 @@
           "data": {
             "endpoint": "/api/health",
             "version": "1.44.14"
+          }
+        },
+        {
+          "ts": "2026-05-25T09:33:11Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-25-spec-0211.2-merge-sha-capture-race-with-post-merge-pushes.md"
           }
         }
       ],
