@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.45.4",
+    "date": "2026-05-26",
+    "bump": "PATCH",
+    "summary": "Phase 4 turn cards now render all four category Δ chips (Q→D→I→C) instead of only Q+D (spec 0223).",
+    "items": [
+      "<strong>Phase 4 turn cards now render all four category Δ chips (Q→D→I→C) instead of only Q+D ([spec 0223](specs/0223-phase4-turn-cards-render-issues-comments-deltas.md)).</strong> Every per-turn card in the Phase 4 (Cross-review) section of the run-detail Timeline was missing its Issues (<code>tone-err</code>) and Comments (<code>tone-idle</code>) chips — only Questions (<code>tone-info</code>) and Disagreements (<code>tone-warn</code>) rendered.",
+      "The phase-header chip cluster correctly showed all four; per-turn cards silently violated the Q→D→I→C category-column alignment contract from design-system/SPEC.md §9.4 rule 8.",
+      "Root cause was a data-shape gap, not a render bug: <code>attachItemStats</code> in sets <code>item.statsPhase</code> on turn rows but never <code>item.phase</code>.",
+      "The chip-cluster ternary at reads <code>item.phase ?? null</code>, so <code>null === 4</code> is false and every phase fell through to the two-category Q+D else branch.",
+      "Phase 2 worked by accident (it needs exactly Q+D); Phase 4 was silently truncated.",
+      "<strong>Single-line fix:</strong> add <code>item.phase = phase</code> next to the existing <code>item.statsPhase = phase</code> in <code>attachItemStats</code>.",
+      "The integer phase classification was already correct (Phase 0 via <code>statsPhase === 0</code> at the push site; Phase 4 via <code>String(index).startsWith('rev-')</code>; Phase 2 as the default else); the fix just propagates it to the field consumers read.",
+      "Phase 0 and Phase 2 turn cards continue to render two chips (their else branch is unchanged); Phase 4 turn cards now render four.",
+      "The hypothesis-2 escape hatch from the spec (JSON-projection dropping zero-valued I/C keys) is dormant — <code>TurnCategoryStats</code> defaults all four <code>CategoryCounters</code> fields, so <code>dataclasses.asdict</code> always emits all four keys.",
+      "Two silent side-benefits: the <code>run.violations</code> lookup at run-detail.jsx:1165 and the <code>findLedgerEntry</code> call at run-detail.jsx:7717 — both of which read <code>item.phase</code> — now receive the actual integer instead of <code>undefined</code>.",
+      "Five source-pattern tests at per the SPEC.md §13 doctrine: positive for the four-category branch in <code>run-detail.jsx</code>, antipodal for <code>phase === 4</code> paired with the two-category list (locks against revert), positive for the slim-Δ <code>add={c.raised}/sub={c.closed}</code> chip mapping, positive for <code>item.phase = phase</code> in <code>live-data.jsx</code>, and a structural assertion that the assignment lives inside the turn/turn-live branch of <code>attachItemStats</code>.",
+      "Cache-bust on <code>live-data.jsx</code> bumped to <code>?v=0223a</code> in <code>index.html</code>.",
+      "Out of scope per spec §7: narrow-viewport overflow of the Phase 4 header chip cluster (deferred follow-up); broader <code>phase === N</code> audit (single-grep confirmed no immediate collateral; no consumer relied on <code>item.phase</code> being undefined)."
+    ],
+    "specs": [
+      "0223"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.45.3",
     "date": "2026-05-26",
     "bump": "PATCH",
