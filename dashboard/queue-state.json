@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T16:57:51Z",
+  "updated_at": "2026-05-26T16:57:54Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10324,7 +10324,7 @@
       "handover": "handoffs/2026-05-26-spec-0220-1-side-menu-version-num-collision.md"
     },
     "0221": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T16:43:08Z",
       "events": [
         {
@@ -10378,7 +10378,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T16:46:50Z"
+      "started_at": "2026-05-26T16:46:50Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/259",
+      "merged_at": "2026-05-26T16:57:54Z"
     }
   }
 }
