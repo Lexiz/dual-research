@@ -405,6 +405,10 @@ async def run_session(
     final_path: str | None = None
     phase_reached = state.phase
     exit_code = EXIT_OK
+    # Spec 0222 §4.1 — liveness invariant: every run_started is followed
+    # by exactly one terminal event. Set True after the success-path or
+    # except-path terminal write; checked by the finally fallback (§4.3).
+    _terminal_written = False
 
     try:
         if state.phase == "phase0":
@@ -525,6 +529,7 @@ async def run_session(
             total_cost_usd=total_cost,
             duration_ms=duration_ms,
         )
+        _terminal_written = True
 
         return RunResult(
             exit_code=exit_code,
@@ -540,17 +545,33 @@ async def run_session(
             total_search_cost_usd=total_search_cost,
         )
 
-    except Exception as e:
+    except BaseException as e:
+        # Spec 0222 §4.1 — widen from `Exception` to `BaseException` so
+        # `asyncio.CancelledError` / `KeyboardInterrupt` / `SystemExit`
+        # (none of which subclass `Exception`) leave a terminal event
+        # behind. Metrics save + bus publish are wrapped best-effort so a
+        # shutdown-time failure in either cannot suppress the load-bearing
+        # `transcript.write("run_failed", ...)` tombstone.
         duration_ms = int((time.perf_counter() - run_started) * 1000)
-        metrics.mark_done()
-        metrics.save(session.metrics_path)
-        await bus.publish(
-            RunFailed(
-                phase_reached=phase_reached,
-                error_type=type(e).__name__,
-                message=str(e),
+        try:
+            metrics.mark_done()
+            metrics.save(session.metrics_path)
+        except BaseException:
+            logger.exception(
+                "orchestrator: metrics save during shutdown failed"
             )
-        )
+        try:
+            await bus.publish(
+                RunFailed(
+                    phase_reached=phase_reached,
+                    error_type=type(e).__name__,
+                    message=str(e),
+                )
+            )
+        except BaseException:
+            logger.exception(
+                "orchestrator: bus publish RunFailed during shutdown failed"
+            )
         transcript.write(
             "run_failed",
             phase_reached=phase_reached,
@@ -558,7 +579,12 @@ async def run_session(
             message=str(e),
             traceback=traceback.format_exc(),
         )
+        _terminal_written = True
         logger.exception("orchestrator failed during %s", phase_reached)
+        if isinstance(e, (KeyboardInterrupt, SystemExit, asyncio.CancelledError)):
+            # Re-raise so structured-concurrency cancellation propagates
+            # and shells see the correct exit code.
+            raise
         return RunResult(
             exit_code=EXIT_RUNTIME,
             phase_reached=phase_reached,
@@ -587,6 +613,30 @@ async def run_session(
                 push_task.cancel()
             except Exception:  # the loop swallowed everything; defensive
                 logger.exception("push-watch loop exited with error")
+
+        # Spec 0222 §4.3 — defensive tombstone fallback. Order (§4.4):
+        # push-watch drain → metrics save → tombstone write, so the
+        # terminal event is included in the final hosted-UI push. Runs
+        # only when both the success-path and the except-path failed to
+        # set `_terminal_written` — guarantees the Area-5 liveness
+        # invariant under partial-shutdown failure modes the except-block
+        # alone cannot cover. Both inner blocks are best-effort
+        # (try/except BaseException: pass) so the fallback itself cannot
+        # raise.
+        if not _terminal_written:
+            try:
+                metrics.mark_done()
+                metrics.save(session.metrics_path)
+            except BaseException:
+                pass
+            try:
+                transcript.write(
+                    "run_aborted",
+                    phase_reached=phase_reached,
+                    reason="terminal-event-fallback",
+                )
+            except BaseException:
+                pass
 
 
 # ─── Spec 0032 — push-while-running loop ────────────────────────────────

@@ -1,5 +1,34 @@
 [
   {
+    "version": "1.45.3",
+    "date": "2026-05-26",
+    "bump": "PATCH",
+    "summary": "Orchestrator liveness tombstone: BaseException handler + finally-fallback + remove asymmetric stdout streaming (spec 0222).",
+    "items": [
+      "<strong>Orchestrator liveness tombstone: <code>BaseException</code> handler + <code>finally</code>-fallback + remove asymmetric <code>stdout</code> streaming ([spec 0222](specs/0222-liveness-tombstone-baseexception-and-remove-stdout-streaming.md)).</strong> P0 silent-death bug that hid every other observability failure mode behind a missing terminal event.",
+      "Six runs since 2026-05-24 died with <code>turn_inputs</code> as their last transcript line — no <code>run_failed</code>, no <code>run_aborted</code>, no <code>run_completed</code>, <code>metrics.ended_at = null</code> — indistinguishable from \"still running\" to the dashboard, queue runner, and any reaper that tailed the transcript.",
+      "Establishes Area 5 of the unified contract (previously uncontracted): <strong>for every <code>run_started</code>, exactly one terminal event is emitted and <code>metrics.ended_at</code> is set — including on <code>BaseException</code>.</strong> Three coordinated code changes plus two regression tests. (1) <strong>Widened <code>except</code> to <code>BaseException</code></strong> at.",
+      "Python's exception hierarchy splits at <code>BaseException</code> — <code>asyncio.CancelledError</code>, <code>KeyboardInterrupt</code>, <code>SystemExit</code> are <code>BaseException</code> subclasses but <strong>not</strong> <code>Exception</code> subclasses, so the pre-fix <code>except Exception</code> let them escape the handler entirely; the <code>finally:</code> ran the push-watch drain but wrote no tombstone, and the process exited with the transcript unterminated.",
+      "Post-fix: catch <code>BaseException</code>, wrap <code>metrics.mark_done()</code> + <code>metrics.save(...)</code> and <code>bus.publish(RunFailed(...))</code> in their own best-effort <code>try/except BaseException</code> blocks so a shutdown-time failure in either cannot suppress the load-bearing <code>transcript.write(\"run_failed\",...)</code> tombstone, then re-raise <code>KeyboardInterrupt</code> / <code>SystemExit</code> / <code>asyncio.CancelledError</code> so structured-concurrency cancellation propagates correctly and shells see the right exit code.",
+      "A new <code>_terminal_written = False</code> flag is initialised before the <code>try:</code> and set to <code>True</code> immediately after each terminal write (success path at run.py:521, except path after the new <code>run_failed</code> write); checked by the §4.3 fallback below. (2) <strong>Defensive <code>finally</code>-fallback tombstone</strong> at.",
+      "Order per §4.4: push-watch drain → metrics save → tombstone write, so the terminal event is included in the final hosted-UI push.",
+      "Runs only when <code>_terminal_written == False</code> (i.e. neither the success path nor the except path got far enough to write a terminal event — covers the partial-shutdown failure modes the except block alone cannot, e.g. a <code>transcript.write</code> that raises inside the except handler).",
+      "Both inner blocks are wrapped in <code>try/except BaseException: pass</code> so the fallback itself cannot raise; if <code>metrics.save</code> fails, the transcript still gets the <code>run_aborted</code> event (separate try), and if both fail the process exits unchanged from current behaviour — cannot regress.",
+      "The fallback writes <code>event=\"run_aborted\"</code> with <code>reason=\"terminal-event-fallback\"</code> so the audit trail distinguishes a happy-path-failed-twice abort from a normal <code>run_failed</code>. (3) <strong>Removed asymmetric <code>stdout</code> streaming</strong> at and.",
+      "Both call sites set <code>stream_to=sys.stdout</code> for claude turns only (openai turns set <code>stream_to=None</code>); the streaming was a foreground-debug convenience and is one of the plausible chains that turns a broken pipe into a <code>BrokenPipeError</code> inside an asyncio task whose cancellation cascade surfaces as <code>asyncio.CancelledError</code> at the orchestrator's top level.",
+      "Turn output is fully captured by the per-turn <code>.md</code> files and by the transcript event stream, so removing it loses nothing observable — and brings claude in line with openai (already <code>stream_to=None</code>).",
+      "Now-unused <code>import sys</code> removed from <code>dr_run.py</code>.",
+      "Two regression-prevention tests at: (1) a kill-test that raises <code>asyncio.CancelledError</code> mid-phase via a mocked <code>run_phase0</code> and asserts the transcript carries exactly one terminal event (<code>run_failed</code> or <code>run_aborted</code>), <code>metrics.ended_at</code> is non-null, and the <code>CancelledError</code> propagates out of <code>run_session</code>; (2) a corrupt-transcript-handle test that patches <code>Transcript.write</code> to raise on <code>run_completed</code> / <code>run_failed</code> and asserts the <code>finally:</code> fallback still writes <code>run_aborted</code> with the documented <code>reason</code> and sets <code>metrics.ended_at</code>.",
+      "Both tests fail against the pre-fix <code>except Exception</code> code and pass after the fix.",
+      "Out of scope per spec §7: external reaper for <code>SIGKILL</code> / OOM (depends on Fly exit log read, deferred); <code>ProtocolViolation</code> on dropped state-machine ops at <code>deep_research.py:482</code> (synthesis action 3); spec reclassification (0137 / 0140 / 0218 / 0219) + CLAUDE.md \"contract-changing specs are not bugs\" process rule; lifecycle-trace verifier; addressee-obligation feature spec; <code>via_self_report</code> convergence path (already at the four-<code>via_*</code> partition)."
+    ],
+    "specs": [
+      "0222"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.45.2",
     "date": "2026-05-26",
     "bump": "PATCH",
