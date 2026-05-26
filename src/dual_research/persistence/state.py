@@ -29,6 +29,12 @@ class SessionState:
     carry_forward_phase2: list[dict[str, Any]] = field(default_factory=list)
     carry_forward_phase4: list[dict[str, Any]] = field(default_factory=list)
     closeout_budgets: dict[str, dict[str, int]] = field(default_factory=dict)
+    # Spec 0219 §3.6 — phase-4 round-loop counter, persisted per-round so
+    # a resumed run picks up at the next un-driven round instead of
+    # restarting phase 4 at round 1 and wasting ~$1.40 per resume on
+    # prod-tier models. ``0`` is the canonical fresh / pre-phase-4 value;
+    # ``N`` means rounds 1..N have already completed on disk.
+    phase4_round: int = 0
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2, ensure_ascii=False)
@@ -48,6 +54,7 @@ class SessionState:
             carry_forward_phase2=data.get("carry_forward_phase2", []),
             carry_forward_phase4=data.get("carry_forward_phase4", []),
             closeout_budgets=data.get("closeout_budgets", {}),
+            phase4_round=int(data.get("phase4_round", 0)),
         )
 
 

@@ -259,7 +259,12 @@ async def _drive_interaction_phase(
     via_artifact_promotion = False
     converged = False
     soft_hit_emitted = False
-    round_no = 0
+    # Spec 0219 §3.6 — phase 4 seeds the round counter from the
+    # persisted ``state.phase4_round`` so a resumed run picks up at
+    # the next un-driven round. Other phases start fresh at 0; their
+    # round counters are not persisted across resumes (rare and
+    # cheap to re-drive).
+    round_no = ctx.state.phase4_round if phase_int == 4 else 0
 
     while round_no < caps.hard:
         round_no += 1
@@ -326,6 +331,21 @@ async def _drive_interaction_phase(
             # ``<turn>.malformed-<n>.md`` by the repair flow when triggered.
             _finish_reason = (result.extras or {}).get("stop_reason") \
                 or (result.extras or {}).get("finish_reason")
+            # Spec 0219 §3.2 — the §3.2 revised-draft validator only fires
+            # for the phase-4 drafter; reviewer turns with no `## Revised
+            # draft` (or a placeholder body) are no longer rejected.
+            # Spec 0219 §3.4/§3.5 — the validator dry-runs
+            # ``apply_revised_draft_deltas`` against the on-disk
+            # ``draft-vN.md`` so heading-mismatches / anchor-mismatches /
+            # missing-``reason:`` failures route through one-shot repair.
+            is_drafter_turn = (
+                phase_int == 4 and agent_name == ctx.state.drafter
+            )
+            prior_draft_text: str | None = None
+            if is_drafter_turn:
+                prior_path = current_draft_path(ctx.session, ctx.state.draft_round)
+                if prior_path.exists():
+                    prior_draft_text = prior_path.read_text(encoding="utf-8")
             final_text, parsed = await parse_v2_with_repair(
                 agent=agent_call,
                 text=result.text,
@@ -339,6 +359,8 @@ async def _drive_interaction_phase(
                 metrics=ctx.metrics,
                 out_path=turn_path,
                 finish_reason=str(_finish_reason) if _finish_reason is not None else None,
+                is_drafter=is_drafter_turn,
+                prior_draft=prior_draft_text,
             )
             write_atomic(turn_path, final_text)
 
@@ -427,6 +449,14 @@ async def _drive_interaction_phase(
             openai_status=rr.openai_status,
             ctx=ctx,
         )
+
+        # Spec 0219 §3.6 — checkpoint phase-4 round counter so a resumed
+        # run picks up at round N+1 instead of restarting at round 1.
+        # Only phase 4 (where prod-tier model spend per round is highest)
+        # carries this cost; phases 0/2 redrive cheaply.
+        if phase_int == 4:
+            ctx.state.phase4_round = round_no
+            ctx.session.save_state(ctx.state)
 
         if rr.converged:
             converged = True
@@ -1338,6 +1368,11 @@ async def run_dr_phase3(
     )
 
     ctx.state.phase = "phase4"
+    # Spec 0219 §3.6 — fresh phase-4 entry: zero out the round counter
+    # so the seeding logic at _drive_interaction_phase entry produces
+    # round_no=1 on the first iteration. (A resumed phase-4 enters via
+    # run.py without re-running phase 3, so it sees the persisted N.)
+    ctx.state.phase4_round = 0
     ctx.session.save_state(ctx.state)
 
     duration_ms = int((time.perf_counter() - started) * 1000)
@@ -1440,6 +1475,11 @@ async def run_dr_phase4(
                 ctx.session, phase="phase4", up_to_round=round,
                 for_agent=agent_name,
             )
+            # Spec 0219 §3.3 — inject the current draft's literal `## `
+            # section headings so the drafter's delta ops target real
+            # headings rather than brief-criteria hierarchies.
+            from dual_research.protocol import extract_draft_headings
+            current_headings = extract_draft_headings(draft_content)
             prompt = review_round_n_prompt_v2(
                 brief_content=brief_content,
                 draft_content=draft_content,
@@ -1454,6 +1494,7 @@ async def run_dr_phase4(
                 draft_version=ctx.state.draft_round,
                 is_closeout_round=is_closeout_round,
                 closeout_request=closeout_request,
+                draft_headings=current_headings,
             )
             system_task = review_round_n_prompt_v2(
                 brief_content="",
@@ -1469,6 +1510,7 @@ async def run_dr_phase4(
                 draft_version=ctx.state.draft_round,
                 is_closeout_round=is_closeout_round,
                 closeout_request="",
+                draft_headings=[],
             )
         pieces = pieces_for_review(
             system_task=system_task,

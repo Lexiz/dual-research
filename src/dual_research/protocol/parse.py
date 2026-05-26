@@ -444,7 +444,25 @@ class ReplaceDraftFullOp:
     body: str
 
 
-DraftDeltaOp = ReplaceSectionOp | AppendSectionOp | DeleteSectionOp | ReplaceDraftFullOp
+@dataclass(frozen=True)
+class EditSectionOp:
+    """Spec 0219 §3.5 — surgical edit op.
+
+    `edits` is a sequence of ``(anchor, replace_with)`` pairs. Each
+    ``anchor`` must match the target section's body exactly once
+    (byte-exact). The orchestrator applies them in document order.
+    """
+    heading: str
+    edits: tuple[tuple[str, str], ...]
+
+
+DraftDeltaOp = (
+    ReplaceSectionOp
+    | AppendSectionOp
+    | DeleteSectionOp
+    | ReplaceDraftFullOp
+    | EditSectionOp
+)
 
 
 @dataclass(frozen=True)
@@ -470,9 +488,77 @@ RevisedDraftPayload = RevisedDraftFull | RevisedDraftDeltas
 
 
 _REVISED_DRAFT_DELTA_HEADING_RE = re.compile(
-    r"^###\s+(REPLACE_SECTION|APPEND_SECTION|DELETE_SECTION|REPLACE_DRAFT_FULL)\b(.*)$",
+    r"^###\s+(REPLACE_SECTION|APPEND_SECTION|DELETE_SECTION|REPLACE_DRAFT_FULL|EDIT_SECTION)\b(.*)$",
     re.MULTILINE,
 )
+
+
+def _parse_edit_section_pairs(block_body: str) -> tuple[tuple[str, str], ...]:
+    """Parse ``ANCHOR:`` / ``REPLACE_WITH:`` pairs from an EDIT_SECTION block.
+
+    Each pair starts with a line of the form ``ANCHOR: <text>`` (the text
+    may continue on subsequent lines until the next ``REPLACE_WITH:`` or
+    ``ANCHOR:``) followed by ``REPLACE_WITH: <text>`` (multi-line until
+    next ``ANCHOR:``). Returns a tuple of ``(anchor, replace_with)``
+    string pairs. Pairs that end before the matching ``REPLACE_WITH:``
+    is found are skipped.
+    """
+    pairs: list[tuple[str, str]] = []
+    lines = block_body.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.startswith("ANCHOR:"):
+            anchor_parts: list[str] = [line[len("ANCHOR:"):].lstrip()]
+            i += 1
+            while i < len(lines) and not lines[i].startswith(("REPLACE_WITH:", "ANCHOR:")):
+                anchor_parts.append(lines[i])
+                i += 1
+            if i >= len(lines) or not lines[i].startswith("REPLACE_WITH:"):
+                continue
+            replace_parts: list[str] = [lines[i][len("REPLACE_WITH:"):].lstrip()]
+            i += 1
+            while i < len(lines) and not lines[i].startswith("ANCHOR:"):
+                replace_parts.append(lines[i])
+                i += 1
+            anchor = "\n".join(anchor_parts).rstrip()
+            replace_with = "\n".join(replace_parts).rstrip()
+            pairs.append((anchor, replace_with))
+        else:
+            i += 1
+    return tuple(pairs)
+
+
+def extract_draft_headings(draft_text: str) -> list[str]:
+    """Spec 0219 §3.3 — extract the literal ``## `` section headings.
+
+    Returns the heading text (everything after ``## `` on each matching
+    line), in document order, without the ``## `` prefix. Used by the
+    phase-4 review_round_n prompt to inject the current draft's literal
+    section list so the drafter's REPLACE_SECTION / EDIT_SECTION ops
+    target real headings rather than brief-criteria headings.
+    """
+    return [m.group(1).strip() for m in _DRAFT_SECTION_HEADING_RE.finditer(draft_text or "")]
+
+
+def _strip_replace_section_reason(block_body: str) -> tuple[str, str | None]:
+    """Spec 0219 §3.5 — strip a leading ``reason:`` line from a
+    REPLACE_SECTION block body.
+
+    Returns ``(body_without_reason, reason)``. ``reason`` is ``None``
+    when no leading ``reason:`` line is present (which is itself a
+    validation failure, surfaced separately).
+    """
+    lines = block_body.splitlines()
+    for i, line in enumerate(lines):
+        if not line.strip():
+            continue
+        if line.strip().lower().startswith("reason:"):
+            reason = line.strip()[len("reason:"):].strip()
+            remaining = "\n".join(lines[i + 1:]).lstrip("\n")
+            return remaining, reason
+        return block_body, None
+    return block_body, None
 
 
 def extract_revised_draft_deltas(turn_text: str) -> RevisedDraftPayload | None:
@@ -538,6 +624,16 @@ def extract_revised_draft_deltas(turn_text: str) -> RevisedDraftPayload | None:
             if not rest:
                 continue
             ops.append(DeleteSectionOp(heading=rest))
+        elif kind == "EDIT_SECTION":
+            if not rest:
+                continue
+            pairs = _parse_edit_section_pairs(block_body)
+            if not pairs:
+                # Empty / malformed EDIT_SECTION — skip; application layer
+                # never sees it, and the validator surfaces the missing
+                # body as an absence of edits to apply.
+                continue
+            ops.append(EditSectionOp(heading=rest, edits=pairs))
 
     if full_replacement is not None:
         # The escape hatch is exclusive — return RevisedDraftFull with
@@ -574,18 +670,34 @@ def apply_revised_draft_deltas(
     ``APPEND_SECTION`` because no matching heading exists; two
     ``REPLACE_SECTION`` blocks for the same heading in one turn).
 
-    Semantics (spec 0218 §3.2):
+    Semantics (spec 0218 §3.2 / spec 0219 §3.4 / §3.5):
       - ``ReplaceDraftFullOp``: replace the entire draft.
       - ``ReplaceSectionOp``: replace the body of the matching ``## <h>``
         section. Heading match is case-insensitive trim-equal with
-        numeric-prefix tolerance. Missing heading → promote to APPEND.
+        numeric-prefix tolerance. Missing heading raises
+        ``ProtocolParseError("replace_section_unknown_heading", ...)``
+        (spec 0219 §3.4 — no more silent APPEND promotion). The body
+        must lead with a ``reason:`` line per spec 0219 §3.5; missing
+        ``reason:`` raises ``replace_section_missing_reason``.
+      - ``EditSectionOp``: surgical edit. Each ``(anchor, replace_with)``
+        pair must match the section body exactly once (byte-exact);
+        ``0`` matches raises ``edit_section_anchor_not_found`` and
+        ``>1`` matches raises ``edit_section_anchor_ambiguous``. Missing
+        heading raises ``edit_section_unknown_heading``.
       - ``AppendSectionOp``: append a new ``## <h>`` section at the end.
       - ``DeleteSectionOp``: remove the matching section. Missing heading
         is a violation (recorded) but not an error.
       - Two ``ReplaceSectionOp`` for the same heading: apply in order,
         last-writer-wins, record a violation.
+
+    Raises ``ProtocolParseError("drafter", [...])`` listing every hard
+    failure across all ops in the payload, so a single repair attempt
+    can surface multiple issues to the agent at once.
     """
+    from dual_research.protocol.errors import ProtocolParseError
+
     violations: list[str] = []
+    errors: list[str] = []
 
     if isinstance(payload, RevisedDraftFull):
         return payload.content, violations
@@ -597,57 +709,98 @@ def apply_revised_draft_deltas(
     sections: list[tuple[str, str]] = []
     if not matches:
         # No `## ` headings — treat the whole document as a single
-        # untitled prelude; per-section ops will all promote to APPEND.
+        # untitled prelude; per-section ops have no valid target.
         prelude = prior_draft
         sections = []
     else:
         prelude = prior_draft[: matches[0].start()]
         for i, m in enumerate(matches):
-            heading_line = m.group(0).rstrip()
             heading_text = m.group(1).strip()
             body_start = m.end()
             body_end = matches[i + 1].start() if i + 1 < len(matches) else len(prior_draft)
             body = prior_draft[body_start:body_end]
             sections.append((heading_text, body))
 
+    valid_headings = [h for h, _ in sections]
+
+    def _find_section(target_heading: str) -> int | None:
+        target = _normalise_section_heading(target_heading)
+        for i, (h, _) in enumerate(sections):
+            if _normalise_section_heading(h) == target:
+                return i
+        return None
+
     seen_replace: dict[str, int] = {}
     for op in payload.ops:
         if isinstance(op, ReplaceSectionOp):
-            target = _normalise_section_heading(op.heading)
-            idx: int | None = None
-            for i, (h, _) in enumerate(sections):
-                if _normalise_section_heading(h) == target:
-                    idx = i
-                    break
+            idx = _find_section(op.heading)
             if idx is None:
-                violations.append(
-                    f"REPLACE_SECTION {op.heading!r} promoted to APPEND "
-                    "(no matching heading in prior draft)"
+                errors.append(
+                    f"replace_section_unknown_heading: {op.heading!r} "
+                    f"not in {valid_headings}"
                 )
-                sections.append((op.heading, "\n" + op.body + "\n"))
-            else:
-                if target in seen_replace:
-                    violations.append(
-                        f"REPLACE_SECTION {op.heading!r} appears twice in "
-                        "one turn — last-writer-wins"
+                continue
+            body_after_reason, reason = _strip_replace_section_reason(op.body)
+            if reason is None:
+                errors.append(
+                    f"replace_section_missing_reason: REPLACE_SECTION "
+                    f"{op.heading!r} must lead with a `reason: <one "
+                    "sentence>` line explaining why a surgical "
+                    "EDIT_SECTION was not enough"
+                )
+                continue
+            target = _normalise_section_heading(op.heading)
+            if target in seen_replace:
+                violations.append(
+                    f"REPLACE_SECTION {op.heading!r} appears twice in "
+                    "one turn — last-writer-wins"
+                )
+            seen_replace[target] = idx
+            sections[idx] = (sections[idx][0], "\n" + body_after_reason + "\n")
+        elif isinstance(op, EditSectionOp):
+            idx = _find_section(op.heading)
+            if idx is None:
+                errors.append(
+                    f"edit_section_unknown_heading: {op.heading!r} "
+                    f"not in {valid_headings}"
+                )
+                continue
+            heading_text, body = sections[idx]
+            current = body
+            failed_pair = False
+            for anchor, replace_with in op.edits:
+                count = current.count(anchor)
+                if count == 0:
+                    errors.append(
+                        f"edit_section_anchor_not_found: EDIT_SECTION "
+                        f"{op.heading!r} anchor {anchor!r} did not match"
                     )
-                seen_replace[target] = idx
-                sections[idx] = (sections[idx][0], "\n" + op.body + "\n")
+                    failed_pair = True
+                    break
+                if count > 1:
+                    errors.append(
+                        f"edit_section_anchor_ambiguous: EDIT_SECTION "
+                        f"{op.heading!r} anchor {anchor!r} matched {count} "
+                        "times — include 1–3 lines of surrounding context"
+                    )
+                    failed_pair = True
+                    break
+                current = current.replace(anchor, replace_with, 1)
+            if not failed_pair:
+                sections[idx] = (heading_text, current)
         elif isinstance(op, AppendSectionOp):
             sections.append((op.heading, "\n" + op.body + "\n"))
         elif isinstance(op, DeleteSectionOp):
-            target = _normalise_section_heading(op.heading)
-            idx = None
-            for i, (h, _) in enumerate(sections):
-                if _normalise_section_heading(h) == target:
-                    idx = i
-                    break
+            idx = _find_section(op.heading)
             if idx is None:
                 violations.append(
                     f"DELETE_SECTION {op.heading!r} — no matching heading"
                 )
             else:
                 sections.pop(idx)
+
+    if errors:
+        raise ProtocolParseError("drafter", errors)
 
     rendered_parts: list[str] = []
     if prelude:
