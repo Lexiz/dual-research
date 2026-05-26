@@ -405,6 +405,12 @@ async def run_session(
     final_path: str | None = None
     phase_reached = state.phase
     exit_code = EXIT_OK
+    # Cowork synthesis 2026-05-26 §6 action 1 — every ``run_started`` event
+    # must be followed by exactly one terminal event. We track whether the
+    # success or the except path emitted one; the ``finally`` block writes a
+    # defensive ``run_aborted`` if neither did (e.g., a write inside one of
+    # those branches itself raised before the transcript was written).
+    _terminal_written = False
 
     try:
         if state.phase == "phase0":
@@ -525,6 +531,7 @@ async def run_session(
             total_cost_usd=total_cost,
             duration_ms=duration_ms,
         )
+        _terminal_written = True
 
         return RunResult(
             exit_code=exit_code,
@@ -540,17 +547,35 @@ async def run_session(
             total_search_cost_usd=total_search_cost,
         )
 
-    except Exception as e:
+    except BaseException as e:
+        # Cowork synthesis 2026-05-26 §6 action 1 — was ``except Exception``,
+        # which on Python 3.8+ does NOT catch ``asyncio.CancelledError`` /
+        # ``KeyboardInterrupt`` / ``SystemExit`` (all ``BaseException``
+        # subclasses). Today's silent death (run 20260526-102321-backend-
+        # language-choice, transcript stops at ``phase2-r5-claude
+        # turn_inputs``) bypassed the prior handler because the cause was
+        # one of those — most likely a cancellation propagating from an
+        # asyncio task supervisor or a SIGTERM-induced cancellation cascade.
+        # We write the terminal tombstone first, then re-raise the
+        # cancellation / process-exit signals so structured concurrency and
+        # shell exit codes still propagate correctly. Regular exceptions
+        # convert to ``EXIT_RUNTIME`` as before.
         duration_ms = int((time.perf_counter() - run_started) * 1000)
-        metrics.mark_done()
-        metrics.save(session.metrics_path)
-        await bus.publish(
-            RunFailed(
-                phase_reached=phase_reached,
-                error_type=type(e).__name__,
-                message=str(e),
+        try:
+            metrics.mark_done()
+            metrics.save(session.metrics_path)
+        except BaseException:  # never let metrics bookkeeping eat the tombstone
+            logger.exception("metrics.save failed during shutdown")
+        try:
+            await bus.publish(
+                RunFailed(
+                    phase_reached=phase_reached,
+                    error_type=type(e).__name__,
+                    message=str(e),
+                )
             )
-        )
+        except BaseException:  # bus publish must never swallow the tombstone
+            logger.exception("RunFailed publish failed during shutdown")
         transcript.write(
             "run_failed",
             phase_reached=phase_reached,
@@ -558,7 +583,12 @@ async def run_session(
             message=str(e),
             traceback=traceback.format_exc(),
         )
+        _terminal_written = True
         logger.exception("orchestrator failed during %s", phase_reached)
+        # Cancellation / process-exit signals must propagate so callers
+        # (asyncio task supervisors, CLI shells) see correct status.
+        if isinstance(e, (KeyboardInterrupt, SystemExit, asyncio.CancelledError)):
+            raise
         return RunResult(
             exit_code=EXIT_RUNTIME,
             phase_reached=phase_reached,
@@ -573,6 +603,30 @@ async def run_session(
         )
 
     finally:
+        # Cowork synthesis 2026-05-26 §6 action 1 — defensive tombstone.
+        # If neither the success path nor the except path managed to write
+        # a terminal event (e.g., a write itself raised), emit
+        # ``run_aborted`` here so every ``run_started`` is matched by
+        # exactly one terminal event. Best-effort: this can only catch
+        # in-process failures; SIGKILL / OOM-kill / hard-crash bypass
+        # Python entirely and require an external reaper.
+        if not _terminal_written:
+            try:
+                duration_ms = int((time.perf_counter() - run_started) * 1000)
+                try:
+                    metrics.mark_done()
+                    metrics.save(session.metrics_path)
+                except BaseException:
+                    logger.exception("metrics.save failed in run_aborted path")
+                transcript.write(
+                    "run_aborted",
+                    phase_reached=phase_reached,
+                    duration_ms=duration_ms,
+                    reason="no terminal event emitted by success or except path",
+                )
+            except BaseException:
+                logger.exception("run_aborted transcript write failed")
+
         # Spec 0032 — always stop the push-loop and do one final
         # synchronous push so the hosted UI sees the final state, even
         # on errored runs.

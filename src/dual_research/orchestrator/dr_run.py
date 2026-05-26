@@ -316,7 +316,20 @@ async def _drive_interaction_phase(
                 metrics=ctx.metrics,
                 transcript=ctx.transcript,
                 event_bus=event_bus,
-                stream_to=sys.stdout if agent_name == "claude" else None,
+                # Cowork synthesis 2026-05-26 §6 action 1 — was
+                # ``stream_to=sys.stdout if agent_name == "claude" else None``.
+                # That asymmetric streaming created a SIGPIPE / broken-pipe
+                # hazard on the claude turn only — when the parent TTY went
+                # away (terminal close, SSH drop, laptop sleep) the
+                # BrokenPipeError on the stdout write could chain into an
+                # asyncio CancelledError that the old ``except Exception``
+                # handler at run.py:543 failed to catch (cancellation is
+                # BaseException-class). Both agents now run with no stdout
+                # streaming; turn output is fully captured in the per-turn
+                # ``.md`` files and the transcript event stream. Debugging
+                # foreground runs uses ``tail -f runs/<id>/transcript.jsonl``
+                # instead.
+                stream_to=None,
                 stream_prefix="[claude] " if agent_name == "claude" else "",
                 max_output_tokens=_TURN_MAX_OUTPUT_TOKENS,
                 prompt_pieces=pieces,
@@ -948,7 +961,11 @@ async def run_dr_phase1(
             metrics=ctx.metrics,
             transcript=ctx.transcript,
             event_bus=event_bus,
-            stream_to=sys.stdout,
+            # Cowork synthesis 2026-05-26 §6 action 1 — was
+            # ``stream_to=sys.stdout`` (asymmetric: claude streamed, openai
+            # didn't). Same SIGPIPE / broken-pipe hazard as the
+            # phase-0/2/4 site at line ~319 — removed for the same reason.
+            stream_to=None,
             stream_prefix="[claude] ",
             max_output_tokens=_DRAFT_MAX_OUTPUT_TOKENS,
             prompt_pieces=claude_pieces,
