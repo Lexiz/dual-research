@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-25T23:45:39Z",
+  "updated_at": "2026-05-26T08:03:38Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9991,6 +9991,17 @@
       "merged_at": "2026-05-25T23:36:45Z",
       "deployed_at": "2026-05-25T23:45:39Z",
       "handover": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
+    },
+    "0219": {
+      "status": "queued",
+      "queued_at": "2026-05-26T17:00:00Z",
+      "events": [
+        {
+          "ts": "2026-05-26T08:03:38Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
