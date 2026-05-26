@@ -1,0 +1,38 @@
+name: Verifier corpus
+
+# Spec 0225 — run the lifecycle-trace verifier across the frozen fixture
+# corpus on every PR. Fails the PR on (a) any verdict diverging from the
+# baseline frozen in tests/fixtures/anchor-runs/<run-id>/expected.json
+# (regression or otherwise), or (b) any gating-invariant failure on a run
+# whose fixture is missing expected.json. The clean fixture
+# 20260521-010637-dvs-backend-language-choice is the live regression
+# detector; the two dead-run fixtures lock in the I5.1+I5.2 (and other)
+# failure signatures so a contract drift on the live orchestrator surfaces
+# here as a baseline mismatch.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verifier-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python from pyproject.toml
+        run: uv python install
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Run lifecycle-trace verifier across the fixture corpus
+        run: uv run dual-research verify tests/fixtures/anchor-runs/*
