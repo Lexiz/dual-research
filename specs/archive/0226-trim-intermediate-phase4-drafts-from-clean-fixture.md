@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: TBD
-status: queued
+status: archived
 depends_on: []
 complexity: S
 created: 2026-05-26
@@ -23,6 +23,8 @@ promoted_from_draft: ""
 ---
 
 # Spec 0226 — Refactor: trim intermediate phase4/draft-vN.md files from the clean anchor-run fixture
+
+> **ARCHIVED — not shipped.** 2026-05-26 review concluded this spec is inert at runtime and not worth the diff. The verifier's `_TURN_FILE_RE` at [`src/dual_research/contract/verifier.py:70`](src/dual_research/contract/verifier.py:70) already filters `draft-vN.md` out of the turn-file set, so the seven 76-byte stubs in the clean fixture have no behavioral impact — the [spec 0225 implementer's own handoff](handoffs/2026-05-26-spec-0225-lifecycle-trace-verifier.md) flagged this follow-up as "cosmetic cleanup only" in its *Deferred during implementation* section. Standing project rule (CLAUDE.md, post-reclassification spec lineage): say "no" to low-value cosmetic follow-ups to break the accretion pattern that the project's recurring-bug diagnosis already flagged. The file remains in `specs/archive/` for the audit trail; the dashboard renderer ignores subdirectories so it will not be re-surfaced.
 
 > **Type:** refactoring  |  **Complexity:** S  |  **Depends on:** —
 > **Bump:** PATCH — fixture-data cleanup, no behavior change
