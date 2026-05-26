@@ -1,6 +1,6 @@
 {
   "spec": "0225",
-  "note": "Frozen LKG baseline of the lifecycle-trace verifier. Regenerate with the helper documented in tests/test_verifier.py when a verdict legitimately changes.",
+  "note": "Frozen LKG baseline of the lifecycle-trace verifier. Regenerate via tests.test_verifier.regenerate_baseline() when a verdict legitimately changes.",
   "results": [
     {
       "id": "I1.1",
@@ -94,7 +94,7 @@
     },
     {
       "id": "I4.4",
-      "severity": "reporting",
+      "severity": "gating",
       "verdict": "fail"
     },
     {

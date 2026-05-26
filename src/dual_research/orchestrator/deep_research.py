@@ -390,6 +390,9 @@ class DeepResearchPhase:
                         item_id=ent.id,
                         from_state=ent.current_state.value,
                         dropped_block=blk.raw_text[:1000],
+                        op_kind="address",
+                        expected_state="",
+                        reason=f"ADDRESS issued by raiser {agent}; only the other agent may address",
                     ))
                     continue
                 if is_terminal(ent.current_state):
@@ -409,6 +412,9 @@ class DeepResearchPhase:
                         item_id=ent.id,
                         from_state=ent.current_state.value,
                         dropped_block=blk.raw_text[:1000],
+                        op_kind="address",
+                        expected_state="open,addressed",
+                        reason=f"ADDRESS attempted on terminal-state item ('{ent.current_state.value}')",
                     ))
                     continue
                 # Anti-hallucination validation when evidence is required.
@@ -434,8 +440,22 @@ class DeepResearchPhase:
                 from_state = ent.current_state
                 to_state = State.ADDRESSED
                 if from_state == to_state:
-                    # No-op address (already addressed). Allow but
-                    # don't emit a duplicate transition.
+                    # Spec 0228 — addressing an already-addressed item is
+                    # the "ADDRESS on non-open" sibling rejection. The
+                    # ledger does not transition (no duplicate event); the
+                    # rejection is now logged so the verifier can see it.
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="address_already_addressed",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                        op_kind="address",
+                        expected_state="open",
+                        reason="ADDRESS attempted on already-addressed item (idempotent no-op)",
+                    ))
                     continue
                 ent.current_state = to_state
                 evidence_dicts = []
@@ -477,9 +497,44 @@ class DeepResearchPhase:
                     ent.ack_proposed_by = agent
             elif isinstance(blk, ResolveBlock):
                 ent = self.state.find(blk.item_id)
-                if ent is None or ent.raiser != agent:
+                if ent is None:
+                    # Unknown item — parser/validator concern, not a
+                    # state-machine rejection; left silent per spec 0228
+                    # §2.1 identification rule.
+                    continue
+                if ent.raiser != agent:
+                    # Spec 0228 — RESOLVE must be emitted by the raiser.
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="resolve_wrong_raiser",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                        op_kind="resolve",
+                        expected_state="",
+                        reason=f"RESOLVE issued by {agent} but item was raised by {ent.raiser}",
+                    ))
                     continue
                 if ent.current_state != State.ADDRESSED:
+                    # Spec 0228 smoking gun — RESOLVE requires the item
+                    # in 'addressed'. The pre-0228 silent drop hid the
+                    # four dead-run RESOLVE-from-open ops on claude r2 of
+                    # 20260526-102321-backend-language-choice (D-plan-c-02
+                    # / D-plan-c-04 / D-plan-c-05 / Q-plan-c-01).
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="resolve_from_non_addressed",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                        op_kind="resolve",
+                        expected_state="addressed",
+                        reason=f"RESOLVE attempted on item in '{ent.current_state.value}'; expected 'addressed'",
+                    ))
                     continue
                 from_state = ent.current_state
                 ent.current_state = State.RESOLVED
@@ -502,9 +557,40 @@ class DeepResearchPhase:
                 ))
             elif isinstance(blk, WithdrawBlock):
                 ent = self.state.find(blk.item_id)
-                if ent is None or ent.raiser != agent:
+                if ent is None:
+                    # Unknown item — parser/validator concern, left silent
+                    # per spec 0228 §2.1 identification rule.
+                    continue
+                if ent.raiser != agent:
+                    # Spec 0228 — WITHDRAW must be emitted by the raiser.
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="withdraw_wrong_raiser",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                        op_kind="withdraw",
+                        expected_state="",
+                        reason=f"WITHDRAW issued by {agent} but item was raised by {ent.raiser}",
+                    ))
                     continue
                 if is_terminal(ent.current_state):
+                    # Spec 0228 — WITHDRAW on a terminal-state item is the
+                    # "WITHDRAW on terminal" sibling rejection.
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="withdraw_terminal_state",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                        op_kind="withdraw",
+                        expected_state="open,addressed",
+                        reason=f"WITHDRAW attempted on terminal-state item ('{ent.current_state.value}')",
+                    ))
                     continue
                 from_state = ent.current_state
                 ent.current_state = State.WITHDRAWN
@@ -528,8 +614,23 @@ class DeepResearchPhase:
             elif isinstance(blk, AcknowledgeBlock):
                 ent = self.state.find(blk.item_id)
                 if ent is None:
+                    # Unknown item — parser/validator concern, left silent
+                    # per spec 0228 §2.1 identification rule.
                     continue
                 if is_terminal(ent.current_state):
+                    # Spec 0228 — ACKNOWLEDGE on a terminal-state item.
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="acknowledge_terminal_state",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        dropped_block=blk.raw_text[:1000],
+                        op_kind="acknowledge",
+                        expected_state="open,addressed",
+                        reason=f"ACKNOWLEDGE attempted on terminal-state item ('{ent.current_state.value}')",
+                    ))
                     continue
                 # Mutual handshake: if the OTHER agent has already
                 # proposed ack on this item, this ACKNOWLEDGE completes

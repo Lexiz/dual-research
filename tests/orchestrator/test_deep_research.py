@@ -947,10 +947,13 @@ def test_address_on_open_item_still_transitions_to_addressed():
     assert entry.current_state == State.ADDRESSED
 
 
-def test_addressed_to_addressed_no_op_still_silent_no_violation():
-    """Spec 0141 regression-pin — the pre-existing line-366 no-op
-    short-circuit for already-addressed items stays. The terminal-state
-    guard must not change behaviour on the non-terminal ADDRESSED state.
+def test_addressed_to_addressed_no_op_emits_address_already_addressed_violation():
+    """Spec 0228 — ADDRESS on an already-addressed item is the
+    "ADDRESS on non-open" sibling rejection. Pre-0228 this short-
+    circuited silently; post-0228 the rejection emits a
+    ProtocolViolation(violation_code="address_already_addressed") so
+    verifier I4.4 can fire on it. Drop semantics preserved — no
+    duplicate transition, item stays in ADDRESSED.
     """
     phase, entry = _seed_phase_with_disagreement(
         raiser="openai", current_state=State.ADDRESSED,
@@ -973,8 +976,14 @@ def test_addressed_to_addressed_no_op_still_silent_no_violation():
     )
 
     assert raised == []
-    assert transitions == []   # no-op short-circuit kept
-    assert violations == []     # not a violation — just a redundant address
+    assert transitions == []   # no duplicate transition (drop semantics preserved)
+    assert len(violations) == 1
+    pv = violations[0]
+    assert isinstance(pv, ProtocolViolation)
+    assert pv.violation_code == "address_already_addressed"
+    assert pv.op_kind == "address"
+    assert pv.from_state == "addressed"
+    assert pv.expected_state == "open"
     assert entry.current_state == State.ADDRESSED
 
 
@@ -1057,9 +1066,11 @@ def test_anchor_run_double_close_scenario_now_blocked_at_orchestrator():
     assert v3[0].violation_code == "terminal_state_re_address"
 
     # r3 openai: RESOLVE — pre-fix this would have been the second
-    # close. Post-fix the item is still RESOLVED (ResolveBlock's
-    # `current_state != ADDRESSED` guard rejects it), so no second
-    # ItemTransitioned. Aggregate stays at 1 raise, 1 close.
+    # close. The orchestrator rejects it (ResolveBlock's
+    # `current_state != ADDRESSED` guard rejects on RESOLVED), so no
+    # second ItemTransitioned. Spec 0228 — the rejection now emits a
+    # ProtocolViolation(violation_code="resolve_from_non_addressed") so
+    # verifier I4.4 can fire on it.
     r3o_parsed = ParsedTurnV2(
         status="IN_PROGRESS",
         blocks=[ResolveBlock(
@@ -1073,7 +1084,10 @@ def test_anchor_run_double_close_scenario_now_blocked_at_orchestrator():
         round=3, is_closeout_round=False,
     )
     assert t4 == []           # second close blocked
-    assert v4 == []           # ResolveBlock just silently no-ops
+    assert len(v4) == 1
+    assert isinstance(v4[0], ProtocolViolation)
+    assert v4[0].violation_code == "resolve_from_non_addressed"
+    assert v4[0].from_state == "resolved"
 
     # Final state — exactly one terminal transition on this item.
     entry = phase.state.find(item_id)

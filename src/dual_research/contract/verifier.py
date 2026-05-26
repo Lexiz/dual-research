@@ -918,6 +918,16 @@ def _check_i4_3(events: list[dict]) -> InvariantResult:
 def _check_i4_4(
     events: list[dict], turn_files: list[_TurnFile]
 ) -> InvariantResult:
+    """I4.4 — every op in the turn-file transcript has a corresponding
+    ``item_transitioned`` or ``protocol_violation`` event in the run
+    transcript.
+
+    Severity: ``gating`` since spec 0228 (was ``reporting`` from spec 0225
+    until ``apply_turn`` emitted ``ProtocolViolation`` on every silent-
+    drop site — the missing emission was the documented promotion
+    trigger). The check logic is unchanged from spec 0225; only the
+    severity tightens.
+    """
     fail: list[Evidence] = []
     saw_op = False
     transition_index: dict[tuple[int, int, str, str], bool] = {}
@@ -976,10 +986,10 @@ def _check_i4_4(
                     f"has no corresponding item_transitioned or protocol_violation event",
                 ))
     if not saw_op:
-        return InvariantResult("I4.4", "reporting", "not_applicable")
+        return InvariantResult("I4.4", "gating", "not_applicable")
     if fail:
-        return InvariantResult("I4.4", "reporting", "fail", tuple(fail))
-    return InvariantResult("I4.4", "reporting", "pass")
+        return InvariantResult("I4.4", "gating", "fail", tuple(fail))
+    return InvariantResult("I4.4", "gating", "pass")
 
 
 def _check_i4_5(events: list[dict]) -> InvariantResult:

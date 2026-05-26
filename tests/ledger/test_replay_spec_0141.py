@@ -107,12 +107,21 @@ def test_anchor_run_replay_records_at_least_one_protocol_violation():
         "(D-plan-g-01 re-address at seq 137)"
     )
     # The B02 smoking gun is terminal_state_re_address. Spec 0216 added a
-    # second code (raiser_self_address) that also surfaces on this anchor
-    # run wherever an agent re-ADDRESSes its own item. Both are valid;
-    # the assertion is that the codes in use are drawn from the known set,
-    # and that at least one terminal_state_re_address is present (the B02
-    # invariant this test guards).
-    known_codes = {"terminal_state_re_address", "raiser_self_address"}
+    # second code (raiser_self_address) that surfaces wherever an agent
+    # re-ADDRESSes its own item. Spec 0228 added six more codes — the
+    # state-machine-derived rejections in ``apply_turn`` that previously
+    # silent-``continue``'d. All are valid; the assertion is that the
+    # codes in use are drawn from the known set, and that at least one
+    # terminal_state_re_address is present (the B02 invariant this test
+    # guards).
+    known_codes = {
+        # spec 0141 + 0216
+        "terminal_state_re_address", "raiser_self_address",
+        # spec 0228
+        "resolve_wrong_raiser", "resolve_from_non_addressed",
+        "withdraw_wrong_raiser", "withdraw_terminal_state",
+        "acknowledge_terminal_state", "address_already_addressed",
+    }
     seen_codes = {v.get("violation_code") for v in protocol_violations}
     assert seen_codes <= known_codes, (
         f"unexpected violation_code on anchor run: {seen_codes - known_codes}"
