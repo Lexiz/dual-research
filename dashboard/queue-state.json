@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T08:35:56Z",
+  "updated_at": "2026-05-26T08:45:06Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9993,7 +9993,7 @@
       "handover": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
     },
     "0219": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-26T17:00:00Z",
       "events": [
         {
@@ -10099,11 +10099,44 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/256"
           }
+        },
+        {
+          "ts": "2026-05-26T08:36:25Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T08:43:34Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.25"
+          }
+        },
+        {
+          "ts": "2026-05-26T08:43:44Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.44.25"
+          }
+        },
+        {
+          "ts": "2026-05-26T08:44:04Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T08:45:00Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-26-spec-0219-phase4-section-delta-contract-v2.md"
+          }
         }
       ],
       "started_at": "2026-05-26T08:12:15Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/256",
-      "merged_at": "2026-05-26T08:35:53Z"
+      "merged_at": "2026-05-26T08:35:53Z",
+      "deployed_at": "2026-05-26T08:45:05Z",
+      "handover": "handoffs/2026-05-26-spec-0219-phase4-section-delta-contract-v2.md"
     }
   }
 }
