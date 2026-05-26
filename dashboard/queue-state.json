@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T19:31:50Z",
+  "updated_at": "2026-05-26T19:34:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10508,7 +10508,7 @@
       "handover": "handoffs/2026-05-26-spec-0222-liveness-tombstone-baseexception-and-remove-stdout-streaming.md"
     },
     "0223": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-26T17:40:13Z",
       "events": [
         {
@@ -10567,11 +10567,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/262"
           }
+        },
+        {
+          "ts": "2026-05-26T19:32:14Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T19:33:52Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.45.4"
+          }
+        },
+        {
+          "ts": "2026-05-26T19:33:56Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T19:34:55Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-26-spec-0223-phase4-turn-cards-render-issues-comments-deltas.md"
+          }
         }
       ],
       "started_at": "2026-05-26T19:21:03Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/262",
-      "merged_at": "2026-05-26T19:31:47Z"
+      "merged_at": "2026-05-26T19:31:47Z",
+      "deployed_at": "2026-05-26T19:34:57Z",
+      "handover": "handoffs/2026-05-26-spec-0223-phase4-turn-cards-render-issues-comments-deltas.md"
     }
   }
 }
