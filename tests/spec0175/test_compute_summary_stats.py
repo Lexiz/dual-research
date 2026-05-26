@@ -247,19 +247,31 @@ def test_max_width_container(jsx: str) -> None:
 # ── how-it-works.jsx changelog sync ───────────────────────────────────────
 
 
-def test_how_it_works_has_v1_35_0_entry(hiw: str) -> None:
+def test_how_it_works_has_v1_35_0_entry() -> None:
     """Spec 0175 §6 step 11 — the in-app changelog must carry a v1.35.0
-    entry that points at spec 0175."""
-    assert "version: '1.35.0'" in hiw, "Missing 1.35.0 changelog entry"
-    # The new entry must surface spec 0175.
-    entry = re.search(
-        r"version: '1\.35\.0'.*?screenshots: \[\]",
-        hiw, flags=re.DOTALL,
+    entry that points at spec 0175.
+
+    Spec 0220 moved the source of truth out of `how-it-works.jsx` into a
+    fetched JSON sidecar (`version-notes.json`) seeded from
+    `version-notes-overrides.json`. The intent — "v1.35.0 exists, cites
+    spec 0175, mentions the Summary tab" — is unchanged; the new lookup
+    path goes through the overrides file (where v1.35.0 prose lives
+    verbatim).
+    """
+    import json
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    overrides = json.loads(
+        (repo_root / "src/dual_research/ui/static/version-notes-overrides.json").read_text(
+            encoding="utf-8"
+        )
     )
-    assert entry is not None, "1.35.0 entry malformed"
-    assert "'0175'" in entry.group(0)
-    # And mention the Summary tab.
-    assert "Summary" in entry.group(0)
+    assert "1.35.0" in overrides, "Missing 1.35.0 override entry"
+    entry = overrides["1.35.0"]
+    assert "0175" in entry.get("specs", []), "1.35.0 entry must cite spec 0175"
+    blob = entry.get("summary", "") + " ".join(entry.get("items", []))
+    assert "Summary" in blob, "1.35.0 entry must mention the Summary tab"
 
 
 # ── Old behaviour preserved ───────────────────────────────────────────────

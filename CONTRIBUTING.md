@@ -112,7 +112,7 @@ In the same PR:
 
 - Bump version in `pyproject.toml` and `__init__.py` per the table below.
 - Move the `[Unreleased]` CHANGELOG entry to a versioned heading: `## [X.Y.Z] — YYYY-MM-DD`. Add the new `[Unreleased]` placeholder back at the top.
-- If the spec changes **user-visible** protocol behaviour (parallelism, phase semantics, caps, tiebreak, retry rules) or ships a visible UI feature, append a new entry to the `VERSION_NOTES` array at the top of [`src/dual_research/ui/static/how-it-works.jsx`](src/dual_research/ui/static/how-it-works.jsx). Newest entry first; format mirrors existing entries. Specs that only touch internal plumbing can skip — `VERSION_NOTES` is the user-facing "what changed in the protocol or UI" log, not a duplicate of the CHANGELOG.
+- The in-app Changelog tab is auto-generated from `CHANGELOG.md` at build time (see [`scripts/build_version_notes.py`](scripts/build_version_notes.py)). To override a specific entry's prose, hand-edit [`src/dual_research/ui/static/version-notes-overrides.json`](src/dual_research/ui/static/version-notes-overrides.json) in the same PR.
 
 | Spec label    | Version bump | Example                |
 | ------------- | ------------ | ---------------------- |

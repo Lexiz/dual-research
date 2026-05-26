@@ -3862,6 +3862,35 @@ body.light .tour-overlay__mask {
 }
 .changelog-spec-link { margin-top: var(--s-3); }
 
+/* Spec 0220 — flat one-row presentation for entries classified
+   `user_facing: false`. Mirrors the .changelog-head row anatomy but
+   flattened: no chevron, no hover-card affordance, no padding-on-open
+   animation. Renders inline with .cl-list when the [Internal N] filter
+   chip is toggled on. */
+.changelog-internal-row {
+  display: flex; align-items: center; gap: var(--s-3);
+  flex-wrap: wrap;
+  padding: var(--s-2) var(--s-3);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  font-size: var(--md-body-s-size);
+  color: var(--md-on-surface-variant);
+}
+.changelog-internal-row .changelog-summary {
+  font-weight: var(--md-w-regular);
+}
+.changelog-internal-summary {
+  flex: 1;
+}
+.changelog-internal-spec {
+  cursor: pointer; border: none;
+  font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+}
+.changelog-internal-spec:hover {
+  background: var(--md-surface-container-high);
+}
+
 /* =============================================================
    SPEC-0123 — How-It-Works as a full-page route + DiagramViewer
    Replaces the spec-0121 modal-mode overlay with a full-viewport

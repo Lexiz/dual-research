@@ -557,6 +557,19 @@ A full-page route at `#/how-it-works` (spec 0121 introduced as modal, spec 0123 
 
 **Changelog tab** opens spec entries in a full-view modal (spec 0126).
 
+**Changelog data source (spec 0220):** entries are no longer hand-maintained in `how-it-works.jsx`. `scripts/build_version_notes.py` parses `CHANGELOG.md`, regex-prettifies each entry (file:line citation strip, `**bold**` → `<strong>`, sentence-split at 240 chars, Now/Was reshape on `Previously X; now Y`), classifies user-facing vs internal by inspecting the linked spec body (`src/dual_research/ui/static/` or `design-system/` references → user-facing, else internal), and writes `src/dual_research/ui/static/version-notes.json`. `version-notes-overrides.json` is the per-entry escape hatch (verbatim full-record replace) for prose that should bypass the prettifier.
+
+**Changelog anatomy:**
+
+| Class                          | Element            | Notes                                                                                  |
+| ------------------------------ | ------------------ | -------------------------------------------------------------------------------------- |
+| `.cl-filter-row`               | filter chip strip  | `[All N] [MAJOR N] [MINOR N] [PATCH N] [Internal N]` — Internal chip default-OFF.       |
+| `.changelog-head`              | entry head row     | `<chip mono tone-neutral no-dot>vX.Y.Z</chip>` · date · summary · spec chips · bump chip. |
+| `.cl-list`                     | entry list         | One `ChangelogEntry` per user-facing entry; one `.changelog-internal-row` per internal. |
+| `.changelog-internal-row`      | flat internal row  | `vX.Y.Z` · date · `Internal — <summary>` · spec chips · bump chip. No chevron, no body. |
+
+`AppVersionChip` (top-chrome) is a `<button>` whose `onClick` sets `window.location.hash` to `#how-it-works#cl-<digits>`; `ChangelogList`'s `forceOpen` prop on `ChangelogEntry` overrides any persisted collapse state for the anchored entry on initial render only.
+
 ### 5.3 — Admin / Settings · ProgressSegs
 
 Unified Admin + Settings page at `#/settings` (spec 0125). Sub-tabs: `[Allowlist] [Users]`. Users tab is a multi-user table backed by `/api/users`: select-checkbox · email · role · onboarding status (`✓ completed · v1.5.0` / `in progress · step 5/8` / `⊘ not started` / `reset pending`) · last seen · actions. Filter chips, search input, bulk-action bar.
