@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T23:53:30Z",
+  "updated_at": "2026-05-26T23:53:43Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11090,6 +11090,14 @@
           "ts": "2026-05-26T23:53:30Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-26T23:53:43Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0229-addressee-obligation-invariant",
+            "from": "main@84a229f"
+          }
         }
       ],
       "started_at": "2026-05-26T23:53:28Z"
