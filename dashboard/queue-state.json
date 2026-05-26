@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T22:43:16Z",
+  "updated_at": "2026-05-26T22:55:32Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10986,7 +10986,7 @@
       "handover": "handoffs/2026-05-27-spec-0227.1-reconciler-skip-markdown-link-display-text-citations.md"
     },
     "0228": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-26T22:18:11Z",
       "events": [
         {
@@ -10994,7 +10994,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-26T22:55:32Z"
     }
   }
 }
