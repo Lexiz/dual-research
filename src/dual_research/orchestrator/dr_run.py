@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
 import time
 from dataclasses import asdict
 from pathlib import Path
@@ -316,8 +315,7 @@ async def _drive_interaction_phase(
                 metrics=ctx.metrics,
                 transcript=ctx.transcript,
                 event_bus=event_bus,
-                stream_to=sys.stdout if agent_name == "claude" else None,
-                stream_prefix="[claude] " if agent_name == "claude" else "",
+                stream_to=None,
                 max_output_tokens=_TURN_MAX_OUTPUT_TOKENS,
                 prompt_pieces=pieces,
                 prompt_bundle=bundle,
@@ -948,8 +946,7 @@ async def run_dr_phase1(
             metrics=ctx.metrics,
             transcript=ctx.transcript,
             event_bus=event_bus,
-            stream_to=sys.stdout,
-            stream_prefix="[claude] ",
+            stream_to=None,
             max_output_tokens=_DRAFT_MAX_OUTPUT_TOKENS,
             prompt_pieces=claude_pieces,
             prompt_bundle=claude_bundle,
