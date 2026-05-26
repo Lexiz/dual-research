@@ -511,6 +511,17 @@ class ProtocolViolation(Event):
     - ``raiser_self_address`` (spec 0216): ADDRESS block whose ``item_id``
       matches an item the same agent raised. Protocol-forbidden — only
       the *other* agent's items can be addressed.
+    - ``resolve_wrong_raiser`` / ``resolve_from_non_addressed`` /
+      ``withdraw_wrong_raiser`` / ``withdraw_terminal_state`` /
+      ``acknowledge_terminal_state`` / ``address_already_addressed``
+      (spec 0228): state-machine guards in ``apply_turn`` that
+      previously silent-``continue``'d now emit a ProtocolViolation
+      naming the rejection so verifier I4.4 can fire on it.
+
+    The spec-0228 codes named above are the rejection sites enumerated
+    in spec 0228 §2.1; ``op_kind`` / ``expected_state`` / ``reason``
+    carry the structured diagnostic the verifier and the dashboard
+    consume.
 
     Future invariants reuse the same event with a different
     ``violation_code``.
@@ -530,6 +541,11 @@ class ProtocolViolation(Event):
     item_id: str
     from_state: str
     dropped_block: str = ""
+    # Spec 0228 — structured diagnostic for the rejection. Defaults keep
+    # pre-0228 emit sites (and pre-0228 serialised events) compatible.
+    op_kind: str = ""           # "resolve" | "address" | "acknowledge" | "withdraw"
+    expected_state: str = ""    # comma-joined allowed states, or "" if state-agnostic
+    reason: str = ""            # one-line human-readable rejection reason
     kind: str = "protocol_violation"
 
 
