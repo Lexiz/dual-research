@@ -359,18 +359,28 @@ function ActiveRunChip({ runId, onClick }) {
 }
 
 // Spec 0035: tiny pill in the chrome's right cluster showing the deployed
-// version. Click -> how-it-works page (where the VERSION_NOTES live).
+// version. Click → opens the Changelog tab anchored at this version's entry.
 // SPEC-0069: restyled to use the Chip primitive for design-system cohesion.
+// Spec 0220: rewired from inert <div> to a <button> deep-link.
 function AppVersionChip() {
   const meta = window.useAppMeta ? window.useAppMeta() : null;
   if (!meta?.version) return null;
+  const anchor = meta.version.replace(/\./g, '');
   return (
-    <div style={{ display: 'flex', alignItems: 'center', height: 40, padding: '0 8px' }}>
+    <button
+      type="button"
+      onClick={() => { window.location.hash = `#/how-it-works#cl-${anchor}`; }}
+      title="Open the changelog at this version"
+      style={{
+        display: 'flex', alignItems: 'center', height: 40, padding: '0 8px',
+        background: 'transparent', border: 'none', cursor: 'pointer',
+      }}
+    >
       <Chip title={`dual-research v${meta.version}`}
             style={{ fontFamily: 'var(--md-font-data)', fontSize: 10 }}>
         v{meta.version}
       </Chip>
-    </div>
+    </button>
   );
 }
 

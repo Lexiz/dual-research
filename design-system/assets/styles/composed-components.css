@@ -2526,3 +2526,36 @@ body.light .chip.tone-gpt .chip-label {
 @media (prefers-reduced-motion: reduce) {
   .pager__btn { transition: none !important; }
 }
+
+/* ── Changelog (Spec 0220) ─────────────────────────────────── */
+/* Internal-row presentation for entries the prettifier flags
+   `user_facing: false`. Mirrors the .changelog-head row anatomy but
+   flattened: no chevron, no hover-card affordance, no padding-on-open
+   animation. Composes the existing chip vocabulary (.chip.mono,
+   .chip.chip-square.tone-neutral, bump-tone chips) introduced in
+   spec 0119. The live-app copy at
+   src/dual_research/ui/static/components.css MUST stay in sync per the
+   two-file CSS sync rule in CLAUDE.md. */
+.changelog-internal-row {
+  display: flex; align-items: center; gap: var(--md-sp-3);
+  flex-wrap: wrap;
+  padding: var(--md-sp-2) var(--md-sp-3);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-sm);
+  font-size: var(--md-body-s-size);
+  color: var(--md-on-surface-variant);
+}
+.changelog-internal-row .changelog-summary {
+  font-weight: var(--md-w-regular);
+}
+.changelog-internal-summary {
+  flex: 1;
+}
+.changelog-internal-spec {
+  cursor: pointer; border: none;
+  font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+}
+.changelog-internal-spec:hover {
+  background: var(--md-surface-container-high);
+}

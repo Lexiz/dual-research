@@ -1,5 +1,5 @@
 // how-it-works.jsx — user-facing explainer of the Dual Research protocol
-// plus the in-app changelog (Spec 0121 rewrite).
+// plus the in-app changelog (Spec 0121 rewrite; Spec 0220 fetch-rewire).
 //
 // IA: 11 collapsible sections in the "How it works" tab + a tabbed Changelog
 // view. Every diagram embeds via theme-aware <img> swap (MutationObserver on
@@ -8,498 +8,37 @@
 // components.css); no bespoke chip variants are introduced here. Layout / list
 // / table classes live under the `/* spec-0121` block in components.css.
 //
-// VERSION_NOTES is the source of the in-app changelog. Future specs touching
-// user-visible behaviour append a new entry per CONTRIBUTING.md. New entries
-// (v1.3.0 onward) carry richer metadata — bump, specs, specPath, screenshots
-// — which the ChangelogEntry renderer handles. Older entries keep their
-// minimal {version, date, summary, items} shape; absent fields render as
-// suppressed chrome.
+// Changelog entries are no longer hand-maintained here. They live as
+// /static/version-notes.json, generated at build time from CHANGELOG.md by
+// scripts/build_version_notes.py and merged with per-entry overrides in
+// version-notes-overrides.json. ChangelogList fetches the sidecar on mount.
 
 (function () {
   'use strict';
 
-  // ─── In-app release notes ─────────────────────────────────────
-  const VERSION_NOTES = [
-    {
-      version: '1.35.0',
-      date: '2026-05-23',
-      bump: 'MINOR',
-      specs: ['0175'],
-      summary: 'Summary tab v2 — celebratory close-out with verdict band, headline stats, head-to-head agent cards, deduplicated critique outcomes, and a markdown download.',
-      items: [
-        '<strong>Status-aware hero band.</strong> Every terminal run lands on a verdict-tinted band: cheer line + 32 dp glyph + computed verdict label (<em>Mostly positive</em> / <em>Mostly negative</em> / <em>Mixed</em> / <em>Inconclusive</em>) + an explanation line. Deadlocked runs show the hard-cap framing; errored runs replace the verdict with <em>Incomplete</em> and surface the error code + detail verbatim. Topic line keeps its serif italic treatment.',
-        '<strong>Headline stat grid.</strong> Five auto-fit tiles — tokens burned, spent, elapsed, rounds, web searches — sit on the M3 surface-container-high chrome spec 0168 §2.1 locked in. Each tile has a top-right glyph + big mono value + uppercase label + optional sub-line hint.',
-        '<strong>Head-to-head agent cards.</strong> Claude / GPT side-by-side, with 2 px provider stripe (sable / sage), four <code>SmallStat</code> chips (tokens · cost · raised · solved), and a token-share bar across the bottom.',
-        '<strong>Deduplicated critique outcomes.</strong> Four expandable rows — Claude raised, Claude solved, GPT raised, GPT solved — using the canonical <code>.tab-group-solid</code> chrome. The <code>resolved-both</code> disagreement bucket no longer double-credits to per-agent solved rows; it surfaces as its own <em>aligned</em> count in the section header. Per-row sub-rows preview the per-kind tally on expansion.',
-        '<strong>Auto-jump on terminal transition.</strong> When the run finishes mid-session, the Critique pane snaps to the Σ Summary tab — unless the user has manually picked a different tab during this session.',
-        '<strong>Celebratory confetti.</strong> A single 600 ms particle burst fires once per (run, browser) when the verdict is <em>Mostly positive</em>. Gated by <code>localStorage</code> and <code>prefers-reduced-motion: reduce</code> — the flag is still written under reduced-motion so the gate doesn\'t re-try later.',
-        '<strong>Footer download + copy.</strong> Verdict-coloured filled primary button downloads <code>final.md</code> directly from <code>/api/runs/&lt;id&gt;/files/final.md</code> (disabled with tooltip if the document is missing). Outlined secondary button copies the plain-text verdict + story copy to the clipboard. Right-aligned mono <code>run &lt;id&gt;</code>.',
-        '<strong>Legacy tables preserved.</strong> The per-phase per-kind <code>SummaryKindTable</code> rendering (spec 0046 D5) lives behind a single <em>Per-round breakdown</em> disclosure, byte-identical to today\'s render.',
-        '<strong>Verdict threshold tightened.</strong> The green-verdict resolution-ratio threshold moved from 0.70 → 0.85, so <em>Mostly positive</em> now reflects actual resolution dominance rather than borderline outcomes.',
-      ],
-      screenshots: [],
-    },
-    {
-      version: '1.6.0',
-      date: '2026-05-20',
-      bump: 'MINOR',
-      specs: ['0125'],
-      summary: 'Onboarding tour visual rewrite + unified Admin/Settings + server-persisted onboarding state.',
-      items: [
-        '<strong>Tour visuals rewritten.</strong> Real SVG-based <code>&lt;TourSpotlight&gt;</code> with <code>&lt;mask&gt;</code> cutout + radial-gradient halo + crisp info-toned outline ring. Callout card gets M3 elevation-2 + info-border + CSS arrow pointing at the anchor. Card placement uses the overflow-aware positioner from spec 0121 (right → below → left → above with viewport clamp).',
-        '<strong>Skip-on-missing-anchor.</strong> If the anchor isn\'t on the page after a ~1 s retry window, the step is auto-skipped with a bottom-right toast <code>"Step N skipped — no &lt;anchor&gt; on this page."</code> The tour advances; users are never stuck on a centered card with nothing to point at.',
-        '<strong>Cross-route navigation.</strong> Spotlight steps 3, 5, 6, 7 (all anchor inside a run-detail page) navigate to the most-recent run before they fire. If no run exists, the skip-on-missing-anchor path quietly handles it.',
-        '<strong>Phase vocabulary refresh.</strong> Step 4\'s inlined <code>PHASES_SVG</code> replaced by the spec-0121 <code>/diagrams/how-it-works/01-pipeline.{light,dark}.svg</code> (theme-aware). Step 4 body + step 5 body updated to the spec-0114 vocabulary (Input / Research plan / Negotiate plan / Draft / Review draft / Finalize).',
-        '<strong>Unified Admin/Settings.</strong> <code>/admin/users</code> folded into <code>/settings</code> as a sub-tab. Settings page now renders <code>[Allowlist] [Users]</code> tab strip, hash-routed. The <code>admin-users.jsx</code> file deleted; the avatar menu drops "Admin: users".',
-        '<strong>Users sub-tab.</strong> Real multi-user table backed by <code>/api/users</code>. Columns: select-checkbox · email · role · onboarding status · last seen · actions (<em>Reset onboarding</em>, <em>Remove</em>). Filter chips <code>[All N] [Admins N] [Pending N] [Completed N]</code> + search. Bulk-action bar appears when ≥1 row checked. Global onboarding control panel: <em>Required for all new sign-ins</em> toggle + <em>Reset for everyone</em> button.',
-        '<strong>Server-persisted onboarding state.</strong> New Supabase migration adds 5 columns to <code>approved_emails</code> (<code>onboarded_at</code>, <code>onboarded_at_version</code>, <code>tour_step</code>, <code>tour_force_reset_at</code>, <code>last_seen_at</code>) + a <code>system_settings</code> table. Eight new endpoints: <code>GET /api/users</code>, <code>POST /api/users/&lt;email&gt;/reset-onboarding</code>, <code>POST /api/users/bulk-reset-onboarding</code>, <code>POST /api/onboarding/broadcast-reset</code>, <code>GET /api/onboarding/state</code>, <code>PUT /api/onboarding/state</code>, <code>GET /api/system-settings</code>, <code>PUT /api/system-settings</code>.',
-        '<strong>One-shot localStorage migration.</strong> First authed boot per browser migrates <code>dr_onboarded === \'true\'</code> to server-side <code>onboarded_at = now()</code> and clears the legacy keys.',
-        '<strong>Defensive against missing migration.</strong> Every new endpoint catches schema errors and falls back to legacy columns / sensible defaults, so the deploy and the schema migration can land in either order without 500s.',
-        '<strong>22 new backend tests</strong> in <code>tests/ui/test_server_users_api.py</code>.',
-      ],
-      screenshots: [],
-    },
-    {
-      version: '1.5.0',
-      date: '2026-05-20',
-      bump: 'MINOR',
-      specs: ['0121'],
-      summary: 'How-It-Works overlay + Changelog tab — full content & component rewrite.',
-      items: [
-        '<strong>Rewrote 100% of the in-overlay prose</strong> to match the live Deep Research protocol (specs 0114 → 0120). Phase vocabulary updated (input / research-plan / negotiate-plan / draft / review-draft). The legacy <code>claim</code> kind, pre-0114 D-N identifiers, and pre-0118 cost terminology are gone from the prose.',
-        '<strong>Redrew every diagram from scratch.</strong> Seven new diagrams via the diagram skill, light + dark each (14 SVGs under <code>/diagrams/how-it-works/</code>): full protocol pipeline, per-phase input composition, item lifecycle state machine, category taxonomy + chip composition, cost calculation flow, convergence + escape hatches, turn-modal anatomy.',
-        '<strong>New 11-section IA</strong>: Protocol overview → Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → How turns are reviewed → Item taxonomy & categories → Item lifecycle → Convergence & escape hatches → Cost & consumption. Each section is a CollapsibleSection with localStorage persistence; first section open by default.',
-        '<strong>Every chip on the overlay uses the spec-0119 vocabulary.</strong> Category bubbles (Q/D/I/C) render with their canonical tones (info/warn/err/idle); provider chips use Claude (sable) / GPT (sage); status chips never bare.',
-        '<strong>Changelog tab rewritten</strong> with per-entry CollapsibleSection + Card, bump chip (MAJOR/MINOR/PATCH), spec-link button, and a screenshot grid (the three newest entries embed before/after PNGs of the surface each spec affected).',
-        '<strong>Backfilled the three missing changelog entries</strong>: v1.3.0 (spec 0118 — consumption + cost), v1.4.0 (spec 0119 — badge governance), v1.4.1 (spec 0120 — turn-modal items panel).',
-        '<strong>Retired ~1,500 lines of dead-code JSX</strong> from how-it-works.jsx: <code>PhaseStrip</code>, <code>NegotiationRoundDiagram</code>, <code>ContextGrowthBars</code>, <code>ChatLifecycle</code>, <code>LifecycleRow</code>, <code>CallBox</code>, <code>TldrCards</code>, <code>ComparePanel</code>, <code>Section</code>, <code>Legend</code>, <code>Tk</code>, <code>AgentDisc</code>, <code>ProtocolOverviewMap</code>, <code>ProtocolOverviewFold</code>, the old <code>ReleaseNote</code> and <code>ChangelogEntry</code>. The legacy <code>deep-research-pipeline.{light,dark}.svg</code> remains in <code>/diagrams/</code> but is no longer referenced.',
-        '<strong>Three new CSS utilities</strong> in components.css under a spec-0121 block: <code>.hiw-note</code> (info/warn/err/ok-toned callout), <code>.hiw-table</code> (styled prose table), <code>.hiw-code</code> (block code), plus the structural <code>.hiw-*</code> / <code>.changelog-*</code> / <code>.hiw-cs-section</code> / <code>.cl-filter-row</code> classes.',
-        '<strong>Backend untouched.</strong> Pure frontend documentation surface; no edits to <code>contract/</code>, <code>orchestrator/</code>, <code>protocol/</code>, <code>events/</code>, or any other JSX file. Cache-bust <code>?v=0120b → ?v=0121a</code>.',
-      ],
-      // Spec 0126 — earlier screenshot paths 404'd because no PNGs were
-      // ever captured. The field stays for future entries with verified
-      // images. The "Open spec 0121 ↗" button below renders the full
-      // spec in a modal instead.
-      screenshots: [],
-    },
-    {
-      version: '1.4.1',
-      date: '2026-05-20',
-      bump: 'PATCH',
-      specs: ['0120'],
-      summary: 'Turn-modal items panel rework — provider chip + Anchor/Title/Rationale split + Claims panel removed.',
-      items: [
-        '<strong>Provider chip on every item card.</strong> Each card in the turn-modal right pane now begins with a <span class="chip tone-claude no-dot"><span class="chip-label">Claude</span></span> or <span class="chip tone-gpt no-dot"><span class="chip-label">GPT</span></span> chip so you can see at a glance who raised the item.',
-        '<strong>Three labelled body segments.</strong> Each card body splits into <strong>Anchored to &lt;agent&gt;\'s draft</strong> (the quoted reference), <strong>Title</strong> (the one-line bold summary), and <strong>Rationale</strong> (the elaborating paragraph). Labels are small caps so the body stays visually quiet.',
-        '<strong>Claims panel removed</strong> from new-protocol render paths. Legacy renderer (for pre-0114 runs) unchanged.',
-        '<strong>Panel headers use spec-0119 category chips.</strong> "Questions 5" panel header is now <span class="chip tone-info no-dot"><span class="cat-bubble">Q</span><span class="chip-label">Questions</span><span class="chip-value">5</span></span> — identical to the critique pane\'s filter legend.',
-        '<strong>Sources widget unchanged.</strong> When an item carries evidence, the existing SourceRow renders verbatim.',
-      ],
-      // Spec 0126 — was empty paths; the spec modal carries the prose.
-      screenshots: [],
-    },
-    {
-      version: '1.4.0',
-      date: '2026-05-20',
-      bump: 'MINOR',
-      specs: ['0119'],
-      summary: 'Badge governance — unified Chip primitive + canonical vocabulary (Q/D/I/C bubbles, lifecycle verb chips, never-bare status).',
-      items: [
-        '<strong>One Chip primitive.</strong> Eight pre-0119 chip-like JSX patterns and their CSS rules deleted. shared.jsx\'s &lt;Chip&gt; gains a slot API: leadingDot / leadingIcon / categoryBubble, then label / value / +add / −sub / trailingSuffix, plus iconOnly / dim / mono / shape / size modifiers.',
-        '<strong>Category bubble icon glyph.</strong> Q / D / I / C render as a 14 px filled circle with a knockout-white letter (designed icon, not a raw abbreviation). Fixed color map (Q=info, D=warn, I=err, C=idle) and fixed order (Q→D→I→C). The critique-pane filter row is the canonical legend.',
-        '<strong>Never-bare status.</strong> Every completed timeline card carries a right-aligned status chip — running / ✓ agreed / ✓ / queued.',
-        '<strong>Provider + activity split.</strong> The combined <code>.qref qref-full</code> span is replaced by two adjacent chips — <span class="chip tone-claude no-dot"><span class="chip-label">Claude</span></span> and <span class="chip mono tone-neutral no-dot">turn 1</span>.',
-        '<strong>Cross-pane chip jumps.</strong> Clicking a category chip on a timeline turn card fires a <code>dr-critique-jump</code> event; the critique pane applies the matching filter and scrolls into view.',
-        '<strong>Phase-header chip cluster.</strong> Each visible phase header carries a right-aligned aggregate-across-both-agents category-summary chip cluster.',
-        '<strong>Vocabulary cleanup.</strong> Strict per-spec removal of the legacy <code>claim</code> data path. <code>\'conceded\'</code>, <code>\'answered\'</code>, <code>\'noted\'</code>, <code>\'ghosted\'</code>, <code>\'repair\'</code>, legacy abbreviations <code>QCR1</code> / <code>OQ</code> / <code>BD</code> / <code>OI</code> all gone.',  // spec-0119:vocab-ok
-        '<strong>Lifecycle-verbs.js helper</strong> mirrors <code>contract/lifecycle.py:TRANSITIONS</code>; a cross-language sync test enforces it.',
-        '<strong>Backend untouched.</strong> No edits to <code>contract/</code>, <code>orchestrator/</code>, <code>protocol/</code>, or <code>events/</code>.',
-      ],
-      // Spec 0126 — was empty paths; the spec modal carries the prose.
-      screenshots: [],
-    },
-    {
-      version: '1.3.0',
-      date: '2026-05-20',
-      bump: 'MINOR',
-      specs: ['0118'],
-      summary: 'Consumption tab redesign + canonical-piece aggregation + per-piece proportional cost tracking.',
-      items: [
-        '<strong>Canonical-piece keys</strong> replace the legacy 7-key vocabulary (brief / d1 / d2 / plan / hist / draft / histp). Each per-turn TurnEnded event\'s promptPieces dictionary now keys by spec-0117 artifact registry IDs.',
-        '<strong>Per-phase grouping rules (NORMATIVE).</strong> Always-separate rows: user_prompt + System prompt aggregate. Phase-specific separate rows include phase1.claude / phase1.openai (P2/P3), all_p2_turns (P3), current_draft + prior_turns.phase4 (P4).',
-        '<strong>Total bar shows exact billed numbers.</strong> Tokens + cost = exact API-billed values. The cache-reuse stripe (45° overlay at 0.5 opacity) renders over the cache_read_tokens proportion.',
-        '<strong>Per-piece cost is proportional.</strong> pieceCost = (pieceTokens / billedInputTokens) × totalInputCost. Tooltip annotates <code>(proportional)</code> to flag the heuristic.',
-        '<strong>System prompt aggregate.</strong> Per-phase system.task.* + prior_turns.* + ledger.standing_items + closeout.request rolled into a single "System prompt" row with hover tooltip showing the per-sub-artifact breakdown.',
-        '<strong>Collapsed vs unfolded card.</strong> Collapsed: single "Total tokens" bar with <code>&lt;tokens&gt;t · $&lt;cost&gt;</code>, cache-reuse meta line. Unfolded: 3-column grid per row (description · bar · tokens·cost).',
-      ],
-      // Spec 0126 — was empty paths; the spec modal carries the prose.
-      screenshots: [],
-    },
-    {
-      version: '1.2.0',
-      date: '2026-05-20',
-      summary: 'Spec 0117 -- canonical artifact registry, Deep Research how-it-works diagram, and display-name propagation across the UI.',
-      items: [
-        'New artifact registry at contract/artifacts.py: ArtifactKind enum, ArtifactDef dataclass, 33-entry REGISTRY tuple, display_name() / is_known() / kind_of(). Single source of truth for every artifact name surfaced to the user.',
-        'Hand-authored Deep Research pipeline SVGs bundled under /diagrams/ (light + dark variants). The how-it-works "View full process map" panel now embeds the variant matching the active theme; toggling the theme swaps the SVG via a MutationObserver on body.classList.',
-        'JS-side registry mirror at static/artifacts.jsx (window.DrArtifacts.displayName / isKnown / truncateTitle). A pytest sync test parses both registries and fails CI if Python and JS drift apart.',
-        'Display-name propagation: every modal header in run-detail.jsx resolves through the registry ("Negotiation turn · Claude · round 3", "Claude\'s research plan", "Current draft (latest version) · drafted by Claude").',
-        'CI drift guard: a pytest scans src/dual_research/ for string literals matching the registry\'s ID prefixes and fails if any unregistered ID slips in.',
-      ],
-    },
-    {
-      version: '0.69.1',
-      date: '2026-05-18',
-      summary: 'Hotfix -- run-detail page white-screen regression fixed.',
-      items: [
-        'Fixed Babel parse error in run-detail.jsx that caused every run-detail page to white-screen (regression from v0.63.0).',
-        'Root cause: JSX comment placed inside a prop expression slot -- Babel interprets this as a nested object literal.',
-        'Added JSX syntax regression test to catch the same class of bug in all JSX files going forward.',
-      ],
-    },
-    {
-      version: '0.68.0',
-      date: '2026-05-18',
-      summary: 'Consumption tab agent-card restructure -- data at top, bars at bottom, wider bars, equal-height cards.',
-      items: [
-        'Expanded agent cards reorganized: metrics + costs grouped at top, bars zone (total + breakdown) at bottom with divider.',
-        'Cards grow downward on expand; total bar stays put as visual anchor, breakdown bars cascade below.',
-        'Phase-label column narrowed from 160px to 100px; bar-label columns narrowed from 140px to 100px for wider bars.',
-        'New --consumption-label-w token and .consumption-card CSS class codified in the design system.',
-      ],
-    },
-    {
-      version: '0.67.0',
-      date: '2026-05-18',
-      summary: 'Agent Input tab rework -- renamed, reordered to first position, structural improvements with CollapsibleSection and Markdown rendering.',
-      items: [
-        '"Input" tab renamed to "Agent Input" across all modal contexts.',
-        'Agent Input now appears first in modal tab order, before Content.',
-        'Entry ordering: System Prompt first (collapsed), User Prompt second (expanded), then remaining entries.',
-        'Input entries now use the CollapsibleSection primitive for consistent disclosure UX.',
-        'Input piece bodies render via Markdown instead of raw preformatted text.',
-      ],
-    },
-    {
-      version: '0.66.0',
-      date: '2026-05-18',
-      summary: 'Critique detail unification -- disagreement cards now use QuestionThread-style turns, Issue/Comment bodies render Markdown, new QuoteCallout primitive.',
-      items: [
-        'Disagreement detail rebuilt: progression entries now render as agent turn cards with action chips instead of vertical rail.',
-        'QuestionThread extended with kind="disagreement" for unified turn-card rendering across questions and disagreements.',
-        'Issue and Comment bodies now render via Markdown -- bold, italic, blockquotes, and code display correctly.',
-        'New QuoteCallout primitive for styled quote fields on critique cards (left border + italic + muted background).',
-      ],
-    },
-    {
-      version: '0.65.0',
-      date: '2026-05-18',
-      summary: 'Critique pane structural pass -- filter strip overflow fix, Phase 4 Issues/Comments split, three-sentence summary, disabled-Drift UX.',
-      items: [
-        'Filter strip no longer clips the last tab: PaneToolbar expands to fit multi-row filter strips.',
-        'Kind-axis filter row anchored left, agent+status row centered with tighter spacing.',
-        'Phase 4 Issues and Comments render in their own collapsible sections instead of mixing into DRIFT/OPEN/RESOLVED.',
-        'Summary tab opens with a generated three-sentence verdict: sentiment, qualitative breakdown, and drift note.',
-      ],
-    },
-    {
-      version: '0.64.0',
-      date: '2026-05-18',
-      summary: 'Timeline structural pass -- collapsible phases, denser cards, improved PhaseRail contrast, collapsible critique sections.',
-      items: [
-        'New CollapsibleSection primitive: generic disclosure with chevron, localStorage persistence, and reduced-motion respect.',
-        'Timeline phase headers are now clickable: collapse/expand cards under each phase. State preserved across reloads.',
-        'Card vertical padding reduced for a denser, more scannable timeline.',
-        'PhaseRail completed-phase labels now render in green (--ok) instead of dim gray.',
-        'Critique pane DRIFT/OPEN/RESOLVED sections are now collapsible with the same disclosure pattern.',
-      ],
-    },
-    {
-      version: '0.63.0',
-      date: '2026-05-18',
-      summary: 'Run-detail header restructure -- equal-width agent strips, blocking banner removed, phase tabs with structured chip clusters.',
-      items: [
-        'AgentStrip pills now share width equally via flex: 1 1 0 -- no more lopsided pills.',
-        'Vertical padding reduced from var(--s-2) to 4px for a denser agent strip.',
-        'Blocking-item callout banner removed -- the "N open . M ghosted" bar is gone. Same info available in critique pane.',
-        'Phase tabs restructured: each tab shows P2 Negotiate 26 questions 10 disagreements instead of cramped notation.',
-      ],
-    },
-    {
-      version: '0.62.0',
-      date: '2026-05-18',
-      summary: 'Run-list & chrome polish -- uniform status pills, structured info chips, cohesive chrome controls.',
-      items: [
-        'Status pills now have a fixed 88px min-width with centered text -- all statuses render at the same width.',
-        'Run-list header info line replaced with structured Chip instances.',
-        'Chrome tabs (All runs, Compare, Search) now use consistent size="sm" for uniform visual weight.',
-        'ConnectionPill flattened from two-line indicator to a single-line chip.',
-        'AppVersionChip restyled to use the Chip primitive. DesignLanguageButton restyled to use Tab primitive.',
-      ],
-    },
-    {
-      version: '0.61.0',
-      date: '2026-05-18',
-      summary: 'Brand-icon system + Design-page DNA reskin -- official brand marks everywhere agents are identified.',
-      items: [
-        'New BrandMark primitive renders official Anthropic sunburst (Claude) and OpenAI hexagonal rosette (GPT).',
-        'Agent-icon migration: AgentIcon, AgentStrip, and CodeCluster agent chips now use the brand SVG paths.',
-        'Run-list dual-color gradient square replaced with two composed BrandMark glyphs.',
-        'Design Language page restructured as a curated DNA one-pager.',
-      ],
-    },
-    {
-      version: '0.60.0',
-      date: '2026-05-18',
-      summary: 'Chip vocabulary + code-cluster expansion -- full-word labels replace cryptic codes.',
-      items: [
-        'New parseCodeId utility + CodeCluster primitive. Critique public IDs now render as structured chip clusters.',
-        'Stats chips expanded: "+6 Cl" becomes "+6 claims", "+1 I -1" becomes "+1 issue -1".',
-        'Disagreement status labels: arrow notation replaced with "conceded by Claude" / "conceded by GPT".',
-        'Output bar labels: slot codes removed, replaced with descriptive "feeds Claude\'s Phase 1 draft".',
-      ],
-    },
-    {
-      version: '0.59.0',
-      date: '2026-05-17',
-      summary: 'Onboarding flow + landing demo capsule -- final design-system arc spec.',
-      items: [
-        '3-screen onboarding carousel for first-time users.',
-        'Auth-free landing page now shows a read-only demo capsule of a real research run.',
-        'Onboarding completion persisted to localStorage. Skip or complete to dismiss.',
-        'Design-system migration arc complete (SPEC-0050 through SPEC-0061).',
-      ],
-    },
-    {
-      version: '0.58.0',
-      date: '2026-05-17',
-      summary: 'Cross-run dashboards -- /compare + /search.',
-      items: [
-        'Two new surfaces: a cross-run search dashboard and a two-run side-by-side comparison view.',
-        'Cross-run search (#/search): type to search across all runs by topic, brief content, and final documents.',
-        'Compare runs (#/compare): select any two runs from dropdown pickers. Synced-scroll side-by-side panels.',
-        'Chrome bar gains Compare and Search tabs.',
-      ],
-    },
-    {
-      version: '0.57.0',
-      date: '2026-05-17',
-      summary: 'Keyboard contract + shortcuts overlay + search palette.',
-      items: [
-        'Global keyboard contract wired at the document level.',
-        'Press ? to open a shortcuts overlay listing every keyboard binding by context.',
-        'Press Cmd+K (or Ctrl+K) to open a search palette.',
-        'Existing / shortcut for focusing run-list search preserved.',
-      ],
-    },
-    {
-      version: '0.56.0',
-      date: '2026-05-17',
-      summary: 'Modal primitive + RoundScrubber + provider-symmetric SourceCard + sub-tab migration.',
-      items: [
-        'CSS-class-backed Modal replaces the inline-styled modal. Agent-color left border, theme-aware backdrop, focus trap.',
-        'RoundScrubber at the bottom of split modals. Walk through negotiation rounds without closing the modal.',
-        'Provider-symmetric SourceCard: Anthropic and OpenAI web search results now render identically.',
-        'All modal sub-tabs migrated to the TabGroup line variant.',
-      ],
-    },
-    {
-      version: '0.55.0',
-      date: '2026-05-17',
-      summary: 'Timeline + critique restructure -- PhaseRail, ChipCluster, 3-axis filter, DriftCluster, Summary enhancement, CardHeadline migration.',
-      items: [
-        'Sticky PhaseRail down the timeline pane left edge with click-to-scroll navigation.',
-        'ChipCluster discipline: chip rows that exceed 5 items collapse into a +N overflow button.',
-        'Three-axis critique filter: filter by kind, agent, and status with AND logic for precise drill-down.',
-        'DriftCluster: ghosted items now render in a dedicated Drift group above Open and Resolved.',
-      ],
-    },
-    {
-      version: '0.54.0',
-      date: '2026-05-17',
-      summary: 'Run detail header restructure + chrome unification + ActiveRunChip + blocking callout.',
-      items: [
-        'Chrome bar right cluster unified: HowItWorksLink migrated to Tab primitive.',
-        'Run-detail header restructured with equal-row padding. Drafter callout pill with agent-tinted Chip + icon.',
-        'Blocking-item callout bar between header and content.',
-        'Timeline agent pills migrated to the design-system AgentStrip primitive.',
-      ],
-    },
-    {
-      version: '0.53.0',
-      date: '2026-05-17',
-      summary: 'Run list rework -- sortable columns, attention promotion, search, URL state.',
-      items: [
-        'Sortable columns: click any column header to toggle ascending/descending sort.',
-        'Attention-first section: errored and deadlocked runs surface at the top of the list.',
-        'Search input in the header bar. Press / from anywhere on the page to jump to search.',
-        'Visual attention borders: errored runs get a red left border, deadlocked runs amber.',
-      ],
-    },
-    {
-      version: '0.52.0',
-      date: '2026-05-17',
-      summary: 'QuestionThread + QuestionRef primitives — AP-01 enforcement.',
-      items: [
-        'QuestionThread: vertical turn-by-turn conversation timeline for critique items.',
-        'QuestionRef: decoded reference replaces legacy cryptic Q-g-r1-04 database keys.',
-        'Question cards now expand into full QuestionThread views.',
-        'CardHeadline for questions shows decoded number (01) instead of raw database key.',
-      ],
-    },
-    {
-      version: '0.51.0',
-      date: '2026-05-17',
-      summary: 'Tab system (3 variants) + table header distinction.',
-      items: [
-        'Unified Tab primitive with three variants: default bordered pill, tabs-line, tabs-solid.',
-        'Critique pane phase buttons and filter chips now render via the new tabs-solid segmented control.',
-        'Run-list filter strip migrated to Tab with leading dot + filterTone color classes + count badges.',
-        'Table headers now visually distinct from body rows.',
-      ],
-    },
-    {
-      version: '0.50.0',
-      date: '2026-05-17',
-      summary: 'Primitive vocabulary — Button, StatusBadge, Chip, RunIDChip, Card, AgentStrip, segmented ThemeToggle.',
-      items: [
-        'New components.css lands the V1 component classes on top of SPEC-0050\'s tokens + base.',
-        'Five legacy primitives → three: StatusBadge (state), Chip (data), RunIDChip (identity).',
-        'ThemeToggle restored to segmented with sliding thumb.',
-        'AgentStrip min-width 480 → 320.',
-        'Cache-bust query strings added to every local stylesheet and JSX script in index.html.',
-      ],
-    },
-    {
-      version: '0.49.0',
-      date: '2026-05-17',
-      summary: 'Consumption tab — content-vs-billing split, output bar, cross-turn slot naming.',
-      items: [
-        'Card headline now reads "60kt seen · 411kt billed · 7.2kt out" with a "× 7 reuse" chip when there\'s measurable cache amplification.',
-        'Per-piece sub-bars sized to raw content heuristic counts.',
-        'New OutputBar in the expanded card, colored by the destination input slot.',
-        'Cost cluster gains the output split: Input / Output / Web search / Total.',
-      ],
-    },
-    {
-      version: '0.48.1',
-      date: '2026-05-17',
-      summary: 'CI fixture check-in — partner-vetting run committed so tests.yml passes on CI runners.',
-      items: ['Hotfix between SPEC-0050 and SPEC-0052. Pure ops change; no UI behaviour change.'],
-    },
-    {
-      version: '0.48.0',
-      date: '2026-05-17',
-      summary: 'Design-system foundation — new fonts, retuned contrast, MDI icons, no emoji, focus ring, reduced-motion contract.',
-      items: [
-        'IBM Plex Sans handles UI chrome + data; IBM Plex Serif handles agent-produced prose.',
-        'Foreground tier brightened in dark mode and darkened in light to clear WCAG-AA at 12 px.',
-        'Global :focus-visible ring (2 px --info at 2 px offset) lands in base.css.',
-        '@media (prefers-reduced-motion: reduce) forces all durations ≤ 1 ms.',
-        'Material Design Icons via new icons.jsx (~60 MDI icons inlined as path data).',
-        '13 emoji swept across 4 surfaces.',
-      ],
-    },
-    {
-      version: '0.47.0',
-      date: '2026-05-17',
-      summary: 'Daily reconciliation cron, powered by Supabase-source run-cost data.',
-      items: [
-        '`reconcile-costs` learned a `--source supabase` flag.',
-        'GitHub Actions daily cron at 02:00 UTC.',
-        'Anthropic side stays graceful-degraded — admin keys still unavailable in this org\'s Console UI.',
-      ],
-    },
-    {
-      version: '0.46.0',
-      date: '2026-05-17',
-      summary: 'Always-on cost verification against provider invoices.',
-      items: [
-        'New `dual-research reconcile-costs` CLI compares local metrics.json totals against the providers\' billing APIs.',
-        'Each provider\'s admin key is independently optional.',
-        'New `<ReconcileChip>` in the run-detail header.',
-        'Consumption-tab cards gain a "Provider-billed" line when reconciled.',
-        'metrics.json now records a pricing_version string.',
-      ],
-    },
-    {
-      version: '0.45.0',
-      date: '2026-05-17',
-      summary: 'Run-detail resilience + repair-turn visibility.',
-      items: [
-        'Run-detail page no longer crashes on historical runs that reached `completed` without a drafter.',
-        'Finalize path hardened against the resume scenario where phase2_outcome is None on disk.',
-        'Phase 4 protocol-repair turns now appear as their own cards on the Consumption tab.',
-        'Per-turn key on the wire gains a _repair suffix for sibling labels.',
-      ],
-    },
-    {
-      version: '0.44.0',
-      date: '2026-05-17',
-      summary: 'Critique panel + Summary + Consumption rework + design unification.',
-      items: [
-        'Critique pane header restructured. Phase buttons primary navigation; count cluster right-aligned.',
-        'Per-phase filter chips are context-aware (Phase 2 vs Phase 4 kinds differ).',
-        'Critique cards render human-readable headlines instead of cryptic internal IDs.',
-        'Summary tab redesigned as per-kind, per-model tables.',
-        'Consumption tab rebuilt as single-row cards.',
-      ],
-    },
-    {
-      version: '0.43.0',
-      date: '2026-05-17',
-      summary: 'Full-view shell standardisation + model pill layout.',
-      items: [
-        'Tabs on every full-view modal now render in a canonical order: Content | Input | Web Search | Sources | Files.',
-        'Input full-view drops the "not used in this turn" rows.',
-        'Side-by-side modals now use equal-width columns.',
-        'Timeline-header model pills (Claude, GPT) are now equal-width.',
-      ],
-    },
-    {
-      version: '0.42.0',
-      date: '2026-05-17',
-      summary: 'Turn-input semantics + per-turn badge redesign + side-by-side framing.',
-      items: [
-        'Per-turn count chips redesigned: explicit +raised / −resolved per kind.',
-        'The per-turn `negotiating` / `reviewing` status pill is gone.',
-        'Side-by-side modal left pane gets phase-aware document tabs.',
-        'Phase 1 plan-draft modal gains a structured-items strip above the draft body.',
-      ],
-    },
-    {
-      version: '0.41.0',
-      date: '2026-05-17',
-      summary: 'Cross-round ledger + standing-items input + conservative convergence.',
-      items: [
-        'The orchestrator now maintains an authoritative cross-round ledger of every claim / question / disagreement / issue / comment.',
-        'Round-N (N≥2) prompts now include a `## Standing items from prior rounds` section built from the ledger.',
-        'Convergence is now conservative: a phase terminates only when both the agent self-counters AND the system-derived ledger agree the open-set is empty.',
-        'Kill-switch built in: set DR_LEDGER_MODE=legacy in the environment to roll back.',
-      ],
-    },
-    {
-      version: '0.40.0',
-      date: '2026-05-17',
-      summary: 'Critique data integrity — Phase 1 sections parsed, badges reconcile, markdown rendering fixed.',
-      items: [
-        'Phase 1 plan-draft cards now show real chip counts. The parser learned to recognise Phase 1 sections.',
-        'Phase 2 round-1 content re-categorised from `disagreement` to `claim`.',
-        'Timeline chip counts no longer trust the agent\'s self-counters as source of truth.',
-        'Critique header math reconciles.',
-      ],
-    },
-    {
-      version: '0.18.0',
-      date: '2026-05-15',
-      summary: 'Supabase schema + `--push` CLI.',
-      items: [
-        'New Postgres tables (runs, events, session_files) mirror the on-disk session-dir layout.',
-        '`dual-research --push runs/<session-dir>` bulk-uploads a completed run. Idempotent on re-run.',
-        'Orchestrator behaviour unchanged — push is a manual step after a run finishes.',
-      ],
-    },
-  ];
+  // ─── Version notes fetcher (Spec 0220) ────────────────────────
+  // Single shared fetch — both ChangelogList and HowItWorksBody's menu
+  // consume the same JSON sidecar.
+  let _versionNotesPromise = null;
+  function _loadVersionNotes() {
+    if (_versionNotesPromise) return _versionNotesPromise;
+    _versionNotesPromise = fetch('/version-notes.json?v=0220c')
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .catch((e) => { _versionNotesPromise = null; throw e; });
+    return _versionNotesPromise;
+  }
+  function useVersionNotes() {
+    const [entries, setEntries] = React.useState(null);
+    const [err, setErr] = React.useState(null);
+    React.useEffect(() => {
+      let cancelled = false;
+      _loadVersionNotes()
+        .then((data) => { if (!cancelled) setEntries(data); })
+        .catch((e) => { if (!cancelled) setErr(String(e.message || e)); });
+      return () => { cancelled = true; };
+    }, []);
+    return { entries, err };
+  }
 
   // ─── Section list (drives the side menu) ──────────────────────
   const HIW_SECTIONS = [
@@ -592,9 +131,13 @@
 
   // ─── Collapsible section with localStorage persistence ────────
 
-  function CollapsibleSection({ id, persistKey, defaultOpen, renderTitle, title, children }) {
+  function CollapsibleSection({ id, persistKey, defaultOpen, forceOpen, renderTitle, title, children }) {
     const storageKey = persistKey ? `hiw:cs:${persistKey}` : null;
     const [open, setOpen] = React.useState(() => {
+      // Spec 0220 — `forceOpen` overrides defaultOpen + any persisted state
+      // on initial render. After mount, the user can collapse normally and
+      // the toggle persists per storageKey.
+      if (forceOpen) return true;
       if (!storageKey) return !!defaultOpen;
       try {
         const stored = localStorage.getItem(storageKey);
@@ -1219,13 +762,14 @@
     );
   }
 
-  function ChangelogEntry({ entry, defaultOpen, onOpenSpec }) {
+  function ChangelogEntry({ entry, defaultOpen, forceOpen, onOpenSpec }) {
     const bumpTone = entry.bump === 'MAJOR' ? 'err' : entry.bump === 'MINOR' ? 'info' : 'ok';
     return (
       <CollapsibleSection
         id={`cl-${entry.version.replace(/\./g, '')}`}
         persistKey={`changelog:${entry.version}`}
         defaultOpen={defaultOpen}
+        forceOpen={forceOpen}
         renderTitle={() => (
           <div className="changelog-head">
             <span className="chip mono tone-neutral no-dot">v{entry.version}</span>
@@ -1290,21 +834,90 @@
     );
   }
 
+  // Spec 0220 — flat one-row presentation for entries classified
+  // `user_facing: false` by scripts/build_version_notes.py. No expand
+  // affordance, no body — the summary IS the payload.
+  function ChangelogInternalRow({ entry, onOpenSpec }) {
+    const bumpTone = entry.bump === 'MAJOR' ? 'err' : entry.bump === 'MINOR' ? 'info' : 'ok';
+    return (
+      <div
+        className="changelog-internal-row"
+        id={`cl-${entry.version.replace(/\./g, '')}`}
+      >
+        <span className="chip mono tone-neutral no-dot">v{entry.version}</span>
+        <span className="changelog-date">{entry.date}</span>
+        <span className="changelog-summary changelog-internal-summary">
+          Internal — {entry.summary}
+        </span>
+        {entry.specs && entry.specs.map((s) => (
+          <button
+            key={s}
+            type="button"
+            className="chip mono chip-square tone-neutral no-dot changelog-internal-spec"
+            onClick={() => onOpenSpec({
+              specId: s,
+              version: entry.version,
+              date: entry.date,
+              summary: entry.summary,
+            })}
+          >spec {s}</button>
+        ))}
+        {entry.bump && <span className={`chip tone-${bumpTone}`}>{entry.bump}</span>}
+      </div>
+    );
+  }
+
   function ChangelogList() {
+    const { entries, err } = useVersionNotes();
     const [q, setQ] = React.useState('');
     const [bumpFilter, setBumpFilter] = React.useState(null);
-    const [openSpec, setOpenSpec] = React.useState(null);  // {specId, version, date, summary} | null
-    const counts = React.useMemo(() => {
-      const c = { MAJOR: 0, MINOR: 0, PATCH: 0 };
-      VERSION_NOTES.forEach((e) => { if (e.bump && c[e.bump] !== undefined) c[e.bump]++; });
-      return c;
+    const [showInternal, setShowInternal] = React.useState(false);
+    const [openSpec, setOpenSpec] = React.useState(null);
+
+    // Spec 0220 — hash routing. If the URL hash matches
+    // `#how-it-works#cl-<digits>`, that entry is forced open on first
+    // render regardless of any persisted collapse state.
+    const forceOpenAnchor = React.useMemo(() => {
+      try {
+        const h = window.location.hash || '';
+        const m = h.match(/#cl-(\d+)/);
+        return m ? m[1] : null;
+      } catch (e) { return null; }
     }, []);
-    const filtered = VERSION_NOTES.filter((e) => {
+
+    const counts = React.useMemo(() => {
+      const c = { MAJOR: 0, MINOR: 0, PATCH: 0, INTERNAL: 0 };
+      (entries || []).forEach((e) => {
+        if (e.bump && c[e.bump] !== undefined) c[e.bump]++;
+        if (e.user_facing === false) c.INTERNAL++;
+      });
+      return c;
+    }, [entries]);
+
+    if (err) {
+      return (
+        <div className="hiw-note hiw-note-err">
+          Couldn't load the changelog — try refreshing.
+        </div>
+      );
+    }
+    if (entries === null) {
+      return <window.LoadingState size="inline" label="Loading changelog…" />;
+    }
+
+    const filtered = entries.filter((e) => {
+      if (!showInternal && e.user_facing === false) return false;
       if (bumpFilter && e.bump !== bumpFilter) return false;
       if (!q) return true;
-      const blob = `${e.version} ${e.date} ${e.summary} ${(e.specs || []).join(' ')} ${e.items.join(' ')}`.toLowerCase();
+      const blob = `${e.version} ${e.date} ${e.summary || ''} ${(e.specs || []).join(' ')} ${(e.items || []).join(' ')}`.toLowerCase();
       return blob.includes(q.toLowerCase());
     });
+
+    // Track whether the autoOpen (first user-facing entry without a search
+    // / filter active) has already been assigned, so chronologically-later
+    // user-facing entries don't all default open.
+    let autoOpenAssigned = false;
+
     return (
       <React.Fragment>
         <div className="cl-filter-row">
@@ -1317,7 +930,7 @@
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setBumpFilter(null); }}
           >
             <span className="chip-label">All</span>
-            <span className="chip-value">{VERSION_NOTES.length}</span>
+            <span className="chip-value">{entries.length}</span>
           </span>
           {['MAJOR', 'MINOR', 'PATCH'].map((b) => {
             const tone = b === 'MAJOR' ? 'err' : b === 'MINOR' ? 'info' : 'ok';
@@ -1340,6 +953,20 @@
               </span>
             );
           })}
+          <span
+            className={`chip tone-neutral ${counts.INTERNAL === 0 ? 'dim' : ''}`}
+            data-active={showInternal ? 'true' : 'false'}
+            role="button"
+            tabIndex={0}
+            onClick={() => setShowInternal((v) => !v)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') setShowInternal((v) => !v);
+            }}
+            title={showInternal ? 'Hide internal entries' : 'Show internal entries'}
+          >
+            <span className="chip-label">Internal</span>
+            <span className="chip-value">{counts.INTERNAL}</span>
+          </span>
           <span className="spacer" />
           <input
             type="search"
@@ -1350,14 +977,30 @@
           />
         </div>
         <div className="cl-list">
-          {filtered.map((e, i) =>
-            <ChangelogEntry
-              key={e.version}
-              entry={e}
-              defaultOpen={i === 0 && !q && !bumpFilter}
-              onOpenSpec={setOpenSpec}
-            />
-          )}
+          {filtered.map((e) => {
+            const anchor = e.version.replace(/\./g, '');
+            const forceOpen = forceOpenAnchor === anchor;
+            if (e.user_facing === false) {
+              return (
+                <ChangelogInternalRow
+                  key={e.version}
+                  entry={e}
+                  onOpenSpec={setOpenSpec}
+                />
+              );
+            }
+            const isAuto = !autoOpenAssigned && !q && !bumpFilter && !forceOpenAnchor;
+            if (isAuto) autoOpenAssigned = true;
+            return (
+              <ChangelogEntry
+                key={e.version}
+                entry={e}
+                defaultOpen={isAuto}
+                forceOpen={forceOpen}
+                onOpenSpec={setOpenSpec}
+              />
+            );
+          })}
         </div>
         {openSpec && (
           <SpecModal
@@ -1386,6 +1029,9 @@
       } catch (e) { return 'how'; }
     })();
     const [view, setView] = React.useState(initialView);
+    // Spec 0220 — the side-menu Changelog list reads from the shared
+    // version-notes fetch; entries are null while loading or on error.
+    const { entries: changelogEntries } = useVersionNotes();
 
     // Reflect view in <title>.
     React.useEffect(() => {
@@ -1430,10 +1076,10 @@
                       </a>
                     </li>
                   )
-                : VERSION_NOTES.slice(0, 12).map((e) =>
+                : (changelogEntries || []).slice(0, 12).map((e) =>
                     <li key={e.version}>
                       <a href={`#cl-${e.version.replace(/\./g, '')}`}>
-                        <span className="menu-section-num">{e.version}</span>{e.summary.slice(0, 30)}
+                        <span className="menu-section-num">{e.version}</span>{(e.summary || '').slice(0, 30)}
                       </a>
                     </li>
                   )
