@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T13:04:23Z",
+  "updated_at": "2026-05-26T13:05:38Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10151,6 +10151,14 @@
           "ts": "2026-05-26T13:04:23Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-26T13:05:38Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0220-in-app-changelog-auto-generated",
+            "from": "main@dcef203"
+          }
         }
       ],
       "started_at": "2026-05-26T13:04:16Z"
