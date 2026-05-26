@@ -1,6 +1,6 @@
 ---
 kind: dev
-spec: "0222"
+spec: "0223"
 slug: phase4-turn-cards-render-issues-comments-deltas
 title: "Fix: Phase 4 turn cards drop Issues + Comments per-round Δ chips (Q→D→I→C contract violated)"
 type: bug
@@ -27,7 +27,7 @@ items, TBD markers, or "we'll figure it out later" prose. Every decision is
 either answered here or explicitly deferred via §7 Out of scope with a
 named follow-up target. -->
 
-# Spec 0222 — Fix: Phase 4 turn cards drop Issues + Comments per-round Δ chips (Q→D→I→C contract violated)
+# Spec 0223 — Fix: Phase 4 turn cards drop Issues + Comments per-round Δ chips (Q→D→I→C contract violated)
 
 > **Type:** bug  |  **Severity:** P2  |  **Affects:** every run-detail Timeline view at `https://dual-research-alex.fly.dev/#/runs/<id>` once Phase 4 (Cross-review) has started — visible across all browsers, both themes, at every viewport. Confirmed on deployed v1.45.1.
 > **Bump:** PATCH — bug fix; no API surface change, no DS primitive change.
@@ -109,7 +109,7 @@ Single coherent change, expected ≤ 30 LOC across source + test:
 - [`src/dual_research/ui/aggregator.py`](src/dual_research/ui/aggregator.py) — Path A: normalise cross-review turn-row `phase` to integer `4`. ~1–5 LOC.
 - [`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx) — Path B (only if Path A blocked): defensive `Number()` coercion at line 1209. ~1 LOC.
 - [`src/dual_research/ui/models.py`](src/dual_research/ui/models.py) and/or [`aggregator.py`](src/dual_research/ui/aggregator.py) — only if hypothesis 2 is also active: ensure JSON projection of `TurnCategoryStats` emits all four `categories` keys.
-- [`tests/test_spec_0222_phase4_turn_chips.py`](tests/test_spec_0222_phase4_turn_chips.py) — new, source-pattern test pair plus an aggregator-level integer-phase assertion.
+- [`tests/test_spec_0223_phase4_turn_chips.py`](tests/test_spec_0223_phase4_turn_chips.py) — new, source-pattern test pair plus an aggregator-level integer-phase assertion.
 - [`CHANGELOG.md`](CHANGELOG.md), [`pyproject.toml`](pyproject.toml), [`src/dual_research/__init__.py`](src/dual_research/__init__.py) — patch version bump per project convention; CHANGELOG entry under `### Fixed` linking back to this spec.
 
 ## 4. User stories & acceptance criteria
@@ -146,7 +146,7 @@ UI bug. Both subsections REQUIRED per template §4.
 
 ## 5. Regression-prevention test
 
-- [ ] **Source-pattern test (new):** [`tests/test_spec_0222_phase4_turn_chips.py`](tests/test_spec_0222_phase4_turn_chips.py) — pure stdlib via [`tests/_ui_pattern_helpers.py`](tests/_ui_pattern_helpers.py), per [design-system/SPEC.md §13](design-system/SPEC.md) UI test doctrine. Three checks:
+- [ ] **Source-pattern test (new):** [`tests/test_spec_0223_phase4_turn_chips.py`](tests/test_spec_0223_phase4_turn_chips.py) — pure stdlib via [`tests/_ui_pattern_helpers.py`](tests/_ui_pattern_helpers.py), per [design-system/SPEC.md §13](design-system/SPEC.md) UI test doctrine. Three checks:
   1. **Positive — four-category list literal present on the Phase 4 branch.** `assert_jsx_contains` on [`src/dual_research/ui/static/run-detail.jsx`](src/dual_research/ui/static/run-detail.jsx) for a regex matching the four-category list `['questions', 'disagreements', 'issues', 'comments']` inside a `chipCategories` ternary whose condition references `phase` / `phaseNum` and `=== 4`. Whitespace-flexible.
   2. **Antipodal — two-category list NOT used as Phase 4 branch.** `assert_jsx_lacks` for any `chipCategories` assignment that pairs `phase === 4` (or `phaseNum === 4`) with the two-category list. Locks against a future revert.
   3. **Positive — render-site downstream still maps `chipCategories` to per-chip `<Chip>` with `add` / `sub` from `raised` / `closed`.** Anchors the spec-0133 §5.9 slim-Δ presentation so a future "let's just show standing" regression flags here.
@@ -185,7 +185,7 @@ UI bug. Both subsections REQUIRED per template §4.
 
 ## 8. Risks
 
-- **Picking Path B when Path A is the right answer.** If `item.phase` is `"phase4"` / `null` / something else non-int for cross-review rows AND other consumers in the file silently rely on that wrongness, Path B (consumer-side coercion) masks the underlying contract drift and leaves a hidden trap for future work. Mitigation: implementer must DOM-inspect first, prefer Path A, and only fall back to Path B with an explicit `// spec-0222: …` justification noting why Path A was infeasible.
+- **Picking Path B when Path A is the right answer.** If `item.phase` is `"phase4"` / `null` / something else non-int for cross-review rows AND other consumers in the file silently rely on that wrongness, Path B (consumer-side coercion) masks the underlying contract drift and leaves a hidden trap for future work. Mitigation: implementer must DOM-inspect first, prefer Path A, and only fall back to Path B with an explicit `// spec-0223: …` justification noting why Path A was infeasible.
 - **Per-turn chip cluster gets visually crowded at narrow viewports** once four chips render instead of two. Mitigation: per §7 this is explicitly deferred to a follow-up spec; this fix prioritises restoring the DS §9.4 rule 8 invariant. If overflow becomes acute on the runtime-verification screenshot, the implementer may add a one-line PR-description note flagging it for the follow-up — but does not widen scope.
 - **Cached browser stylesheets / JSX assets.** Existing cache-busting URL parameters on static assets (`?v=…`) handle this on deploy; no spec-level action required.
 - **Hypothesis 2 turns out to be the dominant cause.** If the JSON projection IS dropping zero-valued `issues` / `comments` keys for turn-stats AND the JSX fallback fails to cover it for a reason not visible from the file read in §2, the fix must also touch the serializer. Mitigation: §5 check 2 (the aggregator unit test) asserts the projected `categories` dict carries all four keys, so the gap surfaces in tests if it is present.
