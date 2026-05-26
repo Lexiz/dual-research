@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T20:28:52Z",
+  "updated_at": "2026-05-26T20:29:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10600,7 +10600,7 @@
       "handover": "handoffs/2026-05-26-spec-0223-phase4-turn-cards-render-issues-comments-deltas.md"
     },
     "0224": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T20:15:40Z",
       "events": [
         {
@@ -10654,7 +10654,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T20:20:58Z"
+      "started_at": "2026-05-26T20:20:58Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/263",
+      "merged_at": "2026-05-26T20:29:05Z"
     }
   }
 }
