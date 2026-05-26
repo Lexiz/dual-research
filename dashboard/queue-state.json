@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T20:15:40Z",
+  "updated_at": "2026-05-26T20:20:58Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10600,7 +10600,7 @@
       "handover": "handoffs/2026-05-26-spec-0223-phase4-turn-cards-render-issues-comments-deltas.md"
     },
     "0224": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-26T20:15:40Z",
       "events": [
         {
@@ -10608,7 +10608,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-26T20:20:58Z"
     }
   }
 }
