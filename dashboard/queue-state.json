@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T16:46:52Z",
+  "updated_at": "2026-05-26T16:47:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10336,6 +10336,14 @@
           "ts": "2026-05-26T16:46:52Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-26T16:47:05Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0221-doc-modal-output-label",
+            "from": "main@518a9e7"
+          }
         }
       ],
       "started_at": "2026-05-26T16:46:50Z"
