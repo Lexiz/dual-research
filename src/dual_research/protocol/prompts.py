@@ -1449,6 +1449,114 @@ _STATUS_FIRST_ORDERING_CALLOUT = (
 )
 
 
+_REVIEWER_REVISION_NOTE = (
+    "The REVIEWER never modifies the draft — OMIT the `## Revised draft`\n"
+    "section entirely from your output. The drafter alone proposes draft\n"
+    "edits via the `### REPLACE_SECTION` / `### EDIT_SECTION` /\n"
+    "`### APPEND_SECTION` / `### DELETE_SECTION` /\n"
+    "`### REPLACE_DRAFT_FULL` delta-op grammar (spec 0219 §3.1)."
+)
+
+
+def _drafter_revision_doctrine_v2(*, draft_headings: list[str]) -> str:
+    """Spec 0219 §3.1/§3.3/§3.4/§3.5 — drafter-only section-delta doctrine
+    for the phase-4 ``review_round_n`` prompt.
+
+    Renders the literal current-draft section headings (§3.3), the four
+    delta-op kinds plus the new ``### EDIT_SECTION`` surgical op (§3.5),
+    the "default to EDIT_SECTION" + ``reason:``-required-on-REPLACE_SECTION
+    doctrine (§3.5), and the hard-fail-on-unknown-heading rule (§3.4).
+    The REVIEWER never invokes this helper; the reviewer's call site
+    substitutes ``_REVIEWER_REVISION_NOTE`` instead (§3.1).
+    """
+    headings = list(draft_headings)
+    capped = headings[:20]
+    overflow = len(headings) - len(capped)
+    overflow_line = f"\n- … (+{overflow} more — list truncated)" if overflow > 0 else ""
+    if capped:
+        headings_block = "\n".join(f"- ## {h}" for h in capped) + overflow_line
+    else:
+        headings_block = "- (none — the current draft has no `## ` headings yet)"
+    return f"""If you are the DRAFTER and the other agent's prior turn raised
+substantive items, you may revise the draft in this turn by emitting
+a `## Revised draft` section in the Output below.
+
+**The current draft's literal section headings (use ONLY these — verbatim):**
+
+{headings_block}
+
+Each delta op MUST target a heading from this list — taken verbatim,
+no paraphrase, no renumbering, no substring drift. A
+`### REPLACE_SECTION` or `### EDIT_SECTION` against an unknown heading
+is a hard parse failure that consumes a repair attempt (spec 0219 §3.4).
+
+Spec 0218 §3.2 / spec 0219 §3.5 — the revised-draft body is a sequence
+of **delta operation blocks**, not a full inline re-emit. Inside the
+`Revised draft` section, use:
+
+    ### EDIT_SECTION <heading>
+        ANCHOR: <verbatim 1–3 line substring from the current section>
+        REPLACE_WITH: <new content>
+    (multiple ANCHOR:/REPLACE_WITH: pairs allowed per block; applied
+     in document order. Each ANCHOR must match the section's body
+     exactly once — `0` matches or `>1` matches consume a repair
+     attempt.)
+
+    ### REPLACE_SECTION <heading>
+        reason: <one sentence — why a surgical EDIT_SECTION was not enough>
+        <new body for the matching `## <heading>` section in the current draft>
+
+    ### APPEND_SECTION <heading>
+        <new section body to append at the end of the draft>
+
+    ### DELETE_SECTION <heading>
+
+    ### REPLACE_DRAFT_FULL
+        <full new draft body — escape hatch for structural rewrites that
+         touch more than half the sections>
+
+**Hard rules — load-bearing:**
+
+1. **Default to `### EDIT_SECTION`.** A 5-line typo fix is ~100 output
+   tokens with EDIT_SECTION vs ~2000 with REPLACE_SECTION. The 16K
+   per-turn output cap can hold several EDIT_SECTIONs but only two or
+   three REPLACE_SECTIONs.
+2. **Use `### REPLACE_SECTION` only when rewriting > 50% of a section,**
+   and include a `reason:` line on the first non-blank line under the
+   heading explaining why a surgical EDIT_SECTION was not enough.
+   Missing `reason:` is a hard parse failure.
+3. **`### REPLACE_DRAFT_FULL` is the only path that allows a full draft
+   re-emit.** Use it only when a structural rewrite genuinely touches
+   more than half the sections.
+4. **OMIT the `Revised draft` section entirely** on any round where
+   the prior round did not contain substantive reviewer feedback you
+   intend to address by editing the draft. Re-emitting an unchanged
+   draft (or restating the same content under a fresh `REPLACE_SECTION`)
+   is a protocol violation.
+5. Plain prose under `Revised draft` (no `### EDIT_SECTION` /
+   `### REPLACE_SECTION` / `### APPEND_SECTION` / `### DELETE_SECTION` /
+   `### REPLACE_DRAFT_FULL` sub-heading) is rejected as a malformed turn
+   and routed to repair.
+
+The orchestrator applies the deltas against the current `draft-vN.md`
+on disk to produce `draft-v(N+1).md`. Heading match is case-insensitive
+trim-equal against the literal headings listed above; any delta op
+referencing a heading not present in that list is rejected as
+`replace_section_unknown_heading` / `edit_section_unknown_heading`
+and routed to repair (spec 0219 §3.4)."""
+
+
+_DRAFTER_REVISED_DRAFT_OUTPUT_TEMPLATE = """## Revised draft         ← drafter only, if any revisions
+(Delta operation blocks per spec 0218 §3.2 / spec 0219 §3.5 — default to
+ `### EDIT_SECTION` for surgical edits; `### REPLACE_SECTION` with a
+ `reason:` line for >50%-section rewrites; `### APPEND_SECTION` /
+ `### DELETE_SECTION` for structural shape changes;
+ `### REPLACE_DRAFT_FULL` as the escape hatch for full rewrites.
+ OMIT this section entirely if you have no substantive draft edits
+ this round.)
+"""
+
+
 def _status_footer_for_phase(phase: int) -> str:
     """Return the canonical status-footer template for ``phase``.
 
@@ -2129,12 +2237,29 @@ def review_round_n_prompt_v2(
     draft_version: int,
     is_closeout_round: bool = False,
     closeout_request: str = "",
+    draft_headings: list[str] | None = None,
 ) -> str:
-    """Phase 4 (review-draft) round N≥2."""
+    """Phase 4 (review-draft) round N≥2.
+
+    Spec 0219 §3.1/§3.3 — ``draft_headings`` is the literal list of
+    ``## `` headings (without the ``## `` prefix) from the current
+    on-disk draft. The drafter sees them inlined in the doctrine so
+    every delta op targets a real heading; the reviewer never sees
+    the doctrine block (the reviewer is told to OMIT the ``## Revised
+    draft`` section entirely).
+    """
     role = "DRAFTER" if agent_name == drafter_name else "REVIEWER"
     closeout_block = (
         ("\n" + closeout_request + "\n") if (is_closeout_round and closeout_request) else ""
     )
+    if role == "DRAFTER":
+        revision_doctrine = _drafter_revision_doctrine_v2(
+            draft_headings=list(draft_headings or [])
+        )
+        revision_output_template = _DRAFTER_REVISED_DRAFT_OUTPUT_TEMPLATE
+    else:
+        revision_doctrine = _REVIEWER_REVISION_NOTE
+        revision_output_template = ""
     return DEEP_RESEARCH_PREAMBLE + f"""
 
 # Phase 4 (review-draft): cross-review — round {round}
@@ -2149,48 +2274,7 @@ agree on the same draft_version (the orchestrator anchors the version
 pointer to the on-disk draft), and the drafter has not revised the
 draft in this round.
 
-If you are the DRAFTER and the other agent's prior turn raised
-substantive items, you may revise the draft in this turn by emitting
-a `## Revised draft` section in the Output below. Spec 0218 §3.2 — the
-revised-draft body is a sequence of **section-delta operation blocks**,
-not a full inline re-emit. Inside the `Revised draft` section, use:
-
-    ### REPLACE_SECTION <heading>
-        <new body for the matching `## <heading>` section in the current draft>
-
-    ### APPEND_SECTION <heading>
-        <new section body to append at the end of the draft>
-
-    ### DELETE_SECTION <heading>
-
-    ### REPLACE_DRAFT_FULL
-        <full new draft body — escape hatch for structural rewrites that
-         touch more than half the sections>
-
-**Hard rules — both load-bearing:**
-
-1. **OMIT the `Revised draft` section entirely** on any round where
-   the prior round did not contain substantive reviewer feedback you
-   intend to address by editing the draft. Re-emitting an unchanged
-   draft (or restating the same content under a fresh `REPLACE_SECTION`)
-   is a protocol violation.
-2. **`### REPLACE_DRAFT_FULL` is the only path that allows a full draft
-   re-emit.** Use it only when a structural rewrite genuinely touches
-   more than half the sections. Otherwise enumerate per-section
-   operations — `### REPLACE_SECTION` for edits, `### APPEND_SECTION`
-   for adds, `### DELETE_SECTION` for removals. Plain prose under
-   `Revised draft` (no `### REPLACE_*` / `### APPEND_*` /
-   `### DELETE_*` / `### REPLACE_DRAFT_FULL` sub-heading) is rejected
-   as a malformed turn and routed to repair.
-
-The orchestrator applies the deltas against the current `draft-vN.md`
-on disk to produce `draft-v(N+1).md`. Heading match is case-insensitive
-trim-equal; a `### REPLACE_SECTION <heading>` referencing a heading not
-present in the draft is promoted to `APPEND_SECTION` with a logged
-protocol-violation event.
-
-The REVIEWER never modifies the draft — write
-"(reviewer — no draft edits)" in the revision-note slot below.
+{revision_doctrine}
 
 {_OPERATION_BLOCK_REFERENCE}
 
@@ -2228,13 +2312,7 @@ Produce a turn with the canonical section structure.
 ## New items I'm raising
 (Only genuinely new items.)
 
-## Revised draft         ← drafter only, if any revisions
-(Section-delta operation blocks per spec 0218 §3.2 — `### REPLACE_SECTION`
- / `### APPEND_SECTION` / `### DELETE_SECTION`, or `### REPLACE_DRAFT_FULL`
- for structural rewrites. OMIT this section entirely if you have no
- substantive draft edits this round. Reviewer writes
- "(reviewer — no draft edits)".)
-
+{revision_output_template}
 ## Phase artifact         ← only when emitting STATUS: AGREED
 
 ### AGREED_DRAFT_ACCEPTANCE

@@ -196,6 +196,8 @@ def test_5_2_section_delta_application_produces_correct_draft_v_n_plus_1():
         "## Status\nSTATUS: IN_PROGRESS\nRAISED_THIS_TURN: []\n\n"
         "## Revised draft\n\n"
         "### REPLACE_SECTION 2. Findings\n\n"
+        # Spec 0219 §3.5 — REPLACE_SECTION must lead with a `reason:` line.
+        "reason: rewrote >50% of the section, surgical edits are not enough\n\n"
         "Replaced findings line 1\nReplaced findings line 2\n\n"
         "### APPEND_SECTION 4. Confidence ledger\n\n"
         "Ledger row A\n\n"

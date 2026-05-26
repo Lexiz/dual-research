@@ -10,10 +10,12 @@ from dual_research.orchestrator._call import run_one_call
 from dual_research.orchestrator._turns import next_malformed_n
 from dual_research.persistence import Metrics, SessionDirectory, Transcript
 from dual_research.persistence.state import write_atomic
+from dual_research.contract.markers import SECTION_REVISED_DRAFT_RE
 from dual_research.protocol import (
     ParsedTurn,
     ParsedTurnV2,
     ProtocolParseError,
+    apply_revised_draft_deltas,
     extract_revised_draft_deltas,
     parse_turn,
     parse_turn_v2,
@@ -209,31 +211,63 @@ async def parse_with_repair(
 # but kept for the dedicated tests). The two functions share RepairTracker
 # semantics and the same one-shot-per-phase budget.
 
-ValidatorV2 = Callable[[ParsedTurnV2, str, str], None]
+ValidatorV2 = Callable[..., None]
 
 
 def _assert_v2_well_formed_turn(
-    parsed: ParsedTurnV2, raw_text: str, agent: str
+    parsed: ParsedTurnV2,
+    raw_text: str,
+    agent: str,
+    *,
+    is_drafter: bool = False,
+    prior_draft: str | None = None,
 ) -> None:
-    """Default v2 validator for the dr_run.py path (spec 0218 §3.3).
+    """Default v2 validator for the dr_run.py path (spec 0218 §3.3, spec 0219 §3.2/§3.4/§3.5).
 
     Asserts:
       - `## Status` block is present (`parsed.status is not None`).
-      - If the turn carries a non-empty `## Revised draft` section, the
-        body parses as section-delta operations (spec 0218 §3.2). Legacy
+      - If the turn carries a non-empty `## Revised draft` section **and
+        the agent is the phase-4 drafter** (spec 0219 §3.2), the body
+        parses as section-delta operations (spec 0218 §3.2). Legacy
         full-prose `## Revised draft` bodies — i.e. no `### REPLACE_*` /
-        `### APPEND_*` / `### DELETE_*` / `### REPLACE_DRAFT_FULL`
-        sub-heading — raise `ProtocolParseError(
-        "revised_draft_body_missing_delta_op")` via the extractor.
+        `### APPEND_*` / `### DELETE_*` / `### REPLACE_DRAFT_FULL` /
+        `### EDIT_SECTION` sub-heading — raise
+        ``ProtocolParseError("revised_draft_body_missing_delta_op")``
+        via the extractor.
+      - When ``prior_draft`` is provided alongside an ``is_drafter`` turn,
+        dry-run ``apply_revised_draft_deltas`` to surface heading-mismatch
+        / anchor-mismatch / missing-``reason:`` errors through the same
+        repair plumbing (spec 0219 §3.4, §3.5). The reviewer's
+        ``## Revised draft`` placeholder body never trips this gate
+        because ``is_drafter`` is False on reviewer turns (spec 0219 §3.1).
     """
     errs: list[str] = []
     if parsed.status is None:
         errs.append("missing STATUS:")
-    if parsed.revised_draft is not None and parsed.revised_draft.strip():
-        try:
-            extract_revised_draft_deltas(raw_text)
-        except ProtocolParseError as e:
-            errs.extend(e.errors)
+    if is_drafter:
+        # Check raw_text directly for the `## Revised draft` heading
+        # because parse_turn_v2 strips empty-body sections to None;
+        # spec 0219 §3.5 wants "heading present, body empty" to fail
+        # the same as "heading present, body is non-delta prose".
+        revised_heading_present = SECTION_REVISED_DRAFT_RE.search(raw_text) is not None
+        if revised_heading_present:
+            if parsed.revised_draft is None or not parsed.revised_draft.strip():
+                # Heading present but body empty / whitespace-only — a
+                # stillborn revision section. Per the doctrine the
+                # drafter must OMIT the section entirely when there
+                # are no edits, never emit it empty.
+                errs.append("revised_draft_body_missing_delta_op")
+            else:
+                payload = None
+                try:
+                    payload = extract_revised_draft_deltas(raw_text)
+                except ProtocolParseError as e:
+                    errs.extend(e.errors)
+                if payload is not None and prior_draft is not None:
+                    try:
+                        apply_revised_draft_deltas(prior_draft=prior_draft, payload=payload)
+                    except ProtocolParseError as e:
+                        errs.extend(e.errors)
     if errs:
         raise ProtocolParseError(agent, errs)
 
@@ -253,6 +287,8 @@ async def parse_v2_with_repair(
     out_path: Path,
     finish_reason: str | None = None,
     validator: ValidatorV2 | None = None,
+    is_drafter: bool = False,
+    prior_draft: str | None = None,
 ) -> tuple[str, ParsedTurnV2]:
     """Parse + validate a v2-protocol turn. On malformed, invoke repair once.
 
@@ -260,6 +296,13 @@ async def parse_v2_with_repair(
     `parse_with_repair`. Returns ``(final_text, parsed_v2)``. The canonical
     write is the responsibility of the caller, who writes ``final_text`` to
     the canonical turn path AFTER this function returns.
+
+    Spec 0219 §3.2 — ``is_drafter`` flows through to the validator so the
+    reviewer's placeholder ``## Revised draft`` body never trips the
+    drafter-only section-delta gate. Spec 0219 §3.4/§3.5 — ``prior_draft``
+    flows through so the validator can dry-run-apply the deltas against
+    the on-disk draft and surface heading-mismatch / anchor-mismatch /
+    missing-``reason:`` failures through the same one-shot repair flow.
 
     When ``finish_reason in {"max_tokens", "length"}`` the turn is treated
     as malformed regardless of body shape — a truncated turn whose tail
@@ -272,7 +315,7 @@ async def parse_v2_with_repair(
     try:
         if truncated:
             raise ProtocolParseError(agent.label, [_TRUNCATED_ERROR])
-        val(parsed, text, agent.label)
+        val(parsed, text, agent.label, is_drafter=is_drafter, prior_draft=prior_draft)
         tracker.reset_consecutive(agent.label)
         return text, parsed
     except ProtocolParseError as e:
@@ -344,7 +387,7 @@ async def parse_v2_with_repair(
     repaired_text = repaired_result.text
     new_parsed = parse_turn_v2(repaired_text)
     try:
-        val(new_parsed, repaired_text, agent.label)
+        val(new_parsed, repaired_text, agent.label, is_drafter=is_drafter, prior_draft=prior_draft)
         tracker.reset_consecutive(agent.label)
     except ProtocolParseError:
         # Repair did not converge. Leave it; the next round's validation
