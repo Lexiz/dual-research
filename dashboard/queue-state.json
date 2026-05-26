@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T17:40:13Z",
+  "updated_at": "2026-05-26T18:36:22Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10416,7 +10416,7 @@
       "handover": "handoffs/2026-05-26-spec-0221-doc-modal-output-label.md"
     },
     "0222": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-26T17:37:51Z",
       "events": [
         {
@@ -10424,7 +10424,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-26T18:36:22Z"
     },
     "0223": {
       "status": "queued",
