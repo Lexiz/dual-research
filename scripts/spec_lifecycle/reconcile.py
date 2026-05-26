@@ -26,6 +26,25 @@ CITATION_RE = re.compile(
     r"(?P<path>[\w\-/.]+\.(?:py|jsx|tsx|js|ts|css|md|yaml|yml|toml|json)):(?P<line>\d+)"
 )
 
+LINK_DISPLAY_RE = re.compile(r"\[([^\]\n]*?)\]\(([^)\n]*?)\)")
+
+
+def _scrub_link_display_text(body: str) -> str:
+    """Replace the display-text region of every `[display](href)` with spaces.
+
+    Preserves byte offsets so downstream regex matches retain their original
+    positions. Citations inside link display text — the structurally-redundant
+    cosmetic shadow of the href — no longer match `CITATION_RE`; the href is
+    the structurally authoritative location and remains matchable.
+    """
+
+    def _sub(m: re.Match[str]) -> str:
+        display = m.group(1)
+        href = m.group(2)
+        return "[" + " " * len(display) + "](" + href + ")"
+
+    return LINK_DISPLAY_RE.sub(_sub, body)
+
 
 @dataclass
 class Citation:
@@ -92,7 +111,8 @@ def reconcile_spec(spec_path: str | Path, *, repo_root: str | Path) -> Reconcile
 def _extract_citations(body: str) -> list[Citation]:
     out: list[Citation] = []
     seen: set[tuple[str, int]] = set()
-    for m in CITATION_RE.finditer(body):
+    scrubbed = _scrub_link_display_text(body)
+    for m in CITATION_RE.finditer(scrubbed):
         path = m.group("path")
         line = int(m.group("line"))
         key = (path, line)
