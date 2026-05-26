@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T13:59:44Z",
+  "updated_at": "2026-05-26T13:59:47Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10139,7 +10139,7 @@
       "handover": "handoffs/2026-05-26-spec-0219-phase4-section-delta-contract-v2.md"
     },
     "0220": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T12:16:51Z",
       "events": [
         {
@@ -10193,7 +10193,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T13:04:16Z"
+      "started_at": "2026-05-26T13:04:16Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/257",
+      "merged_at": "2026-05-26T13:59:46Z"
     }
   }
 }
