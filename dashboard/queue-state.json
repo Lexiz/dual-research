@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T14:25:58Z",
+  "updated_at": "2026-05-26T14:26:00Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10231,7 +10231,7 @@
       "handover": "handoffs/2026-05-26-spec-0220-in-app-changelog-auto-generated.md"
     },
     "0220.1": {
-      "status": "in_progress",
+      "status": "merged",
       "started_at": "2026-05-26T14:19:24Z",
       "events": [
         {
@@ -10279,7 +10279,9 @@
             "url": "https://github.com/Lexiz/dual-research/pull/258"
           }
         }
-      ]
+      ],
+      "pr": "https://github.com/Lexiz/dual-research/pull/258",
+      "merged_at": "2026-05-26T14:26:00Z"
     }
   }
 }
