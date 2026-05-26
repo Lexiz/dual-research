@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T08:35:46Z",
+  "updated_at": "2026-05-26T08:35:53Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -9993,7 +9993,7 @@
       "handover": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
     },
     "0219": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T17:00:00Z",
       "events": [
         {
@@ -10094,7 +10094,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T08:12:15Z"
+      "started_at": "2026-05-26T08:12:15Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/256",
+      "merged_at": "2026-05-26T08:35:53Z"
     }
   }
 }
