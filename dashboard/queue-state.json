@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T23:15:30Z",
+  "updated_at": "2026-05-26T23:23:03Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11076,6 +11076,17 @@
       "merged_at": "2026-05-26T23:12:36Z",
       "deployed_at": "2026-05-26T23:15:30Z",
       "handover": "handoffs/2026-05-27-spec-0228-emit-protocol-violation-on-invalid-op.md"
+    },
+    "0229": {
+      "status": "queued",
+      "queued_at": "2026-05-26T23:20:50Z",
+      "events": [
+        {
+          "ts": "2026-05-26T23:23:03Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
