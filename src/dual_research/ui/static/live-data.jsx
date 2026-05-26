@@ -1010,6 +1010,11 @@ function attachItemStats(items, run) {
       }
       const bucket = phase === 0 ? ps.phase0 : (phase === 4 ? ps.phase4 : ps.phase2);
       item.stats = bucket?.[String(item.round)]?.[item.agent] || null;
+      // Spec 0223 — `item.phase` was never set on turn rows; consumers
+      // like the chipCategories ternary at run-detail.jsx defaulted via
+      // `?? null`, so Phase 4 fell into the two-chip Q+D else branch
+      // instead of the four-chip Q→D→I→C branch.
+      item.phase = phase;
       item.statsPhase = phase;
       item.summary =
         sums[`phase${phase}_round${item.round}_${item.agent}`] || item.summary || '';
