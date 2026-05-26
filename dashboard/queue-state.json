@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T20:32:10Z",
+  "updated_at": "2026-05-26T20:39:21Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10690,6 +10690,17 @@
       "merged_at": "2026-05-26T20:29:05Z",
       "deployed_at": "2026-05-26T20:32:10Z",
       "handover": "handoffs/2026-05-26-spec-0224-cli-signal-handlers-for-tombstone.md"
+    },
+    "0225": {
+      "status": "queued",
+      "queued_at": "2026-05-26T20:39:21Z",
+      "events": [
+        {
+          "ts": "2026-05-26T20:39:21Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
