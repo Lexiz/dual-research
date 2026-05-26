@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T14:20:00Z",
+  "updated_at": "2026-05-26T14:20:02Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10246,6 +10246,11 @@
             "branch": "spec/0220.1-side-menu-version-num-collision-long-versions",
             "from": "main@cdd4055"
           }
+        },
+        {
+          "ts": "2026-05-26T14:20:02Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ]
     }
