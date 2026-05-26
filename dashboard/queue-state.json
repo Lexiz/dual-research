@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T21:57:50Z",
+  "updated_at": "2026-05-26T21:58:01Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10807,6 +10807,14 @@
           "ts": "2026-05-26T21:57:50Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-26T21:58:01Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0227-reclassify-contract-amending-specs-and-process-rule",
+            "from": "main@0652705"
+          }
         }
       ],
       "started_at": "2026-05-26T21:57:48Z"
