@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T21:10:27Z",
+  "updated_at": "2026-05-26T21:10:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10692,7 +10692,7 @@
       "handover": "handoffs/2026-05-26-spec-0224-cli-signal-handlers-for-tombstone.md"
     },
     "0225": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T20:39:21Z",
       "events": [
         {
@@ -10746,7 +10746,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T20:48:38Z"
+      "started_at": "2026-05-26T20:48:38Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/264",
+      "merged_at": "2026-05-26T21:10:34Z"
     }
   }
 }
