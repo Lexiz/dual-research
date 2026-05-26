@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T14:03:18Z",
+  "updated_at": "2026-05-26T14:19:24Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10229,6 +10229,11 @@
       "merged_at": "2026-05-26T13:59:46Z",
       "deployed_at": "2026-05-26T14:03:18Z",
       "handover": "handoffs/2026-05-26-spec-0220-in-app-changelog-auto-generated.md"
+    },
+    "0220.1": {
+      "status": "in_progress",
+      "started_at": "2026-05-26T14:19:24Z",
+      "events": []
     }
   }
 }
