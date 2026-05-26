@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T21:18:41Z",
+  "updated_at": "2026-05-26T21:36:33Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10789,6 +10789,10 @@
       "merged_at": "2026-05-26T21:10:34Z",
       "deployed_at": "2026-05-26T21:18:41Z",
       "handover": "handoffs/2026-05-26-spec-0225-lifecycle-trace-verifier.md"
+    },
+    "0226": {
+      "status": "archived",
+      "events": []
     }
   }
 }
