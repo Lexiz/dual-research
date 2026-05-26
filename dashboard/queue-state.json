@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T18:36:37Z",
+  "updated_at": "2026-05-26T18:36:39Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10436,6 +10436,11 @@
             "branch": "spec/0222-liveness-tombstone-baseexception-and-remove-stdout-streaming",
             "from": "main@a0e2e3a"
           }
+        },
+        {
+          "ts": "2026-05-26T18:36:39Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-26T18:36:22Z"
