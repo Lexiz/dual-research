@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T20:48:41Z",
+  "updated_at": "2026-05-26T20:48:52Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10704,6 +10704,14 @@
           "ts": "2026-05-26T20:48:41Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-26T20:48:52Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0225-lifecycle-trace-verifier",
+            "from": "main@6d6fe92"
+          }
         }
       ],
       "started_at": "2026-05-26T20:48:38Z"
