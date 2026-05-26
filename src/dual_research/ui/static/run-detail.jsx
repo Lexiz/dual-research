@@ -5060,10 +5060,11 @@ function DocumentModal({ item, meta, onClose, accent }) {
   // hidden entirely (Input absent → no `inputs/<key>.json`; Web Search
   // absent → summary has no queries/consulted for this turn).
   const webSearch = useWebSearchTab(item.turnKey);
+  const isDocItem = item.kind === 'doc' || item.kind === 'doc-live';
   const tabs = sortByCanon([
     {
       id: 'content',
-      label: 'Content',
+      label: isDocItem ? 'Output' : 'Content',
       content: <LazyMarkdownBody filePath={item.filePath} />,
     },
     item.turnKey && {
