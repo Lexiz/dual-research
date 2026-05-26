@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T19:21:59Z",
+  "updated_at": "2026-05-26T19:22:01Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10528,6 +10528,11 @@
             "branch": "spec/0223-phase4-turn-cards-render-issues-comments-deltas",
             "from": "main@3a2eee0"
           }
+        },
+        {
+          "ts": "2026-05-26T19:22:01Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-26T19:21:03Z"
