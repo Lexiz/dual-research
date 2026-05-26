@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.46.2] — 2026-05-27
+
+### Fixed
+
+- **Reconciler no longer treats `[path:line](href)` display text as a citation, eliminating the spurious exit-3 semantic-drift class for specs that cite external `../cowork/...` evidence ([spec 0227.1](specs/0227.1-reconciler-skip-markdown-link-display-text-citations.md)).** [`scripts/spec_lifecycle/reconcile.py`](scripts/spec_lifecycle/reconcile.py) now scrubs the display-text region of every markdown link via the new `_scrub_link_display_text` helper before applying `CITATION_RE.finditer`; surviving matches are extracted exactly as before. The byte-offset-preserving scrub (display text replaced by spaces, not deleted) means the `Citation.raw` field is unchanged for non-display matches, and `has_drift` / `has_blocking_drift` semantics, the moved-file `_find_candidates` lookup, and the CLI exit-code contract all behave identically — fewer false-positive lines in the `semantic drift` section is the only observable difference. Plain-prose `path.ext:line` references outside any link continue to be first-class citations. Closes the structurally-guaranteed false-positive class that spec 0227's reconcile pass hit (9 occurrences manually overridden) and that any spec authored under the [`cowork_channel_lives_outside_repo`](../.claude/projects/-Users-alexlisitzky-ClaudeCode-dual-research-workspace-dual-research/memory/cowork_channel_lives_outside_repo.md) convention would have continued to trip. Five new tests at [`tests/test_spec_0227_1_reconciler_skip_display_text.py`](tests/test_spec_0227_1_reconciler_skip_display_text.py) — display-text-only skipped, href-form extracted, plain-prose still works, mixed body returns href + plain only, plus a source-pattern pair (positive `_scrub_link_display_text(body)` present, antipodal `CITATION_RE.finditer(body)` absent inside `_extract_citations`). Regression-asserted by re-running the new reconciler against [spec 0227](specs/0227-reclassify-contract-amending-specs-and-process-rule.md): exit 0, clean.
+
 ## [1.46.1] — 2026-05-27
 
 ### Changed

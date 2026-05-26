@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.46.2",
+    "date": "2026-05-27",
+    "bump": "PATCH",
+    "summary": "Reconciler no longer treats path:line display text as a citation, eliminating the spurious exit-3 semantic-drift class for specs that cite external../cowork/...",
+    "items": [
+      "<strong>Reconciler no longer treats <code>path:line</code> display text as a citation, eliminating the spurious exit-3 semantic-drift class for specs that cite external <code>../cowork/...</code> evidence ([spec 0227.1](specs/0227.1-reconciler-skip-markdown-link-display-text-citations.md)).</strong> <code>scripts/spec_lifecycle/reconcile.py</code> now scrubs the display-text region of every markdown link via the new <code>_scrub_link_display_text</code> helper before applying <code>CITATION_RE.finditer</code>; surviving matches are extracted exactly as before.",
+      "The byte-offset-preserving scrub (display text replaced by spaces, not deleted) means the <code>Citation.raw</code> field is unchanged for non-display matches, and <code>has_drift</code> / <code>has_blocking_drift</code> semantics, the moved-file <code>_find_candidates</code> lookup, and the CLI exit-code contract all behave identically — fewer false-positive lines in the <code>semantic drift</code> section is the only observable difference.",
+      "Plain-prose <code>path.ext:line</code> references outside any link continue to be first-class citations.",
+      "Closes the structurally-guaranteed false-positive class that spec 0227's reconcile pass hit (9 occurrences manually overridden) and that any spec authored under the <code>cowork_channel_lives_outside_repo</code> convention would have continued to trip.",
+      "Five new tests at <code>tests/test_spec_0227_1_reconciler_skip_display_text.py</code> — display-text-only skipped, href-form extracted, plain-prose still works, mixed body returns href + plain only, plus a source-pattern pair (positive <code>_scrub_link_display_text(body)</code> present, antipodal <code>CITATION_RE.finditer(body)</code> absent inside <code>_extract_citations</code>).",
+      "Regression-asserted by re-running the new reconciler against [spec 0227](specs/0227-reclassify-contract-amending-specs-and-process-rule.md): exit 0, clean."
+    ],
+    "specs": [
+      "0227.1",
+      "0227"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.46.1",
     "date": "2026-05-27",
     "bump": "PATCH",
