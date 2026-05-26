@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.46.1] — 2026-05-27
+
+### Changed
+
+- **Reclassified 4 contract-amending specs from `bug` and added CLAUDE.md "Contract-changing specs are not `bug`s" process rule ([spec 0227](specs/0227-reclassify-contract-amending-specs-and-process-rule.md)).** Per Cowork synthesis [`cowork/briefs/2026-05-26-logic-cutoff-synthesis.md`](../cowork/briefs/2026-05-26-logic-cutoff-synthesis.md) §4: [spec 0137](specs/0137-substantive-convergence-escape-valve.md) (`bug` → `new-feature`, PATCH → MINOR) added the `via_artifact_promotion` convergence path that 0114 explicitly retired; [spec 0140](specs/0140-phase4-deadlock-extractor-and-escape-valve.md) (`bug` → `new-feature`, PATCH → MINOR) added a one-agent-AGREED convergence trigger 0114's "both AGREED" rule did not permit; [spec 0218](specs/0218-phase4-status-survives-truncation.md) (`bug` → `breaking`, PATCH → MAJOR) introduced a wholly new phase-4 drafter sub-protocol (section deltas, STATUS-first ordering, `max_tokens` → ProtocolParseError); [spec 0219](specs/0219-phase4-section-delta-contract-v2.md) (`bug` → `new-feature`, PATCH → MINOR) added a new `EDIT_SECTION` op kind, heading-mismatch hard-fail, and persisted `phase4_round` field. Frontmatter `type:` + `label:` + `version_bump:` corrected on all four (0137 and 0140 additionally migrated from the older `label`-only / `version-bump` schema to the current `type` + `label` / `version_bump` schema while we were in the file); spec bodies unchanged. Added a new `### Contract-changing specs are not `bug`s` subsection to [`CLAUDE.md`](CLAUDE.md) under `## Spec workflow` listing six categories of behaviour-change (phase mechanics, convergence rules, lifecycle state machine, categorisation taxonomy, first-class event types, verifier invariants) that may not ship under a `bug` label. The sixth bullet (verifier invariants, gating or reporting, including implementation-time additions) was added per the 0226 debrief at [`cowork/feedback/2026-05-26-spec-0226-recommendation.md`](../cowork/feedback/2026-05-26-spec-0226-recommendation.md) §5 to close the implementation-cycle drift gap that spec 0225 itself ran into (22 invariants shipped vs. 19 agreed in the v3 sign-off — same drift class as 0137/0140/0218/0219, one cycle inward from spec authoring). No source-code behaviour change; PATCH bump.
+
 ## [1.46.0] — 2026-05-26
 
 ### Added

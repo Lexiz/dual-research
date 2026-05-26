@@ -1,8 +1,9 @@
 ---
 spec: 0137
 title: Substantive-convergence escape valve — canonical-promote when both AGREED with terminal ledger but artifact hashes drift
-label: bug
-version-bump: PATCH
+type: new-feature
+label: new-feature
+version_bump: MINOR
 status: ready
 target-version: 1.8.3
 created: 2026-05-21

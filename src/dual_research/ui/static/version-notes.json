@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.46.1",
+    "date": "2026-05-27",
+    "bump": "PATCH",
+    "summary": "Reclassified 4 contract-amending specs from bug and added CLAUDE.md \"Contract-changing specs are not bugs\" process rule (spec 0227).",
+    "items": [
+      "<strong>Reclassified 4 contract-amending specs from <code>bug</code> and added CLAUDE.md \"Contract-changing specs are not <code>bug</code>s\" process rule ([spec 0227](specs/0227-reclassify-contract-amending-specs-and-process-rule.md)).</strong> Per Cowork synthesis <code>cowork/briefs/2026-05-26-logic-cutoff-synthesis.md</code> §4: [spec 0137](specs/0137-substantive-convergence-escape-valve.md) (<code>bug</code> → <code>new-feature</code>, PATCH → MINOR) added the <code>via_artifact_promotion</code> convergence path that 0114 explicitly retired; [spec 0140](specs/0140-phase4-deadlock-extractor-and-escape-valve.md) (<code>bug</code> → <code>new-feature</code>, PATCH → MINOR) added a one-agent-AGREED convergence trigger 0114's \"both AGREED\" rule did not permit; [spec 0218](specs/0218-phase4-status-survives-truncation.md) (<code>bug</code> → <code>breaking</code>, PATCH → MAJOR) introduced a wholly new phase-4 drafter sub-protocol (section deltas, STATUS-first ordering, <code>max_tokens</code> → ProtocolParseError); [spec 0219](specs/0219-phase4-section-delta-contract-v2.md) (<code>bug</code> → <code>new-feature</code>, PATCH → MINOR) added a new <code>EDIT_SECTION</code> op kind, heading-mismatch hard-fail, and persisted <code>phase4_round</code> field.",
+      "Frontmatter <code>type:</code> + <code>label:</code> + <code>version_bump:</code> corrected on all four (0137 and 0140 additionally migrated from the older <code>label</code>-only / <code>version-bump</code> schema to the current <code>type</code> + <code>label</code> / <code>version_bump</code> schema while we were in the file); spec bodies unchanged.",
+      "Added a new <code>### Contract-changing specs are not </code>bug<code>s</code> subsection to <code>CLAUDE.md</code> under <code>## Spec workflow</code> listing six categories of behaviour-change (phase mechanics, convergence rules, lifecycle state machine, categorisation taxonomy, first-class event types, verifier invariants) that may not ship under a <code>bug</code> label.",
+      "The sixth bullet (verifier invariants, gating or reporting, including implementation-time additions) was added per the 0226 debrief at <code>cowork/feedback/2026-05-26-spec-0226-recommendation.md</code> §5 to close the implementation-cycle drift gap that spec 0225 itself ran into (22 invariants shipped vs. 19 agreed in the v3 sign-off — same drift class as 0137/0140/0218/0219, one cycle inward from spec authoring).",
+      "No source-code behaviour change; PATCH bump."
+    ],
+    "specs": [
+      "0227",
+      "0137",
+      "0140",
+      "0218",
+      "0219"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.46.0",
     "date": "2026-05-26",
     "bump": "MINOR",

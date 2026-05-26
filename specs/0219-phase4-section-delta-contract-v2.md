@@ -3,9 +3,9 @@ kind: dev
 spec: "0219"
 slug: phase4-section-delta-contract-v2
 title: "Fix: §3.2 section-delta drafter contract — reviewer/validator collision, heading-mismatch corruption, REPLACE_SECTION budget overrun, mid-phase resume waste"
-type: bug
-label: bug
-version_bump: PATCH
+type: new-feature
+label: new-feature
+version_bump: MINOR
 target_version: TBD
 status: queued
 depends_on: ["0218"]
