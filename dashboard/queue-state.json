@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T22:01:54Z",
+  "updated_at": "2026-05-26T22:06:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10795,7 +10795,7 @@
       "events": []
     },
     "0227": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-26T21:52:17Z",
       "events": [
         {
@@ -10854,11 +10854,44 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/265"
           }
+        },
+        {
+          "ts": "2026-05-26T22:02:25Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T22:06:20Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.46.1"
+          }
+        },
+        {
+          "ts": "2026-05-26T22:06:20Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T22:06:52Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-27-spec-0227-reclassify-contract-amending-specs-and-process-rule.md"
+          }
+        },
+        {
+          "ts": "2026-05-26T22:06:57Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.46.1"
+          }
         }
       ],
       "started_at": "2026-05-26T21:57:48Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/265",
-      "merged_at": "2026-05-26T22:01:52Z"
+      "merged_at": "2026-05-26T22:01:52Z",
+      "deployed_at": "2026-05-26T22:06:57Z",
+      "handover": "handoffs/2026-05-27-spec-0227-reclassify-contract-amending-specs-and-process-rule.md"
     }
   }
 }
