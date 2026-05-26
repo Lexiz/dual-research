@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.45.1",
+    "date": "2026-05-26",
+    "bump": "PATCH",
+    "summary": "Fixed: Changelog side-menu version-num column overlapped 6-character…",
+    "items": [
+      "<strong>Changelog side-menu version-num column overlapped 6-character versions ([spec 0220.1](specs/0220.1-side-menu-version-num-collision-long-versions.md)).</strong> <code>.hiw-overlay__menu-list.menu-section-num</code> at was <code>width: 18px</code> — fits the legacy hand-curated 3-character versions (<code>0.5</code>, <code>1.0</code>) but not the 6-character <code>1.45.0</code> shape that now dominates the auto-generated list after spec 0220.",
+      "Result: the trailing <code>.0</code> of the version visually overlapped the summary, producing strings like <code>1.45In-app Changelog auto-generate</code>.",
+      "CSS-only fix: <code>width: 18px</code> → <code>min-width: 48px; margin-right: var(--s-2);</code>.",
+      "<code>min-width</code> (not <code>width</code>) keeps overflow graceful — a 7-character version like <code>100.0.0</code> will push the column wider, not collide.",
+      "The rule lands in both AND (the DS file previously had no <code>.menu-section-num</code> rule — this commit closes that DS-sync gap as a bonus).",
+      "Side effect by design: the How-it-works tab's section numbers (<code>1</code>, <code>2</code>, …) now sit in the same 48px column — visually aligns the two tabs that share the menu rail.",
+      "Two source-pattern tests at lock the post-fix shape in both files via positive regex + antipodal-absence regex per the spec 0206 doctrine."
+    ],
+    "specs": [
+      "0220.1"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.45.0",
     "date": "2026-05-26",
     "bump": "MINOR",

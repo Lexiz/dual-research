@@ -3628,7 +3628,8 @@ body.light .tour-overlay__mask {
 }
 .hiw-overlay__menu-list a:hover { color: var(--md-on-surface); background: var(--md-surface-container); }
 .hiw-overlay__menu-list .menu-section-num {
-  display: inline-block; width: 18px; color: var(--md-on-surface-faint);
+  display: inline-block; min-width: 48px; margin-right: var(--s-2);
+  color: var(--md-on-surface-faint);
   font-family: var(--md-font-data); font-size: var(--md-label-s-size);
 }
 .hiw-overlay__content {

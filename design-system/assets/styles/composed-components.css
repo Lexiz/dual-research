@@ -2559,3 +2559,17 @@ body.light .chip.tone-gpt .chip-label {
 .changelog-internal-spec:hover {
   background: var(--md-surface-container-high);
 }
+
+/* ── Changelog tab side-menu — version-num column (Spec 0220.1) ───
+   `.menu-section-num` holds the version chip in the Changelog side
+   menu and the section index in the How-it-works side menu. Spec 0220
+   widened the Changelog menu data source from 12 hand-curated short
+   versions to the full auto-generated list; the legacy `width: 18px`
+   was sized for 3-character versions and overlapped 6-character ones
+   like `1.45.0`. `min-width: 48px` fits 6 characters with headroom
+   and grows on overflow. Lives in both files per CLAUDE.md. */
+.hiw-overlay__menu-list .menu-section-num {
+  display: inline-block; min-width: 48px; margin-right: var(--md-sp-2);
+  color: var(--md-on-surface-faint);
+  font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+}

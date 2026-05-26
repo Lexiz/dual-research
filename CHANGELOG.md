@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.45.1] — 2026-05-26
+
+### Fixed
+
+- **Changelog side-menu version-num column overlapped 6-character versions ([spec 0220.1](specs/0220.1-side-menu-version-num-collision-long-versions.md)).** `.hiw-overlay__menu-list .menu-section-num` at [src/dual_research/ui/static/components.css:3630](src/dual_research/ui/static/components.css:3630) was `width: 18px` — fits the legacy hand-curated 3-character versions (`0.5`, `1.0`) but not the 6-character `1.45.0` shape that now dominates the auto-generated list after spec 0220. Result: the trailing `.0` of the version visually overlapped the summary, producing strings like `1.45In-app Changelog auto-generate`. CSS-only fix: `width: 18px` → `min-width: 48px; margin-right: var(--s-2);`. `min-width` (not `width`) keeps overflow graceful — a 7-character version like `100.0.0` will push the column wider, not collide. The rule lands in both [src/dual_research/ui/static/components.css](src/dual_research/ui/static/components.css) AND [design-system/assets/styles/composed-components.css](design-system/assets/styles/composed-components.css) (the DS file previously had no `.menu-section-num` rule — this commit closes that DS-sync gap as a bonus). Side effect by design: the How-it-works tab's section numbers (`1`, `2`, …) now sit in the same 48px column — visually aligns the two tabs that share the menu rail. Two source-pattern tests at [tests/test_spec_0220_1_side_menu_version_num.py](tests/test_spec_0220_1_side_menu_version_num.py) lock the post-fix shape in both files via positive regex + antipodal-absence regex per the spec 0206 doctrine.
+
 ## [1.45.0] — 2026-05-26
 
 ### Added
