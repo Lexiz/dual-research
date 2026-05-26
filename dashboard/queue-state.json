@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T16:57:56Z",
+  "updated_at": "2026-05-26T17:00:48Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10324,7 +10324,7 @@
       "handover": "handoffs/2026-05-26-spec-0220-1-side-menu-version-num-collision.md"
     },
     "0221": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-26T16:43:08Z",
       "events": [
         {
@@ -10383,11 +10383,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/259"
           }
+        },
+        {
+          "ts": "2026-05-26T16:58:28Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T16:59:57Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.45.2"
+          }
+        },
+        {
+          "ts": "2026-05-26T17:00:07Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-26T17:00:48Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-26-spec-0221-doc-modal-output-label.md"
+          }
         }
       ],
       "started_at": "2026-05-26T16:46:50Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/259",
-      "merged_at": "2026-05-26T16:57:54Z"
+      "merged_at": "2026-05-26T16:57:54Z",
+      "deployed_at": "2026-05-26T17:00:48Z",
+      "handover": "handoffs/2026-05-26-spec-0221-doc-modal-output-label.md"
     }
   }
 }
