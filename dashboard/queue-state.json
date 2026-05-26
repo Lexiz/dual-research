@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T08:10:18Z",
+  "updated_at": "2026-05-26T08:10:20Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10022,6 +10022,15 @@
           "step": "handoff_read",
           "data": {
             "path": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
+          }
+        },
+        {
+          "ts": "2026-05-26T08:10:20Z",
+          "step": "spec_read",
+          "data": {
+            "path": "specs/0219-phase4-section-delta-contract-v2.md",
+            "lines": 175,
+            "type": "bug"
           }
         }
       ]
