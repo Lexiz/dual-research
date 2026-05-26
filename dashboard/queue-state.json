@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T22:34:34Z",
+  "updated_at": "2026-05-26T22:34:46Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10906,6 +10906,14 @@
           "ts": "2026-05-26T22:34:34Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-26T22:34:46Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0227.1-reconciler-skip-markdown-link-display-text-citations",
+            "from": "main@01f7e72"
+          }
         }
       ],
       "started_at": "2026-05-26T22:34:28Z"
