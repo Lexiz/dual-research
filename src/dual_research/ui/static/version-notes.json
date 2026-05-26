@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.45.2",
+    "date": "2026-05-26",
+    "bump": "PATCH",
+    "summary": "DocumentModal body tab labeled \"Output\" instead of \"Content\" for doc / doc-live items (spec 0221).",
+    "items": [
+      "<strong><code>DocumentModal</code> body tab labeled \"Output\" instead of \"Content\" for doc / doc-live items ([spec 0221](specs/0221-doc-modal-output-label.md)).</strong> The Phase 3 converged-draft and Phase 5 final-draft full-view modals at previously rendered the body tab with the generic <code>label: 'Content'</code>, which readers misread as prompt/spec content — missing that the actual phase output (the converged or final draft markdown) was sitting one tab away from \"Agent Input\".",
+      "Fix: introduce <code>const isDocItem = item.kind === 'doc' || item.kind === 'doc-live'</code> and gate the body tab's label as <code>isDocItem ? 'Output': 'Content'</code>.",
+      "The tab <code>id</code> stays <code>'content'</code> so <code>TABS_CANON</code> ordering at continues to position the body tab second on Phase 3 (after \"Agent Input\") and as the only tab on Phase 5 (no <code>turnKey</code> → no input tab).",
+      "<code>turn</code> / <code>turn-live</code> / <code>plan</code> / <code>plan-live</code> modals route through <code>NegotiateReviewModal</code> / <code>DraftReviewModal</code> and are untouched.",
+      "Three source-pattern tests at lock the post-fix shape (positive ternary + predicate definition) plus antipodal-absence of the pre-fix unconditional <code>label: 'Content'</code> block, per the spec 0206 doctrine."
+    ],
+    "specs": [
+      "0221"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.45.1",
     "date": "2026-05-26",
     "bump": "PATCH",

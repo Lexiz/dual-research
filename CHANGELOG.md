@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.45.2] — 2026-05-26
+
+### Fixed
+
+- **`DocumentModal` body tab labeled "Output" instead of "Content" for doc / doc-live items ([spec 0221](specs/0221-doc-modal-output-label.md)).** The Phase 3 converged-draft and Phase 5 final-draft full-view modals at [src/dual_research/ui/static/run-detail.jsx:5063-5076](src/dual_research/ui/static/run-detail.jsx#L5063-L5076) previously rendered the body tab with the generic `label: 'Content'`, which readers misread as prompt/spec content — missing that the actual phase output (the converged or final draft markdown) was sitting one tab away from "Agent Input". Fix: introduce `const isDocItem = item.kind === 'doc' || item.kind === 'doc-live'` and gate the body tab's label as `isDocItem ? 'Output' : 'Content'`. The tab `id` stays `'content'` so `TABS_CANON` ordering at [src/dual_research/ui/static/run-detail.jsx:4962](src/dual_research/ui/static/run-detail.jsx#L4962) continues to position the body tab second on Phase 3 (after "Agent Input") and as the only tab on Phase 5 (no `turnKey` → no input tab). `turn` / `turn-live` / `plan` / `plan-live` modals route through `NegotiateReviewModal` / `DraftReviewModal` and are untouched. Three source-pattern tests at [tests/test_spec_0221_doc_modal_output_label.py](tests/test_spec_0221_doc_modal_output_label.py) lock the post-fix shape (positive ternary + predicate definition) plus antipodal-absence of the pre-fix unconditional `label: 'Content'` block, per the spec 0206 doctrine.
+
 ## [1.45.1] — 2026-05-26
 
 ### Fixed
