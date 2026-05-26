@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T18:59:55Z",
+  "updated_at": "2026-05-26T19:01:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10139,7 +10139,7 @@
       "handover": "handoffs/2026-05-26-spec-0219-phase4-section-delta-contract-v2.md"
     },
     "0220": {
-      "status": "deployed",
+      "status": "queued",
       "queued_at": "2026-05-26T12:16:51Z",
       "events": [
         {
