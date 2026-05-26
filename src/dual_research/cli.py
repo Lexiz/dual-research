@@ -4,9 +4,11 @@ import argparse
 import asyncio
 import json
 import re
+import signal
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Coroutine
 
 from dual_research import __version__
 from dual_research.config import (
@@ -29,6 +31,36 @@ from dual_research.ingest import (
 )
 from dual_research.ingest.attachments import kind_counts
 from dual_research.ingest.notion import NotionError
+
+
+async def _run_with_signal_handlers(coro: Coroutine) -> object:
+    # Spec 0224 — install asyncio cancel handlers for SIGTERM, SIGHUP, and
+    # SIGINT so raw signal kills route into Python's exception machinery
+    # as `asyncio.CancelledError`, which the spec 0222 `except BaseException`
+    # at orchestrator/run.py already tombstones. Without this, SIGTERM/SIGHUP
+    # terminate the process before any except or finally clause runs and
+    # the run dies silently with `metrics.ended_at == null`.
+    loop = asyncio.get_running_loop()
+    main_task = asyncio.current_task()
+    installed: list[int] = []
+    for name in ("SIGTERM", "SIGHUP", "SIGINT"):
+        sig = getattr(signal, name, None)
+        if sig is None:
+            continue
+        try:
+            loop.add_signal_handler(sig, main_task.cancel)
+            installed.append(sig)
+        except NotImplementedError:
+            # POSIX-only API; orchestrator is mac-local per spec 0224 §7.
+            pass
+    try:
+        return await coro
+    finally:
+        for sig in installed:
+            try:
+                loop.remove_signal_handler(sig)
+            except (NotImplementedError, ValueError):
+                pass
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -279,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        brief = asyncio.run(_ingest(args, creds))
+        brief = asyncio.run(_run_with_signal_handlers(_ingest(args, creds)))
     except (IngestError, NotionError, ValueError, FileNotFoundError) as e:
         print(f"\n[ingest error] {e}", file=sys.stderr)
         return 2
@@ -350,15 +382,17 @@ def _run_orchestrator(
             return 1
 
     result = asyncio.run(
-        run_session(
-            session_root=session_dir,
-            slug=slug,
-            creds=creds,
-            tier=tier,
-            soft_cap=soft_cap,
-            hard_cap=hard_cap,
-            out_path=Path(args.out).expanduser().resolve() if args.out else None,
-            push_while_running=supabase_creds,
+        _run_with_signal_handlers(
+            run_session(
+                session_root=session_dir,
+                slug=slug,
+                creds=creds,
+                tier=tier,
+                soft_cap=soft_cap,
+                hard_cap=hard_cap,
+                out_path=Path(args.out).expanduser().resolve() if args.out else None,
+                push_while_running=supabase_creds,
+            )
         )
     )
 

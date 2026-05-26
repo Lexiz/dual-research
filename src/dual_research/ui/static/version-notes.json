@@ -1,5 +1,29 @@
 [
   {
+    "version": "1.45.5",
+    "date": "2026-05-26",
+    "bump": "PATCH",
+    "summary": "CLI registers SIGTERM/SIGHUP/SIGINT cancel handlers so the spec 0222 tombstone fires on raw signal kills (spec 0224).",
+    "items": [
+      "<strong>CLI registers SIGTERM/SIGHUP/SIGINT cancel handlers so the spec 0222 tombstone fires on raw signal kills ([spec 0224](specs/0224-cli-signal-handlers-for-tombstone.md)).</strong> P1 silent-death contract gap: spec 0222 widened <code>run_session</code>'s handler to <code>except BaseException</code> and added the <code>_terminal_written</code> finally-fallback, closing the in-process side of the Area-5 liveness invariant (\"for every <code>run_started</code>, exactly one terminal event is emitted and <code>metrics.ended_at</code> is set\").",
+      "But CPython's default disposition for <code>SIGTERM</code> and <code>SIGHUP</code> is <strong>immediate process termination without raising any exception</strong> — neither signal flows through Python's exception machinery, so the orchestrator's bare <code>asyncio.run(...)</code> entries at (<code>_ingest</code>) and (<code>run_session</code>) terminated the process before either the <code>except BaseException</code> block at or the finally-fallback at run.py:626 could run.",
+      "Run-<code>20260526-102321</code> (mid-phase-2 silent death) is a likely instance of this failure.",
+      "Fix: introduce <code>_run_with_signal_handlers(coro)</code> in <code>cli.py</code> that calls <code>loop.add_signal_handler(sig, main_task.cancel)</code> for <code>SIGTERM</code>, <code>SIGHUP</code>, and <code>SIGINT</code> on the running event loop, awaits the inner coroutine, then removes the handlers in a <code>finally:</code> for test/loop hygiene.",
+      "Wraps both <code>asyncio.run</code> sites so ingest and orchestrator runs share the same protection — symmetric, no extra failure modes.",
+      "<code>NotImplementedError</code> (Windows) is swallowed; <code>getattr(signal, name, None)</code> guards the missing-<code>SIGHUP</code>-on-Windows case so import stays clean.",
+      "The orchestrator is mac-local-CLI today (the Fly app serves only the UI), so the POSIX-only API is acceptable as-is per spec 0224 §7.",
+      "Three regression tests at: each patches <code>orch_run.run_phase0</code> to a long sleep, schedules <code>os.kill(os.getpid(), <signal>)</code> after the run is in-flight, awaits <code>cli._run_with_signal_handlers(orch_run.run_session(...))</code>, and asserts (a) exactly one terminal event on disk, (b) it is <code>run_failed</code> or <code>run_aborted</code>, (c) <code>metrics.ended_at</code> is non-null.",
+      "The SIGINT test additionally asserts <code>error_type=CancelledError</code> (not the legacy <code>KeyboardInterrupt</code>) on the <code>run_failed</code> event — confirming the SIGINT UX swap from spec §3 ran, not the default CPython path.",
+      "All three tests fail against the pre-fix <code>cli.py</code> (<code>AttributeError</code> on the missing helper) and pass after the fix.",
+      "Out of scope per spec §7: sidecar watchdog / <code>psutil</code>-based external liveness monitor for <code>SIGKILL</code> / OOM-kill / hard-crash (impossible to handle in-process by design — kernel terminates without notification); changes to <code>run.py:548</code>'s <code>except BaseException</code> or the <code>_terminal_written</code> fallback (spec 0222 implemented these correctly — this spec only routes new exception sources into them); Windows cross-platform support (deferred until the orchestrator targets Windows); reading Fly logs to confirm SIGTERM/SIGHUP caused run-<code>20260526-102321</code> (Fly logs for that window are UI-only — the orchestrator was local)."
+    ],
+    "specs": [
+      "0224"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.45.4",
     "date": "2026-05-26",
     "bump": "PATCH",
