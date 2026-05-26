@@ -262,6 +262,13 @@ def main(argv: list[str] | None = None) -> int:
         from dual_research.validate_cli import main as _validate_main
         return _validate_main(raw[1:])
 
+    # Spec 0225: `dual-research verify <run-dir> ...` runs the lifecycle-
+    # trace verifier (the 22 invariants of the 0114-unified contract in
+    # executable form) against each supplied run.
+    if raw and raw[0] == "verify":
+        from dual_research.verifier_cli import main as _verify_main
+        return _verify_main(raw[1:])
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 

@@ -1,0 +1,131 @@
+{
+  "spec": "0225",
+  "note": "Frozen LKG baseline of the lifecycle-trace verifier. Regenerate with the helper documented in tests/test_verifier.py when a verdict legitimately changes.",
+  "results": [
+    {
+      "id": "I1.1",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I1.2",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I1.3",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I1.4",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I1.5",
+      "severity": "reporting",
+      "verdict": "fail"
+    },
+    {
+      "id": "I2.1",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I2.2",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I2.3",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I2.4",
+      "severity": "reporting",
+      "verdict": "pass"
+    },
+    {
+      "id": "I2.5",
+      "severity": "reporting",
+      "verdict": "fail"
+    },
+    {
+      "id": "I3.1",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I3.2",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I3.3",
+      "severity": "gating",
+      "verdict": "fail"
+    },
+    {
+      "id": "I3.4",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I3.5",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I4.1",
+      "severity": "gating",
+      "verdict": "fail"
+    },
+    {
+      "id": "I4.2",
+      "severity": "gating",
+      "verdict": "fail"
+    },
+    {
+      "id": "I4.3",
+      "severity": "gating",
+      "verdict": "fail"
+    },
+    {
+      "id": "I4.4",
+      "severity": "reporting",
+      "verdict": "fail"
+    },
+    {
+      "id": "I4.5",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I4.6",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I4.7",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I5.1",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I5.2",
+      "severity": "gating",
+      "verdict": "pass"
+    },
+    {
+      "id": "I5.3",
+      "severity": "gating",
+      "verdict": "pass"
+    }
+  ]
+}

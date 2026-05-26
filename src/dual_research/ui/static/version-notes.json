@@ -1,5 +1,35 @@
 [
   {
+    "version": "1.46.0",
+    "date": "2026-05-26",
+    "bump": "MINOR",
+    "summary": "Lifecycle-trace verifier — the 0114 unified contract in executable form (spec 0225).",
+    "items": [
+      "<strong>Lifecycle-trace verifier — the 0114 unified contract in executable form ([spec 0225](specs/0225-lifecycle-trace-verifier.md)).</strong> Net-new <code>dual-research verify <run-dir>...</code> CLI that audits any finished run against the 22 invariants from synthesis §3 (5 areas — phases, negotiations, categorisation, resolution lifecycle, liveness / terminal events).",
+      "The verifier IS the contract; before this spec the contract lived only as scattered prose across [spec 0114](specs/0114-unified-protocol-contract.md), [spec 0141](specs/0141-protocol-violation-guard.md), [spec 0214](specs/0214-phase4-draft-version-equality.md), and <code>../cowork/briefs/2026-05-26-logic-cutoff-synthesis.md</code>.",
+      "With the verifier merged, contract drift surfaces in CI on the PR that introduces it rather than in a dead run a week later.",
+      "The 22 invariants are partitioned by severity: <strong>gating</strong> invariants whose failure fails CI today, and <strong>reporting</strong> invariants that log a delta without failing CI — each reporting invariant carries a documented promotion trigger (spec 0225 §5) so it tightens to gating once the underlying fix spec ships (I1.5 after the phase-4 budget contract lands, I2.4 after the addressee-obligation spec, I4.4 after the <code>ProtocolViolation</code>-emission spec).",
+      "I2.5 (self-report ⇄ ledger divergence) is reporting forever — synthesis §3 Area 2 is explicit that self-report is a cross-checked signal, never the source of truth.",
+      "New module <code>src/dual_research/contract/verifier.py</code> with <code>verify_run(run_dir: Path) -> VerifierReport</code>, <code>VerifierReport.has_gating_failure</code>, <code>baseline_regressions(report, baseline)</code>, plus the <code>_TurnFile</code> op-block parser that diffs each turn <code>.md</code> file's <code>### RAISE</code> / <code>### ADDRESS</code> / <code>### RESOLVE</code> / <code>### WITHDRAW</code> / <code>### ACKNOWLEDGE</code> blocks against the transcript's <code>item_transitioned</code> + <code>protocol_violation</code> events — the I4.4 silent-drop detector (a transcript-only scan cannot find Bug-A because the drop at <code>deep_research.py:482</code> leaves no transcript event by design).",
+      "The verifier reuses the <strong>live</strong> contract substrate — imports <code>ID_PATTERN</code> from <code>contract/ids.py</code>, <code>RAISABLE_IN</code> + <code>PHASE_TOKEN</code> from <code>contract/categories.py</code>, the op-block regexes from <code>contract/markers.py</code> — so the assertion is that runs match the observed code's contract, never a re-spelled copy (synthesis §7.2).",
+      "I4.7 (capped-is-orchestrator-only) selects its predicate at module-load via <code>dataclasses.fields(ItemTransitioned)</code>: primary <code>event.via in {\"hard_cap\", \"ghost_cap\"}</code> against the live <code>ItemTransitioned.via</code> field, build-time fallback to <code>event.actor == \"orchestrator\"</code> if <code>via</code> is renamed or removed.",
+      "The choice is recorded in <code>verifier.I47_PREDICATE_NAME</code> and surfaced in the JSON report.",
+      "New thin CLI driver <code>src/dual_research/verifier_cli.py</code> parses run-dir args + <code>--json</code>, looks for <code>expected.json</code> next to each run, computes per-invariant verdict diffs against the frozen baseline, exits non-zero on (a) any verdict diverging from baseline (regression or otherwise) or (b) any gating failure on a baseline-free run; the standalone \"no baseline\" mode falls back to \"fail iff any gating fails.\" Three reference-run fixtures committed under <code>tests/fixtures/anchor-runs/</code> — <code>20260521-010637-dvs-backend-language-choice</code> (clean E2E, the live regression detector), <code>20260526-102321-backend-language-choice</code> (today's primary failing run, gating I5.1 + I5.2 FAIL drives non-zero exit, reporting I4.4 logs the four dropped RESOLVE ops on <code>D-plan-c-02 / D-plan-c-04 / D-plan-c-05 / Q-plan-c-01</code>), <code>20260525-135006-backend-language-choice</code> (second silent-death control isolating Bug B from Bug A).",
+      "Each fixture carries the verbatim <code>transcript.jsonl</code> + <code>state.json</code> + <code>metrics.json</code> + the <code>phase0/</code> + <code>phase2/</code> + <code>phase4/</code> turn <code>.md</code> files (no <code>phase1/</code> + <code>phase3/</code> — no item events — no <code>inputs/</code> + assembled-draft + <code>searches/</code> audit bundles), plus a frozen <code>expected.json</code> capturing the LKG per-invariant verdict baseline; <code>expected.json</code> regeneration helper at <code>tests.test_verifier.regenerate_baseline()</code> for legitimate contract amendments.",
+      "New CI workflow <code>.github/workflows/verifier-corpus.yml</code> runs <code>uv run dual-research verify tests/fixtures/anchor-runs/*</code> on every PR and push to <code>main</code>; failure mode is verdict drift from any fixture's frozen baseline, including pass→fail regressions on reporting invariants per spec 0225 §2.5.",
+      "Fifty-seven new tests at <code>tests/test_verifier.py</code> — per-invariant positive + antipodal-absence pairs for all 22 invariants (I4.4 carries three cases per spec §6 — transition-match passes, ProtocolViolation-match passes, neither fails) plus three snapshot tests against the fixture corpus with targeted evidence assertions (the dead-run snapshot asserts that I4.4 cites all four named dropped items + I2.5 logs the round-3 and round-4 divergences).",
+      "Built on top of (not in scope to fix): reclassifying the offending bug-labeled specs 0137 / 0140 / 0218 / 0219 (deferred to a separate <code>breaking</code>-or-process spec per synthesis §6 action 5); closing the silent-drop at <code>deep_research.py:482</code> via a <code>ProtocolViolation</code> emission spec (synthesis §6 action 3 — once that lands, I4.4 promotes from reporting to gating); the addressee-obligation enforcement in the orchestrator (synthesis §6 action 6 — once that lands, I2.4 promotes); the phase-4 budget contract (once that lands, I1.5 promotes); broader 31-run-corpus replay (this spec wires only the three named fixtures; nightly broader replay is a follow-up); the prompt-side investigation into why claude emits RESOLVE-from-open in the first place (synthesis §7.1 — separate authoring track)."
+    ],
+    "specs": [
+      "0225",
+      "0114",
+      "0141",
+      "0214"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.45.5",
     "date": "2026-05-26",
     "bump": "PATCH",
