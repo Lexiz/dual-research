@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T08:09:49Z",
+  "updated_at": "2026-05-26T08:10:18Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10015,6 +10015,13 @@
               "no_open_spec_prs",
               "no_in_flight"
             ]
+          }
+        },
+        {
+          "ts": "2026-05-26T08:10:18Z",
+          "step": "handoff_read",
+          "data": {
+            "path": "handoffs/2026-05-26-spec-0218-phase4-status-survives-truncation.md"
           }
         }
       ]
