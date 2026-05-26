@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T19:19:15Z",
+  "updated_at": "2026-05-26T19:21:03Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10508,7 +10508,7 @@
       "handover": "handoffs/2026-05-26-spec-0222-liveness-tombstone-baseexception-and-remove-stdout-streaming.md"
     },
     "0223": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-26T17:40:13Z",
       "events": [
         {
@@ -10516,7 +10516,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-26T19:21:03Z"
     }
   }
 }
