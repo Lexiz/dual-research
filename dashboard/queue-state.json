@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T22:06:57Z",
+  "updated_at": "2026-05-26T22:12:31Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10892,6 +10892,17 @@
       "merged_at": "2026-05-26T22:01:52Z",
       "deployed_at": "2026-05-26T22:06:57Z",
       "handover": "handoffs/2026-05-27-spec-0227-reclassify-contract-amending-specs-and-process-rule.md"
+    },
+    "0227.1": {
+      "status": "queued",
+      "queued_at": "2026-05-26T22:12:06Z",
+      "events": [
+        {
+          "ts": "2026-05-26T22:12:31Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
