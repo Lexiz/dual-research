@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T14:29:15Z",
+  "updated_at": "2026-05-26T16:43:08Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10322,6 +10322,17 @@
       "merged_at": "2026-05-26T14:26:00Z",
       "deployed_at": "2026-05-26T14:29:15Z",
       "handover": "handoffs/2026-05-26-spec-0220-1-side-menu-version-num-collision.md"
+    },
+    "0221": {
+      "status": "queued",
+      "queued_at": "2026-05-26T16:43:08Z",
+      "events": [
+        {
+          "ts": "2026-05-26T16:43:08Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
