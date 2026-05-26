@@ -1,8 +1,9 @@
 ---
 spec: 0140
 title: Phase 4 deadlock — draft extractor body retention + escape-valve breadth for terminal-ledger AGREED
-label: bug
-version-bump: PATCH
+type: new-feature
+label: new-feature
+version_bump: MINOR
 status: ready
 target-version: 1.9.1
 created: 2026-05-21

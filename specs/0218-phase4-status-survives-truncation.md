@@ -3,9 +3,9 @@ kind: dev
 spec: "0218"
 slug: phase4-status-survives-truncation
 title: "Fix: phase-4 drafter truncation destroys STATUS — STATUS-first ordering, section-delta drafter contract, and dr_run.py repair-flow wiring"
-type: bug
-label: bug
-version_bump: PATCH
+type: breaking
+label: breaking
+version_bump: MAJOR
 target_version: TBD
 status: queued
 depends_on: ["0217", "0217.1"]
