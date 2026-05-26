@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-26T18:48:23Z",
+  "updated_at": "2026-05-26T18:48:37Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -10416,7 +10416,7 @@
       "handover": "handoffs/2026-05-26-spec-0221-doc-modal-output-label.md"
     },
     "0222": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T17:37:51Z",
       "events": [
         {
@@ -10470,7 +10470,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T18:36:22Z"
+      "started_at": "2026-05-26T18:36:22Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/261",
+      "merged_at": "2026-05-26T18:48:37Z"
     },
     "0223": {
       "status": "queued",
