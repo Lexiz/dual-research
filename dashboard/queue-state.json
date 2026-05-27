@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T12:27:45Z",
+  "updated_at": "2026-05-27T12:30:40Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11301,7 +11301,7 @@
       ]
     },
     "0230": {
-      "status": "merged",
+      "status": "deployed",
       "events": [
         {
           "ts": "2026-05-27T12:20:11Z",
@@ -11354,11 +11354,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/271"
           }
+        },
+        {
+          "ts": "2026-05-27T12:28:24Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T12:29:53Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.50.0"
+          }
+        },
+        {
+          "ts": "2026-05-27T12:29:53Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T12:30:35Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-27-spec-0230-reconciler-skip-out-of-tree-paths.md"
+          }
         }
       ],
       "started_at": "2026-05-27T12:19:50Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/271",
-      "merged_at": "2026-05-27T12:27:42Z"
+      "merged_at": "2026-05-27T12:27:42Z",
+      "deployed_at": "2026-05-27T12:30:40Z",
+      "handover": "handoffs/2026-05-27-spec-0230-reconciler-skip-out-of-tree-paths.md"
     }
   }
 }
