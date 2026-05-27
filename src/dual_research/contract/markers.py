@@ -20,34 +20,44 @@ import re
 _LEAD = r"^[\s>*\-`#]*"
 
 
+# ─── Section-heading factory (spec 0238) ──────────────────────────────
+
+def section_heading_re(
+    name_pattern: str,
+    *,
+    flags: int = re.MULTILINE | re.IGNORECASE,
+) -> "re.Pattern[str]":
+    """Compile a ``^## <name>`` heading anchor with a glued-prose-tolerant terminator.
+
+    ``name_pattern`` is a raw regex fragment (NOT an arbitrary string).
+    Callers pass literal text via ``re.escape()`` themselves; callers
+    that need internal alternation (e.g. an optional apostrophe, an
+    "Open questions for X" suffix) pass the regex fragment directly.
+    The factory does not auto-escape — auto-escaping would prevent the
+    legitimate-alternation case and re-introduce drift between callers.
+
+    Terminator: ``(?:\\s*$|(?=\\S))`` matches *either* end-of-line
+    (optionally with trailing whitespace) *or* a non-whitespace
+    follow-on character (the glued-prose case). The form is identical
+    to the one ``extract_fenced_section`` (spec 0231) already uses; the
+    primitive is the consolidation point so the two paths cannot drift.
+    """
+    return re.compile(
+        rf"^##\s+{name_pattern}(?:\s*$|(?=\S))",
+        flags,
+    )
+
+
 # ─── New-protocol section headings (## level) ─────────────────────────
 
-SECTION_STANCE_RE = re.compile(r"^##\s+Stance\b", re.MULTILINE | re.IGNORECASE)
-SECTION_ADDRESSING_RE = re.compile(
-    r"^##\s+Addressing items raised against me\b",
-    re.MULTILINE | re.IGNORECASE,
-)
-SECTION_RATIFYING_RE = re.compile(
-    r"^##\s+Ratifying my own items\b",
-    re.MULTILINE | re.IGNORECASE,
-)
-SECTION_NEW_ITEMS_RE = re.compile(
-    r"^##\s+New items I'?m raising\b",
-    re.MULTILINE | re.IGNORECASE,
-)
-SECTION_PHASE_ARTIFACT_RE = re.compile(
-    r"^##\s+Phase artifact\b",
-    re.MULTILINE | re.IGNORECASE,
-)
-SECTION_STATUS_RE = re.compile(r"^##\s+Status\b", re.MULTILINE | re.IGNORECASE)
-SECTION_REVISED_DRAFT_RE = re.compile(
-    r"^##\s+Revised draft\b",
-    re.MULTILINE | re.IGNORECASE,
-)
-SECTION_CLOSEOUT_CONSTRAINTS_RE = re.compile(
-    r"^##\s+Closeout constraints\b",
-    re.MULTILINE | re.IGNORECASE,
-)
+SECTION_STANCE_RE = section_heading_re(re.escape("Stance"))
+SECTION_ADDRESSING_RE = section_heading_re(re.escape("Addressing items raised against me"))
+SECTION_RATIFYING_RE = section_heading_re(re.escape("Ratifying my own items"))
+SECTION_NEW_ITEMS_RE = section_heading_re(r"New items I'?m raising")
+SECTION_PHASE_ARTIFACT_RE = section_heading_re(re.escape("Phase artifact"))
+SECTION_STATUS_RE = section_heading_re(re.escape("Status"))
+SECTION_REVISED_DRAFT_RE = section_heading_re(re.escape("Revised draft"))
+SECTION_CLOSEOUT_CONSTRAINTS_RE = section_heading_re(re.escape("Closeout constraints"))
 
 
 # ─── Operation-block headings (### level) ─────────────────────────────

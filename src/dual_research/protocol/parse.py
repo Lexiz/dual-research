@@ -46,6 +46,7 @@ from dual_research.contract.markers import (
     STATUS_RE as STATUS_V2_RE,
     WITHDRAWN_THIS_TURN_RE,
     list_ids,
+    section_heading_re,
 )
 from dual_research.contract.operations import (
     AcknowledgeBlock,
@@ -201,11 +202,14 @@ def extract_fenced_section(text: str, heading_name: str) -> str | None:
     and additional prose is NOT a match — `## Heading Name` does not
     match heading_name `"Heading"` (the next character is whitespace,
     not end-of-line and not the start of glued prose).
+
+    Spec 0238 — the heading regex is built via ``section_heading_re``
+    (from ``contract.markers``), the same factory the SECTION_*_RE
+    family is built from. The two heading-anchor paths share one source
+    of truth; future tolerance changes land in the primitive and
+    propagate.
     """
-    heading_re = re.compile(
-        r"^##\s+" + _escape_regex(heading_name) + r"(?:\s*$|(?=\S))",
-        re.MULTILINE,
-    )
+    heading_re = section_heading_re(_escape_regex(heading_name))
     m = heading_re.search(text)
     if not m:
         return None
@@ -382,7 +386,13 @@ def _is_protocol_top_heading(line: str) -> bool:
     return any(text.startswith(prefix) for prefix in _PROTOCOL_TOP_HEADING_PREFIXES)
 
 
-_REVISED_DRAFT_HEADING_RE = re.compile(r"^##\s+Revised draft\s*$", re.MULTILINE)
+# Spec 0238 — re-export from the SECTION_*_RE family so the "Revised
+# draft" heading anchor cannot drift from the rest of the SECTION_*_RE
+# regexes. Pre-spec this was an inline `re.compile(...)` with the
+# narrower `\s*$` terminator, which silently missed glued-prose
+# variants. Callers (only `extract_revised_draft_inclusive` below) are
+# unchanged — the name is preserved as an alias.
+_REVISED_DRAFT_HEADING_RE = SECTION_REVISED_DRAFT_RE
 _TOP_HEADING_RE = re.compile(r"^##\s+\S", re.MULTILINE)
 
 
@@ -1089,7 +1099,11 @@ def extract_review_items(turn_text: str) -> list[ReviewItem]:
     # Open questions section — heading text is "Open questions for <name>".
     # Match the heading prefix only; agent name varies. Phase 2 uses this
     # form with a "for X" suffix.
-    open_q_match = re.search(r"^##\s+Open questions for .+?$", turn_text, re.MULTILINE)
+    # Spec 0238 — built via `section_heading_re` so the heading
+    # terminator tolerates glued prose (`## Open questions for foonow
+    # I have evidence...`) the same way the rest of the SECTION_*_RE
+    # family does.
+    open_q_match = section_heading_re(r"Open questions for .+?").search(turn_text)
     if open_q_match:
         body = _section_body_at(turn_text, open_q_match.end())
         out.extend(_walk_section_items(body, kind="question"))
@@ -1099,11 +1113,7 @@ def extract_review_items(turn_text: str) -> list[ReviewItem]:
     # (``## 5. Open Questions``). Skip if the Phase 2 form already matched
     # so we don't double-extract on a malformed transcript.
     if not open_q_match:
-        open_q_p1 = re.search(
-            r"^##\s+(?:\d+\.\s+)?Open Questions\s*$",
-            turn_text,
-            re.MULTILINE,
-        )
+        open_q_p1 = section_heading_re(r"(?:\d+\.\s+)?Open Questions").search(turn_text)
         if open_q_p1:
             body = _section_body_at(turn_text, open_q_p1.end())
             out.extend(_walk_section_items(body, kind="question"))

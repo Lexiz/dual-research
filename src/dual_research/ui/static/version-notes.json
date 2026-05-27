@@ -1,5 +1,33 @@
 [
   {
+    "version": "1.53.0",
+    "date": "2026-05-27",
+    "bump": "MINOR",
+    "summary": "Parser primitive consolidation: one tolerant section_heading_re for every specific-literal-heading anchor (spec 0238).",
+    "items": [
+      "<strong>Added.</strong> <strong>Parser primitive consolidation: one tolerant <code>section_heading_re</code> for every specific-literal-heading anchor ([spec 0238](specs/0238-parser-section-heading-primitive-consolidation.md)).</strong> Closes the parser-fragility class behind the 2026-05-27 live re-run <code>20260527-142625-backend-language-choice</code> death — claude's round-1 output glued prose onto the <code>## New items I'm raising</code> heading (<code>## New items I'm raisingNow I have the evidence I need…</code>), <code>SECTION_NEW_ITEMS_RE</code>'s <code>\\b</code> terminator failed between <code>g</code> and <code>N</code>, all five <code>### RAISE</code> blocks were silently dropped, the orchestrator saw an empty turn, fired <code>empty_turn_detected</code>, and burned $3.72 in a retry spin before the user killed it.",
+      "Same bug class as spec 0231 at a different surface — 0231 patched <code>extract_fenced_section</code> only; this spec consolidates onto the primitive.",
+      "<strong>Layer 1</strong> — new public factory <code>section_heading_re(name_pattern, *, flags)</code> compiles <code>^## <name>(?:\\s*$|(?=\\S))</code> with default flags <code>re.MULTILINE | re.IGNORECASE</code>.",
+      "The factory takes a raw regex fragment (not an auto-escaped string) so callers needing internal alternation (<code>I'?m</code>, <code>Open questions for.+?</code>, <code>(?:\\d+\\.\\s+)?Open Questions</code>) keep that capability; literal-heading callers use <code>re.escape()</code> themselves.",
+      "<strong>Layer 2</strong> — eight <code>SECTION_*_RE</code> constants (Stance, Addressing, Ratifying, NewItems, PhaseArtifact, Status, RevisedDraft, CloseoutConstraints) at <code>src/dual_research/contract/markers.py:25-48</code> rebuilt through <code>section_heading_re</code>; <code>_REVISED_DRAFT_HEADING_RE</code> at <code>src/dual_research/protocol/parse.py:385</code> re-exported as an alias of <code>SECTION_REVISED_DRAFT_RE</code> so the \"Revised draft\" anchor cannot drift from the rest of the family; <code>extract_review_items</code> calls <code>section_heading_re(r\"Open questions for.+?\")</code> and <code>section_heading_re(r\"(?:\\d+\\.\\s+)?Open Questions\")</code> for its two anchors; <code>extract_fenced_section</code> now calls <code>section_heading_re(re.escape(heading_name))</code> instead of constructing its regex inline — the two heading-anchor paths share one source of truth.",
+      "<strong>Layer 3</strong> — explicit scope boundary documented in spec §2.3: <code>_TOP_HEADING_RE</code>, <code>_H2_RE</code>, <code>_DRAFT_SECTION_HEADING_RE</code> are boundary/capture regexes (different abstractions, different roles) and are NOT touched.",
+      "<strong>Layer 4</strong> — new <code>### Live-failure fix discipline (spec 0238)</code> section under <code>## Tests</code> in <code>CLAUDE.md</code> requires every spec whose stated cause-of-death is a captured live-run failure to include at least one test exercising the <strong>real entry point</strong> of the failing call path against the captured artifact; the spec 0231/0238 mismatch is named as the worked example.",
+      "Tests at <code>tests/test_spec_0238_parser_section_tolerance.py</code> cover 11 positive-pattern × clean-heading parametrised cases, 11 antipodal × glued-prose parametrised cases, a 7-shape variant battery on <code>SECTION_NEW_ITEMS_RE</code> (clean / trailing-whitespace / no-apostrophe / ALL-CAPS / trailing-period / trailing-colon+text / glued-letter), an integration test invoking <code>parse_turn_v2</code> on the captured <code>20260527-142625</code> phase-2 round-1 claude turn (asserts both the STATUS-line action array of 5 IDs *and* the 5 RaiseBlocks the bug used to drop), the <code>extract_fenced_section ⇄ SECTION_*_RE</code> shared-source-of-truth match-bounds invariant (spec §7 mitigation), and source-pattern lock-in on the primitive's terminator + default flags.",
+      "Full <code>pytest tests/ -q</code> reports 2215 passed (34 new + 2181 pre-existing).",
+      "<strong>Changed.</strong> **SECTION_*_RE family terminator** at <code>src/dual_research/contract/markers.py</code> changed from <code>\\b</code> to <code>(?:\\s*$|(?=\\S))</code>.",
+      "The new terminator is strictly more permissive — every heading that matched pre-fix still matches post-fix, plus glued-prose variants now match.",
+      "No call site relied on the section *not* matching when prose was glued; the full <code>pytest tests/ -q</code> clean run is the backwards-compat check.",
+      "<strong><code>extract_fenced_section</code></strong> at <code>src/dual_research/protocol/parse.py:179</code> and <strong><code>_REVISED_DRAFT_HEADING_RE</code></strong> at <code>src/dual_research/protocol/parse.py:385</code> now go through <code>section_heading_re</code>.",
+      "Side effect: both pick up <code>re.IGNORECASE</code> (the primitive's default), so headings like <code>## REVISED DRAFT</code> or <code>## agreed_plan</code> now match where they previously did not.",
+      "This is the consolidation Cowork's brief flagged as \"the real structural fix\" — <code>extract_fenced_section</code> and the <code>SECTION_*_RE</code> family stop being two heading implementations that can drift."
+    ],
+    "specs": [
+      "0238"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.52.0",
     "date": "2026-05-27",
     "bump": "MINOR",
