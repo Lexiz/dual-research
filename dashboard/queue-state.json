@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T22:49:04Z",
+  "updated_at": "2026-05-27T22:49:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11772,6 +11772,14 @@
           "ts": "2026-05-27T22:49:04Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-27T22:49:13Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0240-fixture-regen-machinery-and-i2-6-verdict-flip",
+            "from": "main@7be30dc"
+          }
         }
       ],
       "status": "in_progress",
