@@ -1,6 +1,6 @@
 {
-  "spec": "0238",
-  "note": "Frozen baseline of the captured failing run before spec 0238 ships. Regenerate via tests.test_verifier.regenerate_baseline() after the parser fix lands; verdicts on I3.3 / I5.1 / I5.2 will change. Spec 0232 added I2.6 = fail (phase-2 r1 claude declared 5, registered 0).",
+  "spec": "0225",
+  "note": "Frozen LKG baseline of the lifecycle-trace verifier. Regenerate via tests.test_verifier.regenerate_baseline() when a verdict legitimately changes.",
   "results": [
     {
       "id": "I1.1",
@@ -55,7 +55,12 @@
     {
       "id": "I2.6",
       "severity": "reporting",
-      "verdict": "fail"
+      "verdict": "pass"
+    },
+    {
+      "id": "I2.7",
+      "severity": "reporting",
+      "verdict": "not_applicable"
     },
     {
       "id": "I3.1",

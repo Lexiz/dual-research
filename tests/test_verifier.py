@@ -924,43 +924,36 @@ def test_snapshot_dead_run_secondary_matches_baseline():
     assert verdicts["I5.2"] == "fail"
 
 
-def test_snapshot_054652_i2_6_drop_class_fail():
-    """20260527-054652 — phase-2 round-1 claude declared 6 IDs in
-    RAISED_THIS_TURN but registered 0 item_raised events. Spec 0232's
-    canonical drop-class failure."""
+def test_snapshot_054652_i2_6_post_regen_pass():
+    """20260527-054652 — spec 0240 regen replayed phase-2 r1 claude
+    through the post-fix parser; the previously-dropped 6 IDs are now
+    registered as item_raised events, so I2.6 flips to pass. The
+    captured pre-regen transcript is preserved at
+    transcript.captured.jsonl as the immutable evidence of the original
+    drop."""
     rd = FIXTURES / "20260527-054652-backend-language-choice"
     report = verify_run(rd)
     baseline = _baseline_for(rd)
     assert _verdict_diff(report, baseline) == []
 
     i2_6 = _result(report, "I2.6")
-    assert i2_6.verdict == "fail"
-    assert any(
-        "phase 2 r1 claude" in e.detail
-        and "declared 6" in e.detail
-        and "registered 0" in e.detail
-        for e in i2_6.evidence
-    )
+    assert i2_6.verdict == "pass"
 
 
-def test_snapshot_142625_i2_6_slug_drop_fail():
-    """20260527-142625 — phase-2 round-1 claude declared 5 SLUG-shaped IDs
-    (D-go-vs-csharp-21, …) and registered 0 item_raised events. Directional
-    rule catches the drop without inspecting ID shape; a canonical-ID-skip
-    guard would have masked the failure."""
+def test_snapshot_142625_i2_6_post_regen_pass():
+    """20260527-142625 — spec 0240 regen replayed phase-2 r1 claude
+    through the post-fix parser; the previously-dropped 5 SLUG-shaped
+    IDs (D-go-vs-csharp-21, …) are now registered as item_raised
+    events, so I2.6 flips to pass. The captured pre-regen transcript is
+    preserved at transcript.captured.jsonl as the immutable evidence of
+    the original drop."""
     rd = FIXTURES / "20260527-142625-backend-language-choice"
     report = verify_run(rd)
     baseline = _baseline_for(rd)
     assert _verdict_diff(report, baseline) == []
 
     i2_6 = _result(report, "I2.6")
-    assert i2_6.verdict == "fail"
-    assert any(
-        "phase 2 r1 claude" in e.detail
-        and "declared 5" in e.detail
-        and "registered 0" in e.detail
-        for e in i2_6.evidence
-    )
+    assert i2_6.verdict == "pass"
 
 
 def test_cli_exits_zero_on_clean_baseline_match(tmp_path, monkeypatch):
@@ -1004,22 +997,12 @@ def test_cli_exits_nonzero_on_baseline_regression(tmp_path):
 def regenerate_baseline() -> None:
     """Rewrite every fixture's expected.json from the live verifier output.
 
-    Call from a one-off Python shell when a verdict legitimately changed
-    (e.g. a contract amendment lands and one of the invariants tightens).
-    Inspect the resulting diff before committing."""
+    Spec 0240 promoted the per-fixture mechanics to
+    ``tests/_fixture_regen.py``; this remains as a thin convenience
+    that walks the FIXTURES directory."""
+    from tests._fixture_regen import regenerate_baseline as _regen_baseline
+
     for child in sorted(FIXTURES.iterdir()):
         if not child.is_dir():
             continue
-        report = verify_run(child)
-        payload = {
-            "spec": "0225",
-            "note": "Frozen LKG baseline of the lifecycle-trace verifier. Regenerate via "
-                    "tests.test_verifier.regenerate_baseline() when a verdict legitimately changes.",
-            "results": [
-                {"id": r.id, "severity": r.severity, "verdict": r.verdict}
-                for r in report.results
-            ],
-        }
-        (child / "expected.json").write_text(
-            json.dumps(payload, indent=2) + "\n", encoding="utf-8"
-        )
+        _regen_baseline(child)

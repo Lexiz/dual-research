@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.55.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "Fixture regen machinery + I2.6 verdict flip on the 142625 + 054652 fixtures (spec 0240).",
+    "items": [
+      "<strong>Fixture regen machinery + I2.6 verdict flip on the 142625 + 054652 fixtures ([spec 0240](specs/0240-fixture-regen-machinery-and-i2-6-verdict-flip.md)).</strong> Unblocks two named downstream triggers — spec 0232 §6's I2.6 reporting → gating promotion (gated on a 0231/0238-aware regen of the failing fixtures reporting I2.6 = <code>pass</code>) and the spec 0238 §6 verdict-flip line item (the 142625 fixture's I2.6 moves from <code>fail (declared 5, registered 0)</code> to <code>pass</code> once the frozen transcript is regenerated through the post-fix parser).",
+      "<strong>Layer 1</strong> — new module <code>tests/_fixture_regen.py</code> exposes two callables.",
+      "<code>regenerate_transcript(run_dir)</code> walks each raisable phase (0, 2, 4) of <code>run_dir/phase{N}/round-NN-{claude,openai}.md</code>, replays the turn files through <code>parse_turn_v2</code> + <code>DeepResearchPhase.apply_turn</code> + <code>process_round_end</code> to regenerate the parser-derived event stream (<code>item_raised</code> / <code>item_transitioned</code> / <code>closeout_urged</code> / <code>closeout_violation</code> / <code>protocol_violation</code> / <code>empty_turn_detected</code>), then splices those events back into the captured envelope at each round's last <code>turn_ended</code> boundary.",
+      "The original <code>transcript.jsonl</code> is snapshotted to <code>transcript.captured.jsonl</code> on the first call (idempotent — never overwrites an existing snapshot, preserving the immutable evidence consumed by spec 0239's I2.7 integration test on the captured 142625 transcript).",
+      "Regenerated parser events carry no <code>ts</code> field — replay has no runtime timestamp and synthesising one would either drift across passes or fabricate a time bracket; the verifier's I5.3 tolerates missing <code>ts</code> on non-terminal events.",
+      "<code>regenerate_baseline(run_dir)</code> recomputes <code>expected.json</code> from the live verifier output.",
+      "<strong>Layer 2</strong> — applied the regen to the two named failing fixtures: <code>tests/fixtures/anchor-runs/20260527-142625-backend-language-choice/</code> (phase 2 r1 claude now produces 5 <code>item_raised</code> events for the previously-dropped slug-shaped IDs; I2.6 flips <code>fail</code> → <code>pass</code>) and <code>tests/fixtures/anchor-runs/20260527-054652-backend-language-choice/</code> (phase 2 r1 claude now produces 6 <code>item_raised</code> events; I2.6 flips <code>fail</code> → <code>pass</code>).",
+      "The three clean fixtures (010637, 135006, 102321) had their <code>expected.json</code> files refreshed via <code>regenerate_baseline</code> only to backfill the spec 0239 I2.7 invariant entry (transcript.jsonl untouched).",
+      "<strong>Layer 3</strong> — flipped the snapshot tests in lock-step: <code>test_snapshot_142625_i2_6_slug_drop_fail</code> → <code>test_snapshot_142625_i2_6_post_regen_pass</code>, and the sibling 054652 test, both now assert <code>I2.6.verdict == \"pass\"</code> against the regenerated baseline.",
+      "The legacy <code>regenerate_baseline()</code> at <code>tests/test_verifier.py</code> is preserved as a thin wrapper delegating to <code>_fixture_regen.regenerate_baseline</code> so out-of-tree imports don't break.",
+      "<strong>Layer 4</strong> — new tests at <code>tests/test_spec_0240_fixture_regen.py</code> cover (a) the post-regen <code>item_raised</code> count on both failing fixtures, (b) idempotency of <code>regenerate_baseline</code> on the three clean fixtures (locks the gating promotion against silent verifier drift), and (c) two-pass byte-identical idempotency of <code>regenerate_transcript</code> + <code>regenerate_baseline</code> on the two regenerated fixtures (locks against silent non-determinism in <code>parse_turn_v2</code> or <code>apply_turn</code> going forward).",
+      "Spec §5: I2.6 promotion from <code>reporting</code> → <code>gating</code> remains a separate follow-up keyed off the next live re-run's I2.6 = <code>pass</code> verdict (non-circular proof; the regen is mildly circular since it replays the post-fix parser over the exact case the fix was built for).",
+      "Full <code>pytest tests/ -q</code> reports 2233 passed (7 new + 2226 pre-existing)."
+    ],
+    "specs": [
+      "0240"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.54.0",
     "date": "2026-05-27",
     "bump": "MINOR",
