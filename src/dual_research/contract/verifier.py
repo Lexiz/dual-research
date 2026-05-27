@@ -821,6 +821,98 @@ def _check_i2_7(events: list[dict]) -> InvariantResult:
     return InvariantResult("I2.7", "reporting", "pass")
 
 
+def _check_i2_8(events: list[dict]) -> InvariantResult:
+    # Spec 0241 §2.4 — turn termination. Every ``turn_started`` event
+    # must have a terminal counterpart for the same
+    # ``(agent, phase, round)`` triple before the next event for that
+    # triple. Reporting-only; promotion to gating is a follow-up spec
+    # (see spec 0241 §5).
+    #
+    # Terminal counterparts:
+    #   * ``turn_ended``
+    #   * ``protocol_violation`` with one of the four "this turn died
+    #     in a structured way" codes:
+    #       - ``turn_api_call_timeout`` (spec 0241 §2.3)
+    #       - ``turn_api_call_exception`` (spec 0241 §2.2)
+    #       - ``empty_turn_persistent_identical_input`` (spec 0239)
+    #       - ``empty_turn_retry_cap_exceeded`` (spec 0239)
+    #   * ``tombstone`` (spec 0222 run-loop catch-all)
+    #
+    # A bare ``turn_started`` (e.g. the 20260527-200213 phase-4 silent
+    # death — ``turn_started`` followed by nothing for the same key) is
+    # surfaced as an Evidence row pinpointing the dead turn.
+    terminal_violation_codes = {
+        "turn_api_call_timeout",
+        "turn_api_call_exception",
+        "empty_turn_persistent_identical_input",
+        "empty_turn_retry_cap_exceeded",
+    }
+
+    # Walk the transcript in order, tracking the most recent
+    # ``turn_started`` per ``(agent, phase, round)`` triple. A terminal
+    # counterpart clears the entry; the run is then scanned for any
+    # entry still in flight at end-of-transcript.
+    open_turns: dict[tuple[str, int, int], tuple[int, str | None]] = {}
+    saw_any = False
+
+    for idx, ev in enumerate(events):
+        kind = ev.get("event")
+        if kind == "turn_started":
+            saw_any = True
+            phase = _phase_to_int(ev.get("phase"))
+            round_no = ev.get("round")
+            agent = ev.get("agent")
+            if phase is None or round_no is None or agent is None:
+                continue
+            open_turns[(agent, phase, round_no)] = (idx, ev.get("ts"))
+            continue
+
+        if kind == "turn_ended":
+            phase = _phase_to_int(ev.get("phase"))
+            round_no = ev.get("round")
+            agent = ev.get("agent")
+            if phase is None or round_no is None or agent is None:
+                continue
+            open_turns.pop((agent, phase, round_no), None)
+            continue
+
+        if kind == "protocol_violation":
+            code = ev.get("violation_code")
+            if code not in terminal_violation_codes:
+                continue
+            phase = _phase_to_int(ev.get("phase"))
+            round_no = ev.get("round")
+            agent = ev.get("agent")
+            if phase is None or round_no is None or agent is None:
+                continue
+            open_turns.pop((agent, phase, round_no), None)
+            continue
+
+        if kind == "tombstone":
+            # Tombstones may not carry per-turn coordinates — they are a
+            # run-loop catch-all. A tombstone clears every still-open
+            # turn (the run is dying; no per-turn terminal is going to
+            # arrive). This matches spec 0241 §2.4 step 3's intent.
+            open_turns.clear()
+            continue
+
+    if not saw_any:
+        return InvariantResult("I2.8", "reporting", "not_applicable")
+
+    fail: list[Evidence] = []
+    for (agent, phase, round_no), (idx, ts) in open_turns.items():
+        ts_str = f" at {ts}" if ts else ""
+        fail.append(Evidence(
+            f"phase{phase}/r{round_no}/{agent}",
+            f"turn_started{ts_str} has no terminal event "
+            f"(turn_ended / matching ProtocolViolation / tombstone)",
+        ))
+
+    if fail:
+        return InvariantResult("I2.8", "reporting", "fail", tuple(fail))
+    return InvariantResult("I2.8", "reporting", "pass")
+
+
 # ─── Area 3 — Categorisation ───────────────────────────────────────────
 
 
@@ -1323,6 +1415,7 @@ def verify_run(run_dir: Path) -> VerifierReport:
         _check_i2_5(events, turn_files),
         _check_i2_6(events, turn_files),
         _check_i2_7(events),
+        _check_i2_8(events),
         _check_i3_1(events, turn_files),
         _check_i3_2(events),
         _check_i3_3(turn_files),

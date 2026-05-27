@@ -32,6 +32,7 @@ __all__ = [
     "EmptyTurnRetryState",
     "compute_input_sha256",
     "on_empty_turn",
+    "on_turn_api_call_timeout",
 ]
 
 
@@ -129,3 +130,47 @@ def on_empty_turn(
         last_input_sha256=input_sha256,
     )
     return None
+
+
+def on_turn_api_call_timeout(
+    state: EmptyTurnRetryState,
+    *,
+    agent: str,
+    phase: int,
+    round: int,
+) -> ProtocolViolation:
+    """Spec 0241 §2.5 — tick the unified retry counter for a timeout.
+
+    A ``turn_api_call_timeout`` is always fail-fast: re-issuing a byte-
+    identical call that just hung for 900s would mean back-to-back
+    15-minute hangs. We tick the counter (so a subsequent
+    ``empty_turn_detected`` for the same key sees the elevated count
+    and trips the existing cap sooner), then return a structured
+    :class:`ProtocolViolation` so the caller can record it. The
+    last-input hash is preserved as-is — the timeout case has no
+    "input that produced the empty turn" to compare against; mutating
+    only the count keeps :func:`on_empty_turn`'s identical-input check
+    well-defined.
+    """
+    key = (agent, phase, round)
+    record = state.get(key, EmptyTurnRetryRecord())
+    next_count = record.count + 1
+    state[key] = EmptyTurnRetryRecord(
+        count=next_count,
+        last_input_sha256=record.last_input_sha256,
+    )
+    return ProtocolViolation(
+        phase=phase,
+        round=round,
+        agent=agent,
+        violation_code="turn_api_call_timeout",
+        item_id="",
+        from_state="",
+        dropped_block="",
+        op_kind="",
+        expected_state="",
+        reason=(
+            f"turn_api_call_timeout for (agent={agent}, phase={phase}, "
+            f"round={round}); count={next_count}; fail-fast no retry"
+        ),
+    )
