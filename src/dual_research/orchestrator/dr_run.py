@@ -52,6 +52,7 @@ from dual_research.events import (
     Phase4RoundComplete,
     PhaseEntered,
     PhaseExited,
+    ProtocolViolation,
     SoftCapHit,
 )
 from dual_research.orchestrator.closeout import items_blocking_convergence
@@ -1387,6 +1388,104 @@ async def run_dr_phase3(
 # ─── Phase 4 ──────────────────────────────────────────────────────────
 
 
+async def _apply_drafter_revised_draft(
+    *,
+    ctx: SessionContext,
+    event_bus: EventBus,
+    round: int,
+    revised_text: str,
+    drafter: str,
+) -> bool:
+    """Apply (or no-op fallback-apply) a drafter's revised-draft turn.
+
+    Returns ``True`` if a revision was written (success or fallback no-op),
+    ``False`` if the drafter omitted the ``## Revised draft`` section entirely.
+
+    Spec 0218 §3.2 — parses the body as section-delta ops via
+    ``extract_revised_draft_deltas`` and applies them against the prior
+    ``draft-vN.md`` to produce ``draft-v(N+1).md``.
+
+    Spec 0231 §2.3 — graceful fallback when the body fails to parse even
+    after the one-shot repair recovered nothing (``parse_v2_with_repair``
+    returns the still-malformed text and ``extract_revised_draft_deltas``
+    raises here). The fallback synthesises a
+    ``RevisedDraftFull(content=prior_draft)`` payload — the prior draft
+    body verbatim, NOT the unparseable original (which would ship
+    ANCHOR/REPLACE_WITH garbage downstream) — and emits a
+    ``ProtocolViolation(phase4_drafter_repair_failed)`` so the deadlock is
+    observable on the dashboard. The round loop continues; if the drafter
+    never produces parseable output across rounds, the existing hard-cap
+    catches a legible deadlock instead of an opaque uncaught exception.
+    """
+    from dual_research.protocol import (
+        RevisedDraftFull,
+        apply_revised_draft_deltas,
+        extract_revised_draft_deltas,
+    )
+    from dual_research.protocol.errors import ProtocolParseError
+
+    fallback_fired = False
+    fallback_errors: list[str] = []
+    try:
+        payload = extract_revised_draft_deltas(revised_text)
+    except ProtocolParseError as e:
+        fallback_fired = True
+        fallback_errors = list(e.errors)
+        prior_path = current_draft_path(ctx.session, ctx.state.draft_round)
+        prior_draft_text = prior_path.read_text(encoding="utf-8")
+        payload = RevisedDraftFull(content=prior_draft_text)
+
+    if payload is None:
+        return False
+
+    new_round = ctx.state.draft_round + 1
+    prior_path = current_draft_path(ctx.session, ctx.state.draft_round)
+    prior_draft = prior_path.read_text(encoding="utf-8")
+    new_draft, violations = apply_revised_draft_deltas(
+        prior_draft=prior_draft, payload=payload,
+    )
+
+    new_path = ctx.session.phase_dir("phase4") / f"draft-v{new_round}.md"
+    write_atomic(new_path, new_draft)
+    ctx.state.draft_round = new_round
+    ctx.session.save_state(ctx.state)
+    for v in violations:
+        ctx.transcript.write(
+            "revised_draft_delta_violation",
+            phase="phase4",
+            round=round,
+            violation=v,
+        )
+    if fallback_fired:
+        await event_bus.publish(ProtocolViolation(
+            phase=4,
+            round=round,
+            agent=drafter,
+            violation_code="phase4_drafter_repair_failed",
+            item_id="",
+            from_state="",
+            op_kind="revised_draft",
+            reason=(
+                "drafter revised-draft body failed to parse after repair "
+                "(" + "; ".join(fallback_errors) + "); "
+                "no-op fallback applied (draft body verbatim from prior round)"
+            ),
+        ))
+        ctx.transcript.write(
+            "phase4_drafter_repair_failed",
+            phase="phase4",
+            round=round,
+            agent=drafter,
+            errors=fallback_errors,
+        )
+    await event_bus.publish(Phase4DraftRevised(
+        round=round,
+        new_draft_round=new_round,
+        new_draft_chars=len(new_draft),
+    ))
+    return True
+
+
 async def run_dr_phase4(
     *,
     ctx: SessionContext,
@@ -1406,51 +1505,15 @@ async def run_dr_phase4(
     revisions_count = 0
 
     async def _on_revised_draft(*, ctx, event_bus, round, revised_text):
-        """Spec 0218 §3.2 — section-delta application.
-
-        ``revised_text`` is the full repaired turn text (canonical bytes
-        from the drafter, post-`parse_v2_with_repair`). The body of
-        `## Revised draft` is parsed into a `RevisedDraftPayload` and
-        applied against the prior `draft-vN.md` to produce
-        `draft-v(N+1).md`. Returning the legacy full-prose body shape was
-        already rejected by the validator chain and routed to repair, so
-        by the time we reach this point the body is either delta-ops or
-        a `REPLACE_DRAFT_FULL` escape-hatch.
-        """
         nonlocal revisions_count
-        from dual_research.protocol import (
-            apply_revised_draft_deltas,
-            extract_revised_draft_deltas,
-        )
-
-        payload = extract_revised_draft_deltas(revised_text)
-        if payload is None:
-            return
-
-        new_round = ctx.state.draft_round + 1
-        prior_path = current_draft_path(ctx.session, ctx.state.draft_round)
-        prior_draft = prior_path.read_text(encoding="utf-8")
-        new_draft, violations = apply_revised_draft_deltas(
-            prior_draft=prior_draft, payload=payload,
-        )
-
-        revisions_count += 1
-        new_path = ctx.session.phase_dir("phase4") / f"draft-v{new_round}.md"
-        write_atomic(new_path, new_draft)
-        ctx.state.draft_round = new_round
-        ctx.session.save_state(ctx.state)
-        for v in violations:
-            ctx.transcript.write(
-                "revised_draft_delta_violation",
-                phase="phase4",
-                round=round,
-                violation=v,
-            )
-        await event_bus.publish(Phase4DraftRevised(
+        if await _apply_drafter_revised_draft(
+            ctx=ctx,
+            event_bus=event_bus,
             round=round,
-            new_draft_round=new_round,
-            new_draft_chars=len(new_draft),
-        ))
+            revised_text=revised_text,
+            drafter=drafter,
+        ):
+            revisions_count += 1
 
     def _build(*, agent_name, round, is_closeout_round, standing_items, closeout_request, ctx):
         current_path = current_draft_path(ctx.session, ctx.state.draft_round)

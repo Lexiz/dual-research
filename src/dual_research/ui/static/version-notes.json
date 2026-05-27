@@ -1,5 +1,33 @@
 [
   {
+    "version": "1.51.0",
+    "date": "2026-05-27",
+    "bump": "MINOR",
+    "summary": "Parser heading tolerance + graceful drafter repair fallback (spec 0231).",
+    "items": [
+      "<strong>Parser heading tolerance + graceful drafter repair fallback ([spec 0231](specs/0231-parser-heading-tolerance-and-repair-fallback.md)).</strong> Closes the parser-strictness failure class behind the live run <code>20260527-054652-backend-language-choice</code> death — the drafter glued the EDIT_SECTION anchor inline (<code>### EDIT_SECTION ## 1.",
+      "Summary</code>), claude glued the phase-2 section heading to prose (<code>## New items I'm raisingNow I have evidence...</code>), and the repair flow's \"fix\" ablated the substantive edits entirely.",
+      "Three layers ship in one bundled commit. (1) <code>_normalise_section_heading</code> at <code>src/dual_research/protocol/parse.py</code> strips a leading markdown H2 token (<code>## </code>) before the existing numeric-prefix strip, so <code>## 1.",
+      "Summary</code> and <code>1. Summary</code> both normalise to <code>summary</code> and the drafter's inline-anchor heading argument binds against the draft's <code>## 1.",
+      "Summary</code> section. Standalone-anchor forms (<code>### EDIT_SECTION 1.",
+      "Summary</code>) parse identically. (2) <code>extract_fenced_section</code> replaces the trailing <code>\\s*$</code> end-anchor with <code>(?:\\s*$|(?=\\S))</code> — either end-of-line (clean form) OR a non-whitespace character lookahead (glued form).",
+      "The glued prose becomes harmless preamble in the section body; downstream <code>### RAISE</code> / <code>### ADDRESS</code> finders skip over it; the body remains bounded by the next <code>^##</code> heading outside fenced ranges (per <code>_next_h2_outside_fences</code>).",
+      "Partial-prefix false-matches are blocked by the <code>(?=\\S)</code> lookahead — <code>## New items I'm raising</code> does not match heading <code>\"New items\"</code> because the next char after \"items\" is whitespace. (3) <code>_apply_drafter_revised_draft</code> — extracted from <code>_on_revised_draft</code> to module level for testability — wraps <code>extract_revised_draft_deltas</code> in a try/except: on <code>ProtocolParseError</code> (i.e., the upstream <code>parse_v2_with_repair</code> couldn't recover after the one-shot repair), the helper synthesises a <code>RevisedDraftFull(content=prior_draft)</code> payload, applies it (producing a byte-equal no-op <code>draft-v(N+1).md</code>), and emits a new <code>ProtocolViolation(violation_code=\"phase4_drafter_repair_failed\", op_kind=\"revised_draft\")</code> event so the deadlock is observable on the dashboard.",
+      "The unparseable original is NEVER used as the no-op body — that would ship <code>ANCHOR:</code> / <code>REPLACE_WITH:</code>-shaped garbage downstream.",
+      "<code>parse_v2_with_repair</code> at <code>src/dual_research/orchestrator/repair.py</code> gains a drafter exemption from the <code>failures >= 2</code> exit-52 raise — the round loop continues until <code>hard_cap</code> instead of crashing, with the per-round ProtocolViolation as the audit trail.",
+      "Reviewer turns retain the exit-52 path (no fallback for reviewer-side parse failures).",
+      "<code>ProtocolViolation</code> docstring gains the new <code>phase4_drafter_repair_failed</code> code entry naming the implementer caution (frequent firing signals layers 2.1/2.2 are too narrow).",
+      "New tests at <code>tests/protocol/test_parse.py</code> cover inline EDIT_SECTION + glued-heading parsing positively, standalone-anchor + clean-heading back-compat, partial-prefix non-match, and anchor-fixture replays (10 EditSectionOps from <code>phase4/round-02-claude.malformed-1.md</code>; 6 <code>### RAISE</code> blocks recovered from <code>phase2/round-01-claude.md</code>).",
+      "Integration tests at <code>tests/test_spec_0231_parser_heading_tolerance.py</code> cover the fallback synthesis (byte-equal no-op draft + exactly one ProtocolViolation emission + Phase4DraftRevised advance), clean-turn back-compat (no PV emission on well-formed turns), omitted-section no-op (back-compat), and the <code>parse_v2_with_repair</code> drafter-vs-reviewer exemption split (drafter doesn't raise on 2nd consecutive failure; reviewer still raises).",
+      "Out of scope per spec §5: slug-ID normalisation (Finding 3 in the cause-of-death reconciliation); 0228 extension with new violation codes (per Cowork engagement, 0228 is not implementation-incomplete on this evidence — the 18 phase-2 flagged ops are downstream of layer 2.2's registration failure); I2.6 verifier invariant (separate observability spec queued concurrently); repair-prompt copy edits; snapshot updates beyond the anchor fixture."
+    ],
+    "specs": [
+      "0231"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.50.0",
     "date": "2026-05-27",
     "bump": "MINOR",

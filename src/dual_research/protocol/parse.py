@@ -188,8 +188,24 @@ def extract_fenced_section(text: str, heading_name: str) -> str | None:
     heading line MUST be at the top level — we don't currently support
     fenced section headings as start anchors, which is fine: the
     protocol never puts section openers inside fences).
+
+    Spec 0231 §2.2 — the heading terminator accepts EITHER end-of-line
+    (the clean form `## Heading\\n`) OR a non-whitespace character
+    immediately following the heading name (the glued form
+    `## HeadingNow I have evidence...`). The glued prose becomes part
+    of the section body; the body remains bounded by the next `^## `
+    heading outside fenced ranges, so downstream finders (`### RAISE`,
+    `### ADDRESS`, etc.) still locate their op blocks correctly.
+    Trailing whitespace on a clean-form heading is still tolerated
+    (the `\\s*$` branch). A non-glued space between the heading name
+    and additional prose is NOT a match — `## Heading Name` does not
+    match heading_name `"Heading"` (the next character is whitespace,
+    not end-of-line and not the start of glued prose).
     """
-    heading_re = re.compile(r"^##\s+" + _escape_regex(heading_name) + r"\s*$", re.MULTILINE)
+    heading_re = re.compile(
+        r"^##\s+" + _escape_regex(heading_name) + r"(?:\s*$|(?=\S))",
+        re.MULTILINE,
+    )
     m = heading_re.search(text)
     if not m:
         return None
@@ -647,8 +663,18 @@ def extract_revised_draft_deltas(turn_text: str) -> RevisedDraftPayload | None:
 # Heading normaliser for section matching. Case-insensitive, trim-equal —
 # also strips a leading numeric prefix ("1. Summary" → "summary") so the
 # drafter can write `### REPLACE_SECTION Summary` against `## 1. Summary`.
+#
+# Spec 0231 §2.1 — the drafter sometimes glues a markdown H2 token (`## `)
+# into the EDIT_SECTION / REPLACE_SECTION heading argument, e.g.
+# `### EDIT_SECTION ## 1. Summary`. Strip the leading `## ` before the
+# numeric-prefix strip so the heading normalises to `summary` and binds
+# against the prior draft's `## 1. Summary` section. Standalone-clean
+# heading arguments (`### EDIT_SECTION 1. Summary`) continue to
+# normalise identically.
 def _normalise_section_heading(heading: str) -> str:
     h = heading.strip().lower()
+    # Strip a leading markdown H2 token (spec 0231 §2.1).
+    h = re.sub(r"^##\s+", "", h)
     # Strip leading "<digit>." or "<digit>.<digit>" prefix.
     h = re.sub(r"^\d+(?:\.\d+)*\.?\s*", "", h)
     return h

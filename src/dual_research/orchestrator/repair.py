@@ -323,7 +323,25 @@ async def parse_v2_with_repair(
 
     failures = tracker.record_failure(agent.label)
     if failures >= 2:
-        raise ProtocolParseError(agent.label, first_errors or ["unknown"])
+        if not is_drafter:
+            raise ProtocolParseError(agent.label, first_errors or ["unknown"])
+        # Spec 0231 §2.3 — drafter has a downstream no-op fallback in
+        # ``_on_revised_draft`` and emits a
+        # ``ProtocolViolation(phase4_drafter_repair_failed)`` per failing
+        # round. Suppress the exit-52 raise so the round loop continues
+        # until ``hard_cap``; the PV makes each occurrence observable on
+        # the dashboard. The malformed text is returned unchanged so the
+        # caller's ``_on_revised_draft`` catches the same parse error and
+        # writes a byte-equal no-op draft.
+        transcript.write(
+            "repair_drafter_fallback_engaged",
+            agent=agent.label,
+            phase=phase,
+            round=round,
+            errors=first_errors,
+            consecutive_failures=failures,
+        )
+        return text, parsed
 
     if not tracker.has_budget(agent.label):
         transcript.write(
