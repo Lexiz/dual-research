@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T12:20:48Z",
+  "updated_at": "2026-05-27T12:21:18Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11315,6 +11315,11 @@
             "branch": "spec/0230-reconciler-skip-out-of-tree-paths",
             "from": "main@6f90593"
           }
+        },
+        {
+          "ts": "2026-05-27T12:21:18Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-27T12:19:50Z"
