@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T09:55:05Z",
+  "updated_at": "2026-05-27T10:04:17Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11255,6 +11255,17 @@
       "merged_at": "2026-05-27T09:42:00Z",
       "deployed_at": "2026-05-27T09:55:05Z",
       "handover": "handoffs/2026-05-27-spec-0229.1-validator-enforce-disposition-frontmatter.md"
+    },
+    "0233": {
+      "status": "queued",
+      "queued_at": "2026-05-27T10:04:17Z",
+      "events": [
+        {
+          "ts": "2026-05-27T10:04:17Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
