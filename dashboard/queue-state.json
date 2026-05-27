@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T19:32:39Z",
+  "updated_at": "2026-05-27T19:33:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11682,6 +11682,14 @@
           "ts": "2026-05-27T19:32:39Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-27T19:33:57Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0239-empty-turn-detected-retry-cap-and-identical-input-fail-fast",
+            "from": "main@403bee7"
+          }
         }
       ],
       "started_at": "2026-05-27T19:32:36Z"
