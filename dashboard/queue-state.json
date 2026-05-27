@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T18:18:58Z",
+  "updated_at": "2026-05-27T18:28:11Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11246,7 +11246,7 @@
       "handover": "handoffs/2026-05-27-spec-0231-parser-heading-tolerance-and-repair-fallback.md"
     },
     "0232": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-27T09:23:36Z",
       "events": [
         {
@@ -11305,11 +11305,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/273"
           }
+        },
+        {
+          "ts": "2026-05-27T18:19:26Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T18:27:15Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.52.0"
+          }
+        },
+        {
+          "ts": "2026-05-27T18:27:28Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T18:28:07Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-27-spec-0232-verifier-i2-6-status-raised-event-cross-check.md"
+          }
         }
       ],
       "started_at": "2026-05-27T17:37:43Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/273",
-      "merged_at": "2026-05-27T18:18:56Z"
+      "merged_at": "2026-05-27T18:18:56Z",
+      "deployed_at": "2026-05-27T18:28:11Z",
+      "handover": "handoffs/2026-05-27-spec-0232-verifier-i2-6-status-raised-event-cross-check.md"
     },
     "0229.1": {
       "status": "deployed",
