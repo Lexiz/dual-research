@@ -20,8 +20,8 @@ handover: ""
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
-disposition: archive
-disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
+disposition: ship
+disposition_reason: "Top-level dev spec, not a carve-out — 0229.1 backfill default was misapplied; this spec is the I2.6 verifier oracle for the addressee-obligation contract."
 ---
 
 <!-- DEV SPEC RULE: this body must contain NO open questions, unresolved

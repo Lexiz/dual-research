@@ -20,8 +20,8 @@ handover: ""
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
-disposition: archive
-disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
+disposition: ship
+disposition_reason: "Top-level dev spec, not a carve-out — 0229.1 backfill default was misapplied; this spec is the parser-tolerance cause-of-death fix for run 20260527-054652."
 ---
 
 # Spec 0231 — Parser heading tolerance and graceful repair fallback
