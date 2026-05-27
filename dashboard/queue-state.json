@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T23:14:32Z",
+  "updated_at": "2026-05-27T23:14:35Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11881,6 +11881,11 @@
             "branch": "spec/0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap",
             "from": "main@a6c2bd2"
           }
+        },
+        {
+          "ts": "2026-05-27T23:14:35Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-27T23:14:17Z"
