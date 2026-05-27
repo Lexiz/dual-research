@@ -533,8 +533,32 @@ def _check_i2_3(events: list[dict]) -> InvariantResult:
 def _check_i2_4(
     events: list[dict], turn_files: list[_TurnFile]
 ) -> InvariantResult:
+    """I2.4 — addressee-obligation invariant. An agent must not emit
+    ``STATUS: AGREED`` while items raised by the OTHER agent remain
+    ``open`` and un-ADDRESSed by this agent.
+
+    Severity: ``gating`` since spec 0229 (was ``reporting`` from spec
+    0225). The promotion is paired with a handled-vs-unhandled
+    refactor mirroring the spec-0228 I4.4 pattern: every offending
+    AGREED-while-owing turn is classified as either HANDLED (a
+    matching ``agreed_with_open_addressed_items`` ProtocolViolation
+    exists for the same ``(phase, round, agent)`` — the orchestrator
+    demoted the AGREED) or UNHANDLED (no matching ProtocolViolation —
+    the AGREED was not demoted). UNHANDLED instances fail.
+    """
     fail: list[Evidence] = []
     saw_agreed = False
+    # Index addressee-obligation PVs for scope-key lookup.
+    handled_keys: set[tuple[int, int, str]] = set()
+    for ev in events:
+        if ev.get("event") == "protocol_violation" and (
+            ev.get("violation_code") == "agreed_with_open_addressed_items"
+        ):
+            ph = _phase_to_int(ev.get("phase"))
+            rd = ev.get("round")
+            ag = ev.get("agent")
+            if ph is not None and rd is not None and ag is not None:
+                handled_keys.add((ph, rd, ag))
     for tf in turn_files:
         if tf.phase not in (0, 2, 4) or tf.status != "AGREED":
             continue
@@ -576,6 +600,12 @@ def _check_i2_4(
                     actor = ev.get("actor")
                     if actor in ("claude", "openai"):
                         entry["addressed_by"].add(actor)
+        # Spec 0229 §2.4 — HANDLED if a matching ProtocolViolation
+        # exists for the (phase, round, agent) scope: the orchestrator
+        # demoted the AGREED, the instance passes vacuously. Otherwise,
+        # any offending addressed-at-me item makes this turn UNHANDLED.
+        if (tf.phase, tf.round, tf.agent) in handled_keys:
+            continue
         for item_id, entry in sub_ledger.items():
             raiser = entry["raiser"]
             if raiser is None or raiser == tf.agent:
@@ -584,13 +614,14 @@ def _check_i2_4(
                 fail.append(Evidence(
                     f"{tf.rel_path}",
                     f"{tf.agent} AGREED in phase {tf.phase} r{tf.round} but item {item_id} "
-                    f"(raised by {raiser}) still open and not addressed by {tf.agent}",
+                    f"(raised by {raiser}) still open and not addressed by {tf.agent}; "
+                    f"no matching agreed_with_open_addressed_items ProtocolViolation",
                 ))
     if not saw_agreed:
-        return InvariantResult("I2.4", "reporting", "not_applicable")
+        return InvariantResult("I2.4", "gating", "not_applicable")
     if fail:
-        return InvariantResult("I2.4", "reporting", "fail", tuple(fail))
-    return InvariantResult("I2.4", "reporting", "pass")
+        return InvariantResult("I2.4", "gating", "fail", tuple(fail))
+    return InvariantResult("I2.4", "gating", "pass")
 
 
 def _open_count_by_kind(

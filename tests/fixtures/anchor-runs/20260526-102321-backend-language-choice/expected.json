@@ -44,7 +44,7 @@
     },
     {
       "id": "I2.4",
-      "severity": "reporting",
+      "severity": "gating",
       "verdict": "fail"
     },
     {

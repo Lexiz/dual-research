@@ -517,6 +517,14 @@ class ProtocolViolation(Event):
       (spec 0228): state-machine guards in ``apply_turn`` that
       previously silent-``continue``'d now emit a ProtocolViolation
       naming the rejection so verifier I4.4 can fire on it.
+    - ``agreed_with_open_addressed_items`` (spec 0229): an agent emitted
+      ``STATUS: AGREED`` while one or more items raised by the OTHER
+      agent remained ``open`` and unADDRESSed by this agent. The
+      addressee-obligation invariant — the runtime counterpart of
+      verifier invariant I2.4. One event per blocking item; the
+      orchestrator demotes the offending agent's effective convergence
+      status to ``IN_PROGRESS`` for the gate while leaving the turn
+      file's emitted STATUS line unchanged (gate-only demotion).
 
     The spec-0228 codes named above are the rejection sites enumerated
     in spec 0228 §2.1; ``op_kind`` / ``expected_state`` / ``reason``

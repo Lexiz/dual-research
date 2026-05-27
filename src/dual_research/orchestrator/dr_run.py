@@ -475,11 +475,17 @@ async def _drive_interaction_phase(
         # even though the ledger was otherwise terminal. The soft-cap
         # gate (``round_no >= caps.soft``) ensures the agents had a
         # full round budget to surface items before the branch arms.
+        # Spec 0229 §2.2 — consult the effective (post-demotion)
+        # statuses so the substantive-convergence escape valve also
+        # refuses to fire when an AGREED was demoted by the
+        # addressee-obligation rule.
         both_agreed = (
-            rr.claude_status == "AGREED" and rr.openai_status == "AGREED"
+            rr.effective_claude_status == "AGREED"
+            and rr.effective_openai_status == "AGREED"
         )
         one_agreed = (
-            (rr.claude_status == "AGREED") ^ (rr.openai_status == "AGREED")
+            (rr.effective_claude_status == "AGREED")
+            ^ (rr.effective_openai_status == "AGREED")
         )
         terminal_ledger = not items_blocking_convergence(phase.state.item_views())
 
