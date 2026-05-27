@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T17:37:45Z",
+  "updated_at": "2026-05-27T17:37:58Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11258,6 +11258,14 @@
           "ts": "2026-05-27T17:37:45Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-27T17:37:58Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0232-verifier-i2-6-status-raised-event-cross-check",
+            "from": "main@ae74d4a"
+          }
         }
       ],
       "started_at": "2026-05-27T17:37:43Z"
