@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T13:30:28Z",
+  "updated_at": "2026-05-27T13:44:46Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11468,7 +11468,7 @@
       "handover": "handoffs/2026-05-27-spec-0230-reconciler-skip-out-of-tree-paths.md"
     },
     "0231.1": {
-      "status": "queued",
+      "status": "deferred",
       "queued_at": "2026-05-27T13:30:22Z",
       "events": [
         {
