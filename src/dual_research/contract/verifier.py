@@ -704,6 +704,65 @@ def _check_i2_5(
     return InvariantResult("I2.5", "reporting", "pass")
 
 
+_I26_RAISED_RE = re.compile(
+    r"^[\s>*\-`#]*RAISED_THIS_TURN:\s*\[(?P<ids>[^\]]*)\]",
+    re.MULTILINE,
+)
+
+
+def _check_i2_6(
+    events: list[dict], turn_files: list[_TurnFile]
+) -> InvariantResult:
+    # Spec 0232 — STATUS-RAISED-array event cross-check. Directional rule
+    # (declared > registered) per the 2026-05-27 cowork adjudication:
+    # only the drop class fails; under-reporting (OpenAI `[pending]`
+    # placeholder, empty array) is benign. No ID-shape inspection — the
+    # 142625 phase-2 r1 claude fixture proves a canonical-ID-skip guard
+    # would have masked a real drop of slug-shaped declarations.
+    fail: list[Evidence] = []
+    saw_eligible = False
+    for tf in turn_files:
+        if tf.phase not in (0, 2, 4):
+            continue
+        try:
+            text = tf.path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        m = _I26_RAISED_RE.search(text)
+        if m is None:
+            continue
+        ids_raw = m.group("ids").strip()
+        if ids_raw:
+            entries = [e.strip() for e in ids_raw.split(",") if e.strip()]
+            declared = len(entries)
+        else:
+            declared = 0
+        registered = 0
+        for ev in events:
+            if ev.get("event") != "item_raised":
+                continue
+            if _phase_to_int(ev.get("phase")) != tf.phase:
+                continue
+            if ev.get("round") != tf.round:
+                continue
+            if ev.get("raiser") != tf.agent:
+                continue
+            registered += 1
+        saw_eligible = True
+        if declared > registered:
+            fail.append(Evidence(
+                f"{tf.rel_path}",
+                f"phase {tf.phase} r{tf.round} {tf.agent}: "
+                f"RAISED_THIS_TURN declared {declared}, "
+                f"item_raised events registered {registered}",
+            ))
+    if not saw_eligible:
+        return InvariantResult("I2.6", "reporting", "not_applicable")
+    if fail:
+        return InvariantResult("I2.6", "reporting", "fail", tuple(fail))
+    return InvariantResult("I2.6", "reporting", "pass")
+
+
 # ─── Area 3 — Categorisation ───────────────────────────────────────────
 
 
@@ -1204,6 +1263,7 @@ def verify_run(run_dir: Path) -> VerifierReport:
         _check_i2_3(events),
         _check_i2_4(events, turn_files),
         _check_i2_5(events, turn_files),
+        _check_i2_6(events, turn_files),
         _check_i3_1(events, turn_files),
         _check_i3_2(events),
         _check_i3_3(turn_files),
