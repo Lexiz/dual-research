@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T00:09:58Z",
+  "updated_at": "2026-05-27T00:10:12Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11078,7 +11078,7 @@
       "handover": "handoffs/2026-05-27-spec-0228-emit-protocol-violation-on-invalid-op.md"
     },
     "0229": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-26T23:20:50Z",
       "events": [
         {
@@ -11112,7 +11112,9 @@
           }
         }
       ],
-      "started_at": "2026-05-26T23:53:28Z"
+      "started_at": "2026-05-26T23:53:28Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/268",
+      "merged_at": "2026-05-27T00:10:12Z"
     }
   }
 }
