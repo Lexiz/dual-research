@@ -7,6 +7,8 @@ status: merged
 target-version: 0.76.14
 created: 2026-05-19
 pr: "https://github.com/Lexiz/dual-research/pull/120"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0112 — Agent strip text overflow

@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-24-spec-0201-branch-and-safety-hygiene-verified-dele
 failure_step: ""
 source_session: "orchestrator-hardening-series-2026-05-23"
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 <!-- DEV SPEC RULE: this body must contain NO open questions, unresolved

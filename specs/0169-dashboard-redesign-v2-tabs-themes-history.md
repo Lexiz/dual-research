@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0169-dashboard-redesign-v2-tabs-themes-histo
 failure_step: ""
 source_session: dashboard-mockup-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0169 — Dashboard redesign v2 — condensed callouts, tabs, light/dark themes, History total-elapsed banner

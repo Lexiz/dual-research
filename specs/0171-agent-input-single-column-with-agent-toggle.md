@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0171-agent-input-single-column-with-agent-to
 failure_step: ""
 source_session: notion-specs-2205-claude-bug-1
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0171 — Fix: Agent Input sub-tab renders two narrow cards causing horizontal scroll in split-pane modals

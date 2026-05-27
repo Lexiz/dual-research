@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0183-authoring-funnel-drafts-count-includes-
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0183 — Fix: authoring funnel DRAFTS bucket only counts promoted drafts, omits current backlog under `specs/drafts/`

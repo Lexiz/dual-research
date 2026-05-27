@@ -7,6 +7,8 @@ status: in-flight
 target-version: 1.5.2
 created: 2026-05-20
 pr: "https://github.com/Lexiz/dual-research/pull/135"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0124 — Critique filter header height parity, responsive compaction, and timeline card right-alignment

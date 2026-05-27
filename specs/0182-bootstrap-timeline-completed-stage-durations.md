@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0182-bootstrap-timeline-completed-stage-dura
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0182 — Fix: bootstrap timeline shows `—` for completed-stage durations after `/api/data` refresh

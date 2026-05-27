@@ -575,10 +575,19 @@ def test_i2_4_severity_is_gating_in_expected_json(fixture_id: str):
 # ─── §2.6 version + CHANGELOG smoke check ──────────────────────────────
 
 
-def test_version_is_1_48_0():
-    """``__version__`` matches the version bumped in this spec."""
+def test_version_is_at_least_1_48_0():
+    """Spec 0229 shipped at v1.48.0; later specs bump the version higher.
+
+    The original test pinned ``__version__ == "1.48.0"`` exactly, which broke on
+    the next minor bump (spec 0229.1, v1.49.0). Spec 0229.1 relaxed the pin to
+    a lower-bound check so the smoke remains meaningful as the version moves.
+    ``test_changelog_has_1_48_0_section`` below carries the immutable "1.48.0
+    section exists in CHANGELOG" assertion.
+    """
     import dual_research
-    assert dual_research.__version__ == "1.48.0"
+    from packaging.version import Version
+
+    assert Version(dual_research.__version__) >= Version("1.48.0")
 
 
 def test_changelog_has_1_48_0_section():

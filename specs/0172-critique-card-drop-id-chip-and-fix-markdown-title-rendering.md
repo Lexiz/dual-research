@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0172-critique-card-drop-id-chip-and-fix-mark
 failure_step: ""
 source_session: notion-specs-2205-claude-bug-2
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0172 — Fix: critique cards render literal `**` markdown and re-show cryptic compound IDs

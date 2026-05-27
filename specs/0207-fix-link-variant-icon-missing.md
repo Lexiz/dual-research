@@ -20,6 +20,8 @@ handover: ""
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0207 — Fix: link-variant icon missing from registry — evidence/sources badges render as blank blue square

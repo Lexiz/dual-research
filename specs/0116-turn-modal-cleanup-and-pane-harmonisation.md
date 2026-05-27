@@ -7,6 +7,8 @@ status: merged
 target-version: "next-release (1.1.x)"
 created: 2026-05-20
 pr: "https://github.com/Lexiz/dual-research/pull/127"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0116 — Turn modal cleanup + Timeline-Critique pane harmonisation

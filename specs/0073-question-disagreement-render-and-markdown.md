@@ -7,6 +7,8 @@ status: merged
 target-version: 0.66.0
 created: 2026-05-18
 pr: https://github.com/Lexiz/dual-research/pull/73
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0073 — Q/D render unification + markdown fix

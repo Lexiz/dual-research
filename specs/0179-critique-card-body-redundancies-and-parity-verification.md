@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0179-critique-card-body-redundancies-and-par
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0179 — Fix: critique-card body redundancies + mandate side-by-side parity grid

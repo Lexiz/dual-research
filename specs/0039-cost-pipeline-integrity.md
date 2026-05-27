@@ -7,6 +7,8 @@ status: merged
 target-version: 0.37.0
 created: 2026-05-16
 pr: "https://github.com/Lexiz/dual-research/pull/40"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0039 — Cost-pipeline integrity

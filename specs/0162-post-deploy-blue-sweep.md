@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0162-post-deploy-blue-sweep.md"
 failure_step: ""
 source_session: dbc5aed3-25f2-4ed3-a7b1-4dc61161a4c0
 promoted_from_draft: "005"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0162 — Fix: post-deploy sweep for safe_to_destroy blue machines

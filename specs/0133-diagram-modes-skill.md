@@ -7,6 +7,8 @@ status: proposed
 target-version: 1.7.0
 created: 2026-05-20
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0133 — Diagram skill v2.0.0: mode-aware split + Material mode

@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0153-dashboard-redesign-staged-hero-and-acti
 failure_step: ""
 source_session: lifecycle-bootstrap-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0153 — Dashboard redesign — design-system primitives, expandable in-flight hero with stage timeline, activity feed

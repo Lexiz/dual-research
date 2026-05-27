@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0160-dashboard-live-data-via-pages-function.
 failure_step: ""
 source_session: dashboard-live-data-ideation-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0160 — Dashboard live data via Cloudflare Pages Function

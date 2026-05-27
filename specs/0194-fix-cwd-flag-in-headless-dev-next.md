@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0194-fix-cwd-flag-in-headless-dev-next.md"
 failure_step: ""
 source_session: queue-drain-blocked-investigation
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0194 — Fix: `build_headless_command` passes `--cwd` which the installed claude CLI rejects

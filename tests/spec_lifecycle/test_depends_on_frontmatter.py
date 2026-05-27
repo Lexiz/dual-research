@@ -46,6 +46,9 @@ def _write_spec(path: Path, *, depends_on: str = "[]") -> None:
         "complexity: S\n"
         "created: 2026-05-22\n"
         'queued_at: "2026-05-22T00:00:00Z"\n'
+        # Spec 0229.1 §2.1 — disposition convention required on every dev spec.
+        "disposition: ship\n"
+        'disposition_reason: "test fixture; ship for parity with the queue head."\n'
         "---\n\n" + body
     )
 

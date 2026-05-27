@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0186-queue-drain-session-isolation-and-l-spe
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0186 — Queue-drain session isolation and L-spec checkpointing

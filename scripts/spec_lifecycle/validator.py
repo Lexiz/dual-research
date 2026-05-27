@@ -19,6 +19,9 @@ from .frontmatter import parse, ParsedFile
 
 VALID_TYPES = {"new-feature", "bug", "refactoring", "test", "breaking"}
 VALID_STATUSES = {"queued", "in_progress", "merged", "deployed", "failed", "cancelled"}
+# Spec 0229.1 §2.2 — disposition vocabulary per CLAUDE.md "Carve-out follow-ups
+# must triage at carve-out time" (the §2.5 subsection introduced by spec 0229).
+VALID_DISPOSITIONS = {"ship", "defer", "archive"}
 
 # Spec 0199 §2.1 — canonical spec-ID filename grammar. `NNNN-slug.md` or
 # `NNNN.M-slug.md`. One decimal level only; two-level decimals (`0170.1.1-x.md`)
@@ -35,9 +38,24 @@ DEV_REQUIRED_FRONTMATTER = {
     "label",
     "version_bump",
     "status",
+    # Spec 0229.1 §2.1 — disposition convention per CLAUDE.md "Carve-out
+    # follow-ups must triage at carve-out time" (spec 0229 §2.5).
+    "disposition",
+    "disposition_reason",
 }
 
-DRAFT_REQUIRED_FRONTMATTER = {"kind", "draft_id", "slug", "title", "status"}
+DRAFT_REQUIRED_FRONTMATTER = {
+    "kind",
+    "draft_id",
+    "slug",
+    "title",
+    "status",
+    # Spec 0229.1 §2.1 — drafts carry the disposition too; on promotion a
+    # missing disposition would inherit into the queued spec form, so catch at
+    # draft time.
+    "disposition",
+    "disposition_reason",
+}
 
 # Citation: <path>.<ext>:<line> OR a plain repo path like src/dual_research/foo.py
 # (without line number). The plain-path form counts as a citation when at least
@@ -169,6 +187,9 @@ def validate_dev_spec(path: str | Path) -> ValidationResult:
     label = fm.get("label")
     if label and label != spec_type:
         warnings.append(f"frontmatter `label` ({label!r}) does not mirror `type` ({spec_type!r})")
+
+    # Spec 0229.1 §2.2 — disposition value-shape + reason shape.
+    _check_disposition_shape(fm, errors, warnings)
 
     # Body shape — strip code spans for prose-only checks
     prose = _strip_code(body)
@@ -413,7 +434,50 @@ def validate_draft(path: str | Path) -> ValidationResult:
     if fm.get("status") != "draft":
         warnings.append(f"frontmatter `status` is {fm.get('status')!r}, expected 'draft'")
 
+    # Spec 0229.1 §2.2 — same disposition gate as dev specs. Catching at draft
+    # time prevents the omission from inheriting into the queued spec form on
+    # promotion.
+    _check_disposition_shape(fm, errors, warnings)
+
     return ValidationResult(ok=not errors, errors=errors, warnings=warnings)
+
+
+def _check_disposition_shape(
+    fm: dict, errors: list[str], warnings: list[str]
+) -> None:
+    """Spec 0229.1 §2.2 — value-shape gate for the disposition convention.
+
+    Required-keys presence is handled by ``DEV_REQUIRED_FRONTMATTER`` /
+    ``DRAFT_REQUIRED_FRONTMATTER``; this helper layers the value-shape checks
+    on top: vocabulary for ``disposition`` and non-empty single-sentence shape
+    for ``disposition_reason``.
+    """
+    disposition = fm.get("disposition")
+    # Only flag invalid values here — absence is reported by the missing-keys
+    # check earlier in the validator, so we don't double-report.
+    if disposition is not None and disposition not in VALID_DISPOSITIONS:
+        errors.append(
+            f"frontmatter `disposition` must be one of "
+            f"{sorted(VALID_DISPOSITIONS)}, got {disposition!r} — per CLAUDE.md "
+            f'"Carve-out follow-ups must triage at carve-out time" '
+            f"(spec 0229 §2.5)."
+        )
+
+    reason = fm.get("disposition_reason")
+    if reason is not None:
+        if not isinstance(reason, str) or not reason.strip():
+            errors.append(
+                "frontmatter `disposition_reason` must be a non-empty "
+                "single-sentence string explaining the disposition choice "
+                "(spec 0229 §2.5)."
+            )
+        elif reason.count(".") > 2:
+            # Heuristic: more than two periods suggests multiple sentences.
+            warnings.append(
+                "frontmatter `disposition_reason` appears to span more than "
+                "one sentence — the convention is a one-sentence justification "
+                "(spec 0229 §2.5)."
+            )
 
 
 def main(argv: list[str] | None = None) -> int:

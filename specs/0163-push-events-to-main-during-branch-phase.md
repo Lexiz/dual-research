@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0163-push-events-to-main-during-branch-phase
 failure_step: ""
 source_session: dashboard-live-events-investigation-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0163 — Push /dev-next events to main during feature-branch phase

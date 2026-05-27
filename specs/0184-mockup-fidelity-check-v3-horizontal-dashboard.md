@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0184-mockup-fidelity-check-v3-horizontal-das
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0184 — Tests: pixel + structural fidelity check of the live dashboard against `dashboard-redesign-v3-horizontal.html`

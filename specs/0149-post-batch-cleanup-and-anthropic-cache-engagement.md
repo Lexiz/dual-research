@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0149-post-batch-cleanup-and-anthropic-cache-
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 # Spec 0149 — Post-batch cleanup, Anthropic cache engagement, and protocol follow-ups
 

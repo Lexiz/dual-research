@@ -7,6 +7,8 @@ status: proposed
 target-version: 1.6.11
 created: 2026-05-20
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0134 — JSX fontWeight bypass cleanup

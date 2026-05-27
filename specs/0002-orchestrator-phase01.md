@@ -7,6 +7,8 @@ status: merged
 target-version: 0.3.0
 created: 2026-05-15
 pr: "https://github.com/Lexiz/dual-research/pull/2"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0002 — Orchestrator scaffold + Phase 0/1 end-to-end

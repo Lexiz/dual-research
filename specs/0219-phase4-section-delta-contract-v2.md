@@ -20,6 +20,8 @@ handover: ""
 failure_step: ""
 source_session: "088616eb-610e-4309-ba52-6e26ede558f5"
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 <!-- DEV SPEC RULE: this body must contain NO open questions, unresolved

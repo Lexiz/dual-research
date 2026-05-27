@@ -7,6 +7,8 @@ status: merged
 target-version: 0.69.7
 created: 2026-05-18
 pr: "https://github.com/Lexiz/dual-research/pull/83"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0083 — Robust loading state + spinner + hide 5455

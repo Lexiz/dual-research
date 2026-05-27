@@ -7,6 +7,8 @@ status: ready
 target-version: 1.10.0
 created: 2026-05-21
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0144 — Sources & provenance: investigation outcome + per-critique-card surface

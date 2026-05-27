@@ -7,6 +7,8 @@ status: merged
 target-version: 0.21.0
 created: 2026-05-15
 pr: "https://github.com/Lexiz/dual-research/pull/22"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0022 — Admin allowlist UI + profile menu + landing-page redesign

@@ -20,6 +20,8 @@ handover: handoffs/2026-05-22-spec-0174-fix-api-data-subrequest-blowup-and-5s-po
 failure_step: ""
 source_session: dashboard-refresh-investigation-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0174 — Fix: `/api/data` subrequest-limit blowup + 5s dashboard poll

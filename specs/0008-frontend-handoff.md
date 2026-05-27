@@ -7,6 +7,8 @@ status: merged
 target-version: 0.9.0
 created: 2026-05-15
 pr: "https://github.com/Lexiz/dual-research/pull/8"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0008 — Frontend handoff package

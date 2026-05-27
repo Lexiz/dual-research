@@ -7,6 +7,8 @@ status: draft
 created: 2026-05-26
 source_session: deferred-from-0220
 parent_spec: "0220"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Draft 002 — User-facing classifier over-flags entries that cite UI files only for context

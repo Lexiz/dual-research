@@ -7,6 +7,8 @@ status: ready
 target-version: 1.13.0
 created: 2026-05-22
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0148 — Consumption-card backend follow-ups + protocol-violation UI surface

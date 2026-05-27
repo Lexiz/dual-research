@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0150-legacy-shim-sunset-and-input-bundle-bac
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 # Spec 0150 — Legacy-shim sunset + historical input-bundle backfill
 

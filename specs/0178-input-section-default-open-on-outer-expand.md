@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0178-input-section-default-open-on-outer-exp
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0178 — Fix: three-section Input panel reveals empty body on first chevron click

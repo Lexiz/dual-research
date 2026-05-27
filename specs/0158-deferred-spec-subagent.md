@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0158-deferred-spec-subagent.md"
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0158 — Deferred-spec subagent in /dev-next — auto-capture in-flight deferrals as queued specs or drafts

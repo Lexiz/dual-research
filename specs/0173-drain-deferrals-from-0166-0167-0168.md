@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0173-drain-deferrals-from-0166-0167-0168.md"
 failure_step: ""
 source_session: queue-drain-cleanup-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0173 — Drain deferrals from 0166 / 0167 / 0168

@@ -7,6 +7,8 @@ status: proposed
 target-version: 1.5.1
 created: 2026-05-20
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0123 — How-It-Works as a full-page route + click-to-enlarge SVG viewer

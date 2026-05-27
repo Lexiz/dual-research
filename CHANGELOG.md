@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.49.0] — 2026-05-27
+
+### Added
+
+- **Validator now enforces the carve-out-disposition convention shipped doctrinally by spec 0229 §2.5 ([spec 0229.1](specs/0229.1-validator-enforce-disposition-frontmatter.md)).** `disposition:` (∈ `{ship, defer, archive}`) and `disposition_reason:` (non-empty single sentence) are now required frontmatter keys on both dev specs and drafts at [`scripts/spec_lifecycle/validator.py`](scripts/spec_lifecycle/validator.py) — `validate_dev_spec` and `validate_draft` reject missing or empty fields with errors citing CLAUDE.md / spec 0229 §2.5, and warn (rather than error) when the reason spans multiple sentences. A new `VALID_DISPOSITIONS` module-level constant adjacent to `VALID_TYPES` / `VALID_STATUSES` encodes the vocabulary. The 235 existing spec/draft files predating the convention were backfilled to `disposition: archive` via the one-off [`scripts/spec_lifecycle/backfill_disposition.py`](scripts/spec_lifecycle/backfill_disposition.py) (idempotent; skips files already declaring `disposition`; leaves `specs/_templates/` and `specs/archive/` untouched per spec 0229.1 §5). Tests at [`tests/test_spec_0229_1_validator_disposition.py`](tests/test_spec_0229_1_validator_disposition.py) cover unit-level shape gates for dev specs and drafts, source-pattern lock-in for the `VALID_DISPOSITIONS` constant, idempotency of the backfill, and the in-repo invariant that no spec/draft remaining in `specs/` post-backfill fails the validator *for disposition reasons* (the broader "every spec validates green" criterion from spec §3 is honest-noted as overstated — many pre-2026 specs fail rules added after they were queued; that validator-evolution debt is out of scope here).
+
 ## [1.48.0] — 2026-05-27
 
 ### Added

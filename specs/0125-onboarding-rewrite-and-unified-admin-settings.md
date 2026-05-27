@@ -7,6 +7,8 @@ status: proposed
 target-version: 1.6.0
 created: 2026-05-20
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0124 — Onboarding tour visual rewrite + unified Admin/Settings + server-persisted onboarding state

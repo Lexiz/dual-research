@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0193-stale-blue-sweep-image-based-filter.md"
 failure_step: ""
 source_session: deferred-from-0186
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0193 — Stale-blue sweep filter — catch machines on an out-of-release image

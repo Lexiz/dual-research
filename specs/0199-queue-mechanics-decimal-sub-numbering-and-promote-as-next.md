@@ -20,6 +20,8 @@ handover: handoffs/2026-05-24-spec-0199-queue-mechanics-decimal-sub-numbering-an
 failure_step: ""
 source_session: orchestrator-hardening-series-2026-05-23
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0199 — Queue mechanics: decimal sub-numbering, promote-as-next, drop queue_position

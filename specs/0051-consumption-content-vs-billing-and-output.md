@@ -7,6 +7,8 @@ status: proposed
 target-version: 0.49.0
 created: 2026-05-17
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0051 — Consumption tab: content-vs-billing split + output bar + cross-turn lineage

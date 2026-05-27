@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0164-timeline-pane-card-chrome-and-phase-hea
 failure_step: ""
 source_session: timeline-iteration-2026-05-22
 promoted_from_draft: "003"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0164 — Timeline pane M3 card chrome + phase header simplification + narrow-view strip equalisation
