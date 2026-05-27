@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.50.0",
+    "date": "2026-05-27",
+    "bump": "MINOR",
+    "summary": "Added: Reconciler: configurable prefix-skip list (default (\"cowork/\",));…",
+    "items": [
+      "<strong>Reconciler: configurable prefix-skip list (default <code>(\"cowork/\",)</code>); matching citations route into a new informational <code>out_of_tree</code> bucket and do not contribute to <code>has_blocking_drift</code> ([spec 0230](specs/0230-reconciler-skip-out-of-tree-paths.md)).</strong> A module-level <code>OUT_OF_TREE_PREFIXES</code> tuple at <code>scripts/spec_lifecycle/reconcile.py</code> names the canonical skip set; <code>reconcile_spec</code> grows an <code>out_of_tree_prefixes=</code> kwarg (defaulting to the module constant) so callers needing a different set can override per-invocation.",
+      "The classification loop fires the prefix check before the on-disk existence check, routing matches into the new <code>ReconcileReport.out_of_tree</code> list with <code>classification=\"out_of_tree\"</code>; <code>format_report</code> surfaces a <code>\"out-of-tree (informational): N\"</code> line plus per-citation detail.",
+      "<code>Citation.classification</code>'s string-enum gains <code>\"out_of_tree\"</code> alongside the existing <code>clean / mechanical / semantic / unknown</code> set.",
+      "Closes the spurious exit-3 class observed on specs 0227.1 and 0229 (both required operator override at pre-flight reconcile for citations to <code>cowork/briefs/...</code>) — re-running <code>python -m scripts.spec_lifecycle.reconcile specs/0229-addressee-obligation-invariant.md</code> now exits 0 instead of 3, with the three prior <code>semantic</code> hits surfacing under the informational bucket.",
+      "The default tuple's trailing slash (<code>\"cowork/\"</code>) is structurally narrow — a hypothetical sibling directory <code>cowork-design-system/</code> does NOT match.",
+      "Tests at <code>tests/test_spec_0230_reconciler_out_of_tree.py</code> cover the four routing cases (default match / default non-match / custom prefix override / empty prefix list = pre-fix baseline), the trailing-slash sibling-dir guard, source-pattern lock-in for the <code>OUT_OF_TREE_PREFIXES</code> constant + prefix-check-before-existence-check ordering, a regression integration test against spec 0229 (subprocess exit 0), the <code>has_blocking_drift</code> invariant across multiple out-of-tree hits, and the CHANGELOG/version smoke check."
+    ],
+    "specs": [
+      "0230"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.49.0",
     "date": "2026-05-27",
     "bump": "MINOR",

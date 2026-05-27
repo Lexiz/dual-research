@@ -3,11 +3,14 @@
 Called by `/dev-next` after pre-flight and before branching. Walks the spec body
 for file:line citations and classifies whether each still resolves on disk.
 
-Returns a `ReconcileReport` with three buckets:
+Returns a `ReconcileReport` with four buckets:
 
 - `clean`: citations that still point at existing files within range.
 - `mechanical`: file path moved or line number past end-of-file; auto-patchable.
 - `semantic`: file deleted entirely or absent under any plausible new path.
+- `out_of_tree`: citation path begins with a configured skip-list prefix
+  (default `cowork/`); not classified against the on-disk tree — informational
+  only, does NOT contribute to `has_blocking_drift`. See spec 0230.
 
 The skill consuming this decides whether to auto-patch (mechanical) or halt
 with status: failed, failure_step: reconcile (semantic).
@@ -27,6 +30,16 @@ CITATION_RE = re.compile(
 )
 
 LINK_DISPLAY_RE = re.compile(r"\[([^\]\n]*?)\]\(([^)\n]*?)\)")
+
+# Spec 0230 §2.1 — citations whose path begins with any of these prefixes are
+# treated as informational rather than fed into the clean/mechanical/semantic
+# classifier. Cowork artefacts live outside the repo by CLAUDE.md convention
+# (the "Cowork channel lives outside the repo" subsection); without this skip
+# every spec body citing `cowork/briefs/...` trips a false-positive exit-3.
+# Callers that need a different skip set pass `out_of_tree_prefixes=(...)` to
+# `reconcile_spec`. The trailing slash is intentional — `cowork-design-system/`
+# does NOT match `cowork/`.
+OUT_OF_TREE_PREFIXES: tuple[str, ...] = ("cowork/",)
 
 
 def _scrub_link_display_text(body: str) -> str:
@@ -51,7 +64,7 @@ class Citation:
     raw: str
     path: str
     line: int
-    classification: str = "unknown"  # clean | mechanical | semantic
+    classification: str = "unknown"  # clean | mechanical | semantic | out_of_tree
     note: str = ""
 
 
@@ -61,6 +74,8 @@ class ReconcileReport:
     clean: list[Citation] = field(default_factory=list)
     mechanical: list[Citation] = field(default_factory=list)
     semantic: list[Citation] = field(default_factory=list)
+    # Spec 0230 — informational bucket; does NOT contribute to has_blocking_drift.
+    out_of_tree: list[Citation] = field(default_factory=list)
 
     @property
     def has_drift(self) -> bool:
@@ -71,7 +86,12 @@ class ReconcileReport:
         return bool(self.semantic)
 
 
-def reconcile_spec(spec_path: str | Path, *, repo_root: str | Path) -> ReconcileReport:
+def reconcile_spec(
+    spec_path: str | Path,
+    *,
+    repo_root: str | Path,
+    out_of_tree_prefixes: tuple[str, ...] = OUT_OF_TREE_PREFIXES,
+) -> ReconcileReport:
     spec = Path(spec_path)
     root = Path(repo_root)
     parsed = parse(spec)
@@ -79,6 +99,16 @@ def reconcile_spec(spec_path: str | Path, *, repo_root: str | Path) -> Reconcile
 
     citations = _extract_citations(parsed.body)
     for cit in citations:
+        # Spec 0230 §2.3 — prefix-skip fires before on-disk classification.
+        # Out-of-tree paths (default `cowork/`) cannot be verified against the
+        # repo tree by construction (they live outside the repo); routing them
+        # here keeps the clean/mechanical/semantic taxonomy honest and prevents
+        # the recurring false-positive exit-3 class.
+        if any(cit.path.startswith(p) for p in out_of_tree_prefixes):
+            cit.classification = "out_of_tree"
+            cit.note = "path begins with skip-list prefix; not classified against tree"
+            report.out_of_tree.append(cit)
+            continue
         target = root / cit.path
         if target.exists():
             try:
@@ -141,6 +171,9 @@ def format_report(report: ReconcileReport) -> str:
     lines: list[str] = []
     lines.append(f"Spec: {report.spec_path}")
     lines.append(f"  clean: {len(report.clean)}")
+    lines.append(f"  out-of-tree (informational): {len(report.out_of_tree)}")
+    for cit in report.out_of_tree:
+        lines.append(f"    {cit.raw} — {cit.note}")
     lines.append(f"  mechanical drift: {len(report.mechanical)}")
     for cit in report.mechanical:
         lines.append(f"    {cit.raw} — {cit.note}")
