@@ -1,5 +1,34 @@
 [
   {
+    "version": "1.54.0",
+    "date": "2026-05-27",
+    "bump": "MINOR",
+    "summary": "empty_turn_detected retry hardening: identical-input fail-fast + N=2 cap per (agent, phase, round) (spec 0239).",
+    "items": [
+      "<strong><code>empty_turn_detected</code> retry hardening: identical-input fail-fast + N=2 cap per (agent, phase, round) ([spec 0239](specs/0239-empty-turn-detected-retry-cap-and-identical-input-fail-fast.md)).</strong> Bounds the orchestrator's retry budget after the <code>20260527-142625-backend-language-choice</code> live re-run admitted unbounded retry of an empty turn — the prior design at <code>src/dual_research/orchestrator/deep_research.py:760</code> only appended <code>EmptyTurnDetected</code> events for bookkeeping with no counter gating further retries.",
+      "<strong>Layer 1</strong> — new module <code>src/dual_research/orchestrator/empty_turn_retry.py</code> defines <code>MAX_EMPTY_TURN_RETRIES=2</code>, the <code>EmptyTurnRetryRecord</code> dataclass, and a pure <code>on_empty_turn(state, *, agent, phase, round, input_sha256)</code> helper that returns a <code>ProtocolViolation</code> on (a) byte-identical retry input — at fixed temperature this cannot succeed — or (b) cap exceeded, else mutates the caller-owned state dict to advance the bucket.",
+      "<code>compute_input_sha256(text)</code> is the shared hash helper.",
+      "State is owned by the <code>DeepResearchPhase</code> instance (fresh dict per phase invocation) so the reset scope is <code>(agent, phase, round)</code> per Cowork's Ask-3 reasoning — per-run conflates independent turns; per-phase lets an early round drain a later round's budget.",
+      "<code>apply_turn</code> at <code>src/dual_research/orchestrator/deep_research.py</code> gains an optional <code>input_sha256: str | None = None</code> kwarg, calls the helper at the empty-turn emission site, and appends the returned violation to the same <code>violations</code> list the orchestrator publishes.",
+      "The replay path leaves <code>input_sha256</code> as <code>None</code> so reconstructed turn replays don't trip the contract.",
+      "The production wiring at <code>src/dual_research/orchestrator/dr_run.py</code> hashes the per-turn <code>prompt</code> and threads it to <code>apply_turn</code>.",
+      "<strong>Layer 2</strong> — <code>EmptyTurnDetected</code> at <code>src/dual_research/events/types.py:572</code> gains an optional <code>input_sha256: str | None = None</code> field.",
+      "<code>ProtocolViolation</code>'s docstring registers the two new <code>violation_code</code> values (<code>empty_turn_persistent_identical_input</code>, <code>empty_turn_retry_cap_exceeded</code>).",
+      "No migrations — both additions are dataclass fields with defaults.",
+      "<strong>Layer 3</strong> — new verifier invariant <code>I2.7</code> at <code>src/dual_research/contract/verifier.py</code> (registered in the aggregator at <code>verifier.py:1267</code>).",
+      "Reporting-only initially; promotion to gating gated on a clean reference-run baseline.",
+      "The check groups <code>empty_turn_detected</code> events by <code>(agent, phase, round)</code>, flags any group whose size exceeds <code>MAX_EMPTY_TURN_RETRIES</code>, and flags any consecutive pair with matching <code>input_sha256</code> — groups containing a <code>None</code> hash are skipped on the identical-input check so pre-0239 historical fixtures don't false-positive.",
+      "Tests at <code>tests/test_spec_0239_empty_turn_retry_hardening.py</code> cover identical-input fail-fast, the N=2 cap, counter reset on round / phase / agent boundary, four I2.7 unit cases (pass / not-applicable / cap-exceeded fail / identical-input fail / <code>None</code>-hash skip), and a live-failure-fix-discipline integration test that runs <code>_check_i2_7</code> against the captured <code>20260527-142625</code> transcript and asserts <code>pass</code>.",
+      "Full <code>pytest tests/ -q</code> reports 2226 passed (11 new + 2215 pre-existing).",
+      "Verifier baseline regeneration across the anchor-run fixtures is deferred to spec 0240 (fixture regen machinery)."
+    ],
+    "specs": [
+      "0239"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.53.0",
     "date": "2026-05-27",
     "bump": "MINOR",

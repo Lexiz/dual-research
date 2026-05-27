@@ -536,6 +536,14 @@ class ProtocolViolation(Event):
       re-scoping; the fallback is a last-resort safety net, not the
       de-facto fix. ``item_id`` / ``from_state`` are empty for this
       code (it's a whole-turn condition, not an item-state guard).
+    - ``empty_turn_persistent_identical_input`` /
+      ``empty_turn_retry_cap_exceeded`` (spec 0239): observed an empty
+      turn whose retry would feed byte-identical input (a parser-
+      deterministic miss at fixed temperature) OR an empty turn that
+      would exceed the per-(agent, phase, round) cap of
+      ``MAX_EMPTY_TURN_RETRIES``. ``item_id`` / ``from_state`` are
+      empty (a whole-turn condition, not an item-state guard); the
+      ``reason`` field carries the input hash and the cap value.
 
     The spec-0228 codes named above are the rejection sites enumerated
     in spec 0228 §2.1; ``op_kind`` / ``expected_state`` / ``reason``
@@ -590,6 +598,12 @@ class EmptyTurnDetected(Event):
     parser_block_count: int = 0     # always 0 by definition; carried for future
     finish_reason: str | None = None
     output_tokens: int = 0
+    # Spec 0239 — SHA-256 of the prompt that produced the empty turn.
+    # Optional: pre-0239 replays and any callsite that has no prompt to
+    # hash leave this ``None``. Verifier I2.7's identical-input check
+    # skips groups where any event has ``input_sha256 is None`` so
+    # historical fixtures don't false-positive.
+    input_sha256: str | None = None
     kind: str = "empty_turn_detected"
 
 

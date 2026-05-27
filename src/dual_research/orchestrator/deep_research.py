@@ -51,6 +51,10 @@ from dual_research.events import (
 # Spec 0115 — legacy_shim removed; the snapshot helper below is no
 # longer used by production code but is retained for ad-hoc callers
 # (tests, debugging tools).
+from dual_research.orchestrator.empty_turn_retry import (
+    EmptyTurnRetryState,
+    on_empty_turn,
+)
 from dual_research.orchestrator.closeout import (
     CloseoutTracker,
     _ItemView,
@@ -293,6 +297,12 @@ class DeepResearchPhase:
                 initial_budget=self.caps.closeout_budget,
             ),
         )
+        # Spec 0239 — per-(agent, phase, round) empty-turn retry budget.
+        # Scoped to this DeepResearchPhase instance; the dr_run.py wiring
+        # creates a fresh phase per phase invocation so the dict
+        # implicitly resets at phase boundaries (which is correct per
+        # Cowork's Ask-3 reasoning).
+        self._empty_turn_retry_state: EmptyTurnRetryState = {}
 
     # ── Internal helpers ─────────────────────────────────────────
 
@@ -354,6 +364,7 @@ class DeepResearchPhase:
         finish_reason: str | None = None,
         output_tokens: int = 0,
         audit_tool_events: list[dict] | None = None,
+        input_sha256: str | None = None,
     ) -> tuple[
         list[ItemRaised],
         list[ItemTransitioned],
@@ -764,7 +775,28 @@ class DeepResearchPhase:
                     parser_block_count=0,
                     finish_reason=finish_reason,
                     output_tokens=output_tokens,
+                    input_sha256=input_sha256,
                 ))
+                # Spec 0239 — bound the per-(agent, phase, round) retry
+                # budget. The helper returns a ProtocolViolation when
+                # the empty turn would exceed the cap of
+                # MAX_EMPTY_TURN_RETRIES (=2) or feed byte-identical
+                # input that already failed; otherwise it mutates the
+                # state dict to reflect the new count + hash. We skip
+                # the check entirely when ``input_sha256`` is None —
+                # the replay path (which reconstructs from on-disk
+                # turn bodies and has no prompt to hash) must not
+                # trip the contract.
+                if input_sha256 is not None:
+                    pv = on_empty_turn(
+                        self._empty_turn_retry_state,
+                        agent=agent,
+                        phase=self.phase,
+                        round=round,
+                        input_sha256=input_sha256,
+                    )
+                    if pv is not None:
+                        violations.append(pv)
 
         return raised_events, transition_events, violations, empty_turn_events
 

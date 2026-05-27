@@ -71,6 +71,7 @@ from dual_research.orchestrator.deep_research import (
     LedgerEntryV2,
     PhaseRunResult,
 )
+from dual_research.orchestrator.empty_turn_retry import compute_input_sha256
 from dual_research.orchestrator.repair import RepairTracker, parse_v2_with_repair
 from dual_research.orchestrator.phase0 import Phase0Outcome
 from dual_research.orchestrator.phase1 import Phase1Outcome
@@ -411,6 +412,11 @@ async def _drive_interaction_phase(
                 finish_reason=str(_finish_reason) if _finish_reason is not None else None,
                 output_tokens=_output_tokens,
                 audit_tool_events=audit_tool_events,
+                # Spec 0239 — hand the prompt SHA-256 to apply_turn so the
+                # empty-turn retry-budget helper can fail-fast on a
+                # byte-identical retry and so EmptyTurnDetected carries
+                # the hash for verifier I2.7.
+                input_sha256=compute_input_sha256(prompt),
             )
             raised_all.extend(r)
             transitions_all.extend(t)
