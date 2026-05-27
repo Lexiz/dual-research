@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0166-timeline-pane-system-error-chips-and-li
 failure_step: ""
 source_session: timeline-iteration-2026-05-22
 promoted_from_draft: "006"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0166 — Timeline pane System + Error chip primitives + live-state agent strip + turn-render data-layer fix

@@ -7,6 +7,8 @@ status: ready
 target-version: 1.12.0
 created: 2026-05-21
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0146 — Consumption card visual rework, CcxCard M3 polish, and spec-preview rendering

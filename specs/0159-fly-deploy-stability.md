@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0159-fly-deploy-stability.md"
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0159 — Fix: Fly machines-API mid-rolling-deploy timeout (9-in-a-row)

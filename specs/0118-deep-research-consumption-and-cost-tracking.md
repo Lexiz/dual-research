@@ -7,6 +7,8 @@ status: implemented
 target-version: 1.3.0
 created: 2026-05-19
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0118 — Deep Research consumption & cost tracking

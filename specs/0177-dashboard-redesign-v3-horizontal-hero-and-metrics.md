@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0177-dashboard-redesign-v3-horizontal-hero-a
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0177 — Dashboard redesign v3 — horizontal hero + timeline, full-width counter row, populated Metrics tab, pagination, pastel chart palette, light default

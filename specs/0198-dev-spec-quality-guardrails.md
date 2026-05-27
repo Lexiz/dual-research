@@ -20,6 +20,8 @@ handover: handoffs/2026-05-24-spec-0198-dev-spec-quality-guardrails.md
 failure_step: ""
 source_session: promoted-from-draft-001
 promoted_from_draft: "001"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0198 — Dev-spec quality guardrails

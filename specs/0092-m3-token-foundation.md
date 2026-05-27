@@ -7,6 +7,8 @@ status: proposed
 target-version: 0.72.1
 created: 2026-05-19
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0092 — M3 token & foundation layer

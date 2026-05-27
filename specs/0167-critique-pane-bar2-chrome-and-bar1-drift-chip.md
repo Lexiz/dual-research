@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0167-critique-pane-bar2-chrome-and-bar1-drif
 failure_step: ""
 source_session: critique-iteration-2026-05-22
 promoted_from_draft: "004"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0167 — Critique pane bar2 segmented controls + bar1 drift chip + DS catch-up

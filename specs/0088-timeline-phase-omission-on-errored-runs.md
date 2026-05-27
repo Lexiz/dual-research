@@ -7,6 +7,8 @@ status: proposed
 target-version: 0.69.14
 created: 2026-05-18
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0088 — Timeline phase-omission on errored / deadlocked runs

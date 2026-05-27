@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0154-orchestrator-hardening-ds-steering-and-
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0154 — Spec workflow hardening — design-system steering at spec time, run-queue-until-empty skill, project CLAUDE.md

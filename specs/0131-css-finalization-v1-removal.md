@@ -7,6 +7,8 @@ status: proposed
 target-version: 1.6.9
 created: 2026-05-20
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0131 — CSS finalization + v1 token block removal

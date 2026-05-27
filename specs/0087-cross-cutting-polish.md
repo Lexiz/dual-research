@@ -7,6 +7,8 @@ status: in-review
 target-version: 0.69.11
 created: 2026-05-18
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0087 — Cross-cutting polish (final spec from the 3-spec consolidation)

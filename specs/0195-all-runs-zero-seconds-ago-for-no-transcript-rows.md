@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0195-all-runs-zero-seconds-ago-for-no-transc
 failure_step: ""
 source_session: deferred-from-spec-0181
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0195 — Fix: All-Runs renders `0s ago` for abandoned rows that have no transcript

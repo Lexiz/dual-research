@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0188-item-card-issue-comment-bodies-via-thre
 failure_step: ""
 source_session: deferred-from-0173
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0188 — Route ItemCardIssueBody + ItemCardCommentBody through ItemCardThreadView

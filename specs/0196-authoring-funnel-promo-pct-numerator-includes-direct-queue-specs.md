@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0196-authoring-funnel-promo-pct-numerator-in
 failure_step: ""
 source_session: deferred-from-0183
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0196 — Fix: authoring funnel `promo_pct` numerator counts all queued specs, blows past 100% when most specs skip the draft step

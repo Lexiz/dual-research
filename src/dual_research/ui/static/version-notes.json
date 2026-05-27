@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.49.0",
+    "date": "2026-05-27",
+    "bump": "MINOR",
+    "summary": "Validator now enforces the carve-out-disposition convention shipped doctrinally by spec 0229 §2.5 (spec 0229.1).",
+    "items": [
+      "<strong>Validator now enforces the carve-out-disposition convention shipped doctrinally by spec 0229 §2.5 ([spec 0229.1](specs/0229.1-validator-enforce-disposition-frontmatter.md)).</strong> <code>disposition:</code> (∈ <code>{ship, defer, archive}</code>) and <code>disposition_reason:</code> (non-empty single sentence) are now required frontmatter keys on both dev specs and drafts at <code>scripts/spec_lifecycle/validator.py</code> — <code>validate_dev_spec</code> and <code>validate_draft</code> reject missing or empty fields with errors citing CLAUDE.md / spec 0229 §2.5, and warn (rather than error) when the reason spans multiple sentences.",
+      "A new <code>VALID_DISPOSITIONS</code> module-level constant adjacent to <code>VALID_TYPES</code> / <code>VALID_STATUSES</code> encodes the vocabulary.",
+      "The 235 existing spec/draft files predating the convention were backfilled to <code>disposition: archive</code> via the one-off <code>scripts/spec_lifecycle/backfill_disposition.py</code> (idempotent; skips files already declaring <code>disposition</code>; leaves <code>specs/_templates/</code> and <code>specs/archive/</code> untouched per spec 0229.1 §5).",
+      "Tests at <code>tests/test_spec_0229_1_validator_disposition.py</code> cover unit-level shape gates for dev specs and drafts, source-pattern lock-in for the <code>VALID_DISPOSITIONS</code> constant, idempotency of the backfill, and the in-repo invariant that no spec/draft remaining in <code>specs/</code> post-backfill fails the validator *for disposition reasons* (the broader \"every spec validates green\" criterion from spec §3 is honest-noted as overstated — many pre-2026 specs fail rules added after they were queued; that validator-evolution debt is out of scope here)."
+    ],
+    "specs": [
+      "0229.1"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.48.0",
     "date": "2026-05-27",
     "bump": "MINOR",

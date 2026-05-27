@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0185-cycle-time-chart-percentile-y-axis-cap.
 failure_step: ""
 source_session: deferred-from-0177
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0185 — Refactor: cycle-time line chart Y-axis cap from fixed 60m to a percentile-based cap

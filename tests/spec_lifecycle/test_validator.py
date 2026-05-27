@@ -51,6 +51,9 @@ GOOD_DEV_FM = {
     "label": "new-feature",
     "version_bump": "MINOR",
     "status": "queued",
+    # Spec 0229.1 §2.1 — disposition convention required on every dev spec.
+    "disposition": "ship",
+    "disposition_reason": '"test fixture; ship for parity with the queue head."',
 }
 
 
@@ -465,7 +468,16 @@ def test_queue_position_absent_no_warning(tmp_path: Path) -> None:
 def test_draft_passes_minimal(tmp_path: Path) -> None:
     p = _write(
         tmp_path / "draft.md",
-        {"kind": "draft", "draft_id": '"007"', "slug": "x", "title": "t", "status": "draft"},
+        {
+            "kind": "draft",
+            "draft_id": '"007"',
+            "slug": "x",
+            "title": "t",
+            "status": "draft",
+            # Spec 0229.1 §2.1 — drafts also carry the disposition fields.
+            "disposition": "archive",
+            "disposition_reason": '"test fixture; archive by default."',
+        },
         "# Body\n",
     )
     r = validate_draft(p)

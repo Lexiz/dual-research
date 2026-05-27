@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0157-spec-queue-auto-decomposition.md"
 failure_step: ""
 source_session: orchestrator-hardening-2026-05-22
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0157 — /spec-queue auto-decomposition — conservative bundle-by-default, auto-chained sub-specs

@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0197-mockup-canonical-token-vocabulary-clean
 failure_step: ""
 source_session: deferred-from-0184
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0197 — Refactor: rewrite dashboard mockup to use canonical DS token names so the parity allowlist shrinks to empty

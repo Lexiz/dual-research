@@ -8,6 +8,8 @@ status: ready
 target-version: 1.9.1
 created: 2026-05-21
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0140 — Phase 4 deadlock: draft extractor + escape-valve breadth

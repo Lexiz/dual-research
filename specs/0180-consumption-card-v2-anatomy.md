@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0180-consumption-card-v2-anatomy.md"
 failure_step: ""
 source_session: bug-spec-batch-2205-claude
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0180 — Fix: Consumption card V2 anatomy

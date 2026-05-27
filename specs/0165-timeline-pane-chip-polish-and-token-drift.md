@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0165-timeline-pane-chip-polish-and-token-dri
 failure_step: ""
 source_session: timeline-iteration-2026-05-22
 promoted_from_draft: "005"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0165 — Timeline pane chip polish + light-mode token drift fix

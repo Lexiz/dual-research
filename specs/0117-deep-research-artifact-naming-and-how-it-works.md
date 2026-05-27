@@ -7,6 +7,8 @@ status: proposed
 target-version: 1.2.0
 created: 2026-05-19
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0117 — Deep Research artifact naming, how-it-works diagrams, timeline full-view

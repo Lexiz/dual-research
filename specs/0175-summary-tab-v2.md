@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0175-summary-tab-v2.md"
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
 promoted_from_draft: "001"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0175 — Summary tab v2 — celebratory close-out with verdict, stats, critique outcomes, and markdown download

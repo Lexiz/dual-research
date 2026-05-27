@@ -7,6 +7,8 @@ status: merged
 target-version: 0.42.0
 created: 2026-05-17
 pr: "https://github.com/Lexiz/dual-research/pull/45"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0044 — Turn-input semantics + per-turn badge redesign + side-by-side framing

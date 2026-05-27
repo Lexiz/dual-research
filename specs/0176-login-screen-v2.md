@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0176-login-screen-v2.md"
 failure_step: ""
 source_session: pre-lifecycle-bootstrap
 promoted_from_draft: "002"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0176 — Login screen v2: animated hero, theme toggle continuity, looping chatter

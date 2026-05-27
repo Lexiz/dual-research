@@ -7,6 +7,8 @@ status: merged
 target-version: 0.57.0
 created: 2026-05-17
 pr: "https://github.com/Lexiz/dual-research/pull/63"
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0059 — Keyboard contract + shortcuts overlay + search palette

@@ -7,6 +7,8 @@ status: proposed
 target-version: 0.73.0
 created: 2026-05-19
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0097 — QuestionThread + unified item-card family

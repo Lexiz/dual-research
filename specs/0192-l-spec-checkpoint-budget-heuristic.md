@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-23-spec-0192-l-spec-checkpoint-budget-heuristic.md"
 failure_step: ""
 source_session: deferred-from-0186
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0192 — L-spec checkpoint budget heuristic — wall-clock session age trigger

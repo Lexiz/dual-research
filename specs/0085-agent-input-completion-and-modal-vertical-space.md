@@ -7,6 +7,8 @@ status: in-review
 target-version: 0.69.9
 created: 2026-05-18
 pr: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0085 — Agent Input panel completion + modal vertical space

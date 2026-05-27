@@ -20,6 +20,8 @@ handover: "handoffs/2026-05-22-spec-0161-js-test-stack-for-pages-function.md"
 failure_step: ""
 source_session: deferred-from-spec-0160
 promoted_from_draft: ""
+disposition: archive
+disposition_reason: "Pre-spec-0229 carve-out; disposition assigned retroactively to satisfy the new convention."
 ---
 
 # Spec 0161 — Tests: JS test stack for Pages Function and dashboard-bootstrap.js
