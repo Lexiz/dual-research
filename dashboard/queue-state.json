@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T00:10:14Z",
+  "updated_at": "2026-05-27T00:13:44Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11078,7 +11078,7 @@
       "handover": "handoffs/2026-05-27-spec-0228-emit-protocol-violation-on-invalid-op.md"
     },
     "0229": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-26T23:20:50Z",
       "events": [
         {
@@ -11117,11 +11117,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/268"
           }
+        },
+        {
+          "ts": "2026-05-27T00:10:41Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T00:12:33Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.48.0"
+          }
+        },
+        {
+          "ts": "2026-05-27T00:12:41Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T00:13:37Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-27-spec-0229-addressee-obligation-invariant.md"
+          }
         }
       ],
       "started_at": "2026-05-26T23:53:28Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/268",
-      "merged_at": "2026-05-27T00:10:12Z"
+      "merged_at": "2026-05-27T00:10:12Z",
+      "deployed_at": "2026-05-27T00:13:44Z",
+      "handover": "handoffs/2026-05-27-spec-0229-addressee-obligation-invariant.md"
     }
   }
 }
