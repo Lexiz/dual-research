@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T18:52:28Z",
+  "updated_at": "2026-05-27T18:53:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11616,6 +11616,13 @@
           "ts": "2026-05-27T18:52:28Z",
           "step": "tests_started",
           "data": {}
+        },
+        {
+          "ts": "2026-05-27T18:53:05Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2215
+          }
         }
       ],
       "started_at": "2026-05-27T18:42:45Z"
