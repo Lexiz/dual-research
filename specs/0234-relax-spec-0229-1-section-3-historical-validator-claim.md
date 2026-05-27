@@ -7,7 +7,7 @@ type: refactoring
 label: refactoring
 version_bump: PATCH
 target_version: TBD
-status: queued
+status: deferred
 depends_on: ["0229.1"]
 complexity: S
 created: 2026-05-27

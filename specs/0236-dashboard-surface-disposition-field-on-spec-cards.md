@@ -7,7 +7,7 @@ type: new-feature
 label: new-feature
 version_bump: MINOR
 target_version: TBD
-status: queued
+status: deferred
 depends_on: ["0229.1"]
 complexity: S
 created: 2026-05-27
