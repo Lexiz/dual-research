@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T17:20:33Z",
+  "updated_at": "2026-05-27T17:37:43Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11246,7 +11246,7 @@
       "handover": "handoffs/2026-05-27-spec-0231-parser-heading-tolerance-and-repair-fallback.md"
     },
     "0232": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-27T09:23:36Z",
       "events": [
         {
@@ -11254,7 +11254,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-27T17:37:43Z"
     },
     "0229.1": {
       "status": "deployed",
