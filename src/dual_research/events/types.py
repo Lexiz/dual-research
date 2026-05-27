@@ -525,6 +525,17 @@ class ProtocolViolation(Event):
       orchestrator demotes the offending agent's effective convergence
       status to ``IN_PROGRESS`` for the gate while leaving the turn
       file's emitted STATUS line unchanged (gate-only demotion).
+    - ``phase4_drafter_repair_failed`` (spec 0231): the drafter's
+      ``## Revised draft`` body failed to parse as section-delta ops
+      both initially AND after the one-shot repair. The orchestrator
+      synthesizes a no-op revision (the prior draft body verbatim) and
+      continues the round loop instead of crashing the run with an
+      uncaught ``ProtocolParseError``. One event per failing round.
+      If this code fires often in practice, the parser-tolerance
+      widenings at spec 0231 §2.1/§2.2 are too narrow and need
+      re-scoping; the fallback is a last-resort safety net, not the
+      de-facto fix. ``item_id`` / ``from_state`` are empty for this
+      code (it's a whole-turn condition, not an item-state guard).
 
     The spec-0228 codes named above are the rejection sites enumerated
     in spec 0228 §2.1; ``op_kind`` / ``expected_state`` / ``reason``

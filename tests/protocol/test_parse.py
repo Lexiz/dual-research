@@ -317,3 +317,209 @@ def test_extract_revised_draft_inclusive_replays_anchor_run_round07() -> None:
         "truncating the draft body"
     )
     assert "## 4. Ranked Candidates" in body
+
+
+# ─── Spec 0231 — parser heading tolerance ──────────────────────────────
+
+
+from dual_research.protocol import (
+    EditSectionOp,
+    RevisedDraftDeltas,
+    apply_revised_draft_deltas,
+    extract_revised_draft_deltas,
+)
+
+
+def test_extract_revised_draft_deltas_inline_edit_section_heading() -> None:
+    """Spec 0231 §2.1 — `### EDIT_SECTION ## <heading>` (anchor inline on
+    the H3 line, no newline) parses, normalises to the draft section, and
+    binds. Anchor-fixture pattern from `20260527-054652-...` phase 4."""
+    turn_text = (
+        "## Stance\nstance.\n\n"
+        "## Status\nSTATUS: REVIEWING\n\n"
+        "## Revised draft\n\n"
+        "### EDIT_SECTION ## 1. Summary\n\n"
+        "ANCHOR: original line\n"
+        "REPLACE_WITH: replaced line\n"
+    )
+    payload = extract_revised_draft_deltas(turn_text)
+    assert isinstance(payload, RevisedDraftDeltas)
+    assert len(payload.ops) == 1
+    op = payload.ops[0]
+    assert isinstance(op, EditSectionOp)
+    # The heading argument literally is `## 1. Summary` — the H2 token
+    # is preserved on the op object; normalisation happens at apply time.
+    assert op.heading == "## 1. Summary"
+    # Apply against a prior draft whose section is `## 1. Summary` —
+    # the spec 0231 §2.1 normaliser strip of leading `## ` makes them bind.
+    prior_draft = "## 1. Summary\n\noriginal line\n\nmore body\n"
+    new_draft, violations = apply_revised_draft_deltas(
+        prior_draft=prior_draft, payload=payload,
+    )
+    assert "replaced line" in new_draft
+    assert "original line" not in new_draft
+    assert violations == []
+
+
+def test_extract_fenced_section_glued_heading_prose() -> None:
+    """Spec 0231 §2.2 — `## <heading><glued prose>` (no newline between
+    heading name and trailing prose) now matches. Anchor-fixture pattern
+    from `20260527-054652-...` phase 2: claude wrote
+    `## New items I'm raisingNow I have evidence...` and the section body
+    must be recovered so the downstream `### RAISE` finder sees the blocks.
+    """
+    from dual_research.protocol import extract_fenced_section
+
+    text = (
+        "## Stance\nstance body\n\n"
+        "## New items I'm raisingNow I have evidence for the key claims.\n\n"
+        "### RAISE\n\n"
+        "body of the first raise\n\n"
+        "### RAISE\n\n"
+        "body of the second raise\n\n"
+        "## Phase artifact\n\nartifact.\n"
+    )
+    body = extract_fenced_section(text, "New items I'm raising")
+    assert body is not None
+    # Glued preamble is captured as part of the body — it's harmless
+    # noise the downstream `### RAISE` walker skips over.
+    assert "Now I have evidence" in body
+    # The `### RAISE` blocks are present in the body.
+    assert body.count("### RAISE") == 2
+    # The next `## ` heading bounds the body — the artifact section is
+    # not absorbed.
+    assert "artifact." not in body
+
+
+def test_extract_fenced_section_clean_heading_still_parses_unchanged() -> None:
+    """Spec 0231 §2.2 — backwards-compatibility. Standalone clean headings
+    (newline after heading name) continue to parse identically."""
+    from dual_research.protocol import extract_fenced_section
+
+    text = (
+        "## New items I'm raising\n\n"
+        "### RAISE\nclean body\n\n"
+        "## Phase artifact\nartifact.\n"
+    )
+    body = extract_fenced_section(text, "New items I'm raising")
+    assert body is not None
+    assert body.startswith("### RAISE")
+    assert "clean body" in body
+    assert "artifact." not in body
+
+
+def test_extract_fenced_section_partial_prefix_does_not_false_match() -> None:
+    """Spec 0231 §2.2 — the boundary is "next char is end-of-line OR
+    non-whitespace". A trailing space between the heading name and
+    additional words is NOT a glued case — `## New items I'm` does not
+    match heading `"New items"` because the next char is whitespace."""
+    from dual_research.protocol import extract_fenced_section
+
+    text = "## New items I'm raising\nbody\n## Phase artifact\nartifact.\n"
+    # The heading_name "New items" must NOT match the line
+    # "## New items I'm raising" — the next char after "items" is a
+    # space, which fails both the `\s*$` (would need end-of-line) and
+    # the `(?=\S)` (would need non-whitespace) branches.
+    body = extract_fenced_section(text, "New items")
+    assert body is None
+
+
+def test_extract_revised_draft_deltas_standalone_anchor_still_parses() -> None:
+    """Spec 0231 §2.1 — backwards-compatibility. Standalone-anchor
+    `### EDIT_SECTION 1. Summary` (no glued `## ` token) continues to
+    parse and bind identically."""
+    turn_text = (
+        "## Stance\nstance.\n\n"
+        "## Status\nSTATUS: REVIEWING\n\n"
+        "## Revised draft\n\n"
+        "### EDIT_SECTION 1. Summary\n\n"
+        "ANCHOR: original line\n"
+        "REPLACE_WITH: replaced line\n"
+    )
+    payload = extract_revised_draft_deltas(turn_text)
+    assert isinstance(payload, RevisedDraftDeltas)
+    op = payload.ops[0]
+    assert isinstance(op, EditSectionOp)
+    assert op.heading == "1. Summary"
+    prior_draft = "## 1. Summary\n\noriginal line\n\nmore body\n"
+    new_draft, _ = apply_revised_draft_deltas(
+        prior_draft=prior_draft, payload=payload,
+    )
+    assert "replaced line" in new_draft
+    assert "original line" not in new_draft
+
+
+def test_normalise_section_heading_strips_h2_token_then_numeric_prefix() -> None:
+    """Spec 0231 §2.1 — direct unit test for the normaliser's new
+    leading-``## `` strip, composed with the existing numeric strip."""
+    from dual_research.protocol.parse import _normalise_section_heading
+
+    assert _normalise_section_heading("## 1. Summary") == "summary"
+    assert _normalise_section_heading("## Summary") == "summary"
+    assert _normalise_section_heading("1. Summary") == "summary"
+    assert _normalise_section_heading("Summary") == "summary"
+    # Idempotent under whitespace + case.
+    assert _normalise_section_heading("  ##   1. SUMMARY  ") == "summary"
+
+
+def test_extract_revised_draft_deltas_replays_anchor_run_malformed_turn() -> None:
+    """Spec 0231 — replay the actual anchor-run fixture turn that died.
+
+    ``phase4/round-02-claude.malformed-1.md`` from
+    ``20260527-054652-backend-language-choice`` died with
+    ``revised_draft_body_missing_delta_op`` because the EDIT_SECTION
+    headings were inline (`### EDIT_SECTION ## 1. Summary`). Post-fix
+    the body parses as a non-trivial sequence of EditSectionOps.
+    """
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    fixture_path = (
+        repo_root
+        / "tests"
+        / "fixtures"
+        / "anchor-runs"
+        / "20260527-054652-backend-language-choice"
+        / "phase4"
+        / "round-02-claude.malformed-1.md"
+    )
+    text = fixture_path.read_text(encoding="utf-8")
+    payload = extract_revised_draft_deltas(text)
+    assert isinstance(payload, RevisedDraftDeltas)
+    # The fixture's `## Revised draft` body contains 10 inline-anchor
+    # EDIT_SECTION blocks (Summary ×1, Findings ×9 per the live-run grep).
+    edit_ops = [op for op in payload.ops if isinstance(op, EditSectionOp)]
+    assert len(edit_ops) >= 10, f"expected >= 10 EditSectionOps, got {len(edit_ops)}"
+
+
+def test_extract_fenced_section_replays_anchor_run_glued_phase2_turn() -> None:
+    """Spec 0231 — replay the actual anchor-run fixture turn.
+
+    ``phase2/round-01-claude.md`` from
+    ``20260527-054652-backend-language-choice`` glued the heading
+    `## New items I'm raising` to the prose `Now I have evidence...`.
+    Pre-fix, ``extract_fenced_section(text, "New items I'm raising")``
+    returned ``None`` and six ``### RAISE`` blocks went unregistered.
+    Post-fix the body is recovered with all six RAISEs intact.
+    """
+    from pathlib import Path
+
+    from dual_research.protocol import extract_fenced_section
+
+    repo_root = Path(__file__).resolve().parents[2]
+    fixture_path = (
+        repo_root
+        / "tests"
+        / "fixtures"
+        / "anchor-runs"
+        / "20260527-054652-backend-language-choice"
+        / "phase2"
+        / "round-01-claude.md"
+    )
+    text = fixture_path.read_text(encoding="utf-8")
+    body = extract_fenced_section(text, "New items I'm raising")
+    assert body is not None
+    # The fixture has exactly six `### RAISE` blocks in this section.
+    assert body.count("### RAISE") == 6, (
+        f"expected 6 RAISE blocks, got {body.count('### RAISE')}"
+    )
