@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.50.0] — 2026-05-27
+
+### Added
+
+- **Reconciler: configurable prefix-skip list (default `("cowork/",)`); matching citations route into a new informational `out_of_tree` bucket and do not contribute to `has_blocking_drift` ([spec 0230](specs/0230-reconciler-skip-out-of-tree-paths.md)).** A module-level `OUT_OF_TREE_PREFIXES` tuple at [`scripts/spec_lifecycle/reconcile.py`](scripts/spec_lifecycle/reconcile.py) names the canonical skip set; `reconcile_spec` grows an `out_of_tree_prefixes=` kwarg (defaulting to the module constant) so callers needing a different set can override per-invocation. The classification loop fires the prefix check before the on-disk existence check, routing matches into the new `ReconcileReport.out_of_tree` list with `classification="out_of_tree"`; `format_report` surfaces a `"out-of-tree (informational): N"` line plus per-citation detail. `Citation.classification`'s string-enum gains `"out_of_tree"` alongside the existing `clean / mechanical / semantic / unknown` set. Closes the spurious exit-3 class observed on specs 0227.1 and 0229 (both required operator override at pre-flight reconcile for citations to `cowork/briefs/...`) — re-running `python -m scripts.spec_lifecycle.reconcile specs/0229-addressee-obligation-invariant.md` now exits 0 instead of 3, with the three prior `semantic` hits surfacing under the informational bucket. The default tuple's trailing slash (`"cowork/"`) is structurally narrow — a hypothetical sibling directory `cowork-design-system/` does NOT match. Tests at [`tests/test_spec_0230_reconciler_out_of_tree.py`](tests/test_spec_0230_reconciler_out_of_tree.py) cover the four routing cases (default match / default non-match / custom prefix override / empty prefix list = pre-fix baseline), the trailing-slash sibling-dir guard, source-pattern lock-in for the `OUT_OF_TREE_PREFIXES` constant + prefix-check-before-existence-check ordering, a regression integration test against spec 0229 (subprocess exit 0), the `has_blocking_drift` invariant across multiple out-of-tree hits, and the CHANGELOG/version smoke check.
+
 ## [1.49.0] — 2026-05-27
 
 ### Added
