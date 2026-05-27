@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.52.0] — 2026-05-27
+
+### Added
+
+- **Verifier invariant I2.6 — STATUS-RAISED-array event cross-check (reporting) ([spec 0232](specs/0232-verifier-i2-6-status-raised-event-cross-check.md)).** Adds [`_check_i2_6`](src/dual_research/contract/verifier.py) directly after `_check_i2_5` and registers it in the aggregator block. For every phase-0/2/4 turn file, the count of IDs declared in the STATUS footer's `RAISED_THIS_TURN` array is compared to the count of `item_raised` events scoped to the same `(phase, round, raiser)` triple. **Directional rule** per the [2026-05-27 cowork adjudication](cowork/briefs/2026-05-27-0232-i2-6-directional-adjudication.md): only `declared > registered` is flagged (the drop class — the 054652 phase-2 r1 claude failure where 6 IDs were declared but 0 events registered, and the 142625 phase-2 r1 claude failure where 5 slug-shaped IDs were declared but 0 events registered). `declared <= registered` is benign — OpenAI-style `[pending]` placeholders or empty arrays standing in for N actual raises do not flag. No ID-shape inspection: a canonical-ID-skip guard would have masked the 142625 slug-shaped drop; the directional rule catches it because it never reads ID shape. Severity is `reporting`; promotion to `gating` is gated on spec 0231 + a fresh clean baseline regen (separate small spec per §5). Verifier baseline regenerated across all five anchor-run fixtures (clean → `pass`, 102321 / 135006 → `pass`, 054652 / 142625 → `fail` with the named Evidence rows). Tests at [`tests/test_verifier.py`](tests/test_verifier.py) cover three synthetic cases (count match → pass; benign under-reporting `[]` vs 8 → pass; drop class declared 6 / registered 0 → fail with the exact Evidence tuple) and two snapshot tests asserting the named drop-class Evidence on the 054652 and 142625 fixtures.
+
 ## [1.51.0] — 2026-05-27
 
 ### Added

@@ -412,6 +412,71 @@ def test_i2_5_self_report_diverges_fail(tmp_path):
     assert res.verdict == "fail"
 
 
+def test_i2_6_count_match_pass(tmp_path):
+    # Positive synthetic — count match: RAISED_THIS_TURN size equals the
+    # number of item_raised events at the same (phase, round, raiser).
+    rd = tmp_path / "run"
+    rd.mkdir()
+    events = [
+        {"event": "item_raised", "id": "Q-input-c-01", "item_kind": "question",
+         "phase": 2, "round": 1, "raiser": "claude", "body": "b",
+         "anchor_type": "none", "anchor_text": "", "evidence_required": False},
+    ]
+    _write_transcript(rd, events)
+    _write_metrics(rd, ended_at=None)
+    _write_turn(rd, phase=2, round_no=1, agent="claude", raise_ids=["Q-input-c-01"])
+    assert _verdicts(verify_run(rd))["I2.6"] == "pass"
+
+
+def test_i2_6_benign_under_report_pass(tmp_path):
+    # Positive synthetic — benign under-reporting: zero declared,
+    # eight registered (OpenAI-`[pending]` placeholder shape). Per the
+    # directional rule, declared <= registered is never a failure.
+    rd = tmp_path / "run"
+    rd.mkdir()
+    events = [
+        {"event": "item_raised", "id": f"Q-input-g-{i:02d}", "item_kind": "question",
+         "phase": 0, "round": 1, "raiser": "openai", "body": "b",
+         "anchor_type": "none", "anchor_text": "", "evidence_required": False}
+        for i in range(1, 9)
+    ]
+    _write_transcript(rd, events)
+    _write_metrics(rd, ended_at=None)
+    # array_raised=[] empties the RAISED_THIS_TURN array regardless of
+    # the (synthetic-only) op blocks in the body.
+    _write_turn(
+        rd, phase=0, round_no=1, agent="openai",
+        raise_ids=[f"Q-input-g-{i:02d}" for i in range(1, 9)],
+        array_raised=[],
+    )
+    assert _verdicts(verify_run(rd))["I2.6"] == "pass"
+
+
+def test_i2_6_drop_class_fail(tmp_path):
+    # Negative synthetic — drop class: six declared in the STATUS array,
+    # zero registered. Mirrors the 054652 phase-2 r1 claude failure.
+    rd = tmp_path / "run"
+    rd.mkdir()
+    _write_transcript(rd, [])
+    _write_metrics(rd, ended_at=None)
+    declared_ids = [
+        "D-plan-c-01", "D-plan-c-02", "D-plan-c-03",
+        "Q-plan-c-01", "Q-plan-c-02", "Q-plan-c-03",
+    ]
+    _write_turn(
+        rd, phase=2, round_no=1, agent="claude",
+        raise_ids=[], array_raised=declared_ids,
+    )
+    res = _result(verify_run(rd), "I2.6")
+    assert res.verdict == "fail"
+    assert any(
+        "phase 2 r1 claude" in e.detail
+        and "declared 6" in e.detail
+        and "registered 0" in e.detail
+        for e in res.evidence
+    )
+
+
 # ─── Area 3 — Categorisation ───────────────────────────────────────────
 
 
@@ -857,6 +922,45 @@ def test_snapshot_dead_run_secondary_matches_baseline():
     verdicts = _verdicts(report)
     assert verdicts["I5.1"] == "fail"
     assert verdicts["I5.2"] == "fail"
+
+
+def test_snapshot_054652_i2_6_drop_class_fail():
+    """20260527-054652 — phase-2 round-1 claude declared 6 IDs in
+    RAISED_THIS_TURN but registered 0 item_raised events. Spec 0232's
+    canonical drop-class failure."""
+    rd = FIXTURES / "20260527-054652-backend-language-choice"
+    report = verify_run(rd)
+    baseline = _baseline_for(rd)
+    assert _verdict_diff(report, baseline) == []
+
+    i2_6 = _result(report, "I2.6")
+    assert i2_6.verdict == "fail"
+    assert any(
+        "phase 2 r1 claude" in e.detail
+        and "declared 6" in e.detail
+        and "registered 0" in e.detail
+        for e in i2_6.evidence
+    )
+
+
+def test_snapshot_142625_i2_6_slug_drop_fail():
+    """20260527-142625 — phase-2 round-1 claude declared 5 SLUG-shaped IDs
+    (D-go-vs-csharp-21, …) and registered 0 item_raised events. Directional
+    rule catches the drop without inspecting ID shape; a canonical-ID-skip
+    guard would have masked the failure."""
+    rd = FIXTURES / "20260527-142625-backend-language-choice"
+    report = verify_run(rd)
+    baseline = _baseline_for(rd)
+    assert _verdict_diff(report, baseline) == []
+
+    i2_6 = _result(report, "I2.6")
+    assert i2_6.verdict == "fail"
+    assert any(
+        "phase 2 r1 claude" in e.detail
+        and "declared 5" in e.detail
+        and "registered 0" in e.detail
+        for e in i2_6.evidence
+    )
 
 
 def test_cli_exits_zero_on_clean_baseline_match(tmp_path, monkeypatch):

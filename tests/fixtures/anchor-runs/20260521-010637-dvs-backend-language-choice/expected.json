@@ -53,6 +53,11 @@
       "verdict": "fail"
     },
     {
+      "id": "I2.6",
+      "severity": "reporting",
+      "verdict": "pass"
+    },
+    {
       "id": "I3.1",
       "severity": "gating",
       "verdict": "pass"
