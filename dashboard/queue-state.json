@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T18:42:48Z",
+  "updated_at": "2026-05-27T18:43:01Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11590,6 +11590,14 @@
           "ts": "2026-05-27T18:42:48Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-27T18:43:01Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0238-parser-section-heading-primitive-consolidation",
+            "from": "main@cbd86aa"
+          }
         }
       ],
       "started_at": "2026-05-27T18:42:45Z"
