@@ -763,6 +763,64 @@ def _check_i2_6(
     return InvariantResult("I2.6", "reporting", "pass")
 
 
+def _check_i2_7(events: list[dict]) -> InvariantResult:
+    # Spec 0239 — `empty_turn_detected` retry hardening. Reporting-only.
+    # Two evidence rows are surfaced:
+    #
+    #   1. Cap-exceeded — more than MAX_EMPTY_TURN_RETRIES (=2)
+    #      ``empty_turn_detected`` events for the same
+    #      ``(agent, phase, round)`` key.
+    #   2. Identical-input — two consecutive ``empty_turn_detected``
+    #      events for the same key whose ``input_sha256`` payloads
+    #      match. Groups where any event has ``input_sha256`` absent or
+    #      ``None`` are skipped (pre-0239 historical fixtures), so
+    #      replays don't false-positive.
+    #
+    # Promotion to ``gating`` is a follow-up spec, gated on a clean
+    # reference-run baseline showing I2.7 = ``pass``.
+    from dual_research.orchestrator.empty_turn_retry import (
+        MAX_EMPTY_TURN_RETRIES,
+    )
+
+    groups: dict[tuple[str, int, int], list[dict]] = {}
+    for ev in events:
+        if ev.get("event") != "empty_turn_detected":
+            continue
+        phase = _phase_to_int(ev.get("phase"))
+        round_no = ev.get("round")
+        agent = ev.get("agent")
+        if phase is None or round_no is None or agent is None:
+            continue
+        groups.setdefault((agent, phase, round_no), []).append(ev)
+
+    if not groups:
+        return InvariantResult("I2.7", "reporting", "not_applicable")
+
+    fail: list[Evidence] = []
+    for (agent, phase, round_no), grp in groups.items():
+        if len(grp) > MAX_EMPTY_TURN_RETRIES:
+            fail.append(Evidence(
+                f"phase{phase}/r{round_no}/{agent}",
+                f"empty_turn_detected count {len(grp)} exceeds cap of "
+                f"{MAX_EMPTY_TURN_RETRIES} per (agent, phase, round)",
+            ))
+        hashes = [ev.get("input_sha256") for ev in grp]
+        if any(h is None for h in hashes):
+            continue
+        for i in range(1, len(hashes)):
+            if hashes[i] == hashes[i - 1]:
+                fail.append(Evidence(
+                    f"phase{phase}/r{round_no}/{agent}",
+                    f"consecutive empty_turn_detected events with "
+                    f"identical input_sha256={hashes[i]}",
+                ))
+                break
+
+    if fail:
+        return InvariantResult("I2.7", "reporting", "fail", tuple(fail))
+    return InvariantResult("I2.7", "reporting", "pass")
+
+
 # ─── Area 3 — Categorisation ───────────────────────────────────────────
 
 
@@ -1264,6 +1322,7 @@ def verify_run(run_dir: Path) -> VerifierReport:
         _check_i2_4(events, turn_files),
         _check_i2_5(events, turn_files),
         _check_i2_6(events, turn_files),
+        _check_i2_7(events),
         _check_i3_1(events, turn_files),
         _check_i3_2(events),
         _check_i3_3(turn_files),
