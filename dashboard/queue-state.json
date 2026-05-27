@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T18:18:44Z",
+  "updated_at": "2026-05-27T18:18:56Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11246,7 +11246,7 @@
       "handover": "handoffs/2026-05-27-spec-0231-parser-heading-tolerance-and-repair-fallback.md"
     },
     "0232": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-27T09:23:36Z",
       "events": [
         {
@@ -11300,7 +11300,9 @@
           }
         }
       ],
-      "started_at": "2026-05-27T17:37:43Z"
+      "started_at": "2026-05-27T17:37:43Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/273",
+      "merged_at": "2026-05-27T18:18:56Z"
     },
     "0229.1": {
       "status": "deployed",
