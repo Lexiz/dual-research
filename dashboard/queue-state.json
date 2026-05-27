@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T19:46:31Z",
+  "updated_at": "2026-05-27T19:55:16Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11670,7 +11670,7 @@
       "handover": "handoffs/2026-05-27-spec-0238-parser-section-heading-primitive-consolidation.md"
     },
     "0239": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-27T17:10:40Z",
       "events": [
         {
@@ -11729,11 +11729,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/275"
           }
+        },
+        {
+          "ts": "2026-05-27T19:47:11Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T19:54:16Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.54.0"
+          }
+        },
+        {
+          "ts": "2026-05-27T19:54:17Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T19:55:16Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.54.0"
+          }
         }
       ],
       "started_at": "2026-05-27T19:32:36Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/275",
-      "merged_at": "2026-05-27T19:46:27Z"
+      "merged_at": "2026-05-27T19:46:27Z",
+      "deployed_at": "2026-05-27T19:55:16Z",
+      "handover": "handoffs/2026-05-27-spec-0239-empty-turn-detected-retry-cap-and-identical-input-fail-fast.md"
     },
     "0240": {
       "events": [
