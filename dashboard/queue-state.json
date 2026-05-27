@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T12:57:33Z",
+  "updated_at": "2026-05-27T12:57:44Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11174,6 +11174,11 @@
             "branch": "spec/0231-parser-heading-tolerance-and-repair-fallback",
             "from": "main@f067642"
           }
+        },
+        {
+          "ts": "2026-05-27T12:57:44Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-27T12:56:22Z"
