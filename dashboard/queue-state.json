@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T09:42:03Z",
+  "updated_at": "2026-05-27T09:55:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11176,7 +11176,7 @@
       ]
     },
     "0229.1": {
-      "status": "merged",
+      "status": "deployed",
       "started_at": "2026-05-27T09:31:16Z",
       "events": [
         {
@@ -11230,10 +11230,31 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/269"
           }
+        },
+        {
+          "ts": "2026-05-27T09:54:00Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T09:55:02Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-27-spec-0229.1-validator-enforce-disposition-frontmatter.md"
+          }
+        },
+        {
+          "ts": "2026-05-27T09:55:05Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.49.0"
+          }
         }
       ],
       "pr": "https://github.com/Lexiz/dual-research/pull/269",
-      "merged_at": "2026-05-27T09:42:00Z"
+      "merged_at": "2026-05-27T09:42:00Z",
+      "deployed_at": "2026-05-27T09:55:05Z",
+      "handover": "handoffs/2026-05-27-spec-0229.1-validator-enforce-disposition-frontmatter.md"
     }
   }
 }
