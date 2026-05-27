@@ -129,7 +129,20 @@ class PhaseState:
 
 @dataclass(frozen=True)
 class RoundResult:
-    """Result of processing one round (both agents' turns)."""
+    """Result of processing one round (both agents' turns).
+
+    Spec 0229 §2.2 — ``claude_status`` / ``openai_status`` carry the
+    self-reported STATUS line from each agent's turn (diagnostic
+    trail). ``effective_claude_status`` / ``effective_openai_status``
+    carry the post-demotion view the orchestrator's convergence gate
+    consumes: ``IN_PROGRESS`` whenever an
+    ``agreed_with_open_addressed_items`` ProtocolViolation fired for
+    that agent in this round, else equal to the self-reported value.
+    Demotion is gate-only — the turn file's STATUS line is never
+    rewritten, and no ``via_*`` flag is added on ``PhaseConverged``
+    because a demoted AGREED blocks convergence rather than choosing a
+    convergence path.
+    """
 
     round: int
     claude_status: str | None
@@ -144,6 +157,32 @@ class RoundResult:
     # 1/3 by design and in any negotiate round that produced at least
     # one ledger-affecting block.
     empty_turn_events: tuple[EmptyTurnDetected, ...] = ()
+    # Spec 0229 §2.2 — effective statuses for the convergence gate.
+    # Default to None; helpers below derive them from ``violation_events``.
+    effective_claude_status: str | None = None
+    effective_openai_status: str | None = None
+
+
+def _effective_status_for(
+    *,
+    agent: str,
+    self_reported: str | None,
+    violations: list[CloseoutViolation | ProtocolViolation] | tuple,
+) -> str | None:
+    """Spec 0229 §2.2 — demote ``AGREED`` to ``IN_PROGRESS`` when the
+    agent has an ``agreed_with_open_addressed_items`` ProtocolViolation
+    in the same round; passthrough otherwise.
+    """
+    if self_reported != "AGREED":
+        return self_reported
+    for v in violations:
+        if (
+            isinstance(v, ProtocolViolation)
+            and v.violation_code == "agreed_with_open_addressed_items"
+            and v.agent == agent
+        ):
+            return "IN_PROGRESS"
+    return self_reported
 
 
 @dataclass(frozen=True)
@@ -278,22 +317,30 @@ class DeepResearchPhase:
             return ""
         from dual_research.protocol.prompts import closeout_request_section
 
-        owned = []
+        owned: list[dict] = []
+        addressed_at_me: list[dict] = []
         for iv in non_terminal:
             ent = self.state.find(iv.id)
             if ent is None:
                 continue
+            row = {
+                "id": ent.id,
+                "kind": ent.kind.value,
+                "body": ent.body,
+                "current_state": ent.current_state.value,
+            }
             if ent.raiser == agent:
-                owned.append({
-                    "id": ent.id,
-                    "kind": ent.kind.value,
-                    "body": ent.body,
-                    "current_state": ent.current_state.value,
-                })
+                owned.append(row)
+            elif ent.current_state == State.OPEN:
+                # Spec 0229 §2.1 — items the other agent raised that
+                # are still `open` are addressed-at-me. The addressee
+                # owes an ADDRESS block before AGREED.
+                addressed_at_me.append(row)
         return closeout_request_section(
             items=owned,
             agent_name=agent,
             remaining_budget=self.state.closeout.remaining(agent),
+            addressed_at_me_items=addressed_at_me,
         )
 
     def apply_turn(
@@ -664,6 +711,33 @@ class DeepResearchPhase:
                     # but do not transition.
                     ent.ack_proposed_by = agent
 
+        # Spec 0229 §2.2 — addressee-obligation runtime check. An agent
+        # may not emit STATUS: AGREED while items raised by the other
+        # agent remain `open` and unADDRESSed by this agent. The check
+        # runs against the *post*-turn ledger so an ADDRESS-then-AGREED
+        # in one turn (ADDRESS flips the item to `addressed` first,
+        # before the check fires) is allowed. One ProtocolViolation per
+        # blocking item — verifier I2.4 matches at the (phase, round,
+        # agent) scope, so the per-item granularity is for dashboard
+        # observability and is consumed at scope-key level.
+        if parsed.status == "AGREED":
+            for ent in self.state.ledger:
+                if ent.raiser != agent and ent.current_state == State.OPEN:
+                    violations.append(ProtocolViolation(
+                        phase=self.phase,
+                        round=round,
+                        agent=agent,
+                        violation_code="agreed_with_open_addressed_items",
+                        item_id=ent.id,
+                        from_state=ent.current_state.value,
+                        op_kind="agreed",
+                        expected_state="addressed",
+                        reason=(
+                            f"AGREED emitted with open item {ent.id} (raised "
+                            f"by {ent.raiser}) still un-ADDRESSed by {agent}"
+                        ),
+                    ))
+
         # Spec 0141 — empty-turn signal. After processing every block,
         # if zero ledger-affecting blocks were observed AND the phase
         # expects item movement, emit ``EmptyTurnDetected``. Phase 1
@@ -714,26 +788,39 @@ class DeepResearchPhase:
         turns have been applied via ``apply_turn``. Returns a
         ``RoundResult`` bundle the caller publishes.
         """
+        self_claude = parsed_claude.status if parsed_claude else None
+        self_openai = parsed_openai.status if parsed_openai else None
+        # Spec 0229 §2.2 — derive the effective status used by the
+        # convergence gate. Demotion fires for any agent that emitted
+        # AGREED but has an ``agreed_with_open_addressed_items``
+        # ProtocolViolation in this round's violations.
+        eff_claude = _effective_status_for(
+            agent="claude", self_reported=self_claude, violations=violation_events,
+        )
+        eff_openai = _effective_status_for(
+            agent="openai", self_reported=self_openai, violations=violation_events,
+        )
+
         artifact_match = False
         if (
             parsed_claude is not None
             and parsed_openai is not None
-            and parsed_claude.status == "AGREED"
-            and parsed_openai.status == "AGREED"
+            and eff_claude == "AGREED"
+            and eff_openai == "AGREED"
         ):
             artifact_match = self.artifact_hash_match(parsed_claude, parsed_openai)
 
         conv = check_convergence(
-            claude_status=parsed_claude.status if parsed_claude else None,
-            openai_status=parsed_openai.status if parsed_openai else None,
+            claude_status=eff_claude,
+            openai_status=eff_openai,
             items=self.state.item_views(),
             artifact_hash_match=artifact_match,
         )
 
         closeout_evt: CloseoutUrged | None = None
         if not conv.converged and should_urge_closeout(
-            claude_status=parsed_claude.status if parsed_claude else None,
-            openai_status=parsed_openai.status if parsed_openai else None,
+            claude_status=eff_claude,
+            openai_status=eff_openai,
             items=self.state.item_views(),
         ):
             blocking = items_blocking_convergence(self.state.item_views())
@@ -749,8 +836,8 @@ class DeepResearchPhase:
 
         return RoundResult(
             round=round,
-            claude_status=parsed_claude.status if parsed_claude else None,
-            openai_status=parsed_openai.status if parsed_openai else None,
+            claude_status=self_claude,
+            openai_status=self_openai,
             raised_events=tuple(raised_events),
             transition_events=tuple(transition_events),
             violation_events=tuple(violation_events),
@@ -758,6 +845,8 @@ class DeepResearchPhase:
             converged=conv.converged,
             is_closeout_round=is_closeout_round,
             empty_turn_events=tuple(empty_turn_events or ()),
+            effective_claude_status=eff_claude,
+            effective_openai_status=eff_openai,
         )
 
     def spend_failed_closeout_budget(self) -> bool:
@@ -858,26 +947,36 @@ class DeepResearchPhase:
             empties.extend(e)
 
         # Convergence cross-check
+        self_claude = parsed_claude.status if parsed_claude else None
+        self_openai = parsed_openai.status if parsed_openai else None
+        # Spec 0229 §2.2 — effective status drives the convergence gate.
+        eff_claude = _effective_status_for(
+            agent="claude", self_reported=self_claude, violations=violations,
+        )
+        eff_openai = _effective_status_for(
+            agent="openai", self_reported=self_openai, violations=violations,
+        )
+
         artifact_match = False
         if (
             parsed_claude is not None
             and parsed_openai is not None
-            and parsed_claude.status == "AGREED"
-            and parsed_openai.status == "AGREED"
+            and eff_claude == "AGREED"
+            and eff_openai == "AGREED"
         ):
             artifact_match = self.artifact_hash_match(parsed_claude, parsed_openai)
 
         conv = check_convergence(
-            claude_status=parsed_claude.status if parsed_claude else None,
-            openai_status=parsed_openai.status if parsed_openai else None,
+            claude_status=eff_claude,
+            openai_status=eff_openai,
             items=self.state.item_views(),
             artifact_hash_match=artifact_match,
         )
 
         closeout_evt: CloseoutUrged | None = None
         if not conv.converged and should_urge_closeout(
-            claude_status=parsed_claude.status if parsed_claude else None,
-            openai_status=parsed_openai.status if parsed_openai else None,
+            claude_status=eff_claude,
+            openai_status=eff_openai,
             items=self.state.item_views(),
         ):
             blocking = items_blocking_convergence(self.state.item_views())
@@ -893,8 +992,8 @@ class DeepResearchPhase:
 
         return RoundResult(
             round=round,
-            claude_status=parsed_claude.status if parsed_claude else None,
-            openai_status=parsed_openai.status if parsed_openai else None,
+            claude_status=self_claude,
+            openai_status=self_openai,
             raised_events=tuple(raised),
             transition_events=tuple(transitions),
             violation_events=tuple(violations),
@@ -902,6 +1001,8 @@ class DeepResearchPhase:
             converged=conv.converged,
             is_closeout_round=is_closeout_round,
             empty_turn_events=tuple(empties),
+            effective_claude_status=eff_claude,
+            effective_openai_status=eff_openai,
         )
 
     # ── Cap / ghost-cap helpers ──────────────────────────────────
@@ -1013,11 +1114,17 @@ class DeepResearchPhase:
             # blocked on something the protocol cannot surface
             # (typically a stub draft from a prior-round extractor
             # truncation).
+            # Spec 0229 §2.2 — consult the effective (post-demotion)
+            # statuses so the substantive-convergence escape valve also
+            # refuses to fire when an AGREED was demoted by the
+            # addressee-obligation rule.
             both_agreed = (
-                rr.claude_status == "AGREED" and rr.openai_status == "AGREED"
+                rr.effective_claude_status == "AGREED"
+                and rr.effective_openai_status == "AGREED"
             )
             one_agreed = (
-                (rr.claude_status == "AGREED") ^ (rr.openai_status == "AGREED")
+                (rr.effective_claude_status == "AGREED")
+                ^ (rr.effective_openai_status == "AGREED")
             )
             terminal_ledger = not items_blocking_convergence(self.state.item_views())
 

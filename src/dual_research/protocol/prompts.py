@@ -1595,13 +1595,17 @@ def closeout_request_section(
     items: "list",
     agent_name: str,
     remaining_budget: int,
+    addressed_at_me_items: "list | None" = None,
 ) -> str:
     """Render the ``## Closeout request`` section for a closeout-round prompt.
 
-    ``items`` is a list of objects with ``id``, ``kind``, ``body``,
-    ``current_state``, ``addressed_by`` attributes. Falls back to a
-    plain-string listing when entries are dicts or when fields are
-    missing.
+    ``items`` is the list of items the agent owns (raiser == agent) — the
+    pre-spec-0229 surface. ``addressed_at_me_items`` (spec 0229 §2.1) is
+    items the OTHER agent raised that are still ``open`` — the agent
+    must emit ADDRESS blocks for each before declaring AGREED
+    (addressee-obligation invariant). Both lists tolerate dicts or
+    objects with ``id`` / ``kind`` / ``body`` / ``current_state``
+    attributes.
     """
     def _row(it) -> str:
         if isinstance(it, dict):
@@ -1627,6 +1631,19 @@ def closeout_request_section(
         "\n".join(_row(it) for it in items) if items else "(none — see below)"
     )
 
+    addressed_at_me_block = ""
+    addressed_at_me_items = addressed_at_me_items or []
+    if addressed_at_me_items:
+        addressed_listing = "\n".join(_row(it) for it in addressed_at_me_items)
+        addressed_at_me_block = f"""
+
+Addressee-obligation — items the other agent raised that you have not
+yet ADDRESSed. You must emit ADDRESS blocks for each of these items
+before declaring AGREED:
+
+{addressed_listing}
+"""
+
     return f"""\
 ## Closeout request
 
@@ -1638,7 +1655,7 @@ The phase cannot converge while items are non-terminal. This is a
 Items that need ratification from you ({agent_name}):
 
 {items_listing}
-
+{addressed_at_me_block}
 Your operations this round must be only:
 - RESOLVE — if you accept the response or position
 - ACKNOWLEDGE — if you and the other agent should agree this is
