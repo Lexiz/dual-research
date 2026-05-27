@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T19:08:22Z",
+  "updated_at": "2026-05-27T19:32:37Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11670,7 +11670,7 @@
       "handover": "handoffs/2026-05-27-spec-0238-parser-section-heading-primitive-consolidation.md"
     },
     "0239": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-27T17:10:40Z",
       "events": [
         {
@@ -11678,7 +11678,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-27T19:32:36Z"
     },
     "0240": {
       "events": [
