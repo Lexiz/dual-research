@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T13:17:13Z",
+  "updated_at": "2026-05-27T13:20:50Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11154,7 +11154,7 @@
       "events": []
     },
     "0231": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-27T08:50:29Z",
       "events": [
         {
@@ -11213,11 +11213,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/272"
           }
+        },
+        {
+          "ts": "2026-05-27T13:17:44Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T13:19:33Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.51.0"
+          }
+        },
+        {
+          "ts": "2026-05-27T13:19:40Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-27T13:20:49Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-27-spec-0231-parser-heading-tolerance-and-repair-fallback.md"
+          }
         }
       ],
       "started_at": "2026-05-27T12:56:22Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/272",
-      "merged_at": "2026-05-27T13:17:09Z"
+      "merged_at": "2026-05-27T13:17:09Z",
+      "deployed_at": "2026-05-27T13:20:50Z",
+      "handover": "handoffs/2026-05-27-spec-0231-parser-heading-tolerance-and-repair-fallback.md"
     },
     "0232": {
       "status": "queued",
