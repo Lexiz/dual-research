@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import sys
 import time
 from typing import TextIO
 
-from dual_research.agents.base import AgentCall, AgentResult
+from dual_research.agents.base import AgentCall, AgentError, AgentResult
 from dual_research.agents.pricing import compute_search_cost
 from dual_research.events import EventBus, TurnEnded, TurnInputs, TurnSearches, TurnStarted
+from dual_research.orchestrator.empty_turn_retry import (
+    EmptyTurnRetryState,
+    on_turn_api_call_timeout,
+)
+from dual_research.orchestrator.per_turn_liveness import (
+    TURN_WALLCLOCK_CAP_SECONDS,
+    HeartbeatThread,
+)
 from dual_research.persistence import Metrics, Transcript
 
 
@@ -68,6 +77,7 @@ async def run_one_call(
     max_output_tokens: int = 8192,
     prompt_pieces: dict[str, int] | None = None,
     prompt_bundle: dict[str, str] | None = None,
+    retry_state: EmptyTurnRetryState | None = None,
 ) -> AgentResult:
     """Run one agent call with event emission and persistence side-effects.
 
@@ -124,14 +134,101 @@ async def run_one_call(
         "session_dir": str(transcript.path.parent),
     }
 
-    start = time.perf_counter()
-    result = await agent.run(
-        prompt,
-        max_output_tokens=max_output_tokens,
-        stream_to=stream_to,
-        stream_prefix=stream_prefix,
-        audit_context=audit_context,
+    # Spec 0241 — per-turn liveness wrapping. Three layers, all rooted
+    # here at the single chokepoint that calls ``agent.run`` so the
+    # behaviour is uniform across both provider wrappers and every
+    # repair / phase caller:
+    #   * Layer 1 — :class:`HeartbeatThread` emits ``turn_heartbeat``
+    #     events from a separate OS thread, surviving event-loop stalls.
+    #   * Layer 2 — ``except BaseException`` emits
+    #     ``turn_api_call_exception`` BEFORE the exception propagates to
+    #     0222's run-loop tombstone, preserving exception type fidelity
+    #     by unwrapping :class:`AgentError` to its ``__cause__`` when set.
+    #   * Layer 3 — :func:`asyncio.timeout` wraps the entire
+    #     ``agent.run`` await, so a mid-stream stall (the 20260527-200213
+    #     failure mode) is bounded by ``TURN_WALLCLOCK_CAP_SECONDS``
+    #     rather than the SDK's 600s request-establishment timeout.
+    phase_int = _phase_to_int(phase)
+    round_int = _round_index_from_label(label)
+    heartbeat = HeartbeatThread(
+        transcript=transcript,
+        agent=agent.label,
+        phase=phase,
+        round=round_int,
     )
+    heartbeat.start()
+    start = time.perf_counter()
+    try:
+        async with asyncio.timeout(TURN_WALLCLOCK_CAP_SECONDS):
+            result = await agent.run(
+                prompt,
+                max_output_tokens=max_output_tokens,
+                stream_to=stream_to,
+                stream_prefix=stream_prefix,
+                audit_context=audit_context,
+            )
+    except (asyncio.TimeoutError, TimeoutError):
+        # ``asyncio.TimeoutError`` aliases the built-in ``TimeoutError``
+        # in 3.11+ — list both for clarity. Emit the structured
+        # violation, tick the unified retry counter (spec 0241 §2.5) if
+        # the caller plumbed one, then re-raise so 0222's tombstone
+        # still fires and the phase loop terminates the turn.
+        transcript.write(
+            "protocol_violation",
+            phase=phase_int,
+            round=round_int,
+            agent=agent.label,
+            violation_code="turn_api_call_timeout",
+            item_id="",
+            from_state="",
+            dropped_block="",
+            op_kind="",
+            expected_state="",
+            reason=(
+                f"turn exceeded wall-clock cap of "
+                f"{TURN_WALLCLOCK_CAP_SECONDS}s; sdk_timeout_seconds=600.0; "
+                f"phase_input_bytes={len(prompt)}"
+            ),
+        )
+        if retry_state is not None:
+            on_turn_api_call_timeout(
+                retry_state,
+                agent=agent.label,
+                phase=phase_int,
+                round=round_int,
+            )
+        raise
+    except BaseException as exc:
+        # Unwrap :class:`AgentError` to preserve the original SDK /
+        # transport exception class on the violation. Without this the
+        # diagnostic would report ``AgentError`` for everything that
+        # passed through the agent wrapper's ``except APIError`` branch
+        # — masking the very signal (``httpx.ReadTimeout`` vs
+        # ``anthropic.APIError`` vs ``MemoryError``) that distinguishes
+        # H2 from H3 on the next silent death.
+        underlying: BaseException = exc
+        if isinstance(exc, AgentError) and exc.__cause__ is not None:
+            underlying = exc.__cause__
+        transcript.write(
+            "protocol_violation",
+            phase=phase_int,
+            round=round_int,
+            agent=agent.label,
+            violation_code="turn_api_call_exception",
+            item_id="",
+            from_state="",
+            dropped_block="",
+            op_kind="",
+            expected_state="",
+            reason=(
+                f"exception_type={type(underlying).__name__} "
+                f"exception_module={type(underlying).__module__} "
+                f"message={str(underlying)[:1024]}"
+            ),
+        )
+        raise
+    finally:
+        heartbeat.stop()
     duration_ms = int((time.perf_counter() - start) * 1000)
 
     metrics.record(label=label, result=result)

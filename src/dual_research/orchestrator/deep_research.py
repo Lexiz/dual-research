@@ -301,8 +301,18 @@ class DeepResearchPhase:
         # Scoped to this DeepResearchPhase instance; the dr_run.py wiring
         # creates a fresh phase per phase invocation so the dict
         # implicitly resets at phase boundaries (which is correct per
-        # Cowork's Ask-3 reasoning).
+        # Cowork's Ask-3 reasoning). Spec 0241 §2.5 unified the counter
+        # with the per-turn API timeout path; ``run_one_call`` ticks the
+        # same bucket when a ``turn_api_call_timeout`` fires.
         self._empty_turn_retry_state: EmptyTurnRetryState = {}
+
+    @property
+    def empty_turn_retry_state(self) -> EmptyTurnRetryState:
+        """Spec 0241 §2.5 — public accessor for the unified retry budget
+        so :func:`dual_research.orchestrator._call.run_one_call` can tick
+        the same counter ``on_empty_turn`` does when a
+        ``turn_api_call_timeout`` fires."""
+        return self._empty_turn_retry_state
 
     # ── Internal helpers ─────────────────────────────────────────
 

@@ -321,6 +321,10 @@ async def _drive_interaction_phase(
                 max_output_tokens=_TURN_MAX_OUTPUT_TOKENS,
                 prompt_pieces=pieces,
                 prompt_bundle=bundle,
+                # Spec 0241 §2.5 — share the per-phase empty-turn budget
+                # so a ``turn_api_call_timeout`` ticks the same bucket
+                # an ``empty_turn_detected`` would.
+                retry_state=phase.empty_turn_retry_state,
             )
             turn_path = phase_dir / turn_filename(round=round_no, agent=agent_name)
 

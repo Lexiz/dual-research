@@ -1,5 +1,38 @@
 [
   {
+    "version": "1.56.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "Per-turn liveness: heartbeat thread + BaseException capture + whole-turn cap wrapping stream consumption; verifier I2.8 (spec 0241).",
+    "items": [
+      "<strong>Per-turn liveness: heartbeat thread + BaseException capture + whole-turn cap wrapping stream consumption; verifier I2.8 ([spec 0241](specs/0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap.md)).</strong> Closes the per-turn diagnostic gap the <code>runs/20260527-200213-backend-language-choice/</code> live re-run exposed — phase 4 issued <code>turn_started</code> → <code>turn_inputs</code> then emitted nothing further for ~10 minutes (no <code>turn_ended</code>, no <code>protocol_violation</code>, no tombstone, <code>metrics.json.ended_at = None</code>), and the process was found dead with the user verifying it was not killed.",
+      "Two structural gaps allowed the silent death: the existing <code>timeout=600.0</code> on both <code>AsyncAnthropic</code> and <code>AsyncOpenAI</code> bounds only HTTP request establishment (not mid-stream stalls), and spec 0222's <code>except BaseException</code> tombstone is installed at the run-loop level only — a per-turn API-wrapper exception that escapes via an unawaited task, a stream <code>__aexit__</code> swallow, or a process-level signal leaves no terminal event.",
+      "<strong>Layer 1 — heartbeat thread.</strong> New module <code>src/dual_research/orchestrator/per_turn_liveness.py</code> exposes <code>HeartbeatThread</code> and the constants <code>TURN_HEARTBEAT_INTERVAL_SECONDS = 30</code> + <code>TURN_WALLCLOCK_CAP_SECONDS = 900</code>.",
+      "The heartbeat runs on a <strong>separate OS thread</strong> (daemon, so a hung join never blocks interpreter shutdown), not an asyncio task — load-bearing because an event-loop block would mute an asyncio-scheduled heartbeat, defeating the diagnostic.",
+      "Writes go through the existing <code>Transcript</code> atomic-append; concurrent sibling-turn heartbeats do not corrupt the JSONL (POSIX <code>write(2)</code> on <code>O_APPEND</code> is atomic up to <code>PIPE_BUF</code>).",
+      "New <code>TurnHeartbeat(agent, phase, round, elapsed_seconds)</code> dataclass at <code>src/dual_research/events/types.py</code>; written directly to the transcript rather than published through <code>EventBus</code>.",
+      "<strong>Layer 2 — per-turn <code>except BaseException</code> capture.</strong> The wrapper at <code>src/dual_research/orchestrator/_call.py::run_one_call</code> wraps the <code>agent.run</code> await with <code>try/except BaseException</code> and emits a <code>protocol_violation</code> with <code>violation_code=\"turn_api_call_exception\"</code> BEFORE the exception propagates upward to 0222's run-loop tombstone.",
+      "Exception-type fidelity is preserved by unwrapping <code>AgentError</code> to its <code>__cause__</code>: an <code>httpx.ReadTimeout</code> re-wrapped as <code>AgentError</code> still surfaces as <code>exception_type=ReadTimeout</code> in the violation <code>reason</code>.",
+      "Both events (the per-turn-specific <code>turn_api_call_exception</code> AND the run-loop tombstone) are present in the transcript in the correct order.",
+      "<strong>Layer 3 — whole-turn wall-clock cap.</strong> <code>asyncio.timeout(TURN_WALLCLOCK_CAP_SECONDS=900)</code> wraps the entire <code>agent.run</code> await including stream consumption — distinct from the SDK's 600s request-establishment timeout. 900s gives a 300s margin above the SDK cap so the two never race: a <code>turn_api_call_timeout</code> is unambiguously a stream-consumption stall (the SDK's 600s would have fired first on a request-establishment hang via the Layer 2 path).",
+      "The new violation code <code>turn_api_call_timeout</code> is registered in <code>ProtocolViolation</code>'s docstring.",
+      "<strong>Layer 4 — verifier I2.8 (reporting).</strong> New <code>_check_i2_8</code> at <code>src/dual_research/contract/verifier.py</code> (registered immediately after I2.7 in the aggregator) walks the transcript in order, opening on every <code>turn_started</code> and closing on the matching <code>turn_ended</code> / a <code>ProtocolViolation</code> with one of <code>{turn_api_call_timeout, turn_api_call_exception, empty_turn_persistent_identical_input, empty_turn_retry_cap_exceeded}</code> / a <code>tombstone</code>.",
+      "Any open turn at end-of-transcript surfaces as an Evidence row pinpointing the bare <code>turn_started</code>.",
+      "Reporting-only; promotion to gating is a follow-up spec (§5 §7).",
+      "<strong>Layer 5 — retry-budget unification.</strong> New <code>on_turn_api_call_timeout(state, *, agent, phase, round)</code> at <code>src/dual_research/orchestrator/empty_turn_retry.py</code> ticks the same <code>(agent, phase, round)</code> bucket <code>on_empty_turn</code> does and ALWAYS returns a <code>ProtocolViolation</code> (fail-fast — re-issuing a byte-identical call that just hung 900s would mean back-to-back 15-minute hangs).",
+      "The bucket's <code>last_input_sha256</code> is preserved so a subsequent identical-input empty turn still fail-fasts via the 0239 path.",
+      "<code>run_one_call</code> plumbs the unified state from <code>DeepResearchPhase.empty_turn_retry_state</code> (new public accessor) through the dr_run wiring.",
+      "<strong>Tests</strong> at <code>tests/test_spec_0241_per_turn_liveness.py</code> cover all five layers: heartbeat periodicity + survival across a blocked event-loop busy-spin + concurrent-writer atomicity + daemon-thread invariant; the <code>BaseException</code> capture path including <code>KeyboardInterrupt</code> / <code>SystemExit</code> / <code>MemoryError</code> / <code>asyncio.CancelledError</code> and the <code>AgentError.__cause__</code> unwrap; the wall-clock cap firing on a stalled fake agent (monkeypatched cap = 0.1s) + the production-cap constant lock at 900s; eight verifier I2.8 cases (pass for each terminal-counterpart kind, fail for bare <code>turn_started</code>, fail for an unrelated <code>ProtocolViolation</code> that does not count as a terminal, not-applicable on a no-turn transcript, independent-key tracking); and the unified retry-counter helper (single-tick, always-fail-fast, mixed timeout + empty-turn cap unification, per-key independence).",
+      "Per spec §2.4 the I2.8 baseline entries are auto-populated by the verifier regen — fixture baselines refreshed via <code>_fixture_regen.regenerate_baseline</code>.",
+      "<code>pyproject.toml</code> and <code>src/dual_research/__init__.py</code> bumped to 1.56.0."
+    ],
+    "specs": [
+      "0241"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.55.0",
     "date": "2026-05-28",
     "bump": "MINOR",

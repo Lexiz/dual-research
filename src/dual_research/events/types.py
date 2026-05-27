@@ -122,6 +122,26 @@ class TurnSearches(Event):
 
 
 @dataclass(frozen=True, kw_only=True)
+class TurnHeartbeat(Event):
+    """Spec 0241 §2.1 — per-turn liveness heartbeat.
+
+    Emitted on a separate OS thread every
+    ``TURN_HEARTBEAT_INTERVAL_SECONDS`` (default 30) while a per-turn API
+    call is in flight. Written directly to ``transcript.jsonl`` rather
+    than published through :class:`EventBus`: the heartbeat exists to
+    survive an event-loop stall, so an asyncio-scheduled emission would
+    defeat the purpose. ``elapsed_seconds`` is monotonic wall-time
+    since ``turn_started`` for the same ``(agent, phase, round)``.
+    """
+
+    agent: str
+    phase: str
+    round: int
+    elapsed_seconds: int
+    kind: str = "turn_heartbeat"
+
+
+@dataclass(frozen=True, kw_only=True)
 class TurnEnded(Event):
     agent: str
     phase: str
@@ -544,6 +564,22 @@ class ProtocolViolation(Event):
       ``MAX_EMPTY_TURN_RETRIES``. ``item_id`` / ``from_state`` are
       empty (a whole-turn condition, not an item-state guard); the
       ``reason`` field carries the input hash and the cap value.
+    - ``turn_api_call_timeout`` / ``turn_api_call_exception`` (spec
+      0241): per-turn liveness instrumentation. ``turn_api_call_timeout``
+      fires when the whole-turn wall-clock cap (
+      ``TURN_WALLCLOCK_CAP_SECONDS`` = 900) wraps stream consumption and
+      the turn exceeds it — distinct from the SDK's 600s
+      request-establishment timeout. ``turn_api_call_exception`` fires
+      when a raw ``BaseException`` (``httpx.ReadTimeout``, an SDK error,
+      ``KeyboardInterrupt`` / ``SystemExit`` / ``asyncio.CancelledError``
+      / ``MemoryError``, etc.) escapes the per-turn API call wrapper;
+      the violation is emitted BEFORE the exception propagates upward to
+      0222's run-loop tombstone, so the transcript carries both the
+      specific per-turn trace and the run-loop tombstone in order. Both
+      codes leave ``item_id`` / ``from_state`` empty; the ``reason``
+      field carries the elapsed seconds + SDK timeout for the timeout
+      case, and ``exception_type`` + ``exception_module`` + truncated
+      message for the exception case.
 
     The spec-0228 codes named above are the rejection sites enumerated
     in spec 0228 §2.1; ``op_kind`` / ``expected_state`` / ``reason``
