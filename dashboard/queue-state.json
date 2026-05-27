@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T00:13:44Z",
+  "updated_at": "2026-05-27T00:41:16Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11148,6 +11148,10 @@
       "merged_at": "2026-05-27T00:10:12Z",
       "deployed_at": "2026-05-27T00:13:44Z",
       "handover": "handoffs/2026-05-27-spec-0229-addressee-obligation-invariant.md"
+    },
+    "0229.2": {
+      "status": "archived",
+      "events": []
     }
   }
 }
