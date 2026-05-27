@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T23:08:07Z",
+  "updated_at": "2026-05-27T23:14:18Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11861,7 +11861,7 @@
       "handover": "handoffs/2026-05-28-spec-0240-fixture-regen-machinery-and-i2-6-verdict-flip.md"
     },
     "0241": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-27T22:00:11Z",
       "events": [
         {
@@ -11869,7 +11869,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-27T23:14:17Z"
     }
   }
 }
