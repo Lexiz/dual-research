@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T16:45:42Z",
+  "updated_at": "2026-05-28T17:20:22Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12331,6 +12331,17 @@
       "merged_at": "2026-05-28T16:40:46Z",
       "deployed_at": "2026-05-28T16:45:41Z",
       "handover": "handoffs/2026-05-28-spec-0245-runs-soft-delete-admin-archive.md"
+    },
+    "0246": {
+      "status": "queued",
+      "queued_at": "2026-05-28T17:20:19Z",
+      "events": [
+        {
+          "ts": "2026-05-28T17:20:22Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
