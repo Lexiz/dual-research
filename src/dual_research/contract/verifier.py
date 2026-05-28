@@ -757,15 +757,15 @@ def _check_i2_6(
                 f"item_raised events registered {registered}",
             ))
     if not saw_eligible:
-        return InvariantResult("I2.6", "reporting", "not_applicable")
+        return InvariantResult("I2.6", "gating", "not_applicable")
     if fail:
-        return InvariantResult("I2.6", "reporting", "fail", tuple(fail))
-    return InvariantResult("I2.6", "reporting", "pass")
+        return InvariantResult("I2.6", "gating", "fail", tuple(fail))
+    return InvariantResult("I2.6", "gating", "pass")
 
 
 def _check_i2_7(events: list[dict]) -> InvariantResult:
-    # Spec 0239 — `empty_turn_detected` retry hardening. Reporting-only.
-    # Two evidence rows are surfaced:
+    # Spec 0239 — `empty_turn_detected` retry hardening. Two evidence
+    # rows are surfaced:
     #
     #   1. Cap-exceeded — more than MAX_EMPTY_TURN_RETRIES (=2)
     #      ``empty_turn_detected`` events for the same
@@ -775,9 +775,6 @@ def _check_i2_7(events: list[dict]) -> InvariantResult:
     #      match. Groups where any event has ``input_sha256`` absent or
     #      ``None`` are skipped (pre-0239 historical fixtures), so
     #      replays don't false-positive.
-    #
-    # Promotion to ``gating`` is a follow-up spec, gated on a clean
-    # reference-run baseline showing I2.7 = ``pass``.
     from dual_research.orchestrator.empty_turn_retry import (
         MAX_EMPTY_TURN_RETRIES,
     )
@@ -794,7 +791,7 @@ def _check_i2_7(events: list[dict]) -> InvariantResult:
         groups.setdefault((agent, phase, round_no), []).append(ev)
 
     if not groups:
-        return InvariantResult("I2.7", "reporting", "not_applicable")
+        return InvariantResult("I2.7", "gating", "not_applicable")
 
     fail: list[Evidence] = []
     for (agent, phase, round_no), grp in groups.items():
@@ -817,16 +814,15 @@ def _check_i2_7(events: list[dict]) -> InvariantResult:
                 break
 
     if fail:
-        return InvariantResult("I2.7", "reporting", "fail", tuple(fail))
-    return InvariantResult("I2.7", "reporting", "pass")
+        return InvariantResult("I2.7", "gating", "fail", tuple(fail))
+    return InvariantResult("I2.7", "gating", "pass")
 
 
 def _check_i2_8(events: list[dict]) -> InvariantResult:
     # Spec 0241 §2.4 — turn termination. Every ``turn_started`` event
     # must have a terminal counterpart for the same
     # ``(agent, phase, round)`` triple before the next event for that
-    # triple. Reporting-only; promotion to gating is a follow-up spec
-    # (see spec 0241 §5).
+    # triple.
     #
     # Terminal counterparts:
     #   * ``turn_ended``
@@ -897,7 +893,7 @@ def _check_i2_8(events: list[dict]) -> InvariantResult:
             continue
 
     if not saw_any:
-        return InvariantResult("I2.8", "reporting", "not_applicable")
+        return InvariantResult("I2.8", "gating", "not_applicable")
 
     fail: list[Evidence] = []
     for (agent, phase, round_no), (idx, ts) in open_turns.items():
@@ -909,8 +905,8 @@ def _check_i2_8(events: list[dict]) -> InvariantResult:
         ))
 
     if fail:
-        return InvariantResult("I2.8", "reporting", "fail", tuple(fail))
-    return InvariantResult("I2.8", "reporting", "pass")
+        return InvariantResult("I2.8", "gating", "fail", tuple(fail))
+    return InvariantResult("I2.8", "gating", "pass")
 
 
 # ─── Area 3 — Categorisation ───────────────────────────────────────────

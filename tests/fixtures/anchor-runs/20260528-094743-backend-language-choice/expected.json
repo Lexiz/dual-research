@@ -5,7 +5,7 @@
     {
       "id": "I1.1",
       "severity": "gating",
-      "verdict": "fail"
+      "verdict": "pass"
     },
     {
       "id": "I1.2",
@@ -25,7 +25,7 @@
     {
       "id": "I1.5",
       "severity": "reporting",
-      "verdict": "not_applicable"
+      "verdict": "pass"
     },
     {
       "id": "I2.1",
@@ -60,7 +60,7 @@
     {
       "id": "I2.7",
       "severity": "gating",
-      "verdict": "not_applicable"
+      "verdict": "pass"
     },
     {
       "id": "I2.8",
@@ -130,17 +130,17 @@
     {
       "id": "I5.1",
       "severity": "gating",
-      "verdict": "fail"
+      "verdict": "pass"
     },
     {
       "id": "I5.2",
       "severity": "gating",
-      "verdict": "fail"
+      "verdict": "pass"
     },
     {
       "id": "I5.3",
       "severity": "gating",
-      "verdict": "not_applicable"
+      "verdict": "pass"
     }
   ]
 }

@@ -54,17 +54,17 @@
     },
     {
       "id": "I2.6",
-      "severity": "reporting",
+      "severity": "gating",
       "verdict": "pass"
     },
     {
       "id": "I2.7",
-      "severity": "reporting",
+      "severity": "gating",
       "verdict": "not_applicable"
     },
     {
       "id": "I2.8",
-      "severity": "reporting",
+      "severity": "gating",
       "verdict": "pass"
     },
     {

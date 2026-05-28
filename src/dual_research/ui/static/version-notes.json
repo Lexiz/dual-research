@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.58.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "Verifier I2.6 / I2.7 / I2.8 promoted from reporting to gating severity (spec 0244).",
+    "items": [
+      "<strong>Changed.</strong> <strong>Verifier I2.6 / I2.7 / I2.8 promoted from <code>reporting</code> to <code>gating</code> severity ([spec 0244](specs/0244-promote-verifier-i2-6-i2-7-i2-8-from-reporting-to-gating.md)).</strong> Three trivial <code>severity=</code> flips on existing invariants in <code>src/dual_research/contract/verifier.py</code> — I2.6 (STATUS-RAISED-array event cross-check, [spec 0232](specs/0232-verifier-raised-array-cross-check-i2-6.md)), I2.7 (empty-turn retry hardening, [spec 0239](specs/0239-empty-turn-retry-hardening.md)), and I2.8 (turn termination — every <code>turn_started</code> must reach <code>turn_ended</code> / a terminal <code>ProtocolViolation</code> / a tombstone, [spec 0241](specs/0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap.md)).",
+      "Promoted together as an atomic PR per Cowork's <code>2026-05-28-arc-closeout-signoff.md</code> Q3.",
+      "Promotion precondition (each spec's §6 trigger): all three reporting-only invariants pass on a clean reference run; satisfied by <code>20260528-094743-backend-language-choice</code> ($8.66, 39KB <code>final.md</code>, <code>metrics.ended_at</code> populated, plain-Terminal.app post-[spec 0243](specs/0243-operational-guard-refuse-running-inside-claude-code.md)).",
+      "Reversibility preserved: any future fixture surfacing a real <code>fail</code> on one of these three invariants is handled by a one-line demote-back-to-reporting follow-up commit, not a crisis-patch to the invariant's detection logic.",
+      "Verifier output structure unchanged; only the <code>severity</code> field flips for these three IDs.",
+      "<strong>Added.</strong> <strong>New reference fixture <code>tests/fixtures/anchor-runs/20260528-094743-backend-language-choice/</code>.</strong> First end-to-end clean run in project history (post-spec-0238 parser hardening, post-H4 mitigation via [spec 0243](specs/0243-operational-guard-refuse-running-inside-claude-code.md)'s operational guard).",
+      "Promoted into the corpus as the permanent verification artifact for the I2.6 / I2.7 / I2.8 gating contract; new <code>fixture-notes.md</code> documents why it's in the corpus and which pre-fix conditions would have killed it.",
+      "All six anchor-run fixtures' <code>expected.json</code> baselines regenerated via <code>tests._fixture_regen.regenerate_baseline</code> so the <code>severity</code> field reflects the gating contract; the delta is exactly three lines per pre-existing fixture (the I2.6 / I2.7 / I2.8 entries) plus a new full baseline on the new fixture.",
+      "<strong>Test suite <code>tests/test_spec_0244_i2_678_gating.py</code>.</strong> Locks in (a) live-verifier severity flip across all 6 anchor-run fixtures × 3 invariants (18 cases), (b) frozen <code>expected.json</code> agreement on the same matrix (18 cases), (c) the new fixture is present + complete + gating-pass on all three invariants, (d) the named spec §2.2 table fixtures (010637 clean baseline, 054652 + 142625 post-0240 regen) are gating-pass-or-not-applicable, and (e) the gating contract actually gates — a synthetic fixture with a bare <code>turn_started</code> produces I2.8 = <code>gating fail</code> and the verifier CLI exits non-zero in standalone mode naming <code>I2.8</code> and <code>[gating]</code> in the output."
+    ],
+    "specs": [
+      "0244",
+      "0232",
+      "0239",
+      "0241",
+      "0243"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.57.0",
     "date": "2026-05-28",
     "bump": "MINOR",
