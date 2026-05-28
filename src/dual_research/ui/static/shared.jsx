@@ -650,7 +650,99 @@ const Icon = {
   SignOut:      _mkIcon('logout',         14),
   Help:         _mkIcon('help-circle',    14),
   FileDocument: _mkIcon('file-document',  12),
+  // Spec 0245 — soft-delete UI affordances. The icon-button is 40×40 dp
+  // per DS SPEC.md §3 "Icon button"; the glyph itself renders at 18 dp.
+  Archive:      _mkIcon('archive',                   18),
+  ArchiveUp:    _mkIcon('archive-arrow-up-outline',  18),
 };
+
+// ───────────────────────── Toast primitive (spec 0245) ─────────────────────────
+// Bottom-right anchored, auto-dismiss after 4 s, click anywhere on the toast
+// to dismiss immediately. ESC dismisses the most-recent toast. Honours
+// `prefers-reduced-motion` via the `.md-toast--no-motion` class.
+//
+// Dispatch via the `useToast()` hook OR via a raw
+// `window.dispatchEvent(new CustomEvent('app-toast', { detail: { tone, text } }))`
+// — the host listens on `window`, so both paths land in the same queue.
+
+const TOAST_DURATION_MS = 4000;
+const _reducedMotionMql = (typeof window !== 'undefined' && window.matchMedia)
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : null;
+
+function useToast() {
+  return React.useCallback((opts) => {
+    if (!opts) return;
+    const detail = typeof opts === 'string' ? { text: opts } : opts;
+    window.dispatchEvent(new CustomEvent('app-toast', { detail }));
+  }, []);
+}
+
+function ToastHost() {
+  const [toasts, setToasts] = React.useState([]);
+  const idRef = React.useRef(0);
+  const timersRef = React.useRef(new Map());
+
+  const remove = React.useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+    const handle = timersRef.current.get(id);
+    if (handle) {
+      clearTimeout(handle);
+      timersRef.current.delete(id);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const onToast = (e) => {
+      const detail = (e && e.detail) || {};
+      const id = ++idRef.current;
+      const toast = {
+        id,
+        tone: detail.tone || 'neutral',
+        text: detail.text || '',
+      };
+      setToasts((prev) => [toast, ...prev]);
+      const handle = setTimeout(() => remove(id), TOAST_DURATION_MS);
+      timersRef.current.set(id, handle);
+    };
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      setToasts((prev) => {
+        if (!prev.length) return prev;
+        const [head, ...rest] = prev;
+        const handle = timersRef.current.get(head.id);
+        if (handle) { clearTimeout(handle); timersRef.current.delete(head.id); }
+        return rest;
+      });
+    };
+    window.addEventListener('app-toast', onToast);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('app-toast', onToast);
+      window.removeEventListener('keydown', onKey);
+      for (const handle of timersRef.current.values()) clearTimeout(handle);
+      timersRef.current.clear();
+    };
+  }, [remove]);
+
+  if (!toasts.length) return null;
+  const reduced = _reducedMotionMql ? _reducedMotionMql.matches : false;
+  return (
+    <div className="md-toast-host" aria-live="polite" aria-atomic="false">
+      {toasts.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          className={`md-toast md-toast--tone-${t.tone}${reduced ? ' md-toast--no-motion' : ''}`}
+          onClick={() => remove(t.id)}
+          aria-label={`Dismiss notification: ${t.text}`}
+        >
+          {t.text}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ───────────────────────── formatting helpers ─────────────────────────
 const fmt = {
@@ -759,12 +851,16 @@ function _cn(...parts) { return parts.filter(Boolean).join(' '); }
 // Keeps the existing prop API so call sites don't break.
 const _BTN_VARIANT_MAP = { primary: 'filled', secondary: 'outlined', ghost: 'text', danger: 'outlined' };
 const _BTN_SIZE_MAP = { sm: 'md-btn--sm', lg: 'md-btn--lg' };
-function Button({ size = 'md', variant = 'secondary', leadingIcon, trailingIcon, children, onClick, disabled, className, type = 'button', title }) {
+function Button({ size = 'md', variant = 'secondary', tone, leadingIcon, trailingIcon, children, onClick, disabled, className, type = 'button', title }) {
   const m3Variant = _BTN_VARIANT_MAP[variant] || 'outlined';
   const sizeClass = _BTN_SIZE_MAP[size] || null;
+  // Spec 0245 — `tone="error"` paints a `filled` button with the M3
+  // error role tokens for destructive confirm actions. Other tones
+  // fall through unchanged (variant + role tokens of the variant).
+  const toneClass = tone ? `md-btn--tone-${tone}` : null;
   return (
     <button type={type} onClick={onClick} disabled={disabled} title={title}
-            className={_cn('md-btn', `md-btn--${m3Variant}`, sizeClass, className)}>
+            className={_cn('md-btn', `md-btn--${m3Variant}`, sizeClass, toneClass, className)}>
       {leadingIcon && <Mdi name={leadingIcon} size={14} />}
       {children && <span>{children}</span>}
       {trailingIcon && <Mdi name={trailingIcon} size={14} />}
@@ -1738,4 +1834,6 @@ Object.assign(window, {
   _STATUS_TO_M3,
   // SPEC-0094 primitives
   ModelBadge,
+  // Spec 0245 — Toast primitive
+  Toast: ToastHost, ToastHost, useToast,
 });

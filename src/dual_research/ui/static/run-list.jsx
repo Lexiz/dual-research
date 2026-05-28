@@ -95,7 +95,67 @@ const COLUMNS = [
   { key: 'cost',     label: 'cost',     align: 'right' },
 ];
 
-function RunListView({ runs, loading, onSelect }) {
+function RunListView({ onSelect }) {
+  const me = useMe();
+  const isAdmin = !!(me && me.isAdmin);
+
+  // Spec 0245 — admin-only Active/Archived toggle. Owns the data fetch
+  // so swapping flips the polled URL. Non-admins cannot reach this
+  // state (the toggle is hidden); even if they could, the server
+  // silently ignores `?archived=true` for non-admin callers.
+  const [archivedView, setArchivedView] = React.useState(false);
+  const { rows: runs, connected, loading, refresh } = useRunList({ archived: archivedView });
+  React.useEffect(() => {
+    window.__lastSseConnected = connected;
+  }, [connected]);
+
+  // Spec 0245 — confirmation-dialog targets. `archiveTarget` opens the
+  // archive dialog; `unarchiveTarget` opens the symmetric unarchive
+  // dialog. Both are run objects from the current list.
+  const [archiveTarget, setArchiveTarget] = React.useState(null);
+  const [unarchiveTarget, setUnarchiveTarget] = React.useState(null);
+  const toast = useToast();
+
+  const handleArchiveConfirm = React.useCallback(async () => {
+    if (!archiveTarget) return;
+    const target = archiveTarget;
+    setArchiveTarget(null);
+    try {
+      const resp = await authedFetch(`/api/runs/${encodeURIComponent(target.id)}/archive`, { method: 'POST' });
+      if (resp.status === 204 || resp.status === 409) {
+        // 409 = already archived from another tab; treat as success since
+        // the resulting state matches the user's intent (row goes away).
+        toast({ tone: 'ok', text: `Run ${target.displayId || target.id.slice(0, 4)} archived.` });
+        refresh();
+      } else {
+        let err;
+        try { err = (await resp.json()).detail; } catch (_) { err = null; }
+        toast({ tone: 'error', text: err || 'Could not archive run. Try again.' });
+      }
+    } catch (_) {
+      toast({ tone: 'error', text: 'Could not archive run. Try again.' });
+    }
+  }, [archiveTarget, refresh, toast]);
+
+  const handleUnarchiveConfirm = React.useCallback(async () => {
+    if (!unarchiveTarget) return;
+    const target = unarchiveTarget;
+    setUnarchiveTarget(null);
+    try {
+      const resp = await authedFetch(`/api/runs/${encodeURIComponent(target.id)}/archive`, { method: 'DELETE' });
+      if (resp.status === 204 || resp.status === 409) {
+        toast({ tone: 'ok', text: `Run ${target.displayId || target.id.slice(0, 4)} restored.` });
+        refresh();
+      } else {
+        let err;
+        try { err = (await resp.json()).detail; } catch (_) { err = null; }
+        toast({ tone: 'error', text: err || 'Could not restore run. Try again.' });
+      }
+    } catch (_) {
+      toast({ tone: 'error', text: 'Could not restore run. Try again.' });
+    }
+  }, [unarchiveTarget, refresh, toast]);
+
   // Read URL state on mount
   const initial = React.useMemo(() => _readUrlParams(), []);
   const [filter, setFilter] = React.useState(initial.filter);
@@ -165,9 +225,15 @@ function RunListView({ runs, loading, onSelect }) {
   // Sort
   const parsed = _parseSort(sortKey);
 
-  // Split attention vs normal
-  const attentionRuns = filtered.filter(r => ATTENTION_STATUSES.has(r.status));
-  const normalRuns = filtered.filter(r => !ATTENTION_STATUSES.has(r.status));
+  // Spec 0245 — archive is "I dealt with it"; don't bucket archived
+  // rows back into the "Needs attention" cluster even if their last
+  // recorded status was errored / deadlocked / abandoned.
+  const attentionRuns = archivedView
+    ? []
+    : filtered.filter(r => ATTENTION_STATUSES.has(r.status));
+  const normalRuns = archivedView
+    ? filtered
+    : filtered.filter(r => !ATTENTION_STATUSES.has(r.status));
 
   const sortedAttention = _sortRuns(attentionRuns, parsed.col, parsed.dir);
   const sortedNormal = _sortRuns(normalRuns, parsed.col, parsed.dir);
@@ -269,12 +335,36 @@ function RunListView({ runs, loading, onSelect }) {
           <Tab active={filter === 'abandoned'} onClick={() => handleFilter('abandoned')} dot filterTone="deadlocked" count={counts.abandoned||0} size="sm">abandoned</Tab>
           <Tab active={filter === 'completed'} onClick={() => handleFilter('completed')} dot filterTone="completed" count={counts.completed||0} size="sm">completed</Tab>
         </TabGroup>
+        <div style={{ flex: 1 }} />
+        {/* Spec 0245 — admin-only Active/Archived toggle. Lives at the
+            right edge of the filter strip; flips `useRunList`'s polled
+            URL between `/api/runs` and `/api/runs?archived=true`. */}
+        {isAdmin && (
+          <TabGroup variant="solid" data-testid="archived-view-toggle">
+            <Tab
+              variant="solid"
+              active={!archivedView}
+              onClick={() => setArchivedView(false)}
+              size="sm"
+            >
+              Active
+            </Tab>
+            <Tab
+              variant="solid"
+              active={archivedView}
+              onClick={() => setArchivedView(true)}
+              size="sm"
+            >
+              Archived
+            </Tab>
+          </TabGroup>
+        )}
       </div>
 
       {/* Column headers -- sortable */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
+        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px 32px',
         padding: '8px 18px',
         background: 'var(--md-surface-container-high)',
         borderBottom: '1px solid var(--md-outline-variant)',
@@ -306,6 +396,8 @@ function RunListView({ runs, loading, onSelect }) {
             </div>
           );
         })}
+        {/* Spec 0245 — 2 trailing empty cells: archive-button slot + chevron. */}
+        <div></div>
         <div></div>
       </div>
 
@@ -338,7 +430,11 @@ function RunListView({ runs, loading, onSelect }) {
             </div>
             {sortedAttention.map((r, idx) => (
               <RunRow key={r.id} run={r} onSelect={onSelect} attentionSummary={_attentionSummary(r)}
-                      tourAnchor={idx === 0} />
+                      tourAnchor={idx === 0}
+                      isAdmin={isAdmin}
+                      archivedView={archivedView}
+                      onArchive={setArchiveTarget}
+                      onUnarchive={setUnarchiveTarget} />
             ))}
             {sortedNormal.length > 0 && (
               <div style={{
@@ -356,7 +452,11 @@ function RunListView({ runs, loading, onSelect }) {
         )}
         {sortedNormal.map((r, idx) => (
           <RunRow key={r.id} run={r} onSelect={onSelect}
-                  tourAnchor={idx === 0 && !hasAttention} />
+                  tourAnchor={idx === 0 && !hasAttention}
+                  isAdmin={isAdmin}
+                  archivedView={archivedView}
+                  onArchive={setArchiveTarget}
+                  onUnarchive={setUnarchiveTarget} />
         ))}
         {filtered.length === 0 && (
           loading && !search ? (
@@ -364,7 +464,7 @@ function RunListView({ runs, loading, onSelect }) {
               {[0,1,2,3,4].map(i => (
                 <div key={i} style={{
                   display: 'grid',
-                  gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
+                  gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px 32px',
                   alignItems: 'center',
                   padding: '10px 0',
                   borderBottom: '1px solid var(--md-outline-hair)',
@@ -377,6 +477,7 @@ function RunListView({ runs, loading, onSelect }) {
                   <div className="skel" style={{ width: 50, height: 14 }} />
                   <div className="skel" style={{ width: 50, height: 14 }} />
                   <div className="skel" style={{ width: 60, height: 14 }} />
+                  <div style={{ width: 12 }} />
                   <div style={{ width: 12 }} />
                 </div>
               ))}
@@ -406,11 +507,60 @@ function RunListView({ runs, loading, onSelect }) {
         <span style={{ flex: 1 }} />
         <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>/</kbd> search &middot; click header to sort</span>
       </footer>
+
+      {/* Spec 0245 — archive / unarchive confirmation dialogs. Use the
+          canonical ModalDialog (Basic variant, max-width 560 px, scrim,
+          focus trap, ESC close per DS SPEC.md §4.6). */}
+      <ConfirmArchiveDialog
+        run={archiveTarget}
+        onConfirm={handleArchiveConfirm}
+        onCancel={() => setArchiveTarget(null)}
+      />
+      <ConfirmUnarchiveDialog
+        run={unarchiveTarget}
+        onConfirm={handleUnarchiveConfirm}
+        onCancel={() => setUnarchiveTarget(null)}
+      />
     </div>
   );
 }
 
-function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
+// Spec 0245 — confirmation dialogs. Both use Modal with `variant="single"`
+// (== basic), matching the existing allowlist admin destructive-action
+// pattern. Error tone on the confirm button signals destructive intent.
+function ConfirmArchiveDialog({ run, onConfirm, onCancel }) {
+  if (!run) return null;
+  const displayId = run.displayId || run.id.slice(0, 4);
+  return (
+    <Modal open={true} onClose={onCancel} title={`Archive run ${displayId}?`} variant="single">
+      <div style={{ padding: 'var(--md-sp-2) 0', color: 'var(--md-on-surface-variant)' }}>
+        It will be hidden from the runs list. An admin can restore it from the Archived view.
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--md-sp-2)', marginTop: 'var(--md-sp-4)' }}>
+        <Button variant="text" onClick={onCancel}>Cancel</Button>
+        <Button variant="filled" tone="error" onClick={onConfirm}>Archive</Button>
+      </div>
+    </Modal>
+  );
+}
+
+function ConfirmUnarchiveDialog({ run, onConfirm, onCancel }) {
+  if (!run) return null;
+  const displayId = run.displayId || run.id.slice(0, 4);
+  return (
+    <Modal open={true} onClose={onCancel} title={`Restore run ${displayId}?`} variant="single">
+      <div style={{ padding: 'var(--md-sp-2) 0', color: 'var(--md-on-surface-variant)' }}>
+        It will reappear in the active runs list.
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--md-sp-2)', marginTop: 'var(--md-sp-4)' }}>
+        <Button variant="text" onClick={onCancel}>Cancel</Button>
+        <Button variant="filled" onClick={onConfirm}>Restore</Button>
+      </div>
+    </Modal>
+  );
+}
+
+function RunRow({ run, onSelect, attentionSummary, tourAnchor, isAdmin, archivedView, onArchive, onUnarchive }) {
   const phaseLabel = PHASES[run.phase]?.label || 'done';
   const [hover, setHover] = React.useState(false);
   const idParts = window.splitRunId(run.id);
@@ -423,9 +573,19 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
   const needsAttention = isErrored || isDeadlocked;
   const borderColor = isErrored ? 'var(--err)' : isDeadlocked ? 'var(--warn)' : null;
 
+  // Spec 0245 \u2014 soft-delete affordances. Row click is suppressed on
+  // archived rows because the detail endpoint 404s on `deleted_at IS
+  // NOT NULL` ids (canonical reader is `runs_active`).
+  const isArchived = !!run.deletedAt;
+  const archivedSecs = isArchived ? _secondsSinceIso(run.deletedAt) : null;
+
+  const showArchiveBtn = hover && isAdmin && !isArchived && !archivedView;
+  const showUnarchiveBtn = hover && isAdmin && isArchived;
+
   return (
     <div
-      onClick={() => onSelect?.(run)}
+      className={isArchived ? 'run-row--archived' : undefined}
+      onClick={() => { if (!isArchived) onSelect?.(run); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={run.id}
@@ -433,12 +593,12 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
       data-run-id={run.id}
       style={{
         display: 'grid',
-        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px',
+        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px 32px',
         alignItems: 'center',
         padding: '10px 18px',
         borderBottom: '1px solid var(--md-outline-hair)',
         background: hover ? 'var(--md-surface-container-low)' : run.selected ? 'var(--md-surface-container-low)' : 'transparent',
-        cursor: 'pointer',
+        cursor: isArchived ? 'default' : 'pointer',
         position: 'relative',
         borderLeft: borderColor ? `2px solid ${borderColor}` : '2px solid transparent',
       }}>
@@ -480,9 +640,67 @@ function RunRow({ run, onSelect, attentionSummary, tourAnchor }) {
       <span className="mono" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{run.startedAt || run.startedAtAgo > 0 ? fmt.relTime(run.startedAtAgo) : '—'}</span>
       <span className="mono num" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{fmt.duration(run.duration)}</span>
       <span className="mono num" style={{ fontSize: 12, color: 'var(--md-on-surface)', textAlign: 'right' }}>{fmt.cost(run.cost)}</span>
-      <Icon.Chevron style={{ color: hover ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-decor)' }} />
+      {/* Spec 0245 — archive-slot column. Visible only on hover for
+          admins on non-archived rows; unarchive replaces it on archived
+          rows. Stays mounted (empty span) at other times so row grid
+          columns don't reflow. */}
+      <span style={{ display: 'inline-flex', justifyContent: 'center' }}>
+        {showArchiveBtn && (
+          <button
+            type="button"
+            className="md-icon-btn"
+            onClick={(e) => { e.stopPropagation(); onArchive?.(run); }}
+            aria-label={`Archive run ${displayId}`}
+            title="Archive run"
+            style={{ width: 28, height: 28 }}
+          >
+            <Icon.Archive />
+          </button>
+        )}
+        {showUnarchiveBtn && (
+          <button
+            type="button"
+            className="md-icon-btn"
+            onClick={(e) => { e.stopPropagation(); onUnarchive?.(run); }}
+            aria-label={`Restore run ${displayId}`}
+            title="Restore run"
+            style={{ width: 28, height: 28 }}
+          >
+            <Icon.ArchiveUp />
+          </button>
+        )}
+      </span>
+      {/* Spec 0245 — chevron column replaced by `archived <relTime> ·
+          by <email>` caption when the row is archived. */}
+      {isArchived ? (
+        <span
+          className="mono"
+          title={`archived ${run.deletedAt} by ${run.deletedBy || 'unknown'}`}
+          style={{
+            fontSize: 10,
+            color: 'var(--md-on-surface-faint)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            textAlign: 'right',
+          }}
+        >
+          {`archived ${fmt.relTime(archivedSecs || 0)}${run.deletedBy ? ` · by ${run.deletedBy}` : ''}`}
+        </span>
+      ) : (
+        <Icon.Chevron style={{ color: hover ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-decor)' }} />
+      )}
     </div>
   );
+}
+
+// Spec 0245 — local helper; mirrors `_seconds_since_iso` in server.py
+// so the archived-caption `archived <relTime>` reads consistently.
+function _secondsSinceIso(iso) {
+  if (!iso) return 0;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return 0;
+  return Math.max(0, Math.floor((Date.now() - t) / 1000));
 }
 
 // 6-dot phase mini-strip

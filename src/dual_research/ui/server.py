@@ -740,9 +740,64 @@ def _make_supabase_app(
         return JSONResponse({"ok": True, "onboardingRequired": flag})
 
     @app.get("/api/runs")
-    async def list_runs() -> JSONResponse:
-        rows = _supabase_list_runs(client)
+    async def list_runs(request: Request) -> JSONResponse:
+        # Spec 0245 — admin-only `?archived=true` switches to the archived
+        # list (rows with non-null `deleted_at`, sorted newest-archived
+        # first). Non-admin callers passing the flag get the same default
+        # active list as if they hadn't passed it (no error, no leak).
+        archived_param = (request.query_params.get("archived") or "").lower() in {"1", "true", "yes"}
+        user = request.scope.get("user") or {}
+        archived = archived_param and bool(user.get("is_admin"))
+        rows = _supabase_list_runs(client, archived=archived)
         return JSONResponse([_to_camel(dataclasses.asdict(r)) for r in rows])
+
+    # ─── Spec 0245 — archive / unarchive runs (admin only) ──────────────
+    @app.post("/api/runs/{run_id}/archive")
+    async def archive_run(request: Request, run_id: str) -> Response:
+        caller_email = _require_admin(request)
+        if not _safe_run_id(run_id):
+            raise HTTPException(status_code=404, detail="not found")
+        # Query `runs` directly (not the view) so archived rows still
+        # show up here — the admin needs to see the current state.
+        res = (
+            client.table("runs")
+            .select("id,deleted_at")
+            .eq("id", run_id)
+            .limit(1)
+            .execute()
+        )
+        rows = res.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="not found")
+        if rows[0].get("deleted_at"):
+            raise HTTPException(status_code=409, detail="already archived")
+        now = datetime.now(timezone.utc).isoformat()
+        client.table("runs").update(
+            {"deleted_at": now, "deleted_by": caller_email}
+        ).eq("id", run_id).execute()
+        return Response(status_code=204)
+
+    @app.delete("/api/runs/{run_id}/archive")
+    async def unarchive_run(request: Request, run_id: str) -> Response:
+        _require_admin(request)
+        if not _safe_run_id(run_id):
+            raise HTTPException(status_code=404, detail="not found")
+        res = (
+            client.table("runs")
+            .select("id,deleted_at")
+            .eq("id", run_id)
+            .limit(1)
+            .execute()
+        )
+        rows = res.data or []
+        if not rows:
+            raise HTTPException(status_code=404, detail="not found")
+        if not rows[0].get("deleted_at"):
+            raise HTTPException(status_code=409, detail="not archived")
+        client.table("runs").update(
+            {"deleted_at": None, "deleted_by": None}
+        ).eq("id", run_id).execute()
+        return Response(status_code=204)
 
     # ─── Spec 0060 — cross-run search (hosted) ──────────────────────────
     @app.get("/api/search")
@@ -1007,24 +1062,45 @@ def _count_admins(client: Any) -> int:
     return len(res.data or [])
 
 
-def _supabase_list_runs(client: Any) -> list[RunListRow]:
+def _supabase_list_runs(client: Any, *, archived: bool = False) -> list[RunListRow]:
     """Build a list of RunListRow from the runs table.
+
+    Spec 0245 — reads `runs_active` (the soft-delete view) by default so
+    archived rows are filtered out. `archived=True` flips to the raw
+    `runs` table filtered to `deleted_at IS NOT NULL`, ordered by
+    `deleted_at DESC`; the route layer is responsible for admin-gating
+    that branch.
 
     Joins in topic from session_files.brief.md via a second query; rounds
     column is left None in supabase mode for v1 (would need an events
     aggregate query per row).
     """
-    res = (
-        client.table("runs")
-        .select(
-            "id,slug,created_at,pushed_at,phase_reached,exit_code,duration_ms,"
-            "total_cost_usd,state,metrics"
-        )
-        .order("created_at", desc=True)
-        .limit(100)
-        .execute()
+    cols = (
+        "id,slug,created_at,pushed_at,phase_reached,exit_code,duration_ms,"
+        "total_cost_usd,state,metrics,deleted_at,deleted_by"
     )
+    if archived:
+        # ORDER BY deleted_at DESC; NULL semantics require .not_.is_ in
+        # PostgREST which the fake doesn't model. Over-fetch + python-filter
+        # is uniform across both paths and trivially cheap at current row
+        # volumes (~30 total, far below the 200 cap).
+        builder = (
+            client.table("runs")
+            .select(cols)
+            .order("deleted_at", desc=True)
+            .limit(200)
+        )
+    else:
+        builder = (
+            client.table("runs_active")
+            .select(cols)
+            .order("created_at", desc=True)
+            .limit(100)
+        )
+    res = builder.execute()
     runs_rows = res.data or []
+    if archived:
+        runs_rows = [r for r in runs_rows if r.get("deleted_at") is not None][:100]
     # Spec 0082 — drop hidden runs before doing any further work (saves the
     # brief-fetch round-trip for filtered-out rows too).
     if HIDDEN_RUN_IDS:
@@ -1072,6 +1148,8 @@ def _supabase_list_runs(client: Any) -> list[RunListRow]:
                 duration=duration,
                 cost=float(r.get("total_cost_usd") or 0.0),
                 rounds=None,
+                deleted_at=r.get("deleted_at"),
+                deleted_by=r.get("deleted_by"),
             )
         )
     return out
@@ -1143,7 +1221,11 @@ def _require_run_exists(client: Any, run_id: str) -> None:
     # in sync with the list view's filter.
     if run_id in HIDDEN_RUN_IDS:
         raise HTTPException(status_code=404, detail="not found")
-    res = client.table("runs").select("id").eq("id", run_id).limit(1).execute()
+    # Spec 0245 — `runs_active` strips soft-deleted rows, so every per-run
+    # endpoint that funnels through this check 404s on archived ids. The
+    # admin archive/unarchive endpoints query `runs` directly, so they
+    # bypass this guard.
+    res = client.table("runs_active").select("id").eq("id", run_id).limit(1).execute()
     if not (res.data or []):
         raise HTTPException(status_code=404, detail="not found")
 
@@ -1790,8 +1872,11 @@ def _search_runs_supabase(client: Any, query: str) -> list[dict[str, Any]]:
 
     # Get all run IDs and their briefs.
     try:
+        # Spec 0245 — search excludes soft-deleted runs the same way the
+        # list endpoint does. Admin archived-view doesn't have a search
+        # affordance today; reachable via the `Archived` toggle's full list.
         runs_res = (
-            client.table("runs")
+            client.table("runs_active")
             .select("id,slug")
             .order("created_at", desc=True)
             .limit(100)

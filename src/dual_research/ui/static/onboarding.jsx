@@ -189,15 +189,9 @@
     );
   }
 
-  // ─── Skip toast ─────────────────────────────────────────────────
-
-  function SkipToast({ text }) {
-    return (
-      <div className="tour-skip-toast" role="status" aria-live="polite">
-        {text}
-      </div>
-    );
-  }
+  // Spec 0245 — the bespoke <SkipToast> component is gone. Tour-skip
+  // notifications now dispatch via the canonical `useToast()` hook;
+  // <ToastHost /> (mounted at the app root in app.jsx) renders them.
 
   // ─── Helpers ────────────────────────────────────────────────────
 
@@ -213,9 +207,15 @@
 
   // ─── Main overlay ───────────────────────────────────────────────
 
+  // Spec 0245 — dispatch helper. Inlined rather than calling the
+  // `useToast()` hook so we don't add a React-hook to a component
+  // whose hook-order is otherwise frozen by spec 0103 / 0125.
+  function dispatchTourToast(detail) {
+    window.dispatchEvent(new CustomEvent('app-toast', { detail }));
+  }
+
   function TourOverlay({ open, step, onClose, onAdvance, onBack, navigate }) {
     const [anchorRect, setAnchorRect] = React.useState(null);
-    const [skipToast, setSkipToast] = React.useState(null);
     const calloutRef = React.useRef(null);
     const overlayRef = React.useRef(null);
 
@@ -256,7 +256,6 @@
     // Anchor lookup. If the anchor isn't on the page after a retry, skip the
     // step with a toast.
     React.useEffect(() => {
-      setSkipToast(null);
       setAnchorRect(null);
       if (!open || !stepDef || stepDef.type !== 'spotlight') return;
 
@@ -273,8 +272,11 @@
         if (attempt < 4) {
           setTimeout(() => tick(attempt + 1), 250);
         } else {
-          // No anchor on this page — skip the step.
-          setSkipToast({
+          // No anchor on this page — skip the step. Spec 0245: dispatch
+          // through the canonical Toast primitive instead of mounting
+          // the bespoke `.tour-skip-toast` div.
+          dispatchTourToast({
+            tone: 'ok',
             text: `Step ${stepDef.id} skipped — no “${stepDef.anchor}” on this page.`,
           });
           setTimeout(() => { if (!cancelled) onAdvance(); }, 1100);
@@ -391,7 +393,7 @@
       return (
         <div className="tour-overlay" ref={overlayRef}>
           <div className="tour-scrim" />
-          {skipToast && <SkipToast text={skipToast.text} />}
+          {/* Spec 0245: skip-toast moved to the canonical <ToastHost />. */}
         </div>
       );
     }

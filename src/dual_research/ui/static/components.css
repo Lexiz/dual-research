@@ -4146,26 +4146,10 @@ body.light .tour-spotlight__dim {
   border-color: var(--info-border) transparent transparent transparent;
 }
 
-/* ── Skip toast (corner notification) ──────────────────────── */
-.tour-skip-toast {
-  position: fixed;
-  bottom: var(--s-5);
-  right: var(--s-5);
-  background: var(--md-surface-container);
-  border: 1px solid var(--md-outline-variant);
-  color: var(--md-on-surface-variant);
-  padding: var(--s-3) var(--s-4);
-  border-radius: var(--md-shape-sm);
-  font-size: var(--md-body-s-size);
-  box-shadow: var(--e-1);
-  z-index: 110;
-  pointer-events: auto;
-  animation: tour-skip-fadein var(--m-base) var(--ease) both;
-}
-@keyframes tour-skip-fadein {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* Spec 0245 — `.tour-skip-toast` retired. The onboarding tour now
+   dispatches via the canonical `useToast()` hook, which renders into
+   `.md-toast-host` below. Migration touchpoint:
+   `src/dual_research/ui/static/onboarding.jsx`. */
 
 /* ── Settings page layout (sub-tabbed Admin/Settings) ─────── */
 .settings-page {
@@ -5472,3 +5456,67 @@ body.light .theme-pill::after {
   .login-chatter__text::after { animation: none; opacity: 0.5; }
   .theme-pill::after { animation: none; opacity: 0; }
 }
+
+/* ─── Spec 0245 — Toast primitive ────────────────────────────────
+   Bottom-right anchored, M3 shape-md corners + elev-3. Auto-dismiss
+   at 4 s; click toast to dismiss; ESC dismisses most-recent. Stacks
+   newest-at-top. Reduced-motion drops the slide-in transform.
+   Authoritative copy in design-system/assets/styles/composed-components.css. */
+.md-toast-host {
+  position: fixed;
+  right: var(--md-sp-4);
+  bottom: var(--md-sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-sp-2);
+  z-index: 120;
+  pointer-events: none;
+  max-width: min(420px, calc(100vw - 32px));
+}
+.md-toast {
+  pointer-events: auto;
+  text-align: left;
+  padding: var(--md-sp-3) var(--md-sp-4);
+  border-radius: var(--md-shape-md);
+  box-shadow: var(--md-elev-3);
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-hair);
+  font-family: var(--md-font-plain);
+  font-size: var(--md-body-m-size, 14px);
+  line-height: 1.4;
+  cursor: pointer;
+  animation: md-toast-in var(--md-dur-medium-1, 250ms) var(--md-easing-emphasized-decel, ease-out) both;
+}
+.md-toast--tone-ok {
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+}
+.md-toast--tone-error {
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+}
+.md-toast--no-motion { animation: none; }
+@keyframes md-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-toast { animation: none; }
+}
+
+/* ─── Spec 0245 — Archived run row treatment ────────────────────
+   Dim the row to 65% so archived items read as muted; chevron is
+   replaced with a `archived <time> · by <email>` caption in JSX. */
+.run-row--archived { opacity: 0.65; }
+.run-row--archived:hover { opacity: 0.85; }
+
+/* ─── Spec 0245 — destructive-tone filled button ────────────────
+   Applies M3 error role tokens to a filled button for destructive
+   confirm actions (e.g. the archive confirmation dialog). */
+.md-btn--filled.md-btn--tone-error {
+  background: var(--md-error);
+  color: var(--md-on-error);
+}
+.md-btn--filled.md-btn--tone-error:hover { filter: brightness(1.05); }
+.md-btn--filled.md-btn--tone-error:active { filter: brightness(0.95); }

@@ -145,7 +145,15 @@ function useLiveRun(runId) {
 
 // Polls /api/runs every 3 seconds. The endpoint is cheap (one stat per
 // session dir). No global SSE in v1 per spec 0010.
-function useRunList() {
+//
+// Spec 0245 — `options.archived === true` flips the polled URL to
+// `/api/runs?archived=true`. The server gates the flag on admin; for
+// non-admin callers the flag is silently ignored and the active list
+// is returned. The hook also exposes a `refresh()` callable so admin
+// actions (archive / unarchive) can force an immediate re-fetch
+// without waiting for the 3 s tick.
+function useRunList(options) {
+  const archived = !!(options && options.archived);
   const [rows, setRows] = React.useState([]);
   const [lastOk, setLastOk] = React.useState(0);
   // Spec 0083 — stays true until we get one SUCCESSFUL response. A
@@ -154,27 +162,35 @@ function useRunList() {
   // means stale data keeps showing the list, and a cold mount keeps
   // showing the loading visual until the server actually answers.
   const [hasLoaded, setHasLoaded] = React.useState(false);
+  const cancelledRef = React.useRef(false);
+
+  const url = archived ? '/api/runs?archived=true' : '/api/runs';
+
+  const fetchOnce = React.useCallback(() => {
+    return authedFetch(url)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (cancelledRef.current) return;
+        setRows(data);
+        setLastOk(Date.now());
+        setHasLoaded(true);
+      })
+      .catch(() => { /* keep waiting; don't promote to "confirmed empty" on error */ });
+  }, [url]);
 
   React.useEffect(() => {
-    let cancelled = false;
-    const tick = () => {
-      authedFetch('/api/runs')
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then(data => {
-          if (cancelled) return;
-          setRows(data);
-          setLastOk(Date.now());
-          setHasLoaded(true);
-        })
-        .catch(() => { /* keep waiting; don't promote to "confirmed empty" on error */ });
-    };
-    tick();
-    const id = setInterval(tick, 3000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
+    cancelledRef.current = false;
+    // Clear stale rows when toggling between active / archived so the
+    // first paint after toggle doesn't show the wrong list briefly.
+    setHasLoaded(false);
+    setRows([]);
+    fetchOnce();
+    const id = setInterval(fetchOnce, 3000);
+    return () => { cancelledRef.current = true; clearInterval(id); };
+  }, [fetchOnce]);
 
   // Indicator: "connected" when last successful fetch was < 5s ago.
   const [connected, setConnected] = React.useState(false);
@@ -185,7 +201,7 @@ function useRunList() {
     return () => clearInterval(id);
   }, [lastOk]);
 
-  return { rows, connected, loading: !hasLoaded };
+  return { rows, connected, loading: !hasLoaded, refresh: fetchOnce };
 }
 
 // ─────────────────── useAttachments ───────────────────
