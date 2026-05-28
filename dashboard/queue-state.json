@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T23:39:24Z",
+  "updated_at": "2026-05-28T23:42:43Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13258,6 +13258,17 @@
       "merged_at": "2026-05-28T23:36:24Z",
       "deployed_at": "2026-05-28T23:39:23Z",
       "handover": "handoffs/2026-05-29-spec-0252-provider-band-comments-backfill-universal-chrome-nav.md"
+    },
+    "0252.1": {
+      "status": "queued",
+      "queued_at": "2026-05-28T23:42:42Z",
+      "events": [
+        {
+          "ts": "2026-05-28T23:42:43Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
