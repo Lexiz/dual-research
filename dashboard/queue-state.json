@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T16:40:48Z",
+  "updated_at": "2026-05-28T16:45:42Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12234,7 +12234,7 @@
       "handover": "handoffs/2026-05-28-spec-0244-promote-verifier-i2-6-i2-7-i2-8.md"
     },
     "0245": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-28T15:48:55Z",
       "events": [
         {
@@ -12293,11 +12293,44 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/281"
           }
+        },
+        {
+          "ts": "2026-05-28T16:41:16Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T16:43:27Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.59.0"
+          }
+        },
+        {
+          "ts": "2026-05-28T16:44:28Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T16:45:35Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0245-runs-soft-delete-admin-archive.md"
+          }
+        },
+        {
+          "ts": "2026-05-28T16:45:42Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.59.0"
+          }
         }
       ],
       "started_at": "2026-05-28T16:04:37Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/281",
-      "merged_at": "2026-05-28T16:40:46Z"
+      "merged_at": "2026-05-28T16:40:46Z",
+      "deployed_at": "2026-05-28T16:45:41Z",
+      "handover": "handoffs/2026-05-28-spec-0245-runs-soft-delete-admin-archive.md"
     }
   }
 }
