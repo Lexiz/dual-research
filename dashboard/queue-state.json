@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T22:54:54Z",
+  "updated_at": "2026-05-28T23:08:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13041,20 +13041,49 @@
           "ts": "2026-05-28T22:54:05Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:54:18Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0251-executable-carve-out-disposition-gate",
+            "from": "main@0f7013a"
+          }
+        },
+        {
+          "ts": "2026-05-28T22:54:18Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:07:17Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 16,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-28T23:07:17Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:07:18Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2406
+          }
+        },
+        {
+          "ts": "2026-05-28T23:08:05Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/289"
+          }
         }
       ],
       "started_at": "2026-05-28T22:54:05Z"
-    },
-    "0252": {
-      "status": "queued",
-      "queued_at": "2026-05-28T22:54:54Z",
-      "events": [
-        {
-          "ts": "2026-05-28T22:54:54Z",
-          "step": "queued",
-          "data": {}
-        }
-      ]
     }
   }
 }
