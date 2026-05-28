@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.60.1",
+    "date": "2026-05-28",
+    "bump": "PATCH",
+    "summary": "Theme-persistence localStorage key reconciled to the canonical dr-theme (spec 0246.1).",
+    "items": [
+      "<strong>Theme-persistence localStorage key reconciled to the canonical <code>dr-theme</code> ([spec 0246.1](specs/0246.1-theme-persistence-key-reconciliation.md)).</strong> The live app persisted the light/dark choice under <code>dr.theme</code> (dot), while spec 0246 §2.9 / Acceptance Scenario 3 name <code>dr-theme</code> (hyphen) — the spec corpus pointed at a key that did not exist at runtime.",
+      "<code>App()</code> in <code>app.jsx</code> now reads/writes the canonical <code>THEME_KEY = 'dr-theme'</code>, with a one-time read-fallback to the legacy <code>dr.theme</code> value and a <code>removeItem('dr.theme')</code> sweep on first effect so no saved preference is lost.",
+      "The <code>body.light</code> DOM contract is unchanged; no new feature, theme, or surface.",
+      "Source-pattern regression guard at <code>tests/test_spec_0246_1_theme_key.py</code>."
+    ],
+    "specs": [
+      "0246.1"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.60.0",
     "date": "2026-05-28",
     "bump": "MINOR",

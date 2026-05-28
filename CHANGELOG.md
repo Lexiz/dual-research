@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.60.1] — 2026-05-28
+
+### Changed
+
+- **Theme-persistence localStorage key reconciled to the canonical `dr-theme` ([spec 0246.1](specs/0246.1-theme-persistence-key-reconciliation.md)).** The live app persisted the light/dark choice under `dr.theme` (dot), while spec 0246 §2.9 / Acceptance Scenario 3 name `dr-theme` (hyphen) — the spec corpus pointed at a key that did not exist at runtime. `App()` in [`app.jsx`](src/dual_research/ui/static/app.jsx) now reads/writes the canonical `THEME_KEY = 'dr-theme'`, with a one-time read-fallback to the legacy `dr.theme` value and a `removeItem('dr.theme')` sweep on first effect so no saved preference is lost. The `body.light` DOM contract is unchanged; no new feature, theme, or surface. Source-pattern regression guard at [`tests/test_spec_0246_1_theme_key.py`](tests/test_spec_0246_1_theme_key.py).
+
 ## [1.60.0] — 2026-05-28
 
 ### Added
