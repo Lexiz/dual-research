@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T22:10:31Z",
+  "updated_at": "2026-05-28T22:18:14Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12798,7 +12798,7 @@
       "handover": "handoffs/2026-05-28-spec-0247-1-merged-buffer-survives-step19-force-detach.md"
     },
     "0249": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-28T20:57:19Z",
       "events": [
         {
@@ -12850,9 +12850,44 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/287"
           }
+        },
+        {
+          "ts": "2026-05-28T22:11:02Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/287"
+          }
+        },
+        {
+          "ts": "2026-05-28T22:11:10Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:17:36Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.61.1"
+          }
+        },
+        {
+          "ts": "2026-05-28T22:17:48Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:18:14Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0249-path-filter-deploy-only-image-affecting-commits.md"
+          }
         }
       ],
-      "started_at": "2026-05-28T22:07:05Z"
+      "started_at": "2026-05-28T22:07:05Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/287",
+      "merged_at": "2026-05-28T22:10:42Z",
+      "deployed_at": "2026-05-28T22:18:14Z",
+      "handover": "handoffs/2026-05-29-spec-0249-path-filter-deploy-only-image-affecting-commits.md"
     },
     "0250": {
       "status": "queued",
