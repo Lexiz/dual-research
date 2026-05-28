@@ -70,7 +70,7 @@ pre-merge step-18 `--push-to-main` calls still create racing runs).
 
 ## Deferred during implementation
 
-- **Theme-toggle localStorage key divergence from the spec mock.** Spec §2.9 /
+- **Theme-toggle localStorage key divergence from the spec mock** — Spec §2.9 /
   Acceptance Scenario 3 specify persisting to `localStorage['dr-theme']`. The
   live app already owns a theme system keyed on `dr.theme` (App state +
   `body.light`), so the chrome's theme button was wired to the existing
@@ -79,7 +79,7 @@ pre-merge step-18 `--push-to-main` calls still create racing runs).
   from the mock's literal key. If the exact `dr-theme` key is required, the
   follow-up is to migrate the app's theme persistence key — out of scope for
   this visual rebuild.
-- **Pre-merge `--push-to-main` deploy-race hardening.** `/dev-next` step 18
+- **Pre-merge `--push-to-main` deploy-race hardening** — `/dev-next` step 18
   pushes the `merged` state to main via plumbing *before* `gh pr merge`,
   producing 3+ rapid main commits immediately before the merge commit. Under
   the `deploy-main` concurrency group (and especially during Actions cache
