@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T19:09:34Z",
+  "updated_at": "2026-05-28T19:15:55Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12438,7 +12438,7 @@
       "handover": "handoffs/2026-05-28-spec-0246-all-runs-card-layout-rewrite.md"
     },
     "0246.1": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T19:06:20Z",
       "events": [
         {
@@ -12446,7 +12446,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-28T19:15:55Z"
     },
     "0247": {
       "status": "queued",
