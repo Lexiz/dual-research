@@ -1,16 +1,26 @@
-"""Source-pattern test: /dev-next step 18 buffers the merged state (spec 0247).
+"""Source-pattern test: /dev-next defers the merged write past step 19 (spec 0247.1).
 
 Per spec 0247, step 18 ("Merge-time state update") no longer pushes the
-`merged` lifecycle state to `origin/main` before the squash-merge. Both the
-`set status=merged …` and the `append-event … merged` writes are now
-**local-only** buffered writes to the worktree's `dashboard/queue-state.json`;
-step 23's atomic `push-files-to-main` flushes them alongside `status=deployed`.
-This removes the pre-merge `--push-to-main` commits that raced the merge-commit
-deploy under `deploy.yml`'s `deploy-main` concurrency group (the cancellation
-spec 0211.3 detects and pivots around — 0247 removes the cause).
+`merged` lifecycle state to `origin/main` before the squash-merge — both the
+`set status=merged …` and the `append-event … merged` writes became
+**local-only** buffered writes, flushed by step 23's atomic `push-files-to-main`.
+That removed the pre-merge `--push-to-main` commits that raced the merge-commit
+deploy under `deploy.yml`'s `deploy-main` concurrency group.
 
-The three assertions below lock the resulting step structure into the skill
-body. Same doctrine + `_step_block` helper as
+Spec 0247.1 fixes a correctness gap in that change: step 19's
+`git checkout --detach -f origin/main` force-discards uncommitted working-tree
+changes to the tracked `dashboard/queue-state.json`, so a `merged` write placed
+in step 18 (before the detach) is wiped before step 23 ever runs. The durable
+fix **relocates the merged write to after the step-19 re-detach**, joining the
+post-merge buffer cohort (`deploy_started`, `deploy_health_check_ok`,
+`handoff_written`) that survives the force-detach. Step 18 now only *captures*
+`merged_at` at merge time (the `MERGED_AT=` shell variable, co-located with the
+spec 0211.2 `MERGE_SHA` capture, both read before the detach).
+
+The no-pre-merge-`--push-to-main` property spec 0247 introduced is unchanged —
+this file's antipodal-absence assertions therefore extend across BOTH step 18
+and step 19's relocated write block, so the new write site cannot reintroduce a
+pre-merge push either. Same doctrine + `_step_block` helper as
 `test_spec_0211_2_merge_sha_captured_at_merge_time.py`.
 """
 
@@ -68,27 +78,74 @@ def test_step_18_has_no_push_to_main() -> None:
     )
 
 
-def test_step_18_still_computes_merged_state() -> None:
-    """Positive: step 18 still writes `status=merged` + `merged_at` — only the
-    push is deferred, the state is still captured at merge time."""
+def test_step_19_relocated_write_has_no_push_to_main() -> None:
+    """Antipodal absence, extended (spec 0247.1): the relocated `merged` write
+    lives in step 19's block and must also be local-only. The no-pre-merge-push
+    property must hold across the whole pre-step-23 merge window, not just
+    step 18 — the new write site cannot reintroduce a pre-merge push.
+
+    Matched at the command level, not raw substring: step 19's *prose* mentions
+    `--push-to-main` legitimately (the spec 0211.2 capture-before-push
+    reasoning). The invariant is that no `queue_state` *invocation* carries the
+    flag."""
     body = _skill_body()
-    block = _step_block(body, 18)
+    block = _step_block(body, 19)
+    offending = [
+        line
+        for line in block.splitlines()
+        if "spec_lifecycle.queue_state" in line and "--push-to-main" in line
+    ]
+    assert not offending, (
+        "step 19 of dev-next SKILL.md has a `queue_state … --push-to-main` "
+        "command — the relocated merged write (spec 0247.1) must stay local-only "
+        "and ride step 23's atomic push-files-to-main; a pre-merge push here "
+        f"re-introduces the deploy-race spec 0247 removed. Offending: {offending}"
+    )
+
+
+def test_step_19_writes_merged_state() -> None:
+    """Positive (spec 0247.1): the `status=merged` + `merged_at` *write* now
+    lands in step 19's block — the surviving, post-detach site that step 23
+    flushes."""
+    body = _skill_body()
+    block = _step_block(body, 19)
     assert "status=merged" in block, (
-        "step 18 of dev-next SKILL.md must still set `status=merged` (the "
-        "merged state is buffered, not dropped)"
+        "step 19 of dev-next SKILL.md must set `status=merged` at the relocated "
+        "(post-detach) write site — spec 0247.1 moves the buffered merged write "
+        "past step 19's force re-detach so it survives to step 23"
     )
     assert "merged_at" in block, (
-        "step 18 of dev-next SKILL.md must still capture `merged_at` at merge "
-        "time (only its push is deferred to step 23)"
+        "step 19 of dev-next SKILL.md must write `merged_at` at the relocated "
+        "(post-detach) write site (spec 0247.1)"
     )
 
 
-def test_spec_0247_breadcrumb_present_in_step_18() -> None:
-    """Breadcrumb: the string `spec 0247` must appear in step 18's block —
-    locks the design citation so a future re-shuffle leaves a trail back."""
+def test_step_18_captures_merged_at_but_not_the_write() -> None:
+    """Positive + antipodal companion (spec 0247.1): step 18 still *captures*
+    `merged_at` at merge time (the `MERGED_AT=` shell variable, before the
+    detach), but the `status=merged` *write* has left step 18 — it now lives in
+    step 19's post-detach block."""
     body = _skill_body()
     block = _step_block(body, 18)
-    assert "spec 0247" in block, (
-        "step 18 of dev-next SKILL.md must cite `spec 0247` in a comment or "
-        "prose at the buffered-write site (design-breadcrumb invariant)"
+    assert "MERGED_AT=" in block, (
+        "step 18 of dev-next SKILL.md must capture `merged_at` at merge time as "
+        "the `MERGED_AT=` shell variable (capture-before-detach, spec 0247.1) — "
+        "the value must be timestamped before step 19's force re-detach"
+    )
+    assert "status=merged" not in block, (
+        "step 18 of dev-next SKILL.md must NOT carry the `status=merged` write — "
+        "spec 0247.1 relocated that write to step 19's post-detach block so the "
+        "force re-detach does not discard it"
+    )
+
+
+def test_spec_0247_1_breadcrumb_present_in_step_19() -> None:
+    """Breadcrumb (spec 0247.1): the string `spec 0247.1` must appear in
+    step 19's block — locks the design citation to the relocated write site so
+    a future re-shuffle leaves a trail back."""
+    body = _skill_body()
+    block = _step_block(body, 19)
+    assert "spec 0247.1" in block, (
+        "step 19 of dev-next SKILL.md must cite `spec 0247.1` in a comment or "
+        "prose at the relocated merged-write site (design-breadcrumb invariant)"
     )
