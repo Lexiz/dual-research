@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T21:30:15Z",
+  "updated_at": "2026-05-28T22:07:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12798,7 +12798,7 @@
       "handover": "handoffs/2026-05-28-spec-0247-1-merged-buffer-survives-step19-force-detach.md"
     },
     "0249": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T20:57:19Z",
       "events": [
         {
@@ -12806,7 +12806,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-28T22:07:05Z"
     },
     "0250": {
       "status": "queued",
