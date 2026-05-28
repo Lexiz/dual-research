@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T20:04:29Z",
+  "updated_at": "2026-05-28T20:14:48Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12530,7 +12530,7 @@
       "handover": "handoffs/2026-05-28-spec-0246-1-theme-persistence-key-reconciliation.md"
     },
     "0247": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-28T19:06:20Z",
       "events": [
         {
@@ -12562,9 +12562,44 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/284"
           }
+        },
+        {
+          "ts": "2026-05-28T20:08:12Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T20:11:16Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.60.2"
+          }
+        },
+        {
+          "ts": "2026-05-28T20:11:16Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T20:12:09Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0247-pre-merge-push-to-main-deploy-race-hardening.md"
+          }
+        },
+        {
+          "ts": "2026-05-28T20:04:31Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/284"
+          }
         }
       ],
-      "started_at": "2026-05-28T20:00:15Z"
+      "started_at": "2026-05-28T20:00:15Z",
+      "deployed_at": "2026-05-28T20:14:48Z",
+      "handover": "handoffs/2026-05-28-spec-0247-pre-merge-push-to-main-deploy-race-hardening.md",
+      "pr": "https://github.com/Lexiz/dual-research/pull/284",
+      "merged_at": "2026-05-28T20:04:31Z"
     },
     "0248": {
       "status": "queued",
