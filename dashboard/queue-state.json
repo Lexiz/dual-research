@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T12:47:02Z",
+  "updated_at": "2026-05-28T12:47:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11440,6 +11440,11 @@
           "data": {
             "reason": "Re-queue post arc-closeout (0243+0244 deployed); templates ready to ship."
           }
+        },
+        {
+          "ts": "2026-05-28T12:47:05Z",
+          "step": "in_progress",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T12:47:02Z"
