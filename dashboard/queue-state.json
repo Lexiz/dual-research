@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T18:21:54Z",
+  "updated_at": "2026-05-28T18:21:57Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12348,6 +12348,11 @@
             "reason": "semantic_drift",
             "detail": "spec authored against pre-0245 run-list.jsx; deleting RunListView/RunRow wholesale would regress the spec-0245 admin soft-delete/archive feature, which the spec body and design handoff do not account for"
           }
+        },
+        {
+          "ts": "2026-05-28T18:21:57Z",
+          "step": "in_progress",
+          "data": {}
         }
       ],
       "failure_step": "",
