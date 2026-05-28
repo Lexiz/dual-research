@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T11:24:53Z",
+  "updated_at": "2026-05-28T11:24:55Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11973,6 +11973,11 @@
             "branch": "spec/0243-operational-guard-refuse-running-inside-claude-code",
             "from": "main@0eb3bae"
           }
+        },
+        {
+          "ts": "2026-05-28T11:24:55Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T11:23:33Z"
