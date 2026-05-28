@@ -24,18 +24,20 @@ CSS_LIVE = ("src", "dual_research", "ui", "static", "components.css")
 CSS_DS = ("design-system", "assets", "styles", "composed-components.css")
 
 # Every new class the rewrite introduces; the sync test asserts both CSS
-# files define each one (project DS-sync rule).
+# files define each one (project DS-sync rule). Spec 0248 superseded the
+# per-agent .rc-agent* / .rc-bdg* rows with the .rc-prov* / .rc-rs* metric
+# band, the floating .rc-archive-btn with the .rc-tray, and removed the
+# .ar-project wordmark strip — those classes are dropped here and locked by
+# tests/test_spec_0248_all_runs.py instead.
 NEW_CLASSES = [
     ".run-card", ".run-card--errored", ".run-card--abandoned",
     ".run-card--completed", ".run-card--running", ".run-card--archived",
     ".rc-status", ".rc-status--errored", ".rc-topic", ".rc-idbdg",
-    ".rc-chev", ".rc-live", ".rc-archive-btn", ".rc-phases", ".rc-phase",
+    ".rc-chev", ".rc-live", ".rc-phases", ".rc-phase",
     ".rc-phase--done", ".rc-phase--active", ".rc-phase--failed",
-    ".rc-phase--abandon", ".rc-phase--pending", ".rc-agent", ".rc-agent--a",
-    ".rc-agent--b", ".rc-agent__cost", ".rc-agent__name", ".rc-bdg",
-    ".rc-bdg--warn", ".rc-bdg--err", ".rc-bdg--ok", ".rc-bdg--info",
+    ".rc-phase--abandon", ".rc-phase--pending",
     ".rc-note", ".rc-note--err", ".rc-note--warn", ".rc-note--ok",
-    ".ar-chrome", ".ar-tab", ".ar-pill", ".ar-project", ".ar-stats",
+    ".ar-chrome", ".ar-tab", ".ar-pill", ".ar-stats",
     ".ar-stat", ".ar-stat--phase", ".phase-dist", ".ar-filters", ".fchip",
     ".ar-sort", ".ar-group", ".ar-group--warn", ".ar-grid",
 ]
@@ -74,24 +76,26 @@ def test_phase_strip_renders_five_cells_with_state_modifiers():
     assert_jsx_contains(jsx, r"function PhaseMini\(", msg="PhaseMini definition must survive")
 
 
-# ─── Per-agent rows: Claude on sable, GPT on sage (CSS, both files) ───────
+# ─── Per-agent bands: Claude on sable, GPT on sage (CSS, both files) ──────
+# Spec 0248 replaced the .rc-agent rows with the .rc-prov metric band; the
+# brand-spine accents carry forward onto the new class.
 
 
-def test_agent_rows_claude_sable_gpt_sage():
+def test_agent_bands_claude_sable_gpt_sage():
     for parts in (CSS_DS, CSS_LIVE):
         css = read_repo_text(*parts)
         assert_jsx_contains(
-            css, r"\.rc-agent--a::before\s*\{[^}]*background:\s*var\(--p-sable\)",
+            css, r"\.rc-prov--a::before\s*\{[^}]*background:\s*var\(--p-sable\)",
             msg=f"Claude sable accent missing in {parts[-1]}",
         )
         assert_jsx_contains(
-            css, r"\.rc-agent--b::before\s*\{[^}]*background:\s*var\(--p-sage\)",
+            css, r"\.rc-prov--b::before\s*\{[^}]*background:\s*var\(--p-sage\)",
             msg=f"GPT sage accent missing in {parts[-1]}",
         )
-        # Antipode — agent rules must not inline a 6-digit hex colour.
+        # Antipode — band rules must not inline a 6-digit hex colour.
         assert_jsx_lacks(
-            css, r"\.rc-agent[^{]*\{[^}]*#[0-9a-fA-F]{6}",
-            msg=f"agent rules must use tokens, not hex, in {parts[-1]}",
+            css, r"\.rc-prov[^{]*\{[^}]*#[0-9a-fA-F]{6}",
+            msg=f"provider-band rules must use tokens, not hex, in {parts[-1]}",
         )
 
 
@@ -126,13 +130,19 @@ def test_filter_chip_row_seven_statuses_in_order():
 def test_no_inline_style_on_run_card():
     jsx = read_repo_text(*RUN_LIST)
     start = jsx.index("function RunCard(")
-    end = jsx.index("function ConfirmArchiveDialog(")
+    # Spec 0248 removed the Confirm*Dialog components; PhaseMini is the next
+    # function after RunCard and bounds its body for the inline-style scan.
+    end = jsx.index("function PhaseMini(")
     card_src = jsx[start:end]
     assert "style={{" not in card_src, "RunCard must be class-driven — no inline style={{ ... }}"
     assert_jsx_contains(jsx, r"'run-card ' \+", msg="card uses the run-card class via the class map")
 
 
 # ─── Spec-0245 archive machinery survives the rewrite ────────────────────
+# Spec 0248 §2.3 swapped the floating button + full-screen Confirm*Dialog
+# for the inline .rc-tray; the underlying capability (admin gate, archived
+# fetch, endpoint handlers) must still survive. The tray anatomy itself is
+# locked by tests/test_spec_0248_all_runs.py.
 
 
 def test_archive_machinery_survives():
@@ -144,15 +154,15 @@ def test_archive_machinery_survives():
     assert_jsx_contains(jsx, r"onArchivedView\(false\)", msg="Active toggle wiring must survive")
     assert_jsx_contains(jsx, r"onArchivedView\(true\)", msg="Archived toggle wiring must survive")
     assert_jsx_contains(jsx, r"setArchivedView", msg="archivedView state setter must survive")
-    assert_jsx_contains(jsx, r"<ConfirmArchiveDialog", msg="ConfirmArchiveDialog must be rendered")
-    assert_jsx_contains(jsx, r"<ConfirmUnarchiveDialog", msg="ConfirmUnarchiveDialog must be rendered")
-    assert_jsx_contains(jsx, r"function ConfirmArchiveDialog\(", msg="ConfirmArchiveDialog must be defined")
-    assert_jsx_contains(jsx, r"function ConfirmUnarchiveDialog\(", msg="ConfirmUnarchiveDialog must be defined")
-    assert_jsx_contains(jsx, r"Icon\.Archive", msg="archive button must use Icon.Archive")
-    assert_jsx_contains(jsx, r"Icon\.ArchiveUp", msg="restore button must use Icon.ArchiveUp")
+    assert_jsx_contains(jsx, r"function RunArchiveTray\(", msg="inline archive tray must be defined (spec 0248)")
+    assert_jsx_contains(jsx, r"handleArchive\b", msg="archive handler must survive")
+    assert_jsx_contains(jsx, r"handleUnarchive\b", msg="restore handler must survive")
     assert_jsx_contains(jsx, r"onArchive", msg="onArchive handler must survive")
     assert_jsx_contains(jsx, r"onUnarchive", msg="onUnarchive handler must survive")
     assert_jsx_contains(jsx, r"function _secondsSinceIso\(", msg="_secondsSinceIso helper must survive")
+    # Antipode — the superseded floating button + full-screen dialogs are gone.
+    assert_jsx_lacks(jsx, r"function ConfirmArchiveDialog\(", msg="spec 0248: ConfirmArchiveDialog must be removed")
+    assert_jsx_lacks(jsx, r"rc-archive-btn", msg="spec 0248: floating .rc-archive-btn must be removed")
 
 
 # ─── Both CSS files define every new class (DS-sync rule) ─────────────────

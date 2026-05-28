@@ -1,9 +1,12 @@
-"""Spec 0245 — RunRow archive-button source-pattern tests.
+"""Spec 0245 — admin archive affordance source-pattern tests.
 
-Source-pattern guards per spec 0206 §13 doctrine. The positive regex
-locks the post-fix gating shape (`hover && isAdmin && !isArchived &&
-!archivedView`); the absence regex locks out the pre-fix anatomy (the
-archive button rendered unconditionally OR ungated on admin).
+Source-pattern guards per spec 0206 §13 doctrine. Spec 0245 introduced an
+admin-only archive affordance on the run row; spec 0248 §2.3 replaced the
+floating `.rc-archive-btn` icon button + full-screen confirm `Modal` with
+the inline `.rc-tray` (prompt → confirm in place). These tests lock the
+*capability* in its current (tray) form — the admin/view gate and the
+endpoint wiring — and assert the superseded floating-button anatomy is
+gone. The tray's own anatomy is locked by ``test_spec_0248_all_runs.py``.
 """
 
 from __future__ import annotations
@@ -19,49 +22,45 @@ def _run_list_jsx() -> str:
     return read_repo_text("src", "dual_research", "ui", "static", "run-list.jsx")
 
 
-def test_archive_button_renders_inside_run_row() -> None:
+def test_admin_archive_affordance_gated_and_wired() -> None:
     jsx = _run_list_jsx()
-    # Post-fix anatomy: the archive button mounts under the
-    # `showArchiveBtn` predicate, which is itself defined as
-    # `hover && isAdmin && !isArchived && !archivedView`. Anchoring
-    # both halves keeps the test bidirectional.
+    # Post-spec-0248 anatomy: the archive tray mounts under an admin +
+    # active-view gate; the restore tray under an admin + archived gate.
     assert_jsx_contains(
         jsx,
-        r"const showArchiveBtn = hover && isAdmin && !isArchived && !archivedView;",
-        msg="spec 0245 §2.3 — archive-button gate predicate must combine hover + isAdmin + !isArchived + !archivedView",
-    )
-    # Spec 0246 §2.12.2 moved the affordance onto `.run-card` — the button
-    # now also carries the `rc-archive-btn` positioning class. The gate and
-    # the canonical `<Icon.Archive />` glyph are unchanged.
-    assert_jsx_contains(
-        jsx,
-        r"showArchiveBtn && \(\s*<button[\s\S]*?className=\"md-icon-btn rc-archive-btn\"[\s\S]*?<Icon\.Archive />",
-        msg="spec 0245 §2.3 / 0246 §2.12.2 — archive button must render an `.md-icon-btn rc-archive-btn` with the canonical `<Icon.Archive />` glyph, gated on showArchiveBtn",
+        r"const showArchiveTray = isAdmin && !isArchived && !archivedView;",
+        msg="spec 0245/0248 §2.3 — archive tray gate must combine isAdmin + !isArchived + !archivedView",
     )
     assert_jsx_contains(
         jsx,
-        r"aria-label=\{`Archive run \$\{displayId\}`\}",
-        msg="spec 0245 §2.3 — archive button aria-label must read 'Archive run <displayId>'",
+        r"const showRestoreTray = isAdmin && isArchived;",
+        msg="spec 0245/0248 §2.3 — restore tray gate must combine isAdmin + isArchived",
+    )
+    # The archive / restore actions hit the canonical endpoints unchanged.
+    assert_jsx_contains(
+        jsx,
+        r"/api/runs/\$\{encodeURIComponent\(target\.id\)\}/archive`, \{ method: 'POST' \}",
+        msg="spec 0245 — archive must POST /api/runs/{id}/archive",
+    )
+    assert_jsx_contains(
+        jsx,
+        r"/api/runs/\$\{encodeURIComponent\(target\.id\)\}/archive`, \{ method: 'DELETE' \}",
+        msg="spec 0245 — restore must DELETE /api/runs/{id}/archive",
     )
 
 
-def test_pre_fix_anatomy_absent() -> None:
-    import re
+def test_pre_fix_floating_button_anatomy_absent() -> None:
     jsx = _run_list_jsx()
-    # Antipodal-absence: only one `<Icon.Archive />` render-site exists
-    # in run-list.jsx, and it lives inside the showArchiveBtn-gated
-    # `<button>`. A second occurrence — or an occurrence outside the
-    # gate — re-introduces the pre-fix anatomy (the archive affordance
-    # rendered ungated / always visible).
-    occurrences = re.findall(r"<Icon\.Archive\s*/>", jsx)
-    assert len(occurrences) == 1, (
-        f"spec 0245 §2.3 — expected exactly one <Icon.Archive /> render-site in "
-        f"run-list.jsx (inside the showArchiveBtn gate); found {len(occurrences)}"
+    # Antipodal-absence: the spec-0248 rewrite removed the floating icon
+    # button entirely — neither the positioning class nor the icon-button
+    # render-site may survive.
+    assert_jsx_lacks(
+        jsx,
+        r"rc-archive-btn",
+        msg="spec 0248 §2.3 — the floating .rc-archive-btn must be removed (replaced by .rc-tray)",
     )
-    # And the unarchive button has the same shape: exactly one render-site,
-    # which lives inside showUnarchiveBtn. Symmetric guarantee.
-    unarchive_occurrences = re.findall(r"<Icon\.ArchiveUp\s*/>", jsx)
-    assert len(unarchive_occurrences) == 1, (
-        f"spec 0245 §2.3 — expected exactly one <Icon.ArchiveUp /> render-site in "
-        f"run-list.jsx (inside the showUnarchiveBtn gate); found {len(unarchive_occurrences)}"
+    assert_jsx_lacks(
+        jsx,
+        r"<Icon\.Archive\s*/>",
+        msg="spec 0248 §2.3 — the floating archive icon-button render-site must be gone",
     )

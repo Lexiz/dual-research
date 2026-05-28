@@ -53,6 +53,14 @@ class Metrics:
     # live ``PRICING_VERSION`` constant. Lets reconcile / recompute detect
     # rate-table mismatches as a separate axis from counting errors.
     pricing_version: str = ""
+    # Spec 0248 — per-agent critique tally for the All Runs provider bands.
+    # Shape: {"claude": {"tokens": N, "searches": N, "questions": [r, s],
+    # "disagreements": [r, s], "issues": [r, s]}, "openai": {…}}. Computed
+    # by the orchestrator (``ui.critique_tally.compute_critique_by_agent``)
+    # at run-write time and assigned here before ``save()`` so the cheap
+    # ``/api/runs`` list path never replays transcripts. Empty on pre-0248
+    # files / mid-run writes; degrades to zeros (spec 0248 §7).
+    critique_by_agent: dict = field(default_factory=dict)
 
     def record(self, *, label: str, result: AgentResult) -> None:
         u = result.usage
@@ -125,6 +133,8 @@ class Metrics:
             "totals_by_agent": self.totals_by_agent(),
             "total_cost_usd": self.total_cost_usd(),
             "total_search_cost_usd": self.total_search_cost_usd(),
+            # Spec 0248 — only emitted once the orchestrator has populated it.
+            "critique_by_agent": self.critique_by_agent,
         }
         return json.dumps(payload, indent=2, ensure_ascii=False)
 
@@ -157,6 +167,9 @@ class Metrics:
         m = cls(calls=calls, started_at=started_at)
         m.ended_at = ended_at
         m.pricing_version = payload.get("pricing_version", "")
+        # Spec 0248 — rehydrate the persisted tally so a resumed run keeps
+        # the prior write until its next terminal save recomputes it.
+        m.critique_by_agent = payload.get("critique_by_agent", {}) or {}
         return m
 
     @classmethod

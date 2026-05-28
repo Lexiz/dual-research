@@ -175,7 +175,7 @@ function partitionByStatus(runs) {
 }
 
 // ─────────────────── Page ───────────────────
-function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
+function AllRunsPage({ onSelect, navigate, theme, onToggleTheme, client, session }) {
   const me = useMe();
   const isAdmin = !!(me && me.isAdmin);
 
@@ -185,15 +185,13 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
   const { rows: runs, connected, loading, refresh } = useRunList({ archived: archivedView });
   React.useEffect(() => { window.__lastSseConnected = connected; }, [connected]);
 
-  // Spec 0245 — confirmation-dialog targets.
-  const [archiveTarget, setArchiveTarget] = React.useState(null);
-  const [unarchiveTarget, setUnarchiveTarget] = React.useState(null);
   const toast = useToast();
 
-  const handleArchiveConfirm = React.useCallback(async () => {
-    if (!archiveTarget) return;
-    const target = archiveTarget;
-    setArchiveTarget(null);
+  // Spec 0248 §2.3 — the per-card inline tray confirms in place, so the
+  // archive / restore actions take the target run directly (no shared
+  // confirmation-dialog target state). The endpoints are unchanged.
+  const handleArchive = React.useCallback(async (target) => {
+    if (!target) return;
     try {
       const resp = await authedFetch(`/api/runs/${encodeURIComponent(target.id)}/archive`, { method: 'POST' });
       if (resp.status === 204 || resp.status === 409) {
@@ -207,12 +205,10 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
     } catch (_) {
       toast({ tone: 'error', text: 'Could not archive run. Try again.' });
     }
-  }, [archiveTarget, refresh, toast]);
+  }, [refresh, toast]);
 
-  const handleUnarchiveConfirm = React.useCallback(async () => {
-    if (!unarchiveTarget) return;
-    const target = unarchiveTarget;
-    setUnarchiveTarget(null);
+  const handleUnarchive = React.useCallback(async (target) => {
+    if (!target) return;
     try {
       const resp = await authedFetch(`/api/runs/${encodeURIComponent(target.id)}/archive`, { method: 'DELETE' });
       if (resp.status === 204 || resp.status === 409) {
@@ -226,7 +222,7 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
     } catch (_) {
       toast({ tone: 'error', text: 'Could not restore run. Try again.' });
     }
-  }, [unarchiveTarget, refresh, toast]);
+  }, [refresh, toast]);
 
   // Local URL-param state (NOT router hooks).
   const initial = React.useMemo(() => _readUrlParams(), []);
@@ -248,7 +244,7 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
 
   const cardProps = {
     onSelect, isAdmin, archivedView,
-    onArchive: setArchiveTarget, onUnarchive: setUnarchiveTarget,
+    onArchive: handleArchive, onUnarchive: handleUnarchive,
   };
 
   return (
@@ -262,9 +258,10 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
         navigate={navigate}
         theme={theme}
         onToggleTheme={onToggleTheme}
+        client={client}
+        session={session}
       />
       <main className="ar-page">
-        <ProjectStrip />
         <StatsPanel stats={stats} />
         <FilterChipRow filter={filter} counts={counts} sortKey={sortKey} onFilter={handleFilter} onSortCycle={handleSortCycle} />
 
@@ -292,18 +289,14 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
           </div>
         )}
       </main>
-
-      <ConfirmArchiveDialog run={archiveTarget} onConfirm={handleArchiveConfirm} onCancel={() => setArchiveTarget(null)} />
-      <ConfirmUnarchiveDialog run={unarchiveTarget} onConfirm={handleUnarchiveConfirm} onCancel={() => setUnarchiveTarget(null)} />
     </>
   );
 }
 
 // ── §2.2 / §2.12.1 — Top chrome ─────────────────────────────────
-function AllRunsChrome({ me, isAdmin, archivedView, onArchivedView, connected, navigate, theme, onToggleTheme }) {
+function AllRunsChrome({ me, isAdmin, archivedView, onArchivedView, connected, navigate, theme, onToggleTheme, client, session }) {
   const meta = window.useAppMeta ? window.useAppMeta() : null;
   const version = meta && meta.version;
-  const avatarInitial = ((me && me.email) || 'a').slice(0, 1).toLowerCase();
   return (
     <header className="ar-chrome">
       <div className="ar-chrome__tabs">
@@ -330,18 +323,145 @@ function AllRunsChrome({ me, isAdmin, archivedView, onArchivedView, connected, n
         onClick={() => onToggleTheme && onToggleTheme()}>
         <Ms name="contrast" size={20} />
       </button>
-      <span className="ar-avatar" aria-hidden="true">{avatarInitial}</span>
+      {session && (
+        <AvatarMenu
+          navigate={navigate}
+          route={{ view: 'list' }}
+          client={client}
+          session={session}
+          me={me}
+        />
+      )}
     </header>
   );
 }
 
-// ── §2.3 — Project strip ────────────────────────────────────────
-function ProjectStrip() {
+// ── §2.2 — Avatar dropdown (spec 0248: lifted from app.jsx so the All
+//    Runs chrome can mount the same menu; still global so app.jsx's
+//    RightCluster references resolve unchanged) ───────────────────────
+function AvatarMenu({ navigate, route, client, session, me }) {
+  const [open, setOpen] = React.useState(false);
+  const rootRef = React.useRef(null);
+  const email = me?.email || session?.user?.email || '';
+  const avatarUrl = me?.avatarUrl || session?.user?.user_metadata?.avatar_url || null;
+  const fullName = me?.fullName || session?.user?.user_metadata?.full_name || email;
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onDown(e) {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    }
+    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onEsc);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const onSignOut = async () => {
+    setOpen(false);
+    try { await client.auth.signOut(); } catch (e) { /* noop */ }
+    window.location.replace('/');
+  };
+
   return (
-    <div className="ar-project">
-      <span className="ar-project__mark" aria-hidden="true" />
-      <span className="ar-project__name">dual&#8209;research</span>
+    <div ref={rootRef} style={{ position: 'relative', display: 'flex', alignItems: 'center',
+                                 borderLeft: '1px solid var(--md-outline-hair)', padding: '0 10px' }}>
+      <button onClick={() => setOpen(v => !v)}
+              title={email}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 0,
+                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+              }}>
+        <AvatarDisc email={email} url={avatarUrl} size={28} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 42, right: 8, minWidth: 220,
+          background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-variant)',
+          borderRadius: 8, padding: 6, zIndex: 50,
+          boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+        }}>
+          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--md-outline-hair)', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)', lineHeight: 1.2 }}>
+              {fullName}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2 }}>
+              {email}
+              {me?.isAdmin && (
+                <span style={{
+                  marginLeft: 6, padding: '0 6px', borderRadius: 999,
+                  background: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)',
+                  fontSize: 10, border: '1px solid var(--agent-b-border)',
+                }}>admin</span>
+              )}
+            </div>
+          </div>
+          <MenuItem onClick={() => { setOpen(false); navigate('language'); }}
+                    icon={Icon.Palette} label="Design language" active={route.view === 'language'} />
+          <MenuItem onClick={() => {
+                      setOpen(false);
+                      try { window.dispatchEvent(new Event('dr-replay-tour')); } catch (e) {}
+                    }}
+                    icon={Icon.Help} label="Replay tour" />
+          {me?.isAdmin && (
+            <MenuItem onClick={() => { setOpen(false); navigate('settings'); }}
+                      icon={Icon.Gear} label="Settings" active={route.view === 'settings'} />
+          )}
+          <div style={{ height: 1, background: 'var(--md-outline-hair)', margin: '4px 0' }} />
+          <MenuItem onClick={onSignOut} icon={Icon.SignOut} label="Sign out" />
+        </div>
+      )}
     </div>
+  );
+}
+
+function MenuItem({ onClick, icon, label, active }) {
+  const Ico = icon;
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+      padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
+      border: 'none', background: active ? 'var(--md-surface-container)' : 'transparent',
+      color: 'var(--md-on-surface)', fontFamily: 'inherit', fontSize: 13,
+      textAlign: 'left',
+    }}
+    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--md-surface-container)'; }}
+    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
+      {Ico && <Ico style={{ color: 'var(--md-on-surface-muted)' }} />}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function AvatarDisc({ email, url, size = 28 }) {
+  const initials = (email || '?').slice(0, 1).toUpperCase();
+  // Deterministic hue from email so the fallback feels intentional.
+  let hash = 0;
+  for (const c of email || '') hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
+  const hue = Math.abs(hash) % 360;
+  if (url) {
+    return (
+      <img src={url} alt={email}
+           referrerPolicy="no-referrer"
+           style={{
+             width: size, height: size, borderRadius: '50%',
+             border: '1px solid var(--md-outline-variant)', objectFit: 'cover',
+             display: 'block',
+           }} />
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: `hsl(${hue}, 55%, 38%)`,
+      color: 'white', display: 'inline-flex',
+      alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.round(size * 0.42), fontWeight: 'var(--md-w-semi)',
+      border: '1px solid var(--md-outline-variant)',
+    }}>{initials}</div>
   );
 }
 
@@ -465,33 +585,113 @@ function RunGroup({ kind, runs, stats, ...cardProps }) {
   );
 }
 
-// ── §2.8.6 — Per-agent row ──────────────────────────────────────
-function AgentRow({ side, agent }) {
+// ── §2.5 — Rich provider metric band ────────────────────────────
+// Replaces the spec-0246 AgentRow. Single-row band: brand-tinted logo
+// square + spine, provider name with total tokens beneath, cost with a
+// divider, then Questions / Disagreements / Issues raised/solved badge
+// pairs (Q→D→I order per DS §9.3) plus a web-search count. Tallies come
+// from the write-time-persisted critique payload (spec 0248 §2.5).
+const RC_PROV_GROUPS = [
+  { key: 'questions', letter: 'Q', label: 'Questions' },
+  { key: 'disagreements', letter: 'D', label: 'Disagreements' },
+  { key: 'issues', letter: 'I', label: 'Issues' },
+];
+
+function _tokensCompact(n) {
+  const v = Number(n) || 0;
+  if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+  if (v >= 1e3) return Math.round(v / 1e3) + 'k';
+  return String(v);
+}
+
+function ProviderCard({ side, agent }) {
   if (!agent) return null;
+  const brand = side === 'a' ? 'claude' : 'openai';
+  const critique = agent.critique || {};
   return (
-    <div className={'rc-agent rc-agent--' + side}>
-      <span className="rc-agent__name">{agent.name}</span>
-      <span className="rc-agent__cost">{_money(agent.cost)}</span>
-      <span className="rc-agent__chips">
-        {(agent.chips || []).map((c, i) => (
-          <span key={i} className={'rc-bdg' + (c.kind ? ' rc-bdg--' + c.kind : '')}>{c.text}</span>
-        ))}
+    <div className={'rc-prov rc-prov--' + side}>
+      <span className="rc-prov__mark" aria-hidden="true">
+        <BrandMark name={brand} size={18} aria-hidden="true" />
       </span>
+      <div className="rc-prov__id">
+        <span className="rc-prov__name">{agent.name}</span>
+        <span className="rc-prov__tok">{_tokensCompact(agent.tokens)} tokens</span>
+      </div>
+      <span className="rc-prov__cost">{_money(agent.cost)}</span>
+      <div className="rc-prov__metrics">
+        {RC_PROV_GROUPS.map(g => {
+          const pair = critique[g.key] || [0, 0];
+          return (
+            <span key={g.key} className="rc-rs" title={`${g.label}: ${pair[0]} raised, ${pair[1]} solved`}>
+              <span className="rc-rs__cat">{g.letter}</span>
+              <span className="rc-rs--raised">{pair[0]}</span>
+              <span className="rc-rs--solved">{pair[1]}</span>
+            </span>
+          );
+        })}
+        <span className="rc-rs--count" title={`${agent.searches || 0} web searches`}>
+          <Ms name="search" />{agent.searches || 0}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── §2.3 — Inline archive / restore tray ────────────────────────
+// Replaces the spec-0245 floating icon button + full-screen confirm
+// Modal. Revealed on card :hover (CSS); confirms in place. While in the
+// confirm state the tray carries `.is-confirming` so a pointer-leave
+// mid-confirm keeps it expanded (the CSS hover rule alone would collapse
+// it). The action callback hits the same archive/restore endpoint.
+function RunArchiveTray({ run, mode, onAction }) {
+  const [confirming, setConfirming] = React.useState(false);
+  const displayId = run.displayId || run.id.slice(0, 4);
+  const isArchive = mode === 'archive';
+  return (
+    <div
+      className={'rc-tray' + (confirming ? ' is-confirming' : '')}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {!confirming ? (
+        <div className="rc-tray__row">
+          <span className="rc-tray__msg">
+            {isArchive ? 'Would you like to archive this run?' : 'Restore this run to the active list?'}
+          </span>
+          <button type="button" className="md-btn md-btn--text md-btn--sm rc-tray__act"
+            onClick={() => setConfirming(true)}>
+            {isArchive ? 'Archive' : 'Restore'}
+          </button>
+        </div>
+      ) : (
+        <div className="rc-tray__row rc-tray__row--confirm">
+          <span className="rc-tray__msg">
+            {isArchive
+              ? `Archive run ${displayId}? You can restore it later.`
+              : `Restore run ${displayId} to the active list?`}
+          </span>
+          <button type="button" className="md-btn md-btn--text md-btn--sm"
+            onClick={() => setConfirming(false)}>Cancel</button>
+          <button type="button"
+            className={'md-btn md-btn--filled md-btn--sm' + (isArchive ? ' md-btn--tone-error' : '')}
+            onClick={() => { setConfirming(false); onAction && onAction(run); }}>
+            {isArchive ? 'Yes, archive' : 'Yes, restore'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
 // ── §2.8 / §2.12 — Run card ─────────────────────────────────────
 function RunCard({ run, onSelect, isAdmin, archivedView, onArchive, onUnarchive }) {
-  const [hover, setHover] = React.useState(false);
   const isArchived = !!run.deletedAt;
   const cardMod = isArchived ? 'run-card--archived' : (RC_CARD_MOD[run.status] || '');
   const statusMod = RC_STATUS_MOD[run.status] || '';
   const displayId = run.displayId || run.id;
   const isRunning = run.status === 'running';
 
-  const showArchiveBtn = hover && isAdmin && !isArchived && !archivedView;
-  const showUnarchiveBtn = hover && isAdmin && isArchived;
+  const showArchiveTray = isAdmin && !isArchived && !archivedView;
+  const showRestoreTray = isAdmin && isArchived;
   const archivedSecs = isArchived ? _secondsSinceIso(run.deletedAt) : null;
 
   return (
@@ -499,8 +699,6 @@ function RunCard({ run, onSelect, isAdmin, archivedView, onArchive, onUnarchive 
       className={'run-card ' + cardMod}
       data-run-id={run.id}
       onClick={() => { if (!isArchived) onSelect && onSelect(run); }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
     >
       <div className="rc-head">
         <span className={'rc-status ' + statusMod}>{run.status}</span>
@@ -524,8 +722,8 @@ function RunCard({ run, onSelect, isAdmin, archivedView, onArchive, onUnarchive 
       </div>
 
       <div className="rc-agents">
-        <AgentRow side="a" agent={run.agents && run.agents.a} />
-        <AgentRow side="b" agent={run.agents && run.agents.b} />
+        <ProviderCard side="a" agent={run.agents && run.agents.a} />
+        <ProviderCard side="b" agent={run.agents && run.agents.b} />
       </div>
 
       {isArchived ? (
@@ -539,59 +737,16 @@ function RunCard({ run, onSelect, isAdmin, archivedView, onArchive, onUnarchive 
         </div>
       ) : null}
 
+      {/* §2.3 — inline archive / restore tray (admin only). */}
+      {showArchiveTray && <RunArchiveTray run={run} mode="archive" onAction={onArchive} />}
+      {showRestoreTray && <RunArchiveTray run={run} mode="restore" onAction={onUnarchive} />}
+
       {/* Top-right affordances (§2.8.3 / §2.8.4 / §2.12.2). */}
       {isRunning && !isArchived && <span className="rc-live" aria-hidden="true" />}
-      {!isRunning && !showArchiveBtn && !showUnarchiveBtn && (
+      {!isRunning && !isArchived && (
         <span className="rc-chev" aria-hidden="true"><Ms name="chevron_right" /></span>
       )}
-      {showArchiveBtn && (
-        <button type="button" className="md-icon-btn rc-archive-btn"
-          onClick={(e) => { e.stopPropagation(); onArchive && onArchive(run); }}
-          aria-label={`Archive run ${displayId}`} title="Archive run">
-          <Icon.Archive />
-        </button>
-      )}
-      {showUnarchiveBtn && (
-        <button type="button" className="md-icon-btn rc-archive-btn"
-          onClick={(e) => { e.stopPropagation(); onUnarchive && onUnarchive(run); }}
-          aria-label={`Restore run ${displayId}`} title="Restore run">
-          <Icon.ArchiveUp />
-        </button>
-      )}
     </article>
-  );
-}
-
-// ─────────────────── Confirm dialogs (kept — spec 0245) ───────────────────
-function ConfirmArchiveDialog({ run, onConfirm, onCancel }) {
-  if (!run) return null;
-  const displayId = run.displayId || run.id.slice(0, 4);
-  return (
-    <Modal open={true} onClose={onCancel} title={`Archive run ${displayId}?`} variant="single">
-      <div style={{ padding: 'var(--md-sp-2) 0', color: 'var(--md-on-surface-variant)' }}>
-        It will be hidden from the runs list. An admin can restore it from the Archived view.
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--md-sp-2)', marginTop: 'var(--md-sp-4)' }}>
-        <Button variant="text" onClick={onCancel}>Cancel</Button>
-        <Button variant="filled" tone="error" onClick={onConfirm}>Archive</Button>
-      </div>
-    </Modal>
-  );
-}
-
-function ConfirmUnarchiveDialog({ run, onConfirm, onCancel }) {
-  if (!run) return null;
-  const displayId = run.displayId || run.id.slice(0, 4);
-  return (
-    <Modal open={true} onClose={onCancel} title={`Restore run ${displayId}?`} variant="single">
-      <div style={{ padding: 'var(--md-sp-2) 0', color: 'var(--md-on-surface-variant)' }}>
-        It will reappear in the active runs list.
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--md-sp-2)', marginTop: 'var(--md-sp-4)' }}>
-        <Button variant="text" onClick={onCancel}>Cancel</Button>
-        <Button variant="filled" onClick={onConfirm}>Restore</Button>
-      </div>
-    </Modal>
   );
 }
 

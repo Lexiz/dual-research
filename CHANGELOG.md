@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.61.0] — 2026-05-28
+
+### Added
+
+- **Rich per-provider metric bands on the All Runs cards ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.5).** Each run card's per-agent row is rewritten from `AgentRow` (name + cost + a lone searches chip) into a single-row `ProviderCard` band: brand-tinted logo square + spine, provider name with **total tokens** beneath, **cost** with a divider, then **Questions / Disagreements / Issues** as `raised`/`solved` badge pairs (Q→D→I order, DS §9.3 category tones) plus a **searches** count. The raised/solved tallies are computed at run-write time and persisted under `metrics.json`'s new `critique_by_agent` key (`AgentBreakdown` gains `tokens` / `searches` / `critique` fields; `Metrics` gains `critique_by_agent`); the cheap `/api/runs` list path reads the persisted payload and **never replays transcripts** (a `summarize_run` cheap-path guard test enforces this). Old runs without the payload render zero tallies. New composed component — DS [§4.9](design-system/SPEC.md).
+- **Inline archive tray on the All Runs cards ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.3).** The spec-0245 floating icon button + full-screen confirm `Modal` is replaced by a bottom-of-card `.rc-tray` that expands on hover with in-place **prompt → confirm** states (carrying `.is-confirming` so a pointer-leave mid-confirm doesn't collapse it). Same archive/restore endpoints. New composed component — DS [§4.10](design-system/SPEC.md).
+- **Avatar account menu restored to the All Runs chrome ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.2).** `AvatarMenu` / `AvatarDisc` / `MenuItem` are lifted from `app.jsx` into `run-list.jsx` (which loads first, so `app.jsx`'s chrome still references them) and mounted in `AllRunsChrome` in place of the bare initial span — restoring the Google avatar, identity header + `admin` badge, Design language, Replay tour, Settings, and Sign out.
+
+### Changed
+
+- **All Runs card chrome cleanup ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.1 / §2.4).** The redundant `dual-research` wordmark strip (`ProjectStrip`) is removed and `.ar-page` top padding tightened (24 px → 18 px); the run-card grid now constrains the terminal-state note to the phase-strip (left) column with the provider bands spanning the reclaimed vertical space, rather than a full-width `"note note"` row.
+
 ## [1.60.3] — 2026-05-28
 
 ### Changed

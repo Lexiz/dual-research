@@ -168,7 +168,7 @@ function App() {
             ? { height: '100vh', overflow: 'auto' }
             : { height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
         {route.view === 'detail'        && <DetailScreen runId={route.runId} navigate={navigate} />}
-        {route.view === 'list'          && <ListScreen navigate={navigate} theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />}
+        {route.view === 'list'          && <ListScreen navigate={navigate} theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} client={client} session={session} />}
         {route.view === 'language'      && <DesignLanguageView />}
         {route.view === 'settings'      && <SettingsScreen me={me} />}
         {route.view === 'how-it-works'  && <HowItWorksPage />}
@@ -233,13 +233,15 @@ function DetailScreen({ runId, navigate }) {
 
 // ─────────────────── List screen ───────────────────
 
-function ListScreen({ navigate, theme, onToggleTheme }) {
+function ListScreen({ navigate, theme, onToggleTheme, client, session }) {
   return (
     <AllRunsPage
       onSelect={(r) => navigate('detail', r.id)}
       navigate={navigate}
       theme={theme}
       onToggleTheme={onToggleTheme}
+      client={client}
+      session={session}
     />
   );
 }
@@ -401,132 +403,10 @@ function AppVersionChip() {
 // HowItWorksLink removed in spec 0056 — replaced by Tab primitive in RightCluster.
 
 // ─────────────────── Avatar dropdown ───────────────────
-
-function AvatarMenu({ navigate, route, client, session, me }) {
-  const [open, setOpen] = React.useState(false);
-  const rootRef = React.useRef(null);
-  const email = me?.email || session?.user?.email || '';
-  const avatarUrl = me?.avatarUrl || session?.user?.user_metadata?.avatar_url || null;
-  const fullName = me?.fullName || session?.user?.user_metadata?.full_name || email;
-
-  React.useEffect(() => {
-    if (!open) return;
-    function onDown(e) {
-      if (!rootRef.current?.contains(e.target)) setOpen(false);
-    }
-    function onEsc(e) { if (e.key === 'Escape') setOpen(false); }
-    window.addEventListener('mousedown', onDown);
-    window.addEventListener('keydown', onEsc);
-    return () => {
-      window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('keydown', onEsc);
-    };
-  }, [open]);
-
-  const onSignOut = async () => {
-    setOpen(false);
-    try { await client.auth.signOut(); } catch (e) { /* noop */ }
-    window.location.replace('/');
-  };
-
-  return (
-    <div ref={rootRef} style={{ position: 'relative', display: 'flex', alignItems: 'center',
-                                 borderLeft: '1px solid var(--md-outline-hair)', padding: '0 10px' }}>
-      <button onClick={() => setOpen(v => !v)}
-              title={email}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 0,
-                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-              }}>
-        <AvatarDisc email={email} url={avatarUrl} size={28} />
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 42, right: 8, minWidth: 220,
-          background: 'var(--md-surface-container-low)', border: '1px solid var(--md-outline-variant)',
-          borderRadius: 8, padding: 6, zIndex: 50,
-          boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
-        }}>
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--md-outline-hair)', marginBottom: 4 }}>
-            <div style={{ fontSize: 13, color: 'var(--md-on-surface)', fontWeight: 'var(--md-w-medium)', lineHeight: 1.2 }}>
-              {fullName}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--md-on-surface-muted)', marginTop: 2 }}>
-              {email}
-              {me?.isAdmin && (
-                <span style={{
-                  marginLeft: 6, padding: '0 6px', borderRadius: 999,
-                  background: 'var(--agent-b-bg-strong)', color: 'var(--agent-b)',
-                  fontSize: 10, border: '1px solid var(--agent-b-border)',
-                }}>admin</span>
-              )}
-            </div>
-          </div>
-          <MenuItem onClick={() => { setOpen(false); navigate('language'); }}
-                    icon={Icon.Palette} label="Design language" active={route.view === 'language'} />
-          <MenuItem onClick={() => {
-                      setOpen(false);
-                      try { window.dispatchEvent(new Event('dr-replay-tour')); } catch (e) {}
-                    }}
-                    icon={Icon.Help} label="Replay tour" />
-          {me?.isAdmin && (
-            <MenuItem onClick={() => { setOpen(false); navigate('settings'); }}
-                      icon={Icon.Gear} label="Settings" active={route.view === 'settings'} />
-          )}
-          <div style={{ height: 1, background: 'var(--md-outline-hair)', margin: '4px 0' }} />
-          <MenuItem onClick={onSignOut} icon={Icon.SignOut} label="Sign out" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MenuItem({ onClick, icon, label, active }) {
-  const Ico = icon;
-  return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-      padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
-      border: 'none', background: active ? 'var(--md-surface-container)' : 'transparent',
-      color: 'var(--md-on-surface)', fontFamily: 'inherit', fontSize: 13,
-      textAlign: 'left',
-    }}
-    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--md-surface-container)'; }}
-    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
-      {Ico && <Ico style={{ color: 'var(--md-on-surface-muted)' }} />}
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function AvatarDisc({ email, url, size = 28 }) {
-  const initials = (email || '?').slice(0, 1).toUpperCase();
-  // Deterministic hue from email so the fallback feels intentional.
-  let hash = 0;
-  for (const c of email || '') hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
-  const hue = Math.abs(hash) % 360;
-  if (url) {
-    return (
-      <img src={url} alt={email}
-           referrerPolicy="no-referrer"
-           style={{
-             width: size, height: size, borderRadius: '50%',
-             border: '1px solid var(--md-outline-variant)', objectFit: 'cover',
-             display: 'block',
-           }} />
-    );
-  }
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%',
-      background: `hsl(${hue}, 55%, 38%)`,
-      color: 'white', display: 'inline-flex',
-      alignItems: 'center', justifyContent: 'center',
-      fontSize: Math.round(size * 0.42), fontWeight: 'var(--md-w-semi)',
-      border: '1px solid var(--md-outline-variant)',
-    }}>{initials}</div>
-  );
-}
+// Spec 0248 §2.2 — `AvatarMenu` / `AvatarDisc` / `MenuItem` were lifted
+// into run-list.jsx (loaded before app.jsx) so the All Runs `.ar-chrome`
+// can mount the same menu. They remain global function declarations, so
+// the references in `RightCluster` below resolve unchanged at render time.
 
 function ConnectionPill() {
   const [connected, setConnected] = React.useState(false);

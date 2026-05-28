@@ -532,6 +532,26 @@ Only the category chip in (1) varies between kinds. **No kind-specific card vari
 
 **Bar 2 kind filter row** (spec 0205 Bug 4) — uses the same `Chip` primitive as the head's kind chip, not the legacy segmented control that preceded it. Filter chips carry per-kind brand tone (info / warn / err / idle), Q/D/I/C `categoryBubble`, label, and trailing count `value`. `data-active="true"` lifts the chip via `--md-elev-1`; inactive chips dim to opacity 0.72. The single source of truth for tone / letter / label is `_ITEM_KIND_TONE` / `_ITEM_KIND_LETTER` / `_ITEM_KIND_LABEL` in `run-detail.jsx`, shared with the head chip so the filter and card vocabulary stay locked in step. Spec 0205.2 removed the legacy segmented-control CSS rules and JSX variants that previously survived alongside this primitive.
 
+### 4.9 — Provider metric band (spec 0248)
+
+The All Runs run-card's per-agent row. Replaces the spec-0246 `AgentRow` (name + cost + a lone searches chip). One single-row band per agent (`.rc-prov`, `.rc-prov--a` Claude / `.rc-prov--b` GPT) inside `.rc-agents`. Anatomy, left → right:
+
+1. **Brand square** (`.rc-prov__mark`) — the `BrandMark` glyph (`shared.jsx`) on a brand-tinted fill (`--p-sable` 16 % for Claude, `--p-sage` 16 % for GPT) with a 2 px brand spine on the card-left edge (`.rc-prov::before`).
+2. **Identity** (`.rc-prov__id`) — provider name (`.rc-prov__name`, brand-toned) with **total tokens** beneath (`.rc-prov__tok`, compact `1.2M` / `340k`).
+3. **Cost** (`.rc-prov__cost`) — 2-decimal dollars, data font, with a right divider.
+4. **Metric groups** (`.rc-prov__metrics`) — Questions · Disagreements · Issues in fixed Q→D→I order (DS §9.3 category tones: Q = info, D = warn, I = err, as a tinted leading letter `.rc-rs__cat`), each a `raised` / `solved` badge **pair**, then a trailing web-**searches** count.
+
+Badge tone mapping (spec 0248 §2.5, within the §9 canonical tone set): **`raised` → neutral** (`.rc-rs--raised`), **`solved` → ok** (`.rc-rs--solved`), **`searches` → info** (`.rc-rs--count`). The raised/solved tallies are computed at run-write time and persisted under `metrics.json`'s `critique_by_agent`; the list path never replays transcripts (spec 0248 §1 / §7). Old runs without the payload render `0`/`0`. CSS lives in both `components.css` and `composed-components.css`.
+
+### 4.10 — Inline archive tray (spec 0248)
+
+The All Runs run-card's admin-only archive / restore affordance. Replaces the spec-0245 floating `.rc-archive-btn` icon button + full-screen confirm `Modal` (§4.6) — disproportionate chrome for a reversible soft-delete. A bottom-of-card row (`.rc-tray`, grid-area `tray`) that expands on card `:hover` (`max-height` + `opacity` transition) with two in-place states:
+
+- **Prompt** (`.rc-tray__row`) — "Would you like to archive this run?" + a text `Archive` button.
+- **Confirm** (`.rc-tray__row--confirm`) — "Archive run `<id>`? You can restore it later." + `Cancel` (text) / `Yes, archive` (filled, error-tone). Restore mirrors with neutral filled tone.
+
+While confirming, the tray carries `.is-confirming` so a pointer-leave mid-confirm keeps it expanded (the `:hover` rule alone would collapse it). The archived view renders the analogous restore tray (`DELETE …/archive`); the active view renders the archive tray (`POST …/archive`). CSS lives in both `components.css` and `composed-components.css`.
+
 ---
 
 ## 5 — Page-level patterns
