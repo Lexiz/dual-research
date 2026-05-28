@@ -14,14 +14,21 @@
 // `?` → shortcuts overlay, `Cmd+K` → search palette, `/` → run-list search.
 // Input/textarea/contentEditable exempt from single-key bindings.
 
+// Canonical theme-persistence key (spec 0246.1). Legacy `dr.theme` is read as a
+// one-time migration fallback and swept on first effect.
+const THEME_KEY = 'dr-theme';
+
 function App() {
   const { route, navigate } = useRoute();
   const [theme, setTheme] = React.useState(() => {
-    try { return localStorage.getItem('dr.theme') || 'dark'; } catch (e) { return 'dark'; }
+    try { return localStorage.getItem(THEME_KEY) || localStorage.getItem('dr.theme') || 'dark'; } catch (e) { return 'dark'; }
   });
   React.useEffect(() => {
     document.body.classList.toggle('light', theme === 'light');
-    try { localStorage.setItem('dr.theme', theme); } catch (e) {}
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+      localStorage.removeItem('dr.theme');
+    } catch (e) {}
   }, [theme]);
 
   // Auth gate (spec 0021). In fs mode (`hostedMode === false`) the client is
