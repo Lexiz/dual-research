@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T20:24:17Z",
+  "updated_at": "2026-05-28T20:24:19Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12638,6 +12638,11 @@
             "branch": "spec/0247.1-merged-buffer-survives-step19-force-detach",
             "from": "main@35164ec"
           }
+        },
+        {
+          "ts": "2026-05-28T20:24:19Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T20:24:02Z"
