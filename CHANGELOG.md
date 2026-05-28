@@ -10,6 +10,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.58.1] — 2026-05-28
+
+### Changed
+
+- **All five spec templates under [`specs/_templates/`](specs/_templates/) carry `disposition:` + `disposition_reason:` placeholder keys ([spec 0233](specs/0233-spec-templates-add-disposition-placeholders.md)).** Authors using the templates verbatim now satisfy the [spec 0229.1](specs/0229-1-validator-enforce-disposition-frontmatter.md) validator gate's frontmatter-key check without having to read the error message. The literal placeholder value `ship | defer | archive` is intentional — it fails the validator's vocabulary check so authors who forget to pick a value still hit a clear error, with the placeholder doubling as the vocabulary cheat-sheet.
+
+### Fixed
+
+- **Three spec templates ([`bug.md`](specs/_templates/bug.md), [`refactoring.md`](specs/_templates/refactoring.md), [`test.md`](specs/_templates/test.md)) had unquoted colons in their `title:` placeholders (e.g. `title: Fix: <symptom>`)**, which made the entire frontmatter malformed YAML and caused [`scripts/spec_lifecycle/frontmatter.py`](scripts/spec_lifecycle/frontmatter.py)'s tolerant parser to return an empty dict — silently masking the validator's missing-required-keys error on verbatim use. Titles now quoted (`title: "Fix: <symptom>"`); discovered while writing the [spec 0233](specs/0233-spec-templates-add-disposition-placeholders.md) §3 step 6 invariant test. On-mission for the spec's stated goal of removing verbatim-template trip-ups.
+
+### Added
+
+- **Invariant test [`tests/spec_lifecycle/test_template_disposition_placeholders.py`](tests/spec_lifecycle/test_template_disposition_placeholders.py).** Iterates every `*.md` under `specs/_templates/`, parses the YAML frontmatter, and asserts both `disposition` and `disposition_reason` keys are present. Catches future template additions that regress either the placeholder convention or the YAML-parse cleanliness (the colon-quoting fix above passes; an unfixed equivalent would fail).
+
+`pyproject.toml` and `src/dual_research/__init__.py` bumped to 1.58.1.
+
 ## [1.58.0] — 2026-05-28
 
 ### Changed
