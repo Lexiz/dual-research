@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T21:19:32Z",
+  "updated_at": "2026-05-28T21:30:15Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12602,7 +12602,7 @@
       "merged_at": "2026-05-28T20:04:31Z"
     },
     "0248": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-28T20:04:06Z",
       "events": [
         {
@@ -12659,9 +12659,51 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/286"
           }
+        },
+        {
+          "ts": "2026-05-28T21:20:15Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/286"
+          }
+        },
+        {
+          "ts": "2026-05-28T21:20:23Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T21:29:30Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.61.0"
+          }
+        },
+        {
+          "ts": "2026-05-28T21:29:30Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T21:30:14Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0248-all-runs-card-refinements-provider-metrics.md"
+          }
+        },
+        {
+          "ts": "2026-05-28T21:30:15Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.61.0"
+          }
         }
       ],
-      "started_at": "2026-05-28T20:40:54Z"
+      "started_at": "2026-05-28T20:40:54Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/286",
+      "merged_at": "2026-05-28T21:19:41Z",
+      "deployed_at": "2026-05-28T21:30:15Z",
+      "handover": "handoffs/2026-05-28-spec-0248-all-runs-card-refinements-provider-metrics.md"
     },
     "0247.1": {
       "status": "deployed",
