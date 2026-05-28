@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T16:40:38Z",
+  "updated_at": "2026-05-28T16:40:46Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12234,7 +12234,7 @@
       "handover": "handoffs/2026-05-28-spec-0244-promote-verifier-i2-6-i2-7-i2-8.md"
     },
     "0245": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-28T15:48:55Z",
       "events": [
         {
@@ -12288,7 +12288,9 @@
           }
         }
       ],
-      "started_at": "2026-05-28T16:04:37Z"
+      "started_at": "2026-05-28T16:04:37Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/281",
+      "merged_at": "2026-05-28T16:40:46Z"
     }
   }
 }
