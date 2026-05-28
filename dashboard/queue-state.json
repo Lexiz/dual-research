@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T15:48:55Z",
+  "updated_at": "2026-05-28T16:04:37Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12234,7 +12234,7 @@
       "handover": "handoffs/2026-05-28-spec-0244-promote-verifier-i2-6-i2-7-i2-8.md"
     },
     "0245": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T15:48:55Z",
       "events": [
         {
@@ -12242,7 +12242,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-28T16:04:37Z"
     }
   }
 }
