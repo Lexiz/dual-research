@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T18:09:00Z",
+  "updated_at": "2026-05-28T18:21:54Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12333,7 +12333,7 @@
       "handover": "handoffs/2026-05-28-spec-0245-runs-soft-delete-admin-archive.md"
     },
     "0246": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T17:20:19Z",
       "events": [
         {
@@ -12350,7 +12350,8 @@
           }
         }
       ],
-      "failure_step": ""
+      "failure_step": "",
+      "started_at": "2026-05-28T18:21:54Z"
     }
   }
 }
