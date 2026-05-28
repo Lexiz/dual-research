@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T12:03:46Z",
+  "updated_at": "2026-05-28T12:08:04Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12045,7 +12045,7 @@
       "handover": "handoffs/2026-05-28-spec-0243-operational-guard-refuse-running-inside-claude-code.md"
     },
     "0244": {
-      "status": "failed",
+      "status": "deployed",
       "queued_at": "2026-05-28T11:04:33Z",
       "events": [
         {
@@ -12113,12 +12113,37 @@
             "conclusion": "failure",
             "reason": "fly.io machine health-check timeout — request canceled on machines.dev API; app still serving previous version 1.57.0"
           }
+        },
+        {
+          "ts": "2026-05-28T12:07:09Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.58.0",
+            "note": "redeploy after transient fly.io health-check timeout on first attempt"
+          }
+        },
+        {
+          "ts": "2026-05-28T12:07:09Z",
+          "step": "deploy_health_check_ok",
+          "data": {
+            "endpoint": "/api/health",
+            "version": "1.58.0"
+          }
+        },
+        {
+          "ts": "2026-05-28T12:07:58Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0244-promote-verifier-i2-6-i2-7-i2-8.md"
+          }
         }
       ],
       "started_at": "2026-05-28T11:46:43Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/279",
       "merged_at": "2026-05-28T11:55:53Z",
-      "failure_step": "deploy"
+      "failure_step": "deploy",
+      "deployed_at": "2026-05-28T12:08:04Z",
+      "handover": "handoffs/2026-05-28-spec-0244-promote-verifier-i2-6-i2-7-i2-8.md"
     }
   }
 }
