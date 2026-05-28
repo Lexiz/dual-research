@@ -482,7 +482,7 @@ def test_i2_8_pass_with_turn_ended_terminal():
     events = [_ts(), _te()]
     res = _check_i2_8(events)
     assert res.id == "I2.8"
-    assert res.severity == "reporting"
+    assert res.severity == "gating"
     assert res.verdict == "pass"
 
 

@@ -161,7 +161,7 @@ def test_i2_7_pass_one_event_per_key():
     ]
     result = _check_i2_7(events)
     assert result.id == "I2.7"
-    assert result.severity == "reporting"
+    assert result.severity == "gating"
     assert result.verdict == "pass"
 
 
@@ -269,7 +269,7 @@ def test_i2_7_pass_on_captured_142625_transcript():
 
     result = _check_i2_7(events)
     assert result.id == "I2.7"
-    assert result.severity == "reporting"
+    assert result.severity == "gating"
     assert result.verdict == "pass", (
         f"captured fixture must produce a clean I2.7 pass — saw "
         f"{result.verdict} with evidence: {result.evidence}"

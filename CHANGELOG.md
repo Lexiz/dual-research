@@ -10,6 +10,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.58.0] — 2026-05-28
+
+### Changed
+
+- **Verifier I2.6 / I2.7 / I2.8 promoted from `reporting` to `gating` severity ([spec 0244](specs/0244-promote-verifier-i2-6-i2-7-i2-8-from-reporting-to-gating.md)).** Three trivial `severity=` flips on existing invariants in [`src/dual_research/contract/verifier.py`](src/dual_research/contract/verifier.py) — I2.6 (STATUS-RAISED-array event cross-check, [spec 0232](specs/0232-verifier-raised-array-cross-check-i2-6.md)), I2.7 (empty-turn retry hardening, [spec 0239](specs/0239-empty-turn-retry-hardening.md)), and I2.8 (turn termination — every `turn_started` must reach `turn_ended` / a terminal `ProtocolViolation` / a tombstone, [spec 0241](specs/0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap.md)). Promoted together as an atomic PR per Cowork's [`2026-05-28-arc-closeout-signoff.md`](cowork/briefs/2026-05-28-arc-closeout-signoff.md) Q3. Promotion precondition (each spec's §6 trigger): all three reporting-only invariants pass on a clean reference run; satisfied by `20260528-094743-backend-language-choice` ($8.66, 39KB `final.md`, `metrics.ended_at` populated, plain-Terminal.app post-[spec 0243](specs/0243-operational-guard-refuse-running-inside-claude-code.md)). Reversibility preserved: any future fixture surfacing a real `fail` on one of these three invariants is handled by a one-line demote-back-to-reporting follow-up commit, not a crisis-patch to the invariant's detection logic. Verifier output structure unchanged; only the `severity` field flips for these three IDs.
+
+### Added
+
+- **New reference fixture [`tests/fixtures/anchor-runs/20260528-094743-backend-language-choice/`](tests/fixtures/anchor-runs/20260528-094743-backend-language-choice/).** First end-to-end clean run in project history (post-spec-0238 parser hardening, post-H4 mitigation via [spec 0243](specs/0243-operational-guard-refuse-running-inside-claude-code.md)'s operational guard). Promoted into the corpus as the permanent verification artifact for the I2.6 / I2.7 / I2.8 gating contract; new `fixture-notes.md` documents why it's in the corpus and which pre-fix conditions would have killed it. All six anchor-run fixtures' `expected.json` baselines regenerated via `tests._fixture_regen.regenerate_baseline` so the `severity` field reflects the gating contract; the delta is exactly three lines per pre-existing fixture (the I2.6 / I2.7 / I2.8 entries) plus a new full baseline on the new fixture.
+
+- **Test suite [`tests/test_spec_0244_i2_678_gating.py`](tests/test_spec_0244_i2_678_gating.py).** Locks in (a) live-verifier severity flip across all 6 anchor-run fixtures × 3 invariants (18 cases), (b) frozen `expected.json` agreement on the same matrix (18 cases), (c) the new fixture is present + complete + gating-pass on all three invariants, (d) the named spec §2.2 table fixtures (010637 clean baseline, 054652 + 142625 post-0240 regen) are gating-pass-or-not-applicable, and (e) the gating contract actually gates — a synthetic fixture with a bare `turn_started` produces I2.8 = `gating fail` and the verifier CLI exits non-zero in standalone mode naming `I2.8` and `[gating]` in the output.
+
+`pyproject.toml` and `src/dual_research/__init__.py` bumped to 1.58.0.
+
 ## [1.57.0] — 2026-05-28
 
 ### Added
