@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T12:54:34Z",
+  "updated_at": "2026-05-28T12:54:48Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11419,7 +11419,7 @@
       "handover": "handoffs/2026-05-27-spec-0229.1-validator-enforce-disposition-frontmatter.md"
     },
     "0233": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-28T12:40:45Z",
       "events": [
         {
@@ -11487,7 +11487,9 @@
           }
         }
       ],
-      "started_at": "2026-05-28T12:47:02Z"
+      "started_at": "2026-05-28T12:47:02Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/280",
+      "merged_at": "2026-05-28T12:54:48Z"
     },
     "0234": {
       "status": "deferred",
