@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T12:54:50Z",
+  "updated_at": "2026-05-28T13:01:40Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11419,7 +11419,7 @@
       "handover": "handoffs/2026-05-27-spec-0229.1-validator-enforce-disposition-frontmatter.md"
     },
     "0233": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-28T12:40:45Z",
       "events": [
         {
@@ -11492,11 +11492,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/280"
           }
+        },
+        {
+          "ts": "2026-05-28T12:55:18Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T13:00:56Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.58.1"
+          }
+        },
+        {
+          "ts": "2026-05-28T13:01:02Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T13:01:35Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0233-spec-templates-add-disposition-placeholders.md"
+          }
         }
       ],
       "started_at": "2026-05-28T12:47:02Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/280",
-      "merged_at": "2026-05-28T12:54:48Z"
+      "merged_at": "2026-05-28T12:54:48Z",
+      "deployed_at": "2026-05-28T13:01:40Z",
+      "handover": "handoffs/2026-05-28-spec-0233-spec-templates-add-disposition-placeholders.md"
     },
     "0234": {
       "status": "deferred",
