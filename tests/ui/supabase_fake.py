@@ -193,5 +193,12 @@ class FakeSupabaseClient:
     auth: FakeAuth = field(default_factory=FakeAuth)
 
     def table(self, name: str) -> FakeBuilder:
+        # Spec 0245 — `runs_active` is a DB view: SELECT * FROM runs WHERE
+        # deleted_at IS NULL. Mirror it as a read-only snapshot so the
+        # server's reader sites can switch from `runs` to `runs_active`
+        # under the same fake. Writes via this name produce no row.
+        if name == "runs_active":
+            snapshot = [r for r in self.runs if r.get("deleted_at") is None]
+            return FakeBuilder(snapshot)
         bucket = getattr(self, name)
         return FakeBuilder(bucket)

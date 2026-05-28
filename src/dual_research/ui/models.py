@@ -786,6 +786,11 @@ class RunListRow:
     duration: int  # seconds
     cost: float
     rounds: str | None = None  # e.g. "4/6", shown only for Phase 2/4 rows
+    # Spec 0245 — soft-delete metadata, populated only on the admin
+    # archived-view list (`/api/runs?archived=true`); the default active
+    # list reads `runs_active` which strips these by definition.
+    deleted_at: str | None = None
+    deleted_by: str | None = None
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

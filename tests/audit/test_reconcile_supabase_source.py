@@ -121,7 +121,9 @@ class TestGatherSupabaseTotals:
             start_date=dt.date(2026, 5, 16),
             end_date=dt.date(2026, 5, 17),
         )
-        assert client.recorder["table"] == "runs"
+        # Spec 0245 — reconcile reads `runs_active` (soft-delete view)
+        # so archived runs are excluded from daily cost roll-ups.
+        assert client.recorder["table"] == "runs_active"
         assert client.recorder["select"] == "id,metrics"
         assert client.recorder["gte"] == [("created_at", "2026-05-16")]
         # End padded by 1 day → 2026-05-18 (the Python check then

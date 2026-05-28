@@ -470,8 +470,12 @@ def gather_supabase_totals(
     # started_at across the midnight boundary; the Python-side date
     # check in ``_ingest_run_metrics`` enforces the canonical window.
     end_iso = (end_date + dt.timedelta(days=1)).isoformat()
+    # Spec 0245 — reconcile against `runs_active` so soft-deleted runs
+    # are excluded by default. Reconciling against an archived row would
+    # be incorrect signal; if a future use case wants the archived rows
+    # too, add an opt-in flag at that call site.
     res = (
-        client.table("runs")
+        client.table("runs_active")
         .select("id,metrics")
         .gte("created_at", start_iso)
         .lt("created_at", end_iso)

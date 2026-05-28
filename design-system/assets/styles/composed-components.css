@@ -2573,3 +2573,51 @@ body.light .chip.tone-gpt .chip-label {
   color: var(--md-on-surface-faint);
   font-family: var(--md-font-data); font-size: var(--md-label-s-size);
 }
+
+/* ─── Spec 0245 — Toast primitive (DS canonical) ────────────────
+   Bottom-right anchored, M3 shape-md corners + elev-3. Auto-dismiss
+   at 4 s; click toast to dismiss; ESC dismisses most-recent. Stacks
+   newest-at-top. Reduced-motion drops the slide-in transform.
+   Live-app copy at src/dual_research/ui/static/components.css. */
+.md-toast-host {
+  position: fixed;
+  right: var(--md-sp-4);
+  bottom: var(--md-sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-sp-2);
+  z-index: 120;
+  pointer-events: none;
+  max-width: min(420px, calc(100vw - 32px));
+}
+.md-toast {
+  pointer-events: auto;
+  text-align: left;
+  padding: var(--md-sp-3) var(--md-sp-4);
+  border-radius: var(--md-shape-md);
+  box-shadow: var(--md-elev-3);
+  background: var(--md-surface-container-highest);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-hair);
+  font-family: var(--md-font-plain);
+  font-size: var(--md-body-m-size, 14px);
+  line-height: 1.4;
+  cursor: pointer;
+  animation: md-toast-in var(--md-dur-medium-1, 250ms) var(--md-easing-emphasized-decel, ease-out) both;
+}
+.md-toast--tone-ok {
+  background: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+}
+.md-toast--tone-error {
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+}
+.md-toast--no-motion { animation: none; }
+@keyframes md-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .md-toast { animation: none; }
+}

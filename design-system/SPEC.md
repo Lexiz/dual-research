@@ -348,6 +348,7 @@ Primitives are the M3 atoms — the closed set of building blocks that every com
 | **QuoteCallout** | `.quote-callout` | `<QuoteCallout>` | Styled callout for quote fields on critique cards. Left border tinted by agent + serif italic + muted bg. |
 | **LoadingState** | `.dr-loading-*` | `<LoadingState>` | Three sizes: `inline` (14 px spinner, row), `panel` (28 px, column), `page` (44 px, column). Spinner + label + optional hint. Default hint: "Just a moment, please." **The one loading visual everywhere.** |
 | **BrandMark** | — | `<BrandMark>` | Anthropic sunburst / OpenAI rosette. Sizes 48 / 32 / 24 / 16. Variants solid + ghost. |
+| **Toast** | `.md-toast-host`, `.md-toast`, `.md-toast--tone-{ok,error}` | `<ToastHost>` + `useToast()` (spec 0245) | Bottom-right anchored transient notification. `--md-shape-md` (12 dp) corners, `--md-elev-3`, `--md-surface-container-highest` background. Auto-dismiss after 4 s; click to dismiss; ESC dismisses most-recent. Stacks newest-at-top. Two tones: `ok` (tertiary-container) and `error` (error-container); default neutral. Singleton host mounted near app root in `app.jsx`; any surface dispatches via `useToast()` (the bespoke `.tour-skip-toast` was retired in the same spec). Atomic primitive — not a composed component. |
 
 The full rendered catalog lives at `assets/Design System v2.html` and at the live `/#/language` page.
 

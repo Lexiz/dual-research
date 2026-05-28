@@ -178,6 +178,9 @@ function App() {
           navigate={navigate}
         />
       )}
+      {/* Spec 0245 — singleton toast host. Listens on the `app-toast`
+          window event; any surface can dispatch via the `useToast()` hook. */}
+      <ToastHost />
     </div>
   );
 }
@@ -217,14 +220,8 @@ function DetailScreen({ runId, navigate }) {
 // ─────────────────── List screen ───────────────────
 
 function ListScreen({ navigate }) {
-  const { rows, connected, loading } = useRunList();
-  React.useEffect(() => {
-    window.__lastSseConnected = connected;
-  }, [connected]);
   return (
     <RunListView
-      runs={rows}
-      loading={loading}
       onSelect={(r) => navigate('detail', r.id)}
     />
   );

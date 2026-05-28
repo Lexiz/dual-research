@@ -1,5 +1,40 @@
 [
   {
+    "version": "1.59.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "Admin soft-delete on runs (spec 0245).",
+    "items": [
+      "<strong>Added.</strong> <strong>Admin soft-delete on runs ([spec 0245](specs/0245-runs-soft-delete-admin-archive.md)).</strong> A hover-revealed archive button on each <code>RunRow</code> (<code>md-icon-btn</code> with <code><Icon.Archive /></code>, gated on <code>hover && isAdmin && !isArchived && !archivedView</code>) opens a confirmation dialog (Modal Basic variant, error-toned filled Archive button); a <code>POST /api/runs/{id}/archive</code> admin-only endpoint sets <code>deleted_at</code> + <code>deleted_by</code> on <code>public.runs</code>.",
+      "A symmetric <code>DELETE /api/runs/{id}/archive</code> restores.",
+      "The runs list, run detail, search, and daily reconcile now read the new <code>public.runs_active</code> view (<code>SELECT * FROM runs WHERE deleted_at IS NULL</code>, <code>security_invoker = true</code>); the existing writer at <code>persistence/remote.py:105</code> continues to write <code>runs</code> directly (the view is read-only by definition).",
+      "A new <code>Active | Archived</code> segmented toggle in the list header (admin-only) flips <code>useRunList</code> to <code>/api/runs?archived=true</code>; archived rows render with <code>.run-row--archived</code> (0.65 opacity), an <code>archived <relTime> · by <email></code> caption in place of the chevron, and an <code><Icon.ArchiveUp /></code> unarchive button on hover.",
+      "Migration: <code>supabase/migrations/0007_runs_soft_delete.sql</code> adds the two columns, a partial index on <code>deleted_at IS NOT NULL</code>, the view, and RLS policies as defense-in-depth (<code>runs_select_active_or_admin</code>, <code>runs_update_admin_only</code>).",
+      "Server runs with the service-role key so RLS is bypassed by the canonical write path; the policies catch any future caller that bypasses the server.",
+      "<strong><code><Toast></code> design-system primitive ([spec 0245](specs/0245-runs-soft-delete-admin-archive.md) §2.4).</strong> Bottom-right anchored transient notification, <code>--md-shape-md</code> corners, <code>--md-elev-3</code>, <code>--md-surface-container-highest</code> background.",
+      "Two tones: <code>ok</code> (tertiary-container) and <code>error</code> (error-container); default neutral.",
+      "Auto-dismiss after 4 s, click anywhere on the toast to dismiss, ESC dismisses most-recent.",
+      "Stacks vertically (newest at top).",
+      "Honours <code>prefers-reduced-motion</code>.",
+      "Singleton <code><ToastHost /></code> is mounted near the app root in <code>app.jsx</code>; any surface dispatches via the <code>useToast()</code> hook.",
+      "The bespoke <code>.tour-skip-toast</code> rule and its <code>tour-skip-fadein</code> keyframe were retired in the same commit; the onboarding tour's skip notification now dispatches through <code>useToast({ tone: 'ok', text: … })</code>.",
+      "CSS lives in both <code>design-system/assets/styles/composed-components.css</code> (DS canonical) AND <code>src/dual_research/ui/static/components.css</code> (live app) per the CLAUDE.md DS sync rule.",
+      "**Source-pattern tests at <code>tests/test_spec_0245_*.py</code> (4 files, 7 tests).** The archive button gate predicate, the admin-only Active/Archived toggle, the <code>.run-row--archived</code> CSS class application, the <code>.md-toast</code> declaration in both CSS files, and the retirement of <code>.tour-skip-toast</code> / <code>tour-skip-fadein</code> / <code>SkipToast</code> JSX are all locked in via positive + antipodal-absence regex pairs per spec 0206 §13 doctrine.",
+      "<strong>Server endpoint tests at <code>tests/test_spec_0245_archive_endpoint.py</code> + <code>tests/test_spec_0245_runs_active_view.py</code> (10 tests).</strong> Exercise the FastAPI app built by <code>_make_supabase_app</code> against <code>FakeSupabaseClient</code>.",
+      "Cover 204-on-success, 403-for-non-admin, 404-for-unknown, 409-on-no-op, view-filters-archived, <code>?archived=true</code> admin-only behaviour, and 404 on detail for archived ids.",
+      "<strong>Changed.</strong> <strong><code>Button</code> primitive learns a <code>tone</code> prop ([spec 0245](specs/0245-runs-soft-delete-admin-archive.md)).</strong> <code><Button variant=\"filled\" tone=\"error\"></code> paints with <code>--md-error</code> / <code>--md-on-error</code> for destructive confirm actions.",
+      "Other tones fall through unchanged.",
+      "<strong><code>useRunList()</code> accepts an <code>{ archived: boolean }</code> option and exposes a <code>refresh()</code> callable ([spec 0245](specs/0245-runs-soft-delete-admin-archive.md)).</strong> Toggling the option flips the polled URL between <code>/api/runs</code> and <code>/api/runs?archived=true</code>.",
+      "<code>refresh()</code> forces an immediate fetch (used after archive / unarchive so the list updates without waiting for the 3 s tick).",
+      "<strong><code>RunListRow</code> dataclass gains <code>deleted_at</code> + <code>deleted_by</code> fields ([spec 0245](specs/0245-runs-soft-delete-admin-archive.md)).</strong> Populated only on the admin archived-view list response; the default active list reads <code>runs_active</code> which strips both by definition."
+    ],
+    "specs": [
+      "0245"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.58.1",
     "date": "2026-05-28",
     "bump": "PATCH",
