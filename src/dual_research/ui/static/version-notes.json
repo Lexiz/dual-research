@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.60.3",
+    "date": "2026-05-28",
+    "bump": "PATCH",
+    "summary": "/dev-next moves the step-18 merged queue-state write to after step 19's force re-detach so it survives to the step-23 atomic flush (spec 0247.1).",
+    "items": [
+      "<strong><code>/dev-next</code> moves the step-18 <code>merged</code> queue-state write to after step 19's force re-detach so it survives to the step-23 atomic flush ([spec 0247.1](specs/0247.1-merged-buffer-survives-step19-force-detach.md)).</strong> Spec 0247 made step 18's <code>merged</code> write local-only to close the pre-merge deploy-race, assuming step 23's flush would carry it — but step 19's <code>git checkout --detach -f origin/main</code> force-discards uncommitted working-tree changes to <code>dashboard/queue-state.json</code>, wiping the buffer before step 23 and dropping <code>pr</code> / <code>merged_at</code> / the <code>merged</code> event on every cycle.",
+      "Step 18 now only *captures* <code>merged_at</code> at merge time (the <code>MERGED_AT=</code> shell variable, co-located with the spec 0211.2 <code>MERGE_SHA</code> capture); the <code>set status=merged …</code> / <code>append-event … merged</code> *write* relocates to the post-detach buffer cohort (alongside <code>deploy_started</code> / <code>deploy_health_check_ok</code> / <code>handoff_written</code>) that demonstrably survives.",
+      "The no-pre-merge-<code>--push-to-main</code> property is preserved — the relocated write stays local-only.",
+      "Skill-body change (the skill lives outside the repo); the in-repo commit relocates the source-pattern regression guard at <code>tests/test_spec_0247_pre_merge_no_push.py</code> — its antipodal-absence assertions now span step 18 + step 19 — plus this version bump."
+    ],
+    "specs": [
+      "0247.1"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.60.2",
     "date": "2026-05-28",
     "bump": "PATCH",

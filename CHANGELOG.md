@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.60.3] — 2026-05-28
+
+### Changed
+
+- **`/dev-next` moves the step-18 `merged` queue-state write to after step 19's force re-detach so it survives to the step-23 atomic flush ([spec 0247.1](specs/0247.1-merged-buffer-survives-step19-force-detach.md)).** [Spec 0247](specs/0247-pre-merge-push-to-main-deploy-race-hardening.md) made step 18's `merged` write local-only to close the pre-merge deploy-race, assuming step 23's flush would carry it — but step 19's `git checkout --detach -f origin/main` force-discards uncommitted working-tree changes to `dashboard/queue-state.json`, wiping the buffer before step 23 and dropping `pr` / `merged_at` / the `merged` event on every cycle. Step 18 now only *captures* `merged_at` at merge time (the `MERGED_AT=` shell variable, co-located with the spec 0211.2 `MERGE_SHA` capture); the `set status=merged …` / `append-event … merged` *write* relocates to the post-detach buffer cohort (alongside `deploy_started` / `deploy_health_check_ok` / `handoff_written`) that demonstrably survives. The no-pre-merge-`--push-to-main` property is preserved — the relocated write stays local-only. Skill-body change (the skill lives outside the repo); the in-repo commit relocates the source-pattern regression guard at [`tests/test_spec_0247_pre_merge_no_push.py`](tests/test_spec_0247_pre_merge_no_push.py) — its antipodal-absence assertions now span step 18 + step 19 — plus this version bump.
+
 ## [1.60.2] — 2026-05-28
 
 ### Changed
