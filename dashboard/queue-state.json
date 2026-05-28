@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T20:00:20Z",
+  "updated_at": "2026-05-28T20:00:22Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12550,6 +12550,11 @@
             "branch": "spec/0247-pre-merge-push-to-main-deploy-race-hardening",
             "from": "main@ecefd2b"
           }
+        },
+        {
+          "ts": "2026-05-28T20:00:22Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T20:00:15Z"
