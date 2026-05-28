@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T19:15:59Z",
+  "updated_at": "2026-05-28T19:16:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12450,6 +12450,14 @@
           "ts": "2026-05-28T19:15:59Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T19:16:13Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0246.1-theme-persistence-key-reconciliation",
+            "from": "main@e56b768"
+          }
         }
       ],
       "started_at": "2026-05-28T19:15:55Z"
