@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T20:14:48Z",
+  "updated_at": "2026-05-28T20:18:26Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12612,6 +12612,17 @@
         },
         {
           "ts": "2026-05-28T20:04:06Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
+    },
+    "0247.1": {
+      "status": "queued",
+      "queued_at": "2026-05-28T20:18:26Z",
+      "events": [
+        {
+          "ts": "2026-05-28T20:18:26Z",
           "step": "queued",
           "data": {}
         }
