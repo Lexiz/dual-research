@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.61.2",
+    "date": "2026-05-29",
+    "bump": "PATCH",
+    "summary": "Buffer /dev-next pre-merge telemetry into two batched flushes (spec 0250).",
+    "items": [
+      "<strong>Buffer <code>/dev-next</code> pre-merge telemetry into two batched flushes ([spec 0250](specs/0250-dev-next-pre-merge-telemetry-batched-flushes.md)).</strong> The pre-merge window of the <code>/dev-next</code> cycle used to push ~8 individual <code>spec(NNNN): queue-state update</code> commits to <code>origin/main</code> (one per <code>--push-to-main</code> lifecycle event across steps 12–17), the dominant source of main-history noise.",
+      "It now mirrors the proven post-merge buffering (specs 0212/0247): every happy-path event is emitted local-only and the buffer is flushed in exactly two batched commits — <strong>Flush 1</strong> at step 12 (cycle start / <code>in_progress</code>, also making the previously-unfulfilled \"committed at step 12\" promise for the buffered <code>cycle_started</code>/preflight/reconcile events real) and <strong>Flush 2</strong> at step 17 (PR opened).",
+      "Net: ~8 pre-merge commits → 2.",
+      "No contract change — same events, lifecycle states, and vocabulary; only the <code>origin/main</code> push cadence moves.",
+      "Failure writes (semantic drift at step 11, tests red at step 16) keep <code>--push-to-main</code> so a halt stays immediately visible on the dashboard; the post-merge window (steps 18–23) is untouched.",
+      "A pure-stdlib source-pattern test (<code>tests/test_spec_0250_dev_next_pre_merge_buffering.py</code>, skip-when-absent guarded) locks the local-only happy path, the exactly-two-flushes shape, and the never-buffer-failures invariant."
+    ],
+    "specs": [
+      "0250"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.61.1",
     "date": "2026-05-29",
     "bump": "PATCH",
