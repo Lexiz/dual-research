@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T22:50:04Z",
+  "updated_at": "2026-05-28T22:54:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12982,15 +12982,68 @@
       "handover": "handoffs/2026-05-29-spec-0250-dev-next-pre-merge-telemetry-batched-flushes.md"
     },
     "0251": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T21:17:42Z",
       "events": [
         {
           "ts": "2026-05-28T21:17:42Z",
           "step": "queued",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:51:57Z",
+          "step": "cycle_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:53:24Z",
+          "step": "preflight_ok",
+          "data": {
+            "checks": [
+              "main_clean",
+              "no_open_spec_prs",
+              "no_in_flight"
+            ]
+          }
+        },
+        {
+          "ts": "2026-05-28T22:53:37Z",
+          "step": "handoff_read",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0250-dev-next-pre-merge-telemetry-batched-flushes.md"
+          }
+        },
+        {
+          "ts": "2026-05-28T22:53:37Z",
+          "step": "spec_read",
+          "data": {
+            "path": "specs/0251-executable-carve-out-disposition-gate.md",
+            "lines": 110,
+            "type": "new-feature"
+          }
+        },
+        {
+          "ts": "2026-05-28T22:53:37Z",
+          "step": "planning_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:53:59Z",
+          "step": "reconcile_complete",
+          "data": {
+            "mechanical": 0,
+            "semantic": 0,
+            "verdict": "clean",
+            "note": "validator.py:21 path-ambiguity flag is a false positive; all cited lines verify"
+          }
+        },
+        {
+          "ts": "2026-05-28T22:54:05Z",
+          "step": "in_progress",
+          "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-28T22:54:05Z"
     }
   }
 }
