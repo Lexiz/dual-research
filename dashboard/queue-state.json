@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T11:55:45Z",
+  "updated_at": "2026-05-28T11:55:53Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12045,7 +12045,7 @@
       "handover": "handoffs/2026-05-28-spec-0243-operational-guard-refuse-running-inside-claude-code.md"
     },
     "0244": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-28T11:04:33Z",
       "events": [
         {
@@ -12099,7 +12099,9 @@
           }
         }
       ],
-      "started_at": "2026-05-28T11:46:43Z"
+      "started_at": "2026-05-28T11:46:43Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/279",
+      "merged_at": "2026-05-28T11:55:53Z"
     }
   }
 }
