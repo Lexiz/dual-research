@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T20:41:08Z",
+  "updated_at": "2026-05-28T20:41:10Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12627,6 +12627,11 @@
             "branch": "spec/0248-all-runs-card-refinements-provider-metrics",
             "from": "main@6b43f8d"
           }
+        },
+        {
+          "ts": "2026-05-28T20:41:10Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T20:40:54Z"
