@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T12:08:04Z",
+  "updated_at": "2026-05-28T12:40:45Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11419,8 +11419,8 @@
       "handover": "handoffs/2026-05-27-spec-0229.1-validator-enforce-disposition-frontmatter.md"
     },
     "0233": {
-      "status": "deferred",
-      "queued_at": "2026-05-27T10:04:17Z",
+      "status": "queued",
+      "queued_at": "2026-05-28T12:40:45Z",
       "events": [
         {
           "ts": "2026-05-27T10:04:17Z",
@@ -11432,6 +11432,13 @@
           "step": "deferred",
           "data": {
             "reason": "Removed from pre-rerun pickup path; re-queue after live re-run validates 0238+0239."
+          }
+        },
+        {
+          "ts": "2026-05-28T12:40:45Z",
+          "step": "queued",
+          "data": {
+            "reason": "Re-queue post arc-closeout (0243+0244 deployed); templates ready to ship."
           }
         }
       ]
