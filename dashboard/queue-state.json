@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T11:47:20Z",
+  "updated_at": "2026-05-28T11:47:24Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12065,6 +12065,11 @@
             "branch": "spec/0244-promote-verifier-i2-6-i2-7-i2-8",
             "from": "main@2e068e5"
           }
+        },
+        {
+          "ts": "2026-05-28T11:47:24Z",
+          "step": "implementing_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T11:46:43Z"
