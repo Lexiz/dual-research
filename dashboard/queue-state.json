@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T23:36:06Z",
+  "updated_at": "2026-05-28T23:39:24Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13212,10 +13212,52 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/290"
           }
+        },
+        {
+          "ts": "2026-05-28T23:36:46Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/290"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:36:53Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:38:29Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.0"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:38:39Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:39:15Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0252-provider-band-comments-backfill-universal-chrome-nav.md"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:39:24Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.0"
+          }
         }
       ],
-      "status": "in_progress",
-      "started_at": "2026-05-28T23:14:58Z"
+      "status": "deployed",
+      "started_at": "2026-05-28T23:14:58Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/290",
+      "merged_at": "2026-05-28T23:36:24Z",
+      "deployed_at": "2026-05-28T23:39:23Z",
+      "handover": "handoffs/2026-05-29-spec-0252-provider-band-comments-backfill-universal-chrome-nav.md"
     }
   }
 }
