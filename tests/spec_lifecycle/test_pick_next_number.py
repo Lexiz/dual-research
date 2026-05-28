@@ -118,10 +118,10 @@ def test_next_decimal_child_rejects_decimal_parent(tmp_path: Path) -> None:
 def test_current_queue_orders_by_spec_id(tmp_path: Path) -> None:
     """Spec 0199 §2.1 — sort by `(parent, child)` tuple, not queue_position."""
     (tmp_path / "0103-c.md").write_text(
-        '---\nkind: dev\nspec: "0103"\nstatus: queued\n---\n'
+        '---\nkind: dev\nspec: "0103"\nstatus: queued\ndisposition: ship\n---\n'
     )
     (tmp_path / "0101-a.md").write_text(
-        '---\nkind: dev\nspec: "0101"\nstatus: queued\n---\n'
+        '---\nkind: dev\nspec: "0101"\nstatus: queued\ndisposition: ship\n---\n'
     )
     (tmp_path / "0102-b.md").write_text(
         '---\nkind: dev\nspec: "0102"\nstatus: deployed\n---\n'
@@ -133,13 +133,13 @@ def test_current_queue_orders_by_spec_id(tmp_path: Path) -> None:
 def test_current_queue_interleaves_decimals(tmp_path: Path) -> None:
     """Spec 0199 §3.2 Scenario 5 — `0170, 0170.1, 0171` ordering."""
     (tmp_path / "0171-c.md").write_text(
-        '---\nkind: dev\nspec: "0171"\nstatus: queued\n---\n'
+        '---\nkind: dev\nspec: "0171"\nstatus: queued\ndisposition: ship\n---\n'
     )
     (tmp_path / "0170.1-b.md").write_text(
-        '---\nkind: dev\nspec: "0170.1"\nstatus: queued\n---\n'
+        '---\nkind: dev\nspec: "0170.1"\nstatus: queued\ndisposition: ship\n---\n'
     )
     (tmp_path / "0170-a.md").write_text(
-        '---\nkind: dev\nspec: "0170"\nstatus: queued\n---\n'
+        '---\nkind: dev\nspec: "0170"\nstatus: queued\ndisposition: ship\n---\n'
     )
     queue = current_queue(tmp_path)
     assert [spec_id for spec_id, _ in queue] == ["0170", "0170.1", "0171"]
@@ -148,10 +148,10 @@ def test_current_queue_interleaves_decimals(tmp_path: Path) -> None:
 def test_current_queue_ignores_queue_position(tmp_path: Path) -> None:
     """A lingering queue_position field must NOT influence ordering anymore."""
     (tmp_path / "0102-b.md").write_text(
-        '---\nkind: dev\nspec: "0102"\nstatus: queued\nqueue_position: 1\n---\n'
+        '---\nkind: dev\nspec: "0102"\nstatus: queued\ndisposition: ship\nqueue_position: 1\n---\n'
     )
     (tmp_path / "0101-a.md").write_text(
-        '---\nkind: dev\nspec: "0101"\nstatus: queued\nqueue_position: 99\n---\n'
+        '---\nkind: dev\nspec: "0101"\nstatus: queued\ndisposition: ship\nqueue_position: 99\n---\n'
     )
     queue = current_queue(tmp_path)
     # Sort by spec ID, not queue_position — 0101 leads 0102 even though its

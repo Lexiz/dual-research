@@ -206,6 +206,15 @@ async function buildPayload(token) {
           }
         }
       }
+      // Spec 0251 §2.2b — derive the Parked-lane classification. Parity twin:
+      // `_is_runnable_queued` / `_is_parked` in
+      // scripts/spec_lifecycle/render_dashboard.py. `disposition` is read from
+      // the frozen frontmatter (never a layered field); `status` is the
+      // overlaid live value. A queued spec is runnable only with
+      // `disposition: ship`; otherwise (or when status is `parked`) it is
+      // parked — surfaced in its own lane, never silently invisible.
+      spec.runnable_queued = spec.status === 'queued' && spec.disposition === 'ship';
+      spec.parked = spec.status === 'parked' || (spec.status === 'queued' && spec.disposition !== 'ship');
       return spec;
     })
     .filter((s) => s.number);

@@ -15,12 +15,19 @@ from scripts.spec_lifecycle.pick_next_number import current_queue
 
 
 def _write_spec(specs_dir: Path, number: str, *, slug: str = "fixture") -> Path:
-    """Write a minimal queued-dev spec — frontmatter status frozen at `queued`."""
+    """Write a minimal queued-dev spec — frontmatter status frozen at `queued`.
+
+    Carries `disposition: ship` so the spec 0251 §2.1 gate treats it as
+    runnable; these tests exercise the queue-state *overlay* behaviour, which
+    is orthogonal to the disposition gate (covered in
+    ``tests/test_spec_0251_disposition_gate.py``).
+    """
     body = f"""---
 kind: dev
 spec: "{number}"
 slug: {slug}
 status: queued
+disposition: ship
 ---
 
 # Spec {number} fixture

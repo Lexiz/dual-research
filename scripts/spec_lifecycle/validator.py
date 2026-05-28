@@ -18,7 +18,13 @@ from pathlib import Path
 from .frontmatter import parse, ParsedFile
 
 VALID_TYPES = {"new-feature", "bug", "refactoring", "test", "breaking"}
-VALID_STATUSES = {"queued", "in_progress", "merged", "deployed", "failed", "cancelled"}
+# Spec 0251 §2.3 — `parked` is a non-runnable authoring status: a dev spec
+# whose disposition is not `ship` carries `status: parked` so frozen
+# frontmatter matches reality instead of lying with `queued`. The §2.1 gate in
+# `pick_next_number.current_queue` excludes it from the run queue regardless of
+# status, but an honest status keeps the corpus readable and the dashboard
+# Parked lane accurate.
+VALID_STATUSES = {"queued", "parked", "in_progress", "merged", "deployed", "failed", "cancelled"}
 # Spec 0229.1 §2.2 — disposition vocabulary per CLAUDE.md "Carve-out follow-ups
 # must triage at carve-out time" (the §2.5 subsection introduced by spec 0229).
 VALID_DISPOSITIONS = {"ship", "defer", "archive"}
