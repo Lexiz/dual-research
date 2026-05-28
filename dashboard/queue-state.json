@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T11:37:19Z",
+  "updated_at": "2026-05-28T11:37:26Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11953,7 +11953,7 @@
       "handover": "handoffs/2026-05-28-spec-0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap.md"
     },
     "0243": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-28T11:04:32Z",
       "events": [
         {
@@ -12007,7 +12007,9 @@
           }
         }
       ],
-      "started_at": "2026-05-28T11:23:33Z"
+      "started_at": "2026-05-28T11:23:33Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/278",
+      "merged_at": "2026-05-28T11:37:26Z"
     },
     "0244": {
       "status": "queued",
