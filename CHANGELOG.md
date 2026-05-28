@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.60.2] — 2026-05-28
+
+### Changed
+
+- **`/dev-next` step 18 now buffers the `merged` lifecycle state locally instead of pushing it to `main` pre-merge ([spec 0247](specs/0247-pre-merge-push-to-main-deploy-race-hardening.md)).** Step 18's `set status=merged …` and `append-event … merged` writes drop their `--push-to-main` flag and become local-only writes to the worktree's `dashboard/queue-state.json`; step 23's existing atomic `push-files-to-main` flushes them alongside `status=deployed`. Only the squash-merge commit now triggers a deploy in the merge window, removing the pre-merge commits that raced `deploy.yml`'s `deploy-main` concurrency group and cancelled the spec 0246 merge-commit deploy. The watch-side pivot from [spec 0211.3](specs/0211.3-deploy-concurrency-cancels-merge-commit-run.md) is kept as defence-in-depth. Skill-body change (the skill lives outside the repo); the in-repo commit carries a source-pattern regression guard at [`tests/test_spec_0247_pre_merge_no_push.py`](tests/test_spec_0247_pre_merge_no_push.py) plus this version bump.
+
 ## [1.60.1] — 2026-05-28
 
 ### Changed
