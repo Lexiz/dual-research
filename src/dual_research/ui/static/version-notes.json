@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.58.1",
+    "date": "2026-05-28",
+    "bump": "PATCH",
+    "summary": "All five spec templates under specs/_templates/ carry disposition: + disposition_reason: placeholder keys (spec 0233).",
+    "items": [
+      "<strong>Changed.</strong> <strong>All five spec templates under <code>specs/_templates/</code> carry <code>disposition:</code> + <code>disposition_reason:</code> placeholder keys ([spec 0233](specs/0233-spec-templates-add-disposition-placeholders.md)).</strong> Authors using the templates verbatim now satisfy the [spec 0229.1](specs/0229-1-validator-enforce-disposition-frontmatter.md) validator gate's frontmatter-key check without having to read the error message.",
+      "The literal placeholder value <code>ship | defer | archive</code> is intentional — it fails the validator's vocabulary check so authors who forget to pick a value still hit a clear error, with the placeholder doubling as the vocabulary cheat-sheet.",
+      "<strong>Fixed.</strong> <strong>Three spec templates (<code>bug.md</code>, <code>refactoring.md</code>, <code>test.md</code>) had unquoted colons in their <code>title:</code> placeholders (e.g.",
+      "<code>title: Fix: <symptom></code>)</strong>, which made the entire frontmatter malformed YAML and caused <code>scripts/spec_lifecycle/frontmatter.py</code>'s tolerant parser to return an empty dict — silently masking the validator's missing-required-keys error on verbatim use.",
+      "Titles now quoted (<code>title: \"Fix: <symptom>\"</code>); discovered while writing the [spec 0233](specs/0233-spec-templates-add-disposition-placeholders.md) §3 step 6 invariant test.",
+      "On-mission for the spec's stated goal of removing verbatim-template trip-ups.",
+      "<strong>Added.</strong> <strong>Invariant test <code>tests/spec_lifecycle/test_template_disposition_placeholders.py</code>.</strong> Iterates every <code>*.md</code> under <code>specs/_templates/</code>, parses the YAML frontmatter, and asserts both <code>disposition</code> and <code>disposition_reason</code> keys are present.",
+      "Catches future template additions that regress either the placeholder convention or the YAML-parse cleanliness (the colon-quoting fix above passes; an unfixed equivalent would fail)."
+    ],
+    "specs": [
+      "0233",
+      "0229.1"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.58.0",
     "date": "2026-05-28",
     "bump": "MINOR",

@@ -2,7 +2,7 @@
 kind: dev
 spec: "NNNN"
 slug: <kebab>
-title: Tests: <area>
+title: "Tests: <area>"
 type: test
 label: test
 version_bump: PATCH
@@ -20,6 +20,12 @@ handover: ""
 failure_step: ""
 source_session: ""
 promoted_from_draft: ""
+# Spec 0229 §2.5 carve-out-disposition convention. Pick one of:
+#   ship     — high-priority follow-up, should reach /dev-next
+#   defer    — recorded but not actionable soon
+#   archive  — informational record only (the default for carve-outs)
+disposition: ship | defer | archive
+disposition_reason: "One-sentence justification for the disposition choice."
 ---
 
 <!-- DEV SPEC RULE: this body must contain NO open questions, unresolved
