@@ -14,6 +14,19 @@ name: Deploy to fly.io
 on:
   push:
     branches: [main]
+    # Only image-affecting commits should deploy (spec 0249). Queue-state
+    # telemetry commits touch dashboard/** (and at most handoffs/**) and never
+    # change the shipped image, yet without this filter each one fired a full
+    # deploy. The allow-list is a superset of the files every spec PR is
+    # guaranteed to touch (CLAUDE.md versioning rule bumps pyproject.toml +
+    # src/dual_research/__init__.py), so the merge-commit deploy always fires.
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+      - "fly.toml"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 jobs:

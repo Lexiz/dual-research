@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.61.1",
+    "date": "2026-05-29",
+    "bump": "PATCH",
+    "summary": "Path-filter deploy.yml so only image-affecting commits deploy (spec 0249)..",
+    "items": [
+      "<strong>Path-filter <code>deploy.yml</code> so only image-affecting commits deploy ([spec 0249](specs/0249-path-filter-deploy-only-image-affecting-commits.md)).</strong> <code>.github/workflows/deploy.yml</code> triggered on every push to <code>main</code> with no <code>paths:</code> filter, so each <code>/dev-next</code> cycle's ~13 <code>queue-state update</code> telemetry commits (touching only <code>dashboard/<strong></code> and at most <code>handoffs/</strong></code>) fired a full <code>test → flyctl deploy --remote-only → sweep</code> pipeline that shipped a byte-identical image and serialized behind the <code>deploy-main</code> concurrency group.",
+      "Added an allow-list <code>on.push.paths</code> scoped to the files that actually change the shipped image (<code>src/**</code>, <code>pyproject.toml</code>, <code>uv.lock</code>, <code>Dockerfile</code>, <code>fly.toml</code>, <code>.github/workflows/deploy.yml</code>).",
+      "The allow-list is a superset of the files every spec PR is guaranteed to touch (the CLAUDE.md versioning rule bumps <code>pyproject.toml</code> + <code>src/dual_research/__init__.py</code>), so the merge-commit deploy that <code>/dev-next</code> step 20 watches always fires; <code>workflow_dispatch</code> remains as the manual force-deploy escape valve.",
+      "A pure-stdlib YAML-shape regression test (<code>tests/test_spec_0249_deploy_path_filter.py</code>) locks the allow-list shape, the telemetry-path exclusion, and the version-bump-path invariant."
+    ],
+    "specs": [
+      "0249"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.61.0",
     "date": "2026-05-28",
     "bump": "MINOR",
