@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T22:37:16Z",
+  "updated_at": "2026-05-28T22:37:28Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12902,6 +12902,14 @@
           "ts": "2026-05-28T22:37:16Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T22:37:28Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0250-dev-next-pre-merge-telemetry-batched-flushes",
+            "from": "main@8bebbf8"
+          }
         }
       ],
       "started_at": "2026-05-28T22:37:13Z"
