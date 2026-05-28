@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T11:37:28Z",
+  "updated_at": "2026-05-28T11:41:00Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11953,7 +11953,7 @@
       "handover": "handoffs/2026-05-28-spec-0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap.md"
     },
     "0243": {
-      "status": "merged",
+      "status": "deployed",
       "queued_at": "2026-05-28T11:04:32Z",
       "events": [
         {
@@ -12012,11 +12012,37 @@
           "data": {
             "pr": "https://github.com/Lexiz/dual-research/pull/278"
           }
+        },
+        {
+          "ts": "2026-05-28T11:38:00Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T11:39:32Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.57.0"
+          }
+        },
+        {
+          "ts": "2026-05-28T11:39:39Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T11:40:54Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0243-operational-guard-refuse-running-inside-claude-code.md"
+          }
         }
       ],
       "started_at": "2026-05-28T11:23:33Z",
       "pr": "https://github.com/Lexiz/dual-research/pull/278",
-      "merged_at": "2026-05-28T11:37:26Z"
+      "merged_at": "2026-05-28T11:37:26Z",
+      "deployed_at": "2026-05-28T11:41:00Z",
+      "handover": "handoffs/2026-05-28-spec-0243-operational-guard-refuse-running-inside-claude-code.md"
     },
     "0244": {
       "status": "queued",
