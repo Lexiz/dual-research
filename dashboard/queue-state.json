@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T12:47:05Z",
+  "updated_at": "2026-05-28T12:47:49Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11445,6 +11445,14 @@
           "ts": "2026-05-28T12:47:05Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T12:47:49Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0233-spec-templates-add-disposition-placeholders",
+            "from": "main@c6a7c95"
+          }
         }
       ],
       "started_at": "2026-05-28T12:47:02Z"
