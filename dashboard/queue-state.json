@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T11:52:00Z",
+  "updated_at": "2026-05-28T11:52:07Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12078,6 +12078,11 @@
             "files_changed": 11,
             "commits": 0
           }
+        },
+        {
+          "ts": "2026-05-28T11:52:07Z",
+          "step": "tests_started",
+          "data": {}
         }
       ],
       "started_at": "2026-05-28T11:46:43Z"
