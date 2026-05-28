@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T23:08:05Z",
+  "updated_at": "2026-05-28T23:11:33Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12982,7 +12982,7 @@
       "handover": "handoffs/2026-05-29-spec-0250-dev-next-pre-merge-telemetry-batched-flushes.md"
     },
     "0251": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-28T21:17:42Z",
       "events": [
         {
@@ -13081,9 +13081,44 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/289"
           }
+        },
+        {
+          "ts": "2026-05-28T23:08:35Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/289"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:08:44Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:10:30Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.62.0"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:10:46Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:11:24Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0251-executable-carve-out-disposition-gate.md"
+          }
         }
       ],
-      "started_at": "2026-05-28T22:54:05Z"
+      "started_at": "2026-05-28T22:54:05Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/289",
+      "merged_at": "2026-05-28T23:08:27Z",
+      "deployed_at": "2026-05-28T23:11:33Z",
+      "handover": "handoffs/2026-05-29-spec-0251-executable-carve-out-disposition-gate.md"
     }
   }
 }
