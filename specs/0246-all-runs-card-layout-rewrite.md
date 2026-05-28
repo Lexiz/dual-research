@@ -39,7 +39,7 @@ named follow-up target. -->
 
 ## 1. Context
 
-The current All Runs page at [src/dual_research/ui/static/run-list.jsx:98-511](src/dual_research/ui/static/run-list.jsx#L98) is a React component that renders a sparse table-ish list: each row shows status, topic, started/duration/rounds/cost in a flat layout with **no dedicated CSS classes** — every visual property is set inline via React `style=` props on top of a shared design-token vocabulary. The page also embeds an inline search input (run-list.jsx:143–155 — focus-on-`/` keyboard shortcut) and a single tab-group of filter chips. There is no aggregate view: a user landing on the page cannot see at a glance how many runs are stalled, what compute is being burned on dead runs, or where most runs are getting stuck. On a large monitor the layout wastes most of the horizontal real estate. There is also no test coverage at all for the page anatomy — `tests/ui/test_server_cache.py:452,483` exercises the `/api/runs` endpoint but not the surface.
+The current All Runs page is the `RunListView` component at [src/dual_research/ui/static/run-list.jsx:98-526](src/dual_research/ui/static/run-list.jsx#L98) — a React component that renders a sparse table-ish list: each row (`RunRow`, run-list.jsx:563) shows status, topic, started/duration/rounds/cost in a flat layout with **no dedicated CSS classes** — every visual property is set inline via React `style=` props on top of a shared design-token vocabulary. The page also embeds an inline search input (run-list.jsx:277-314) with a focus-on-`/` keyboard shortcut (the `keydown` handler at run-list.jsx:203-215), a single tab-group of filter chips, and the admin-only soft-delete/archive affordances added by [spec 0245](specs/0245-runs-soft-delete-admin-archive.md) (run-list.jsx:342-361, 582-692). There is no aggregate view: a user landing on the page cannot see at a glance how many runs are stalled, what compute is being burned on dead runs, or where most runs are getting stuck. On a large monitor the layout wastes most of the horizontal real estate. There is also no test coverage at all for the page anatomy — `tests/ui/test_server_cache.py:452,483` exercises the `/api/runs` endpoint but not the surface.
 
 The redesign moves to a card-based layout with a summary stats panel at the top, status-grouped sections (Needs attention / Converged / Running), and per-run cards that surface phase outcomes, per-agent cost split, and the failure or completion reason. The motivation is operational: the project's primary landing page should answer "where is my time and money going?" without a click. The full anatomy — measurements, tokens, states, motion, accessibility — is transcribed below from the handoff bundle. The page must render pixel-faithfully under the existing dual-research design system v2 (`design-system/SPEC.md`, [design-system/assets/styles/tokens-and-primitives.css](design-system/assets/styles/tokens-and-primitives.css)) using only existing tokens (no new color/spacing/font definitions) and must add the five new composed components the layout needs.
 
@@ -64,6 +64,7 @@ Every atomic visual element in the handoff bundle lands somewhere in this spec. 
 | Responsive breakpoints — 1180 px (stats collapse to 3 cols), 760 px (stats collapse to 2 cols, page padding shrinks) | `All Runs.html:640-655` | §2.10 |
 | 15-run canonical fixture (14 needs-attention + 1 converged) — drives source-pattern tests | `README.md` "Run data" table | §6 |
 | "Drift" / "Conceded" / "Scope flip" / "Ctx overflow" / "Runaway review loop" semantic chip kinds | `README.md` chip table footnote | §5 (deferred to spec NNNN — semantic derivation needs LLM-or-heuristic analysis, out of scope here) |
+| **Admin soft-delete / archive affordances** — Active/Archived toggle, per-card archive/restore button, archived-card dimmed state + `archived <relTime> · by <email>` caption, confirm dialogs | **NOT in the handoff bundle** — shipped by [spec 0245](specs/0245-runs-soft-delete-admin-archive.md) (v1.59.0) into the live `run-list.jsx` *after* the `All Runs.html` mock was authored | §2.12 |
 | `.rc-phase--active` shimmer + `.run-card--running` info-tinted accent stripe | `All Runs.html:527-534, 442-445` | §2.8 (rendered when `status: running` data flows in; surface lands now, derivation lands now) |
 | "New run" entry-point CTA card | `All Runs.html:597-638` | §5 (out of scope — README §"Out-of-scope notes" line 608 explicitly states the new-run entry point lives in existing chrome) |
 | Empty state when filter yields zero results | README §"Empty state" line 451 | §5 (out of scope — reuse existing empty-state pattern at first-render; design follow-up if needed) |
@@ -73,20 +74,24 @@ Every atomic visual element in the handoff bundle lands somewhere in this spec. 
 
 ## 2. Proposed change
 
-The change has nine sub-parts: the existing implementation is removed in 2.1, then the new page is built up component by component (2.2–2.10). Every visual measurement comes from the transcribed `All Runs.html` source (cited at the §1.1 line numbers).
+The change rewrites the existing implementation's render tree in 2.1 (while **preserving** the spec-0245 archive state, handlers, and data hooks — see §2.12), then builds the new page up component by component (2.2–2.10), then specifies the archive affordances that the handoff bundle predates (2.12). Every visual measurement comes from the transcribed `All Runs.html` source (cited at the §1.1 line numbers).
 
 The CSS class vocabulary from the handoff is preserved **verbatim** — the spec adopts `.ar-*` (all-runs page-level) and `.rc-*` (run-card-level) prefixes as authored, both in [design-system/assets/styles/composed-components.css](design-system/assets/styles/composed-components.css) (authoritative) and in the live-app mirror at [src/dual_research/ui/static/components.css](src/dual_research/ui/static/components.css). Per the project rule, both files MUST be updated in the same commit.
 
-### 2.1 — Remove the current implementation
+### 2.1 — Replace the current render tree (preserving archive plumbing)
 
-The current React tree at [src/dual_research/ui/static/run-list.jsx:98-511](src/dual_research/ui/static/run-list.jsx#L98) is deleted in full. Specifically:
+The component being rebuilt is `RunListView({ onSelect })` at [src/dual_research/ui/static/run-list.jsx:98](src/dual_research/ui/static/run-list.jsx#L98) (729-line file; the function spans run-list.jsx:98-526). The rewrite replaces its **render tree** with the new card layout — it does **not** delete the component's state, data ownership, or the spec-0245 archive machinery. Specifically:
 
-- `RunListView({ runs, loading, onSelect })` at run-list.jsx:98 — replaced by `AllRunsPage({ runs, loading, onSelect })` (new function in the same file).
-- `RunRow({ run, onSelect, attentionSummary, tourAnchor })` at run-list.jsx:413 — replaced by `<RunCard run={...} onSelect={...} />` (new function in the same file).
-- `PhaseMini({ phase, status })` at run-list.jsx:489 — **kept** for cross-surface use (also used in run-detail timeline cards); the new All Runs page does **not** consume it (it has its own `<PhaseStrip />` composed component, §2.8.5). The shared primitive stays in place for the run-detail consumer.
-- The inline `/`-focus keyboard handler at run-list.jsx:143–155 is removed (no inline search on the new page — see §5).
-- The `?q=` query-param state at [src/dual_research/ui/static/router.jsx:6-23](src/dual_research/ui/static/router.jsx#L6) is **no-op'd on the All Runs page** — the param parser remains for backward compatibility but the page does not read it. `?sort=` and `?filter=` remain functional.
-- All inline `style={{ ... }}` expressions inside the deleted run-list components go away; the new tree uses class names from the new composed components.
+- **`RunListView({ onSelect })` → `AllRunsPage({ onSelect })`** (rename in the same file). The signature stays single-prop: the component **owns its own fetch** and MUST keep doing so, because the spec-0245 archive feature depends on it. Carried over verbatim from run-list.jsx:99-107:
+  - `const me = useMe(); const isAdmin = !!(me && me.isAdmin);` (run-list.jsx:99-100) — gates every admin affordance.
+  - `const [archivedView, setArchivedView] = React.useState(false);` + `const { rows: runs, connected, loading, refresh } = useRunList({ archived: archivedView });` (run-list.jsx:106-107) — the locally-fetched `runs` array (NOT an external prop) is what the stats panel (§2.4) and groups (§2.6) read.
+  - The archive/unarchive confirm targets, callbacks, and toast wiring at run-list.jsx:115-157 — kept (see §2.12).
+- **`RunRow({ run, onSelect, attentionSummary, tourAnchor, isAdmin, archivedView, onArchive, onUnarchive })` at run-list.jsx:563** — its render body is replaced by `<RunCard run={...} onSelect={...} isAdmin={...} archivedView={...} onArchive={...} onUnarchive={...} />` (new function in the same file). The per-row archive affordances (run-list.jsx:582-692) move into the card per §2.12; they are NOT dropped.
+- **`PhaseMini({ phase, status })` at run-list.jsx:707 — kept** for cross-surface use. Its surviving consumer after this rewrite is the `/#/language` primitives showcase at [src/dual_research/ui/static/design-language.jsx:650-654](src/dual_research/ui/static/design-language.jsx#L650) (the current run-list.jsx:634 consumer goes away with the old `RunRow` body). The new All Runs page does **not** consume it — it has its own 5-segment `.rc-phases` strip (§2.8.5). The shared primitive stays so the showcase route keeps rendering.
+- **`ConfirmArchiveDialog` / `ConfirmUnarchiveDialog` (run-list.jsx:531-561) and `_secondsSinceIso` (run-list.jsx:699-704) — kept verbatim.** They are surface-agnostic and reused unchanged by the new card layout (§2.12).
+- The inline **`/`-focus search** is removed (no inline search on the new page — see §5): the `keydown` handler `useEffect` at run-list.jsx:203-215 and the search-input block at run-list.jsx:277-314, plus the `search`/`searchRef`/`debounceRef`/`handleSearch` state they drive.
+- **Query-param URL state lives in `run-list.jsx`, not `router.jsx`.** The `?sort=` / `?filter=` / `?q=` parser+writer are the local helpers `_readUrlParams()` / `_writeUrlParams()` at [src/dual_research/ui/static/run-list.jsx:6-23](src/dual_research/ui/static/run-list.jsx#L6) (`router.jsx` is hash-only routing — `#/`, `#/runs/<id>`, etc. — and carries no query-param logic). The rewrite **keeps** `_readUrlParams`/`_writeUrlParams` + the local `filter`/`sortKey` state and the 250 ms debounce mechanism (run-list.jsx:160-200) for the new filter chips (§2.5) and sort affordance. `?q=` becomes a no-op (no inline search); `?sort=`/`?filter=` stay functional.
+- All inline `style={{ ... }}` expressions inside the replaced render tree go away; the new tree uses class names from the new composed components. (The kept dialogs at run-list.jsx:531-561 retain their existing inline styles — they are out of scope for the visual rebuild.)
 
 ### 2.2 — Top chrome (`.ar-chrome`)
 
@@ -96,7 +101,7 @@ Replaces the existing chrome bar on the All Runs route only. The chrome layout m
 - **Tab cluster** (left): three tabs in a `.ar-chrome__tabs` flex row — `All runs` (active, `aria-current="page"`), `Compare`, `Search`. Each tab is `.ar-tab` (36 px, 16 px h-padding, fully rounded, M3 secondary-container tonal on active). Material Symbols icons at 18 px (`view_agenda`, `compare_arrows`, `search`) precede each label.
 - **Spacer** (`.ar-chrome__sp`) flexes to push the right cluster.
 - **Connection pill** (`.ar-pill` with a `.dot.dot--ok` 6 px green dot at `--p-ok` plus a 3 px soft glow): `● connected`. 28 px tall, outlined.
-- **Version pill** (`.ar-pill` with `.ar-pill__v` 11 px mono interior): `v1.58.1`. Reads the version from `pyproject.toml` injected at page render — same source as today's chrome.
+- **Version pill** (`.ar-pill` with `.ar-pill__v` 11 px mono interior). Reads the version from `pyproject.toml` injected at page render — same source as today's chrome. The handoff transcribed `v1.58.1`, but that literal is **illustrative only**: the value is dynamic (current shipped version is v1.59.0 and climbs every PR), so the spec asserts the injection source, not the string.
 - **How it works** tab (`.ar-tab`).
 - **Theme toggle** (`.md-icon-btn` with `contrast` Material Symbol, 20 px) — toggles `body.light` class, persisted to `localStorage` key `dr-theme`.
 - **Avatar** (`.ar-avatar` 34×34 circle, `linear-gradient(135deg, var(--p-sable), var(--p-sage))`, initial letter `a` centered, weight 500).
@@ -166,7 +171,7 @@ Seven chips, in order, with single-select semantics (parity with current page):
 | Abandoned | inactive | `--p-warn` | `count(status="abandoned")` |
 | Completed | inactive | `--p-ok` | `count(status="completed")` |
 
-Click toggles the `?filter=<status>` URL state (same query param the router already uses at [src/dual_research/ui/static/router.jsx:6-23](src/dual_research/ui/static/router.jsx#L6)); the visible group sections (§2.6) re-filter on the new state.
+Click toggles the `?filter=<status>` URL state via the existing local helpers `_readUrlParams()` / `_writeUrlParams()` at [src/dual_research/ui/static/run-list.jsx:6-23](src/dual_research/ui/static/run-list.jsx#L6) (not `router.jsx` — that file is hash-only routing); the visible group sections (§2.6) re-filter on the new state.
 
 `.ar-sort` is the existing sort affordance — same vocabulary as today (`?sort=started:desc`, `?sort=cost:desc`, `?sort=duration:desc`, `?sort=id:asc`), restyled to match the chip vocabulary: 32 px tall, 12 px h-padding, fully rounded, leading `sort` Material Symbol icon at 18 px, label `Started, newest` (or the current sort's human label).
 
@@ -282,14 +287,14 @@ Phase state modifiers (one per cell based on `run.phases[i]`):
 | `.rc-phase--abandon` | `--p-warn` background + 45° diagonal-stripe pattern (`linear-gradient(45deg, transparent 25%, color-mix(in srgb, #000 18%, transparent) 25%, ...)`; `background-size: 6px 6px`) | `--p-warn` |
 | `.rc-phase--pending` | default outline-hair bar | `--md-on-surface-decor` |
 
-Phase computation per run: derive the `[Phase, Phase, Phase, Phase, Phase]` tuple server-side from existing per-turn artifacts (each turn carries the phase it executed in). Algorithm:
+Phase computation per run: the `[Phase, Phase, Phase, Phase, Phase]` tuple is derived server-side from the **terminal phase + status that the row builders already compute** — `summarize_run` already holds `phase_int` (from `state.json`) and `status` (from `derive_run_status`); `_supabase_list_runs` holds the equivalent `phase_reached` + derived status. No per-turn-artifact read is needed (there is no `turns/*.json` directory on disk — see §4). Algorithm, keyed on the terminal phase `T = phase_int` and `status`:
 
-- For each phase Px (1..5): if any turn ran in this phase AND the run subsequently moved past it → `done`.
-- The phase where the run terminated: `failed` if `status=errored`, `abandon` if `status=abandoned` or `status=deadlocked`, `active` if `status=running`.
-- All later phases: `pending`.
-- `status=completed`: all five phases `done`.
+- Every phase Px with `x < T` → `done` (the run moved past it).
+- The terminal phase `PT`: `failed` if `status=errored`, `abandon` if `status=abandoned` or `status=deadlocked`, `active` if `status=running`, `done` if `status` is converged/completed.
+- Every phase Px with `x > T` → `pending`.
+- `status=completed`/`converged`: all five phases `done`.
 
-The new `phases` array on `RunListRow` (see §4) lets the front-end render this without re-deriving from raw turns.
+The new `phases` array on `RunListRow` (see §4) lets the front-end render this without re-deriving on the client. The derivation is identical in filesystem and supabase modes because both have terminal phase + status.
 
 `.run-phase-strip` / `.rc-phases` is a **new composed component** — a 5-segment variant of the existing 8-segment `.phase-progress` admin pattern at [design-system/SPEC.md §5.3](design-system/SPEC.md#53--admin--settings--progresssegs). The 5-segment shape is run-list-specific; keep it as `.rc-phases` (run-card-scoped) rather than promoting to a top-level primitive.
 
@@ -337,13 +342,12 @@ Chip primitive (`.rc-bdg`):
 .rc-bdg--info { color: var(--p-info); background: color-mix(in srgb, var(--p-info) 16%, transparent); }
 ```
 
-The agent's `chips: Chip[]` array (see §4 schema) renders verbatim. Chip kinds that ship with derivation in this spec:
+The agent's `chips: AgentChip[]` array (see §4 schema) renders verbatim. The chip *vocabulary* (`.rc-bdg` + tonal modifiers) lands fully now; which chips carry *data* depends on the derivation feasibility worked out in §4. Concretely:
 
-- `<N> plan turns` (neutral) — count of P1+P2 turns by this agent.
-- `<N> critiques` (warn if N≥5, else neutral) — count of P4 critique turns by this agent.
-- `<N> sources` (info) — count of distinct sources cited by this agent across the run.
+- `<N> searches` (info) — per-agent search count from `metrics.json::totals_by_agent.{claude,openai}.searches` (also present in the supabase `metrics` JSONB column). **Ships now, both modes** — this is the one cheaply-derivable agent chip. (The handoff's "distinct sources cited" wording implied URL-level dedup; that needs the per-turn `turn_searches` audit and is deferred to §5. The shipping chip is the raw search count.)
+- `<N> plan turns` (neutral) / `<N> critiques` (warn if N≥5) — per-phase, per-agent turn counts. The real source is the phase-tagged `turn_ended` events in `transcript.jsonl` (each carries `agent` + `phase`), but counting them requires a full transcript scan that `summarize_run` deliberately avoids (it is the cheap, no-replay path), and the supabase columns carry no per-phase turn breakdown at all. **Deferred to §5** (same follow-up as the semantic chips) rather than break the cheap-list contract or ship an fs-only asymmetry.
 
-Chip kinds whose derivation defers — see §5 — but whose rendering vocabulary lands now: `<N> conceded`, `<N> drift`, `scope flip`, `ctx overflow`, `runaway review loop`. The chip primitive is fully defined; the *content* fills in once the derivation specs ship. Until then those chips simply don't appear in the chip array.
+Chip kinds whose derivation defers — see §5 — but whose rendering vocabulary lands now: `<N> plan turns`, `<N> critiques`, `<N> conceded`, `<N> drift`, `scope flip`, `ctx overflow`, `runaway review loop`. The chip primitive is fully defined; the *content* fills in once the derivation specs ship. Until then those chips simply don't appear in the chip array.
 
 `.rc-agent` is a **new composed component** — a compact variant of the [§4.3 Consumption row](design-system/SPEC.md#43--consumption-row) pattern. Use `--density: 1` (compact) tokens for the inner type scale.
 
@@ -368,21 +372,20 @@ Tonal variants:
 - `.rc-note--warn` — background `color-mix(in srgb, var(--p-warn) 8%, var(--md-surface-container-low))`; icon `--p-warn`.
 - `.rc-note--ok` — background `color-mix(in srgb, var(--p-ok) 8%, var(--md-surface-container-low))`; icon `--p-ok`.
 
-Leading Material Symbols `.ic` icon (16 px), `flex: 0 0 auto`:
+Leading Material Symbols `.ic` icon (16 px), `flex: 0 0 auto` — selected from `status` (+ `error_type` where it ships, see below):
 
 - `error` — errored runs.
 - `pause_circle` — manually-stopped (abandoned) runs.
-- `timer_off` — errored runs whose terminal cause was a timeout / runaway loop (derivation: P4 elapsed > 2× the median P4 duration — heuristic, lands in this spec).
-- `check_circle` — completed runs.
+- `check_circle` — completed / converged runs.
+- `timer_off` — errored runs whose cause is a timeout / runaway loop. **Deferred to §5** (the "P4 elapsed > 2× median P4 duration" heuristic needs a per-phase-timing scan that the cheap list path avoids, and there is no cause-of-death taxonomy field on disk). Until then a timeout-caused error renders the generic `error` icon.
 
-Note text source: derived server-side from existing run metadata (`status`, terminal `phase`, and the `stopping_reason` field in `meta.json` where present). Specifically:
+Note text source: derived server-side from `status` + terminal `phase` (both already held by the row builders) plus, for errored runs, the `run_failed` event's `error_type` + `message` fields in `transcript.jsonl` (**filesystem mode** — there is no `meta.json` and no `stopping_reason` field anywhere on disk; the cause lives on the `run_failed` event, e.g. `error_type: "ProtocolParseError"`). Supabase mode has no `error_type` column (only `exit_code` + `state`), so it degrades to the generic status+phase note. Which branches ship now:
 
-- `status=completed` → `"Converged in <rounds> rounds. <critique_total> critiques resolved · 0 drift · ready to ship."` (where `0 drift` is the literal string until §5 derivation ships).
-- `status=errored` with cause-of-death `timeout` → `"Runaway review loop · <minutes> min on review (<hours>h) before timeout."`
-- `status=errored` with cause `context_overflow` → `"<Agent> context overflow · review round <N>, response truncated mid-critique."`
-- `status=errored` other → `"<Agent> critique loop diverged. <rounds> rounds; no convergence on <P>."` — terminal `P` is the phase code.
-- `status=abandoned` from P2 (plan negotiation) → `"Manually stopped <subphase>. <reason or empty>."`
-- `status=abandoned` from later phases → `"Manually stopped in <phase>. <reason or empty>."`
+- **Ships now (both modes — status + terminal phase only):**
+  - `status=completed`/`converged` → `"Converged in <rounds> rounds. <P> reached."` (the "critiques resolved · 0 drift" enrichment is a §5 chip-derivation follow-up).
+  - `status=errored` (generic) → `"Run failed in <P>: <error_type>."` — `<P>` is the terminal phase code; `<error_type>` is the `run_failed.error_type` in fs mode, or `"run failed"` when only `exit_code` is known (supabase).
+  - `status=abandoned`/`deadlocked` → `"Manually stopped / stalled in <P>."`
+- **Deferred to §5 (cause-specific copy needs an `error_type`→cause taxonomy + heuristics that are not cheaply derivable):** the `timeout` ("Runaway review loop · …"), `context_overflow` ("… context overflow, response truncated …"), and the per-agent "critique loop diverged" variants. The note row still renders the generic form above; the richer copy fills in when the taxonomy follow-up ships.
 
 Bold `<b>` runs use `--md-on-surface` and weight 500 (or per the err/warn/ok tonal modifier).
 
@@ -402,37 +405,89 @@ DS citation: [design-system/SPEC.md §7.2 Responsiveness — three breakpoints](
 
 ### 2.11 — JSX composition
 
-The new tree replaces [src/dual_research/ui/static/run-list.jsx:98-511](src/dual_research/ui/static/run-list.jsx#L98). Component skeleton (function signatures load-bearing; internal markup uses the new class names from §2.2–2.8):
+The new tree replaces the render body of `RunListView` at [src/dual_research/ui/static/run-list.jsx:98-526](src/dual_research/ui/static/run-list.jsx#L98). The component **keeps the single-prop signature and owns its own data fetch** (this is mandatory — the spec-0245 archive toggle re-fetches through `useRunList({ archived })`). There are no `useFilterFromUrl()` / `useSortFromUrl()` hooks anywhere in the tree; URL state is local React state seeded from `_readUrlParams()` and written back via `_writeUrlParams()` (run-list.jsx:6-23), exactly as today. Component skeleton (function signatures load-bearing; internal markup uses the new class names from §2.2–2.8; archive wiring per §2.12):
 
 ```jsx
-function AllRunsPage({ runs, loading, onSelect }) {
-  const filter = useFilterFromUrl();       // existing router.jsx hook
-  const sort = useSortFromUrl();
-  const visibleRuns = applyFilterAndSort(runs, filter, sort);
+function AllRunsPage({ onSelect }) {
+  const me = useMe();
+  const isAdmin = !!(me && me.isAdmin);
+  // Owns the fetch — `archivedView` flips the polled URL (spec 0245).
+  const [archivedView, setArchivedView] = React.useState(false);
+  const { rows: runs, connected, loading, refresh } = useRunList({ archived: archivedView });
+
+  // Local URL-param state (run-list.jsx:6-23, 160-200) — NOT router hooks.
+  const initial = React.useMemo(() => _readUrlParams(), []);
+  const [filter, setFilter] = React.useState(initial.filter);
+  const [sortKey, setSortKey] = React.useState(initial.sort);
+  // ...archive/unarchive targets + handlers + useToast() kept verbatim (§2.12)...
+
+  const visibleRuns = applyFilterAndSort(runs, filter, sortKey);
   const groups = partitionByStatus(visibleRuns); // {running, attention, converged}
-  const stats = computeStats(runs);              // aggregates over UNFILTERED runs
+  const stats = computeStats(runs);              // aggregates over the locally-fetched, UNFILTERED `runs`
 
   return (
     <>
-      <AllRunsChrome />
+      <AllRunsChrome isAdmin={isAdmin} archivedView={archivedView} onArchivedView={setArchivedView} />
       <main className="ar-page">
         <ProjectStrip />
         <StatsPanel stats={stats} />
-        <FilterChipRow filter={filter} counts={statusCounts(runs)} sort={sort} />
-        {groups.running.length > 0 && <RunGroup kind="running" runs={groups.running} onSelect={onSelect} />}
-        {groups.attention.length > 0 && <RunGroup kind="attention" runs={groups.attention} onSelect={onSelect} />}
-        {groups.converged.length > 0 && <RunGroup kind="converged" runs={groups.converged} onSelect={onSelect} />}
+        <FilterChipRow filter={filter} counts={statusCounts(runs)} sortKey={sortKey} />
+        {groups.running.length > 0 && <RunGroup kind="running" runs={groups.running} onSelect={onSelect} isAdmin={isAdmin} archivedView={archivedView} onArchive={setArchiveTarget} onUnarchive={setUnarchiveTarget} />}
+        {groups.attention.length > 0 && <RunGroup kind="attention" runs={groups.attention} onSelect={onSelect} isAdmin={isAdmin} archivedView={archivedView} onArchive={setArchiveTarget} onUnarchive={setUnarchiveTarget} />}
+        {groups.converged.length > 0 && <RunGroup kind="converged" runs={groups.converged} onSelect={onSelect} isAdmin={isAdmin} archivedView={archivedView} onArchive={setArchiveTarget} onUnarchive={setUnarchiveTarget} />}
       </main>
+      <ConfirmArchiveDialog run={archiveTarget} onConfirm={handleArchiveConfirm} onCancel={() => setArchiveTarget(null)} />
+      <ConfirmUnarchiveDialog run={unarchiveTarget} onConfirm={handleUnarchiveConfirm} onCancel={() => setUnarchiveTarget(null)} />
     </>
   );
 }
 
-function RunCard({ run, onSelect }) {
-  // Renders .run-card with all sub-elements from §2.8.
+function RunCard({ run, onSelect, isAdmin, archivedView, onArchive, onUnarchive }) {
+  // Renders .run-card with all sub-elements from §2.8 + the archive affordance from §2.12.
 }
 ```
 
-Stats aggregation reads from the UNFILTERED run set (so the panel shows project-wide health regardless of the active chip), while the group sections render the FILTERED set.
+Stats aggregation reads from the locally-fetched, UNFILTERED `runs` array (so the panel shows project-wide health regardless of the active chip), while the group sections render the FILTERED set. `runs` is owned by this component's `useRunList` call — it is **not** passed in as a prop.
+
+### 2.12 — Archive affordances in the card layout (spec 0245 carry-over)
+
+The handoff bundle (`All Runs.html`, authored before [spec 0245](specs/0245-runs-soft-delete-admin-archive.md) shipped v1.59.0) has **no archive concept** — so there is no pre-existing visual contract for these in the card layout. This subsection is the contract. The underlying state, data hooks, server calls, and dialogs are **kept verbatim** from the current `run-list.jsx`; only their placement in the new card layout is specified here. **All of the following are KEPT, not rebuilt:** `useRunList({ archived })` ([live-data.jsx:155](src/dual_research/ui/static/live-data.jsx#L155)), `useMe()`/`isAdmin` (run-list.jsx:99-100), `handleArchiveConfirm`/`handleUnarchiveConfirm` hitting `POST`/`DELETE /api/runs/{id}/archive` (run-list.jsx:119-157), `ConfirmArchiveDialog`/`ConfirmUnarchiveDialog` (run-list.jsx:531-561), `_secondsSinceIso` (run-list.jsx:699-704), and the `useToast()` success/error wiring.
+
+#### 2.12.1 Admin-only Active/Archived toggle
+
+The segmented toggle at run-list.jsx:342-361 (`<TabGroup variant="solid">` with `Active` / `Archived` `<Tab>`s, gated on `isAdmin`, flipping `archivedView` → re-fetch) moves into the new chrome (§2.2). It lives in the chrome's right cluster (`.ar-chrome__sp` spacer pushes it rightward), immediately left of the connection pill, rendered **only when `isAdmin`**. Restyle it as an `.ar-tab`-family segmented control to match the chrome's tab vocabulary (36 px tall, fully rounded, M3 secondary-container tonal on the active segment — same tokens as the `.ar-tab` cluster in §2.2). Non-admins never see it; the server silently ignores `?archived=true` for non-admin callers regardless.
+
+DS citation: segmented-control / TabGroup primitive per [design-system/SPEC.md §3 Primitives](design-system/SPEC.md#3--primitives); active-segment tonal treatment per [§2.2 Surfaces](design-system/SPEC.md#22--surfaces-m3-tonal-scale) + [§2.10 State layers](design-system/SPEC.md#210--state-layers).
+
+#### 2.12.2 Per-card archive / restore affordance + top-right collision resolution
+
+The per-row hover archive/unarchive icon buttons (run-list.jsx:582-583, 647-672 — `showArchiveBtn = hover && isAdmin && !isArchived && !archivedView`; `showUnarchiveBtn = hover && isAdmin && isArchived`) move onto `.run-card`. Render as an `.md-icon-btn` (28 px) holding `Icon.Archive` (active rows) or `Icon.ArchiveUp` (archived rows), `aria-label="Archive run <id>"` / `"Restore run <id>"`, with `onClick` calling `e.stopPropagation()` then `onArchive(run)` / `onUnarchive(run)` so the click does not navigate to detail.
+
+**Top-right collision (resolves the contention between §2.8.3 `.rc-chev`, §2.8.4 `.rc-live`, and this button — all three want the top-right corner):**
+
+- The archive/restore button is the **interactive** top-right affordance and **supersedes the decorative `.rc-chev` hover chevron** (§2.8.3) for admins: the chevron is `pointer-events: none` decoration, so on an admin's hover of a non-running card the button simply occupies the same `top: 12px; right: 12px` slot and the chevron is suppressed (`.run-card:hover .rc-chev { opacity: 0 }` when the admin button is present). For non-admins the chevron behaves exactly as §2.8.3.
+- The **`.rc-live` running ticker (§2.8.4) is a live-status signal and always wins its slot** (`top: 14px; right: 14px`). On a `status=running` card the archive button shifts left to clear the ticker: `.run-card--running .rc-archive-btn { right: 34px; }` (28 px button + 6 px gap). The ticker stays visible; the button sits immediately to its left on hover.
+- Archived cards (§2.12.3) carry neither chevron nor ticker, so the restore button takes the unobstructed `top: 12px; right: 12px` slot.
+
+The button stays unmounted (not just hidden) when its render condition is false, matching the current per-row behaviour; the card's grid does not reflow because the button is absolutely positioned, not in flow.
+
+DS citation: `.md-icon-btn` primitive + hover state layer per [§3 Primitives](design-system/SPEC.md#3--primitives) / [§2.10 State layers](design-system/SPEC.md#210--state-layers); `archive` / `unarchive` Material Symbols per [§2.12 Icons](design-system/SPEC.md#212--icons).
+
+#### 2.12.3 Archived-card visual state
+
+When `run.deletedAt` is non-null (only reachable in the admin Archived view), the card renders the archived state — the card-layout analogue of `.run-row--archived` (run-list.jsx:587):
+
+- `.run-card--archived { opacity: 0.65; cursor: default; }` — dimmed treatment matching the existing row value (opacity, not a color, so the tokens-only color rule is unaffected). Click-to-detail is **suppressed** (`onClick` guards on `!isArchived`) because the detail endpoint 404s on archived ids (canonical reader is `runs_active`).
+- The §2.8.7 note row is replaced (or, when no note, the head-row trailing slot carries) the archived caption: `archived <relTime> · by <email>` — `archived ${fmt.relTime(_secondsSinceIso(run.deletedAt))}${run.deletedBy ? ' · by ' + run.deletedBy : ''}`, 10 px mono `--md-font-data`, `--md-on-surface-faint`, ellipsis-truncated, `title` attribute carries the full `archived <iso> by <email>`. This is the card-layout home for the run-list.jsx:675-692 caption that currently replaces the row chevron.
+- The status accent stripe (§2.8.1) and phase strip (§2.8.5) still render from the archived run's last-recorded status/phase; the dim is applied over the whole card.
+
+DS citation: disabled/dimmed surface treatment per [§2.10 State layers](design-system/SPEC.md#210--state-layers); caption type scale per [§2.5 Typography](design-system/SPEC.md#25--typography).
+
+#### 2.12.4 Needs-attention exclusion of archived rows
+
+The `ATTENTION_STATUSES` partition (run-list.jsx:77) and its archived-exclusion logic (run-list.jsx:228-236 — archived rows are NOT bucketed back into "Needs attention" even when their last status was errored/deadlocked/abandoned) carry into `partitionByStatus` (§2.6 / §2.11): when `archivedView` is true, the partition routes every archived row into a flat list rather than the three status groups, exactly as the current `attentionRuns`/`normalRuns` split does. The §2.6 group headers render only in the active (non-archived) view.
+
+`.run-card--archived` and `.rc-archive-btn` are added to both [design-system/assets/styles/composed-components.css](design-system/assets/styles/composed-components.css) (authoritative) and [src/dual_research/ui/static/components.css](src/dual_research/ui/static/components.css) (live mirror) in the same commit, per the project DS-sync rule.
 
 ---
 
@@ -466,58 +521,66 @@ Stats aggregation reads from the UNFILTERED run set (so the panel shows project-
 > THEN `<body>` gains the `light` class, `localStorage.getItem('dr-theme')` returns `"light"`, and reloading the page preserves the light theme
 
 > **Scenario 4: stats panel computes totals from the unfiltered run list**
-> GIVEN the API returns 15 runs with `cost` values summing to `$95.13` and 1 run with `status=completed`
+> GIVEN `/api/runs` returns 15 runs with `cost` values summing to `$95.13` and 1 run with `status=completed` (the page fetches this list itself via `useRunList` — `runs` is owned by `AllRunsPage`, not passed in as a prop)
 > WHEN the page renders any filter state (including `?filter=errored`)
-> THEN the `.ar-stat__value` under `.ar-stat` label `Total spend` reads `$95.13`, and the `.ar-stat__value` under label `Convergence rate` reads `6.7%`
+> THEN the `.ar-stat__value` under `.ar-stat` label `Total spend` reads `$95.13` (aggregated over the full fetched `runs`, not the filtered subset), and the `.ar-stat__value` under label `Convergence rate` reads `6.7%`
 
 ---
 
 ## 4. Data / Schema deltas
 
-The page demands fields the current `RunListRow` does not carry. The API at [src/dual_research/ui/server.py:178-194](src/dual_research/ui/server.py#L178) (filesystem mode) and [src/dual_research/ui/server.py:742-745](src/dual_research/ui/server.py#L742) (supabase mode) returns a `list[RunListRow]`. The `RunListRow` model at [src/dual_research/ui/models.py:778-788](src/dual_research/ui/models.py#L778) (10 fields: id, display_id, status, phase, topic, started_at_ago, started_at, duration, cost, rounds) is extended **additively** — no field is renamed or removed — with:
+The page demands fields the current `RunListRow` does not carry. The `/api/runs` endpoint at [src/dual_research/ui/server.py:178-194](src/dual_research/ui/server.py#L178) returns a list of camelCased dicts; the **row builders** are `summarize_run` ([src/dual_research/ui/aggregator.py:304](src/dual_research/ui/aggregator.py#L304), called at server.py:189 for filesystem mode) and `_supabase_list_runs` ([src/dual_research/ui/server.py:1065](src/dual_research/ui/server.py#L1065) for supabase mode). New-field derivation lands in **both** builders. Rows flow to the front-end through `useRunList` ([src/dual_research/ui/static/live-data.jsx:155](src/dual_research/ui/static/live-data.jsx#L155)), which `setRows(data)` on the raw parsed JSON — it does **not** whitelist keys, so additive fields pass through to the components untouched.
+
+`RunListRow` at [src/dual_research/ui/models.py:777-793](src/dual_research/ui/models.py#L777) is a **`@dataclass`** (not Pydantic — the whole `models.py` module uses stdlib dataclasses, serialized via `to_jsonable` → `asdict` → `_to_camel`). It currently carries **12 fields**: the original 10 (`id`, `display_id`, `status`, `phase`, `topic`, `started_at_ago`, `started_at`, `duration`, `cost`, `rounds`) **plus** `deleted_at` and `deleted_by` (added by [spec 0245](specs/0245-runs-soft-delete-admin-archive.md), models.py:792-793). It is extended **additively** — no field renamed or removed, and `deleted_at`/`deleted_by` MUST be preserved (the archive feature reads them). New nested types are also `@dataclass`es (so `asdict` recurses cleanly); enum-typed fields use plain `str` values to stay JSON-safe through `asdict`:
 
 ```python
-class PhaseOutcome(str, Enum):
-    DONE = "done"
-    ACTIVE = "active"
-    FAILED = "failed"
-    ABANDON = "abandon"
-    PENDING = "pending"
+# PhaseOutcome values are the plain strings the front-end matches on
+# (§2.8.5): "done" | "active" | "failed" | "abandon" | "pending".
 
-class AgentChip(BaseModel):
-    kind: Literal["", "warn", "err", "ok", "info"] = ""
+@dataclass
+class AgentChip:
     text: str
+    kind: str = ""               # "" | "warn" | "err" | "ok" | "info"
 
-class AgentBreakdown(BaseModel):
-    name: Literal["Claude", "GPT"]
-    cost: float                  # 2-decimal dollars
-    chips: list[AgentChip] = []  # may be empty when no derivation matches
+@dataclass
+class AgentBreakdown:
+    name: str                    # "Claude" | "GPT"
+    cost: float = 0.0            # 2-decimal dollars
+    chips: list[AgentChip] = field(default_factory=list)
 
-class RunNote(BaseModel):
-    variant: Literal["err", "warn", "ok"]
+@dataclass
+class RunNote:
+    variant: str                 # "err" | "warn" | "ok"
     icon: str                    # Material Symbol name
     html: str                    # already-formatted, uses <b>...</b>
 
-class RunListRow(BaseModel):
-    # ... existing 10 fields preserved ...
-    phases: tuple[PhaseOutcome, PhaseOutcome, PhaseOutcome, PhaseOutcome, PhaseOutcome]
-    rounds_completed: int        # parallel to existing `rounds` string
-    rounds_max: int
-    agents: dict[Literal["a", "b"], AgentBreakdown]
-    note: RunNote | None
+@dataclass
+class RunListRow:
+    # ... existing 12 fields preserved, INCLUDING deleted_at / deleted_by ...
+    # all new fields carry defaults so old call-sites and the supabase
+    # builder (which can't derive every field) stay valid:
+    phases: tuple[str, str, str, str, str] = ("pending",) * 5
+    rounds_completed: int = 0    # parallel to the existing `rounds` string
+    rounds_max: int = 6
+    agents: dict[str, AgentBreakdown] = field(default_factory=dict)  # keys "a" / "b"
+    note: RunNote | None = None
 ```
 
-Derivation paths (all server-side, both filesystem and supabase modes):
+Derivation paths, **per field, with the real on-disk source verified against an actual run directory** (`runs/<id>/` contains `state.json`, `metrics.json`, `brief.md`, `transcript.jsonl`, `phaseN/` round files — there is **no** `turns/*.json`, **no** `cost_ledger.jsonl`, **no** `meta.json`; those were stale assumptions in the original spec):
 
-- `phases`: walk the run's per-turn artifacts (existing on disk under `<run_dir>/turns/*.json`) and compute the outcome per phase by the algorithm in §2.8.5.
-- `rounds_completed` / `rounds_max`: parse the existing `rounds: "n / 6"` string (or read directly from `meta.json`).
-- `agents.a.cost` / `agents.b.cost`: aggregate `cost_ledger.jsonl` rows by `agent` field (existing). Round to 2 decimals.
-- `agents.{a,b}.chips`: derive the three derivation-included kinds (plan turns, critiques, sources) by counting phase-tagged turns. The other chip kinds (conceded, drift, scope flip, ctx overflow, runaway loop) are emitted as **empty** until the deferred derivation specs ship — the chip list simply has fewer entries.
-- `note`: derived from `status` + terminal phase + `meta.json::stopping_reason` per the template in §2.8.7.
+| field | filesystem source (`summarize_run`) | supabase source (`_supabase_list_runs`) | both modes? |
+|---|---|---|---|
+| `phases` | terminal `phase_int` + `status` already computed (no extra read) — algorithm §2.8.5 | `phase_reached` + derived status (already computed) | **yes** |
+| `rounds_completed` / `rounds_max` | split the existing `rounds = f"{cur}/6"` (from `_latest_round_for`); max from the soft-cap default `6` | **degrades** — `rounds` is left `None` in supabase today (would need a per-row events aggregate); ships `rounds_completed=0, rounds_max=6` | fs only |
+| `agents.{a,b}.cost` | `metrics.json::totals_by_agent.{claude,openai}.cost_usd` (+ `.search_cost`), rounded to 2 dp | the supabase `metrics` JSONB column folds in the whole `metrics.json` ([persistence/remote.py:89-92,252](src/dual_research/persistence/remote.py#L89)), so the same `totals_by_agent` is read from the already-selected `metrics` column | **yes** |
+| `agents.{a,b}.chips` → `<N> searches` | `totals_by_agent.{}.searches` | `metrics` column `totals_by_agent.{}.searches` | **yes** |
+| `agents.{a,b}.chips` → `plan turns` / `critiques` | **deferred (§5)** — real source is phase-tagged `turn_ended` events in `transcript.jsonl`, but a full-transcript scan breaks `summarize_run`'s cheap no-replay contract | not derivable (no per-phase turn data in columns) | deferred |
+| `note` (generic) | `status` + terminal phase; for errored runs the `run_failed` event `error_type`/`message` in `transcript.jsonl` | `status` + terminal phase (no `error_type` column → generic copy) | **yes** (degraded copy in supabase) |
+| `note` (cause-specific: timeout / ctx overflow / runaway) | **deferred (§5)** — needs an `error_type`→cause taxonomy + the P4-duration heuristic | n/a | deferred |
 
-Empty / null handling: if any derivation fails (e.g. `cost_ledger.jsonl` is missing for an old run), the field falls back to a safe default (`agents.a.cost = 0.0`, `agents.a.chips = []`, `note = None`). The card still renders — the note row simply collapses out.
+Empty / null handling (safe defaults, applied per field so the card always renders): a failed derivation falls back to the field's default — `phases` → all `"pending"`, `agents` → `{}` (the agent rows collapse), `agents.{}.cost` → `0.0`, `chips` → `[]`, `note` → `None` (the note row collapses out), `rounds_completed`/`rounds_max` → `0`/`6`. This is also exactly how supabase mode degrades for the fs-only fields above.
 
-The existing `/api/runs` cache at [tests/ui/test_server_cache.py:452,483](tests/ui/test_server_cache.py#L452) (spec 0079) continues to apply; cache keys stay structurally compatible since the change is additive.
+The existing `/api/runs` cache at [tests/ui/test_server_cache.py:452,483](tests/ui/test_server_cache.py#L452) (spec 0079) continues to apply; cache keys stay structurally compatible since the change is additive. Per §7, the per-agent-cost read (`metrics.json`) adds one cheap file read to `summarize_run`; it lands inside the cached path.
 
 ---
 
@@ -525,16 +588,17 @@ The existing `/api/runs` cache at [tests/ui/test_server_cache.py:452,483](tests/
 
 This spec deliberately does **not** include:
 
-- **Compare tab, Search tab, How-it-works tab behavior changes.** The chrome at §2.2 renders these tabs at the correct visual position with click handlers wired to the existing routes (or no-op if the target route does not yet exist). Any visual or behavioral redesign of those surfaces is deferred to follow-up specs.
+- **Compare tab, Search tab, How-it-works tab behavior changes.** The chrome at §2.2 renders these tabs at the correct visual position with click handlers wired to the existing hash routes — `/compare`, `/search`, and `/how-it-works` are all already routed in [src/dual_research/ui/static/router.jsx:21-22,37-39](src/dual_research/ui/static/router.jsx#L21) (they navigate to real, if minimal, destinations — no tab is a dead no-op). Any visual or behavioral redesign of those surfaces is deferred to follow-up specs.
 - **The "New run" entry-point CTA card** sketched at `All Runs.html:597-638`. Per the handoff README §"Out-of-scope notes" (line 608), the new-run entry point lives in the existing chrome — not on this page.
-- **Semantic chip-derivation kinds**: `<N> conceded`, `<N> drift`, `scope flip`. These require negotiation-thread analysis or LLM judgment. Deferred to a follow-up spec — to be drafted post-merge with disposition `defer` until prioritized. The chip vocabulary `.rc-bdg--warn` / `--err` / `--ok` / `--info` ships now in composed-components.css; the data simply isn't populated for these kinds until the follow-up lands.
-- **`ctx overflow` / `runaway review loop` mechanical chip derivation**. These are mechanical (truncation-marker detection, P4 duration threshold) but their derivation is out of scope for the visual rebuild — deferred to a follow-up spec to be drafted post-merge. The chip rendering vocabulary lands; the values populate later.
-- **The inline search input** and its `/`-focus keyboard shortcut at [src/dual_research/ui/static/run-list.jsx:143-155](src/dual_research/ui/static/run-list.jsx#L143). Removed. The `Search` chrome tab is the future entry point; the `?q=` query param becomes a no-op on the All Runs page (parser remains in router.jsx for backward compatibility — bookmarks with `?q=…` still resolve, the page just ignores the value).
+- **`plan turns` / `critiques` per-agent chip derivation**. Real source exists (phase-tagged `turn_ended` events in `transcript.jsonl`), but counting them requires a full-transcript scan that would break `summarize_run`'s cheap, no-replay contract, and the supabase columns carry no per-phase turn breakdown — so shipping it now would create an fs-only asymmetry. Deferred to the same chip-derivation follow-up (candidate approach: precompute per-phase per-agent turn counts into `metrics.json` at run finalization, then both modes read them cheaply). The `.rc-bdg` vocabulary ships now; these chips are simply absent until the follow-up lands.
+- **Semantic chip-derivation kinds**: `<N> conceded`, `<N> drift`, `scope flip`, and URL-deduped "distinct sources cited". These require negotiation-thread analysis, LLM judgment, or the per-turn `turn_searches` audit. Deferred to a follow-up spec — to be drafted post-merge with disposition `defer` until prioritized. The chip vocabulary `.rc-bdg--warn` / `--err` / `--ok` / `--info` ships now in composed-components.css; the data simply isn't populated for these kinds until the follow-up lands. (The cheaply-derivable `<N> searches` count chip ships now — see §2.8.6.)
+- **`ctx overflow` / `runaway review loop` mechanical chip derivation** and the **cause-specific note copy** (timeout, context overflow, "critique loop diverged") plus the `timer_off` note icon. These need an `error_type`→cause taxonomy and the P4-duration heuristic (`run_failed.error_type` lands the *generic* note now — §2.8.7 — but the cause-specific copy is out of scope for the visual rebuild). Deferred to a follow-up spec to be drafted post-merge. The chip/note rendering vocabulary lands; the values populate later.
+- **The inline search input** (run-list.jsx:277-314) and its `/`-focus keyboard shortcut (the `keydown` `useEffect` at [src/dual_research/ui/static/run-list.jsx:203-215](src/dual_research/ui/static/run-list.jsx#L203)). Removed. The `Search` chrome tab is the future entry point; the `?q=` query param becomes a no-op on the All Runs page (the `_readUrlParams`/`_writeUrlParams` parser at run-list.jsx:6-23 remains for backward compatibility — bookmarks with `?q=…` still resolve, the page just ignores the value).
 - **Multi-select filter chips.** The current page is single-select; this spec preserves that. The handoff README suggests multi-select as a future enhancement; deferred to a follow-up spec.
 - **Density toggle (`body.compact`).** Exists in the DS but not part of this rebuild — the page renders at default density.
 - **Empty-state design** when a filter yields zero results. The existing empty-state pattern at first-render (loading skeleton + "no runs yet" copy) is reused as-is; visual redesign is a follow-up.
 - **Run-detail page (`/#/runs/<id>`).** Unchanged. The new card's `onSelect(id)` callback routes to the existing run-detail screen.
-- **`PhaseMini` shared primitive** at [src/dual_research/ui/static/run-list.jsx:489](src/dual_research/ui/static/run-list.jsx#L489). Kept intact because the run-detail timeline cards consume it. The new All Runs page uses its own `.rc-phases` 5-segment strip (§2.8.5) — they are siblings, not replacements.
+- **`PhaseMini` shared primitive** at [src/dual_research/ui/static/run-list.jsx:707](src/dual_research/ui/static/run-list.jsx#L707). Kept intact because the `/#/language` primitives showcase consumes it at [design-language.jsx:650-654](src/dual_research/ui/static/design-language.jsx#L650) (its only surviving consumer once the old `RunRow` body at run-list.jsx:634 is replaced — it is **not** used by the run-detail page). The new All Runs page uses its own `.rc-phases` 5-segment strip (§2.8.5) — they are siblings, not replacements.
 
 ---
 
@@ -544,14 +608,15 @@ Tests land at [tests/test_spec_0246_all_runs.py](tests/test_spec_0246_all_runs.p
 
 Each pair below is a positive-presence assertion on the post-fix shape plus an antipodal-absence assertion on the pre-fix shape; this is the canonical idiom from the helpers' docstring.
 
-- [ ] **Run card anatomy**: `tests/test_spec_0246_all_runs.py::test_run_card_renders_status_topic_metrics_id` — JSX matches `<article className=.*run-card.*run-card--errored` and `className=.*rc-status rc-status--errored` and `className=.*rc-topic` and `className=.*rc-meta__l.*Started.*rc-meta__v` and `className=.*rc-idbdg.*r-`; antipode absence — the pre-fix shape `<RunRow` from run-list.jsx:413 must not appear in `app.jsx` or `run-list.jsx` after the change.
-- [ ] **5-segment phase strip**: `tests/test_spec_0246_all_runs.py::test_phase_strip_renders_five_cells_with_state_modifiers` — `.rc-phases` block contains exactly 5 `.rc-phase` children with labels `P1 plan`, `P2 nego`, `P3 res`, `P4 rev`, `P5 sum`; state modifiers `--done`, `--active`, `--failed`, `--abandon`, `--pending` are all defined in composed-components.css. Antipode absence — `<PhaseMini` is NOT consumed inside `<RunCard`.
+- [ ] **Run card anatomy**: `tests/test_spec_0246_all_runs.py::test_run_card_renders_status_topic_metrics_id` — JSX matches `<article className=.*run-card.*run-card--errored` and `className=.*rc-status rc-status--errored` and `className=.*rc-topic` and `className=.*rc-meta__l.*Started.*rc-meta__v` and `className=.*rc-idbdg.*r-`; antipode absence — the pre-fix `function RunRow(` (currently at [run-list.jsx:563](src/dual_research/ui/static/run-list.jsx#L563)) must not appear in `run-list.jsx` after the change (its render body is replaced by `RunCard`).
+- [ ] **5-segment phase strip**: `tests/test_spec_0246_all_runs.py::test_phase_strip_renders_five_cells_with_state_modifiers` — `.rc-phases` block contains exactly 5 `.rc-phase` children with labels `P1 plan`, `P2 nego`, `P3 res`, `P4 rev`, `P5 sum`; state modifiers `--done`, `--active`, `--failed`, `--abandon`, `--pending` are all defined in composed-components.css. Antipode absence — `<PhaseMini` is NOT consumed inside `<RunCard` (the `PhaseMini` function itself at [run-list.jsx:707](src/dual_research/ui/static/run-list.jsx#L707) survives for the `/#/language` showcase — see §2.1).
 - [ ] **Per-agent rows render Claude on sable + GPT on sage**: positive regex `\.rc-agent--a::before \{[^}]*background:\s*var\(--p-sable\)` and `\.rc-agent--b::before \{[^}]*background:\s*var\(--p-sage\)` both present in composed-components.css AND the live-app mirror at src/dual_research/ui/static/components.css. Antipode absence — agent rows must NOT inline a hex color (`#[0-9a-fA-F]{6}` absent inside `\.rc-agent.*\{[^}]*\}`).
-- [ ] **Stats panel computes from unfiltered run set**: `tests/test_spec_0246_all_runs.py::test_stats_panel_aggregates_unfiltered` — JSX uses `runs` (not the filtered `visibleRuns`) as the input to `<StatsPanel stats={computeStats(runs)} />`. Antipode absence — no `<StatsPanel stats={computeStats(visibleRuns)}` regex match anywhere in run-list.jsx.
-- [ ] **Filter chip row matches the seven canonical statuses in order**: positive regex matches an ordered sequence `All`, `Running`, `Converged`, `Deadlocked`, `Errored`, `Abandoned`, `Completed` inside the `<FilterChipRow>` JSX. Antipode absence — the deleted `<input type="search"` from run-list.jsx:143 is gone.
-- [ ] **No inline `style={{` props remain on the new tree**: positive regex `<article className="run-card` followed within 200 chars by no `style={{`. Antipode absence — the old `RunRow` component is fully deleted from run-list.jsx (no `function RunRow(`).
-- [ ] **Both component files in sync**: composed-components.css and src/dual_research/ui/static/components.css both define every new class (`.run-card`, `.run-card--errored`, `.run-card--abandoned`, `.run-card--completed`, `.run-card--running`, `.rc-status`, `.rc-status--errored`, `.rc-topic`, `.rc-idbdg`, `.rc-phases`, `.rc-phase`, `.rc-phase--done`, `.rc-phase--active`, `.rc-phase--failed`, `.rc-phase--abandon`, `.rc-phase--pending`, `.rc-agent`, `.rc-agent--a`, `.rc-agent--b`, `.rc-agent__cost`, `.rc-agent__name`, `.rc-bdg`, `.rc-bdg--warn`, `.rc-bdg--err`, `.rc-bdg--ok`, `.rc-bdg--info`, `.rc-note`, `.rc-note--err`, `.rc-note--warn`, `.rc-note--ok`, `.ar-chrome`, `.ar-tab`, `.ar-pill`, `.ar-project`, `.ar-stats`, `.ar-stat`, `.ar-stat--phase`, `.phase-dist`, `.ar-filters`, `.fchip`, `.ar-sort`, `.ar-group`, `.ar-group--warn`, `.ar-grid`).
-- [ ] **API `RunListRow` carries the new fields**: integration test on `/api/runs` asserts the response shape includes `phases`, `agents.a.cost`, `agents.b.cost`, `agents.{a,b}.chips`, `note` keys. Extends the existing test surface at [tests/ui/test_server_cache.py:452](tests/ui/test_server_cache.py#L452).
+- [ ] **Stats panel computes from the locally-fetched, unfiltered run set**: `tests/test_spec_0246_all_runs.py::test_stats_panel_aggregates_unfiltered` — JSX feeds `runs` (the `useRunList` result, NOT an external prop and NOT the filtered `visibleRuns`) into `<StatsPanel stats={computeStats(runs)} />`. Antipode absence — no `<StatsPanel stats={computeStats(visibleRuns)}` match, and `AllRunsPage` is declared single-prop `function AllRunsPage({ onSelect })` (no `runs`/`loading` in its destructured props).
+- [ ] **Filter chip row matches the seven canonical statuses in order**: positive regex matches an ordered sequence `All`, `Running`, `Converged`, `Deadlocked`, `Errored`, `Abandoned`, `Completed` inside the `<FilterChipRow>` JSX. Antipode absence — the inline search `<input ref={searchRef}` with `placeholder="search runs..."` (currently [run-list.jsx:277-314](src/dual_research/ui/static/run-list.jsx#L277)) and the `/`-focus `keydown` handler (run-list.jsx:203-215) are gone.
+- [ ] **No inline `style={{` props remain on the new card tree**: positive regex `<article className="run-card` followed within 200 chars by no `style={{`. Antipode absence — `function RunRow(` is gone from run-list.jsx (replaced by `RunCard`).
+- [ ] **Spec-0245 archive machinery survives the rewrite** (positive-survival, the counterweight to the deletions above): JSX still references `useRunList({ archived` and `useMe(` in `AllRunsPage`; the admin Active/Archived toggle is present and gated (`isAdmin && (` guarding a `<TabGroup variant="solid"` with both `setArchivedView(false)` and `setArchivedView(true)` wiring); `ConfirmArchiveDialog` and `ConfirmUnarchiveDialog` are both still referenced (rendered) and still defined; the per-card archive button JSX is present (`onArchive` + `Icon.Archive` and `onUnarchive` + `Icon.ArchiveUp`); `_secondsSinceIso` is still defined. Antipode absence — no `function AllRunsPage({ runs` (the component must NOT take an external `runs` prop).
+- [ ] **Both component files in sync**: composed-components.css and src/dual_research/ui/static/components.css both define every new class (`.run-card`, `.run-card--errored`, `.run-card--abandoned`, `.run-card--completed`, `.run-card--running`, `.run-card--archived`, `.rc-status`, `.rc-status--errored`, `.rc-topic`, `.rc-idbdg`, `.rc-chev`, `.rc-live`, `.rc-archive-btn`, `.rc-phases`, `.rc-phase`, `.rc-phase--done`, `.rc-phase--active`, `.rc-phase--failed`, `.rc-phase--abandon`, `.rc-phase--pending`, `.rc-agent`, `.rc-agent--a`, `.rc-agent--b`, `.rc-agent__cost`, `.rc-agent__name`, `.rc-bdg`, `.rc-bdg--warn`, `.rc-bdg--err`, `.rc-bdg--ok`, `.rc-bdg--info`, `.rc-note`, `.rc-note--err`, `.rc-note--warn`, `.rc-note--ok`, `.ar-chrome`, `.ar-tab`, `.ar-pill`, `.ar-project`, `.ar-stats`, `.ar-stat`, `.ar-stat--phase`, `.phase-dist`, `.ar-filters`, `.fchip`, `.ar-sort`, `.ar-group`, `.ar-group--warn`, `.ar-grid`).
+- [ ] **API `RunListRow` carries the new fields without dropping the 0245 fields**: integration test on `/api/runs` asserts the camelCased response shape includes `phases`, `agents.a.cost`, `agents.b.cost`, `agents.{a,b}.chips`, `note` AND still includes `deletedAt`/`deletedBy` keys (additive change — spec 0245 fields preserved). Extends the existing test surface at [tests/ui/test_server_cache.py:452,483](tests/ui/test_server_cache.py#L452). A models-level test asserts `RunListRow` is a `@dataclass` (via `dataclasses.is_dataclass`) carrying both the new fields and `deleted_at`/`deleted_by`.
 
 PR-description proof: per [design-system/SPEC.md §13.2](design-system/SPEC.md#132--canonical-static-pattern-shape), embed Claude Preview MCP screenshot captures of (1) dark theme full page, (2) light theme full page, (3) hover state on a `.run-card`, (4) `?filter=errored` state showing only one section, (5) responsive breakpoint at 760 px. These are visual proofs; the source-pattern tests above are the regression guards.
 
@@ -559,7 +624,7 @@ PR-description proof: per [design-system/SPEC.md §13.2](design-system/SPEC.md#1
 
 ## 7. Risks
 
-- **Risk:** The `phases` array derivation server-side reads per-turn artifacts on every `/api/runs` hit; for a workspace with many runs this could slow the endpoint. **Mitigation:** the existing `/api/runs` cache (spec 0079, [tests/ui/test_server_cache.py:452](tests/ui/test_server_cache.py#L452)) covers this — derivation lands inside the cached path. If profiling shows a regression, precompute `phases` into `meta.json` on run finalization and read from there.
+- **Risk:** New-field derivation adds work to `summarize_run` on every `/api/runs` hit. **Mitigation:** the fields that ship now are cheap — `phases` reuses the already-computed terminal phase + status (no extra read), `agents.{a,b}.cost`/`searches` add a single `metrics.json` read, and `rounds_*` reuse the already-parsed round counter. The deliberately-expensive derivations (per-phase turn-count chips, cause-specific note copy) are **deferred to §5** precisely to keep this path cheap. The existing `/api/runs` cache (spec 0079, [tests/ui/test_server_cache.py:452](tests/ui/test_server_cache.py#L452)) covers what remains; if a future follow-up needs per-turn data, precompute it into `metrics.json` at run finalization rather than scanning the transcript on read.
 - **Risk:** The new `.ar-*` / `.rc-*` namespaces leak into the run-detail page if a developer copies a class name out of context. **Mitigation:** scope all new classes under the `.ar-page` container in composed-components.css comments so it's clear they belong to the All Runs page; the run-detail page does not include `.ar-page` in its tree.
 - **Risk:** The chip rendering vocabulary lands but the semantic-chip derivation specs (§5) are never prioritized, leaving some agents with empty `chips` arrays indefinitely. **Mitigation:** acceptable — the cards still render correctly with whichever chips are derivable. Empty chip lists collapse out cleanly. The visual rebuild is the point; chip enrichment is purely additive thereafter.
 - **Risk:** Removing the inline search bar breaks a user's keyboard workflow (`/` shortcut). **Mitigation:** documented in §5; the Search tab in the chrome is the future entry point. The user explicitly asked to remove every current-page element; the loss is by design.
