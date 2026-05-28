@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T18:21:57Z",
+  "updated_at": "2026-05-28T18:22:58Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12353,6 +12353,14 @@
           "ts": "2026-05-28T18:21:57Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T18:22:58Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0246-all-runs-card-layout-rewrite",
+            "from": "main@4a67b44"
+          }
         }
       ],
       "failure_step": "",
