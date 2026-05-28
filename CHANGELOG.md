@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.61.2] — 2026-05-29
+
+### Changed
+
+- **Buffer `/dev-next` pre-merge telemetry into two batched flushes ([spec 0250](specs/0250-dev-next-pre-merge-telemetry-batched-flushes.md)).** The pre-merge window of the `/dev-next` cycle used to push ~8 individual `spec(NNNN): queue-state update` commits to `origin/main` (one per `--push-to-main` lifecycle event across steps 12–17), the dominant source of main-history noise. It now mirrors the proven post-merge buffering (specs 0212/0247): every happy-path event is emitted local-only and the buffer is flushed in exactly two batched commits — **Flush 1** at step 12 (cycle start / `in_progress`, also making the previously-unfulfilled "committed at step 12" promise for the buffered `cycle_started`/preflight/reconcile events real) and **Flush 2** at step 17 (PR opened). Net: ~8 pre-merge commits → 2. No contract change — same events, lifecycle states, and vocabulary; only the `origin/main` push cadence moves. Failure writes (semantic drift at step 11, tests red at step 16) keep `--push-to-main` so a halt stays immediately visible on the dashboard; the post-merge window (steps 18–23) is untouched. A pure-stdlib source-pattern test (`tests/test_spec_0250_dev_next_pre_merge_buffering.py`, skip-when-absent guarded) locks the local-only happy path, the exactly-two-flushes shape, and the never-buffer-failures invariant.
+
 ## [1.61.1] — 2026-05-29
 
 ### Fixed
