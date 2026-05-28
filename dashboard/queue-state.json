@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T22:18:14Z",
+  "updated_at": "2026-05-28T22:37:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12890,7 +12890,7 @@
       "handover": "handoffs/2026-05-29-spec-0249-path-filter-deploy-only-image-affecting-commits.md"
     },
     "0250": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T21:09:44Z",
       "events": [
         {
@@ -12898,7 +12898,8 @@
           "step": "queued",
           "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-28T22:37:13Z"
     },
     "0251": {
       "status": "queued",
