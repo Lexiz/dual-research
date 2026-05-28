@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T18:51:02Z",
+  "updated_at": "2026-05-28T18:51:04Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12333,7 +12333,7 @@
       "handover": "handoffs/2026-05-28-spec-0245-runs-soft-delete-admin-archive.md"
     },
     "0246": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-28T17:20:19Z",
       "events": [
         {
@@ -12388,7 +12388,9 @@
         }
       ],
       "failure_step": "",
-      "started_at": "2026-05-28T18:21:54Z"
+      "started_at": "2026-05-28T18:21:54Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/282",
+      "merged_at": "2026-05-28T18:51:04Z"
     }
   }
 }
