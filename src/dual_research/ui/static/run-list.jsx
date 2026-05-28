@@ -1,8 +1,12 @@
-// run-list.jsx — list of recent runs
-// SPEC-0055: sortable columns, URL state, attention promotion,
-// /-bound search, errored/deadlocked left border.
+// run-list.jsx — All Runs landing page (card layout + summary stats).
+// SPEC-0246: card-based rewrite. The page owns its own fetch (spec 0245
+// archive toggle depends on it), renders a sticky chrome, a summary stats
+// panel, status-grouped sections, and per-run cards surfacing the phase
+// strip, per-agent cost split, and terminal-state note. URL state
+// (?sort=/?filter=) lives in the local helpers below — router.jsx is
+// hash-only. The old `?q=` inline search is removed (§5).
 
-// ── URL state helpers ───────────────────────────────────────────
+// ── URL state helpers (kept; ?q= is now a no-op — §2.1) ─────────────
 function _readUrlParams() {
   const p = new URLSearchParams(window.location.search);
   return {
@@ -16,13 +20,12 @@ function _writeUrlParams(params) {
   const p = new URLSearchParams();
   if (params.sort && params.sort !== 'started:desc') p.set('sort', params.sort);
   if (params.filter && params.filter !== 'all') p.set('filter', params.filter);
-  if (params.q) p.set('q', params.q);
   const qs = p.toString();
   const url = window.location.pathname + (qs ? '?' + qs : '');
   window.history.replaceState(null, '', url);
 }
 
-// ── Sort logic ──────────────────────────────────────────────────
+// ── Sort logic (kept) ───────────────────────────────────────────
 const SORT_COLUMNS = {
   id:       { get: (r) => r.displayId || r.id.slice(0, 4), type: 'string' },
   status:   { get: (r) => r.status, type: 'string' },
@@ -49,9 +52,6 @@ function _sortRuns(runs, col, dir) {
       const cmp = String(va).localeCompare(String(vb));
       return dir === 'asc' ? cmp : -cmp;
     }
-    // For 'started', higher startedAtAgo = older, so default desc should show newest first.
-    // startedAtAgo is seconds ago — lower number = more recent.
-    // invert flag means: for 'asc' display order we actually want descending numeric order.
     let cmp = (va || 0) - (vb || 0);
     if (cfg.invert) cmp = -cmp;
     return dir === 'asc' ? cmp : -cmp;
@@ -59,59 +59,133 @@ function _sortRuns(runs, col, dir) {
   return sorted;
 }
 
-// ── Search filter ───────────────────────────────────────────────
-function _matchesSearch(run, q) {
-  if (!q) return true;
-  const needle = q.toLowerCase();
-  const haystack = [
-    run.id, run.displayId, run.topic, run.status,
-    'P' + run.phase,
-  ].filter(Boolean).join(' ').toLowerCase();
-  return haystack.includes(needle);
-}
+// Sort affordance — cycles through the documented vocabulary (§2.5).
+const SORT_ORDER = ['started:desc', 'cost:desc', 'duration:desc', 'id:asc'];
+const SORT_LABELS = {
+  'started:desc': 'Started, newest',
+  'cost:desc': 'Cost, highest',
+  'duration:desc': 'Duration, longest',
+  'id:asc': 'Run id, A–Z',
+};
 
-// ── Attention classification ────────────────────────────────────
-// Spec 0181 — `abandoned` is the "needs-attention" bucket too: the
-// orchestrator died silently and the user almost certainly wants to
-// investigate or retry.
+// ── Status partitioning ─────────────────────────────────────────
+// Spec 0181 — `abandoned` is a "needs-attention" status (silent death).
 const ATTENTION_STATUSES = new Set(['errored', 'deadlocked', 'abandoned']);
+const CONVERGED_STATUSES = new Set(['completed', 'converged']);
 
-function _attentionSummary(run) {
-  const parts = [];
-  parts.push('P' + run.phase);
-  if (run.rounds) parts.push(run.rounds + ' rounds');
-  parts.push(run.status);
-  return parts.join(' \u00b7 ');
+// ── Card class maps (literal strings so the source-pattern tests can
+//    assert the post-fix anatomy; spec 0206 doctrine) ─────────────
+const RC_CARD_MOD = {
+  errored: 'run-card--errored',
+  deadlocked: 'run-card--abandoned',
+  abandoned: 'run-card--abandoned',
+  completed: 'run-card--completed',
+  converged: 'run-card--completed',
+  running: 'run-card--running',
+};
+const RC_STATUS_MOD = {
+  errored: 'rc-status--errored',
+  deadlocked: 'rc-status--abandoned',
+  abandoned: 'rc-status--abandoned',
+  completed: 'rc-status--completed',
+  converged: 'rc-status--completed',
+  running: 'rc-status--running',
+};
+const RC_PHASE_LABELS = ['P1 plan', 'P2 nego', 'P3 res', 'P4 rev', 'P5 sum'];
+
+// ── Small render helpers ────────────────────────────────────────
+function Ms({ name, size }) {
+  return <span className={'ms' + (size ? ' ms-' + size : '')} aria-hidden="true">{name}</span>;
 }
 
-// ── Column header labels + keys ─────────────────────────────────
-const COLUMNS = [
-  { key: 'id',       label: 'run id',   align: 'left' },
-  { key: 'status',   label: 'status',   align: 'left' },
-  { key: 'topic',    label: 'topic',    align: 'left' },
-  { key: 'phase',    label: 'phase',    align: 'left' },
-  { key: 'started',  label: 'started',  align: 'left' },
-  { key: 'duration', label: 'duration', align: 'left' },
-  { key: 'cost',     label: 'cost',     align: 'right' },
-];
+function _money(n) { return '$' + (Number(n) || 0).toFixed(2); }
 
-function RunListView({ onSelect }) {
+function _fmtStarted(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${mon} ${d.getDate()}, ${hh}:${mm}`;
+}
+
+// Spec 0245 — local helper; mirrors `_seconds_since_iso` in server.py.
+function _secondsSinceIso(iso) {
+  if (!iso) return 0;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return 0;
+  return Math.max(0, Math.floor((Date.now() - t) / 1000));
+}
+
+// ── Aggregation (computed client-side over the unfiltered runs) ──
+function computeStats(runs) {
+  const total = runs.length;
+  const num = (n) => Number(n) || 0;
+  const totalSpend = runs.reduce((a, r) => a + num(r.cost), 0);
+  const stalledSpend = runs.filter(r => ATTENTION_STATUSES.has(r.status)).reduce((a, r) => a + num(r.cost), 0);
+  const convergedRuns = runs.filter(r => CONVERGED_STATUSES.has(r.status));
+  const convergedSpend = convergedRuns.reduce((a, r) => a + num(r.cost), 0);
+  const convergedCount = convergedRuns.length;
+  const convergenceRate = total ? (convergedCount / total) * 100 : 0;
+  const avgCost = total ? totalSpend / total : 0;
+  const costs = runs.map(r => num(r.cost));
+  const minCost = costs.length ? Math.min(...costs) : 0;
+  const maxCost = costs.length ? Math.max(...costs) : 0;
+  const durRuns = runs.filter(r => num(r.duration) > 0);
+  const avgDuration = durRuns.length ? durRuns.reduce((a, r) => a + num(r.duration), 0) / durRuns.length : 0;
+  const p2Abandoned = runs.filter(r => r.phase === 2 && r.status === 'abandoned').length;
+  const buckets = [1, 2, 3, 4, 5].map(p => {
+    const inb = runs.filter(r => r.phase === p);
+    const hasErr = inb.some(r => r.status === 'errored');
+    const hasWarn = inb.some(r => r.status === 'abandoned' || r.status === 'deadlocked');
+    const hasOk = inb.some(r => CONVERGED_STATUSES.has(r.status));
+    let kind = '';
+    if (hasErr && hasWarn) kind = '--mix';
+    else if (hasErr) kind = '--err';
+    else if (hasOk && !hasWarn) kind = '--ok';
+    return { code: 'P' + p, count: inb.length, kind };
+  });
+  const maxCount = Math.max(1, ...buckets.map(b => b.count));
+  buckets.forEach(b => { b.pct = Math.round((b.count / maxCount) * 100); });
+  return {
+    total, totalSpend, stalledSpend, convergedSpend, convergedCount,
+    convergenceRate, avgCost, minCost, maxCost, avgDuration, p2Abandoned, buckets,
+  };
+}
+
+function statusCounts(runs) {
+  const c = { all: runs.length };
+  runs.forEach(r => { c[r.status] = (c[r.status] || 0) + 1; });
+  return c;
+}
+
+function applyFilterAndSort(runs, filter, sortKey) {
+  const filtered = filter === 'all' ? runs : runs.filter(r => r.status === filter);
+  const parsed = _parseSort(sortKey);
+  return _sortRuns(filtered, parsed.col, parsed.dir);
+}
+
+function partitionByStatus(runs) {
+  return {
+    running: runs.filter(r => r.status === 'running'),
+    attention: runs.filter(r => ATTENTION_STATUSES.has(r.status)),
+    converged: runs.filter(r => CONVERGED_STATUSES.has(r.status)),
+  };
+}
+
+// ─────────────────── Page ───────────────────
+function AllRunsPage({ onSelect, navigate, theme, onToggleTheme }) {
   const me = useMe();
   const isAdmin = !!(me && me.isAdmin);
 
-  // Spec 0245 — admin-only Active/Archived toggle. Owns the data fetch
-  // so swapping flips the polled URL. Non-admins cannot reach this
-  // state (the toggle is hidden); even if they could, the server
-  // silently ignores `?archived=true` for non-admin callers.
+  // Spec 0245 — admin-only Active/Archived toggle. Owns the data fetch so
+  // swapping flips the polled URL. Non-admins cannot reach this state.
   const [archivedView, setArchivedView] = React.useState(false);
   const { rows: runs, connected, loading, refresh } = useRunList({ archived: archivedView });
-  React.useEffect(() => {
-    window.__lastSseConnected = connected;
-  }, [connected]);
+  React.useEffect(() => { window.__lastSseConnected = connected; }, [connected]);
 
-  // Spec 0245 — confirmation-dialog targets. `archiveTarget` opens the
-  // archive dialog; `unarchiveTarget` opens the symmetric unarchive
-  // dialog. Both are run objects from the current list.
+  // Spec 0245 — confirmation-dialog targets.
   const [archiveTarget, setArchiveTarget] = React.useState(null);
   const [unarchiveTarget, setUnarchiveTarget] = React.useState(null);
   const toast = useToast();
@@ -123,8 +197,6 @@ function RunListView({ onSelect }) {
     try {
       const resp = await authedFetch(`/api/runs/${encodeURIComponent(target.id)}/archive`, { method: 'POST' });
       if (resp.status === 204 || resp.status === 409) {
-        // 409 = already archived from another tab; treat as success since
-        // the resulting state matches the user's intent (row goes away).
         toast({ tone: 'ok', text: `Run ${target.displayId || target.id.slice(0, 4)} archived.` });
         refresh();
       } else {
@@ -156,378 +228,341 @@ function RunListView({ onSelect }) {
     }
   }, [unarchiveTarget, refresh, toast]);
 
-  // Read URL state on mount
+  // Local URL-param state (NOT router hooks).
   const initial = React.useMemo(() => _readUrlParams(), []);
   const [filter, setFilter] = React.useState(initial.filter);
   const [sortKey, setSortKey] = React.useState(initial.sort);
-  const [search, setSearch] = React.useState(initial.q);
-  const searchRef = React.useRef(null);
-  const debounceRef = React.useRef(null);
 
-  // URL sync
-  const syncUrl = React.useCallback((f, s, q) => {
-    _writeUrlParams({ filter: f, sort: s, q });
-  }, []);
-
-  // Filter change
-  const handleFilter = (f) => {
-    setFilter(f);
-    syncUrl(f, sortKey, search);
+  const handleFilter = (f) => { setFilter(f); _writeUrlParams({ filter: f, sort: sortKey }); };
+  const handleSortCycle = () => {
+    const i = SORT_ORDER.indexOf(sortKey);
+    const next = SORT_ORDER[(i + 1) % SORT_ORDER.length] || SORT_ORDER[0];
+    setSortKey(next);
+    _writeUrlParams({ filter, sort: next });
   };
 
-  // Sort change
-  const handleSort = (col) => {
-    const parsed = _parseSort(sortKey);
-    let newDir = 'asc';
-    if (parsed.col === col) {
-      newDir = parsed.dir === 'asc' ? 'desc' : 'asc';
-    } else {
-      // Default direction per column type
-      newDir = col === 'topic' || col === 'id' || col === 'status' ? 'asc' : 'desc';
-    }
-    const newKey = col + ':' + newDir;
-    setSortKey(newKey);
-    syncUrl(filter, newKey, search);
+  const stats = computeStats(runs);                       // unfiltered — project-wide health
+  const counts = statusCounts(runs);
+  const visibleRuns = applyFilterAndSort(runs, filter, sortKey);
+  const groups = partitionByStatus(visibleRuns);
+
+  const cardProps = {
+    onSelect, isAdmin, archivedView,
+    onArchive: setArchiveTarget, onUnarchive: setUnarchiveTarget,
   };
-
-  // Search change with debounced URL write
-  const handleSearch = (val) => {
-    setSearch(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      syncUrl(filter, sortKey, val);
-    }, 250);
-  };
-
-  // `/` key to focus search
-  React.useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== '/') return;
-      const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
-      // Don't steal focus if a modal is open
-      if (document.querySelector('[role="dialog"]')) return;
-      e.preventDefault();
-      if (searchRef.current) searchRef.current.focus();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  const counts = runs.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] || 0) + 1 }), {});
-  const totalCost = runs.reduce((a, r) => a + r.cost, 0);
-  const runningCount = runs.filter(r => r.status === 'running').length;
-
-  // Apply filter + search
-  let filtered = filter === 'all' ? runs : runs.filter(r => r.status === filter);
-  if (search) filtered = filtered.filter(r => _matchesSearch(r, search));
-
-  // Sort
-  const parsed = _parseSort(sortKey);
-
-  // Spec 0245 — archive is "I dealt with it"; don't bucket archived
-  // rows back into the "Needs attention" cluster even if their last
-  // recorded status was errored / deadlocked / abandoned.
-  const attentionRuns = archivedView
-    ? []
-    : filtered.filter(r => ATTENTION_STATUSES.has(r.status));
-  const normalRuns = archivedView
-    ? filtered
-    : filtered.filter(r => !ATTENTION_STATUSES.has(r.status));
-
-  const sortedAttention = _sortRuns(attentionRuns, parsed.col, parsed.dir);
-  const sortedNormal = _sortRuns(normalRuns, parsed.col, parsed.dir);
-
-  const hasAttention = sortedAttention.length > 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Header 1 — top app bar: brand mark + title | spacer | chips + search */}
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        padding: '0 18px',
-        height: 44,
-        borderBottom: '1px solid var(--md-outline-hair)',
-        background: 'var(--md-surface-container-low)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-          <div style={{
-            width: 16, height: 16, borderRadius: 4,
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            position: 'relative', overflow: 'hidden',
-            background: 'var(--md-surface-container-highest)',
-            flexShrink: 0,
-          }}>
-            <BrandMark name="claude" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', top: 1, left: 1 }} />
-            <BrandMark name="openai" size={9} variant="solid" aria-hidden="true" style={{ position: 'absolute', bottom: 1, right: 1 }} />
+    <>
+      <AllRunsChrome
+        me={me}
+        isAdmin={isAdmin}
+        archivedView={archivedView}
+        onArchivedView={setArchivedView}
+        connected={connected}
+        navigate={navigate}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
+      <main className="ar-page">
+        <ProjectStrip />
+        <StatsPanel stats={stats} />
+        <FilterChipRow filter={filter} counts={counts} sortKey={sortKey} onFilter={handleFilter} onSortCycle={handleSortCycle} />
+
+        {archivedView ? (
+          <div className="ar-grid">
+            {visibleRuns.map(r => <RunCard key={r.id} run={r} {...cardProps} />)}
           </div>
-          <span className="mono" style={{ fontSize: 12, color: 'var(--md-on-surface-variant)', letterSpacing: '0.02em' }}>
-            dual&#8209;research
-          </span>
-        </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-          <Chip icon="format-list-bulleted" title="Total runs in the current filter">{runs.length} run{runs.length === 1 ? '' : 's'}</Chip>
-          {runningCount > 0 && <Chip tone="info" icon="circle-medium" title="Runs currently in progress">{runningCount} running</Chip>}
-          <Chip icon="currency-usd" title="Aggregate cost across the visible runs">{fmt.costShort(totalCost)} spent</Chip>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input
-              ref={searchRef}
-              type="text"
-              value={search}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="search runs..."
-              aria-label="Search runs"
-              style={{
-                width: 160,
-                height: 26,
-                padding: '0 8px 0 26px',
-                fontSize: 11,
-                fontFamily: 'var(--md-font-data)',
-                color: 'var(--md-on-surface-variant)',
-                background: 'var(--md-surface)',
-                border: '1px solid var(--md-outline-hair)',
-                borderRadius: 'var(--md-shape-sm)',
-                outline: 'none',
-              }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--md-outline-variant)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--md-outline-hair)'}
-            />
-            <Mdi name="magnify" size={12} style={{ position: 'absolute', left: 8, color: 'var(--md-on-surface-faint)', pointerEvents: 'none' }} />
-            {search && (
-              <button
-                onClick={() => { handleSearch(''); if (searchRef.current) searchRef.current.focus(); }}
-                style={{
-                  position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--md-on-surface-faint)', padding: 2, display: 'flex',
-                }}
-                aria-label="Clear search"
-              >
-                <Mdi name="close" size={10} />
-              </button>
-            )}
-          </div>
-          <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-decor)' }}>live</span>
-          <Dot color={COLORS.info} pulse="pulse-a" size={6} />
-        </div>
-      </header>
-
-      {/* Header 2 — filter-tab strip (was header 3; header 2's brand row deleted) */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: '8px 18px',
-        background: 'var(--md-surface-container-low)',
-        borderBottom: '1px solid var(--md-outline-hair)',
-      }}>
-        <TabGroup>
-          <Tab active={filter === 'all'} onClick={() => handleFilter('all')} count={runs.length} size="sm">all</Tab>
-          <Tab active={filter === 'running'} onClick={() => handleFilter('running')} dot filterTone="running" count={counts.running||0} size="sm">running</Tab>
-          <Tab active={filter === 'converged'} onClick={() => handleFilter('converged')} dot filterTone="converged" count={counts.converged||0} size="sm">converged</Tab>
-          <Tab active={filter === 'deadlocked'} onClick={() => handleFilter('deadlocked')} dot filterTone="deadlocked" count={counts.deadlocked||0} size="sm">deadlocked</Tab>
-          <Tab active={filter === 'errored'} onClick={() => handleFilter('errored')} dot filterTone="errored" count={counts.errored||0} size="sm">errored</Tab>
-          {/* Spec 0181 — abandoned filter chip. Reuses the drift tone so
-              it visually clusters with deadlocked (both warn-amber). */}
-          <Tab active={filter === 'abandoned'} onClick={() => handleFilter('abandoned')} dot filterTone="deadlocked" count={counts.abandoned||0} size="sm">abandoned</Tab>
-          <Tab active={filter === 'completed'} onClick={() => handleFilter('completed')} dot filterTone="completed" count={counts.completed||0} size="sm">completed</Tab>
-        </TabGroup>
-        <div style={{ flex: 1 }} />
-        {/* Spec 0245 — admin-only Active/Archived toggle. Lives at the
-            right edge of the filter strip; flips `useRunList`'s polled
-            URL between `/api/runs` and `/api/runs?archived=true`. */}
-        {isAdmin && (
-          <TabGroup variant="solid" data-testid="archived-view-toggle">
-            <Tab
-              variant="solid"
-              active={!archivedView}
-              onClick={() => setArchivedView(false)}
-              size="sm"
-            >
-              Active
-            </Tab>
-            <Tab
-              variant="solid"
-              active={archivedView}
-              onClick={() => setArchivedView(true)}
-              size="sm"
-            >
-              Archived
-            </Tab>
-          </TabGroup>
-        )}
-      </div>
-
-      {/* Column headers -- sortable */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px 32px',
-        padding: '8px 18px',
-        background: 'var(--md-surface-container-high)',
-        borderBottom: '1px solid var(--md-outline-variant)',
-        fontSize: 10, color: 'var(--md-on-surface-muted)',
-        fontWeight: 'var(--md-w-semi)',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-      }}>
-        {COLUMNS.map((c) => {
-          const active = parsed.col === c.key;
-          const isAsc = parsed.dir === 'asc';
-          return (
-            <div
-              key={c.key}
-              onClick={() => handleSort(c.key)}
-              style={{
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                justifyContent: c.align === 'right' ? 'flex-end' : 'flex-start',
-                userSelect: 'none',
-                color: active ? 'var(--md-on-surface)' : undefined,
-              }}
-              title={`Sort by ${c.label}`}
-            >
-              <span>{c.label}</span>
-              {active && <Mdi name={isAsc ? 'sort-ascending' : 'sort-descending'} size={10} />}
-            </div>
-          );
-        })}
-        {/* Spec 0245 — 2 trailing empty cells: archive-button slot + chevron. */}
-        <div></div>
-        <div></div>
-      </div>
-
-      {/* Rows */}
-      <div style={{ flex: 1, overflow: 'auto', background: 'var(--md-surface)' }}>
-        {/* Attention section */}
-        {hasAttention && (
+        ) : (
           <>
-            <div style={{
-              padding: '6px 18px',
-              background: 'var(--md-surface-container-low)',
-              borderBottom: '1px solid var(--md-outline-hair)',
-              fontSize: 11,
-              fontWeight: 'var(--md-w-semi)',
-              color: 'var(--md-on-surface-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}>
-              <Mdi name="alert" size={12} style={{ color: 'var(--warn)' }} />
-              <span>Needs attention</span>
-              <span className="mono" style={{
-                fontSize: 10,
-                padding: '1px 6px',
-                background: 'var(--warn-bg)',
-                border: '1px solid var(--warn-border)',
-                borderRadius: 'var(--md-shape-full)',
-                color: 'var(--warn)',
-              }}>{sortedAttention.length}</span>
-            </div>
-            {sortedAttention.map((r, idx) => (
-              <RunRow key={r.id} run={r} onSelect={onSelect} attentionSummary={_attentionSummary(r)}
-                      tourAnchor={idx === 0}
-                      isAdmin={isAdmin}
-                      archivedView={archivedView}
-                      onArchive={setArchiveTarget}
-                      onUnarchive={setUnarchiveTarget} />
-            ))}
-            {sortedNormal.length > 0 && (
-              <div style={{
-                padding: '6px 18px',
-                background: 'var(--md-surface-container-low)',
-                borderBottom: '1px solid var(--md-outline-hair)',
-                fontSize: 11,
-                fontWeight: 'var(--md-w-semi)',
-                color: 'var(--md-on-surface-faint)',
-              }}>
-                Other runs
-              </div>
+            {groups.running.length > 0 && (
+              <RunGroup kind="running" runs={groups.running} stats={stats} {...cardProps} />
+            )}
+            {groups.attention.length > 0 && (
+              <RunGroup kind="attention" runs={groups.attention} stats={stats} {...cardProps} />
+            )}
+            {groups.converged.length > 0 && (
+              <RunGroup kind="converged" runs={groups.converged} stats={stats} {...cardProps} />
             )}
           </>
         )}
-        {sortedNormal.map((r, idx) => (
-          <RunRow key={r.id} run={r} onSelect={onSelect}
-                  tourAnchor={idx === 0 && !hasAttention}
-                  isAdmin={isAdmin}
-                  archivedView={archivedView}
-                  onArchive={setArchiveTarget}
-                  onUnarchive={setUnarchiveTarget} />
-        ))}
-        {filtered.length === 0 && (
-          loading && !search ? (
-            <div className="load-card" role="status" aria-label="Loading runs" style={{ padding: '18px' }}>
-              {[0,1,2,3,4].map(i => (
-                <div key={i} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px 32px',
-                  alignItems: 'center',
-                  padding: '10px 0',
-                  borderBottom: '1px solid var(--md-outline-hair)',
-                  gap: 8,
-                }}>
-                  <div className="skel" style={{ width: 52, height: 22, borderRadius: 999 }} />
-                  <div className="skel" style={{ width: 80, height: 18 }} />
-                  <div className="skel" style={{ width: '80%', height: 14 }} />
-                  <div className="skel" style={{ width: 60, height: 14 }} />
-                  <div className="skel" style={{ width: 50, height: 14 }} />
-                  <div className="skel" style={{ width: 50, height: 14 }} />
-                  <div className="skel" style={{ width: 60, height: 14 }} />
-                  <div style={{ width: 12 }} />
-                  <div style={{ width: 12 }} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{
-              padding: '40px 18px',
-              textAlign: 'center',
-              color: 'var(--md-on-surface-faint)',
-              fontSize: 12,
-            }}>
-              {search ? `No runs matching "${search}"` : 'No runs'}
-            </div>
-          )
+
+        {visibleRuns.length === 0 && (
+          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--md-on-surface-faint)', fontSize: 13 }}>
+            {loading ? 'Loading runs…' : (archivedView ? 'No archived runs.' : 'No runs yet.')}
+          </div>
         )}
+      </main>
+
+      <ConfirmArchiveDialog run={archiveTarget} onConfirm={handleArchiveConfirm} onCancel={() => setArchiveTarget(null)} />
+      <ConfirmUnarchiveDialog run={unarchiveTarget} onConfirm={handleUnarchiveConfirm} onCancel={() => setUnarchiveTarget(null)} />
+    </>
+  );
+}
+
+// ── §2.2 / §2.12.1 — Top chrome ─────────────────────────────────
+function AllRunsChrome({ me, isAdmin, archivedView, onArchivedView, connected, navigate, theme, onToggleTheme }) {
+  const meta = window.useAppMeta ? window.useAppMeta() : null;
+  const version = meta && meta.version;
+  const avatarInitial = ((me && me.email) || 'a').slice(0, 1).toLowerCase();
+  return (
+    <header className="ar-chrome">
+      <div className="ar-chrome__tabs">
+        <button type="button" className="ar-tab" aria-current="page"><Ms name="view_agenda" />All runs</button>
+        <button type="button" className="ar-tab" onClick={() => navigate && navigate('compare')}><Ms name="compare_arrows" />Compare</button>
+        <button type="button" className="ar-tab" onClick={() => navigate && navigate('search')}><Ms name="search" />Search</button>
       </div>
+      <div className="ar-chrome__sp" />
+      {isAdmin && (
+        <div className="ar-chrome__tabs" data-testid="archived-view-toggle">
+          <button type="button" className={'ar-tab' + (!archivedView ? ' is-active' : '')} onClick={() => onArchivedView(false)}>Active</button>
+          <button type="button" className={'ar-tab' + (archivedView ? ' is-active' : '')} onClick={() => onArchivedView(true)}>Archived</button>
+        </div>
+      )}
+      <span className="ar-pill"><span className={'dot' + (connected ? ' dot--ok' : '')} />{connected ? 'connected' : 'offline'}</span>
+      {version && (
+        <button type="button" className="ar-pill" title={`dual-research v${version}`}
+          onClick={() => { window.location.hash = `#/how-it-works#cl-${String(version).replace(/\./g, '')}`; }}>
+          <span className="ar-pill__v">v{version}</span>
+        </button>
+      )}
+      <button type="button" className="ar-tab" onClick={() => navigate && navigate('how-it-works')}>How it works</button>
+      <button type="button" className="md-icon-btn" aria-label="Toggle light / dark theme" title="Toggle theme"
+        onClick={() => onToggleTheme && onToggleTheme()}>
+        <Ms name="contrast" size={20} />
+      </button>
+      <span className="ar-avatar" aria-hidden="true">{avatarInitial}</span>
+    </header>
+  );
+}
 
-      {/* Footer */}
-      <footer style={{
-        borderTop: '1px solid var(--md-outline-hair)',
-        background: 'var(--md-surface-container-low)',
-        padding: '8px 18px',
-        display: 'flex', gap: 18, alignItems: 'center',
-        fontSize: 11, color: 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)',
-      }}>
-        <span>showing {filtered.length} of {runs.length}</span>
-        <span style={{ flex: 1 }} />
-        <span><kbd style={{ padding: '1px 4px', background: 'var(--md-surface-container-high)', border: '1px solid var(--md-outline-hair)', borderRadius: 3, fontSize: 10 }}>/</kbd> search &middot; click header to sort</span>
-      </footer>
-
-      {/* Spec 0245 — archive / unarchive confirmation dialogs. Use the
-          canonical ModalDialog (Basic variant, max-width 560 px, scrim,
-          focus trap, ESC close per DS SPEC.md §4.6). */}
-      <ConfirmArchiveDialog
-        run={archiveTarget}
-        onConfirm={handleArchiveConfirm}
-        onCancel={() => setArchiveTarget(null)}
-      />
-      <ConfirmUnarchiveDialog
-        run={unarchiveTarget}
-        onConfirm={handleUnarchiveConfirm}
-        onCancel={() => setUnarchiveTarget(null)}
-      />
+// ── §2.3 — Project strip ────────────────────────────────────────
+function ProjectStrip() {
+  return (
+    <div className="ar-project">
+      <span className="ar-project__mark" aria-hidden="true" />
+      <span className="ar-project__name">dual&#8209;research</span>
     </div>
   );
 }
 
-// Spec 0245 — confirmation dialogs. Both use Modal with `variant="single"`
-// (== basic), matching the existing allowlist admin destructive-action
-// pattern. Error tone on the confirm button signals destructive intent.
+// ── §2.4 — Stats panel ──────────────────────────────────────────
+function StatsPanel({ stats }) {
+  const s = stats;
+  return (
+    <section className="ar-stats" aria-label="Summary statistics">
+      <div className="ar-stat">
+        <div className="ar-stat__label">Total spend</div>
+        <div className="ar-stat__value">{_money(s.totalSpend)}</div>
+        <div className="ar-stat__hint"><b>{_money(s.stalledSpend)}</b> on stalled runs · <b>{_money(s.convergedSpend)}</b> converged</div>
+      </div>
+      <div className="ar-stat">
+        <div className="ar-stat__label">Convergence rate</div>
+        <div className="ar-stat__value">{s.convergenceRate.toFixed(1)}%</div>
+        <div className="ar-stat__hint"><b>{s.total} runs</b> · <b>{s.convergedCount} converged</b></div>
+      </div>
+      <div className="ar-stat">
+        <div className="ar-stat__label">Avg cost / run</div>
+        <div className="ar-stat__value">{_money(s.avgCost)}</div>
+        <div className="ar-stat__hint">Range <b>{_money(s.minCost)}</b> – <b>{_money(s.maxCost)}</b></div>
+      </div>
+      <div className="ar-stat">
+        <div className="ar-stat__label">Avg duration</div>
+        <div className="ar-stat__value">{fmt.duration(Math.round(s.avgDuration))}</div>
+        <div className="ar-stat__hint">Excludes runs abandoned at P2 ({s.p2Abandoned})</div>
+      </div>
+      <div className="ar-stat ar-stat--phase">
+        <div className="ar-stat__label">Where runs ended</div>
+        <div className="phase-dist">
+          {s.buckets.map(b => (
+            <React.Fragment key={b.code}>
+              <div className="phase-dist__code">{b.code}</div>
+              <div className="phase-dist__bar"><div className={'phase-dist__fill ' + (b.kind || '')} style={{ width: b.pct + '%' }} /></div>
+              <div className="phase-dist__count">{b.count}</div>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── §2.5 — Filter chip row ──────────────────────────────────────
+const FILTER_CHIPS = [
+  { key: 'all', label: 'All', swatch: null },
+  { key: 'running', label: 'Running', swatch: '--running' },
+  { key: 'converged', label: 'Converged', swatch: '--converged' },
+  { key: 'deadlocked', label: 'Deadlocked', swatch: '--deadlocked' },
+  { key: 'errored', label: 'Errored', swatch: '--errored' },
+  { key: 'abandoned', label: 'Abandoned', swatch: '--abandoned' },
+  { key: 'completed', label: 'Completed', swatch: '--completed' },
+];
+
+function FilterChipRow({ filter, counts, sortKey, onFilter, onSortCycle }) {
+  return (
+    <div className="ar-filters">
+      {FILTER_CHIPS.map(chip => {
+        const count = chip.key === 'all' ? counts.all : (counts[chip.key] || 0);
+        return (
+          <button
+            key={chip.key}
+            type="button"
+            className="fchip"
+            aria-pressed={filter === chip.key}
+            onClick={() => onFilter(chip.key)}
+          >
+            {chip.swatch && <span className={'swatch ' + chip.swatch} />}
+            {chip.label}
+            <span className="ct">{count}</span>
+          </button>
+        );
+      })}
+      <span className="ar-filters__sp" />
+      <button type="button" className="ar-sort" onClick={onSortCycle}>
+        <Ms name="sort" />{SORT_LABELS[sortKey] || 'Started, newest'}
+      </button>
+    </div>
+  );
+}
+
+// ── §2.6 — Section group ────────────────────────────────────────
+const GROUP_META = {
+  running: { title: 'Running', cls: 'ar-group', icon: 'play_circle' },
+  attention: { title: 'Needs attention', cls: 'ar-group ar-group--warn', icon: 'warning_amber' },
+  converged: { title: 'Converged', cls: 'ar-group', icon: 'check_circle' },
+};
+
+function _groupHint(kind, runs, stats) {
+  if (kind === 'running') {
+    const spend = runs.reduce((a, r) => a + (Number(r.cost) || 0), 0);
+    return `${runs.length} in flight · ${_money(spend)} spent so far`;
+  }
+  if (kind === 'attention') {
+    const spend = runs.reduce((a, r) => a + (Number(r.cost) || 0), 0);
+    const p2 = runs.filter(r => r.phase === 2 && r.status === 'abandoned').length;
+    return `${_money(spend)} of compute on stalled runs · ${p2} abandoned in P2 (plan negotiation)`;
+  }
+  const spend = runs.reduce((a, r) => a + (Number(r.cost) || 0), 0);
+  const avg = runs.length ? spend / runs.length : 0;
+  const durRuns = runs.filter(r => (Number(r.duration) || 0) > 0);
+  const avgDur = durRuns.length ? durRuns.reduce((a, r) => a + r.duration, 0) / durRuns.length : 0;
+  return `Clean P5 finish · ${_money(avg)} average · ${fmt.duration(Math.round(avgDur))} average`;
+}
+
+function RunGroup({ kind, runs, stats, ...cardProps }) {
+  const meta = GROUP_META[kind] || GROUP_META.converged;
+  return (
+    <section className={meta.cls}>
+      <div className="ar-group__head">
+        <Ms name={meta.icon} />
+        <span className="ar-group__title">{meta.title}</span>
+        <span className="ar-group__count">{runs.length}</span>
+        <span className="ar-group__hint">{_groupHint(kind, runs, stats)}</span>
+      </div>
+      <div className="ar-grid">
+        {runs.map(r => <RunCard key={r.id} run={r} {...cardProps} />)}
+      </div>
+    </section>
+  );
+}
+
+// ── §2.8.6 — Per-agent row ──────────────────────────────────────
+function AgentRow({ side, agent }) {
+  if (!agent) return null;
+  return (
+    <div className={'rc-agent rc-agent--' + side}>
+      <span className="rc-agent__name">{agent.name}</span>
+      <span className="rc-agent__cost">{_money(agent.cost)}</span>
+      <span className="rc-agent__chips">
+        {(agent.chips || []).map((c, i) => (
+          <span key={i} className={'rc-bdg' + (c.kind ? ' rc-bdg--' + c.kind : '')}>{c.text}</span>
+        ))}
+      </span>
+    </div>
+  );
+}
+
+// ── §2.8 / §2.12 — Run card ─────────────────────────────────────
+function RunCard({ run, onSelect, isAdmin, archivedView, onArchive, onUnarchive }) {
+  const [hover, setHover] = React.useState(false);
+  const isArchived = !!run.deletedAt;
+  const cardMod = isArchived ? 'run-card--archived' : (RC_CARD_MOD[run.status] || '');
+  const statusMod = RC_STATUS_MOD[run.status] || '';
+  const displayId = run.displayId || run.id;
+  const isRunning = run.status === 'running';
+
+  const showArchiveBtn = hover && isAdmin && !isArchived && !archivedView;
+  const showUnarchiveBtn = hover && isAdmin && isArchived;
+  const archivedSecs = isArchived ? _secondsSinceIso(run.deletedAt) : null;
+
+  return (
+    <article
+      className={'run-card ' + cardMod}
+      data-run-id={run.id}
+      onClick={() => { if (!isArchived) onSelect && onSelect(run); }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div className="rc-head">
+        <span className={'rc-status ' + statusMod}>{run.status}</span>
+        <span className="rc-topic">{run.topic || '—'}</span>
+        <div className="rc-foot">
+          <div className="rc-meta"><span className="rc-meta__l">Started</span><span className="rc-meta__v">{_fmtStarted(run.startedAt)}</span></div>
+          <div className="rc-meta"><span className="rc-meta__l">Duration</span><span className="rc-meta__v">{fmt.duration(run.duration)}</span></div>
+          <div className="rc-meta"><span className="rc-meta__l">Rounds</span><span className="rc-meta__v">{(run.roundsCompleted || 0)} / {(run.roundsMax || 6)}</span></div>
+          <div className="rc-meta"><span className="rc-meta__l">Cost</span><span className="rc-meta__v">{_money(run.cost)}</span></div>
+        </div>
+        <span className="rc-idbdg">{displayId}</span>
+      </div>
+
+      <div className="rc-phases">
+        {(run.phases || []).map((st, i) => (
+          <div key={i} className={'rc-phase rc-phase--' + (st || 'pending')}>
+            <div className="rc-phase__bar" />
+            <div className="rc-phase__lbl">{RC_PHASE_LABELS[i]}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rc-agents">
+        <AgentRow side="a" agent={run.agents && run.agents.a} />
+        <AgentRow side="b" agent={run.agents && run.agents.b} />
+      </div>
+
+      {isArchived ? (
+        <span className="rc-archived-cap" title={`archived ${run.deletedAt} by ${run.deletedBy || 'unknown'}`}>
+          {`archived ${fmt.relTime(archivedSecs || 0)}${run.deletedBy ? ` · by ${run.deletedBy}` : ''}`}
+        </span>
+      ) : run.note ? (
+        <div className={'rc-note rc-note--' + run.note.variant}>
+          <Ms name={run.note.icon} />
+          <span dangerouslySetInnerHTML={{ __html: run.note.html }} />
+        </div>
+      ) : null}
+
+      {/* Top-right affordances (§2.8.3 / §2.8.4 / §2.12.2). */}
+      {isRunning && !isArchived && <span className="rc-live" aria-hidden="true" />}
+      {!isRunning && !showArchiveBtn && !showUnarchiveBtn && (
+        <span className="rc-chev" aria-hidden="true"><Ms name="chevron_right" /></span>
+      )}
+      {showArchiveBtn && (
+        <button type="button" className="md-icon-btn rc-archive-btn"
+          onClick={(e) => { e.stopPropagation(); onArchive && onArchive(run); }}
+          aria-label={`Archive run ${displayId}`} title="Archive run">
+          <Icon.Archive />
+        </button>
+      )}
+      {showUnarchiveBtn && (
+        <button type="button" className="md-icon-btn rc-archive-btn"
+          onClick={(e) => { e.stopPropagation(); onUnarchive && onUnarchive(run); }}
+          aria-label={`Restore run ${displayId}`} title="Restore run">
+          <Icon.ArchiveUp />
+        </button>
+      )}
+    </article>
+  );
+}
+
+// ─────────────────── Confirm dialogs (kept — spec 0245) ───────────────────
 function ConfirmArchiveDialog({ run, onConfirm, onCancel }) {
   if (!run) return null;
   const displayId = run.displayId || run.id.slice(0, 4);
@@ -560,150 +595,7 @@ function ConfirmUnarchiveDialog({ run, onConfirm, onCancel }) {
   );
 }
 
-function RunRow({ run, onSelect, attentionSummary, tourAnchor, isAdmin, archivedView, onArchive, onUnarchive }) {
-  const phaseLabel = PHASES[run.phase]?.label || 'done';
-  const [hover, setHover] = React.useState(false);
-  const idParts = window.splitRunId(run.id);
-  const shortTopic = window.formatTopic(run.topic, { maxChars: 110 });
-  const idTooltip = `${run.id}${idParts.time ? ` \u00b7 started ${idParts.time}` : ''}${idParts.slug ? ` \u00b7 ${idParts.slug}` : ''}`;
-  const displayId = run.displayId || run.id.slice(0, 4);
-
-  const isErrored = run.status === 'errored';
-  const isDeadlocked = run.status === 'deadlocked';
-  const needsAttention = isErrored || isDeadlocked;
-  const borderColor = isErrored ? 'var(--err)' : isDeadlocked ? 'var(--warn)' : null;
-
-  // Spec 0245 \u2014 soft-delete affordances. Row click is suppressed on
-  // archived rows because the detail endpoint 404s on `deleted_at IS
-  // NOT NULL` ids (canonical reader is `runs_active`).
-  const isArchived = !!run.deletedAt;
-  const archivedSecs = isArchived ? _secondsSinceIso(run.deletedAt) : null;
-
-  const showArchiveBtn = hover && isAdmin && !isArchived && !archivedView;
-  const showUnarchiveBtn = hover && isAdmin && isArchived;
-
-  return (
-    <div
-      className={isArchived ? 'run-row--archived' : undefined}
-      onClick={() => { if (!isArchived) onSelect?.(run); }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      title={run.id}
-      data-tour-anchor={tourAnchor ? 'run-row' : undefined}
-      data-run-id={run.id}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '80px 110px minmax(0, 1fr) 110px 110px 90px 100px 32px 32px',
-        alignItems: 'center',
-        padding: '10px 18px',
-        borderBottom: '1px solid var(--md-outline-hair)',
-        background: hover ? 'var(--md-surface-container-low)' : run.selected ? 'var(--md-surface-container-low)' : 'transparent',
-        cursor: isArchived ? 'default' : 'pointer',
-        position: 'relative',
-        borderLeft: borderColor ? `2px solid ${borderColor}` : '2px solid transparent',
-      }}>
-      {/* Run id pill */}
-      <span className="mono" title={idTooltip} style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        padding: '3px 10px',
-        background: 'var(--md-surface-container-high)',
-        border: '1px solid var(--md-outline-hair)',
-        borderRadius: 999,
-        fontSize: 11.5,
-        color: 'var(--md-on-surface-variant)',
-        letterSpacing: '0.04em',
-        width: 'fit-content',
-      }}>{displayId}</span>
-      <StatusBadge status={run.status} />
-      {/* SPEC-0087 § A — column-gap between STATUS pill and TOPIC bumped
-          from 8 to 20 px per the user's 12.52 + 13.22 complaint. The
-          tighter spacing pre-spec made the topic text read crammed
-          against the pill. */}
-      <div style={{ minWidth: 0, paddingLeft: 20, paddingRight: 16 }} title={run.topic}>
-        <div style={{
-          color: 'var(--md-on-surface)', fontSize: 12.5,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{shortTopic}</div>
-        {attentionSummary && (
-          <div className="mono" style={{
-            fontSize: 10, color: 'var(--md-on-surface-faint)', marginTop: 2,
-          }}>{attentionSummary}</div>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <PhaseMini phase={run.phase} status={run.status} />
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--md-on-surface-muted)' }}>P{run.phase}</span>
-        {run.rounds && (run.phase === 2 || run.phase === 4) && (
-          <span className="mono" style={{ fontSize: 10, color: 'var(--md-on-surface-faint)' }}>&middot; {run.rounds}</span>
-        )}
-      </div>
-      <span className="mono" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{run.startedAt || run.startedAtAgo > 0 ? fmt.relTime(run.startedAtAgo) : '—'}</span>
-      <span className="mono num" style={{ fontSize: 11.5, color: 'var(--md-on-surface-muted)' }}>{fmt.duration(run.duration)}</span>
-      <span className="mono num" style={{ fontSize: 12, color: 'var(--md-on-surface)', textAlign: 'right' }}>{fmt.cost(run.cost)}</span>
-      {/* Spec 0245 — archive-slot column. Visible only on hover for
-          admins on non-archived rows; unarchive replaces it on archived
-          rows. Stays mounted (empty span) at other times so row grid
-          columns don't reflow. */}
-      <span style={{ display: 'inline-flex', justifyContent: 'center' }}>
-        {showArchiveBtn && (
-          <button
-            type="button"
-            className="md-icon-btn"
-            onClick={(e) => { e.stopPropagation(); onArchive?.(run); }}
-            aria-label={`Archive run ${displayId}`}
-            title="Archive run"
-            style={{ width: 28, height: 28 }}
-          >
-            <Icon.Archive />
-          </button>
-        )}
-        {showUnarchiveBtn && (
-          <button
-            type="button"
-            className="md-icon-btn"
-            onClick={(e) => { e.stopPropagation(); onUnarchive?.(run); }}
-            aria-label={`Restore run ${displayId}`}
-            title="Restore run"
-            style={{ width: 28, height: 28 }}
-          >
-            <Icon.ArchiveUp />
-          </button>
-        )}
-      </span>
-      {/* Spec 0245 — chevron column replaced by `archived <relTime> ·
-          by <email>` caption when the row is archived. */}
-      {isArchived ? (
-        <span
-          className="mono"
-          title={`archived ${run.deletedAt} by ${run.deletedBy || 'unknown'}`}
-          style={{
-            fontSize: 10,
-            color: 'var(--md-on-surface-faint)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            textAlign: 'right',
-          }}
-        >
-          {`archived ${fmt.relTime(archivedSecs || 0)}${run.deletedBy ? ` · by ${run.deletedBy}` : ''}`}
-        </span>
-      ) : (
-        <Icon.Chevron style={{ color: hover ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-decor)' }} />
-      )}
-    </div>
-  );
-}
-
-// Spec 0245 — local helper; mirrors `_seconds_since_iso` in server.py
-// so the archived-caption `archived <relTime>` reads consistently.
-function _secondsSinceIso(iso) {
-  if (!iso) return 0;
-  const t = Date.parse(iso);
-  if (Number.isNaN(t)) return 0;
-  return Math.max(0, Math.floor((Date.now() - t) / 1000));
-}
-
-// 6-dot phase mini-strip
+// ── PhaseMini — kept for the /#/language primitives showcase (§2.1) ──
 function PhaseMini({ phase, status }) {
   const failed = status === 'errored' || status === 'deadlocked';
   return (
@@ -726,4 +618,4 @@ function PhaseMini({ phase, status }) {
   );
 }
 
-Object.assign(window, { RunListView });
+Object.assign(window, { AllRunsPage });

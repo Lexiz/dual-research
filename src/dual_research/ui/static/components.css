@@ -5520,3 +5520,371 @@ body.light .theme-pill::after {
 }
 .md-btn--filled.md-btn--tone-error:hover { filter: brightness(1.05); }
 .md-btn--filled.md-btn--tone-error:active { filter: brightness(0.95); }
+
+/* =============================================================
+   SPEC-0246 — All Runs page: card layout + summary stats panel.
+   Page-level .ar-* + run-card-level .rc-* composed components,
+   scoped under .ar-page. This block is mirrored verbatim in the
+   live app at src/dual_research/ui/static/components.css (the
+   authoritative copy lives in design-system/assets/styles/
+   composed-components.css). Tokens-only — no hex. See
+   specs/0246-all-runs-card-layout-rewrite.md.
+   ============================================================= */
+
+.ar-page { max-width: 1320px; margin: 0 auto; padding: 24px 28px 60px; }
+
+/* §2.2 — Top chrome */
+.ar-chrome {
+  position: sticky; top: 0; z-index: 30;
+  height: 60px; display: flex; align-items: center; gap: 8px;
+  padding: 0 20px;
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.ar-chrome__tabs { display: flex; align-items: center; gap: 4px; }
+.ar-chrome__sp { flex: 1 1 auto; }
+.ar-tab {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 16px; border: none;
+  border-radius: var(--md-shape-full);
+  background: transparent; color: var(--md-on-surface-variant);
+  font: 500 13px/1 var(--md-font-plain); cursor: pointer;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard);
+}
+.ar-tab .ms { font-size: 18px; }
+.ar-tab:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.ar-tab[aria-current="page"], .ar-tab.is-active {
+  background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+}
+.ar-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  border-radius: var(--md-shape-full);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  font: 500 11px/1 var(--md-font-plain);
+}
+.ar-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--md-on-surface-faint); }
+.ar-pill .dot--ok { background: var(--p-ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-ok) 24%, transparent); }
+.ar-pill__v { font-family: var(--md-font-data); font-size: 11px; }
+.ar-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--p-sable), var(--p-sage));
+  color: rgba(255, 255, 255, 0.95); font: 500 14px/1 var(--md-font-plain);
+}
+
+/* §2.3 — Project strip */
+.ar-project { display: flex; align-items: center; gap: 10px; margin: 18px 0 28px; }
+.ar-project__mark { position: relative; width: 22px; height: 22px; }
+.ar-project__mark::before, .ar-project__mark::after {
+  content: ""; position: absolute; top: 5px; width: 12px; height: 12px;
+  border-radius: 50%; mix-blend-mode: screen;
+}
+.ar-project__mark::before { left: 0; background: var(--p-sable); }
+.ar-project__mark::after { left: 6px; background: var(--p-sage); }
+.ar-project__name {
+  font-size: 18px; font-weight: 500; letter-spacing: -0.005em; color: var(--md-on-surface);
+}
+
+/* §2.4 — Stats panel */
+.ar-stats {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr;
+  gap: 1px; background: var(--md-outline-hair);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-lg); overflow: hidden; margin-bottom: 24px;
+}
+.ar-stat {
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 14px 18px; min-height: 104px; background: var(--md-surface-container-low);
+}
+.ar-stat__label {
+  font-size: 10px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--md-on-surface-faint);
+}
+.ar-stat__value {
+  font-size: 26px; font-weight: 400; font-family: var(--md-font-brand);
+  letter-spacing: -0.015em; font-feature-settings: "tnum", "ss01"; color: var(--md-on-surface);
+}
+.ar-stat__hint { font-size: 11px; line-height: 1.4; color: var(--md-on-surface-variant); }
+.ar-stat__hint b { font-weight: 500; color: var(--md-on-surface); }
+.ar-stat__hint .neg { color: var(--p-err); }
+.ar-stat__hint .pos { color: var(--p-ok); }
+
+/* §2.4.1 — Phase distribution chart */
+.phase-dist {
+  display: grid; grid-template-columns: 28px 1fr 28px; gap: 6px 10px; align-items: center;
+}
+.phase-dist__code {
+  font: 400 11px/1 var(--md-font-data); letter-spacing: 0.04em; color: var(--md-on-surface-faint);
+}
+.phase-dist__bar { height: 8px; border-radius: 2px; background: var(--md-outline-hair); }
+.phase-dist__fill { height: 100%; border-radius: 2px; background: var(--p-warn); }
+.phase-dist__fill.--ok { background: var(--p-ok); }
+.phase-dist__fill.--err { background: var(--p-err); }
+.phase-dist__fill.--mix {
+  background: linear-gradient(90deg, var(--p-warn) 0%, var(--p-warn) 60%, var(--p-err) 60%, var(--p-err) 100%);
+}
+.phase-dist__count {
+  font: 400 11px/1 var(--md-font-data); text-align: right;
+  font-variant-numeric: tabular-nums; color: var(--md-on-surface-variant);
+}
+
+/* §2.5 — Filter chip row */
+.ar-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; }
+.ar-filters__sp { flex: 1 1 auto; }
+.fchip {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 14px; border: none;
+  border-radius: var(--md-shape-full); background: transparent;
+  box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+  color: var(--md-on-surface-variant);
+  font: 500 12px/1 var(--md-font-plain); letter-spacing: 0.04em; cursor: pointer;
+}
+.fchip:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+.fchip[aria-pressed="true"] {
+  background: var(--md-secondary-container); color: var(--md-on-secondary-container); box-shadow: none;
+}
+.fchip .swatch { width: 8px; height: 8px; border-radius: 50%; }
+.fchip .swatch.--running { background: var(--p-info); }
+.fchip .swatch.--converged { background: var(--p-ok); }
+.fchip .swatch.--deadlocked { background: var(--p-warn); }
+.fchip .swatch.--errored { background: var(--p-err); }
+.fchip .swatch.--abandoned { background: var(--p-warn); }
+.fchip .swatch.--completed { background: var(--p-ok); }
+.fchip .ct {
+  padding-left: 4px; border-left: 1px solid var(--md-outline-variant);
+  font: 400 11px/1 var(--md-font-data);
+}
+.ar-sort {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 12px; border: none;
+  border-radius: var(--md-shape-full); background: transparent;
+  box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+  color: var(--md-on-surface-variant); font: 500 12px/1 var(--md-font-plain); cursor: pointer;
+}
+.ar-sort .ms { font-size: 18px; }
+.ar-sort:hover { background: color-mix(in srgb, var(--md-on-surface) 8%, transparent); }
+
+/* §2.6 — Section group headers */
+.ar-group { margin-top: 36px; }
+.ar-group:first-of-type { margin-top: 8px; }
+.ar-group__head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--md-outline-hair);
+}
+.ar-group__head .ic, .ar-group__head .ms { font-size: 20px; }
+.ar-group__title {
+  font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--md-on-surface);
+}
+.ar-group--warn .ar-group__title, .ar-group--warn .ar-group__head .ms { color: var(--p-warn); }
+.ar-group__count {
+  padding: 4px 8px; border-radius: var(--md-shape-full);
+  background: var(--md-surface-container);
+  font: 400 11px/1 var(--md-font-data); color: var(--md-on-surface-variant);
+}
+.ar-group__hint { margin-left: auto; font-size: 12px; color: var(--md-on-surface-faint); }
+
+/* §2.7 — Card grid */
+.ar-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+/* §2.8 — Run card */
+.run-card {
+  position: relative; display: grid;
+  grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto;
+  grid-template-areas: "head head" "phases agents" "note note";
+  column-gap: 32px; row-gap: 12px; align-items: center;
+  padding: 12px 18px 14px 22px;
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-hair);
+  border-radius: var(--md-shape-md); cursor: pointer; overflow: hidden;
+  transition: background var(--md-dur-short-3) var(--md-easing-standard),
+              border-color var(--md-dur-short-3) var(--md-easing-standard),
+              transform var(--md-dur-short-3) var(--md-easing-standard);
+}
+.run-card::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--md-outline-variant);
+}
+.run-card--errored::before { background: var(--p-err); }
+.run-card--abandoned::before { background: var(--p-warn); }
+.run-card--completed::before { background: var(--p-ok); }
+.run-card--running::before { background: var(--p-info); }
+.run-card--errored::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(420px 140px at 0% 0%, color-mix(in srgb, var(--p-err) 8%, transparent), transparent 70%);
+}
+.run-card--running::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(420px 140px at 0% 0%, color-mix(in srgb, var(--p-info) 10%, transparent), transparent 70%);
+}
+.run-card--completed { background: var(--md-surface-1); }
+.run-card:hover {
+  background: var(--md-surface-1); border-color: var(--md-outline-variant);
+  transform: translateY(-1px);
+}
+
+/* §2.8.2 — Head row */
+.rc-head { grid-area: head; display: flex; align-items: center; gap: 14px; }
+.rc-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 10px; border-radius: var(--md-shape-full);
+  font: 500 10px/1 var(--md-font-plain); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.rc-status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.rc-status--errored { color: var(--p-err); background: color-mix(in srgb, var(--p-err) 16%, transparent); }
+.rc-status--abandoned { color: var(--p-warn); background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
+.rc-status--completed { color: var(--p-ok); background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
+.rc-status--running { color: var(--p-info); background: color-mix(in srgb, var(--p-info) 16%, transparent); }
+.rc-topic {
+  flex: 1; min-width: 0; font-size: 14px; font-weight: 500; line-height: 1.3;
+  color: var(--md-on-surface);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc-foot { margin-left: auto; display: flex; align-items: flex-end; gap: 22px; }
+.rc-meta { display: flex; flex-direction: column; gap: 3px; }
+.rc-meta__l {
+  font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--md-on-surface-faint);
+}
+.rc-meta__v {
+  font-size: 12px; font-weight: 500; font-family: var(--md-font-data);
+  font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--md-on-surface);
+}
+.rc-idbdg {
+  flex: 0 0 auto; padding: 6px 10px; border-radius: var(--md-shape-full);
+  background: var(--md-surface-container); color: var(--md-on-surface-variant);
+  box-shadow: inset 0 0 0 1px var(--md-outline-hair);
+  font: 500 11px/1 var(--md-font-data); letter-spacing: 0.04em; white-space: nowrap;
+}
+
+/* §2.8.3 — Hover chevron */
+.rc-chev {
+  position: absolute; top: 12px; right: 12px; width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; color: var(--md-on-surface-decor);
+  transition: opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.run-card:hover .rc-chev { opacity: 1; }
+
+/* §2.8.4 — Running ticker (reuses the shared pulse-info keyframe) */
+.rc-live {
+  position: absolute; top: 14px; right: 14px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--p-info);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-info) 28%, transparent);
+  animation: pulse-info 1.8s ease-in-out infinite;
+}
+.run-card--running:hover .rc-chev { opacity: 0; }
+
+/* §2.8.5 — Phase strip */
+.rc-phases { grid-area: phases; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.rc-phase { display: flex; flex-direction: column; gap: 3px; }
+.rc-phase__bar { position: relative; height: 4px; border-radius: 2px; background: var(--md-outline-hair); overflow: hidden; }
+.rc-phase__lbl {
+  font: 500 9px/1 var(--md-font-data); letter-spacing: 0.04em; color: var(--md-on-surface-decor);
+}
+.rc-phase--done .rc-phase__bar { background: var(--p-sage); }
+.rc-phase--done .rc-phase__lbl { color: var(--md-on-surface-variant); }
+.rc-phase--active .rc-phase__bar { background: var(--p-info); }
+.rc-phase--active .rc-phase__bar::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: rc-shimmer 2.4s linear infinite;
+}
+.rc-phase--active .rc-phase__lbl { color: var(--p-info); }
+.rc-phase--failed .rc-phase__bar { background: var(--p-err); }
+.rc-phase--failed .rc-phase__lbl { color: var(--p-err); }
+.rc-phase--abandon .rc-phase__bar {
+  background-color: var(--p-warn);
+  background-image: linear-gradient(45deg, transparent 25%, rgba(0,0,0,0.18) 25%, rgba(0,0,0,0.18) 50%, transparent 50%, transparent 75%, rgba(0,0,0,0.18) 75%);
+  background-size: 6px 6px;
+}
+.rc-phase--abandon .rc-phase__lbl { color: var(--p-warn); }
+.rc-phase--pending .rc-phase__bar { background: var(--md-outline-hair); }
+.rc-phase--pending .rc-phase__lbl { color: var(--md-on-surface-decor); }
+@keyframes rc-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* §2.8.6 — Per-agent rows */
+.rc-agents { grid-area: agents; display: flex; flex-direction: column; gap: 4px; }
+.rc-agent {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: 4px 10px 4px 12px; border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container); overflow: hidden;
+}
+.rc-agent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; }
+.rc-agent--a::before { background: var(--p-sable); }
+.rc-agent--b::before { background: var(--p-sage); }
+.rc-agent__name {
+  font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; min-width: 50px;
+}
+.rc-agent--a .rc-agent__name { color: color-mix(in srgb, var(--p-sable) 90%, white); }
+.rc-agent--b .rc-agent__name { color: color-mix(in srgb, var(--p-sage) 90%, white); }
+.rc-agent__cost {
+  font-size: 12px; font-weight: 500; font-family: var(--md-font-data);
+  font-variant-numeric: tabular-nums; min-width: 50px; color: var(--md-on-surface);
+}
+.rc-agent__chips { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.rc-bdg {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 16px; padding: 0 6px; border-radius: var(--md-shape-full);
+  font: 500 9px/1 var(--md-font-plain); letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  color: var(--md-on-surface-variant); white-space: nowrap;
+}
+.rc-bdg--warn { color: var(--p-warn); background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
+.rc-bdg--err { color: var(--p-err); background: color-mix(in srgb, var(--p-err) 16%, transparent); }
+.rc-bdg--ok { color: var(--p-ok); background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
+.rc-bdg--info { color: var(--p-info); background: color-mix(in srgb, var(--p-info) 16%, transparent); }
+
+/* §2.8.7 — Note row */
+.rc-note {
+  grid-area: note; display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 10px; border-radius: var(--md-shape-sm);
+  background: var(--md-surface-container); color: var(--md-on-surface-variant);
+  font: 400 11px/1.4 var(--md-font-plain);
+}
+.rc-note .ic, .rc-note .ms { flex: 0 0 auto; font-size: 16px; }
+.rc-note b { font-weight: 500; color: var(--md-on-surface); }
+.rc-note--err {
+  background: color-mix(in srgb, var(--p-err) 10%, var(--md-surface-container-low));
+  color: color-mix(in srgb, var(--p-err) 60%, var(--md-on-surface-variant));
+}
+.rc-note--err .ic, .rc-note--err .ms { color: var(--p-err); }
+.rc-note--err b { color: color-mix(in srgb, var(--p-err) 80%, white); }
+.rc-note--warn {
+  background: color-mix(in srgb, var(--p-warn) 8%, var(--md-surface-container-low));
+}
+.rc-note--warn .ic, .rc-note--warn .ms { color: var(--p-warn); }
+.rc-note--ok {
+  background: color-mix(in srgb, var(--p-ok) 8%, var(--md-surface-container-low));
+}
+.rc-note--ok .ic, .rc-note--ok .ms { color: var(--p-ok); }
+
+/* §2.12 — Archive affordances (spec 0245 carry-over) */
+.rc-archive-btn { position: absolute; top: 12px; right: 12px; z-index: 2; }
+.run-card--running .rc-archive-btn { right: 34px; }
+.run-card--archived { opacity: 0.65; cursor: default; }
+.run-card--archived::before { background: var(--md-outline-variant); }
+.rc-archived-cap {
+  grid-area: note; font: 500 10px/1.4 var(--md-font-data); color: var(--md-on-surface-faint);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* §2.10 — Responsive */
+@media (max-width: 1180px) {
+  .ar-stats { grid-template-columns: 1fr 1fr 1fr; }
+  .ar-stat--phase { grid-column: span 3; min-height: 0; }
+  .run-card { padding: 10px 14px 12px 18px; column-gap: 16px; }
+}
+@media (max-width: 760px) {
+  .ar-page { padding: 20px 16px 60px; }
+  .ar-stats { grid-template-columns: 1fr 1fr; }
+  .ar-stat--phase { grid-column: span 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-live { animation: none; }
+  .rc-phase--active .rc-phase__bar::after { animation: none; }
+}

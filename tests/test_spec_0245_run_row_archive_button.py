@@ -30,10 +30,13 @@ def test_archive_button_renders_inside_run_row() -> None:
         r"const showArchiveBtn = hover && isAdmin && !isArchived && !archivedView;",
         msg="spec 0245 §2.3 — archive-button gate predicate must combine hover + isAdmin + !isArchived + !archivedView",
     )
+    # Spec 0246 §2.12.2 moved the affordance onto `.run-card` — the button
+    # now also carries the `rc-archive-btn` positioning class. The gate and
+    # the canonical `<Icon.Archive />` glyph are unchanged.
     assert_jsx_contains(
         jsx,
-        r"showArchiveBtn && \(\s*<button[\s\S]*?className=\"md-icon-btn\"[\s\S]*?<Icon\.Archive />",
-        msg="spec 0245 §2.3 — archive button must render an `.md-icon-btn` with the canonical `<Icon.Archive />` glyph, gated on showArchiveBtn",
+        r"showArchiveBtn && \(\s*<button[\s\S]*?className=\"md-icon-btn rc-archive-btn\"[\s\S]*?<Icon\.Archive />",
+        msg="spec 0245 §2.3 / 0246 §2.12.2 — archive button must render an `.md-icon-btn rc-archive-btn` with the canonical `<Icon.Archive />` glyph, gated on showArchiveBtn",
     )
     assert_jsx_contains(
         jsx,

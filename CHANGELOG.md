@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.60.0] — 2026-05-28
+
+### Added
+
+- **All Runs landing page — card-layout rewrite + summary stats panel ([spec 0246](specs/0246-all-runs-card-layout-rewrite.md)).** The project's primary landing page (`RunListView` → `AllRunsPage` in [`run-list.jsx`](src/dual_research/ui/static/run-list.jsx)) is rewritten from a flat inline-styled table into a card-based layout. A sticky 60 px `.ar-chrome` (All runs / Compare / Search tabs, connection + version pills, How-it-works, theme toggle, avatar) replaces the global 44 px app bar on the list route only. A 5-tile summary stats panel (Total spend, Convergence rate, Avg cost/run, Avg duration, and a P1–P5 phase-distribution chart) aggregates over the **unfiltered** run set. Runs partition into top-down **Running / Needs attention / Converged** sections; each run renders as a `.run-card` with a 3 px status accent stripe, a 5-segment phase strip (`done` / `active` / `failed` / `abandon` / `pending`), a per-agent cost split (Claude on sable, GPT on sage) with a `<N> searches` chip, and a terminal-state note row. Single-select filter chips (All / Running / Converged / Deadlocked / Errored / Abandoned / Completed) plus a sort affordance drive `?filter=` / `?sort=` URL state via the local `_readUrlParams`/`_writeUrlParams` helpers. The inline `/`-focus search is removed (the Search chrome tab is the future entry point; `?q=` is now a no-op).
+- **New composed components** in both [`design-system/assets/styles/composed-components.css`](design-system/assets/styles/composed-components.css) (authoritative) and [`src/dual_research/ui/static/components.css`](src/dual_research/ui/static/components.css) (live mirror): `.ar-chrome`, `.ar-tab`, `.ar-pill`, `.ar-project`, `.ar-stats` / `.ar-stat` / `.phase-dist`, `.ar-filters` / `.fchip` / `.ar-sort`, `.ar-group`, `.ar-grid`, and the `.run-card` family (`.rc-status`, `.rc-topic`, `.rc-idbdg`, `.rc-phases` / `.rc-phase--*`, `.rc-agent--a/--b`, `.rc-bdg--*`, `.rc-note--*`, `.rc-chev`, `.rc-live`, `.rc-archive-btn`). Tokens-only — no hex.
+- **Additive `RunListRow` payloads ([spec 0246](specs/0246-all-runs-card-layout-rewrite.md) §4).** `phases`, `rounds_completed`/`rounds_max`, `agents` (per-agent `cost` + chips), and `note` derive in both the filesystem (`summarize_run`) and supabase (`_supabase_list_runs`) row builders via shared helpers `derive_phase_outcomes` / `derive_agent_breakdowns` / `derive_run_note` in [`aggregator.py`](src/dual_research/ui/aggregator.py). The phase strip reuses the already-computed terminal phase + status (no extra read); agent cost adds one `metrics.json` read; the errored note adds a transcript scan only for errored rows. The spec 0245 `deleted_at` / `deleted_by` soft-delete fields are preserved. Expensive derivations (per-phase turn-count chips, cause-specific note copy) are deferred per spec §5.
+
+### Changed
+
+- **`app.jsx` list route** now renders `<AllRunsPage>` (with its own sticky chrome) at full-height scroll instead of `<RunListView>` inside the shared `ChromeBar` shell; the global `ChromeBar` is suppressed when `route.view === 'list'`.
+
 ## [1.59.0] — 2026-05-28
 
 ### Added

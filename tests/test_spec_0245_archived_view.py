@@ -24,29 +24,31 @@ def test_archived_view_toggle_renders_admin_only() -> None:
     # `isAdmin && ...`; both Tab options are present inside it.
     assert_jsx_contains(
         jsx,
-        r"isAdmin && \(\s*<TabGroup variant=\"solid\" data-testid=\"archived-view-toggle\">",
-        msg="spec 0245 §2.3 — Active/Archived toggle must mount only for admins (isAdmin && ...)",
+        r"isAdmin && \(\s*<div className=\"ar-chrome__tabs\" data-testid=\"archived-view-toggle\">",
+        msg="spec 0245 §2.3 / 0246 §2.12.1 — Active/Archived toggle must mount only for admins (isAdmin && ...)",
+    )
+    # Spec 0246 §2.12.1 restyled the toggle as an `.ar-tab` segmented control
+    # in the new chrome; the state setter is threaded as `onArchivedView`.
+    assert_jsx_contains(
+        jsx,
+        r"onClick=\{\(\) => onArchivedView\(false\)\}[\s\S]*?>Active",
+        msg="spec 0245 §2.3 / 0246 §2.12.1 — toggle must include an Active option that calls onArchivedView(false)",
     )
     assert_jsx_contains(
         jsx,
-        r"onClick=\{\(\) => setArchivedView\(false\)\}[\s\S]*?>\s*Active",
-        msg="spec 0245 §2.3 — toggle must include an Active option that calls setArchivedView(false)",
-    )
-    assert_jsx_contains(
-        jsx,
-        r"onClick=\{\(\) => setArchivedView\(true\)\}[\s\S]*?>\s*Archived",
-        msg="spec 0245 §2.3 — toggle must include an Archived option that calls setArchivedView(true)",
+        r"onClick=\{\(\) => onArchivedView\(true\)\}[\s\S]*?>Archived",
+        msg="spec 0245 §2.3 / 0246 §2.12.1 — toggle must include an Archived option that calls onArchivedView(true)",
     )
 
 
 def test_archived_row_has_dimmed_opacity_class() -> None:
     jsx = _run_list_jsx()
-    # Post-fix: archived rows carry the `.run-row--archived` class so
-    # `opacity: 0.65` in components.css takes effect.
+    # Spec 0246 §2.12.3 — the dimmed archived state moved to `.run-card--archived`
+    # (the card-layout analogue of `.run-row--archived`); opacity 0.65 lives in CSS.
     assert_jsx_contains(
         jsx,
-        r"className=\{isArchived \? 'run-row--archived' : undefined\}",
-        msg="spec 0245 §2.3 — archived rows must apply the `.run-row--archived` CSS class for the dimmed treatment",
+        r"isArchived \? 'run-card--archived'",
+        msg="spec 0245 §2.3 / 0246 §2.12.3 — archived cards must apply `.run-card--archived` for the dimmed treatment",
     )
     # Antipodal-absence: the inline `opacity: 0.65` (or 0.65 with px
     # / decimals) that pre-fix anatomy might have used as a one-off

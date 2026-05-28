@@ -52,6 +52,11 @@ except ImportError:  # pragma: no cover — dependency declared in pyproject
 from dual_research import __version__
 from dual_research.config import resolve_paths
 from dual_research.ui import load_run_snapshot, summarize_run
+from dual_research.ui.aggregator import (
+    derive_agent_breakdowns,
+    derive_phase_outcomes,
+    derive_run_note,
+)
 from dual_research.ui.auth import SupabaseAuthMiddleware
 from dual_research.ui.cache import BoundedLRU, MISSING
 from dual_research.ui.datasource import SupabaseSessionData, latest_event_seq
@@ -1136,6 +1141,15 @@ def _supabase_list_runs(client: Any, *, archived: bool = False) -> list[RunListR
             # rule in derive_run_status.
             last_event_at=r.get("pushed_at"),
         )
+        # Spec 0246 — card-layout payloads. `phases` derives identically to
+        # fs mode (terminal phase + status). `agents` reads the supabase
+        # `metrics` JSONB column (folds in the whole metrics.json, so the
+        # same `totals_by_agent` shape is present). `rounds_*` degrade to
+        # 0/6 (no per-row events aggregate). `note` degrades to generic copy
+        # (no `error_type` column).
+        phases = derive_phase_outcomes(phase_int, status)
+        agents = derive_agent_breakdowns(r.get("metrics") or {})
+        note = derive_run_note(status, phase_int, rounds_completed=0, error_type=None)
         out.append(
             RunListRow(
                 id=r["id"],
@@ -1150,6 +1164,11 @@ def _supabase_list_runs(client: Any, *, archived: bool = False) -> list[RunListR
                 rounds=None,
                 deleted_at=r.get("deleted_at"),
                 deleted_by=r.get("deleted_by"),
+                phases=phases,
+                rounds_completed=0,
+                rounds_max=6,
+                agents=agents,
+                note=note,
             )
         )
     return out

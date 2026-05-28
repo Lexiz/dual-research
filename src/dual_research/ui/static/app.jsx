@@ -147,14 +147,21 @@ function App() {
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--md-surface)' }}>
       <a className="skip-link" href="#main">Skip to main content</a>
-      <ChromeBar route={route} navigate={navigate}
-                 theme={theme}
-                 onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                 client={client} session={session} me={me} />
+      {/* Spec 0246 — the All Runs route renders its own sticky `.ar-chrome`
+          (60 px) in place of the global 44 px app bar; every other route
+          keeps the shared ChromeBar. */}
+      {route.view !== 'list' && (
+        <ChromeBar route={route} navigate={navigate}
+                   theme={theme}
+                   onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                   client={client} session={session} me={me} />
+      )}
 
-      <div id="main" style={{ height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
+      <div id="main" style={route.view === 'list'
+            ? { height: '100vh', overflow: 'auto' }
+            : { height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
         {route.view === 'detail'        && <DetailScreen runId={route.runId} navigate={navigate} />}
-        {route.view === 'list'          && <ListScreen navigate={navigate} />}
+        {route.view === 'list'          && <ListScreen navigate={navigate} theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />}
         {route.view === 'language'      && <DesignLanguageView />}
         {route.view === 'settings'      && <SettingsScreen me={me} />}
         {route.view === 'how-it-works'  && <HowItWorksPage />}
@@ -219,10 +226,13 @@ function DetailScreen({ runId, navigate }) {
 
 // ─────────────────── List screen ───────────────────
 
-function ListScreen({ navigate }) {
+function ListScreen({ navigate, theme, onToggleTheme }) {
   return (
-    <RunListView
+    <AllRunsPage
       onSelect={(r) => navigate('detail', r.id)}
+      navigate={navigate}
+      theme={theme}
+      onToggleTheme={onToggleTheme}
     />
   );
 }

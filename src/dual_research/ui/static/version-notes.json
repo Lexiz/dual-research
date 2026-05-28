@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.60.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "All Runs landing page — card-layout rewrite + summary stats panel (spec 0246).",
+    "items": [
+      "<strong>Added.</strong> <strong>All Runs landing page — card-layout rewrite + summary stats panel ([spec 0246](specs/0246-all-runs-card-layout-rewrite.md)).</strong> The project's primary landing page (<code>RunListView</code> → <code>AllRunsPage</code> in <code>run-list.jsx</code>) is rewritten from a flat inline-styled table into a card-based layout.",
+      "A sticky 60 px <code>.ar-chrome</code> (All runs / Compare / Search tabs, connection + version pills, How-it-works, theme toggle, avatar) replaces the global 44 px app bar on the list route only.",
+      "A 5-tile summary stats panel (Total spend, Convergence rate, Avg cost/run, Avg duration, and a P1–P5 phase-distribution chart) aggregates over the <strong>unfiltered</strong> run set.",
+      "Runs partition into top-down <strong>Running / Needs attention / Converged</strong> sections; each run renders as a <code>.run-card</code> with a 3 px status accent stripe, a 5-segment phase strip (<code>done</code> / <code>active</code> / <code>failed</code> / <code>abandon</code> / <code>pending</code>), a per-agent cost split (Claude on sable, GPT on sage) with a <code><N> searches</code> chip, and a terminal-state note row.",
+      "Single-select filter chips (All / Running / Converged / Deadlocked / Errored / Abandoned / Completed) plus a sort affordance drive <code>?filter=</code> / <code>?sort=</code> URL state via the local <code>_readUrlParams</code>/<code>_writeUrlParams</code> helpers.",
+      "The inline <code>/</code>-focus search is removed (the Search chrome tab is the future entry point; <code>?q=</code> is now a no-op).",
+      "<strong>New composed components</strong> in both <code>design-system/assets/styles/composed-components.css</code> (authoritative) and <code>src/dual_research/ui/static/components.css</code> (live mirror): <code>.ar-chrome</code>, <code>.ar-tab</code>, <code>.ar-pill</code>, <code>.ar-project</code>, <code>.ar-stats</code> / <code>.ar-stat</code> / <code>.phase-dist</code>, <code>.ar-filters</code> / <code>.fchip</code> / <code>.ar-sort</code>, <code>.ar-group</code>, <code>.ar-grid</code>, and the <code>.run-card</code> family (<code>.rc-status</code>, <code>.rc-topic</code>, <code>.rc-idbdg</code>, <code>.rc-phases</code> / <code>.rc-phase--*</code>, <code>.rc-agent--a/--b</code>, <code>.rc-bdg--*</code>, <code>.rc-note--*</code>, <code>.rc-chev</code>, <code>.rc-live</code>, <code>.rc-archive-btn</code>).",
+      "Tokens-only — no hex.",
+      "<strong>Additive <code>RunListRow</code> payloads ([spec 0246](specs/0246-all-runs-card-layout-rewrite.md) §4).</strong> <code>phases</code>, <code>rounds_completed</code>/<code>rounds_max</code>, <code>agents</code> (per-agent <code>cost</code> + chips), and <code>note</code> derive in both the filesystem (<code>summarize_run</code>) and supabase (<code>_supabase_list_runs</code>) row builders via shared helpers <code>derive_phase_outcomes</code> / <code>derive_agent_breakdowns</code> / <code>derive_run_note</code> in <code>aggregator.py</code>.",
+      "The phase strip reuses the already-computed terminal phase + status (no extra read); agent cost adds one <code>metrics.json</code> read; the errored note adds a transcript scan only for errored rows.",
+      "The spec 0245 <code>deleted_at</code> / <code>deleted_by</code> soft-delete fields are preserved.",
+      "Expensive derivations (per-phase turn-count chips, cause-specific note copy) are deferred per spec §5.",
+      "<strong>Changed.</strong> <strong><code>app.jsx</code> list route</strong> now renders <code><AllRunsPage></code> (with its own sticky chrome) at full-height scroll instead of <code><RunListView></code> inside the shared <code>ChromeBar</code> shell; the global <code>ChromeBar</code> is suppressed when <code>route.view === 'list'</code>."
+    ],
+    "specs": [
+      "0246"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.59.0",
     "date": "2026-05-28",
     "bump": "MINOR",
