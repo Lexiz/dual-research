@@ -774,6 +774,34 @@ class TerminalSignals:
 # ─── RunListRow ───────────────────────────────────────────────────────────────
 
 
+# Spec 0246 — All Runs card layout. The card surfaces a 5-segment phase
+# strip, a per-agent cost split with chips, and a terminal-state note. The
+# nested payloads below are plain @dataclasses so ``asdict`` recurses
+# cleanly through ``to_jsonable``; enum-like fields are plain ``str`` to
+# stay JSON-safe.
+
+
+@dataclass
+class AgentChip:
+    # ``kind`` ∈ {"", "warn", "err", "ok", "info"} — maps to .rc-bdg--*.
+    text: str
+    kind: str = ""
+
+
+@dataclass
+class AgentBreakdown:
+    name: str  # "Claude" | "GPT"
+    cost: float = 0.0  # 2-decimal dollars (cost_usd + search_cost)
+    chips: list[AgentChip] = field(default_factory=list)
+
+
+@dataclass
+class RunNote:
+    variant: str  # "err" | "warn" | "ok"
+    icon: str  # Material Symbol name
+    html: str  # already-formatted, may use <b>...</b>
+
+
 @dataclass
 class RunListRow:
     id: str
@@ -791,6 +819,15 @@ class RunListRow:
     # list reads `runs_active` which strips these by definition.
     deleted_at: str | None = None
     deleted_by: str | None = None
+    # Spec 0246 — card-layout payloads. All carry defaults so old
+    # call-sites and the supabase builder (which can't derive every
+    # field) stay valid. PhaseOutcome values: "done" | "active" |
+    # "failed" | "abandon" | "pending" (§2.8.5).
+    phases: tuple[str, str, str, str, str] = ("pending",) * 5
+    rounds_completed: int = 0  # parallel to the existing `rounds` string
+    rounds_max: int = 6
+    agents: dict[str, "AgentBreakdown"] = field(default_factory=dict)  # keys "a"/"b"
+    note: "RunNote | None" = None
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

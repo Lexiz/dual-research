@@ -44,10 +44,13 @@ from dual_research.ui.turn_stats import build_phase_stats
 from dual_research.agents.pricing import compute_cache_savings_usd, compute_search_cost
 from dual_research.config import TIERS
 from dual_research.ui.models import (
+    AgentBreakdown,
+    AgentChip,
     AgentState,
     Disagreement,
     Run,
     RunListRow,
+    RunNote,
     TopLevelError,
     Turn,
     TurnTokenUsage,
@@ -301,6 +304,115 @@ def apply_event(run: Run, event: dict, session_dir: Path) -> Run:
     return run
 
 
+# ─── Spec 0246 — card-layout derivation (shared fs + supabase) ────────────────
+
+
+def derive_phase_outcomes(phase_int: int, status: str) -> tuple[str, str, str, str, str]:
+    """Per-phase outcome tuple for the 5-segment card phase strip (§2.8.5).
+
+    Keyed on the terminal phase ``T = phase_int`` and ``status``. Identical
+    in filesystem and supabase modes — both carry terminal phase + status.
+    """
+    if status in ("completed", "converged"):
+        return ("done", "done", "done", "done", "done")
+    out: list[str] = []
+    for x in range(1, 6):
+        if x < phase_int:
+            out.append("done")
+        elif x == phase_int:
+            if status == "errored":
+                out.append("failed")
+            elif status in ("abandoned", "deadlocked"):
+                out.append("abandon")
+            elif status == "running":
+                out.append("active")
+            else:
+                out.append("pending")
+        else:
+            out.append("pending")
+    return (out[0], out[1], out[2], out[3], out[4])
+
+
+def derive_agent_breakdowns(metrics: dict | None) -> dict[str, AgentBreakdown]:
+    """Per-agent cost split + the cheaply-derivable ``<N> searches`` chip.
+
+    Reads ``totals_by_agent.{claude,openai}`` from metrics.json (fs) or the
+    supabase ``metrics`` JSONB column (same shape). Keys "a"=Claude,
+    "b"=GPT (§2.8.6). The richer plan-turns/critiques chips are deferred
+    (§5) — only the search count ships now.
+    """
+    if not metrics:
+        return {}
+    tba = metrics.get("totals_by_agent") or {}
+    out: dict[str, AgentBreakdown] = {}
+    for backend_key, ui_key, ui_name in (("claude", "a", "Claude"), ("openai", "b", "GPT")):
+        a = tba.get(backend_key)
+        if not a:
+            continue
+        cost = round(float(a.get("cost_usd", 0.0) or 0.0) + float(a.get("search_cost", 0.0) or 0.0), 2)
+        chips: list[AgentChip] = []
+        searches = int(a.get("searches", 0) or 0)
+        if searches > 0:
+            chips.append(AgentChip(text=f"{searches} searches", kind="info"))
+        out[ui_key] = AgentBreakdown(name=ui_name, cost=cost, chips=chips)
+    return out
+
+
+def derive_run_note(
+    status: str,
+    phase_int: int,
+    *,
+    rounds_completed: int = 0,
+    error_type: str | None = None,
+) -> RunNote | None:
+    """Single-line terminal-state note for the card (§2.8.7, generic copy).
+
+    Cause-specific copy (timeout / context-overflow / runaway loop) is
+    deferred to §5; this returns the generic form. ``running`` runs get no
+    note (the row collapses out).
+    """
+    code = f"P{phase_int}"
+    if status in ("completed", "converged"):
+        return RunNote(
+            variant="ok",
+            icon="check_circle",
+            html=f"Converged in <b>{rounds_completed}</b> rounds. {code} reached.",
+        )
+    if status == "errored":
+        et = error_type or "run failed"
+        return RunNote(variant="err", icon="error", html=f"Run failed in {code}: <b>{et}</b>.")
+    if status in ("abandoned", "deadlocked"):
+        return RunNote(
+            variant="warn", icon="pause_circle", html=f"Manually stopped / stalled in {code}."
+        )
+    return None
+
+
+def _run_failed_error_type(transcript_path: Path) -> str | None:
+    """Extract the ``error_type`` from the ``run_failed`` event (fs mode).
+
+    Cheap tail-scan; only invoked for errored rows so the happy path stays
+    free of the extra read. Returns ``None`` when absent.
+    """
+    if not transcript_path.exists():
+        return None
+    try:
+        for line in transcript_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("event") == "run_failed":
+                et = event.get("error_type")
+                return str(et) if et else None
+    except OSError:
+        return None
+    return None
+
+
 def summarize_run(session_dir: Path) -> RunListRow:
     """Cheap summary row — no transcript replay, no disagreement parse.
 
@@ -351,9 +463,24 @@ def summarize_run(session_dir: Path) -> RunListRow:
     # default to 6 (the CLI default). A Phase 2/4 row with no round files yet
     # shows "0/6" rather than dropping the cell.
     rounds: str | None = None
+    rounds_completed = 0
     if phase_int in (2, 4):
         cur = _latest_round_for(session_dir, phase_int) or 0
         rounds = f"{cur}/6"
+        rounds_completed = cur
+
+    # Spec 0246 — card-layout payloads. Phase strip reuses the already-computed
+    # terminal phase + status (no extra read); agents add a single metrics.json
+    # read; the errored-note error_type adds a transcript scan only for errored
+    # rows (the happy path skips it).
+    phases = derive_phase_outcomes(phase_int, status)
+    agents = derive_agent_breakdowns(metrics)
+    error_type = (
+        _run_failed_error_type(session_dir / "transcript.jsonl") if status == "errored" else None
+    )
+    note = derive_run_note(
+        status, phase_int, rounds_completed=rounds_completed, error_type=error_type
+    )
 
     return RunListRow(
         id=session_dir.name,
@@ -366,6 +493,11 @@ def summarize_run(session_dir: Path) -> RunListRow:
         duration=duration,
         cost=cost,
         rounds=rounds,
+        phases=phases,
+        rounds_completed=rounds_completed,
+        rounds_max=6,
+        agents=agents,
+        note=note,
     )
 
 
