@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.60.2",
+    "date": "2026-05-28",
+    "bump": "PATCH",
+    "summary": "/dev-next step 18 now buffers the merged lifecycle state locally instead of pushing it to main pre-merge (spec 0247).",
+    "items": [
+      "<strong><code>/dev-next</code> step 18 now buffers the <code>merged</code> lifecycle state locally instead of pushing it to <code>main</code> pre-merge ([spec 0247](specs/0247-pre-merge-push-to-main-deploy-race-hardening.md)).</strong> Step 18's <code>set status=merged …</code> and <code>append-event … merged</code> writes drop their <code>--push-to-main</code> flag and become local-only writes to the worktree's <code>dashboard/queue-state.json</code>; step 23's existing atomic <code>push-files-to-main</code> flushes them alongside <code>status=deployed</code>.",
+      "Only the squash-merge commit now triggers a deploy in the merge window, removing the pre-merge commits that raced <code>deploy.yml</code>'s <code>deploy-main</code> concurrency group and cancelled the spec 0246 merge-commit deploy.",
+      "The watch-side pivot from [spec 0211.3](specs/0211.3-deploy-concurrency-cancels-merge-commit-run.md) is kept as defence-in-depth.",
+      "Skill-body change (the skill lives outside the repo); the in-repo commit carries a source-pattern regression guard at <code>tests/test_spec_0247_pre_merge_no_push.py</code> plus this version bump."
+    ],
+    "specs": [
+      "0247",
+      "0211.3"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.60.1",
     "date": "2026-05-28",
     "bump": "PATCH",
