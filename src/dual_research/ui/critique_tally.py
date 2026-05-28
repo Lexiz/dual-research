@@ -24,7 +24,8 @@ from pathlib import Path
 # Backend → wire keys. The tally is persisted under the backend agent
 # names ("claude" / "openai") so it lines up with ``totals_by_agent``.
 _UI_TO_BACKEND = {"claude": "claude", "gpt": "openai"}
-_CATEGORIES = ("questions", "disagreements", "issues")
+# Spec 0252 — Comments is the 4th category (canonical order Q→D→I→C, DS §9.3).
+_CATEGORIES = ("questions", "disagreements", "issues", "comments")
 
 
 def _empty_agent() -> dict:
@@ -34,16 +35,24 @@ def _empty_agent() -> dict:
         "questions": [0, 0],
         "disagreements": [0, 0],
         "issues": [0, 0],
+        # Spec 0252 — Comments have no closure protocol (no ``status`` field),
+        # so the "solved" half is structurally always 0; the band renders this
+        # as a single idle-toned count (DS §9.3 C=idle).
+        "comments": [0, 0],
     }
 
 
 def _typed_lists(session_dir: Path):
-    """(questions, disagreements, issues) for the run, item-pipeline first.
+    """(questions, disagreements, issues, comments) — item-pipeline first.
 
     Mirrors ``aggregator.build_run_detail``: the spec-0114 item pipeline is
     canonical for current (v2) runs — the legacy ``reconstruct_*`` parsers
     return ``[]`` for them. Fall back to the legacy parsers only when the
     item pipeline yields nothing (genuinely pre-0114 runs).
+
+    Spec 0252 — returns a 4-tuple; ``comments`` comes from
+    ``project_typed_lists`` for v2 runs and from ``reconstruct_comments``
+    (phase 2 + phase 4) for the pre-0114 legacy fallback.
     """
     from dual_research.ui.items import (
         aggregate_items_from_transcript,
@@ -61,10 +70,11 @@ def _typed_lists(session_dir: Path):
     if bundle.items:
         from dual_research.ui.item_projection import project_typed_lists
 
-        questions, disagreements, issues, _comments = project_typed_lists(bundle)
-        return questions, disagreements, issues
+        questions, disagreements, issues, comments = project_typed_lists(bundle)
+        return questions, disagreements, issues, comments
 
     # Legacy fallback (pre-0114 runs).
+    from dual_research.ui.comments import reconstruct_comments
     from dual_research.ui.disagreements import reconstruct
     from dual_research.ui.issues import reconstruct_issues
     from dual_research.ui.questions import reconstruct_questions
@@ -76,7 +86,10 @@ def _typed_lists(session_dir: Path):
     issues = reconstruct_issues(session_dir, phase=2) + reconstruct_issues(
         session_dir, phase=4
     )
-    return questions, disagreements, issues
+    comments = reconstruct_comments(session_dir, phase=2) + reconstruct_comments(
+        session_dir, phase=4
+    )
+    return questions, disagreements, issues, comments
 
 
 def _tally_into(out: dict, category: str, items) -> None:
@@ -108,10 +121,13 @@ def compute_critique_by_agent(
     """
     out: dict = {}
     try:
-        questions, disagreements, issues = _typed_lists(session_dir)
+        questions, disagreements, issues, comments = _typed_lists(session_dir)
         _tally_into(out, "questions", questions)
         _tally_into(out, "disagreements", disagreements)
         _tally_into(out, "issues", issues)
+        # Spec 0252 — Comment has no ``status`` attr, so ``_tally_into``
+        # leaves the solved half at 0 (getattr default "open").
+        _tally_into(out, "comments", comments)
     except Exception:
         # The tally is best-effort decoration on the cards; on any failure
         # we persist nothing rather than risk the metrics write.

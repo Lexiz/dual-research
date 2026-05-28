@@ -1,5 +1,26 @@
 [
   {
+    "version": "1.63.0",
+    "date": "2026-05-29",
+    "bump": "MINOR",
+    "summary": "All Runs Comments tally + critique backfill CLI, universal chrome, and nav-label wrap fix (spec 0252).",
+    "items": [
+      "<strong>Added.</strong> <strong>All Runs Comments tally + critique backfill CLI, universal chrome, and nav-label wrap fix ([spec 0252](specs/0252-provider-band-comments-backfill-universal-chrome-nav.md)).</strong> Three independent defects on the All Runs page and the global chrome ship as one UI-consistency pass:",
+      "<strong>Changed.</strong> <strong>Universal chrome on every route (spec 0252 §2.3).</strong> The All Runs <code>.ar-chrome</code> (60 px) is now the single app bar for <strong>every</strong> route — <code>AllRunsChrome</code> (<code>run-list.jsx</code>) gains a <code>route</code> prop driving active-tab state, gates the Active/Archived admin toggle to the list route, polls <code>window.__lastSseConnected</code> for the connected pill on non-list routes, and uses the segmented <code>ThemeToggleSegmented</code> everywhere.",
+      "<code>app.jsx</code> renders it for all non-list routes (<code>#main</code> height now <code>calc(100vh - 60px)</code>).",
+      "The top bar no longer reshapes as you navigate between tabs.",
+      "<strong>Explicit ProviderCard tone classes (spec 0252 §2.2).</strong> Retired the fragile <code>.rc-rs:nth-child(1|2|3)</code> tone selectors for explicit <code>.rc-rs--q/d/i/c.rc-rs__cat</code> classes (DS §9.3 Q=info · D=warn · I=err · C=idle) in both <code>components.css</code> and <code>design-system/.../composed-components.css</code> — the <code>:nth-child</code> selectors would have mis-toned the row once the Comments badge joined it.",
+      "<strong>How-it-works / Changelog nav-label wrap (spec 0252 §2.4).</strong> The left-nav anchor is now a two-column flex row (<code>.menu-section-num</code> fixed 48 px column + new <code>.menu-section-lbl</code> flex label) in both CSS files, so a wrapped label's second line aligns under the label, not the number.",
+      "The changelog summary's 30-char hard-slice is removed — a CSS line-clamp caps length instead (<code>how-it-works.jsx</code>).",
+      "<strong>Removed.</strong> <strong>Dead chrome components (spec 0252 §2.3).</strong> Deleted the now-unused <code>ChromeBar</code>, <code>RightCluster</code>, <code>ChromeTab</code>, <code>ConnectionPill</code>, and <code>AppVersionChip</code> from <code>app.jsx</code> — superseded by the universal <code>.ar-chrome</code>."
+    ],
+    "specs": [
+      "0252"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.62.0",
     "date": "2026-05-29",
     "bump": "MINOR",

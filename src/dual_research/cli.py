@@ -308,6 +308,18 @@ def main(argv: list[str] | None = None) -> int:
     if raw and raw[0] == "reconcile-costs":
         return _run_reconcile(raw[1:])
 
+    # Spec 0252: `dual-research backfill-critique [--run RUN_ID | --all]
+    # [--push] [--runs-dir PATH] [--dry-run]` recomputes critique_by_agent
+    # for existing runs that predate spec 0248's write-time tally (their
+    # metrics.json carries critique_by_agent: null, so the All Runs band
+    # renders zero counters). Mirrors recompute-costs exactly; --push
+    # upserts the Supabase `metrics` JSONB so the *deployed* cards repair.
+    # Out-of-band by design — the /api/runs list path never replays
+    # transcripts (spec 0248 §1/§7). Read-only w.r.t. the Claude Code host
+    # guard (no LLM call), like recompute-costs / reconcile-costs.
+    if raw and raw[0] == "backfill-critique":
+        return _run_backfill_critique(raw[1:])
+
     # Spec 0115: `dual-research validate-run <session-dir>` audits a
     # finished Deep Research run against the contract.
     if raw and raw[0] == "validate-run":
@@ -625,6 +637,106 @@ def _run_recompute(argv: list[str]) -> int:
     print(
         f"--- {len(reports)} run(s) | "
         f"${grand_old:.4f} → ${grand_new:.4f} ({grand_new - grand_old:+.4f})"
+    )
+
+    if args.push and not args.dry_run:
+        from dual_research.config import load_supabase_credentials
+        from dual_research.persistence.remote import RemoteSession
+
+        try:
+            sb = load_supabase_credentials()
+        except MissingCredentialError as e:
+            print(f"--push requested but: {e}", file=sys.stderr)
+            return 1
+        remote = RemoteSession.from_credentials(sb.url, sb.service_role_key)
+        for r in reports:
+            if not r.metrics_written:
+                continue
+            session_dir = runs_dir / r.run_id
+            try:
+                summary = remote.push_session_dir(session_dir)
+                print(
+                    f"[pushed] {summary.run_id}  events={summary.events_upserted}  "
+                    f"files={summary.files_upserted}  "
+                    f"duration={summary.duration_ms / 1000:.1f}s"
+                )
+            except Exception as e:
+                print(f"[push error] {r.run_id}: {type(e).__name__}: {e}", file=sys.stderr)
+
+    return 0
+
+
+def _run_backfill_critique(argv: list[str]) -> int:
+    """Spec 0252 — backfill ``critique_by_agent`` for pre-0248 runs.
+
+    Recomputes the per-agent Q/D/I/C tally for existing runs whose
+    ``metrics.json`` predates spec 0248's write-time tally (and so carries
+    ``critique_by_agent: null``, rendering the All Runs band all-zero).
+    Rewrites ``metrics.json`` in place; ``--push`` additionally upserts the
+    Supabase ``metrics`` JSONB so the **deployed** cards repair. Mirrors
+    ``recompute-costs`` (``_run_recompute``); the ``/api/runs`` list path
+    is untouched (spec 0248 §1/§7 — never replays transcripts).
+    """
+    from dual_research.audit.backfill_critique import backfill_all, backfill_critique_run
+
+    sub = argparse.ArgumentParser(
+        prog="dual-research backfill-critique",
+        description=(
+            "Recompute and persist critique_by_agent for existing runs that "
+            "predate spec 0248's write-time tally (spec 0252)."
+        ),
+    )
+    g = sub.add_mutually_exclusive_group(required=True)
+    g.add_argument("--run", metavar="RUN_ID",
+                   help="Backfill a single run by id (directory name under --runs-dir).")
+    g.add_argument("--all", action="store_true",
+                   help="Backfill every run under --runs-dir.")
+    sub.add_argument("--runs-dir", default=None,
+                     help="Override the default runs directory (otherwise resolved from config).")
+    sub.add_argument("--push", action="store_true",
+                     help="After rewriting metrics.json, re-push the session to Supabase.")
+    sub.add_argument("--dry-run", action="store_true",
+                     help="Report the would-write tally without writing metrics.json.")
+    args = sub.parse_args(argv)
+
+    paths = resolve_paths(args.runs_dir)
+    runs_dir = paths.runs_dir
+
+    if args.run:
+        session_dir = runs_dir / args.run
+        if not session_dir.is_dir():
+            print(f"error: run not found: {session_dir}", file=sys.stderr)
+            return 2
+        if not (session_dir / "metrics.json").exists():
+            print(f"error: no metrics.json in {session_dir}", file=sys.stderr)
+            return 2
+        reports = [backfill_critique_run(session_dir, write=not args.dry_run)]
+    else:
+        reports = backfill_all(runs_dir, write=not args.dry_run)
+
+    repaired = 0
+    for r in reports:
+        # A run is "repaired" when the tally went from empty → non-empty.
+        marker = "Δ" if (not r.before_nonempty and r.after_nonempty) else "✓"
+        if marker == "Δ":
+            repaired += 1
+        counts = ", ".join(
+            f"{agent}: " + "/".join(
+                str(r.raised_counts.get(agent, {}).get(c, 0))
+                for c in ("questions", "disagreements", "issues", "comments")
+            )
+            for agent in sorted(r.raised_counts)
+        )
+        print(
+            f"[{marker}] {r.run_id}: "
+            f"{'empty' if not r.before_nonempty else 'present'} → "
+            f"{'non-empty' if r.after_nonempty else 'empty'}  "
+            f"[{counts or 'no items'}]"
+            + ("  [written]" if r.metrics_written else "  [dry-run]")
+        )
+    print(
+        f"--- {len(reports)} run(s) | {repaired} repaired (empty → non-empty)"
+        + ("  [dry-run — nothing written]" if args.dry_run else "")
     )
 
     if args.push and not args.dry_run:

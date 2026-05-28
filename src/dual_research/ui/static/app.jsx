@@ -154,19 +154,23 @@ function App() {
   return (
     <div style={{ height: '100vh', overflow: 'hidden', background: 'var(--md-surface)' }}>
       <a className="skip-link" href="#main">Skip to main content</a>
-      {/* Spec 0246 — the All Runs route renders its own sticky `.ar-chrome`
-          (60 px) in place of the global 44 px app bar; every other route
-          keeps the shared ChromeBar. */}
+      {/* Spec 0252 — the All Runs `.ar-chrome` (60 px) is now the single app
+          bar for EVERY route. The list route renders its own inside
+          `ListScreen` (it owns the SSE `connected` prop + Active/Archived
+          toggle); every other route mounts the same chrome here with
+          `route={route.view}` driving the active-tab state. The old 44 px
+          `.md-appbar` ChromeBar is gone (deleted below). */}
       {route.view !== 'list' && (
-        <ChromeBar route={route} navigate={navigate}
-                   theme={theme}
-                   onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                   client={client} session={session} me={me} />
+        <AllRunsChrome route={route.view} navigate={navigate}
+                       me={me} isAdmin={!!(me && me.isAdmin)}
+                       theme={theme}
+                       onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                       client={client} session={session} />
       )}
 
       <div id="main" style={route.view === 'list'
             ? { height: '100vh', overflow: 'auto' }
-            : { height: 'calc(100vh - 44px)', overflow: 'hidden' }}>
+            : { height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
         {route.view === 'detail'        && <DetailScreen runId={route.runId} navigate={navigate} />}
         {route.view === 'list'          && <ListScreen navigate={navigate} theme={theme} onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} client={client} session={session} />}
         {route.view === 'language'      && <DesignLanguageView />}
@@ -247,104 +251,13 @@ function ListScreen({ navigate, theme, onToggleTheme, client, session }) {
 }
 
 // ─────────────────── Top chrome ───────────────────
-
-function ChromeBar({ route, navigate, theme, onToggleTheme, client, session, me }) {
-  const onList = route.view === 'list';
-  return (
-    <header className="md-appbar">
-      <Tab
-        active={onList}
-        onClick={() => navigate('list')}
-        icon={route.view === 'detail' ? 'arrow-left' : 'menu'}
-        variant="chrome"
-      >
-        All runs
-      </Tab>
-      <Tab
-        active={route.view === 'compare'}
-        onClick={() => navigate('compare')}
-        icon="compare"
-        variant="chrome"
-      >
-        Compare
-      </Tab>
-      <Tab
-        active={route.view === 'search'}
-        onClick={() => navigate('search')}
-        icon="magnify"
-        variant="chrome"
-      >
-        Search
-      </Tab>
-      <div style={{ flex: 1 }} />
-      <RightCluster
-        theme={theme}
-        onToggleTheme={onToggleTheme}
-        navigate={navigate}
-        route={route}
-        client={client}
-        session={session}
-        me={me}
-      />
-    </header>
-  );
-}
-
-function ChromeTab({ label, icon, active, onClick }) {
-  const Ico = icon;
-  return (
-    <button onClick={onClick} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 8,
-      padding: '0 16px',
-      background: active ? 'var(--md-surface-container-low)' : 'transparent',
-      color: active ? 'var(--md-on-surface)' : 'var(--md-on-surface-muted)',
-      fontSize: 12.5,
-      borderRight: '1px solid var(--md-outline-hair)',
-      borderTop: active ? '1px solid var(--md-outline-hair)' : '1px solid transparent',
-      borderLeft: active ? '1px solid var(--md-outline-hair)' : '1px solid transparent',
-      position: 'relative',
-    }}>
-      <Ico style={{ color: active ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-faint)' }} />
-      <span>{label}</span>
-      {active && (
-        <span style={{
-          position: 'absolute', bottom: -1, left: 0, right: 0,
-          height: 1, background: 'var(--md-surface-container-low)',
-        }} />
-      )}
-    </button>
-  );
-}
-
-// ─────────────────── Right cluster — unified chrome controls ───────────────────
-// Spec 0056 SUR-05: unified visual styling across all chrome-right controls.
-// SUR-06: ActiveRunChip — shows short run ID when viewing a run detail.
-
-function RightCluster({ theme, onToggleTheme, navigate, route, client, session, me }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', height: 40 }}>
-      <ConnectionPill />
-      <AppVersionChip />
-      <span className="vbar" style={{ margin: '0 4px' }} />
-      <button
-        type="button"
-        className={'md-btn md-btn--text md-btn--sm' + (route.view === 'how-it-works' ? ' is-active' : '')}
-        onClick={() => navigate('how-it-works')}
-      >
-        How it works
-      </button>
-      <span className="vbar" style={{ margin: '0 4px' }} />
-      <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px' }}>
-        <ThemeToggleSegmented theme={theme} onToggle={onToggleTheme} />
-      </div>
-      {session
-        ? <AvatarMenu navigate={navigate} route={route}
-                      client={client} session={session} me={me} />
-        : <DesignLanguageButton onClick={() => navigate('language')}
-                                active={route.view === 'language'} />}
-    </div>
-  );
-}
+// Spec 0252 — `ChromeBar` / `ChromeTab` / `RightCluster` / `ConnectionPill`
+// / `AppVersionChip` were deleted here: the universal `.ar-chrome`
+// (`AllRunsChrome`, run-list.jsx) is now the single app bar for every
+// route, so the old 44 px `.md-appbar` chrome and its right-cluster
+// children are dead. The connected-pill behaviour ConnectionPill provided
+// is folded into `AllRunsChrome`'s `window.__lastSseConnected` poll; the
+// version deep-link AppVersionChip provided is the `.ar-pill__v` button.
 
 // Spec 0056 SUR-06: ActiveRunChip — pill showing the short run ID in the
 // chrome bar when viewing a run detail. Click navigates back to run list.
@@ -374,33 +287,9 @@ function ActiveRunChip({ runId, onClick }) {
   );
 }
 
-// Spec 0035: tiny pill in the chrome's right cluster showing the deployed
-// version. Click → opens the Changelog tab anchored at this version's entry.
-// SPEC-0069: restyled to use the Chip primitive for design-system cohesion.
-// Spec 0220: rewired from inert <div> to a <button> deep-link.
-function AppVersionChip() {
-  const meta = window.useAppMeta ? window.useAppMeta() : null;
-  if (!meta?.version) return null;
-  const anchor = meta.version.replace(/\./g, '');
-  return (
-    <button
-      type="button"
-      onClick={() => { window.location.hash = `#/how-it-works#cl-${anchor}`; }}
-      title="Open the changelog at this version"
-      style={{
-        display: 'flex', alignItems: 'center', height: 40, padding: '0 8px',
-        background: 'transparent', border: 'none', cursor: 'pointer',
-      }}
-    >
-      <Chip title={`dual-research v${meta.version}`}
-            style={{ fontFamily: 'var(--md-font-data)', fontSize: 10 }}>
-        v{meta.version}
-      </Chip>
-    </button>
-  );
-}
-
 // HowItWorksLink removed in spec 0056 — replaced by Tab primitive in RightCluster.
+// AppVersionChip removed in spec 0252 — the `.ar-pill__v` version button in
+// `AllRunsChrome` is the universal-chrome equivalent deep-link.
 
 // ─────────────────── Avatar dropdown ───────────────────
 // Spec 0248 §2.2 — `AvatarMenu` / `AvatarDisc` / `MenuItem` were lifted
@@ -408,27 +297,8 @@ function AppVersionChip() {
 // can mount the same menu. They remain global function declarations, so
 // the references in `RightCluster` below resolve unchanged at render time.
 
-function ConnectionPill() {
-  const [connected, setConnected] = React.useState(false);
-  React.useEffect(() => {
-    const id = setInterval(() => setConnected(!!window.__lastSseConnected), 500);
-    return () => clearInterval(id);
-  }, []);
-  return (
-    <div title={connected ? 'Connected to /api stream' : 'Idle — no active stream'}
-         style={{
-      display: 'flex', alignItems: 'center', gap: 6,
-      padding: '0 12px',
-      borderLeft: '1px solid var(--md-outline-hair)',
-    }}>
-      <Dot color={connected ? COLORS.info : COLORS.idle}
-           pulse={connected ? 'pulse-a' : null} size={6} />
-      <span style={{ fontSize: 11, color: connected ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface-faint)', fontFamily: 'var(--md-font-data)' }}>
-        {connected ? 'connected' : 'idle'}
-      </span>
-    </div>
-  );
-}
+// ConnectionPill removed in spec 0252 — `AllRunsChrome`'s connected pill
+// polls the same `window.__lastSseConnected` flag on non-list routes.
 
 // Spec 0024's compact dual-icon theme toggle pill (`ThemeToggle`)
 // formerly lived here; spec 0176 §2.8 extracted it into

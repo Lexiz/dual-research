@@ -369,7 +369,9 @@ def derive_agent_breakdowns(metrics: dict | None) -> dict[str, AgentBreakdown]:
             chips.append(AgentChip(text=f"{searches} searches", kind="info"))
         tally = cba.get(backend_key) or {}
         critique: dict[str, tuple[int, int]] = {}
-        for cat in ("questions", "disagreements", "issues"):
+        # Spec 0252 — Comments is the 4th category (Q→D→I→C, DS §9.3); its
+        # solved half is structurally 0 (no closure protocol).
+        for cat in ("questions", "disagreements", "issues", "comments"):
             pair = tally.get(cat)
             if pair and len(pair) == 2:
                 critique[cat] = (int(pair[0] or 0), int(pair[1] or 0))

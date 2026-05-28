@@ -10,6 +10,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.63.0] — 2026-05-29
+
+### Added
+
+- **All Runs Comments tally + critique backfill CLI, universal chrome, and nav-label wrap fix ([spec 0252](specs/0252-provider-band-comments-backfill-universal-chrome-nav.md)).** Three independent defects on the All Runs page and the global chrome ship as one UI-consistency pass:
+  - **§2.1 — `backfill-critique` CLI.** New `dual-research backfill-critique [--run RUN_ID | --all] [--push] [--runs-dir] [--dry-run]` subcommand ([`cli.py`](src/dual_research/cli.py)) backed by a new [`audit/backfill_critique.py`](src/dual_research/audit/backfill_critique.py) module (`backfill_critique_run` / `backfill_all` / `BackfillReport`), mirroring `recompute-costs` exactly. It recomputes `critique_by_agent` for runs that predate [spec 0248](specs/0248-all-runs-provider-band.md)'s write-time tally (their `metrics.json` carries `critique_by_agent: null`, so the band rendered all-zero) and rewrites `metrics.json`; `--push` upserts the Supabase `metrics` JSONB so the **deployed** cards repair. Out-of-band by design — the `/api/runs` list path still never replays transcripts (spec 0248 §1/§7). Read-only w.r.t. the spec-0243 Claude-Code host guard, like `recompute-costs`.
+  - **§2.2 — Comments category in the band.** The canonical category order is Q→D→I→**C** (DS §9.3); the tally stopped at three. `critique_tally.py` now carries `comments` as the 4th category (`_typed_lists` returns a 4-tuple, with a `reconstruct_comments` phase-2+4 legacy fallback for pre-0114 runs); [`aggregator.derive_agent_breakdowns`](src/dual_research/ui/aggregator.py) surfaces it; `ProviderCard` ([`run-list.jsx`](src/dual_research/ui/static/run-list.jsx)) renders a single idle-toned Comments badge (`.rc-rs--c` + `.rc-rs--count-cmt`) after Issues — Comments have no closure protocol, so the solved half is structurally 0.
+  - MINOR bump: `comments` becomes a first-class category in the `critique_by_agent` write-time tally (a contract change to the spec-0248 tally shape) and a new maintenance subcommand is added.
+
+### Changed
+
+- **Universal chrome on every route (spec 0252 §2.3).** The All Runs `.ar-chrome` (60 px) is now the single app bar for **every** route — `AllRunsChrome` ([`run-list.jsx`](src/dual_research/ui/static/run-list.jsx)) gains a `route` prop driving active-tab state, gates the Active/Archived admin toggle to the list route, polls `window.__lastSseConnected` for the connected pill on non-list routes, and uses the segmented `ThemeToggleSegmented` everywhere. [`app.jsx`](src/dual_research/ui/static/app.jsx) renders it for all non-list routes (`#main` height now `calc(100vh - 60px)`). The top bar no longer reshapes as you navigate between tabs.
+- **Explicit ProviderCard tone classes (spec 0252 §2.2).** Retired the fragile `.rc-rs:nth-child(1|2|3)` tone selectors for explicit `.rc-rs--q/d/i/c .rc-rs__cat` classes (DS §9.3 Q=info · D=warn · I=err · C=idle) in both [`components.css`](src/dual_research/ui/static/components.css) and [`design-system/.../composed-components.css`](design-system/assets/styles/composed-components.css) — the `:nth-child` selectors would have mis-toned the row once the Comments badge joined it.
+- **How-it-works / Changelog nav-label wrap (spec 0252 §2.4).** The left-nav anchor is now a two-column flex row (`.menu-section-num` fixed 48 px column + new `.menu-section-lbl` flex label) in both CSS files, so a wrapped label's second line aligns under the label, not the number. The changelog summary's 30-char hard-slice is removed — a CSS line-clamp caps length instead ([`how-it-works.jsx`](src/dual_research/ui/static/how-it-works.jsx)).
+
+### Removed
+
+- **Dead chrome components (spec 0252 §2.3).** Deleted the now-unused `ChromeBar`, `RightCluster`, `ChromeTab`, `ConnectionPill`, and `AppVersionChip` from [`app.jsx`](src/dual_research/ui/static/app.jsx) — superseded by the universal `.ar-chrome`.
+
 ## [1.62.0] — 2026-05-29
 
 ### Added

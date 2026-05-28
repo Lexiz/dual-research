@@ -2568,10 +2568,28 @@ body.light .chip.tone-gpt .chip-label {
    was sized for 3-character versions and overlapped 6-character ones
    like `1.45.0`. `min-width: 48px` fits 6 characters with headroom
    and grows on overflow. Lives in both files per CLAUDE.md. */
+/* Spec 0252: two-column flex row so a wrapped label aligns under the
+   label column, not the number. `li a` is the controlling rule (higher
+   specificity); `a` mirrors it. Lives in both files per CLAUDE.md. */
+.hiw-overlay__menu-list li a,
+.hiw-overlay__menu-list a {
+  display: flex; align-items: flex-start; gap: var(--md-sp-2);
+}
 .hiw-overlay__menu-list .menu-section-num {
-  display: inline-block; min-width: 48px; margin-right: var(--md-sp-2);
+  /* Spec 0252: fixed number column; flex gap owns the spacing now.
+     `min-width: 48px` (not `width`) keeps spec 0220.1's 6-char-version
+     overlap fix — the column floors at 48 px but grows for a longer
+     version chip rather than clipping it. */
+  flex: 0 0 auto; min-width: 48px; line-height: 1.4;
   color: var(--md-on-surface-faint);
   font-family: var(--md-font-data); font-size: var(--md-label-s-size);
+}
+.hiw-overlay__menu-list .menu-section-lbl {
+  /* Spec 0252: the label column — wraps under itself, not the number,
+     capped at two lines (clamp is cosmetic; the flex alignment is the fix). */
+  flex: 1 1 auto; min-width: 0; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ─── Spec 0245 — Toast primitive (DS canonical) ────────────────
@@ -2644,6 +2662,9 @@ body.light .chip.tone-gpt .chip-label {
 }
 .ar-chrome__tabs { display: flex; align-items: center; gap: 4px; }
 .ar-chrome__sp { flex: 1 1 auto; }
+/* Spec 0252: segmented theme toggle slot — the universal chrome's theme
+   control (was a list-only md-icon-btn contrast toggle). */
+.ar-chrome__theme { display: inline-flex; align-items: center; }
 .ar-tab {
   display: inline-flex; align-items: center; gap: 6px;
   height: 36px; padding: 0 16px; border: none;
@@ -2930,9 +2951,13 @@ body.light .chip.tone-gpt .chip-label {
    Category tones follow DS §9.3: Q=info, D=warn, I=err. */
 .rc-rs { display: inline-flex; align-items: center; gap: 4px; }
 .rc-rs__cat { font: 600 9px/1 var(--md-font-plain); letter-spacing: 0.04em; }
-.rc-rs:nth-child(1) .rc-rs__cat { color: var(--p-info); }
-.rc-rs:nth-child(2) .rc-rs__cat { color: var(--p-warn); }
-.rc-rs:nth-child(3) .rc-rs__cat { color: var(--p-err); }
+/* Spec 0252: explicit category-tone classes (Q=info · D=warn · I=err ·
+   C=idle per DS §9.3), replacing the fragile :nth-child selectors that
+   broke once the single-count Comments badge joined the row. */
+.rc-rs--q .rc-rs__cat { color: var(--p-info); }
+.rc-rs--d .rc-rs__cat { color: var(--p-warn); }
+.rc-rs--i .rc-rs__cat { color: var(--p-err); }
+.rc-rs--c .rc-rs__cat { color: var(--p-idle); }
 .rc-rs--raised, .rc-rs--solved, .rc-rs--count {
   display: inline-flex; align-items: center; gap: 3px;
   height: 16px; padding: 0 6px; border-radius: var(--md-shape-full);
@@ -2946,6 +2971,8 @@ body.light .chip.tone-gpt .chip-label {
 .rc-rs--solved { color: var(--p-ok); background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
 .rc-rs--count { color: var(--p-info); background: color-mix(in srgb, var(--p-info) 16%, transparent); }
 .rc-rs--count .ms { font-size: 13px; }
+/* Spec 0252: Comments single-count value — idle tone (no closure protocol). */
+.rc-rs--count-cmt { color: var(--p-idle); background: color-mix(in srgb, var(--p-idle) 16%, transparent); }
 
 /* §2.8.7 — Note row */
 .rc-note {

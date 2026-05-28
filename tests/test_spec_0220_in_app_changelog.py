@@ -69,26 +69,31 @@ def test_changelog_list_hash_routes_cl_anchor():
 
 
 def test_app_version_chip_deep_links():
-    jsx = read_repo_text("src", "dual_research", "ui", "static", "app.jsx")
+    # Spec 0252 §2.3 deleted `AppVersionChip` from app.jsx when the universal
+    # `.ar-chrome` became the single app bar for every route. The version
+    # deep-link capability (the spec-0220 §2.5 contract) now lives on the
+    # `.ar-pill__v` button in `AllRunsChrome` (run-list.jsx). This test
+    # follows the capability to its new home; the functional intent — a
+    # clickable version chip that deep-links to `#/how-it-works#cl-<digits>`
+    # — is unchanged.
+    jsx = read_repo_text("src", "dual_research", "ui", "static", "run-list.jsx")
     assert_jsx_contains(
         jsx,
-        r"function AppVersionChip\(\) \{[\s\S]*?<button",
+        r'<button[\s\S]*?className="ar-pill"[\s\S]*?ar-pill__v',
         msg=(
-            "Spec 0220 §2.5: AppVersionChip must be a <button> wrapper (it was an inert "
-            "<div> pre-fix)."
+            "Spec 0220 §2.5 / 0252 §2.3: the version chip must be a clickable "
+            "<button> (the `.ar-pill__v` pill in AllRunsChrome)."
         ),
     )
     # The route parser at src/dual_research/ui/static/router.jsx uses
     # `#/how-it-works` (with leading slash) as the canonical route, so the
-    # chip must emit `#/how-it-works#cl-…` (the spec text's `#how-it-works#cl-…`
-    # would land on the run-list view because the router would not match the
-    # path component). Functional intent unchanged.
+    # chip must emit `#/how-it-works#cl-…`. Functional intent unchanged.
     assert_jsx_contains(
         jsx,
-        r"function AppVersionChip\(\) \{[\s\S]*?#/how-it-works#cl-",
+        r"how-it-works#cl-",
         msg=(
-            "Spec 0220 §2.5: AppVersionChip's onClick must set window.location.hash to "
-            "#/how-it-works#cl-<digits> (route format from router.jsx)."
+            "Spec 0220 §2.5 / 0252 §2.3: the version chip's onClick must set "
+            "window.location.hash to #/how-it-works#cl-<digits>."
         ),
     )
 

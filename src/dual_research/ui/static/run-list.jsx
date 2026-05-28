@@ -294,39 +294,59 @@ function AllRunsPage({ onSelect, navigate, theme, onToggleTheme, client, session
 }
 
 // ── §2.2 / §2.12.1 — Top chrome ─────────────────────────────────
-function AllRunsChrome({ me, isAdmin, archivedView, onArchivedView, connected, navigate, theme, onToggleTheme, client, session }) {
+// Spec 0252 — the single app bar for EVERY route (was list-only; the
+// other routes used to render app.jsx's now-deleted 44 px `.md-appbar`
+// ChromeBar). The `route` prop ('list' | 'compare' | 'search' |
+// 'how-it-works' | …) drives the active-tab state; the Active/Archived
+// admin toggle is list-only; on non-list routes the connected pill polls
+// `window.__lastSseConnected` (the flag the deleted ConnectionPill read)
+// since only ListScreen wires the SSE `connected` prop through.
+function AllRunsChrome({ me, isAdmin, archivedView, onArchivedView, connected, navigate, theme, onToggleTheme, client, session, route = 'list' }) {
   const meta = window.useAppMeta ? window.useAppMeta() : null;
   const version = meta && meta.version;
+
+  // Connected-pill fallback on non-list routes — poll the same flag the
+  // legacy ConnectionPill read at 500 ms; list keeps its live prop.
+  const [polled, setPolled] = React.useState(false);
+  React.useEffect(() => {
+    if (route === 'list') return undefined;
+    const id = setInterval(() => setPolled(!!window.__lastSseConnected), 500);
+    return () => clearInterval(id);
+  }, [route]);
+  const isConnected = route === 'list' ? connected : polled;
+  const current = (v) => (route === v ? { 'aria-current': 'page' } : {});
+
   return (
     <header className="ar-chrome">
       <div className="ar-chrome__tabs">
-        <button type="button" className="ar-tab" aria-current="page"><Ms name="view_agenda" />All runs</button>
-        <button type="button" className="ar-tab" onClick={() => navigate && navigate('compare')}><Ms name="compare_arrows" />Compare</button>
-        <button type="button" className="ar-tab" onClick={() => navigate && navigate('search')}><Ms name="search" />Search</button>
+        <button type="button" className={'ar-tab' + (route === 'list' ? ' is-active' : '')} {...current('list')} onClick={() => navigate && navigate('list')}><Ms name="view_agenda" />All runs</button>
+        <button type="button" className={'ar-tab' + (route === 'compare' ? ' is-active' : '')} {...current('compare')} onClick={() => navigate && navigate('compare')}><Ms name="compare_arrows" />Compare</button>
+        <button type="button" className={'ar-tab' + (route === 'search' ? ' is-active' : '')} {...current('search')} onClick={() => navigate && navigate('search')}><Ms name="search" />Search</button>
       </div>
       <div className="ar-chrome__sp" />
-      {isAdmin && (
+      {/* List-only admin toggle: gated to the list route AND admin. The
+          `isAdmin && (` adjacency is the anatomy spec 0245 locks. */}
+      {route === 'list' && isAdmin && (
         <div className="ar-chrome__tabs" data-testid="archived-view-toggle">
           <button type="button" className={'ar-tab' + (!archivedView ? ' is-active' : '')} onClick={() => onArchivedView(false)}>Active</button>
           <button type="button" className={'ar-tab' + (archivedView ? ' is-active' : '')} onClick={() => onArchivedView(true)}>Archived</button>
         </div>
       )}
-      <span className="ar-pill"><span className={'dot' + (connected ? ' dot--ok' : '')} />{connected ? 'connected' : 'offline'}</span>
+      <span className="ar-pill"><span className={'dot' + (isConnected ? ' dot--ok' : '')} />{isConnected ? 'connected' : 'offline'}</span>
       {version && (
         <button type="button" className="ar-pill" title={`dual-research v${version}`}
           onClick={() => { window.location.hash = `#/how-it-works#cl-${String(version).replace(/\./g, '')}`; }}>
           <span className="ar-pill__v">v{version}</span>
         </button>
       )}
-      <button type="button" className="ar-tab" onClick={() => navigate && navigate('how-it-works')}>How it works</button>
-      <button type="button" className="md-icon-btn" aria-label="Toggle light / dark theme" title="Toggle theme"
-        onClick={() => onToggleTheme && onToggleTheme()}>
-        <Ms name="contrast" size={20} />
-      </button>
+      <button type="button" className={'ar-tab' + (route === 'how-it-works' ? ' is-active' : '')} {...current('how-it-works')} onClick={() => navigate && navigate('how-it-works')}>How it works</button>
+      <div className="ar-chrome__theme">
+        <ThemeToggleSegmented theme={theme} onToggle={onToggleTheme} />
+      </div>
       {session && (
         <AvatarMenu
           navigate={navigate}
-          route={{ view: 'list' }}
+          route={{ view: route }}
           client={client}
           session={session}
           me={me}
@@ -589,12 +609,16 @@ function RunGroup({ kind, runs, stats, ...cardProps }) {
 // Replaces the spec-0246 AgentRow. Single-row band: brand-tinted logo
 // square + spine, provider name with total tokens beneath, cost with a
 // divider, then Questions / Disagreements / Issues raised/solved badge
-// pairs (Q→D→I order per DS §9.3) plus a web-search count. Tallies come
-// from the write-time-persisted critique payload (spec 0248 §2.5).
+// pairs (Q→D→I order per DS §9.3) plus a single-count Comments badge
+// (C=idle, no closure protocol — spec 0252) and a web-search count.
+// Tallies come from the write-time-persisted critique payload (spec
+// 0248 §2.5). Each group carries an explicit `tone` so the badge wears
+// `.rc-rs--<tone>` (DS §9.3 Q=info · D=warn · I=err · C=idle) rather than
+// relying on the fragile `:nth-child` selectors retired in spec 0252.
 const RC_PROV_GROUPS = [
-  { key: 'questions', letter: 'Q', label: 'Questions' },
-  { key: 'disagreements', letter: 'D', label: 'Disagreements' },
-  { key: 'issues', letter: 'I', label: 'Issues' },
+  { key: 'questions', letter: 'Q', label: 'Questions', tone: 'q' },
+  { key: 'disagreements', letter: 'D', label: 'Disagreements', tone: 'd' },
+  { key: 'issues', letter: 'I', label: 'Issues', tone: 'i' },
 ];
 
 function _tokensCompact(n) {
@@ -622,13 +646,19 @@ function ProviderCard({ side, agent }) {
         {RC_PROV_GROUPS.map(g => {
           const pair = critique[g.key] || [0, 0];
           return (
-            <span key={g.key} className="rc-rs" title={`${g.label}: ${pair[0]} raised, ${pair[1]} solved`}>
+            <span key={g.key} className={'rc-rs rc-rs--' + g.tone} title={`${g.label}: ${pair[0]} raised, ${pair[1]} solved`}>
               <span className="rc-rs__cat">{g.letter}</span>
               <span className="rc-rs--raised">{pair[0]}</span>
               <span className="rc-rs--solved">{pair[1]}</span>
             </span>
           );
         })}
+        {/* Spec 0252 — Comments: single idle-toned count (no closure
+            protocol → no solved half), Q→D→I→C order (DS §9.3). */}
+        <span className="rc-rs rc-rs--c" title={`Comments: ${(critique.comments || [0, 0])[0]} raised`}>
+          <span className="rc-rs__cat">C</span>
+          <span className="rc-rs--count rc-rs--count-cmt">{(critique.comments || [0, 0])[0]}</span>
+        </span>
         <span className="rc-rs--count" title={`${agent.searches || 0} web searches`}>
           <Ms name="search" />{agent.searches || 0}
         </span>
