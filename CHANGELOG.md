@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.62.0] — 2026-05-29
+
+### Added
+
+- **Make the carve-out disposition gate executable in the queue picker ([spec 0251](specs/0251-executable-carve-out-disposition-gate.md)).** CLAUDE.md's doctrine — *"a carve-out reaches `/dev-next` only when its disposition is `ship`"* — was enforced by nothing; the queue picker filtered on `kind == "dev" and status == "queued"` only and never read `disposition`, so an `archive`/`defer` carve-out still ran as long as it was queued. Four coordinated changes close the gap, and the scope expands from carve-out-only to **all** queued dev specs:
+  - **§2.1 — gate the picker.** `current_queue` in [`scripts/spec_lifecycle/pick_next_number.py`](scripts/spec_lifecycle/pick_next_number.py) now additionally requires frozen-frontmatter `disposition == "ship"`. The gate logic lives in a new `_partition_queued` helper; `current_queue`'s `[(spec_id, fm), …]` signature is unchanged so `queue_drain_supervisor` and existing tests keep working.
+  - **§2.2 — never drop silently.** New companion `skipped_queued_specs` returns the queued specs excluded for `disposition != "ship"`; `/dev-next` step 6 logs `skipped N queued specs (disposition≠ship): [ids]`. The dashboard gains a **Parked** lane in both render surfaces — `_render_pipeline` in [`render_dashboard.py`](scripts/spec_lifecycle/render_dashboard.py) (new `_is_runnable_queued` / `_is_parked` classifiers + a `pipe__bar--parked` token using `--p-warn`) and its parity twin [`functions/api/data.js`](functions/api/data.js) (per-spec `runnable_queued` / `parked` derivation). The "Queued" lane now counts only runnable specs.
+  - **§2.3 — honest status.** Adds `parked` to `VALID_STATUSES` in [`validator.py`](scripts/spec_lifecycle/validator.py) — a non-runnable authoring status. The `/dev-next` step 24.5 deferral subagent, `/spec-queue`, and `/spec-promote` now set `status` from disposition (`ship` → `queued`, else `parked`), so frozen frontmatter stops lying with `queued`.
+  - **§2.4 — doctrine + cleanup.** CLAUDE.md updated to state the gate is executable and applies to all queued dev specs (any spec without explicit `disposition: ship` is un-runnable until promoted — the intended fail-safe, never a silent skip). Fixed a step-number drift in [`deferrals.py`](scripts/spec_lifecycle/deferrals.py) docstring (`25.5` → `24.5`).
+  - MINOR bump: adds the `parked` lifecycle status and a new queue-selection predicate — a contract change, so `new-feature` per CLAUDE.md's contract-change rule. Tests: [`tests/test_spec_0251_disposition_gate.py`](tests/test_spec_0251_disposition_gate.py).
+
 ## [1.61.2] — 2026-05-29
 
 ### Changed

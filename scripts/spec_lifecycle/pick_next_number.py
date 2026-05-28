@@ -127,12 +127,23 @@ def next_draft_id(drafts_dir: str | Path) -> str:
     return f"{nxt:03d}"
 
 
-def current_queue(specs_dir: str | Path) -> list[tuple[str, dict]]:
-    """Return `[(spec_id, frontmatter), …]` for all queued dev specs.
+def _partition_queued(
+    specs_dir: str | Path,
+) -> tuple[list[tuple[tuple[int, int], str, dict]], list[tuple[tuple[int, int], str, dict]]]:
+    """Split queued dev specs into `(runnable, skipped)`, both ID-sorted.
 
-    Spec 0199 §2.1 — sorted by `parse_spec_id(filename)` ascending. The
-    returned key is the spec ID string (e.g. `"0170"`, `"0170.1"`), not the
-    legacy `queue_position` integer.
+    A queued dev spec is **runnable** only when its frozen-frontmatter
+    `disposition` is `"ship"` (spec 0251 §2.1 — the executable carve-out
+    disposition gate). Queued specs with any other disposition
+    (`defer` / `archive`, or a missing value) are **skipped** — never dropped
+    silently: `skipped_queued_specs()` surfaces them so the `/dev-next` picker
+    can log the skip (§2.2a) and the dashboard can surface a Parked lane
+    (§2.2b).
+
+    `disposition` lives in the frozen frontmatter (`fm`); `status` in the
+    queue-state overlay (`live_status`). Each is read from its own source —
+    the overlay never carries `disposition`, so finished specs still resolve
+    correctly via `live_status` while the gate reads `fm.disposition`.
 
     Spec 0203.2 §3.1 — frontmatter `status` is frozen at queue time per
     spec 0202 §2.1; live cycle-mutable status lives in
@@ -146,13 +157,47 @@ def current_queue(specs_dir: str | Path) -> list[tuple[str, dict]]:
     repo_root = Path(specs_dir).parent
     queue_state = read_state(repo_root)
 
-    items: list[tuple[tuple[int, int], str, dict]] = []
+    runnable: list[tuple[tuple[int, int], str, dict]] = []
+    skipped: list[tuple[tuple[int, int], str, dict]] = []
     for parent, child, entry in _scan_spec_ids(specs_dir):
         fm = parse(entry).frontmatter
         spec_id = format_spec_id(parent, child)
         state_entry = queue_state.specs.get(spec_id, {})
         live_status = state_entry.get("status") or fm.get("status")
         if fm.get("kind") == "dev" and live_status == "queued":
-            items.append(((parent, child), spec_id, fm))
-    items.sort(key=lambda t: t[0])
-    return [(spec_id, fm) for _, spec_id, fm in items]
+            if fm.get("disposition") == "ship":
+                runnable.append(((parent, child), spec_id, fm))
+            else:
+                skipped.append(((parent, child), spec_id, fm))
+    runnable.sort(key=lambda t: t[0])
+    skipped.sort(key=lambda t: t[0])
+    return runnable, skipped
+
+
+def current_queue(specs_dir: str | Path) -> list[tuple[str, dict]]:
+    """Return `[(spec_id, frontmatter), …]` for all RUNNABLE queued dev specs.
+
+    Spec 0199 §2.1 — sorted by `parse_spec_id(filename)` ascending. The
+    returned key is the spec ID string (e.g. `"0170"`, `"0170.1"`), not the
+    legacy `queue_position` integer.
+
+    Spec 0251 §2.1 — a queued spec only counts as runnable when its frozen
+    frontmatter carries `disposition: ship`. Queued-but-not-`ship` specs are
+    excluded here and surfaced via `skipped_queued_specs()` so the picker logs
+    them — never a silent drop. The return signature is unchanged so existing
+    callers (`queue_drain_supervisor`, tests) keep working.
+    """
+    runnable, _ = _partition_queued(specs_dir)
+    return [(spec_id, fm) for _, spec_id, fm in runnable]
+
+
+def skipped_queued_specs(specs_dir: str | Path) -> list[tuple[str, dict]]:
+    """Return `[(spec_id, frontmatter), …]` for queued dev specs EXCLUDED from
+    `current_queue` because their disposition is not `"ship"` (spec 0251 §2.2a).
+
+    Same return shape as `current_queue`. The `/dev-next` picker step logs
+    these so a parked carve-out is never dropped silently, and the dashboard
+    Parked lane (§2.2b) surfaces them.
+    """
+    _, skipped = _partition_queued(specs_dir)
+    return [(spec_id, fm) for _, spec_id, fm in skipped]

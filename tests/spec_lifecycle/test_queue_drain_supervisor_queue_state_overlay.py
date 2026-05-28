@@ -22,6 +22,7 @@ kind: dev
 spec: "{number}"
 slug: {slug}
 status: queued
+disposition: ship
 ---
 
 # Spec {number} fixture

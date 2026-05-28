@@ -59,6 +59,8 @@ Drift was the root cause of the 0114 → 0219 thrash: 0137, 0140, 0218, and 0219
 
 When implementing a spec produces a follow-up spec (a "noticed during implementation" carve-out), the carve-out's frontmatter must include a `disposition:` field set to one of `ship` / `defer` / `archive`, with a one-sentence `disposition_reason:`. Default disposition is `archive`. A carve-out reaches `/dev-next` only when its disposition is `ship`. This forces triage at the moment of carving rather than letting the carve-out accrete into the queue and consume a `/dev-next` cycle by default.
 
+**The gate is executable, and it applies to all queued dev specs (spec 0251).** It is no longer carve-out-only doctrine: the queue picker (`current_queue` in `scripts/spec_lifecycle/pick_next_number.py`) excludes any queued dev spec whose frozen-frontmatter `disposition` is not `ship`. **Any dev spec authored without an explicit `disposition: ship` is un-runnable until promoted** — this is the intended fail-safe. The skip is never silent: `skipped_queued_specs` surfaces the excluded specs, `/dev-next` step 6 logs `skipped N queued specs (disposition≠ship): [ids]`, and the dashboard carries a **Parked** lane. Specs whose disposition is not `ship` should carry `status: parked` (a non-runnable status, accepted by the validator) so frozen frontmatter matches reality rather than lying with `queued`.
+
 The 200+ spec corpus this project carries is partly the result of follow-ups shipping without triage. The discipline this section names is what stops the pattern.
 
 ## Dashboard

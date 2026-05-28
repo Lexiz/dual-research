@@ -48,11 +48,15 @@ def _write_spec(
     ("position 1 first") even though the field itself is gone.
     """
     del queue_position  # explicitly unused — keeps the kwarg for call sites.
+    # Spec 0251 §2.1 — `disposition: ship` so the picker gate treats queued
+    # fixtures as runnable. Harmless on non-queued fixtures (they drop on
+    # status). The gate itself is covered in test_spec_0251_disposition_gate.py.
     body = f"""---
 kind: dev
 spec: "{number}"
 slug: {slug}
 status: {status}
+disposition: ship
 """
     if started_at:
         body += f'started_at: "{started_at}"\n'

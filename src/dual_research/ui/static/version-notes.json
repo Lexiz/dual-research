@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.62.0",
+    "date": "2026-05-29",
+    "bump": "MINOR",
+    "summary": "Make the carve-out disposition gate executable in the queue picker (spec 0251).",
+    "items": [
+      "<strong>Make the carve-out disposition gate executable in the queue picker ([spec 0251](specs/0251-executable-carve-out-disposition-gate.md)).</strong> CLAUDE.md's doctrine — *\"a carve-out reaches <code>/dev-next</code> only when its disposition is <code>ship</code>\"* — was enforced by nothing; the queue picker filtered on <code>kind == \"dev\" and status == \"queued\"</code> only and never read <code>disposition</code>, so an <code>archive</code>/<code>defer</code> carve-out still ran as long as it was queued.",
+      "Four coordinated changes close the gap, and the scope expands from carve-out-only to <strong>all</strong> queued dev specs:"
+    ],
+    "specs": [
+      "0251"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.61.2",
     "date": "2026-05-29",
     "bump": "PATCH",

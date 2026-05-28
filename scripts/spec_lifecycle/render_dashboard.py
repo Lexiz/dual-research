@@ -98,6 +98,12 @@ class SpecRow:
         return self.fm.get("status", "")
 
     @property
+    def disposition(self) -> str:
+        # Spec 0251 §2.1 — disposition lives in frozen frontmatter, never in
+        # the queue-state overlay. Read it directly off `fm`.
+        return self.fm.get("disposition", "")
+
+    @property
     def title(self) -> str:
         return self.fm.get("title", self.path.stem)
 
@@ -792,10 +798,30 @@ def _staleness_tone(seconds: int | None) -> str:
 # ── Pipeline strip ─────────────────────────────────────────────────────────
 
 
+def _is_runnable_queued(s: "SpecRow") -> bool:
+    """Spec 0251 §2.1 — a queued spec is runnable only with `disposition: ship`.
+
+    Mirrors the gate in `pick_next_number.current_queue`. The Pipeline "Queued"
+    lane counts only these so the number matches what `/dev-next` would pick up.
+    """
+    return s.status == "queued" and s.disposition == "ship"
+
+
+def _is_parked(s: "SpecRow") -> bool:
+    """Spec 0251 §2.2b — a spec is parked (non-runnable) when its status is
+    `parked`, or it is `queued` but its disposition is not `ship` (the gate
+    would skip it). Parity twin: the `parked` derivation in
+    `functions/api/data.js`. A parked spec is never silently invisible — it
+    gets its own Pipeline lane.
+    """
+    return s.status == "parked" or (s.status == "queued" and s.disposition != "ship")
+
+
 def _render_pipeline(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datetime) -> str:
     counts: dict[str, int] = {
         "drafts": len(drafts),
-        "queued": sum(1 for s in specs if s.status == "queued"),
+        "queued": sum(1 for s in specs if _is_runnable_queued(s)),
+        "parked": sum(1 for s in specs if _is_parked(s)),
         "inflight": sum(1 for s in specs if s.status == "in_progress"),
         "merged_today": 0,
         "deployed": sum(1 for s in specs if s.status == "deployed"),
@@ -824,6 +850,7 @@ def _render_pipeline(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datet
         '<section class="pipe" aria-label="Pipeline">'
         + col("drafts", "Drafts", "draft")
         + col("queued", "Queued", "queued")
+        + col("parked", "Parked", "parked")
         + col("inflight", "In progress", "inflight")
         + col("merged_today", "Merged today", "merged")
         + col("deployed", "Deployed (all)", "deployed")
@@ -2634,6 +2661,7 @@ body {
 .pipe__bar { height: 6px; width: 100%; border-radius: 3px; background: var(--md-surface-container-highest); }
 .pipe__bar--draft { background: color-mix(in srgb, var(--md-on-surface-faint) 35%, var(--md-surface-container-highest)); }
 .pipe__bar--queued { background: color-mix(in srgb, var(--p-idle) 60%, var(--md-surface-container-highest)); }
+.pipe__bar--parked { background: color-mix(in srgb, var(--p-warn) 50%, var(--md-surface-container-highest)); }
 .pipe__bar--inflight { background: var(--p-info); }
 .pipe__bar--merged { background: color-mix(in srgb, var(--p-ok) 45%, var(--md-surface-container-highest)); }
 .pipe__bar--deployed { background: var(--p-ok); }

@@ -4,7 +4,7 @@ Spec 0158 introduces a handoff convention: the implementing agent appends a
 ``## Deferred during implementation`` section to the handoff doc when work
 that was in scope at cycle start got dropped during implementation (for
 complexity, risk, missing context, or blocking dependency reasons). The
-``/dev-next`` step 25.5 deferred-spec subagent reads this section to author
+``/dev-next`` step 24.5 deferred-spec subagent reads this section to author
 follow-up specs or drafts.
 
 This module exposes one function:
