@@ -793,6 +793,14 @@ class AgentBreakdown:
     name: str  # "Claude" | "GPT"
     cost: float = 0.0  # 2-decimal dollars (cost_usd + search_cost)
     chips: list[AgentChip] = field(default_factory=list)
+    # Spec 0248 — rich provider-band metrics. ``tokens`` is the per-agent
+    # total (input + output + cache_*); ``searches`` the web-search count;
+    # ``critique`` maps "questions" / "disagreements" / "issues" → a
+    # (raised, solved) pair. All defaulted so the supabase builder and old
+    # callers stay valid (old runs render zeros — see spec 0248 §7).
+    tokens: int = 0
+    searches: int = 0
+    critique: dict[str, tuple[int, int]] = field(default_factory=dict)
 
 
 @dataclass

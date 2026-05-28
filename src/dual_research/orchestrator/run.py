@@ -201,6 +201,22 @@ def _install_cost_ticker(event_bus: EventBus, metrics: Metrics) -> None:
     event_bus.subscribe(on_turn_ended)
 
 
+def _populate_critique_tally(metrics: Metrics, session: SessionDirectory) -> None:
+    """Spec 0248 — compute the per-agent critique tally and stash it on
+    ``metrics`` so the next ``save()`` persists it into ``metrics.json``.
+
+    Done at the terminal-save sites only (not the per-event cost ticker) so
+    the heavy item replay runs once per run, not once per turn — running
+    runs reflect the last terminal write, which is acceptable (spec 0248
+    §2.5). The import is local so the item-pipeline deps stay off the
+    orchestrator import path; the helper never raises."""
+    from dual_research.ui.critique_tally import compute_critique_by_agent
+
+    metrics.critique_by_agent = compute_critique_by_agent(
+        session.root, metrics.totals_by_agent()
+    )
+
+
 def _install_transcript_publisher(event_bus: EventBus, ctx: SessionContext) -> None:
     """Metrics save-on-every-event subscriber. Item-lifecycle event
     mirroring is handled separately by ``_install_transcript_bridge`` so
@@ -512,6 +528,7 @@ async def run_session(
         total_search_cost = metrics.total_search_cost_usd()
         duration_ms = int((time.perf_counter() - run_started) * 1000)
         metrics.mark_done()
+        _populate_critique_tally(metrics, session)  # spec 0248
         metrics.save(session.metrics_path)
 
         await bus.publish(
@@ -555,6 +572,7 @@ async def run_session(
         duration_ms = int((time.perf_counter() - run_started) * 1000)
         try:
             metrics.mark_done()
+            _populate_critique_tally(metrics, session)  # spec 0248
             metrics.save(session.metrics_path)
         except BaseException:
             logger.exception(
@@ -626,6 +644,7 @@ async def run_session(
         if not _terminal_written:
             try:
                 metrics.mark_done()
+                _populate_critique_tally(metrics, session)  # spec 0248
                 metrics.save(session.metrics_path)
             except BaseException:
                 pass

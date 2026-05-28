@@ -334,27 +334,53 @@ def derive_phase_outcomes(phase_int: int, status: str) -> tuple[str, str, str, s
 
 
 def derive_agent_breakdowns(metrics: dict | None) -> dict[str, AgentBreakdown]:
-    """Per-agent cost split + the cheaply-derivable ``<N> searches`` chip.
+    """Per-agent cost split + the rich provider-band metrics (spec 0248).
 
     Reads ``totals_by_agent.{claude,openai}`` from metrics.json (fs) or the
     supabase ``metrics`` JSONB column (same shape). Keys "a"=Claude,
-    "b"=GPT (§2.8.6). The richer plan-turns/critiques chips are deferred
-    (§5) — only the search count ships now.
+    "b"=GPT (§2.8.6). ``tokens`` + ``searches`` come straight off
+    ``totals_by_agent`` (always present, cheap); the Questions /
+    Disagreements / Issues ``(raised, solved)`` tallies come from the
+    write-time-persisted ``critique_by_agent`` (spec 0248 §2.5). This path
+    NEVER replays transcripts — old runs (no ``critique_by_agent``) render
+    zero tallies (§7). The legacy ``<N> searches`` chip is kept so any
+    chip consumer stays valid; the new ProviderCard reads ``searches``
+    directly.
     """
     if not metrics:
         return {}
     tba = metrics.get("totals_by_agent") or {}
+    cba = metrics.get("critique_by_agent") or {}
     out: dict[str, AgentBreakdown] = {}
     for backend_key, ui_key, ui_name in (("claude", "a", "Claude"), ("openai", "b", "GPT")):
         a = tba.get(backend_key)
         if not a:
             continue
         cost = round(float(a.get("cost_usd", 0.0) or 0.0) + float(a.get("search_cost", 0.0) or 0.0), 2)
-        chips: list[AgentChip] = []
         searches = int(a.get("searches", 0) or 0)
+        tokens = int(
+            (a.get("input_tokens", 0) or 0)
+            + (a.get("output_tokens", 0) or 0)
+            + (a.get("cache_read_tokens", 0) or 0)
+            + (a.get("cache_write_tokens", 0) or 0)
+        )
+        chips: list[AgentChip] = []
         if searches > 0:
             chips.append(AgentChip(text=f"{searches} searches", kind="info"))
-        out[ui_key] = AgentBreakdown(name=ui_name, cost=cost, chips=chips)
+        tally = cba.get(backend_key) or {}
+        critique: dict[str, tuple[int, int]] = {}
+        for cat in ("questions", "disagreements", "issues"):
+            pair = tally.get(cat)
+            if pair and len(pair) == 2:
+                critique[cat] = (int(pair[0] or 0), int(pair[1] or 0))
+        out[ui_key] = AgentBreakdown(
+            name=ui_name,
+            cost=cost,
+            chips=chips,
+            tokens=tokens,
+            searches=searches,
+            critique=critique,
+        )
     return out
 
 

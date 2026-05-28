@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.61.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "Rich per-provider metric bands on the All Runs cards (spec 0248 §2.5).",
+    "items": [
+      "<strong>Added.</strong> <strong>Rich per-provider metric bands on the All Runs cards ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.5).</strong> Each run card's per-agent row is rewritten from <code>AgentRow</code> (name + cost + a lone searches chip) into a single-row <code>ProviderCard</code> band: brand-tinted logo square + spine, provider name with <strong>total tokens</strong> beneath, <strong>cost</strong> with a divider, then <strong>Questions / Disagreements / Issues</strong> as <code>raised</code>/<code>solved</code> badge pairs (Q→D→I order, DS §9.3 category tones) plus a <strong>searches</strong> count.",
+      "The raised/solved tallies are computed at run-write time and persisted under <code>metrics.json</code>'s new <code>critique_by_agent</code> key (<code>AgentBreakdown</code> gains <code>tokens</code> / <code>searches</code> / <code>critique</code> fields; <code>Metrics</code> gains <code>critique_by_agent</code>); the cheap <code>/api/runs</code> list path reads the persisted payload and <strong>never replays transcripts</strong> (a <code>summarize_run</code> cheap-path guard test enforces this).",
+      "Old runs without the payload render zero tallies.",
+      "New composed component — DS §4.9.",
+      "<strong>Inline archive tray on the All Runs cards ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.3).</strong> The spec-0245 floating icon button + full-screen confirm <code>Modal</code> is replaced by a bottom-of-card <code>.rc-tray</code> that expands on hover with in-place <strong>prompt → confirm</strong> states (carrying <code>.is-confirming</code> so a pointer-leave mid-confirm doesn't collapse it).",
+      "Same archive/restore endpoints.",
+      "New composed component — DS §4.10.",
+      "<strong>Avatar account menu restored to the All Runs chrome ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.2).</strong> <code>AvatarMenu</code> / <code>AvatarDisc</code> / <code>MenuItem</code> are lifted from <code>app.jsx</code> into <code>run-list.jsx</code> (which loads first, so <code>app.jsx</code>'s chrome still references them) and mounted in <code>AllRunsChrome</code> in place of the bare initial span — restoring the Google avatar, identity header + <code>admin</code> badge, Design language, Replay tour, Settings, and Sign out.",
+      "<strong>Changed.</strong> <strong>All Runs card chrome cleanup ([spec 0248](specs/0248-all-runs-card-refinements-provider-metrics.md) §2.1 / §2.4).</strong> The redundant <code>dual-research</code> wordmark strip (<code>ProjectStrip</code>) is removed and <code>.ar-page</code> top padding tightened (24 px → 18 px); the run-card grid now constrains the terminal-state note to the phase-strip (left) column with the provider bands spanning the reclaimed vertical space, rather than a full-width <code>\"note note\"</code> row."
+    ],
+    "specs": [
+      "0248"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.60.3",
     "date": "2026-05-28",
     "bump": "PATCH",

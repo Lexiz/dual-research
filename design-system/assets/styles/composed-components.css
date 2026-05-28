@@ -2632,7 +2632,7 @@ body.light .chip.tone-gpt .chip-label {
    specs/0246-all-runs-card-layout-rewrite.md.
    ============================================================= */
 
-.ar-page { max-width: 1320px; margin: 0 auto; padding: 24px 28px 60px; }
+.ar-page { max-width: 1320px; margin: 0 auto; padding: 18px 28px 60px; }
 
 /* §2.2 — Top chrome */
 .ar-chrome {
@@ -2668,25 +2668,6 @@ body.light .chip.tone-gpt .chip-label {
 .ar-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--md-on-surface-faint); }
 .ar-pill .dot--ok { background: var(--p-ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-ok) 24%, transparent); }
 .ar-pill__v { font-family: var(--md-font-data); font-size: 11px; }
-.ar-avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--p-sable), var(--p-sage));
-  color: rgba(255, 255, 255, 0.95); font: 500 14px/1 var(--md-font-plain);
-}
-
-/* §2.3 — Project strip */
-.ar-project { display: flex; align-items: center; gap: 10px; margin: 18px 0 28px; }
-.ar-project__mark { position: relative; width: 22px; height: 22px; }
-.ar-project__mark::before, .ar-project__mark::after {
-  content: ""; position: absolute; top: 5px; width: 12px; height: 12px;
-  border-radius: 50%; mix-blend-mode: screen;
-}
-.ar-project__mark::before { left: 0; background: var(--p-sable); }
-.ar-project__mark::after { left: 6px; background: var(--p-sage); }
-.ar-project__name {
-  font-size: 18px; font-weight: 500; letter-spacing: -0.005em; color: var(--md-on-surface);
-}
 
 /* §2.4 — Stats panel */
 .ar-stats {
@@ -2794,9 +2775,13 @@ body.light .chip.tone-gpt .chip-label {
 /* §2.8 — Run card */
 .run-card {
   position: relative; display: grid;
-  grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto;
-  grid-template-areas: "head head" "phases agents" "note note";
-  column-gap: 32px; row-gap: 12px; align-items: center;
+  grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto;
+  grid-template-areas:
+    "head   head"
+    "phases agents"
+    "note   agents"
+    "tray   tray";
+  column-gap: 32px; row-gap: 12px; align-items: start;
   padding: 12px 18px 14px 22px;
   background: var(--md-surface-container-low);
   border: 1px solid var(--md-outline-hair);
@@ -2880,7 +2865,7 @@ body.light .chip.tone-gpt .chip-label {
 .run-card--running:hover .rc-chev { opacity: 0; }
 
 /* §2.8.5 — Phase strip */
-.rc-phases { grid-area: phases; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.rc-phases { grid-area: phases; align-self: start; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .rc-phase { display: flex; flex-direction: column; gap: 3px; }
 .rc-phase__bar { position: relative; height: 4px; border-radius: 2px; background: var(--md-outline-hair); overflow: hidden; }
 .rc-phase__lbl {
@@ -2907,41 +2892,64 @@ body.light .chip.tone-gpt .chip-label {
 .rc-phase--pending .rc-phase__lbl { color: var(--md-on-surface-decor); }
 @keyframes rc-shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
-/* §2.8.6 — Per-agent rows */
-.rc-agents { grid-area: agents; display: flex; flex-direction: column; gap: 4px; }
-.rc-agent {
-  position: relative; display: flex; align-items: center; gap: 10px;
-  padding: 4px 10px 4px 12px; border-radius: var(--md-shape-sm);
+/* §2.5 — Rich provider metric bands (spec 0248, replaces .rc-agent rows) */
+.rc-agents { grid-area: agents; display: flex; flex-direction: column; gap: 6px; }
+.rc-prov {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 6px 12px 6px 0; border-radius: var(--md-shape-sm);
   background: var(--md-surface-container); overflow: hidden;
 }
-.rc-agent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; }
-.rc-agent--a::before { background: var(--p-sable); }
-.rc-agent--b::before { background: var(--p-sage); }
-.rc-agent__name {
-  font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; min-width: 50px;
+.rc-prov::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; }
+.rc-prov--a::before { background: var(--p-sable); }
+.rc-prov--b::before { background: var(--p-sage); }
+.rc-prov__mark {
+  flex: 0 0 auto; align-self: stretch; width: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.rc-agent--a .rc-agent__name { color: color-mix(in srgb, var(--p-sable) 90%, white); }
-.rc-agent--b .rc-agent__name { color: color-mix(in srgb, var(--p-sage) 90%, white); }
-.rc-agent__cost {
-  font-size: 12px; font-weight: 500; font-family: var(--md-font-data);
-  font-variant-numeric: tabular-nums; min-width: 50px; color: var(--md-on-surface);
+.rc-prov--a .rc-prov__mark { background: color-mix(in srgb, var(--p-sable) 16%, transparent); }
+.rc-prov--b .rc-prov__mark { background: color-mix(in srgb, var(--p-sage) 16%, transparent); }
+.rc-prov__id { display: flex; flex-direction: column; gap: 2px; min-width: 78px; }
+.rc-prov__name {
+  font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em;
 }
-.rc-agent__chips { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.rc-bdg {
-  display: inline-flex; align-items: center; gap: 4px;
+.rc-prov--a .rc-prov__name { color: color-mix(in srgb, var(--p-sable) 90%, white); }
+.rc-prov--b .rc-prov__name { color: color-mix(in srgb, var(--p-sage) 90%, white); }
+.rc-prov__tok {
+  font: 400 10px/1 var(--md-font-data); font-variant-numeric: tabular-nums;
+  color: var(--md-on-surface-faint);
+}
+.rc-prov__cost {
+  font: 500 13px/1 var(--md-font-data); font-variant-numeric: tabular-nums;
+  color: var(--md-on-surface); padding-right: 14px; min-width: 56px;
+  border-right: 1px solid var(--md-outline-hair);
+}
+.rc-prov__metrics {
+  display: flex; align-items: center; gap: 12px; margin-left: auto; flex-wrap: wrap;
+}
+/* raised/solved badge pair, preceded by a tinted category letter.
+   Category tones follow DS §9.3: Q=info, D=warn, I=err. */
+.rc-rs { display: inline-flex; align-items: center; gap: 4px; }
+.rc-rs__cat { font: 600 9px/1 var(--md-font-plain); letter-spacing: 0.04em; }
+.rc-rs:nth-child(1) .rc-rs__cat { color: var(--p-info); }
+.rc-rs:nth-child(2) .rc-rs__cat { color: var(--p-warn); }
+.rc-rs:nth-child(3) .rc-rs__cat { color: var(--p-err); }
+.rc-rs--raised, .rc-rs--solved, .rc-rs--count {
+  display: inline-flex; align-items: center; gap: 3px;
   height: 16px; padding: 0 6px; border-radius: var(--md-shape-full);
-  font: 500 9px/1 var(--md-font-plain); letter-spacing: 0.04em;
-  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
-  color: var(--md-on-surface-variant); white-space: nowrap;
+  font: 500 10px/1 var(--md-font-data); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.rc-bdg--warn { color: var(--p-warn); background: color-mix(in srgb, var(--p-warn) 16%, transparent); }
-.rc-bdg--err { color: var(--p-err); background: color-mix(in srgb, var(--p-err) 16%, transparent); }
-.rc-bdg--ok { color: var(--p-ok); background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
-.rc-bdg--info { color: var(--p-info); background: color-mix(in srgb, var(--p-info) 16%, transparent); }
+/* Spec 0248 §2.5: raised → neutral, solved → ok, searches → info. */
+.rc-rs--raised {
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  color: var(--md-on-surface-variant);
+}
+.rc-rs--solved { color: var(--p-ok); background: color-mix(in srgb, var(--p-ok) 16%, transparent); }
+.rc-rs--count { color: var(--p-info); background: color-mix(in srgb, var(--p-info) 16%, transparent); }
+.rc-rs--count .ms { font-size: 13px; }
 
 /* §2.8.7 — Note row */
 .rc-note {
-  grid-area: note; display: flex; align-items: flex-start; gap: 8px;
+  grid-area: note; align-self: end; display: flex; align-items: flex-start; gap: 8px;
   padding: 7px 10px; border-radius: var(--md-shape-sm);
   background: var(--md-surface-container); color: var(--md-on-surface-variant);
   font: 400 11px/1.4 var(--md-font-plain);
@@ -2963,9 +2971,27 @@ body.light .chip.tone-gpt .chip-label {
 }
 .rc-note--ok .ic, .rc-note--ok .ms { color: var(--p-ok); }
 
+/* §2.3 — Inline archive / restore tray (spec 0248, replaces the
+   spec-0245 floating .rc-archive-btn + full-screen confirm Modal) */
+.rc-tray {
+  grid-area: tray; overflow: hidden;
+  max-height: 0; opacity: 0;
+  transition: max-height var(--md-dur-short-3) var(--md-easing-standard),
+              opacity var(--md-dur-short-3) var(--md-easing-standard);
+}
+.run-card:hover .rc-tray, .rc-tray.is-confirming { max-height: 80px; opacity: 1; }
+.rc-tray__row {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--md-outline-hair);
+}
+.rc-tray__msg { font-size: 12px; color: var(--md-on-surface-variant); }
+.rc-tray__row--confirm .rc-tray__msg { color: var(--md-on-surface); }
+.rc-tray__act { margin-left: auto; }
+.rc-tray__row--confirm { justify-content: flex-end; }
+.rc-tray__row--confirm .rc-tray__msg { margin-right: auto; }
+
 /* §2.12 — Archive affordances (spec 0245 carry-over) */
-.rc-archive-btn { position: absolute; top: 12px; right: 12px; z-index: 2; }
-.run-card--running .rc-archive-btn { right: 34px; }
 .run-card--archived { opacity: 0.65; cursor: default; }
 .run-card--archived::before { background: var(--md-outline-variant); }
 .rc-archived-cap {
