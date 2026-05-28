@@ -1068,18 +1068,24 @@
         <div className="hiw-page__layout">
           <nav className="hiw-page__menu" aria-label="Section navigation">
             <ul className="hiw-overlay__menu-list">
+              {/* Spec 0252 — label wrapped in `.menu-section-lbl` so the
+                  anchor's two-column flex aligns a wrapped second line under
+                  the label, not the number; changelog summary no longer
+                  hard-sliced to 30 chars (CSS line-clamp caps length). */}
               {view === 'how'
                 ? HIW_SECTIONS.map((s, i) =>
                     <li key={s.id}>
                       <a href={`#${s.id}`}>
-                        <span className="menu-section-num">{i + 1}</span>{s.label}
+                        <span className="menu-section-num">{i + 1}</span>
+                        <span className="menu-section-lbl">{s.label}</span>
                       </a>
                     </li>
                   )
                 : (changelogEntries || []).slice(0, 12).map((e) =>
                     <li key={e.version}>
                       <a href={`#cl-${e.version.replace(/\./g, '')}`}>
-                        <span className="menu-section-num">{e.version}</span>{(e.summary || '').slice(0, 30)}
+                        <span className="menu-section-num">{e.version}</span>
+                        <span className="menu-section-lbl">{e.summary || ''}</span>
                       </a>
                     </li>
                   )
