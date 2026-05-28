@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.61.1] — 2026-05-29
+
+### Fixed
+
+- **Path-filter `deploy.yml` so only image-affecting commits deploy ([spec 0249](specs/0249-path-filter-deploy-only-image-affecting-commits.md)).** `.github/workflows/deploy.yml` triggered on every push to `main` with no `paths:` filter, so each `/dev-next` cycle's ~13 `queue-state update` telemetry commits (touching only `dashboard/**` and at most `handoffs/**`) fired a full `test → flyctl deploy --remote-only → sweep` pipeline that shipped a byte-identical image and serialized behind the `deploy-main` concurrency group. Added an allow-list `on.push.paths` scoped to the files that actually change the shipped image (`src/**`, `pyproject.toml`, `uv.lock`, `Dockerfile`, `fly.toml`, `.github/workflows/deploy.yml`). The allow-list is a superset of the files every spec PR is guaranteed to touch (the CLAUDE.md versioning rule bumps `pyproject.toml` + `src/dual_research/__init__.py`), so the merge-commit deploy that `/dev-next` step 20 watches always fires; `workflow_dispatch` remains as the manual force-deploy escape valve. A pure-stdlib YAML-shape regression test (`tests/test_spec_0249_deploy_path_filter.py`) locks the allow-list shape, the telemetry-path exclusion, and the version-bump-path invariant.
+
 ## [1.61.0] — 2026-05-28
 
 ### Added
