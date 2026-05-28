@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T19:19:31Z",
+  "updated_at": "2026-05-28T19:19:34Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12438,7 +12438,7 @@
       "handover": "handoffs/2026-05-28-spec-0246-all-runs-card-layout-rewrite.md"
     },
     "0246.1": {
-      "status": "in_progress",
+      "status": "merged",
       "queued_at": "2026-05-28T19:06:20Z",
       "events": [
         {
@@ -12492,7 +12492,9 @@
           }
         }
       ],
-      "started_at": "2026-05-28T19:15:55Z"
+      "started_at": "2026-05-28T19:15:55Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/283",
+      "merged_at": "2026-05-28T19:19:34Z"
     },
     "0247": {
       "status": "queued",
