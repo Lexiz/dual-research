@@ -68,34 +68,51 @@ Before firing the run:
    The first `||` branch only fires when the server isn't up. The
    server keeps running across runs.
 
-## Firing the run
+## Firing the run (UPDATED — spec 0243)
 
-Always include in the same shell that just sourced the env keys:
+**Do not fire the run from inside this Claude Code session.** The
+dual-research CLI refuses to run inside Claude Code (CLI guard added in
+spec 0243); even if the guard were bypassed via
+`DUAL_RESEARCH_ALLOW_CLAUDE_P=1`, the run would be silently reaped
+mid-execution by Claude Code's background-task manager. Four
+consecutive Claude-Code-hosted runs died this way in phase 2–4 with no
+Python exception, no signal, no jetsam log; the first plain-Terminal.app
+run completed cleanly.
+
+Instead, emit the canonical Terminal.app command to the user and ask
+them to paste it into a plain Terminal.app window:
 
 ```bash
-uv run dual-research \
-  --prompt "<the user's research prompt, verbatim>" \
-  --models prod \
-  --push-while-running \
-  --name <short-slug-derived-from-prompt> \
-  2>&1 | tee /tmp/dr-run-<slug>.log
+cd /Users/alexlisitzky/ClaudeCode/dual-research-workspace/dual-research && \
+eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)" && \
+caffeinate -i uv run dual-research \
+  --<input-flag> "<input>" --models prod --push-while-running \
+  --name <slug> 2>&1 | tee /tmp/dr-run-<slug>.log
 ```
+
+Substitute:
+
+- **`<input-flag>`** with `--prompt` / `--brief` / `--notion` per the
+  input shape. (`--notion` is repeatable; `--prompt` and `--brief`
+  combine with each other and with `--notion`.)
+- **`<input>`** with the verbatim prompt text, brief path, or Notion URL.
+- **`<slug>`** with a derived run name (first 4–6 meaningful words of
+  the input, kebab-case, ≤ 30 chars).
 
 Notes:
 
+- **`caffeinate -i`** prevents macOS idle sleep for the run duration —
+  one of the H4 surfaces silent-kill was attributed to before plain
+  Terminal was identified as the canonical host.
 - **`--push-while-running`** (spec 0032) is what makes the hosted UI
-  reflect progress every ~30 s. Don't omit it for test runs.
+  reflect progress every ~30 s. Don't omit it.
 - **`--models prod`** is the 1 M-context tier (Sonnet 4.6 + GPT-5.5
   with web search). Test-tier (`--models test`) uses Haiku + GPT-5-mini
   with smaller windows — use only if the user explicitly asks for the
   cheap version.
-- **`--name <slug>`** keeps the session-dir name human-readable. Derive
-  the slug from the prompt's first 4–6 meaningful words, kebab-case,
-  ≤ 30 chars.
-- Always launch with `run_in_background: true` from the Bash tool — a
-  prod-tier run typically takes **20–30 minutes** to complete. Schedule
-  a wakeup at ~25 min to push (if `--push-while-running` is set, this
-  is a sanity check, not a requirement).
+- A prod-tier run typically takes **20–30 minutes** to complete. The
+  user will watch progress via the local + hosted UI URLs below; you
+  do not need to schedule wakeups or tail the log.
 
 ## Reporting URLs
 

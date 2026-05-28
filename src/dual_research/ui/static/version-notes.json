@@ -1,5 +1,29 @@
 [
   {
+    "version": "1.57.0",
+    "date": "2026-05-28",
+    "bump": "MINOR",
+    "summary": "Operational guard: dual-research CLI refuses to run inside Claude Code (spec 0243).",
+    "items": [
+      "<strong>Operational guard: dual-research CLI refuses to run inside Claude Code ([spec 0243](specs/0243-operational-guard-refuse-running-inside-claude-code.md)).</strong> Routes the user around the H4 silent-kill surface by hard-exiting at the CLI entry when any <code>CLAUDECODE</code> / <code>CLAUDE_CODE_*</code> env var is set, with <code>DUAL_RESEARCH_ALLOW_CLAUDE_P=1</code> as the documented escape.",
+      "Five consecutive Claude-Code-hosted runs (<code>20260527-200213</code>, <code>20260528-000411/061323/073509/082137</code>) died silently in phase 2–4 with no Python exception, no signal, no jetsam log — root cause: Claude Code's background-task manager terminates long-running children at parent-session lifecycle events; the first plain-Terminal.app run (<code>20260528-094743</code>) completed cleanly ($8.66, 39KB <code>final.md</code>, all gating invariants green).",
+      "<strong>Layer 1 — CLI guard.</strong> New helpers <code>_running_inside_claude_code()</code> and <code>_maybe_refuse_claude_code_host()</code> at <code>src/dual_research/cli.py</code> — detection widens to ANY <code>CLAUDECODE</code> / <code>CLAUDE_CODE_*</code> env var (Cowork sign-off's load-bearing case: the sandbox sets <code>CLAUDE_CODE_HOST_*</code> without <code>CLAUDECODE</code>).",
+      "The guard is wired immediately after <code>parser.parse_args(argv)</code> and is conditional on <code>not args.push</code> so the read-only Supabase upload path is exempt; the LLM-firing paths (default <code>--prompt</code> / <code>--brief</code> / <code>--notion</code> + <code>--resume</code>) all hit it before any ingest, cred load, or session-dir creation.",
+      "Stderr prints the canonical Terminal.app command with <code>cd</code> to the repo + <code>eval</code> of <code>~/.zshrc</code> keys + <code>caffeinate -i uv run dual-research</code>; <code>sys.exit(2)</code>.",
+      "Read-only subcommands (<code>serve</code>, <code>verify</code>, <code>validate-run</code>, <code>recompute-costs</code>, <code>reconcile-costs</code>) are dispatched at the top of <code>main()</code> before the parser ever runs and are not guarded.",
+      "<strong>Layer 2 — CLAUDE.md \"Operational\" section.</strong> New top-level section after \"Tests\" documents the canonical Terminal.app invocation and the <code>DUAL_RESEARCH_ALLOW_CLAUDE_P=1</code> escape's intended use (CI / Cowork sandbox); explicitly NOT intended for \"I'm in a hurry, just run it.\" <strong>Layer 3 — <code>/dual-research-run</code> skill amendment.</strong> Replaces the \"Firing the run\" section with a refuse-and-redirect pattern: the skill emits the canonical Terminal.app command for the user to paste rather than firing the run as a Claude Code background task.",
+      "Post-run reporting (URLs, completion check) is unchanged.",
+      "<strong>Layer 4 — <code>--help</code> epilog.</strong> <code>dual-research --help</code> now lists <code>DUAL_RESEARCH_ALLOW_CLAUDE_P=1</code> under an <code>ENVIRONMENT VARIABLES</code> section so the escape is discoverable from the tool itself.",
+      "Tests at <code>tests/test_spec_0243_claude_code_guard.py</code> cover detection on each of the three env-var families (<code>CLAUDECODE</code>, <code>CLAUDE_CODE_ENTRYPOINT</code>, <code>CLAUDE_CODE_HOST_*</code>), the escape-var allow path + a soft typo guard (\"true\" still refuses — must be exactly \"1\"), plain-Terminal allow, <code>main()</code>-level refusal on <code>--prompt</code> and <code>--resume</code>, <code>--push</code> exempt, four read-only subcommand exemptions (verify / serve / validate-run / recompute-costs), <code>--help</code> epilog presence, and source-pattern locks on the CLAUDE.md Operational section + the amended skill.",
+      "<code>pyproject.toml</code> and <code>src/dual_research/__init__.py</code> bumped to 1.57.0."
+    ],
+    "specs": [
+      "0243"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.56.0",
     "date": "2026-05-28",
     "bump": "MINOR",

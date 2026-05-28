@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import re
 import signal
 import sys
@@ -63,6 +64,52 @@ async def _run_with_signal_handlers(coro: Coroutine) -> object:
                 pass
 
 
+# Spec 0243 — operational guard: refuse to fire an E2E run inside Claude
+# Code. Four consecutive Claude-Code-hosted runs died silently in phase 2-4
+# (no Python exception, no signal, no jetsam log); the first plain-Terminal.app
+# run completed cleanly. Root cause: Claude Code's background-task manager
+# reaps long-running children at parent-session lifecycle events. The CLI
+# refuses-by-default; DUAL_RESEARCH_ALLOW_CLAUDE_P=1 is the documented escape.
+def _running_inside_claude_code() -> bool:
+    if os.environ.get("CLAUDECODE"):
+        return True
+    return any(k.startswith("CLAUDE_CODE_") for k in os.environ)
+
+
+_CLAUDE_CODE_REFUSAL_MESSAGE = (
+    "dual-research: refusing to run inside Claude Code.\n"
+    "\n"
+    "Claude Code's background-task manager terminates long-running\n"
+    "children at parent-session lifecycle events (idle timeout,\n"
+    "suspend, session close), reaping the dual-research process\n"
+    "mid-run with no Python exception, no signal, no traceable\n"
+    "termination. Four consecutive runs died this way; the first\n"
+    "plain-Terminal.app run completed cleanly. See spec 0243 +\n"
+    "cowork/briefs/2026-05-28-h4-plain-terminal-next.md for full\n"
+    "evidence.\n"
+    "\n"
+    "Run instead from a plain Terminal.app session:\n"
+    "\n"
+    "  cd /Users/alexlisitzky/ClaudeCode/dual-research-workspace/dual-research && \\\n"
+    "  eval \"$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)\" && \\\n"
+    "  caffeinate -i uv run dual-research \\\n"
+    "    --notion '<url>' --models prod --push-while-running \\\n"
+    "    --name <slug> 2>&1 | tee /tmp/dr-run-<slug>.log\n"
+    "\n"
+    "Override (NOT RECOMMENDED — kills will recur silently):\n"
+    "  DUAL_RESEARCH_ALLOW_CLAUDE_P=1 dual-research ...\n"
+)
+
+
+def _maybe_refuse_claude_code_host() -> None:
+    if not _running_inside_claude_code():
+        return
+    if os.environ.get("DUAL_RESEARCH_ALLOW_CLAUDE_P") == "1":
+        return
+    sys.stderr.write(_CLAUDE_CODE_REFUSAL_MESSAGE)
+    sys.exit(2)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="dual-research",
@@ -82,6 +129,11 @@ def _build_parser() -> argparse.ArgumentParser:
             "  dual-research --brief ./my-brief.md --out ./final.md\n"
             "  dual-research --notion https://www.notion.so/Workspace/Page-abc123 --models test\n"
             "  dual-research --notion URL_A --notion URL_B --prompt 'compare and contrast'\n"
+            "\n"
+            "ENVIRONMENT VARIABLES:\n"
+            "  DUAL_RESEARCH_ALLOW_CLAUDE_P=1   Allow `dual-research` to fire an E2E run inside\n"
+            "                                   a Claude Code surface despite the spec-0243 guard.\n"
+            "                                   See CLAUDE.md \"Operational\" for intended use.\n"
         ),
     )
 
@@ -271,6 +323,14 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    # Spec 0243 — refuse to fire an E2E run inside Claude Code. --push is
+    # a read-only Supabase upload (no LLM call) and is exempt; all other
+    # paths (default --prompt/--brief/--notion firing and --resume) go
+    # through this guard before any further work (ingest, cred load,
+    # session-dir creation). DUAL_RESEARCH_ALLOW_CLAUDE_P=1 is the escape.
+    if not args.push:
+        _maybe_refuse_claude_code_host()
 
     if args.hard_cap < args.soft_cap:
         parser.error(f"--hard-cap ({args.hard_cap}) must be >= --soft-cap ({args.soft_cap})")

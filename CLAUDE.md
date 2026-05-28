@@ -86,3 +86,59 @@ _extract_section_body → SECTION_*_RE` — a path the 0231 tests never
 exercised. The patch passed CI and the same bug class re-emerged on
 the very next live run (spec 0238 root cause). The rule above prevents
 the same shape of miss going forward.
+
+## Operational — running dual-research E2E
+
+Always invoke dual-research E2E runs from a **plain Terminal.app session**.
+**Never** as a Claude Code background task (`claude -p` background mode
+or any other Claude Code surface that spawns dual-research as a child
+process).
+
+Claude Code's background-task manager terminates long-running children at
+parent-session lifecycle events (idle timeout, suspend, session close),
+reaping the dual-research process mid-run with no Python exception, no
+signal, no traceable termination. Evidence: four consecutive
+Claude-Code-hosted runs died silently in phase 2–4
+(`20260527-200213`, `20260528-000411`, `20260528-061323`,
+`20260528-073509`, `20260528-082137`); the first plain-Terminal.app run
+(`20260528-094743`) completed cleanly ($8.66, 39KB `final.md`, all
+gating invariants green). See [spec 0243](specs/0243-operational-guard-refuse-running-inside-claude-code.md)
++ `cowork/briefs/2026-05-28-h4-plain-terminal-next.md`.
+
+The CLI enforces this contract: `dual-research` refuses to start if any
+`CLAUDECODE` / `CLAUDE_CODE_*` env var is set, unless
+`DUAL_RESEARCH_ALLOW_CLAUDE_P=1` is also set. The guard sits before
+any LLM-firing path (`--prompt` / `--brief` / `--notion` / `--resume`).
+Read-only subcommands (`serve`, `verify`, `validate-run`,
+`recompute-costs`, `reconcile-costs`) and the read-only `--push`
+session-upload path are exempt.
+
+### Canonical invocation
+
+```bash
+cd /Users/alexlisitzky/ClaudeCode/dual-research-workspace/dual-research && \
+eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)" && \
+caffeinate -i uv run dual-research \
+  --notion "<url>" --models prod --push-while-running --name <slug> \
+  2>&1 | tee /tmp/dr-run-<slug>.log
+```
+
+`caffeinate -i` prevents macOS idle sleep for the duration of the run;
+`tee` captures stdout/stderr so the post-mortem has evidence if the
+process exits abnormally.
+
+### `DUAL_RESEARCH_ALLOW_CLAUDE_P=1` — intended use
+
+Sets the escape valve to allow `dual-research` to fire an E2E run from
+inside a Claude Code surface. Intended **only** for:
+
+- CI / test environments where the guard's host-detection false-positives
+  on a Claude Code env-var presence that does not actually carry the H4
+  reap behaviour.
+- Deliberate sandbox-mode invocations (e.g. Cowork running dual-research
+  inside its own sandbox for code review).
+
+**Not intended** for "I'm in a hurry, just run it" workflows — the
+silent-kill behaviour returns the moment you override the guard. Spec
+0243 documents the failure mode; this escape is for opting into it
+knowingly, not for forgetting it exists.
