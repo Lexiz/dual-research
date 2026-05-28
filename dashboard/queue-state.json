@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T20:30:39Z",
+  "updated_at": "2026-05-28T20:37:03Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12618,7 +12618,7 @@
       ]
     },
     "0247.1": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-28T20:18:26Z",
       "events": [
         {
@@ -12670,9 +12670,44 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/285"
           }
+        },
+        {
+          "ts": "2026-05-28T20:31:06Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/285"
+          }
+        },
+        {
+          "ts": "2026-05-28T20:31:13Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T20:36:20Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.60.3"
+          }
+        },
+        {
+          "ts": "2026-05-28T20:36:26Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T20:36:50Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-28-spec-0247-1-merged-buffer-survives-step19-force-detach.md"
+          }
         }
       ],
-      "started_at": "2026-05-28T20:24:02Z"
+      "started_at": "2026-05-28T20:24:02Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/285",
+      "merged_at": "2026-05-28T20:30:41Z",
+      "deployed_at": "2026-05-28T20:37:03Z",
+      "handover": "handoffs/2026-05-28-spec-0247-1-merged-buffer-survives-step19-force-detach.md"
     }
   }
 }
