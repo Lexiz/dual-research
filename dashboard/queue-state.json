@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-27T23:33:06Z",
+  "updated_at": "2026-05-28T11:04:33Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -11951,6 +11951,28 @@
       "merged_at": "2026-05-27T23:29:35Z",
       "deployed_at": "2026-05-27T23:33:06Z",
       "handover": "handoffs/2026-05-28-spec-0241-per-turn-liveness-heartbeat-exception-capture-and-stream-wrapping-cap.md"
+    },
+    "0243": {
+      "status": "queued",
+      "queued_at": "2026-05-28T11:04:32Z",
+      "events": [
+        {
+          "ts": "2026-05-28T11:04:32Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
+    },
+    "0244": {
+      "status": "queued",
+      "queued_at": "2026-05-28T11:04:33Z",
+      "events": [
+        {
+          "ts": "2026-05-28T11:04:33Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
