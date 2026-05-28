@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T18:45:45Z",
+  "updated_at": "2026-05-28T18:51:02Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12377,6 +12377,13 @@
           "step": "tests_green",
           "data": {
             "passed": 2356
+          }
+        },
+        {
+          "ts": "2026-05-28T18:51:02Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/282"
           }
         }
       ],
