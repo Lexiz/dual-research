@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T16:04:40Z",
+  "updated_at": "2026-05-28T16:04:44Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -12246,6 +12246,14 @@
           "ts": "2026-05-28T16:04:40Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T16:04:44Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0245-runs-soft-delete-admin-archive",
+            "from": "main@91f9911"
+          }
         }
       ],
       "started_at": "2026-05-28T16:04:37Z"
