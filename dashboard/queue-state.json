@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T07:52:53Z",
+  "updated_at": "2026-05-29T07:56:05Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13404,7 +13404,7 @@
       "pr": "https://github.com/Lexiz/dual-research/pull/291"
     },
     "0252.2": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-29T00:05:20Z",
       "events": [
         {
@@ -13503,9 +13503,51 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/292"
           }
+        },
+        {
+          "ts": "2026-05-29T07:53:33Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/292"
+          }
+        },
+        {
+          "ts": "2026-05-29T07:53:38Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T07:55:30Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.3"
+          }
+        },
+        {
+          "ts": "2026-05-29T07:55:35Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T07:56:00Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0252.2-backfill-critique-metrics-only-push.md"
+          }
+        },
+        {
+          "ts": "2026-05-29T07:56:05Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.3"
+          }
         }
       ],
-      "started_at": "2026-05-29T07:46:23Z"
+      "started_at": "2026-05-29T07:46:23Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/292",
+      "merged_at": "2026-05-29T07:53:06Z",
+      "deployed_at": "2026-05-29T07:56:05Z",
+      "handover": "handoffs/2026-05-29-spec-0252.2-backfill-critique-metrics-only-push.md"
     }
   }
 }
