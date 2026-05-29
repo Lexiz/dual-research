@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T09:07:52Z",
+  "updated_at": "2026-05-29T09:12:13Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13702,7 +13702,7 @@
       ]
     },
     "0254": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-29T08:54:33Z",
       "events": [
         {
@@ -13800,9 +13800,51 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/294"
           }
+        },
+        {
+          "ts": "2026-05-29T09:08:18Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/294"
+          }
+        },
+        {
+          "ts": "2026-05-29T09:08:26Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T09:10:45Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.5"
+          }
+        },
+        {
+          "ts": "2026-05-29T09:11:30Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T09:12:07Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0254-parked-spec-activity-event-renders-as-queued.md"
+          }
+        },
+        {
+          "ts": "2026-05-29T09:12:13Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.5"
+          }
         }
       ],
-      "started_at": "2026-05-29T08:58:48Z"
+      "started_at": "2026-05-29T08:58:48Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/294",
+      "merged_at": "2026-05-29T09:08:10Z",
+      "deployed_at": "2026-05-29T09:12:13Z",
+      "handover": "handoffs/2026-05-29-spec-0254-parked-spec-activity-event-renders-as-queued.md"
     }
   }
 }
