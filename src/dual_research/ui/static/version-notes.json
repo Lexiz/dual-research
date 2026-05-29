@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.63.4",
+    "date": "2026-05-29",
+    "bump": "PATCH",
+    "summary": "All-Runs card status no longer diverges from the run-detail status for abandoned runs (spec 0253).",
+    "items": [
+      "<strong>All-Runs card status no longer diverges from the run-detail status for abandoned runs</strong> ([spec 0253](specs/0253-fix-all-runs-card-status-diverges-from-detail.md)).",
+      "The list paths fed <code>derive_run_status</code> a different <code>last_event_at</code> input than the authoritative detail replay, so a dead run could show <code>● RUNNING</code> on the home page (and inflate the \"N in flight\" tally) while its detail page read <code>abandoned</code>."
+    ],
+    "specs": [
+      "0253"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.63.3",
     "date": "2026-05-29",
     "bump": "PATCH",
