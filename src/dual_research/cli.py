@@ -754,12 +754,13 @@ def _run_backfill_critique(argv: list[str]) -> int:
                 continue
             session_dir = runs_dir / r.run_id
             try:
-                summary = remote.push_session_dir(session_dir)
-                print(
-                    f"[pushed] {summary.run_id}  events={summary.events_upserted}  "
-                    f"files={summary.files_upserted}  "
-                    f"duration={summary.duration_ms / 1000:.1f}s"
-                )
+                # Spec 0252.2 — metrics-only repair. The backfill mutates only
+                # critique_by_agent inside metrics; the full push_session_dir
+                # re-upload of events/files/blobs/pieces is wasted work and times
+                # out (Supabase 57014) on large runs. A single-column runs.metrics
+                # update is provably sufficient — no derived runs column moves.
+                summary = remote.push_metrics_only(session_dir)
+                print(f"[pushed] {summary.run_id}  metrics-only  ok={summary.ok}")
             except Exception as e:
                 print(f"[push error] {r.run_id}: {type(e).__name__}: {e}", file=sys.stderr)
 

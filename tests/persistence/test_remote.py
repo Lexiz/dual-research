@@ -34,14 +34,43 @@ class _FakeExecute:
         return self
 
 
+class _FakeUpdateBuilder:
+    """Records a ``table(...).update({...}).eq(col, val).execute()`` chain.
+
+    Spec 0252.2 — ``push_metrics_only`` issues a single-row update of the
+    ``runs.metrics`` column via this builder shape (mirroring supabase-py's
+    ``table().update().eq().execute()``). The fake records the values and the
+    accumulated ``.eq()`` filters so tests can assert both the payload and the
+    id filter without a live Supabase.
+    """
+
+    def __init__(self, parent: "_FakeTable", values: dict[str, Any]):
+        self._parent = parent
+        self._values = values
+        self._filters: list[tuple[str, Any]] = []
+
+    def eq(self, column: str, value: Any) -> "_FakeUpdateBuilder":
+        self._filters.append((column, value))
+        return self
+
+    def execute(self) -> "_FakeUpdateBuilder":
+        self._parent.record_update(self._values, self._filters)
+        return self
+
+
 class _FakeTable:
     def __init__(self, name: str, store: dict[tuple[Any, ...], dict[str, Any]]):
         self._name = name
         self._store = store
         self.calls: list[tuple[int, str]] = []  # (rows_inserted_or_replaced, on_conflict)
+        # Spec 0252.2 — recorded (values, filters) per update().eq().execute().
+        self.updates: list[tuple[dict[str, Any], list[tuple[str, Any]]]] = []
 
     def upsert(self, rows: list[dict[str, Any]], on_conflict: str) -> _FakeExecute:
         return _FakeExecute(self, "upsert", rows, on_conflict)
+
+    def update(self, values: dict[str, Any]) -> _FakeUpdateBuilder:
+        return _FakeUpdateBuilder(self, values)
 
     def record_upsert(self, rows: list[dict[str, Any]], on_conflict: str) -> None:
         keys = on_conflict.split(",")
@@ -49,6 +78,11 @@ class _FakeTable:
             pk = tuple(row[k] for k in keys)
             self._store[pk] = row
         self.calls.append((len(rows), on_conflict))
+
+    def record_update(
+        self, values: dict[str, Any], filters: list[tuple[str, Any]]
+    ) -> None:
+        self.updates.append((values, filters))
 
 
 class FakeSupabaseClient:
@@ -456,3 +490,117 @@ def test_load_supabase_credentials_partial_missing(monkeypatch: pytest.MonkeyPat
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     with pytest.raises(MissingCredentialError, match="SUPABASE_SERVICE_ROLE_KEY"):
         load_supabase_credentials()
+
+
+# ─── Spec 0252.2 — backfill-critique metrics-only push ────────────────────────
+#
+# The captured live failure was `backfill-critique --all --push` →
+# push_session_dir → a Supabase 57014 statement timeout on the heavy
+# events/files/blobs/pieces re-upload. The fix routes the backfill --push block
+# through push_metrics_only, which issues a single-row update of runs.metrics and
+# touches none of those four tables. Per spec 0238, the real-entry-point test
+# below drives the CLI `_run_backfill_critique` --push path (not a helper in
+# isolation) so a fix on the wrong function cannot pass.
+
+_HEAVY_TABLES = ("events", "session_files", "attachment_blobs", "turn_prompt_pieces")
+
+
+def test_push_metrics_only_updates_runs_column_and_skips_heavy_tables(tmp_path: Path) -> None:
+    sd = _make_session_dir(tmp_path)
+    fake = FakeSupabaseClient()
+
+    summary = RemoteSession(fake).push_metrics_only(sd)
+
+    assert summary.ok is True
+    assert summary.run_id == "20260515-163105-live-integration-test"
+
+    # A single update on runs, filtered to the run id via .eq("id", <run_id>).
+    runs_updates = fake.table("runs").updates
+    assert len(runs_updates) == 1
+    _values, filters = runs_updates[0]
+    assert filters == [("id", "20260515-163105-live-integration-test")]
+
+    # The four heavy tables the 57014 timeout came from are never touched —
+    # FakeSupabaseClient creates a table entry lazily on first `.table(name)`,
+    # so their absence from `fake.tables` proves push_metrics_only never reached
+    # them. (push_session_dir, by contrast, would populate events/session_files.)
+    for table in _HEAVY_TABLES:
+        assert table not in fake.tables, f"metrics-only push must not touch {table}"
+    # And no upsert was issued on runs either — it's an update, not a re-push.
+    assert fake.table("runs").calls == []
+
+
+def test_push_metrics_only_payload_is_metrics_json_verbatim(tmp_path: Path) -> None:
+    """Payload fidelity: the deployed card must read exactly what the backfill
+    wrote, including the populated critique_by_agent sub-dict."""
+    sd = tmp_path / "20260518-065852-backend-language-choice-briefing"
+    sd.mkdir()
+    metrics_payload = {
+        "started_at": "2026-05-18T06:58:52+00:00",
+        "ended_at": "2026-05-18T07:40:11+00:00",
+        "calls": [],
+        "totals_by_agent": {},
+        "total_cost_usd": 8.66,
+        "critique_by_agent": {
+            "claude": {"questions": 5, "disagreements": 3, "issues": 2, "comments": 7},
+            "openai": {"questions": 4, "disagreements": 1, "issues": 0, "comments": 9},
+        },
+    }
+    (sd / "metrics.json").write_text(json.dumps(metrics_payload), encoding="utf-8")
+    fake = FakeSupabaseClient()
+
+    RemoteSession(fake).push_metrics_only(sd)
+
+    values, filters = fake.table("runs").updates[0]
+    assert values == {"metrics": metrics_payload}
+    assert values["metrics"]["critique_by_agent"]["claude"]["questions"] == 5
+    assert filters == [("id", "20260518-065852-backend-language-choice-briefing")]
+
+
+def test_push_metrics_only_missing_metrics_raises(tmp_path: Path) -> None:
+    sd = _make_session_dir(tmp_path, with_metrics=False)
+    with pytest.raises(FileNotFoundError):
+        RemoteSession(FakeSupabaseClient()).push_metrics_only(sd)
+
+
+def test_backfill_critique_push_routes_through_metrics_only_not_full_repush(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Real-entry-point regression for the captured 57014 (spec 0238 discipline).
+
+    Drives the actual CLI `_run_backfill_critique` --push path — the exact
+    call site that emitted the live `[push error] ... 57014` — against a fixture
+    run with a mocked Supabase client. Before the fix the block called
+    push_session_dir, which re-uploads events/session_files/etc.; after the fix
+    it calls push_metrics_only, which issues only a runs.metrics update. The
+    assertions fail on the pre-fix shape (heavy tables populated) and pass on the
+    post-fix shape (heavy tables untouched, runs updated by id)."""
+    from dual_research import config as config_mod
+    from dual_research.cli import _run_backfill_critique
+    from dual_research.persistence import remote as remote_mod
+
+    run_id = "20260518-083618-backend-language-choice"
+    _make_session_dir(tmp_path, id=run_id)
+
+    fake = FakeSupabaseClient()
+    monkeypatch.setattr(
+        config_mod,
+        "load_supabase_credentials",
+        lambda: SupabaseCredentials(url="https://x.supabase.co", anon_key="a", service_role_key="s"),
+    )
+    monkeypatch.setattr(
+        remote_mod.RemoteSession,
+        "from_credentials",
+        lambda url, service_role_key: RemoteSession(fake),
+    )
+
+    rc = _run_backfill_critique(["--run", run_id, "--push", "--runs-dir", str(tmp_path)])
+
+    assert rc == 0
+    # The repair reached Supabase as a single runs.metrics update filtered by id.
+    runs_updates = fake.table("runs").updates
+    assert len(runs_updates) == 1
+    assert runs_updates[0][1] == [("id", run_id)]
+    # None of the heavy tables that timed out were touched.
+    for table in _HEAVY_TABLES:
+        assert table not in fake.tables, f"backfill --push must not re-upload {table}"
