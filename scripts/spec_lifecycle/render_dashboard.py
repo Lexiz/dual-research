@@ -817,6 +817,22 @@ def _is_parked(s: "SpecRow") -> bool:
     return s.status == "parked" or (s.status == "queued" and s.disposition != "ship")
 
 
+def _feed_event_is_parked(spec: "SpecRow | None", data: dict[str, Any]) -> bool:
+    """Spec 0254 — should a `queued` activity event render as Parked?
+
+    True when the event's own payload is self-describing (`data.status ==
+    "parked"`, the spec-0254 §3.1 emit from `/spec-queue`) OR the owning spec
+    is parked (frontmatter fallback for `queued` events emitted with an empty
+    `{}` payload before the self-describing emit landed — see §8 "stale
+    payloads"). Reuses `_is_parked` so the feed agrees with the Parked lane.
+
+    Parity twin: `feedEventIsParked` in this file's client-side bootstrap JS.
+    """
+    if (data or {}).get("status") == "parked":
+        return True
+    return spec is not None and _is_parked(spec)
+
+
 def _render_pipeline(specs: list[SpecRow], drafts: list[DraftRow], now: dt.datetime) -> str:
     counts: dict[str, int] = {
         "drafts": len(drafts),
@@ -1727,6 +1743,15 @@ def _render_feed(specs: list[SpecRow], now: dt.datetime) -> str:
         hidden = ' hidden' if page > 1 else ''
         icon, tone = _FEED_STEP_ICON.get(step, ("circle", "neutral"))
         kicker = _FEED_KICKER.get(step, step.replace("_", " "))
+        # Spec 0254 — a parked spec's creation event uses the same `queued`
+        # step as a runnable spec, so the lookup above yields the "queued"
+        # kicker for both. Re-key the label/icon on parked-ness so the row
+        # reads "Parked" (matching the Parked lane) instead of misreporting a
+        # non-runnable spec as queued. Parity twin: `renderFeed` in the
+        # client-side bootstrap JS below.
+        if step == "queued" and _feed_event_is_parked(spec, data):
+            icon, tone = "inventory_2", "warn"
+            kicker = "parked"
         detail = _feed_detail(spec, step, data)
         ts_str = ts.strftime("%H:%M:%S UTC")
         rows.append(
@@ -3499,6 +3524,15 @@ DASHBOARD_BOOTSTRAP_JS = """\
     }
     return null;
   }
+  // Spec 0254 — parity twin of Python `_feed_event_is_parked`. A `queued`
+  // activity event renders Parked when its own payload says so
+  // (`data.status === 'parked'`) or the owning spec is parked (`spec.parked`,
+  // derived in functions/api/data.js). Keeps the live feed in lock-step with
+  // the server-rendered first paint and the Parked lane.
+  function feedEventIsParked(spec, data) {
+    if (data && data.status === 'parked') return true;
+    return !!(spec && spec.parked);
+  }
   // Spec 0203.1 §3.5 — feed-detail builder mirrors Python `_feed_detail`.
   // Returns inner-HTML for the right column of one feed row. The caller
   // is responsible for escaping any unsafe strings via ESC.
@@ -4045,6 +4079,14 @@ DASHBOARD_BOOTSTRAP_JS = """\
       var icon = iconEntry[0];
       var tone = iconEntry[1];
       var kicker = FEED_KICKER[step] || step.replace(/_/g, ' ');
+      // Spec 0254 — re-key the `queued` row on parked-ness (parity twin of
+      // the Python `_render_feed` parked branch) so a parked spec reads
+      // "Parked" instead of "queued".
+      if (step === 'queued' && feedEventIsParked(r.spec, r.ev.data || {})) {
+        icon = 'inventory_2';
+        tone = 'warn';
+        kicker = 'parked';
+      }
       var specEvents = r.spec ? ((data.events && data.events[r.spec.number]) || []) : [];
       var detail = feedDetail(r.spec, step, r.ev.data || {}, specEvents);
       return (

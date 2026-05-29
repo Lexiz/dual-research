@@ -1,5 +1,21 @@
 [
   {
+    "version": "1.63.5",
+    "date": "2026-05-29",
+    "bump": "PATCH",
+    "summary": "A parked spec's RECENT ACTIVITY row now reads \"Parked\" instead of \"QUEUED\" (spec 0254).",
+    "items": [
+      "<strong>A parked spec's RECENT ACTIVITY row now reads \"Parked\" instead of \"QUEUED\"</strong> ([spec 0254](specs/0254-parked-spec-activity-event-renders-as-queued.md)).",
+      "A parked spec's creation event uses the same <code>queued</code> lifecycle step as a runnable spec, so the dashboard activity feed mislabelled it — e.g. spec 0253.1 showed <code>08:35:22 UTC · QUEUED · 0253.1</code> while the Parked lane and queue-picker correctly excluded it.",
+      "No new lifecycle event type is introduced (that would be a contract change); the <code>queued</code> step stays the single creation event and the renderers became parked-aware."
+    ],
+    "specs": [
+      "0254"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.63.4",
     "date": "2026-05-29",
     "bump": "PATCH",
