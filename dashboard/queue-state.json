@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T00:07:33Z",
+  "updated_at": "2026-05-29T00:07:36Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13357,6 +13357,17 @@
           "step": "pr_opened",
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/291"
+          }
+        },
+        {
+          "ts": "2026-05-29T00:07:36Z",
+          "step": "failed",
+          "data": {
+            "run_url": "https://github.com/Lexiz/dual-research/actions/runs/26609672688",
+            "conclusion": "failure",
+            "reason": "fly_api_econnreset_x2",
+            "merged": true,
+            "version": "1.63.1"
           }
         }
       ],
