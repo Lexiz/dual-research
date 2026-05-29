@@ -259,34 +259,6 @@ function ListScreen({ navigate, theme, onToggleTheme, client, session }) {
 // is folded into `AllRunsChrome`'s `window.__lastSseConnected` poll; the
 // version deep-link AppVersionChip provided is the `.ar-pill__v` button.
 
-// Spec 0056 SUR-06: ActiveRunChip — pill showing the short run ID in the
-// chrome bar when viewing a run detail. Click navigates back to run list.
-function ActiveRunChip({ runId, onClick }) {
-  const shortId = window.splitRunId ? window.splitRunId(runId).id : runId.slice(0, 4);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={`Back to run list (viewing ${shortId})`}
-      className="rid rid-sm"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '0 12px',
-        borderLeft: '1px solid var(--md-outline-hair)',
-        background: 'transparent',
-        cursor: 'pointer',
-        border: 'none', borderLeftWidth: 1, borderLeftStyle: 'solid',
-        borderLeftColor: 'var(--md-outline-hair)',
-        fontFamily: 'var(--md-font-data)', fontSize: 11,
-        color: 'var(--md-on-surface-variant)',
-      }}
-    >
-      <Mdi name="arrow-left" size={12} />
-      <span>{shortId}</span>
-    </button>
-  );
-}
-
 // HowItWorksLink removed in spec 0056 — replaced by Tab primitive in RightCluster.
 // AppVersionChip removed in spec 0252 — the `.ar-pill__v` version button in
 // `AllRunsChrome` is the universal-chrome equivalent deep-link.
@@ -307,14 +279,6 @@ function ActiveRunChip({ runId, onClick }) {
 // The chrome's `RightCluster` actually uses `ThemeToggleSegmented`
 // (from `shared.jsx`), so nothing in this file references the extracted
 // pill — the JSX literal is gone from here on purpose.
-
-function DesignLanguageButton({ onClick, active }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--md-outline-hair)', padding: '0 4px' }}>
-      <Tab active={active} onClick={onClick} icon="palette" size="sm">Design</Tab>
-    </div>
-  );
-}
 
 // ─────────────────── Full-page message helper ───────────────────
 

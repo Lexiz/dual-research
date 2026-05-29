@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.63.1] — 2026-05-29
+
+### Removed
+
+- **Orphaned `DesignLanguageButton` + `ActiveRunChip` declarations ([spec 0252.1](specs/0252.1-remove-orphaned-chrome-jsx-declarations.md)).** Dead-code sweep closing the cleanup [spec 0252](specs/0252-provider-band-comments-backfill-universal-chrome-nav.md) §2.3 left open. Spec 0252's universal-chrome cutover deleted `RightCluster` — the only caller of `DesignLanguageButton` — and `ActiveRunChip` was already unrendered before that. Both zero-reference function declarations (and `ActiveRunChip`'s stale leading comment) are removed from [`app.jsx`](src/dual_research/ui/static/app.jsx). Pure deletion, no behavior change: the `/language` route stays reachable via the avatar menu's "Design language" item ([`run-list.jsx`](src/dual_research/ui/static/run-list.jsx)). PATCH bump.
+
 ## [1.63.0] — 2026-05-29
 
 ### Added
