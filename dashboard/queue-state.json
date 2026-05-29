@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T14:12:55Z",
+  "updated_at": "2026-05-29T14:24:32Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13847,7 +13847,7 @@
       "handover": "handoffs/2026-05-29-spec-0254-parked-spec-activity-event-renders-as-queued.md"
     },
     "0255": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-29T12:58:35Z",
       "events": [
         {
@@ -13937,9 +13937,44 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/295"
           }
+        },
+        {
+          "ts": "2026-05-29T14:13:26Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/295"
+          }
+        },
+        {
+          "ts": "2026-05-29T14:13:32Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T14:23:52Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.64.0"
+          }
+        },
+        {
+          "ts": "2026-05-29T14:23:52Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T14:24:22Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0255-decouple-closeout-urge-from-effective-status.md"
+          }
         }
       ],
-      "started_at": "2026-05-29T14:05:45Z"
+      "started_at": "2026-05-29T14:05:45Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/295",
+      "merged_at": "2026-05-29T14:13:05Z",
+      "deployed_at": "2026-05-29T14:24:32Z",
+      "handover": "handoffs/2026-05-29-spec-0255-decouple-closeout-urge-from-effective-status.md"
     }
   }
 }
