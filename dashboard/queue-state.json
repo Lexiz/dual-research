@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T14:05:45Z",
+  "updated_at": "2026-05-29T14:12:55Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13905,6 +13905,38 @@
           "ts": "2026-05-29T14:05:45Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-29T14:05:58Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0255-decouple-closeout-urge-from-effective-status",
+            "from": "main@d9d7cfd"
+          }
+        },
+        {
+          "ts": "2026-05-29T14:05:58Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T14:11:21Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T14:11:58Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2447
+          }
+        },
+        {
+          "ts": "2026-05-29T14:12:55Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/295"
+          }
         }
       ],
       "started_at": "2026-05-29T14:05:45Z"
