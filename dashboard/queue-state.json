@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-28T23:42:43Z",
+  "updated_at": "2026-05-29T00:03:04Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13260,15 +13260,87 @@
       "handover": "handoffs/2026-05-29-spec-0252-provider-band-comments-backfill-universal-chrome-nav.md"
     },
     "0252.1": {
-      "status": "queued",
+      "status": "in_progress",
       "queued_at": "2026-05-28T23:42:42Z",
       "events": [
         {
           "ts": "2026-05-28T23:42:43Z",
           "step": "queued",
           "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:59:28Z",
+          "step": "cycle_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-28T23:59:28Z",
+          "step": "preflight_ok",
+          "data": {
+            "checks": [
+              "main_clean",
+              "no_open_spec_prs",
+              "no_in_flight"
+            ]
+          }
+        },
+        {
+          "ts": "2026-05-28T23:59:58Z",
+          "step": "handoff_read",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0252-provider-band-comments-backfill-universal-chrome-nav.md"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:59:58Z",
+          "step": "spec_read",
+          "data": {
+            "path": "specs/0252.1-remove-orphaned-chrome-jsx-declarations.md",
+            "lines": 106,
+            "type": "refactoring"
+          }
+        },
+        {
+          "ts": "2026-05-28T23:59:58Z",
+          "step": "planning_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T00:01:58Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 6,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-29T00:01:58Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T00:02:59Z",
+          "step": "reconcile_complete",
+          "data": {
+            "mechanical": 0,
+            "semantic": 0,
+            "verdict": "clean"
+          }
+        },
+        {
+          "ts": "2026-05-29T00:02:59Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2423
+          }
+        },
+        {
+          "ts": "2026-05-29T00:03:04Z",
+          "step": "in_progress",
+          "data": {}
         }
-      ]
+      ],
+      "started_at": "2026-05-29T00:03:04Z"
     }
   }
 }
