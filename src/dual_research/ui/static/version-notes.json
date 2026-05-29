@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.63.2",
+    "date": "2026-05-29",
+    "bump": "PATCH",
+    "summary": "API-key sourcing now reads ~/.zshenv (the file that actually holds the keys), with ~/.zshrc as a fallback.",
+    "items": [
+      "<strong>API-key sourcing now reads <code>~/.zshenv</code> (the file that actually holds the keys), with <code>~/.zshrc</code> as a fallback.</strong> The canonical <code>eval \"$(grep … )\"</code> recipe and the <code>MissingCredentialError</code> hint strings in <code>cli.py</code> grepped only <code>~/.zshrc</code>; the keys live in <code>~/.zshenv</code>, so the command extracted nothing and E2E runs only worked because <code>.zshenv</code> is auto-sourced into every interactive shell — a silent dependency that breaks in any context where <code>.zshenv</code> isn't loaded.",
+      "All sites now grep <code>~/.zshenv ~/.zshrc 2>/dev/null</code> so the tooling is agnostic to which Z-file holds the keys.",
+      "Matches the same fix already landed in <code>CLAUDE.md</code> and the <code>dual-research-run</code> skill.",
+      "PATCH bump."
+    ],
+    "specs": [],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.63.1",
     "date": "2026-05-29",
     "bump": "PATCH",

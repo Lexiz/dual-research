@@ -91,7 +91,7 @@ _CLAUDE_CODE_REFUSAL_MESSAGE = (
     "Run instead from a plain Terminal.app session:\n"
     "\n"
     "  cd /Users/alexlisitzky/ClaudeCode/dual-research-workspace/dual-research && \\\n"
-    "  eval \"$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)\" && \\\n"
+    "  eval \"$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshenv ~/.zshrc 2>/dev/null)\" && \\\n"
     "  caffeinate -i uv run dual-research \\\n"
     "    --notion '<url>' --models prod --push-while-running \\\n"
     "    --name <slug> 2>&1 | tee /tmp/dr-run-<slug>.log\n"
@@ -374,7 +374,7 @@ def main(argv: list[str] | None = None) -> int:
     except MissingCredentialError as e:
         print(f"error: {e}", file=sys.stderr)
         print(
-            "Set the missing variable(s) in ~/.zshrc and start a new shell, or use a session-local export.",
+            "Set the missing variable(s) in ~/.zshenv and start a new shell, or use a session-local export.",
             file=sys.stderr,
         )
         return 1
@@ -455,7 +455,7 @@ def _run_orchestrator(
             print(f"error: --push-while-running set, but {e}", file=sys.stderr)
             print(
                 "Set SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY "
-                "in ~/.zshrc and start a new shell, or use a session-local export.",
+                "in ~/.zshenv and start a new shell, or use a session-local export.",
                 file=sys.stderr,
             )
             return 1

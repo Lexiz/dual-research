@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.63.2] — 2026-05-29
+
+### Fixed
+
+- **API-key sourcing now reads `~/.zshenv` (the file that actually holds the keys), with `~/.zshrc` as a fallback.** The canonical `eval "$(grep … )"` recipe and the `MissingCredentialError` hint strings in [`cli.py`](src/dual_research/cli.py) grepped only `~/.zshrc`; the keys live in `~/.zshenv`, so the command extracted nothing and E2E runs only worked because `.zshenv` is auto-sourced into every interactive shell — a silent dependency that breaks in any context where `.zshenv` isn't loaded. All sites now grep `~/.zshenv ~/.zshrc 2>/dev/null` so the tooling is agnostic to which Z-file holds the keys. Matches the same fix already landed in [`CLAUDE.md`](CLAUDE.md) and the `dual-research-run` skill. PATCH bump.
+
 ## [1.63.1] — 2026-05-29
 
 ### Removed
