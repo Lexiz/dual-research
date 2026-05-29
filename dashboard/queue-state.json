@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T08:15:33Z",
+  "updated_at": "2026-05-29T08:19:00Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13641,10 +13641,52 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/293"
           }
+        },
+        {
+          "ts": "2026-05-29T08:16:11Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/293"
+          }
+        },
+        {
+          "ts": "2026-05-29T08:16:18Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T08:17:55Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.4"
+          }
+        },
+        {
+          "ts": "2026-05-29T08:18:07Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T08:18:50Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-29-spec-0253-fix-all-runs-card-status-diverges-from-detail.md"
+          }
+        },
+        {
+          "ts": "2026-05-29T08:19:00Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.63.4"
+          }
         }
       ],
-      "status": "in_progress",
-      "started_at": "2026-05-29T08:01:11Z"
+      "status": "deployed",
+      "started_at": "2026-05-29T08:01:11Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/293",
+      "merged_at": "2026-05-29T08:15:48Z",
+      "deployed_at": "2026-05-29T08:19:00Z",
+      "handover": "handoffs/2026-05-29-spec-0253-fix-all-runs-card-status-diverges-from-detail.md"
     }
   }
 }
