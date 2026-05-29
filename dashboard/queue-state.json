@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T07:46:23Z",
+  "updated_at": "2026-05-29T07:52:53Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13463,6 +13463,46 @@
           "ts": "2026-05-29T07:46:23Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-29T07:46:35Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0252.2-backfill-critique-metrics-only-push",
+            "from": "main@543f50b"
+          }
+        },
+        {
+          "ts": "2026-05-29T07:46:35Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T07:51:18Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 7,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-29T07:51:18Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T07:51:58Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2427
+          }
+        },
+        {
+          "ts": "2026-05-29T07:52:53Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/292"
+          }
         }
       ],
       "started_at": "2026-05-29T07:46:23Z"
