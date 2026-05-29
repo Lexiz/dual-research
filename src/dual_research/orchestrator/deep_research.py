@@ -859,10 +859,18 @@ class DeepResearchPhase:
             artifact_hash_match=artifact_match,
         )
 
+        # Spec 0255 — the closeout-urge gate consumes RAW self-reported status,
+        # not the spec-0229-demoted effective status. The two end-of-round gates
+        # are deliberately partitioned: convergence on effective status (a 0229
+        # addressee-obligation demotion must block *convergence* on a
+        # non-compliant AGREED), but closeout-urge on raw status (per spec 0114 a
+        # demoted AGREED is still a convergence *attempt* — the agent did emit
+        # AGREED — so the demotion must NOT also disarm the closeout → ghost-cap
+        # escape valve and deadlock the phase to the hard cap).
         closeout_evt: CloseoutUrged | None = None
         if not conv.converged and should_urge_closeout(
-            claude_status=eff_claude,
-            openai_status=eff_openai,
+            claude_status=self_claude,
+            openai_status=self_openai,
             items=self.state.item_views(),
         ):
             blocking = items_blocking_convergence(self.state.item_views())
@@ -1015,10 +1023,14 @@ class DeepResearchPhase:
             artifact_hash_match=artifact_match,
         )
 
+        # Spec 0255 — closeout-urge on RAW self-reported status (see the
+        # matching comment in process_round_end). Convergence stays on effective
+        # status (0229 demotion blocks convergence); closeout-urge reads raw so a
+        # demoted AGREED still arms the closeout → ghost-cap escape valve.
         closeout_evt: CloseoutUrged | None = None
         if not conv.converged and should_urge_closeout(
-            claude_status=eff_claude,
-            openai_status=eff_openai,
+            claude_status=self_claude,
+            openai_status=self_openai,
             items=self.state.item_views(),
         ):
             blocking = items_blocking_convergence(self.state.item_views())

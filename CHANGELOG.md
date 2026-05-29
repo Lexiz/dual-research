@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.64.0] — 2026-05-29
+
+### Fixed
+
+- **A fully-agreed phase 2 no longer deadlocks to the hard cap when one agent's AGREED is demoted by the spec-0229 addressee-obligation rule** ([spec 0255](specs/0255-decouple-closeout-urge-from-effective-status.md)). On the captured live run `20260529-091956-backend-language-choice` both agents emitted byte-identical `STATUS: AGREED` across rounds 3–8, yet phase 2 ground to its 8-round hard cap, wrote `phase2-deadlock.md`, exited 51, and produced no `final.md` (cost: $7.19). Root cause: openai `ADDRESS`ed only 1 of claude's 6 raised items, so 5 stayed `open`, openai's AGREED was demoted to an effective `IN_PROGRESS` every round, and that single demoted status was fed into **both** end-of-round gates — disarming the closeout → ghost-cap escape valve (0 `CloseoutUrged` events emitted) along with the convergence gate.
+
+### Changed
+
+- **The closeout-urge gate is decoupled from effective status** ([spec 0255](specs/0255-decouple-closeout-urge-from-effective-status.md)). At both end-of-round assembly sites in [`deep_research.py`](src/dual_research/orchestrator/deep_research.py) (`process_round_end` — the live `run_dr_phase2` path — and the `run_round` parity path), `check_convergence` keeps consuming the spec-0229 effective statuses (a demoted AGREED must not *converge*), but `should_urge_closeout` now consumes the **raw self-reported** statuses. Per spec 0114 a demoted AGREED is still a convergence *attempt* — so the demotion no longer also disarms the escape valve. The phase now arms closeout, spends the per-phase closeout budget, and converges `via_ghost_cap` (exit 0) instead of dead-ending. Every spec-0229 mechanism is preserved (the demotion still fires every offending round and still blocks convergence; verifier invariant I2.4 stays gating-green).
+
 ## [1.63.5] — 2026-05-29
 
 ### Fixed
