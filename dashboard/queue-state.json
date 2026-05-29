@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T08:58:49Z",
+  "updated_at": "2026-05-29T09:07:52Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13760,6 +13760,46 @@
           "ts": "2026-05-29T08:58:49Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-29T08:59:01Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0254-parked-spec-activity-event-renders-as-queued",
+            "from": "main@91d6557"
+          }
+        },
+        {
+          "ts": "2026-05-29T08:59:01Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T09:06:00Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T09:07:52Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 5,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-29T09:07:52Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2446
+          }
+        },
+        {
+          "ts": "2026-05-29T09:07:52Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/294"
+          }
         }
       ],
       "started_at": "2026-05-29T08:58:48Z"
