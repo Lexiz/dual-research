@@ -35,6 +35,10 @@ _CONFIDENCE_RE = re.compile(r"\*\*(HIGH|MODERATE|LOW)\s+confidence\*\*", re.IGNO
 
 class _Table(Protocol):
     def upsert(self, rows: list[dict[str, Any]], on_conflict: str) -> Any: ...
+    # Spec 0252.2 — single-column repair path (push_metrics_only) issues
+    # table("runs").update({...}).eq("id", run_id).execute(). The builder
+    # returned by update()/eq() is loosely typed (Any) — supabase-py's chain.
+    def update(self, values: dict[str, Any]) -> Any: ...
 
 
 class _Client(Protocol):
@@ -51,6 +55,19 @@ class PushSummary:
     blobs_upserted: int = 0
     # Spec 0145 — count of rows upserted into turn_prompt_pieces.
     prompt_pieces_upserted: int = 0
+
+
+@dataclass(frozen=True)
+class MetricsPushSummary:
+    """Spec 0252.2 — result of a metrics-only column repair (push_metrics_only).
+
+    Carries no events/files/blobs/pieces counters because the metrics-only
+    path touches none of those tables — it issues a single-row update of the
+    ``runs.metrics`` JSONB. ``ok`` reports that the update statement executed.
+    """
+
+    run_id: str
+    ok: bool
 
 
 class RemoteSession:
@@ -158,6 +175,35 @@ class RemoteSession:
             prompt_pieces_upserted=pieces_count,
             duration_ms=duration_ms,
         )
+
+    def push_metrics_only(self, session_dir: Path) -> MetricsPushSummary:
+        """Spec 0252.2 — repair only the ``runs.metrics`` column for one run.
+
+        ``backfill-critique`` mutates only ``critique_by_agent`` **inside** the
+        metrics dict; it touches no events, files, blobs, or prompt pieces. The
+        full ``push_session_dir`` re-upload of those four heavy batches is pure
+        wasted work for this repair, and it is the part that times out on large
+        runs (Supabase ``57014`` statement timeout). This issues a single-row
+        update of just the ``runs.metrics`` JSONB — no other table is touched.
+
+        ``run_id`` is derived as ``session_dir.name`` to match
+        ``push_session_dir``. Raises ``FileNotFoundError`` if ``metrics.json``
+        is absent (a metrics-only push with no metrics is meaningless). An
+        ``update`` against a run id that does not yet exist matches zero rows
+        and is a no-op, not an error — acceptable for a repair path whose runs
+        are, by construction, already-pushed cards.
+        """
+        session_dir = session_dir.resolve()
+        metrics_path = session_dir / "metrics.json"
+        if not metrics_path.exists():
+            raise FileNotFoundError(f"No metrics.json in {session_dir}")
+
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        run_id = session_dir.name
+        self._client.table("runs").update({"metrics": metrics}).eq(
+            "id", run_id
+        ).execute()
+        return MetricsPushSummary(run_id=run_id, ok=True)
 
     # ─── Spec 0048 — reconcile snapshots ──────────────────────────────────
 

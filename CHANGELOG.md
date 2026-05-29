@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.63.3] — 2026-05-29
+
+### Added
+
+- **`RemoteSession.push_metrics_only(session_dir)`** — a single-row update of just the `runs.metrics` JSONB column ([`remote.py`](src/dual_research/persistence/remote.py)), for repair paths that mutate only `metrics` and touch no events/files/blobs/pieces.
+
+### Fixed
+
+- **`backfill-critique --push` no longer times out re-uploading whole sessions ([spec 0252.2](specs/0252.2-backfill-critique-metrics-only-push.md)).** The `--push` block in `_run_backfill_critique` ([`cli.py`](src/dual_research/cli.py)) reused the full-session `push_session_dir` path, whose heavy events/`session_files`/`attachment_blobs`/`turn_prompt_pieces` re-upload exceeded Supabase's statement timeout (`57014`) on large runs (e.g. `backend-language-choice`) — the operator then could not tell whether the backfilled `critique_by_agent` tally had landed. The backfill mutates only `critique_by_agent` inside `metrics`, so the block now calls `push_metrics_only`, a single-column `runs.metrics` update. Provably sufficient: no derived `runs` column moves, and the hosted All Runs band reads critique straight from `runs.metrics`. `recompute-costs --push` (which moves cost/duration totals feeding derived columns) is deliberately left on the full-push path — see spec §7. PATCH bump.
+
 ## [1.63.2] — 2026-05-29
 
 ### Fixed
