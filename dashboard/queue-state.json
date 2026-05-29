@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-29T08:01:11Z",
+  "updated_at": "2026-05-29T08:15:33Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -13601,6 +13601,46 @@
           "ts": "2026-05-29T08:01:11Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-29T08:01:23Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0253-fix-all-runs-card-status-diverges-from-detail",
+            "from": "main@2abf66e"
+          }
+        },
+        {
+          "ts": "2026-05-29T08:01:23Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T08:13:41Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 6,
+            "commits": 0
+          }
+        },
+        {
+          "ts": "2026-05-29T08:13:41Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-29T08:14:26Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2439
+          }
+        },
+        {
+          "ts": "2026-05-29T08:15:33Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/293"
+          }
         }
       ],
       "status": "in_progress",
