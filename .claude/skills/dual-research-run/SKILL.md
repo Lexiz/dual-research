@@ -15,7 +15,7 @@ Canonical recipe for firing a dual-research test run from within Claude
 Code. Captures the operational knowledge that should not need
 rediscovering each time:
 
-- where the API keys live (`~/.zshrc`, not the sandbox shell)
+- where the API keys live (`~/.zshenv`, with `~/.zshrc` as fallback — not the sandbox shell)
 - which model tier to use for real runs (`prod` — Sonnet 4.6 + GPT-5.5
   on the 1 M-context tier)
 - how to expose the run for live viewing on **both** local and hosted
@@ -44,11 +44,11 @@ Before firing the run:
 1. **You are inside the dual-research repo.** `cwd` should resolve to
    `~/dual-research` or a sibling worktree. If not, ask the user where
    the repo lives — don't guess.
-2. **The keys exist in `~/.zshrc`.** Run a single grep to confirm and
-   source them in one shot:
+2. **The keys live in `~/.zshenv` (with `~/.zshrc` as a fallback).** Run a
+   single grep across both to confirm and source them in one shot:
 
    ```bash
-   eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)"
+   eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshenv ~/.zshrc 2>/dev/null)"
    env | grep -E '^(ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_)' | sed 's/=.*/=<set>/'
    ```
 
@@ -84,7 +84,7 @@ them to paste it into a plain Terminal.app window:
 
 ```bash
 cd /Users/alexlisitzky/ClaudeCode/dual-research-workspace/dual-research && \
-eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)" && \
+eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshenv ~/.zshrc 2>/dev/null)" && \
 caffeinate -i uv run dual-research \
   --<input-flag> "<input>" --models prod --push-while-running \
   --name <slug> 2>&1 | tee /tmp/dr-run-<slug>.log
@@ -162,7 +162,7 @@ inspect the result.
 ## Failure modes worth knowing
 
 - **Missing OPENAI/ANTHROPIC key in shell** — the eval-grep pattern
-  above is the fix; `~/.zshrc` is the source of truth.
+  above is the fix; `~/.zshenv` is the source of truth (`~/.zshrc` fallback).
 - **Local UI 404 on `/#/runs/<id>`** — refresh the page; the run-list
   endpoint might not have picked up the new session yet.
 - **Hosted UI still empty after 60 s** — check Supabase env keys are

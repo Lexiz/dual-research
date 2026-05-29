@@ -41,7 +41,7 @@ Confirmed: no `--cwd` in argv.
 
 ## What this DOES NOT fix
 
-- **Headless `claude -p` auth failure (401).** Orthogonal issue, explicitly out of scope per spec §6. The shell that invokes the supervisor exports an `ANTHROPIC_API_KEY` (`sk-ant-api03-Rigvn1Is-…`) that returns 401. Unsetting it doesn't help — the keychain-based OAuth that authenticates the interactive Claude Code session doesn't propagate to spawned `claude -p` subprocesses. Until the user either fixes the env API key (regenerate at console.anthropic.com, update `~/.zshrc`) or configures CLI-side auth, `/dev-queue-run` will get past the `--cwd` error only to 401 on the next line. The interactive `/dev-next` flow (which this very session uses) is unaffected.
+- **Headless `claude -p` auth failure (401).** Orthogonal issue, explicitly out of scope per spec §6. The shell that invokes the supervisor exports an `ANTHROPIC_API_KEY` (value redacted) that returns 401. Unsetting it doesn't help — the keychain-based OAuth that authenticates the interactive Claude Code session doesn't propagate to spawned `claude -p` subprocesses. Until the user either fixes the env API key (regenerate at console.anthropic.com, update `~/.zshrc`) or configures CLI-side auth, `/dev-queue-run` will get past the `--cwd` error only to 401 on the next line. The interactive `/dev-next` flow (which this very session uses) is unaffected.
 
 - **Removing `project_dir` from the helper signature.** Defer to spec 0191's Python supervisor extraction, which will thread it into `subprocess.Popen(cwd=...)`.
 

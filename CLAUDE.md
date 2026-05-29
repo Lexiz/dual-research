@@ -119,7 +119,7 @@ session-upload path are exempt.
 
 ```bash
 cd /Users/alexlisitzky/ClaudeCode/dual-research-workspace/dual-research && \
-eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshrc)" && \
+eval "$(grep -hE '^export (ANTHROPIC_API_KEY|OPENAI_API_KEY|SUPABASE_(URL|ANON_KEY|SERVICE_ROLE_KEY))=' ~/.zshenv ~/.zshrc 2>/dev/null)" && \
 caffeinate -i uv run dual-research \
   --notion "<url>" --models prod --push-while-running --name <slug> \
   2>&1 | tee /tmp/dr-run-<slug>.log
