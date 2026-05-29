@@ -1,5 +1,26 @@
 [
   {
+    "version": "1.64.0",
+    "date": "2026-05-29",
+    "bump": "MINOR",
+    "summary": "A fully-agreed phase 2 no longer deadlocks to the hard cap when one agent's AGREED is demoted by the spec-0229 addressee-obligation rule (spec 0255).",
+    "items": [
+      "<strong>Fixed.</strong> <strong>A fully-agreed phase 2 no longer deadlocks to the hard cap when one agent's AGREED is demoted by the spec-0229 addressee-obligation rule</strong> ([spec 0255](specs/0255-decouple-closeout-urge-from-effective-status.md)).",
+      "On the captured live run <code>20260529-091956-backend-language-choice</code> both agents emitted byte-identical <code>STATUS: AGREED</code> across rounds 3–8, yet phase 2 ground to its 8-round hard cap, wrote <code>phase2-deadlock.md</code>, exited 51, and produced no <code>final.md</code> (cost: $7.19).",
+      "Root cause: openai <code>ADDRESS</code>ed only 1 of claude's 6 raised items, so 5 stayed <code>open</code>, openai's AGREED was demoted to an effective <code>IN_PROGRESS</code> every round, and that single demoted status was fed into <strong>both</strong> end-of-round gates — disarming the closeout → ghost-cap escape valve (0 <code>CloseoutUrged</code> events emitted) along with the convergence gate.",
+      "<strong>Changed.</strong> <strong>The closeout-urge gate is decoupled from effective status</strong> ([spec 0255](specs/0255-decouple-closeout-urge-from-effective-status.md)).",
+      "At both end-of-round assembly sites in <code>deep_research.py</code> (<code>process_round_end</code> — the live <code>run_dr_phase2</code> path — and the <code>run_round</code> parity path), <code>check_convergence</code> keeps consuming the spec-0229 effective statuses (a demoted AGREED must not *converge*), but <code>should_urge_closeout</code> now consumes the <strong>raw self-reported</strong> statuses.",
+      "Per spec 0114 a demoted AGREED is still a convergence *attempt* — so the demotion no longer also disarms the escape valve.",
+      "The phase now arms closeout, spends the per-phase closeout budget, and converges <code>via_ghost_cap</code> (exit 0) instead of dead-ending.",
+      "Every spec-0229 mechanism is preserved (the demotion still fires every offending round and still blocks convergence; verifier invariant I2.4 stays gating-green)."
+    ],
+    "specs": [
+      "0255"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.63.5",
     "date": "2026-05-29",
     "bump": "PATCH",
