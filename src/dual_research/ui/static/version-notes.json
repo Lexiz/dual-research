@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.63.1",
+    "date": "2026-05-29",
+    "bump": "PATCH",
+    "summary": "Orphaned DesignLanguageButton + ActiveRunChip declarations (spec 0252.1).",
+    "items": [
+      "<strong>Orphaned <code>DesignLanguageButton</code> + <code>ActiveRunChip</code> declarations ([spec 0252.1](specs/0252.1-remove-orphaned-chrome-jsx-declarations.md)).</strong> Dead-code sweep closing the cleanup [spec 0252](specs/0252-provider-band-comments-backfill-universal-chrome-nav.md) §2.3 left open.",
+      "Spec 0252's universal-chrome cutover deleted <code>RightCluster</code> — the only caller of <code>DesignLanguageButton</code> — and <code>ActiveRunChip</code> was already unrendered before that.",
+      "Both zero-reference function declarations (and <code>ActiveRunChip</code>'s stale leading comment) are removed from <code>app.jsx</code>.",
+      "Pure deletion, no behavior change: the <code>/language</code> route stays reachable via the avatar menu's \"Design language\" item (<code>run-list.jsx</code>).",
+      "PATCH bump."
+    ],
+    "specs": [
+      "0252.1",
+      "0252"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.63.0",
     "date": "2026-05-29",
     "bump": "MINOR",
