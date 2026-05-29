@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.63.5] — 2026-05-29
+
+### Fixed
+
+- **A parked spec's RECENT ACTIVITY row now reads "Parked" instead of "QUEUED"** ([spec 0254](specs/0254-parked-spec-activity-event-renders-as-queued.md)). A parked spec's creation event uses the same `queued` lifecycle step as a runnable spec, so the dashboard activity feed mislabelled it — e.g. spec 0253.1 showed `08:35:22 UTC · QUEUED · 0253.1` while the Parked lane and queue-picker correctly excluded it. No new lifecycle event type is introduced (that would be a contract change); the `queued` step stays the single creation event and the renderers became parked-aware.
+  - Both feed renderers in [`render_dashboard.py`](scripts/spec_lifecycle/render_dashboard.py) — the server-side `_render_feed` and the client-side bootstrap-JS `renderFeed` (the genuine parity twin) — now re-key the `queued` row on parked-ness via a shared `_feed_event_is_parked` / `feedEventIsParked` predicate, rendering "parked" with an `inventory_2`/warn glyph. Parked-ness is read from the self-describing event payload (`data.status == "parked"`) with a fallback to the spec's parked frontmatter, so the existing 0253.1 event re-labels with no data migration.
+  - [`functions/api/data.js`](functions/api/data.js) supplies the `spec.parked` flag the feed consumes; it now documents that parity-source contract. (It performs no feed-label derivation itself — the spec's §3.3 framing of `data.js` as the feed parity twin was corrected during implementation: the real twin is the client-side bootstrap JS.)
+
 ## [1.63.4] — 2026-05-29
 
 ### Fixed

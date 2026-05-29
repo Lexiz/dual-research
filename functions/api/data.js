@@ -215,6 +215,13 @@ async function buildPayload(token) {
       // parked — surfaced in its own lane, never silently invisible.
       spec.runnable_queued = spec.status === 'queued' && spec.disposition === 'ship';
       spec.parked = spec.status === 'parked' || (spec.status === 'queued' && spec.disposition !== 'ship');
+      // Spec 0254 — `spec.parked` is the parity source consumed by the
+      // activity-feed renderer's parked-aware `queued` kicker. The live feed
+      // (renderFeed → feedEventIsParked in render_dashboard.py's bootstrap JS)
+      // reads this flag to render a parked spec's creation event as "Parked"
+      // rather than "queued". This data API performs no feed-label derivation
+      // itself; it only supplies the flag. Keep this in lock-step with the
+      // server-side `_feed_event_is_parked` in render_dashboard.py.
       return spec;
     })
     .filter((s) => s.number);
