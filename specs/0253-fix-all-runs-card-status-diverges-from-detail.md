@@ -65,7 +65,14 @@ The defect: **the truth table was unified but its `last_event_at` *input* was no
 
 For the hosted symptom: the home page takes the supabase list path, so its staleness signal is `pushed_at`. For a dead run `pushed_at` is null-or-not-stale → `running`. The detail page (`_materialize_snapshot_supabase` → `load_run_snapshot`, [src/dual_research/ui/server.py:1698](src/dual_research/ui/server.py:1698)) replays the actual events → `abandoned`. Same truth table, two different inputs, two different answers.
 
-**Verification note:** the live `/api/runs` requires an auth token, so the exact on-disk `pushed_at` value for `bb38` / `313f` (null vs. recent) was not read during authoring. The fix is identical either way; §5 mandates capturing the real artifacts as fixtures at implementation time so the precise misfire is recorded.
+**Confirmed against the live `runs` / `events` tables** (Supabase project `qpdsxspdwqukircrfqkm`, queried 2026-05-29):
+
+| `id` (display_id) | `exit_code` | `MAX(events.ts)` | `pushed_at` | current list status | correct |
+|---|---|---|---|---|---|
+| `20260528-082137-…` (`bb38`) | `NULL` | 2026-05-28 08:47 (≈15 h old) | 2026-05-28 23:55 (≈16 min old) | `running` | `abandoned` |
+| `20260524-135902-…` (`313f`) | `NULL` | 2026-05-24 14:20 (≈4 days old) | 2026-05-28 23:52 (≈19 min old) | `running` | `abandoned` |
+
+The precise trigger is **not** a null `pushed_at` — it is the opposite. Every run row in the table carries a `pushed_at` of `2026-05-28 23:44–23:55` (all within ~11 min of each other): a bulk re-upsert (reconcile / recompute-costs / full re-push) touched every row at once and bumped `pushed_at` to ≈now. Because the supabase list path uses `pushed_at` as its liveness proxy, that single batch reset the staleness clock for **every** run, resurrecting all long-dead ones to `running`. The two rows with `exit_code IS NULL` (no terminal signal) are the two stuck `running` cards in the evidence screenshot; rows with a non-null exit_code already resolve to `errored` / `deadlocked` / `completed` and so were not visibly affected. This confirms `pushed_at` is structurally the wrong signal: any future bulk write to `runs` re-runs the same regression. Reading `MAX(events.ts)` (§3.1) flips both rows to `abandoned` immediately and is immune to row re-writes.
 
 ## 3. Fix
 
@@ -106,7 +113,7 @@ The truth table `derive_run_status` itself and the 30-minute threshold are uncha
 
 Follows spec 0238 live-failure discipline (exercise the *real* list entry points against captured artifacts, not just helper-level units) and the spec 0206 source-pattern doctrine (pure-stdlib pattern tests; no Playwright / `tests/ui/`). Capture the actual stuck-run artifacts as fixtures: the transcript (filesystem) and a `runs`-row + `events` rows snapshot (supabase) for one of `bb38` / `313f`.
 
-- [ ] Test: supabase list parity — feed `_supabase_list_runs` / `_status_from_columns` the captured stale run (events all > 30 min old, `pushed_at` set to its observed live value, exit_code null) and assert the list status equals `load_run_snapshot`'s detail status equals `abandoned`. Fails before the fix (list returns `running` off `pushed_at`), passes after.
+- [ ] Test: supabase list parity — feed `_supabase_list_runs` / `_status_from_columns` the captured stale run (events all > 30 min old, `pushed_at` set to its observed live value ≈16 min old — recent, NOT null, so the test reproduces the bulk-re-push trigger, exit_code null) and assert the list status equals `load_run_snapshot`'s detail status equals `abandoned`. Fails before the fix (list returns `running` off the recent `pushed_at`), passes after (reads `MAX(events.ts)`).
 - [ ] Test: filesystem list parity — `summarize_run` on a fixture session dir whose transcript's **final line is truncated/corrupt** but whose earlier events are > 30 min old returns `abandoned` (resilient tail walk-back), matching `load_run_snapshot`. Fails before the fix (`_latest_event_ts` returns `None` → mtime fallback → `running`).
 - [ ] Test: no-events old row — a supabase row / fs dir with zero events and an old `created_at` / dir-name ts reads `abandoned`, not `running` (mtime-fallback removal + `created_at`/`_earliest_known_ts` fallback).
 - [ ] Test: healthy run unaffected — a run with a recent last event still reads `running` on the list path, in both modes (no false-abandoned regression).
@@ -126,5 +133,5 @@ This spec does NOT touch any file under `src/dual_research/ui/static/` or `desig
 ## 8. Risks
 
 - **Events-table query cost.** If a future row-volume spike makes the batched `MAX(events.ts)` aggregate slow, list latency could regress. Mitigated by the single-batched-query (not per-row) shape and the existing `run_id` index; the §7 deferred `last_event_at` column is the escape hatch if profiling ever demands it.
-- **Fixture fidelity.** The captured supabase fixture must reproduce the real `pushed_at` value (null vs. recent) so the test locks the actual misfire; a guessed value could pass vacuously. The §5 test pins `pushed_at` to the observed value captured at implementation time.
+- **Fixture fidelity.** The captured supabase fixture must reproduce the real `pushed_at` value — confirmed recent (≈16 min old, bumped by a bulk re-upsert), NOT null — so the test locks the actual misfire rather than a vacuous null case. The §5 test pins `pushed_at` to a recent value with `MAX(events.ts)` ancient.
 - **Resilient tail walk-back bounds.** Walking back past corrupt lines must stay bounded (read a capped tail window, like the current ~64 KB) so a pathological all-garbage transcript can't cause an unbounded backward scan; the fallback to `_earliest_known_ts` covers the "no valid event found in window" case.
