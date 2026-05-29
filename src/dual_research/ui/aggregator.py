@@ -472,10 +472,11 @@ def summarize_run(session_dir: Path) -> RunListRow:
         hard_cap_hit=hard_cap_hit,
         run_failed=run_failed,
         run_completed_exit_code=run_completed_exit_code,
-        # Spec 0181 — staleness signal for the abandoned rule. Falls
-        # back to the dir's mtime / session-dir timestamp when no
-        # transcript exists (catches runs that crashed before writing
-        # any event — exactly the user-reported four stuck rows).
+        # Spec 0181 / 0253 — staleness signal for the abandoned rule:
+        # the last *valid* transcript event ts, else the run's creation
+        # time (dir-name prefix). Spec 0253 dropped the mtime fallback
+        # `_last_activity_ts` used between those — mtimes drift upward as
+        # artifacts are re-touched and made dead runs read fresh.
         last_event_at=_last_activity_ts(session_dir),
     )
 
@@ -1300,11 +1301,18 @@ def _earliest_known_ts(session_dir: Path) -> str | None:
 
 
 def _latest_event_ts(transcript_path: Path) -> str | None:
-    """Spec 0181 — ISO ts of the LAST event in the transcript.
+    """Spec 0181 / 0253 — ISO ts of the LAST *valid* event in the transcript.
 
-    Reads the tail of the file (~64 KB) so even multi-MB transcripts
-    are cheap. Feeds the staleness rule in ``derive_run_status`` via
-    ``summarize_run``.
+    Reads a bounded tail (~64 KB) so even multi-MB transcripts are
+    cheap, then walks backward past blank / truncated / unparseable
+    lines to the last line that decodes to a JSON object carrying a
+    ``ts`` — mirroring the replay's skip-bad-lines behaviour
+    (``load_run_snapshot``). A corrupt final line — the canonical
+    SIGKILL-mid-write signature — must not erase a known-good earlier
+    event ts and trip the staleness rule into a false ``running``
+    (spec 0253). The 64 KB window keeps the backward scan bounded even
+    on a pathological all-garbage tail (spec 0253 §8). Feeds the
+    staleness rule in ``derive_run_status`` via ``summarize_run``.
     """
     if not transcript_path.exists():
         return None
@@ -1314,66 +1322,54 @@ def _latest_event_ts(transcript_path: Path) -> str | None:
             size = f.tell()
             if size == 0:
                 return None
-            tail = b""
-            chunk = 64 * 1024
-            while size > 0 and tail.count(b"\n") < 2:
-                read_n = min(chunk, size)
-                f.seek(size - read_n)
-                tail = f.read(read_n) + tail
-                size -= read_n
-            lines = [ln for ln in tail.splitlines() if ln.strip()]
-            if not lines:
-                return None
-            evt = json.loads(lines[-1])
-            return evt.get("ts")
-    except (OSError, ValueError, json.JSONDecodeError):
+            read_n = min(64 * 1024, size)
+            f.seek(size - read_n)
+            tail = f.read(read_n)
+    except OSError:
         return None
+    # Walk backward to the last line that parses to a JSON object with a
+    # ``ts``. The first sliced line may be a partial line (the window can
+    # start mid-line) — it fails to parse and is skipped, which is
+    # harmless since it is never the last event.
+    for raw in reversed([ln for ln in tail.splitlines() if ln.strip()]):
+        try:
+            evt = json.loads(raw)
+        except (ValueError, json.JSONDecodeError):
+            continue
+        if isinstance(evt, dict) and evt.get("ts"):
+            return evt["ts"]
+    return None
 
 
 _SESSION_DIR_TS_RE = re.compile(r"^(\d{8})-(\d{6})-")
 
 
 def _last_activity_ts(session_dir: Path) -> str | None:
-    """Spec 0181 — best-effort 'last activity' timestamp for a session dir.
+    """Spec 0181 / 0253 — best-effort 'last activity' timestamp for a session dir.
 
     Priority:
-    1. Last event ts in ``transcript.jsonl`` (the canonical signal).
-    2. Newest mtime among ``state.json`` + ``metrics.json`` + the dir
-       itself (catches runs that wrote state but never emitted events).
-    3. The parsed ``YYYYMMDD-HHMMSS`` prefix from the dir name
-       (creation time; the absolute floor for any run).
+    1. Last *valid* event ts in ``transcript.jsonl`` (the canonical
+       signal; ``_latest_event_ts`` walks back past a corrupt tail).
+    2. The run's creation time via ``_earliest_known_ts`` (first event
+       ts, else the ``YYYYMMDD-HHMMSS`` dir-name prefix).
 
-    The first non-None value wins. A run with none of these would have
-    ``last_event_at=None`` returned to the truth table, which falls
-    through to ``running`` (backwards-compatible default).
+    Spec 0253 removed the newest-mtime fallback that sat between these.
+    File mtimes drift upward as deploy / sync / artifact re-touch the
+    dir (and the pre-0253 ``_latest_event_ts`` returned ``None`` on a
+    truncated final line), so a long-dead run's stale transcript read as
+    fresh and the staleness rule never fired — the run sat in
+    ``running`` forever. Falling back to creation time instead means a
+    run that never emitted a valid event and whose dir is old reads
+    ``abandoned``, matching what the detail path derives.
+
+    A run with neither a valid event nor a parseable dir name returns
+    ``None``, which the truth table treats as the backward-compatible
+    ``running`` default.
     """
     ts = _latest_event_ts(session_dir / "transcript.jsonl")
     if ts:
         return ts
-    # Fall back to the newest mtime — captures runs that wrote
-    # state.json or metrics.json without emitting transcript events.
-    candidates = [session_dir, session_dir / "state.json", session_dir / "metrics.json"]
-    mtimes = []
-    for p in candidates:
-        try:
-            mtimes.append(p.stat().st_mtime)
-        except (OSError, FileNotFoundError):
-            continue
-    if mtimes:
-        return datetime.fromtimestamp(max(mtimes), tz=timezone.utc).isoformat()
-    # Last resort — parse the session dir name (YYYYMMDD-HHMMSS-slug).
-    m = _SESSION_DIR_TS_RE.match(session_dir.name)
-    if m:
-        date_part, time_part = m.groups()
-        try:
-            return (
-                datetime.strptime(date_part + time_part, "%Y%m%d%H%M%S")
-                .replace(tzinfo=timezone.utc)
-                .isoformat()
-            )
-        except ValueError:
-            return None
-    return None
+    return _earliest_known_ts(session_dir)
 
 
 def _seconds_since(ts: str | None) -> int:

@@ -1122,6 +1122,12 @@ def _supabase_list_runs(client: Any, *, archived: bool = False) -> list[RunListR
         .execute()
     )
     briefs: dict[str, str] = {row["run_id"]: row["content"] for row in (briefs_res.data or [])}
+    # Spec 0253 — authoritative last-event timestamp per listed run, read
+    # from the same `events` table the detail page replays, so the list
+    # status can never diverge from the detail status. Replaces the
+    # spec-0181 `pushed_at` proxy (a row-upsert ts that a bulk re-upsert
+    # reset to ~now, resurrecting dead runs to `running`).
+    max_event_ts = _max_event_ts_by_run(client, run_ids)
 
     out: list[RunListRow] = []
     for r in runs_rows:
@@ -1135,11 +1141,13 @@ def _supabase_list_runs(client: Any, *, archived: bool = False) -> list[RunListR
             phase_reached=phase_str,
             exit_code=r.get("exit_code"),
             state=r.get("state") or {},
-            # Spec 0181 — orchestrator's last upsert ts is the canonical
-            # "last activity" proxy for Supabase-backed runs (cheaper
-            # than a per-row events.MAX(ts) JOIN). Drives the abandoned
-            # rule in derive_run_status.
-            last_event_at=r.get("pushed_at"),
+            # Spec 0253 — authoritative last-event ts from the `events`
+            # table (see `_max_event_ts_by_run`), not the `pushed_at`
+            # upsert proxy spec 0181 used. Falls back to the run's
+            # `created_at` when a row has zero events, so a never-emitted
+            # old row reads `abandoned`, not `running`. Drives the
+            # abandoned rule in derive_run_status.
+            last_event_at=max_event_ts.get(r["id"]) or started_at,
         )
         # Spec 0246 — card-layout payloads. `phases` derives identically to
         # fs mode (terminal phase + status). `agents` reads the supabase
@@ -1171,6 +1179,54 @@ def _supabase_list_runs(client: Any, *, archived: bool = False) -> list[RunListR
                 note=note,
             )
         )
+    return out
+
+
+def _max_event_ts_by_run(client: Any, run_ids: list[str]) -> dict[str, str]:
+    """Spec 0253 — MAX(events.ts) per run, as one batched query.
+
+    Returns ``{run_id: latest_event_ts}`` for every listed run that has at
+    least one event. Runs with no events are simply absent from the map;
+    the caller falls back to the run's ``created_at``.
+
+    Why fetch-and-reduce rather than a PostgREST aggregate: Supabase
+    disables aggregate functions in PostgREST by default (and the test
+    fake does not model ``ts.max()``), so a server-side ``MAX(ts) GROUP
+    BY run_id`` is not portable. Selecting the two small columns
+    (``run_id``, ``ts``) for the listed runs and reducing in Python is a
+    single batched round-trip (not a per-row query) — cheap at current
+    volumes (~5k events total; the ``events`` table is indexed on
+    ``run_id``, which powers the SSE / materialization paths). The §7
+    deferred ``last_event_at`` column is the escape hatch if list-latency
+    profiling ever demands it.
+
+    Pages with ``range`` (PostgREST caps an unbounded select at ~1000
+    rows) and orders by ``ts`` descending so the first row seen per run
+    is its max — ``setdefault`` keeps it.
+    """
+    if not run_ids:
+        return {}
+    out: dict[str, str] = {}
+    page = 1000
+    offset = 0
+    while True:
+        res = (
+            client.table("events")
+            .select("run_id,ts")
+            .in_("run_id", run_ids)
+            .order("ts", desc=True)
+            .range(offset, offset + page - 1)
+            .execute()
+        )
+        rows = res.data or []
+        for row in rows:
+            rid = row.get("run_id")
+            ts = row.get("ts")
+            if rid is not None and ts is not None:
+                out.setdefault(rid, ts)
+        if len(rows) < page:
+            break
+        offset += page
     return out
 
 

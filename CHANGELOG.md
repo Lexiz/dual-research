@@ -10,6 +10,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.63.4] — 2026-05-29
+
+### Fixed
+
+- **All-Runs card status no longer diverges from the run-detail status for abandoned runs** ([spec 0253](specs/0253-fix-all-runs-card-status-diverges-from-detail.md)). The list paths fed `derive_run_status` a different `last_event_at` input than the authoritative detail replay, so a dead run could show `● RUNNING` on the home page (and inflate the "N in flight" tally) while its detail page read `abandoned`.
+  - **Supabase list** ([`server.py`](src/dual_research/ui/server.py)): stopped using the `pushed_at` row-upsert timestamp as the staleness proxy — a bulk re-upsert reset it to ~now and resurrected every dead run to `running`. A new `_max_event_ts_by_run` helper reads `MAX(events.ts)` per listed run (one batched, paginated query over the same `events` table the detail page replays), falling back to the run's `created_at`. List status is now authoritative-by-construction and cannot drift from the detail page.
+  - **Filesystem list** ([`aggregator.py`](src/dual_research/ui/aggregator.py)): `_latest_event_ts` now walks backward past a truncated/corrupt final transcript line (the SIGKILL-mid-write signature) to the last *valid* event, and `_last_activity_ts` dropped its newest-mtime fallback (mtimes drift upward as artifacts are re-touched, masking dead runs) in favour of the run's creation time via `_earliest_known_ts`.
+
 ## [1.63.3] — 2026-05-29
 
 ### Added
