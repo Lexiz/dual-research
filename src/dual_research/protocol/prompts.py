@@ -1405,6 +1405,41 @@ already on the ledger.
 """
 
 
+# Spec 0257 §2.2 — standing role-contract callout for the SYMMETRIC phase-2
+# axis. Rendered inline immediately above the `## Status` block in both
+# phase-2 round prompts (round 1 + round N). The narrative protocol body
+# never named the ADDRESS/RESOLVE role split; run 20260530-175809 emitted
+# 50 phase-2 ownership violations (raiser_self_address /
+# resolve_from_non_addressed / agreed_with_open_addressed_items) because
+# the agents disagreed about who owns/addresses/closes each ledger item.
+# This one paragraph states the contract the orchestrator already enforces.
+_ADDRESS_RESOLVE_ROLE_CALLOUT = (
+    "**Who may ADDRESS vs RESOLVE (item-ownership contract).** The agent that "
+    "RAISED an item never ADDRESSes it and never RESOLVEs it while it is "
+    "`open`. The OTHER agent — the addressee — ADDRESSes it (`open → "
+    "addressed`). Only then may the raiser RESOLVE / ACKNOWLEDGE / WITHDRAW "
+    "it. You may NOT declare `STATUS: AGREED` while any item raised against "
+    "you is still `open` and unaddressed."
+)
+
+# Spec 0257 §2.2 — phase 4 is NOT the same axis (cowork correction 3). Phase 4
+# has a fixed DRAFTER = addressee, REVIEWER = raiser — an asymmetric,
+# role-fixed split, unlike phase-2's symmetric raise-and-address. The phase-2
+# raiser/addressee paragraph must NOT be reused verbatim here; this callout is
+# framed in drafter/reviewer terms. Shipping the correct wording is
+# unconditional; whether it alone zeroes the phase-4 raiser_self_address count
+# is measured (§6.2), not assumed.
+_ADDRESS_RESOLVE_ROLE_CALLOUT_PHASE4 = (
+    "**Who may ADDRESS vs RESOLVE (drafter/reviewer contract).** The REVIEWER "
+    "raises issues, disagreements, and comments against the draft; the DRAFTER "
+    "ADDRESSes each one via the revision (`open → addressed`); the REVIEWER "
+    "alone ratifies (RESOLVE / ACKNOWLEDGE / WITHDRAW). The DRAFTER never "
+    "ADDRESSes its own surfaced items, and never RESOLVEs an item while it is "
+    "`open`. Do not declare `STATUS: AGREED` while any item raised against you "
+    "is still `open` and unaddressed."
+)
+
+
 # Spec 0217.1 §3.3 — STATUS array contract callout. The STATUS action arrays
 # are the canonical ledger-op channel; the reconstructor's STATUS-pass at
 # src/dual_research/ui/disagreements.py canonicalizes IDs and silently drops
@@ -1986,6 +2021,8 @@ Produce a turn with the canonical section structure.
 
 {_STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1}
 
+{_ADDRESS_RESOLVE_ROLE_CALLOUT}
+
 ## Status
 STATUS: IN_PROGRESS
 RAISED_THIS_TURN: [<canonical-id>, ...]
@@ -2061,6 +2098,8 @@ Produce a turn with the canonical section structure.
 ## Stance
 
 {_STATUS_ARRAY_CONTRACT_CALLOUT}
+
+{_ADDRESS_RESOLVE_ROLE_CALLOUT}
 
 ## Status
 {_status_footer_for_phase(2)}
@@ -2246,7 +2285,7 @@ Produce a turn with the canonical section structure.
 (2–4 sentences: your overall reaction to the draft. The UI uses this
  as the timeline-card TL;DR.)
 
-""" + _STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1 + """
+""" + _STATUS_ARRAY_CONTRACT_CALLOUT_ROUND1 + "\n\n" + _ADDRESS_RESOLVE_ROLE_CALLOUT_PHASE4 + """
 
 ## Status
 STATUS: IN_PROGRESS
@@ -2360,6 +2399,8 @@ Produce a turn with the canonical section structure.
 ## Stance
 
 {_STATUS_ARRAY_CONTRACT_CALLOUT}
+
+{_ADDRESS_RESOLVE_ROLE_CALLOUT_PHASE4}
 
 ## Status
 {_status_footer_for_phase(4)}

@@ -10,6 +10,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.66.0] — 2026-05-30
+
+### Added
+
+- **Role-aware standing-items surface** ([spec 0257](specs/0257-phase2-role-aware-standing-items-addressee-obligation.md)). The per-round standing-items block agents see in phase 2 / phase 4 is now grouped by `(role, lifecycle-state)`, so each agent sees only the operations legal for it: items raised **against** it under a *you-are-the-ADDRESSEE, you MUST ADDRESS* group; its **own** open items under a *do-not-self-address / no-resolve-from-open* group; its own **addressed** items under a *ready-to-ratify* group (with `addressed_by` surfaced). New `format_role_aware_standing_items` in `orchestrator/deep_research.py`; both live render sites (`dr_run._format_standing_items` and `DeepResearchPhase._build_standing_items_text`) route through it, so there is exactly one role-aware surface.
+- **Standing role-contract callouts in the live `_v2` prompt builders.** `_ADDRESS_RESOLVE_ROLE_CALLOUT` (symmetric raiser/addressee) renders above `## Status` in `plan_negotiation_round1_prompt_v2` / `plan_negotiation_round_n_prompt_v2`; a **distinct** `_ADDRESS_RESOLVE_ROLE_CALLOUT_PHASE4` (asymmetric drafter/reviewer wording, per cowork correction 3) renders in `review_round1_prompt_v2` / `review_round_n_prompt_v2`.
+- **Deterministic behavioural replay harness** at `tests/test_spec_0257_role_aware_standing_items.py` + vendored fixtures under `tests/fixtures/spec_0257/`. Replays run `20260530-175809`'s captured phase-2 / phase-4 turns through the real `DeepResearchPhase.apply_turn` path and the live `dr_run._format_standing_items` entry point, asserting the role-correct grouping the agents actually receive and that the captured artifact reproduces the three ownership-violation classes (spec-0238 discipline).
+
+### Changed
+
+- **Implementation retargeted onto the LIVE surfaces at reconcile time.** Spec 0257 §2.1/§2.2 cited `ledger/prompt.py:build_standing_items_section`, a new `LedgerState.ratifiable_entries`, and the non-`_v2` prompt builders — all DEAD since the spec-0118 v2 rewrite (unreachable from `run_dr_phase2` / `run_dr_phase4`; the legacy `LedgerState` has no `addressed` status). The intent landed on the live contract-`LedgerEntryV2` surface and the `_v2` builders instead. `ledger/prompt.py:build_standing_items_section` is left untouched and flagged for deletion with the legacy phase2/phase4 runners — no second diverging surface.
+
 ## [1.65.0] — 2026-05-30
 
 ### Added

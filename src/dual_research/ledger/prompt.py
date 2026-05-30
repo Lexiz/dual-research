@@ -53,6 +53,19 @@ def build_standing_items_section(
 ) -> str:
     """Return the markdown section text — empty string if no open items.
 
+    .. deprecated:: spec 0257
+        **DEAD SURFACE — flagged for deletion.** This function (and the
+        legacy ``orchestrator/phase2.py`` / ``phase4.py`` runners that
+        are its only callers) has been unreachable from the live
+        ``run_dr_phase2`` / ``run_dr_phase4`` entry points since the
+        spec-0118 v2 rewrite. The LIVE role-aware standing-items surface
+        is ``deep_research.format_role_aware_standing_items`` (rendered
+        off the contract ``LedgerEntryV2`` state machine). Spec 0257
+        deliberately did NOT mirror the role-group logic here — adding a
+        second diverging surface is exactly what produced 0257's
+        wrong-layer citation bug. Delete this function with the legacy
+        phase2/phase4 runners; do not extend it.
+
     When ``DR_LEDGER_MODE=legacy`` is set the orchestrator should pass
     an empty string into the prompt template instead of calling this
     (see ``ledger.ledger_mode()``); this function itself doesn't read
