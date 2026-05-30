@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.65.0",
+    "date": "2026-05-30",
+    "bump": "MINOR",
+    "summary": "Apply-time anchor failures in the phase-4 drafter-delta path no longer kill the run (spec 0256).",
+    "items": [
+      "<strong>Added.</strong> <strong>Apply-time anchor failures in the phase-4 drafter-delta path no longer kill the run</strong> ([spec 0256](specs/0256-drafter-delta-apply-guard-resync-and-strict-anchor-contract.md)).",
+      "On the captured live run <code>20260529-164844-backend-language-choice</code> the drafter's round-3 <code>EDIT_SECTION</code> ops anchored on multi-line body + table-row literals against a draft that had diverged (round-2 no-op'd, so on-disk <code>draft-v2.md</code> lacked the edits the drafter believed it had made).",
+      "<code>apply_revised_draft_deltas</code> raised <code>edit_section_anchor_not_found</code> *outside* the parse-only fallback, propagated to the run-level tombstone, and the run died at <code>EXIT_RUNTIME</code> with no <code>final.md</code>.",
+      "Three changes ship together:",
+      "<strong>Changed.</strong> <strong>The phase-4 drafter prompt no longer leaks a reviewer-style <code>ADDRESS</code> affordance for the drafter's own items</strong> ([spec 0256](specs/0256-drafter-delta-apply-guard-resync-and-strict-anchor-contract.md) §2.4).",
+      "The evidence run emitted <code>raiser_self_address</code> ×7; the \"Addressing items raised against me\" / \"Ratifying my own items\" sections of the round-N prompt now make \"ADDRESS targets only the other agent's items; use RESOLVE/ACKNOWLEDGE/WITHDRAW for your own\" unambiguous on the drafter path.",
+      "The apply-layer drop semantics (<code>raiser_self_address</code> ProtocolViolation) are unchanged."
+    ],
+    "specs": [
+      "0256"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.64.0",
     "date": "2026-05-29",
     "bump": "MINOR",

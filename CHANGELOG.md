@@ -10,6 +10,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.65.0] — 2026-05-30
+
+### Added
+
+- **Apply-time anchor failures in the phase-4 drafter-delta path no longer kill the run** ([spec 0256](specs/0256-drafter-delta-apply-guard-resync-and-strict-anchor-contract.md)). On the captured live run `20260529-164844-backend-language-choice` the drafter's round-3 `EDIT_SECTION` ops anchored on multi-line body + table-row literals against a draft that had diverged (round-2 no-op'd, so on-disk `draft-v2.md` lacked the edits the drafter believed it had made). `apply_revised_draft_deltas` raised `edit_section_anchor_not_found` *outside* the parse-only fallback, propagated to the run-level tombstone, and the run died at `EXIT_RUNTIME` with no `final.md`. Three changes ship together:
+  - **APPLY-GUARD (§2.1):** `_apply_drafter_revised_draft` now wraps the *apply* call (not just the parse call) in the same `ProtocolParseError` → no-op fallback. An apply-time anchor failure converts to a byte-equal `draft-v(N+1).md` + an observable `phase4_drafter_repair_failed` violation, exactly as the parse-step fallback does. The run survives; repeated no-ops hit the legible hard-cap deadlock instead of an opaque `run_failed`.
+  - **DRAFTER RESYNC (§2.2):** when a revision no-ops, the next-round drafter prompt now carries an explicit "your previous revision did NOT apply" banner so the drafter re-anchors against the real on-disk draft rather than the draft it believed it produced — stopping the round-over-round anchor divergence at its source.
+  - **STRICT ANCHOR NORMALIZATION (§2.3):** `EDIT_SECTION` anchor matching now runs both sides through a closed, deterministic normalization (inner-whitespace-run collapse, smart→straight quotes, one trailing-`.`/`,`/`:`/`;` tolerance) while writing back the original draft bytes for the unmatched span. This is **not** fuzzy/similarity matching — a similar-but-different anchor still fails (the evidence run had four "Tier 2 Scoring" sections a fuzzy match could have cross-bound and silently corrupted `final.md`). The drafter anchor-contract prompt now requires short, single-line, structurally-unique anchors.
+
+### Changed
+
+- **The phase-4 drafter prompt no longer leaks a reviewer-style `ADDRESS` affordance for the drafter's own items** ([spec 0256](specs/0256-drafter-delta-apply-guard-resync-and-strict-anchor-contract.md) §2.4). The evidence run emitted `raiser_self_address` ×7; the "Addressing items raised against me" / "Ratifying my own items" sections of the round-N prompt now make "ADDRESS targets only the other agent's items; use RESOLVE/ACKNOWLEDGE/WITHDRAW for your own" unambiguous on the drafter path. The apply-layer drop semantics (`raiser_self_address` ProtocolViolation) are unchanged.
+
 ## [1.64.0] — 2026-05-29
 
 ### Fixed

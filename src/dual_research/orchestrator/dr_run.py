@@ -27,7 +27,7 @@ import json
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, NamedTuple
 
 from dual_research.agents.base import AgentCall
 from dual_research.contract.artifacts import canonical_hash, hash_draft_content
@@ -1398,6 +1398,24 @@ async def run_dr_phase3(
 # ─── Phase 4 ──────────────────────────────────────────────────────────
 
 
+class RevisedDraftApplyResult(NamedTuple):
+    """Outcome of applying a drafter's revised-draft turn (spec 0256 §2.2).
+
+    ``written`` — a ``draft-v(N+1).md`` was produced (success or no-op
+    fallback). ``False`` only when the drafter omitted the ``## Revised
+    draft`` section entirely.
+    ``noop`` — the revision did not land: a no-op fallback fired (parse-step
+    per spec 0231, or apply-step per spec 0256 §2.1), so ``draft-v(N+1).md``
+    is a byte-equal copy of ``draft-vN.md``. Drives the §2.2 resync banner.
+    ``errors`` — the fallback's underlying parse/apply errors, surfaced to
+    the drafter in the next-round banner.
+    """
+
+    written: bool
+    noop: bool
+    errors: list[str]
+
+
 async def _apply_drafter_revised_draft(
     *,
     ctx: SessionContext,
@@ -1405,27 +1423,33 @@ async def _apply_drafter_revised_draft(
     round: int,
     revised_text: str,
     drafter: str,
-) -> bool:
+) -> RevisedDraftApplyResult:
     """Apply (or no-op fallback-apply) a drafter's revised-draft turn.
 
-    Returns ``True`` if a revision was written (success or fallback no-op),
-    ``False`` if the drafter omitted the ``## Revised draft`` section entirely.
+    Returns a ``RevisedDraftApplyResult`` (spec 0256 §2.2): ``written`` is
+    ``True`` if a revision was written (success or fallback no-op), ``False``
+    if the drafter omitted the ``## Revised draft`` section entirely;
+    ``noop`` is ``True`` when a fallback fired (the revision did not land).
 
     Spec 0218 §3.2 — parses the body as section-delta ops via
     ``extract_revised_draft_deltas`` and applies them against the prior
     ``draft-vN.md`` to produce ``draft-v(N+1).md``.
 
-    Spec 0231 §2.3 — graceful fallback when the body fails to parse even
-    after the one-shot repair recovered nothing (``parse_v2_with_repair``
-    returns the still-malformed text and ``extract_revised_draft_deltas``
-    raises here). The fallback synthesises a
-    ``RevisedDraftFull(content=prior_draft)`` payload — the prior draft
-    body verbatim, NOT the unparseable original (which would ship
-    ANCHOR/REPLACE_WITH garbage downstream) — and emits a
-    ``ProtocolViolation(phase4_drafter_repair_failed)`` so the deadlock is
-    observable on the dashboard. The round loop continues; if the drafter
-    never produces parseable output across rounds, the existing hard-cap
-    catches a legible deadlock instead of an opaque uncaught exception.
+    Spec 0231 §2.3 — graceful fallback when the body fails to **parse** even
+    after the one-shot repair recovered nothing. Spec 0256 §2.1 extends the
+    identical fallback to an **apply-time** failure: when the parse succeeds
+    but an anchor fails to match (``edit_section_anchor_not_found`` et al.),
+    ``apply_revised_draft_deltas`` raises ``ProtocolParseError`` — previously
+    that propagated uncaught to the run-level tombstone (``run.py`` →
+    ``run_failed`` → ``EXIT_RUNTIME`` with no ``final.md``). Both paths now
+    converge on one fallback-construction site: synthesise a
+    ``RevisedDraftFull(content=prior_draft)`` payload — the prior draft body
+    verbatim, NOT the unparseable original — and emit a
+    ``ProtocolViolation(phase4_drafter_repair_failed)`` so the no-op is
+    observable on the dashboard exactly the same way regardless of which step
+    failed. The round loop continues; if the drafter never produces an
+    applicable revision across rounds, the existing hard-cap catches a
+    legible deadlock instead of an opaque uncaught exception.
     """
     from dual_research.protocol import (
         RevisedDraftFull,
@@ -1446,14 +1470,26 @@ async def _apply_drafter_revised_draft(
         payload = RevisedDraftFull(content=prior_draft_text)
 
     if payload is None:
-        return False
+        return RevisedDraftApplyResult(written=False, noop=False, errors=[])
 
     new_round = ctx.state.draft_round + 1
     prior_path = current_draft_path(ctx.session, ctx.state.draft_round)
     prior_draft = prior_path.read_text(encoding="utf-8")
-    new_draft, violations = apply_revised_draft_deltas(
-        prior_draft=prior_draft, payload=payload,
-    )
+    try:
+        new_draft, violations = apply_revised_draft_deltas(
+            prior_draft=prior_draft, payload=payload,
+        )
+    except ProtocolParseError as e:
+        # Spec 0256 §2.1 — an apply-time anchor failure triggers the same
+        # no-op fallback as a parse failure, instead of propagating to the
+        # run-level tombstone. Re-apply with a byte-equal copy of the prior
+        # draft so the round loop survives and the failure stays observable.
+        fallback_fired = True
+        fallback_errors = list(e.errors)
+        payload = RevisedDraftFull(content=prior_draft)
+        new_draft, violations = apply_revised_draft_deltas(
+            prior_draft=prior_draft, payload=payload,
+        )
 
     new_path = ctx.session.phase_dir("phase4") / f"draft-v{new_round}.md"
     write_atomic(new_path, new_draft)
@@ -1493,7 +1529,9 @@ async def _apply_drafter_revised_draft(
         new_draft_round=new_round,
         new_draft_chars=len(new_draft),
     ))
-    return True
+    return RevisedDraftApplyResult(
+        written=True, noop=fallback_fired, errors=fallback_errors,
+    )
 
 
 async def run_dr_phase4(
@@ -1513,17 +1551,27 @@ async def run_dr_phase4(
 
     drafter = ctx.state.drafter or "claude"
     revisions_count = 0
+    # Spec 0256 §2.2 — transient phase-4 state: did the drafter's most recent
+    # revision no-op (fallback fired)? When set, the next-round drafter prompt
+    # carries an explicit "your previous revision did NOT apply" banner so the
+    # drafter re-anchors against the real on-disk draft instead of the draft it
+    # believed it produced. Cleared the moment a revision applies cleanly.
+    last_revision_noop = False
+    last_revision_noop_errors: list[str] = []
 
     async def _on_revised_draft(*, ctx, event_bus, round, revised_text):
-        nonlocal revisions_count
-        if await _apply_drafter_revised_draft(
+        nonlocal revisions_count, last_revision_noop, last_revision_noop_errors
+        result = await _apply_drafter_revised_draft(
             ctx=ctx,
             event_bus=event_bus,
             round=round,
             revised_text=revised_text,
             drafter=drafter,
-        ):
+        )
+        if result.written:
             revisions_count += 1
+            last_revision_noop = result.noop
+            last_revision_noop_errors = result.errors
 
     def _build(*, agent_name, round, is_closeout_round, standing_items, closeout_request, ctx):
         current_path = current_draft_path(ctx.session, ctx.state.draft_round)
@@ -1556,6 +1604,12 @@ async def run_dr_phase4(
             # headings rather than brief-criteria hierarchies.
             from dual_research.protocol import extract_draft_headings
             current_headings = extract_draft_headings(draft_content)
+            # Spec 0256 §2.2 — the resync banner is for the DRAFTER only, and
+            # only when its previous revision no-op'd. The reviewer never emits
+            # revisions, so it never needs the signal.
+            prior_revision_noop = (
+                agent_name == drafter and last_revision_noop
+            )
             prompt = review_round_n_prompt_v2(
                 brief_content=brief_content,
                 draft_content=draft_content,
@@ -1571,6 +1625,8 @@ async def run_dr_phase4(
                 is_closeout_round=is_closeout_round,
                 closeout_request=closeout_request,
                 draft_headings=current_headings,
+                prior_revision_noop=prior_revision_noop,
+                prior_revision_noop_errors=last_revision_noop_errors,
             )
             system_task = review_round_n_prompt_v2(
                 brief_content="",
