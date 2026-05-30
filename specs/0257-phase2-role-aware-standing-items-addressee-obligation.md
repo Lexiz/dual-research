@@ -35,6 +35,40 @@ items, TBD markers, or "we'll figure it out later" prose. -->
 
 ---
 
+## 0. Post-merge correction (shipped v1.66.0, PR #297) — dead→live retarget
+
+> **This correction header was added after merge.** It does NOT change what
+> shipped; it records that the implementation landed on different code than
+> the §2 body below cites, and why. Read this before treating §2's file:line
+> citations as a map of the live code.
+
+Every code citation in §2 of this spec points at a **dead** surface —
+unreachable from the live `run_dr_phase2` / `run_dr_phase4` entry points
+since the spec-0118 v2 rewrite. The `reconcile` step passed only because the
+cited `file:line` locations still *exist*; it does not check call-path
+liveness. The fix was retargeted onto the live surfaces at `/dev-next` time
+(operator decision: retarget in-flight rather than halt/re-queue). What
+actually shipped:
+
+| §2 cited (DEAD — do not edit to fix behaviour) | Live surface that shipped |
+|---|---|
+| `ledger/prompt.py:build_standing_items_section` + role-blind `_INSTRUCTION` (§2.1) | `deep_research.format_role_aware_standing_items`, rendered via `dr_run._format_standing_items` (and `DeepResearchPhase._build_standing_items_text`) |
+| new `LedgerState.ratifiable_entries` over `current_status == "addressed"` (§2.1) | inline filter on the contract `LedgerEntryV2` state machine (`State.ADDRESSED`); the legacy `LedgerState` has **no** `addressed` status |
+| `negotiation_round1_prompt` / `negotiation_turn_prompt` callout (§2.2) | `plan_negotiation_round1_prompt_v2` / `plan_negotiation_round_n_prompt_v2` |
+| `review_turn_prompt` phase-4 callout (§2.2) | `review_round1_prompt_v2` / `review_round_n_prompt_v2` |
+
+`build_standing_items_section` and the legacy `phase2.py`/`phase4.py` runners
+were left untouched and flagged for deletion — spec **0257.1** removes them
+(deleting the dead surface eliminates the miscitation trap that caused this
+retarget). The behavioural claim (LLMs stop self-addressing / start
+ADDRESSing) is **not** proven by the §6.2 deterministic replay; it requires
+the §6.3 live re-run (captured as **draft 008**). Per CLAUDE.md "Cite the live
+surface, not the dead one" — the durable guard added off the back of this
+spec. See PR [#297](https://github.com/Lexiz/dual-research/pull/297) and
+[the handoff](../handoffs/2026-05-30-spec-0257-phase2-role-aware-standing-items-addressee-obligation.md).
+
+---
+
 ## 1. Context
 
 The captured run `20260530-175809-backend-language-choice` completed (the phase-4 anchor-crash fix from spec 0256 held), but its convergence quality is poor: **all three converging phases exited via escape valves, none by genuine resolution** — phase 0 `via_artifact_promotion`, phase 2 `via_ghost_cap` (round 6), phase 4 `via_artifact_promotion`. Phase 2 emitted **50 protocol violations across three codes that reduce to one root cause: the agents disagree about who owns/addresses/closes ledger items.** Counts from the run transcript (`event` key, not `kind`): `resolve_from_non_addressed` ×24 (claude, every round 2–6 + phase 4), `agreed_with_open_addressed_items` ×20 (openai, every round 2–6), `raiser_self_address` ×5 (claude, round 2), `resolve_wrong_raiser` ×1. Spec 0255 stopped this deadlocking (closeout urged, ghost-cap armed) but the role-confusion still fires every round and prevents genuine resolution. This confirms item ownership — not early-deadlock-abort — is the binding constraint on convergence quality.
