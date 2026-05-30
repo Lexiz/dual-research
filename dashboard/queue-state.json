@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-30T12:31:58Z",
+  "updated_at": "2026-05-30T12:46:09Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14037,6 +14037,38 @@
           "ts": "2026-05-30T12:31:58Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-30T12:32:14Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0256-drafter-delta-apply-guard-resync-and-strict-anchor-contract",
+            "from": "main@a639879"
+          }
+        },
+        {
+          "ts": "2026-05-30T12:32:14Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-30T12:44:19Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-30T12:44:59Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2456
+          }
+        },
+        {
+          "ts": "2026-05-30T12:46:09Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/296"
+          }
         }
       ],
       "started_at": "2026-05-30T12:31:58Z"
