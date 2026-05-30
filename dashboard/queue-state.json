@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-30T20:29:30Z",
+  "updated_at": "2026-05-30T20:33:21Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14207,10 +14207,45 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/297"
           }
+        },
+        {
+          "ts": "2026-05-30T20:29:53Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/297"
+          }
+        },
+        {
+          "ts": "2026-05-30T20:30:01Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-30T20:31:50Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.66.0"
+          }
+        },
+        {
+          "ts": "2026-05-30T20:32:10Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-30T20:33:21Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.66.0"
+          }
         }
       ],
-      "status": "in_progress",
-      "started_at": "2026-05-30T20:14:19Z"
+      "status": "deployed",
+      "started_at": "2026-05-30T20:14:19Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/297",
+      "merged_at": "2026-05-30T20:29:47Z",
+      "deployed_at": "2026-05-30T20:33:21Z",
+      "handover": "handoffs/2026-05-30-spec-0257-phase2-role-aware-standing-items-addressee-obligation.md"
     }
   }
 }
