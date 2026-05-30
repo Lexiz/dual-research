@@ -693,6 +693,137 @@ def _normalise_section_heading(heading: str) -> str:
 _DRAFT_SECTION_HEADING_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 
 
+# ─── Spec 0256 §2.3(a) — strict deterministic anchor normalization ─────────
+#
+# EDIT_SECTION anchors are matched against the section body through a single
+# closed, deterministic normalization. This is *not* fuzzy / similarity
+# matching: under state divergence a fuzzy match can bind a similar-but-wrong
+# section and silently corrupt `final.md` (the four "Tier 2 Scoring" sections
+# in the spec-0256 evidence run). Normalization is exact-after-canonicalization
+# — it governs *where* a match is, never *what* survives. The matched span is
+# located in a normalized projection of the body, then the **original draft
+# bytes** for that span are replaced (everything outside the span is preserved
+# byte-for-byte).
+_QUOTE_NORMALIZE_MAP = {
+    "‘": "'", "’": "'", "‚": "'", "‛": "'",  # single curlies
+    "“": '"', "”": '"', "„": '"', "‟": '"',  # double curlies
+}
+
+_ANCHOR_TRAILING_PUNCT = ".,:;"
+
+
+def _canon_char(c: str) -> str:
+    return _QUOTE_NORMALIZE_MAP.get(c, c)
+
+
+def _normalize_with_map(text: str) -> tuple[str, list[int], list[int]]:
+    """Project ``text`` into its canonical form with an index map back to the
+    original.
+
+    Canonicalization (closed, deterministic — no similarity threshold):
+      - smart/curly quotes → straight quotes;
+      - per line, collapse runs of inner whitespace to a single space and
+        strip leading/trailing whitespace;
+      - newlines between lines are preserved as structural boundaries.
+
+    Returns ``(norm, starts, ends)`` where ``norm`` is the canonical string
+    and, for each normalized char ``i``, ``starts[i]``/``ends[i]`` are the
+    original-text offsets ``[start, end)`` of the source span that produced it.
+    A collapsed inner-whitespace run maps to a single space whose span covers
+    the whole run; a non-space char maps 1:1 (quote substitution is
+    code-point-preserving).
+    """
+    out: list[str] = []
+    starts: list[int] = []
+    ends: list[int] = []
+    n = len(text)
+    i = 0
+    while i < n:
+        line_end = text.find("\n", i)
+        if line_end == -1:
+            line_end = n
+        run_start: int | None = None
+        line_has_content = False
+        k = i
+        while k < line_end:
+            c = _canon_char(text[k])
+            if c.isspace():
+                if run_start is None:
+                    run_start = k
+                k += 1
+                continue
+            # Non-space char. Emit a single space for any *inner* run (one
+            # that follows already-emitted content on this line).
+            if run_start is not None and line_has_content:
+                out.append(" ")
+                starts.append(run_start)
+                ends.append(k)
+            run_start = None
+            out.append(c)
+            starts.append(k)
+            ends.append(k + 1)
+            line_has_content = True
+            k += 1
+        # A trailing whitespace run (run_start set at line end) is dropped.
+        if line_end < n:
+            out.append("\n")
+            starts.append(line_end)
+            ends.append(line_end + 1)
+            i = line_end + 1
+        else:
+            i = line_end
+    return "".join(out), starts, ends
+
+
+def _normalize_anchor_for_match(anchor: str) -> str:
+    """Canonical projection of an anchor for matching.
+
+    Same normalization as the body (``_normalize_with_map``) plus a single
+    tolerated trailing-punctuation difference: one trailing ``.``/``,``/``:``/
+    ``;`` on the anchor is stripped so an anchor that ends in punctuation the
+    body lacks still matches. No other approximation.
+    """
+    norm, _, _ = _normalize_with_map(anchor)
+    norm = norm.rstrip("\n ")
+    if norm and norm[-1] in _ANCHOR_TRAILING_PUNCT:
+        norm = norm[:-1].rstrip()
+    return norm
+
+
+def _edit_section_apply_one(
+    body: str, anchor: str, replace_with: str,
+) -> tuple[str | None, str]:
+    """Apply one ``(anchor, replace_with)`` edit to ``body`` under strict
+    normalization.
+
+    Returns ``(new_body, status)``:
+      - ``("ok", new_body)`` is returned as ``(new_body, "ok")`` when exactly
+        one normalized occurrence is found — the original bytes of the matched
+        span are replaced with ``replace_with``, all other bytes preserved.
+      - ``(None, "not_found")`` when zero normalized occurrences are found.
+      - ``(None, "ambiguous")`` when more than one is found.
+    """
+    norm_body, starts, ends = _normalize_with_map(body)
+    norm_anchor = _normalize_anchor_for_match(anchor)
+    if not norm_anchor:
+        return None, "not_found"
+    positions: list[int] = []
+    pos = norm_body.find(norm_anchor)
+    while pos != -1:
+        positions.append(pos)
+        pos = norm_body.find(norm_anchor, pos + len(norm_anchor))
+    if len(positions) == 0:
+        return None, "not_found"
+    if len(positions) > 1:
+        return None, "ambiguous"
+    a = positions[0]
+    b = a + len(norm_anchor)
+    orig_start = starts[a]
+    orig_end = ends[b - 1]
+    new_body = body[:orig_start] + replace_with + body[orig_end:]
+    return new_body, "ok"
+
+
 def apply_revised_draft_deltas(
     *,
     prior_draft: str,
@@ -805,23 +936,29 @@ def apply_revised_draft_deltas(
             current = body
             failed_pair = False
             for anchor, replace_with in op.edits:
-                count = current.count(anchor)
-                if count == 0:
+                # Spec 0256 §2.3(a) — match under strict deterministic
+                # normalization (whitespace-run collapse, smart→straight
+                # quotes, one trailing-punct tolerance) while writing back
+                # the original bytes for the unmatched span. NOT fuzzy.
+                new_current, status = _edit_section_apply_one(
+                    current, anchor, replace_with,
+                )
+                if status == "not_found":
                     errors.append(
                         f"edit_section_anchor_not_found: EDIT_SECTION "
                         f"{op.heading!r} anchor {anchor!r} did not match"
                     )
                     failed_pair = True
                     break
-                if count > 1:
+                if status == "ambiguous":
                     errors.append(
                         f"edit_section_anchor_ambiguous: EDIT_SECTION "
-                        f"{op.heading!r} anchor {anchor!r} matched {count} "
-                        "times — include 1–3 lines of surrounding context"
+                        f"{op.heading!r} anchor {anchor!r} matched more than "
+                        "once — include 1–3 lines of surrounding context"
                     )
                     failed_pair = True
                     break
-                current = current.replace(anchor, replace_with, 1)
+                current = new_current
             if not failed_pair:
                 sections[idx] = (heading_text, current)
         elif isinstance(op, AppendSectionOp):

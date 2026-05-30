@@ -1458,6 +1458,31 @@ _REVIEWER_REVISION_NOTE = (
 )
 
 
+def _drafter_resync_banner(errors: list[str] | None) -> str:
+    """Spec 0256 §2.2 — the drafter-resync banner.
+
+    Prepended to the next-round DRAFTER prompt when the drafter's previous
+    revision no-op'd (a parse-step or apply-step fallback fired). Without it
+    the drafter keeps issuing EDIT_SECTION anchors against content it
+    *believed* it wrote last round — content that never landed on disk — and
+    the anchors diverge round-over-round. The banner forces a re-anchor
+    against the real on-disk draft inlined below.
+    """
+    detail = ""
+    if errors:
+        joined = "; ".join(errors)
+        detail = f"\n\nReason the previous revision was dropped: {joined}"
+    return (
+        "\n\n⚠ RESYNC — YOUR PREVIOUS REVISION DID NOT APPLY. It failed to "
+        "parse, or its EDIT_SECTION anchors did not match the current draft, "
+        "so it was dropped. The draft inlined below is the **current on-disk "
+        "draft** — it does NOT contain your last round's intended edits. "
+        "Re-issue your edits against THIS exact text; do not assume any prior "
+        "revision landed. Anchor only on substrings you can see verbatim in "
+        "the draft below." + detail + "\n"
+    )
+
+
 def _drafter_revision_doctrine_v2(*, draft_headings: list[str]) -> str:
     """Spec 0219 §3.1/§3.3/§3.4/§3.5 — drafter-only section-delta doctrine
     for the phase-4 ``review_round_n`` prompt.
@@ -1495,12 +1520,24 @@ of **delta operation blocks**, not a full inline re-emit. Inside the
 `Revised draft` section, use:
 
     ### EDIT_SECTION <heading>
-        ANCHOR: <verbatim 1–3 line substring from the current section>
+        ANCHOR: <a SHORT, single-line, structurally-unique substring>
         REPLACE_WITH: <new content>
     (multiple ANCHOR:/REPLACE_WITH: pairs allowed per block; applied
      in document order. Each ANCHOR must match the section's body
      exactly once — `0` matches or `>1` matches consume a repair
      attempt.)
+
+    **Anchor contract (spec 0256 §2.3 — load-bearing):** an ANCHOR must be
+    a SHORT, SINGLE-LINE, structurally-unique handle — a subsection heading
+    line (e.g. `### Section 3 — Tier 2 Scoring: …`) or one distinctive
+    sentence / identifier copied verbatim from the section body. Do NOT use
+    multi-line bodies, table rows, or long prose blocks as anchors: a long
+    literal fails silently the moment one character drifts, whereas a short
+    structural handle either matches uniquely or fires a loud `>1`-match
+    ambiguity error. Matching tolerates inner-whitespace runs, smart-vs-
+    straight quotes, and a trailing `.`/`,`/`:`/`;`, but is otherwise exact
+    — it is NOT fuzzy, so a similar-but-different anchor will NOT match. If
+    a whole subsection needs rewriting, use `### REPLACE_SECTION` instead.
 
     ### REPLACE_SECTION <heading>
         reason: <one sentence — why a surgical EDIT_SECTION was not enough>
@@ -2255,6 +2292,8 @@ def review_round_n_prompt_v2(
     is_closeout_round: bool = False,
     closeout_request: str = "",
     draft_headings: list[str] | None = None,
+    prior_revision_noop: bool = False,
+    prior_revision_noop_errors: list[str] | None = None,
 ) -> str:
     """Phase 4 (review-draft) round N≥2.
 
@@ -2264,6 +2303,11 @@ def review_round_n_prompt_v2(
     every delta op targets a real heading; the reviewer never sees
     the doctrine block (the reviewer is told to OMIT the ``## Revised
     draft`` section entirely).
+
+    Spec 0256 §2.2 — when ``prior_revision_noop`` is set (DRAFTER only),
+    a banner is prepended telling the drafter its previous revision did
+    NOT apply, so it re-anchors against the real on-disk draft below
+    rather than the draft it believed it produced.
     """
     role = "DRAFTER" if agent_name == drafter_name else "REVIEWER"
     closeout_block = (
@@ -2277,7 +2321,12 @@ def review_round_n_prompt_v2(
     else:
         revision_doctrine = _REVIEWER_REVISION_NOTE
         revision_output_template = ""
-    return DEEP_RESEARCH_PREAMBLE + f"""
+    resync_banner = (
+        _drafter_resync_banner(prior_revision_noop_errors)
+        if (role == "DRAFTER" and prior_revision_noop)
+        else ""
+    )
+    return DEEP_RESEARCH_PREAMBLE + resync_banner + f"""
 
 # Phase 4 (review-draft): cross-review — round {round}
 
@@ -2318,13 +2367,16 @@ Produce a turn with the canonical section structure.
 ## Addressing items raised against me
 (ADDRESS blocks for every {other_name} item in `open` state pointed at
  you. Include evidence records when evidence_required: true. ACKNOWLEDGE
- in this section if you see no path.)
+ in this section if you see no path. ADDRESS targets ONLY {other_name}'s
+ items — NEVER your own. You cannot ADDRESS an item you raised; doing so
+ is dropped as a self-address protocol violation.)
 
 ## Ratifying my own items
-(RESOLVE / ACKNOWLEDGE / WITHDRAW / counter-argument for every one of
- your items in `addressed` state. Do NOT use ADDRESS here; ADDRESS is
- reserved for the other agent's items in the "Addressing items raised
- against me" section above.)
+(For your OWN items in `addressed` state, emit RESOLVE / ACKNOWLEDGE /
+ WITHDRAW / counter-argument — NOT ADDRESS. ADDRESS is reserved for
+ {other_name}'s items in the "Addressing items raised against me" section
+ above; to act on an item you raised, use one of RESOLVE / ACKNOWLEDGE /
+ WITHDRAW here.)
 
 ## New items I'm raising
 (Only genuinely new items.)

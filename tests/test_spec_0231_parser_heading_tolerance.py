@@ -102,8 +102,11 @@ def test_fallback_fires_writes_byte_equal_noop_draft_and_emits_protocol_violatio
 
     applied = asyncio.run(_run())
 
-    # (i) returned True, no exception.
-    assert applied is True
+    # (i) returned written=True (spec 0256 changed the return to a
+    # RevisedDraftApplyResult), noop=True (the parse-step fallback fired),
+    # no exception.
+    assert applied.written is True
+    assert applied.noop is True
 
     # (ii) byte-equal no-op draft.
     new_draft_path = tmp_path / "phase4" / "draft-v2.md"
@@ -161,7 +164,8 @@ def test_clean_revised_draft_does_not_fire_fallback(tmp_path: Path) -> None:
         )
 
     applied = asyncio.run(_run())
-    assert applied is True
+    assert applied.written is True
+    assert applied.noop is False  # clean apply — no fallback
 
     new_draft = (tmp_path / "phase4" / "draft-v2.md").read_text(encoding="utf-8")
     assert "Replaced summary body." in new_draft
@@ -195,7 +199,7 @@ def test_omitted_revised_draft_section_is_noop_no_fallback(tmp_path: Path) -> No
         )
 
     applied = asyncio.run(_run())
-    assert applied is False
+    assert applied.written is False
 
     # No new draft file written.
     assert not (tmp_path / "phase4" / "draft-v2.md").exists()
