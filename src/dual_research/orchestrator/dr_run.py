@@ -70,6 +70,7 @@ from dual_research.orchestrator.deep_research import (
     DeepResearchPhase,
     LedgerEntryV2,
     PhaseRunResult,
+    format_role_aware_standing_items,
 )
 from dual_research.orchestrator.empty_turn_retry import compute_input_sha256
 from dual_research.orchestrator.repair import RepairTracker, parse_v2_with_repair
@@ -599,18 +600,13 @@ async def _drive_interaction_phase(
 
 
 def _format_standing_items(phase: DeepResearchPhase, agent: str) -> str:
-    non_terminal = [
-        e for e in phase.state.ledger if not is_terminal(e.current_state)
-    ]
-    if not non_terminal:
-        return "(none)"
-    rows = []
-    for e in non_terminal:
-        rows.append(
-            f"- [{e.id}] ({e.kind.value}, state: {e.current_state.value}, "
-            f"raiser: {e.raiser}): {(e.body or '').strip()[:200]}"
-        )
-    return "\n".join(rows)
+    # Spec 0257 — the live phase-2/4 standing-items surface. Role-aware:
+    # delegates to the single shared formatter (also used by
+    # DeepResearchPhase._build_standing_items_text) so the raiser/addressee
+    # role split is taught identically on every code path. Previously a
+    # role-BLIND flat list — the root cause of run 20260530-175809's 50
+    # phase-2 ownership violations.
+    return format_role_aware_standing_items(phase.state.ledger, agent)
 
 
 def _format_closeout_request(phase: DeepResearchPhase, agent: str) -> str:

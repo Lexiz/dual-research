@@ -128,6 +128,157 @@ class PhaseState:
         return [e.to_item_view() for e in self.ledger]
 
 
+# ─── Spec 0257 — role-aware standing-items surface ────────────────────
+#
+# The standing-items block agents see each round is the single strongest
+# lever on phase-2 convergence quality. A role-BLIND list (every
+# non-terminal item shown identically to both agents) invites the raiser
+# to ADDRESS/RESOLVE its own open items and lets the addressee declare
+# AGREED without ADDRESSing anything — the three violation classes
+# (``raiser_self_address``, ``resolve_from_non_addressed``,
+# ``agreed_with_open_addressed_items``) that dominated run
+# ``20260530-175809`` (50 phase-2 violations, converged ``via_ghost_cap``
+# rather than genuine resolution). This formatter groups the live
+# ``phase.state.ledger`` by (role, lifecycle-state) so each agent sees
+# only the operations legal for it.
+#
+# Retarget note (spec 0257): the queued spec cited
+# ``ledger/prompt.py:build_standing_items_section`` plus a new
+# ``LedgerState.ratifiable_entries`` — both on the LEGACY ledger model,
+# unreachable from ``run_dr_phase2`` / ``run_dr_phase4`` (dead since the
+# spec-0118 v2 rewrite; the ledger ``LedgerState`` has no ``addressed``
+# status at all). The LIVE surface is THIS function, rendered off the
+# contract ``LedgerEntryV2`` state machine, which already carries the
+# ``addressed`` state the spec needs. Both live call sites —
+# ``dr_run._format_standing_items`` and
+# ``DeepResearchPhase._build_standing_items_text`` — route here, so there
+# is exactly one role-aware surface, never two diverging ones.
+
+_ADDRESSEE_OPEN_INSTRUCTION = (
+    "You are the ADDRESSEE for these — the other agent raised them against "
+    "you. You MUST emit `### ADDRESS <id>` for each one this round (or "
+    "`### REQUEST_EVIDENCE <id>`, or a counter-argument that holds it open). "
+    "You may NOT RESOLVE, WITHDRAW, or close out these items — only the "
+    "raiser ratifies. Declaring `STATUS: AGREED` while any item here is "
+    "still open and unaddressed is the `agreed_with_open_addressed_items` "
+    "violation."
+)
+
+_RAISER_OPEN_INSTRUCTION = (
+    "You raised these and the other agent has NOT addressed them yet. Do "
+    "NOT emit `### ADDRESS <id>` on your own item (that is "
+    "`raiser_self_address`), and do NOT emit `### RESOLVE <id>` while the "
+    "item is still open (that is `resolve_from_non_addressed`). Your only "
+    "legal move now is `### WITHDRAW <id>` — otherwise wait for the "
+    "addressee to ADDRESS it."
+)
+
+_RAISER_ADDRESSED_INSTRUCTION = (
+    "You raised these and the other agent has now ADDRESSed them — they are "
+    "ready for you to ratify. You may `### RESOLVE <id>` (you accept the "
+    "response), `### ACKNOWLEDGE <id>` (the disagreement is irreconcilable), "
+    "or counter-argue (which flips the item back to open with your "
+    "rationale)."
+)
+
+_ADDRESSEE_ADDRESSED_INSTRUCTION = (
+    "You already ADDRESSed these; the raiser must ratify them. No action is "
+    "required from you this round — do not re-ADDRESS an already-addressed "
+    "item (`address_already_addressed` no-op)."
+)
+
+
+def _addressed_actor(entry: LedgerEntryV2) -> str | None:
+    """Return the agent that drove the most recent ``open → addressed``
+    transition (i.e. the addressee). ``None`` if the item was never
+    addressed. Used to surface ``addressed_by`` to the raiser so it can
+    see who it is ratifying (spec 0257 §2.1)."""
+    for tr in reversed(entry.transitions):
+        if tr.get("to") == State.ADDRESSED.value:
+            return tr.get("actor")
+    return None
+
+
+def _role_entry_line(entry: LedgerEntryV2, *, show_addressed_by: bool = False) -> str:
+    line = (
+        f"- [{entry.id}] ({entry.kind.value}, state: "
+        f"{entry.current_state.value}, raiser: {entry.raiser}): "
+        f"{(entry.body or '').strip()[:200]}"
+    )
+    if show_addressed_by:
+        actor = _addressed_actor(entry)
+        if actor:
+            line += f" — addressed_by: {actor}"
+    return line
+
+
+def format_role_aware_standing_items(ledger: list[LedgerEntryV2], agent: str) -> str:
+    """Spec 0257 — render the standing-items block role-scoped for ``agent``.
+
+    ``agent`` is ``"claude"`` / ``"openai"``. Non-terminal items in
+    ``ledger`` are partitioned into up to four (role, state) groups, each
+    carrying ONLY the operations legal for ``agent`` in that role:
+
+    1. **Raised by the other agent — you are the ADDRESSEE** (open, raised
+       against you): you MUST ADDRESS; you may NOT resolve/withdraw/close.
+    2. **Raised by you — still open** (open, raised by you): the addressee
+       has not addressed it; you may only WITHDRAW (no self-address, no
+       resolve-from-open).
+    3. **Raised by you — ADDRESSED, ready to ratify** (addressed, raised by
+       you): you may now RESOLVE / ACKNOWLEDGE / counter.
+    4. **Addressed by you — awaiting ratification** (addressed, raised
+       against you): informational; you already addressed it, no action.
+
+    Returns ``"(none)"`` when there are no non-terminal items — matching
+    the prior flat-list contract so callers need no empty-case branch.
+    """
+    non_terminal = [e for e in ledger if not is_terminal(e.current_state)]
+    if not non_terminal:
+        return "(none)"
+
+    addressee_open = [
+        e for e in non_terminal if e.raiser != agent and e.current_state == State.OPEN
+    ]
+    raiser_open = [
+        e for e in non_terminal if e.raiser == agent and e.current_state == State.OPEN
+    ]
+    raiser_addressed = [
+        e for e in non_terminal if e.raiser == agent and e.current_state == State.ADDRESSED
+    ]
+    addressee_addressed = [
+        e for e in non_terminal if e.raiser != agent and e.current_state == State.ADDRESSED
+    ]
+
+    blocks: list[str] = []
+
+    def emit(header: str, instruction: str, entries: list[LedgerEntryV2], *, show_addressed_by: bool = False) -> None:
+        if not entries:
+            return
+        plural = "s" if len(entries) != 1 else ""
+        blocks.append(f"### {header} ({len(entries)} item{plural})")
+        blocks.append(instruction)
+        for e in entries:
+            blocks.append(_role_entry_line(e, show_addressed_by=show_addressed_by))
+        blocks.append("")
+
+    emit("Raised by the other agent — you are the ADDRESSEE", _ADDRESSEE_OPEN_INSTRUCTION, addressee_open)
+    emit("Raised by you — still open (NOT yet addressed)", _RAISER_OPEN_INSTRUCTION, raiser_open)
+    emit(
+        "Raised by you — ADDRESSED, ready for you to ratify",
+        _RAISER_ADDRESSED_INSTRUCTION,
+        raiser_addressed,
+        show_addressed_by=True,
+    )
+    emit(
+        "Addressed by you — awaiting the other agent's ratification (no action needed)",
+        _ADDRESSEE_ADDRESSED_INSTRUCTION,
+        addressee_addressed,
+        show_addressed_by=True,
+    )
+
+    return "\n".join(blocks).rstrip() + "\n"
+
+
 # ─── Round / phase results ────────────────────────────────────────────
 
 
@@ -316,20 +467,11 @@ class DeepResearchPhase:
 
     # ── Internal helpers ─────────────────────────────────────────
 
-    def _build_standing_items_text(self) -> str:
-        non_terminal = items_blocking_convergence(self.state.item_views())
-        if not non_terminal:
-            return "(none)"
-        rows: list[str] = []
-        for iv in non_terminal:
-            ent = self.state.find(iv.id)
-            if ent is None:
-                continue
-            rows.append(
-                f"- [{ent.id}] ({ent.kind.value}, state: {ent.current_state.value}, "
-                f"raiser: {ent.raiser}): {(ent.body or '').strip()[:200]}"
-            )
-        return "\n".join(rows)
+    def _build_standing_items_text(self, agent: str) -> str:
+        # Spec 0257 — role-aware: route through the single shared formatter
+        # so this surface (DeepResearchPhase.run path) and the live
+        # dr_run._format_standing_items surface never diverge.
+        return format_role_aware_standing_items(self.state.ledger, agent)
 
     def _build_closeout_request_text(self, agent: str) -> str:
         non_terminal = items_blocking_convergence(self.state.item_views())
@@ -963,7 +1105,7 @@ class DeepResearchPhase:
                 agent=agent,
                 other=other,
                 is_closeout_round=is_closeout_round,
-                standing_items=self._build_standing_items_text(),
+                standing_items=self._build_standing_items_text(agent),
                 closeout_request=self._build_closeout_request_text(agent),
             )
             text = self.agent_turn(request)

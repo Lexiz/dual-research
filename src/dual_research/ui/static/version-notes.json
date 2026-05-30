@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.66.0",
+    "date": "2026-05-30",
+    "bump": "MINOR",
+    "summary": "Role-aware standing-items surface (spec 0257).",
+    "items": [
+      "<strong>Added.</strong> <strong>Role-aware standing-items surface</strong> ([spec 0257](specs/0257-phase2-role-aware-standing-items-addressee-obligation.md)).",
+      "The per-round standing-items block agents see in phase 2 / phase 4 is now grouped by <code>(role, lifecycle-state)</code>, so each agent sees only the operations legal for it: items raised <strong>against</strong> it under a *you-are-the-ADDRESSEE, you MUST ADDRESS* group; its <strong>own</strong> open items under a *do-not-self-address / no-resolve-from-open* group; its own <strong>addressed</strong> items under a *ready-to-ratify* group (with <code>addressed_by</code> surfaced).",
+      "New <code>format_role_aware_standing_items</code> in <code>orchestrator/deep_research.py</code>; both live render sites (<code>dr_run._format_standing_items</code> and <code>DeepResearchPhase._build_standing_items_text</code>) route through it, so there is exactly one role-aware surface.",
+      "<strong>Standing role-contract callouts in the live <code>_v2</code> prompt builders.</strong> <code>_ADDRESS_RESOLVE_ROLE_CALLOUT</code> (symmetric raiser/addressee) renders above <code>## Status</code> in <code>plan_negotiation_round1_prompt_v2</code> / <code>plan_negotiation_round_n_prompt_v2</code>; a <strong>distinct</strong> <code>_ADDRESS_RESOLVE_ROLE_CALLOUT_PHASE4</code> (asymmetric drafter/reviewer wording, per cowork correction 3) renders in <code>review_round1_prompt_v2</code> / <code>review_round_n_prompt_v2</code>.",
+      "<strong>Deterministic behavioural replay harness</strong> at <code>tests/test_spec_0257_role_aware_standing_items.py</code> + vendored fixtures under <code>tests/fixtures/spec_0257/</code>.",
+      "Replays run <code>20260530-175809</code>'s captured phase-2 / phase-4 turns through the real <code>DeepResearchPhase.apply_turn</code> path and the live <code>dr_run._format_standing_items</code> entry point, asserting the role-correct grouping the agents actually receive and that the captured artifact reproduces the three ownership-violation classes (spec-0238 discipline).",
+      "<strong>Changed.</strong> <strong>Implementation retargeted onto the LIVE surfaces at reconcile time.</strong> Spec 0257 §2.1/§2.2 cited <code>ledger/prompt.py:build_standing_items_section</code>, a new <code>LedgerState.ratifiable_entries</code>, and the non-<code>_v2</code> prompt builders — all DEAD since the spec-0118 v2 rewrite (unreachable from <code>run_dr_phase2</code> / <code>run_dr_phase4</code>; the legacy <code>LedgerState</code> has no <code>addressed</code> status).",
+      "The intent landed on the live contract-<code>LedgerEntryV2</code> surface and the <code>_v2</code> builders instead.",
+      "<code>ledger/prompt.py:build_standing_items_section</code> is left untouched and flagged for deletion with the legacy phase2/phase4 runners — no second diverging surface."
+    ],
+    "specs": [
+      "0257"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.65.0",
     "date": "2026-05-30",
     "bump": "MINOR",
