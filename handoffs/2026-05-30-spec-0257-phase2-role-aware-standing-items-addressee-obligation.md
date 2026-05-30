@@ -83,7 +83,7 @@ points before citing it.
 
 ## Deferred during implementation
 
-- **Delete the dead legacy standing-items surface.** `build_standing_items_section`
+- **Delete the dead legacy standing-items surface** — `build_standing_items_section`
   ([`src/dual_research/ledger/prompt.py`](../src/dual_research/ledger/prompt.py))
   and its only callers, the legacy `orchestrator/phase2.py` /
   `orchestrator/phase4.py` runners, have been unreachable from
@@ -94,7 +94,7 @@ points before citing it.
   legacy phase2/phase4 runners, and their now-orphaned tests. This is a
   "should but didn't" carve-out of 0257.
 
-- **Live acceptance re-run (§6.3) not executed here.** The spec's PR
+- **Live acceptance re-run (§6.3) not executed here** — the spec's PR
   acceptance evidence is a real `backend-language-choice` re-run scored
   via `/dr-run-assess`, expected to show phase-2 `via_genuine_resolution`
   with zero `raiser_self_address` / `resolve_from_non_addressed` /
