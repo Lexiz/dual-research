@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T04:51:23Z",
+  "updated_at": "2026-05-31T04:54:08Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14306,6 +14306,46 @@
           "ts": "2026-05-31T04:51:23Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:51:31Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0257.2-raiser-addressed-no-self-address-prohibition",
+            "from": "main@a65cd8b"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:51:31Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:52:40Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 6,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-31T04:52:40Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:53:24Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2444
+          }
+        },
+        {
+          "ts": "2026-05-31T04:54:08Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/299"
+          }
         }
       ],
       "started_at": "2026-05-31T04:51:23Z"
