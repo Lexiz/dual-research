@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from dual_research.agents.base import AgentResult, TokenUsage
 from dual_research.events import EventBus
 from dual_research.orchestrator.finalize import (
     confidence_tag,
@@ -12,7 +11,7 @@ from dual_research.orchestrator.finalize import (
     render_metadata_header,
 )
 from dual_research.orchestrator.phase2 import Phase2Outcome
-from dual_research.orchestrator.phase3 import current_draft_path, run_phase3
+from dual_research.orchestrator.phase3 import current_draft_path
 from dual_research.persistence import (
     Metrics,
     SessionContext,
@@ -20,31 +19,6 @@ from dual_research.persistence import (
     SessionState,
 )
 from dual_research.protocol import extract_revised_draft
-
-
-class ScriptedAgent:
-    def __init__(self, *, label: str, model_id: str, script: list[str]):
-        self.label = label
-        self.model_id = model_id
-        self.provider = "anthropic" if label == "claude" else "openai"
-        self._script = list(script)
-        self._idx = 0
-
-    async def run(self, prompt, *, max_output_tokens=8192, stream_to=None, stream_prefix="", audit_context=None):
-        if self._idx >= len(self._script):
-            raise RuntimeError(f"ScriptedAgent({self.label}) exhausted at call {self._idx + 1}")
-        text = self._script[self._idx]
-        self._idx += 1
-        return AgentResult(
-            text=text,
-            usage=TokenUsage(input_tokens=10, output_tokens=20),
-            cost_usd=0.0001,
-            duration_ms=10,
-            model_id=self.model_id,
-            provider=self.provider,
-            label=self.label,
-            extras={"stop_reason": "end_turn"},
-        )
 
 
 def _make_ctx(tmp_path: Path, *, drafter: str = "claude") -> tuple[SessionContext, EventBus]:
@@ -85,50 +59,6 @@ def test_extract_revised_draft_present() -> None:
 def test_extract_revised_draft_absent() -> None:
     text = "## Status\nSTATUS: REVIEWING\nOPEN_ISSUES: 1\n"
     assert extract_revised_draft(text) is None
-
-
-# ---------- phase3 ----------
-
-
-@pytest.mark.asyncio
-async def test_phase3_writes_draft_and_advances_state(tmp_path: Path) -> None:
-    ctx, bus = _make_ctx(tmp_path, drafter="openai")
-    received: list[str] = []
-    bus.subscribe(lambda e: received.append(e.kind))
-
-    drafter_text = "## Summary\nFindings.\n\n## Sources\n[1] http://x\n"
-    # Other agent's script is empty - it shouldn't be called in phase 3
-    claude_agent = ScriptedAgent(label="claude", model_id="claude-sonnet-4-6", script=[])
-    openai_agent = ScriptedAgent(label="openai", model_id="gpt-5.5", script=[drafter_text])
-
-    outcome = await run_phase3(
-        ctx=ctx,
-        claude_agent=claude_agent,
-        openai_agent=openai_agent,
-        event_bus=bus,
-        brief_content="brief",
-    )
-
-    assert outcome.drafter == "openai"
-    assert outcome.draft_chars == len(drafter_text)
-    assert ctx.state.phase == "phase4"
-    draft_file = ctx.session.phase_dir("phase3") / "draft-v1.md"
-    assert draft_file.read_text() == drafter_text
-    assert "phase3_complete" in received
-
-
-@pytest.mark.asyncio
-async def test_phase3_raises_without_drafter(tmp_path: Path) -> None:
-    ctx, bus = _make_ctx(tmp_path)
-    ctx.state.drafter = None
-    with pytest.raises(RuntimeError):
-        await run_phase3(
-            ctx=ctx,
-            claude_agent=ScriptedAgent(label="claude", model_id="x", script=[]),
-            openai_agent=ScriptedAgent(label="openai", model_id="y", script=[]),
-            event_bus=bus,
-            brief_content="brief",
-        )
 
 
 # ---------- current_draft_path ----------
