@@ -19,13 +19,17 @@ prompts.
 Public surface:
 - ``LedgerEntry``, ``LedgerState``, ``LedgerDrift`` — dataclasses
 - ``build_phase_ledger(session_dir, phase)`` — derives the ledger
-- ``build_standing_items_section(ledger, *, perspective, …)`` — composes
-  the prompt input block
 
 Kill-switch: set ``DR_LEDGER_MODE=legacy`` in the environment to fall
-back to self-counter-only convergence and omit the standing-items
-input section. The ledger is still BUILT (UI uses it) but doesn't
-affect orchestrator behaviour. Default is ``enforce``.
+back to self-counter-only convergence. The ledger is still BUILT (UI
+uses it) but doesn't affect orchestrator behaviour. Default is
+``enforce``.
+
+Spec 0257.1 removed the dead legacy LLM-facing prompt surface
+(``build_standing_items_section`` / ``build_blocked_convergence_warning``,
+formerly ``ledger/prompt.py``). The live role-aware standing-items
+surface is ``deep_research.format_role_aware_standing_items``, rendered
+off the contract ``LedgerEntryV2`` state machine.
 """
 
 from __future__ import annotations
@@ -44,12 +48,6 @@ from dual_research.ledger.models import (
     LedgerState,
     LedgerStatusTransition,
 )
-from dual_research.ledger.prompt import (
-    build_blocked_convergence_warning,
-    build_standing_items_section,
-)
-
-
 __all__ = (
     "LedgerEntry",
     "LedgerState",
@@ -61,8 +59,6 @@ __all__ = (
     "ISSUE_STATUSES",
     "COMMENT_STATUSES",
     "build_phase_ledger",
-    "build_standing_items_section",
-    "build_blocked_convergence_warning",
     "ledger_mode",
 )
 

@@ -10,6 +10,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.66.1] — 2026-05-31
+
+### Removed
+
+- **Dead legacy standing-items prompt surface** ([spec 0257.1](specs/0257.1-delete-dead-legacy-standing-items-surface.md)). Deleted `ledger/prompt.py` in full — `build_standing_items_section`, its private helpers, **and** `build_blocked_convergence_warning` (spec 0089 § C) — together with the legacy `orchestrator/phase2.py:run_phase2` and `orchestrator/phase4.py:run_phase4` runners that were its only callers. All of it had been unreachable from the live entry points (`run_dr_phase2` / `run_dr_phase4`, via `_drive_interaction_phase`) since the spec-0118 v2 rewrite; the live role-aware standing-items surface is `deep_research.format_role_aware_standing_items`, rendered off the contract `LedgerEntryV2` state machine. The second, diverging renderer was the wrong-layer hazard that produced spec 0257's reconcile-time citation bug — removing it disarms that trap. `build_blocked_convergence_warning` became dead the moment its only callers (the legacy runners) were removed, so it went in the same pass rather than being left as a single-dead-function file.
+- Orphaned tests that exercised only the dead surface: `tests/ledger/test_prompt.py`, `tests/orchestrator/test_phase2.py`, `tests/orchestrator/test_phase4_spec0091.py`, `tests/orchestrator/test_phase4_resume.py`, plus the two `run_phase4`-dependent functions surgically dropped from `tests/orchestrator/test_phase3_4_final.py` (its `Phase*Outcome` / finalize coverage stays).
+
+### Changed
+
+- **Preserved the `Phase2Outcome` / `Phase4Outcome` dataclasses in place.** They remain the finalize-layer contract still imported by `dr_run.py`, `run.py`, and `finalize.py`; `orchestrator/phase2.py` and `orchestrator/phase4.py` are now reduced to those dataclasses plus a module docstring. No live behaviour changed — this is pure dead-code removal.
+
 ## [1.66.0] — 2026-05-30
 
 ### Added
