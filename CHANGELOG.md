@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.67.1] — 2026-05-31
+
+### Removed
+
+- **Deleted the dead legacy `run_phase3` runner** ([spec 0259](specs/0259-delete-dead-legacy-phase3-runner.md)). `orchestrator/phase3.py:run_phase3` has been unreachable from the live entry point since the spec-0118 v2 rewrite — the live phase-3 driver is `dr_run.run_dr_phase3`, aliased as `run_phase3` in `run.py`. This finishes the parallel cleanup [spec 0257.1](specs/0257.1-delete-dead-legacy-standing-items-surface.md) did for the phase2/phase4 runners. `Phase3Outcome` and `current_draft_path` are preserved (both still imported by live code in `run.py`, `dr_run.py`, and `finalize.py`). The two `run_phase3`-exercising tests in `tests/orchestrator/test_phase3_4_final.py` and their now-orphaned `ScriptedAgent` helper were removed; every live-surface test in that file (`current_draft_path` routing, `confidence_tag` / `render_metadata_header` / `emit_final`, the `Phase2Outcome` / `Phase4Outcome` contracts) is kept. Pure dead-code deletion — no live behavior change.
+
 ## [1.67.0] — 2026-05-31
 
 ### Added

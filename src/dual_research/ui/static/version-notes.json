@@ -1,5 +1,25 @@
 [
   {
+    "version": "1.67.1",
+    "date": "2026-05-31",
+    "bump": "PATCH",
+    "summary": "Removed: Deleted the dead legacy run_phase3 runner…",
+    "items": [
+      "<strong>Deleted the dead legacy <code>run_phase3</code> runner</strong> ([spec 0259](specs/0259-delete-dead-legacy-phase3-runner.md)).",
+      "<code>orchestrator/phase3.py:run_phase3</code> has been unreachable from the live entry point since the spec-0118 v2 rewrite — the live phase-3 driver is <code>dr_run.run_dr_phase3</code>, aliased as <code>run_phase3</code> in <code>run.py</code>.",
+      "This finishes the parallel cleanup [spec 0257.1](specs/0257.1-delete-dead-legacy-standing-items-surface.md) did for the phase2/phase4 runners.",
+      "<code>Phase3Outcome</code> and <code>current_draft_path</code> are preserved (both still imported by live code in <code>run.py</code>, <code>dr_run.py</code>, and <code>finalize.py</code>).",
+      "The two <code>run_phase3</code>-exercising tests in <code>tests/orchestrator/test_phase3_4_final.py</code> and their now-orphaned <code>ScriptedAgent</code> helper were removed; every live-surface test in that file (<code>current_draft_path</code> routing, <code>confidence_tag</code> / <code>render_metadata_header</code> / <code>emit_final</code>, the <code>Phase2Outcome</code> / <code>Phase4Outcome</code> contracts) is kept.",
+      "Pure dead-code deletion — no live behavior change."
+    ],
+    "specs": [
+      "0259",
+      "0257.1"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.67.0",
     "date": "2026-05-31",
     "bump": "MINOR",
