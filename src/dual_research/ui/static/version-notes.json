@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.67.0",
+    "date": "2026-05-31",
+    "bump": "MINOR",
+    "summary": "Reconciler flags spec citations unreachable from the live entry points (spec 0258).",
+    "items": [
+      "<strong>Reconciler flags spec citations unreachable from the live entry points</strong> ([spec 0258](specs/0258-reconciler-citation-liveness-reporting-check.md)).",
+      "<code>/dev-next</code> reconcile now surfaces a WARN-level <code>unreachable (informational): N</code> block for any <code>## 2</code> citation that exists on disk but resolves to a Python function not reachable — by coarse bare-name BFS over <code>src/dual_research/</code> from the live entry points <code>run_dr_phase2</code> / <code>run_dr_phase4</code> — making the CLAUDE.md \"cite the live surface, not the dead one\" rule executable at the exact reconcile-time step where the dead→live retarget decision is made.",
+      "The overlay is reporting, not gating: it never contributes to <code>has_blocking_drift</code> and never changes the CLI exit code (<code>scripts/spec_lifecycle/reconcile.py</code>).",
+      "Scoped to <code>.py</code> citations under <code>src/dual_research/</code> only; dynamic-dispatch / registry-keyed symbols may read as unreachable (accepted WARN noise by design).",
+      "New <code>unreachable: list[Citation]</code> bucket on <code>ReconcileReport</code>; new <code>_build_reachable_symbols</code> / <code>_resolve_symbol_at_line</code> / <code>_check_citation_liveness</code> helpers.",
+      "Verified against the real source tree (560 of 764 package functions are unreachable from the two entry points).",
+      "This spec was caught by its own predecessor's drift at <code>/dev-next</code> time: its authored worked-example fixture (<code>ledger/prompt.py:build_standing_items_section</code>) had been deleted by [spec 0257.1](specs/0257.1-delete-dead-legacy-standing-items-surface.md), so it was retargeted onto <code>run_phase1</code> (a still-on-disk dead legacy runner) during reconcile.",
+      "The reconciler-against-<code>main</code> commit records the dead→live mapping."
+    ],
+    "specs": [
+      "0258",
+      "0257.1"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.66.2",
     "date": "2026-05-31",
     "bump": "PATCH",
