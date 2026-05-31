@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T15:44:26Z",
+  "updated_at": "2026-05-31T15:47:40Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14862,6 +14862,46 @@
           "ts": "2026-05-31T15:44:26Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-31T15:44:42Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0260-name-flag-doubles-as-run-display-title",
+            "from": "main@9e54f39"
+          }
+        },
+        {
+          "ts": "2026-05-31T15:44:42Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T15:46:14Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 6,
+            "commits": 0
+          }
+        },
+        {
+          "ts": "2026-05-31T15:46:15Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T15:46:54Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2454
+          }
+        },
+        {
+          "ts": "2026-05-31T15:47:40Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/302"
+          }
         }
       ],
       "started_at": "2026-05-31T15:44:25Z"
