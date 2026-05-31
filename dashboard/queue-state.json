@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T04:40:29Z",
+  "updated_at": "2026-05-31T04:44:06Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14350,10 +14350,52 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/298"
           }
+        },
+        {
+          "ts": "2026-05-31T04:41:04Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/298"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:41:09Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:42:46Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.66.1"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:42:50Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:44:00Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-31-spec-0257.1-delete-dead-legacy-standing-items-surface.md"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:44:06Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.66.1"
+          }
         }
       ],
-      "status": "in_progress",
-      "started_at": "2026-05-31T04:31:09Z"
+      "status": "deployed",
+      "started_at": "2026-05-31T04:31:09Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/298",
+      "merged_at": "2026-05-31T04:40:45Z",
+      "deployed_at": "2026-05-31T04:44:06Z",
+      "handover": "handoffs/2026-05-31-spec-0257.1-delete-dead-legacy-standing-items-surface.md"
     }
   }
 }
