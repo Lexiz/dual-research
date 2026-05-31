@@ -4,8 +4,10 @@ Covers:
   - § A canonical-FSD synthesis: helper detection + synthesis + splice.
   - § B lenient checks: is_plan_agreed_lenient + is_review_approved_lenient.
 
-The blocked-convergence warning text helper (§ C) lives in
-`ledger/prompt.py` and is tested in `tests/ledger/test_prompt.py`.
+The blocked-convergence warning text helper (§ C) was a legacy-only
+surface (``ledger/prompt.py:build_blocked_convergence_warning``, called
+exclusively by the dead ``run_phase2`` / ``run_phase4`` runners); spec
+0257.1 deleted it along with the rest of the dead ledger-prompt surface.
 """
 
 from __future__ import annotations

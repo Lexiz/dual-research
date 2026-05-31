@@ -1,5 +1,26 @@
 [
   {
+    "version": "1.66.1",
+    "date": "2026-05-31",
+    "bump": "PATCH",
+    "summary": "Dead legacy standing-items prompt surface (spec 0257.1).",
+    "items": [
+      "<strong>Removed.</strong> <strong>Dead legacy standing-items prompt surface</strong> ([spec 0257.1](specs/0257.1-delete-dead-legacy-standing-items-surface.md)).",
+      "Deleted <code>ledger/prompt.py</code> in full — <code>build_standing_items_section</code>, its private helpers, <strong>and</strong> <code>build_blocked_convergence_warning</code> (spec 0089 § C) — together with the legacy <code>orchestrator/phase2.py:run_phase2</code> and <code>orchestrator/phase4.py:run_phase4</code> runners that were its only callers.",
+      "All of it had been unreachable from the live entry points (<code>run_dr_phase2</code> / <code>run_dr_phase4</code>, via <code>_drive_interaction_phase</code>) since the spec-0118 v2 rewrite; the live role-aware standing-items surface is <code>deep_research.format_role_aware_standing_items</code>, rendered off the contract <code>LedgerEntryV2</code> state machine.",
+      "The second, diverging renderer was the wrong-layer hazard that produced spec 0257's reconcile-time citation bug — removing it disarms that trap.",
+      "<code>build_blocked_convergence_warning</code> became dead the moment its only callers (the legacy runners) were removed, so it went in the same pass rather than being left as a single-dead-function file.",
+      "Orphaned tests that exercised only the dead surface: <code>tests/ledger/test_prompt.py</code>, <code>tests/orchestrator/test_phase2.py</code>, <code>tests/orchestrator/test_phase4_spec0091.py</code>, <code>tests/orchestrator/test_phase4_resume.py</code>, plus the two <code>run_phase4</code>-dependent functions surgically dropped from <code>tests/orchestrator/test_phase3_4_final.py</code> (its <code>Phase*Outcome</code> / finalize coverage stays).",
+      "<strong>Changed.</strong> <strong>Preserved the <code>Phase2Outcome</code> / <code>Phase4Outcome</code> dataclasses in place.</strong> They remain the finalize-layer contract still imported by <code>dr_run.py</code>, <code>run.py</code>, and <code>finalize.py</code>; <code>orchestrator/phase2.py</code> and <code>orchestrator/phase4.py</code> are now reduced to those dataclasses plus a module docstring.",
+      "No live behaviour changed — this is pure dead-code removal."
+    ],
+    "specs": [
+      "0257.1"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.66.0",
     "date": "2026-05-30",
     "bump": "MINOR",
