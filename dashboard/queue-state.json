@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T15:47:40Z",
+  "updated_at": "2026-05-31T15:50:33Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14804,7 +14804,7 @@
       "handover": "handoffs/2026-05-31-spec-0259-delete-dead-legacy-phase3-runner.md"
     },
     "0260": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-31T15:36:18Z",
       "events": [
         {
@@ -14902,9 +14902,44 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/302"
           }
+        },
+        {
+          "ts": "2026-05-31T15:48:05Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/302"
+          }
+        },
+        {
+          "ts": "2026-05-31T15:48:10Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T15:49:59Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.68.0"
+          }
+        },
+        {
+          "ts": "2026-05-31T15:50:10Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T15:50:29Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-31-spec-0260-name-flag-doubles-as-run-display-title.md"
+          }
         }
       ],
-      "started_at": "2026-05-31T15:44:25Z"
+      "started_at": "2026-05-31T15:44:25Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/302",
+      "merged_at": "2026-05-31T15:47:47Z",
+      "deployed_at": "2026-05-31T15:50:33Z",
+      "handover": "handoffs/2026-05-31-spec-0260-name-flag-doubles-as-run-display-title.md"
     }
   }
 }
