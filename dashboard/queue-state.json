@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T07:38:59Z",
+  "updated_at": "2026-05-31T15:36:18Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14802,6 +14802,17 @@
       "merged_at": "2026-05-31T07:36:05Z",
       "deployed_at": "2026-05-31T07:38:59Z",
       "handover": "handoffs/2026-05-31-spec-0259-delete-dead-legacy-phase3-runner.md"
+    },
+    "0260": {
+      "status": "queued",
+      "queued_at": "2026-05-31T15:36:18Z",
+      "events": [
+        {
+          "ts": "2026-05-31T15:36:18Z",
+          "step": "queued",
+          "data": {}
+        }
+      ]
     }
   }
 }
