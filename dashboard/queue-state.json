@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T07:35:06Z",
+  "updated_at": "2026-05-31T07:38:59Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14756,10 +14756,52 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/301"
           }
+        },
+        {
+          "ts": "2026-05-31T07:36:29Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/301"
+          }
+        },
+        {
+          "ts": "2026-05-31T07:36:38Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T07:38:16Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.67.1"
+          }
+        },
+        {
+          "ts": "2026-05-31T07:38:30Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T07:38:54Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-31-spec-0259-delete-dead-legacy-phase3-runner.md"
+          }
+        },
+        {
+          "ts": "2026-05-31T07:38:59Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.67.1"
+          }
         }
       ],
-      "status": "in_progress",
-      "started_at": "2026-05-31T07:31:22Z"
+      "status": "deployed",
+      "started_at": "2026-05-31T07:31:22Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/301",
+      "merged_at": "2026-05-31T07:36:05Z",
+      "deployed_at": "2026-05-31T07:38:59Z",
+      "handover": "handoffs/2026-05-31-spec-0259-delete-dead-legacy-phase3-runner.md"
     }
   }
 }
