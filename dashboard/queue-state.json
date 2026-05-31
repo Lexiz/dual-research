@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T04:54:08Z",
+  "updated_at": "2026-05-31T04:56:59Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14248,7 +14248,7 @@
       "handover": "handoffs/2026-05-30-spec-0257-phase2-role-aware-standing-items-addressee-obligation.md"
     },
     "0257.2": {
-      "status": "in_progress",
+      "status": "deployed",
       "queued_at": "2026-05-31T04:20:14Z",
       "events": [
         {
@@ -14346,9 +14346,51 @@
           "data": {
             "url": "https://github.com/Lexiz/dual-research/pull/299"
           }
+        },
+        {
+          "ts": "2026-05-31T04:54:38Z",
+          "step": "merged",
+          "data": {
+            "pr": "https://github.com/Lexiz/dual-research/pull/299"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:54:45Z",
+          "step": "deploy_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:56:29Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.66.2"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:56:34Z",
+          "step": "deploy_health_check_ok",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:56:59Z",
+          "step": "handoff_written",
+          "data": {
+            "path": "handoffs/2026-05-31-spec-0257.2-raiser-addressed-no-self-address-prohibition.md"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:56:59Z",
+          "step": "deployed",
+          "data": {
+            "version": "1.66.2"
+          }
         }
       ],
-      "started_at": "2026-05-31T04:51:23Z"
+      "started_at": "2026-05-31T04:51:23Z",
+      "pr": "https://github.com/Lexiz/dual-research/pull/299",
+      "merged_at": "2026-05-31T04:54:22Z",
+      "deployed_at": "2026-05-31T04:56:59Z",
+      "handover": "handoffs/2026-05-31-spec-0257.2-raiser-addressed-no-self-address-prohibition.md"
     },
     "0257.1": {
       "events": [
