@@ -10,6 +10,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.67.0] — 2026-05-31
+
+### Added
+
+- **Reconciler flags spec citations unreachable from the live entry points** ([spec 0258](specs/0258-reconciler-citation-liveness-reporting-check.md)). `/dev-next` reconcile now surfaces a WARN-level `unreachable (informational): N` block for any `## 2` citation that exists on disk but resolves to a Python function not reachable — by coarse bare-name BFS over `src/dual_research/` from the live entry points `run_dr_phase2` / `run_dr_phase4` — making the CLAUDE.md "cite the live surface, not the dead one" rule executable at the exact reconcile-time step where the dead→live retarget decision is made. The overlay is reporting, not gating: it never contributes to `has_blocking_drift` and never changes the CLI exit code (`scripts/spec_lifecycle/reconcile.py`). Scoped to `.py` citations under `src/dual_research/` only; dynamic-dispatch / registry-keyed symbols may read as unreachable (accepted WARN noise by design). New `unreachable: list[Citation]` bucket on `ReconcileReport`; new `_build_reachable_symbols` / `_resolve_symbol_at_line` / `_check_citation_liveness` helpers. Verified against the real source tree (560 of 764 package functions are unreachable from the two entry points).
+
+### Note
+
+- This spec was caught by its own predecessor's drift at `/dev-next` time: its authored worked-example fixture (`ledger/prompt.py:build_standing_items_section`) had been deleted by [spec 0257.1](specs/0257.1-delete-dead-legacy-standing-items-surface.md), so it was retargeted onto `run_phase1` (a still-on-disk dead legacy runner) during reconcile. The reconciler-against-`main` commit records the dead→live mapping.
+
 ## [1.66.2] — 2026-05-31
 
 ### Fixed
