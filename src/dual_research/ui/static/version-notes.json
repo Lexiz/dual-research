@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.66.2",
+    "date": "2026-05-31",
+    "bump": "PATCH",
+    "summary": "Raiser self-ADDRESSes its own already-addressed items (spec 0257.2).",
+    "items": [
+      "<strong>Raiser self-ADDRESSes its own already-addressed items</strong> ([spec 0257.2](specs/0257.2-raiser-addressed-no-self-address-prohibition.md)).",
+      "The group-3 standing-items instruction (<code>_RAISER_ADDRESSED_INSTRUCTION</code> in <code>orchestrator/deep_research.py</code>) listed the ratify ops (<code>RESOLVE</code> / <code>ACKNOWLEDGE</code> / counter-argue) but never prohibited <code>### ADDRESS</code>.",
+      "When a raiser's item flips <code>open → addressed</code> it moves from group 2 to group 3 and lost the no-self-address prohibition group 2 carried, so the raiser reached for <code>### ADDRESS</code> again — the <code>raiser_self_address</code> violation (5× in live run <code>20260530-205144-spec-0257-validation</code>, all phase 2 / round 3 / agent <code>claude</code>; the ops were dropped and did not block convergence).",
+      "The fix adds the prohibition (and surfaces the already-legal <code>### WITHDRAW</code> op) to the group-3 instruction, mirroring the group-2 wording.",
+      "Prompt-text-only steering change — no code path, partition logic, verifier invariant, lifecycle edge, or event type changes."
+    ],
+    "specs": [
+      "0257.2"
+    ],
+    "user_facing": false,
+    "screenshots": []
+  },
+  {
     "version": "1.66.1",
     "date": "2026-05-31",
     "bump": "PATCH",
