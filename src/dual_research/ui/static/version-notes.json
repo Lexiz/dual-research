@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.68.0",
+    "date": "2026-05-31",
+    "bump": "MINOR",
+    "summary": "--name now doubles as the run display title (spec 0260).",
+    "items": [
+      "<strong><code>--name</code> now doubles as the run display title</strong> ([spec 0260](specs/0260-name-flag-doubles-as-run-display-title.md)).",
+      "The <code>--name</code> flag — already passed on every run to feed the slug — now also overrides the first <code># </code> H1 of <code>brief.md</code>, which is the string both UIs render as the run title.",
+      "Previously every run displayed as \"Research Brief\" (the hardcoded Notion-ingest H1 default at <code>notion.py:431</code>) regardless of <code>--name</code>.",
+      "The override is applied source-agnostically at the single <code>brief.md</code> write chokepoint (<code>cli.py:400</code>) via a new <code>_apply_title</code> helper, so it covers <code>--notion</code>, <code>--prompt</code>, and <code>--brief</code> alike and lands on both the local (<code>aggregator.py:_read_topic</code>) and hosted (<code>server.py:_extract_h1</code>) surfaces in one change.",
+      "When <code>--name</code> is omitted the transform is a bit-for-bit pass-through — the source's own H1 / topic-extraction fallback is preserved.",
+      "No new flag; slug derivation (<code>_derive_slug</code>) is unchanged."
+    ],
+    "specs": [
+      "0260"
+    ],
+    "user_facing": true,
+    "screenshots": []
+  },
+  {
     "version": "1.67.1",
     "date": "2026-05-31",
     "bump": "PATCH",

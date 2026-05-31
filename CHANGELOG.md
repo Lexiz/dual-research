@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.68.0] — 2026-05-31
+
+### Added
+
+- **`--name` now doubles as the run display title** ([spec 0260](specs/0260-name-flag-doubles-as-run-display-title.md)). The `--name` flag — already passed on every run to feed the slug — now also overrides the first `# ` H1 of `brief.md`, which is the string both UIs render as the run title. Previously every run displayed as "Research Brief" (the hardcoded Notion-ingest H1 default at `notion.py:431`) regardless of `--name`. The override is applied source-agnostically at the single `brief.md` write chokepoint (`cli.py:400`) via a new `_apply_title` helper, so it covers `--notion`, `--prompt`, and `--brief` alike and lands on both the local (`aggregator.py:_read_topic`) and hosted (`server.py:_extract_h1`) surfaces in one change. When `--name` is omitted the transform is a bit-for-bit pass-through — the source's own H1 / topic-extraction fallback is preserved. No new flag; slug derivation (`_derive_slug`) is unchanged.
+
 ## [1.67.1] — 2026-05-31
 
 ### Removed

@@ -280,6 +280,22 @@ def _slugify(text: str) -> str:
     return s[:60] if s else ""
 
 
+def _apply_title(content: str, name: str | None) -> str:
+    """Override the first H1 of a brief with ``name`` so ``--name`` doubles as
+    the run display title (spec 0260). Source-agnostic — applied at the single
+    ``brief.md`` write point, so it covers --notion / --prompt / --brief alike.
+    When ``name`` is falsy, returns ``content`` verbatim (existing behavior).
+    """
+    if not name:
+        return content
+    lines = content.split("\n")
+    for i, line in enumerate(lines):
+        if line.startswith("# "):  # replace first H1 (e.g. "# Research brief")
+            lines[i] = f"# {name}"
+            return "\n".join(lines)
+    return f"# {name}\n\n{content}"  # no H1 present → prepend one
+
+
 def _run_id(slug: str) -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-" + slug
 
@@ -397,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
 
     session_dir.mkdir(parents=True, exist_ok=True)
     brief_path = session_dir / "brief.md"
-    brief_path.write_text(brief.content, encoding="utf-8")
+    brief_path.write_text(_apply_title(brief.content, args.name), encoding="utf-8")
 
     # Materialise any local-file attachments into <session>/attachments/
     # and write the metadata index. URL-only entries pass through
