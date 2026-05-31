@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T07:08:14Z",
+  "updated_at": "2026-05-31T07:14:39Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14584,6 +14584,46 @@
           "ts": "2026-05-31T07:08:14Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-31T07:08:27Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0258-reconciler-citation-liveness-reporting-check",
+            "from": "main@1c9956b"
+          }
+        },
+        {
+          "ts": "2026-05-31T07:08:27Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T07:13:32Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 6,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-31T07:13:36Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T07:14:14Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2451
+          }
+        },
+        {
+          "ts": "2026-05-31T07:14:39Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/300"
+          }
         }
       ],
       "status": "in_progress",
