@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-05-31T04:31:09Z",
+  "updated_at": "2026-05-31T04:40:29Z",
   "specs": {
     "0001": {
       "status": "merged",
@@ -14310,6 +14310,46 @@
           "ts": "2026-05-31T04:31:09Z",
           "step": "in_progress",
           "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:31:25Z",
+          "step": "branched",
+          "data": {
+            "branch": "spec/0257.1-delete-dead-legacy-standing-items-surface",
+            "from": "main@bef5c45"
+          }
+        },
+        {
+          "ts": "2026-05-31T04:31:25Z",
+          "step": "implementing_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:39:10Z",
+          "step": "implement_complete",
+          "data": {
+            "files_changed": 11,
+            "commits": 1
+          }
+        },
+        {
+          "ts": "2026-05-31T04:39:10Z",
+          "step": "tests_started",
+          "data": {}
+        },
+        {
+          "ts": "2026-05-31T04:39:48Z",
+          "step": "tests_green",
+          "data": {
+            "passed": 2443
+          }
+        },
+        {
+          "ts": "2026-05-31T04:40:29Z",
+          "step": "pr_opened",
+          "data": {
+            "url": "https://github.com/Lexiz/dual-research/pull/298"
+          }
         }
       ],
       "status": "in_progress",
