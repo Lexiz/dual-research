@@ -177,8 +177,10 @@ _RAISER_ADDRESSED_INSTRUCTION = (
     "You raised these and the other agent has now ADDRESSed them — they are "
     "ready for you to ratify. You may `### RESOLVE <id>` (you accept the "
     "response), `### ACKNOWLEDGE <id>` (the disagreement is irreconcilable), "
-    "or counter-argue (which flips the item back to open with your "
-    "rationale)."
+    "`### WITHDRAW <id>` (you drop the item), or counter-argue (which flips "
+    "the item back to open with your rationale). Do NOT emit `### ADDRESS "
+    "<id>` on your own item — that is `raiser_self_address` and will be "
+    "dropped; the item is already addressed, so ratify it instead."
 )
 
 _ADDRESSEE_ADDRESSED_INSTRUCTION = (

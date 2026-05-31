@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.66.2] — 2026-05-31
+
+### Fixed
+
+- **Raiser self-ADDRESSes its own already-addressed items** ([spec 0257.2](specs/0257.2-raiser-addressed-no-self-address-prohibition.md)). The group-3 standing-items instruction (`_RAISER_ADDRESSED_INSTRUCTION` in `orchestrator/deep_research.py`) listed the ratify ops (`RESOLVE` / `ACKNOWLEDGE` / counter-argue) but never prohibited `### ADDRESS`. When a raiser's item flips `open → addressed` it moves from group 2 to group 3 and lost the no-self-address prohibition group 2 carried, so the raiser reached for `### ADDRESS` again — the `raiser_self_address` violation (5× in live run `20260530-205144-spec-0257-validation`, all phase 2 / round 3 / agent `claude`; the ops were dropped and did not block convergence). The fix adds the prohibition (and surfaces the already-legal `### WITHDRAW` op) to the group-3 instruction, mirroring the group-2 wording. Prompt-text-only steering change — no code path, partition logic, verifier invariant, lifecycle edge, or event type changes.
+
 ## [1.66.1] — 2026-05-31
 
 ### Removed

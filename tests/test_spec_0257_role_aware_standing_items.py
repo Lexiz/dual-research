@@ -171,6 +171,38 @@ def test_ratifiable_group_is_exactly_addressed_and_raised_by_agent():
     assert "D-c-res" not in out             # terminal items never render
 
 
+def test_raiser_addressed_group_prohibits_self_address():
+    """Spec 0257.2 — the group-3 ("ready for you to ratify") instruction
+    must carry the no-self-address prohibition, mirroring group 2. Before
+    the fix the addressed-raiser block listed only the ratify ops and the
+    item lost the prohibition it had carried while open, so the raiser
+    reached for ``### ADDRESS`` again (5× ``raiser_self_address`` in live
+    run ``20260530-205144-spec-0257-validation``).
+
+    Positive: the group-3 block prohibits ADDRESS and names the violation.
+    Antipodal-absence: the block is no longer the prohibition-free
+    ratify-only string it was pre-fix — the ``### ADDRESS`` prohibition
+    substring is now present within the isolated block.
+    """
+    ledger = [
+        _mk("D-c-addr", "claude", State.ADDRESSED,
+            transitions=[{"to": "addressed", "actor": "openai"}]),
+    ]
+    out = format_role_aware_standing_items(ledger, "claude")
+    ratify_block = _group_block(out, "ready for you to ratify")
+
+    # Positive: prohibition present and the violation named.
+    assert "Do NOT emit `### ADDRESS" in ratify_block
+    assert "raiser_self_address" in ratify_block
+    # Ratify ops still offered — the fix is additive, not a replacement.
+    assert "RESOLVE" in ratify_block
+    assert "ACKNOWLEDGE" in ratify_block
+    # Antipodal-absence: the pre-fix shape (a group-3 block with no ADDRESS
+    # prohibition at all) is gone — the ADDRESS-prohibition substring is now
+    # present in the isolated block.
+    assert "`### ADDRESS" in ratify_block
+
+
 def test_empty_ledger_renders_none_sentinel():
     assert format_role_aware_standing_items([], "claude") == "(none)"
     # all-terminal also collapses to the sentinel
